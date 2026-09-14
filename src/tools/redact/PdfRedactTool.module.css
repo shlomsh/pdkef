@@ -1,32 +1,22 @@
-/* Redact box delete/resize controls stay hidden until the box is hovered
-   (desktop) or actively touched/dragged (mobile, via the .active class set
-   in PdfRedactTool.jsx's activeBoxId state) — otherwise a page with several
-   redaction boxes is cluttered with ✕ buttons and resize handles at rest. */
-.redact-box .redact-element-btn,
+/* Redact box resize control stays hidden until the box is hovered (desktop)
+   or actively touched/dragged (mobile, via the .active class set in
+   PdfRedactTool.jsx's activeBoxId state), otherwise a page with several
+   redaction boxes is cluttered with resize handles at rest. The delete
+   affordance used to live here too (a Redact-only inline red cross, hidden
+   the same way); it is gone in favour of the shared floating toolbar every
+   type now renders on selection (RedactBox.tsx, ElementToolbar.tsx) - one
+   selection chrome, not a hover-only one that also disagreed on icon, colour
+   and position with the other two types. */
 .redact-box .redact-box-resizer {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
 }
 
-.redact-box:hover .redact-element-btn,
 .redact-box:hover .redact-box-resizer,
-.redact-box.active .redact-element-btn,
 .redact-box.active .redact-box-resizer {
   opacity: 1;
   pointer-events: auto;
-}
-
-/* Redact design-review finding #2: this button is a hard 24x24 circle
-   (RedactBox.tsx's inline style) with no touch widening at all, unlike the
-   shared resize handles beside it. Same invisible `::before` overlay as
-   `.resizer::before` (EditorElement.module.css) and `.element-button::before`
-   (EditorControls.module.css): the visible circle stays 24x24, the pseudo
-   reaches the 44px floor (24 + 2*10 = 44). The button already carries its own
-   `position: absolute` inline style, so it is already a valid anchor for the
-   pseudo - no extra positioning rule needed here. */
-@media (pointer: coarse) {
-  .redact-element-btn::before { content: ''; position: absolute; inset: -10px; }
 }
 
 /* Whiteout's border reads as a true erase at rest (transparent) and only

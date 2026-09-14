@@ -19,15 +19,19 @@ const ELEMENT_RENDERERS = createElementRenderers({});
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
 //
-// Whiteout boxes are styled to match the Sign tool's whiteout element as closely as
-// possible: the same floating toolbar (ElementToolbar's `type === 'whiteout'` branch —
-// color picker + duplicate + delete), positioned with the same Floating UI middleware as
-// SignTool/DraggableWrapper.tsx so it flips below the box instead of clipping off-screen
-// near the top of a page; the same 8-handle resize UI as ElementResizers renders for
-// shapes (`.sign-element--shape .sign-element-resizer` in global.css); and a border that
-// stays transparent at rest so the box reads as a true erase, only appearing on hover/
-// selection (mirrors `.sign-element` / `.sign-element.active` in global.css). Blackout/
-// blur boxes share the same resize handles, but keep their red in-box delete control.
+// All three types are styled to match the Sign tool's whiteout element as closely as
+// possible: the same floating toolbar on selection (ElementToolbar - color picker for
+// whiteout only, then duplicate and delete for every type), positioned with the same
+// Floating UI middleware as SignTool/DraggableWrapper.tsx so it flips below the box
+// instead of clipping off-screen near the top of a page; the same 8-handle resize UI as
+// ElementResizers renders for shapes (`.sign-element--shape .sign-element-resizer` in
+// global.css); and a border that stays transparent at rest so the box reads as a true
+// erase, only appearing on hover/selection (mirrors `.sign-element` / `.sign-element.active`
+// in global.css). Blackout/blur used to carry their own inline red delete button instead
+// of this toolbar; a design review found the mismatch (different icon, colour and
+// position, the position itself moving between the resize-handles-shown and hidden
+// states) confusing enough to remove it in favour of one shared selection chrome for
+// every type.
 export default function RedactBox({
   el,
   isSelected,
@@ -82,15 +86,13 @@ export default function RedactBox({
     onChange: (patch: any) => onChange(el.id, patch),
   });
 
-  // The inline delete button (blackout/blur only) has no data-editor-actions/
-  // data-editor-resizer marker, so useDraggableElement's own target-closest
-  // guards don't catch it - preserved here as the one piece of Redact-specific
-  // logic that survives the convergence onto the shared hook.
-  const handlePointerDown = (e: any) => {
-    if ((e.target as HTMLElement).closest(`.${styles['redact-element-btn']}`)) return;
-    handleDragPointerDown(e);
-  };
-
+  // The floating toolbar's own wrapper (`data-editor-actions`, below) already
+  // stops mousedown/touchstart propagation, so no Redact-specific
+  // target-closest guard is needed here any more - every type shares
+  // useDraggableElement's handler directly (E7.5's per-type
+  // `.redact-element-btn` guard was the one piece of Redact-specific logic
+  // that survived the convergence onto the shared hook; it went away with
+  // the inline button it protected).
   const isWhiteout = el.type === 'whiteout';
   const hasShapeHandles = true;
   const surface = ELEMENT_RENDERERS[el.type as ElementType]({
@@ -125,8 +127,8 @@ export default function RedactBox({
       }}
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
-      onMouseDown={handlePointerDown}
-      onTouchStart={handlePointerDown}
+      onMouseDown={handleDragPointerDown}
+      onTouchStart={handleDragPointerDown}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       style={{
@@ -141,37 +143,6 @@ export default function RedactBox({
       }}
     >
       {surface}
-      {!isWhiteout && (
-        <button
-          className={styles['redact-element-btn']}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(el.id);
-          }}
-          title="Remove redaction"
-          style={{
-            position: 'absolute',
-            top: hasShapeHandles ? '8px' : '-10px',
-            right: hasShapeHandles ? '8px' : '-10px',
-            background: 'var(--color-danger)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: '14px',
-            lineHeight: '1',
-            padding: 0,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}
-        >
-          ✕
-        </button>
-      )}
       {hasShapeHandles ? (
         <ElementResizers
           element={el}
@@ -200,7 +171,7 @@ export default function RedactBox({
           }}
         />
       )}
-      {isSelected && isWhiteout && (
+      {isSelected && (
         <div
           ref={refs.setFloating}
           className={elementStyles.actions}

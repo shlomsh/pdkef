@@ -172,7 +172,16 @@ test.describe('Redact editor browser guardrails', () => {
     await assertNoCspViolations(page);
   });
 
-  test('keeps redaction controls type-specific, resizable, and page-bound in the real browser', async ({ page }) => {
+  // Design review, from a real ID scan with three redaction boxes on one
+  // page: whiteout showed the shared floating toolbar on selection, but
+  // blackout and blur instead drew their own inline red round delete button
+  // inside the box - different icon, different colour, a position that
+  // itself moved (top/right 8px with resize handles shown, -10px without).
+  // All three types now share exactly one selection chrome: the same
+  // floating toolbar (ElementToolbar via RedactBox's `[data-editor-actions]`
+  // wrapper), positioned the same way, showing nothing until the box is
+  // selected and nothing on hover alone.
+  test('keeps one shared selection chrome across whiteout, blackout and blur, resizable and page-bound, in the real browser', async ({ page }) => {
     await openRedactTool(page);
 
     const overlay = page.locator('.redact-draw-area').first();
@@ -184,18 +193,48 @@ test.describe('Redact editor browser guardrails', () => {
     const blackout = await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.28 }, { x: 0.38, y: 0.34 });
     const blur = await drawRedaction(page, 'Blur', { x: 0.2, y: 0.42 }, { x: 0.36, y: 0.48 });
 
+    // Nothing shows before selection, for any of the three types - and
+    // hovering (blackout/blur's old cue) is not enough on its own either.
+    for (const [name, redaction] of [['whiteout', whiteout], ['blackout', blackout], ['blur', blur]]) {
+      await expect(redaction.locator('[data-editor-actions]'), `${name} should show no toolbar before selection`).toHaveCount(0);
+    }
+    await blackout.hover();
+    await expect(blackout.locator('[data-editor-actions]'), 'hover alone must not reveal the toolbar').toHaveCount(0);
+
+    // Each type shows the identical floating toolbar, at the identical offset
+    // above the box, once selected - measured so a future regression can't
+    // silently reintroduce a per-type divergence.
+    const offsetAboveBoxTop = {};
+
+    await selectRedaction(whiteout);
+    await expect(whiteout.locator('[data-editor-resizer]')).toHaveCount(8);
+    {
+      const toolbar = whiteout.locator('[data-editor-actions]');
+      await expect(toolbar).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      // Whiteout is the only type with a per-element colour control - its
+      // toolbar carries one extra button (colour trigger, duplicate, delete)
+      // over blackout/blur's two (duplicate, delete).
+      await expect(toolbar.locator('button')).toHaveCount(3);
+      const boxRect = await getBox(whiteout, 'whiteout box');
+      const toolbarRect = await getBox(toolbar, 'whiteout toolbar');
+      offsetAboveBoxTop.whiteout = boxRect.y - (toolbarRect.y + toolbarRect.height);
+    }
+    // Fill lives on the inset registry-rendered surface, not the host box
+    // (E7.4 - renderRedactionSurface is the sole fill/blur/border owner).
+    await expect(whiteout.locator('.redact-surface')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+
     await selectRedaction(blackout);
     await expect(blackout.locator('[data-editor-resizer]')).toHaveCount(8);
-
-    await blackout.hover();
-    const blackoutBox = await getBox(blackout, 'Blackout box');
-    const redDelete = blackout.locator('[class*="redact-element-btn"]');
-    await expect(redDelete).toBeVisible();
-    const redDeleteBox = await getBox(redDelete, 'Blackout delete button');
-    expect(redDeleteBox.x).toBeGreaterThanOrEqual(blackoutBox.x);
-    expect(redDeleteBox.y).toBeGreaterThanOrEqual(blackoutBox.y);
-    expect(redDeleteBox.x + redDeleteBox.width).toBeLessThanOrEqual(blackoutBox.x + blackoutBox.width);
-    expect(redDeleteBox.y + redDeleteBox.height).toBeLessThanOrEqual(blackoutBox.y + blackoutBox.height);
+    {
+      const toolbar = blackout.locator('[data-editor-actions]');
+      await expect(toolbar).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.locator('button'), 'blackout has no colour control - only duplicate and delete').toHaveCount(2);
+      const boxRect = await getBox(blackout, 'blackout box');
+      const toolbarRect = await getBox(toolbar, 'blackout toolbar');
+      offsetAboveBoxTop.blackout = boxRect.y - (toolbarRect.y + toolbarRect.height);
+    }
 
     const beforeResize = await getBox(blackout, 'Blackout before resize');
     const bottomRight = blackout.locator('[data-editor-resizer="bottom-right"]');
@@ -212,20 +251,23 @@ test.describe('Redact editor browser guardrails', () => {
 
     await selectRedaction(blur);
     await expect(blur.locator('[data-editor-resizer]')).toHaveCount(8);
+    {
+      const toolbar = blur.locator('[data-editor-actions]');
+      await expect(toolbar).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.locator('button'), 'blur has no colour control - only duplicate and delete').toHaveCount(2);
+      const boxRect = await getBox(blur, 'blur box');
+      const toolbarRect = await getBox(toolbar, 'blur toolbar');
+      offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
+    }
 
     await dragBy(page, blur, 2000, -2000);
     await expectWithinPage(blur, overlay);
 
-    await selectRedaction(whiteout);
-    await expect(whiteout.locator('[data-editor-resizer]')).toHaveCount(8);
-    await expect(whiteout.locator('[class*="redact-element-btn"]')).toHaveCount(0);
-    // Fill lives on the inset registry-rendered surface, not the host box
-    // (E7.4 - renderRedactionSurface is the sole fill/blur/border owner).
-    await expect(whiteout.locator('.redact-surface')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-
-    const floatingToolbar = whiteout.locator('[data-editor-actions]');
-    await expect(floatingToolbar).toBeVisible();
-    await expect(floatingToolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+    // eslint-disable-next-line no-console -- deliberate: the offsets are part of this guardrail's evidence.
+    console.log('Redact selection-toolbar offset above box top (px):', offsetAboveBoxTop);
+    expect(offsetAboveBoxTop.blackout).toBeCloseTo(offsetAboveBoxTop.whiteout, 0);
+    expect(offsetAboveBoxTop.blur).toBeCloseTo(offsetAboveBoxTop.whiteout, 0);
   });
 
   // Start over is gone: it and Replace both meant "I want a different file", so
@@ -294,10 +336,14 @@ test.describe('Redact editor browser guardrails', () => {
 
 // Design-review findings #1 and #2: jsdom has no layout, so the CSS-only
 // touch-target floors added for this review (`.delete-candidate::before`,
-// `.delete-mark-btn::before`, `.resizer::before`, `.element-button::before`,
-// `.redact-element-btn::before`) need a real browser to prove. Coordinates
-// are read as computed style, matching toolbar-touch-targets.spec.js's own
-// approach of measuring rendered geometry rather than clicking blind.
+// `.delete-mark-btn::before`, `.resizer::before`, `.element-button::before`)
+// need a real browser to prove. Coordinates are read as computed style,
+// matching toolbar-touch-targets.spec.js's own approach of measuring
+// rendered geometry rather than clicking blind. Blackout/blur used to carry
+// their own `.redact-element-btn::before` floor for their now-removed inline
+// delete button; they measure through `.element-button::before` below like
+// every other shared-toolbar control, since the toolbar-parity fix moved
+// them onto it.
 test.describe('per-element touch targets (design-review findings #1 and #2)', () => {
   test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
 
@@ -315,10 +361,12 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     return Buffer.from(await doc.save());
   }
 
-  // Computed `inset` on `::before` (the technique `.resizer`, `.element-button`
-  // and `.redact-element-btn` all use) expanded against the real element's own
-  // rendered rect - CSS `inset` shorthand resolves like `margin`'s 1/2/3/4-value
-  // forms, so this covers every one it can compute to.
+  // Computed `inset` on `::before` (the technique `.resizer` and
+  // `.element-button` use, the latter now covering every redaction type's
+  // toolbar buttons - blackout/blur included) expanded against the real
+  // element's own rendered rect - CSS `inset` shorthand resolves like
+  // `margin`'s 1/2/3/4-value forms, so this covers every one it can compute
+  // to.
   async function insetHitSize(locator) {
     return locator.evaluate((el) => {
       const own = el.getBoundingClientRect();
@@ -375,7 +423,7 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(stillTiny.height).toBeCloseTo(before.height, 1);
   });
 
-  test('finding #2: brings the resizer, whiteout toolbar buttons and blackout/blur delete button to 44px under a coarse pointer', async ({ page }) => {
+  test('finding #2: brings the resizer and the shared floating toolbar buttons (including a blackout box\'s delete control) to 44px under a coarse pointer', async ({ page }) => {
     await openRedactTool(page);
 
     const whiteout = await drawRedaction(page, 'Whiteout', { x: 0.18, y: 0.16 }, { x: 0.4, y: 0.22 });
@@ -395,20 +443,20 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
     expect(floatingHit.height, `visual was ${floatingVisual.height}px`).toBeGreaterThanOrEqual(44);
 
-    // Deselect before drawing the next box. The whiteout's floating toolbar
-    // (`[data-editor-actions]`) is a DOM descendant of `.redact-box`, so
-    // `handlePointerDown`'s own-box/button guard treats a press anywhere on
-    // it as "clicking an existing box", not a new draw - a still-open
+    // Deselect before drawing the next box. The floating toolbar
+    // (`[data-editor-actions]`) is a DOM descendant of `.redact-box`, so the
+    // page-level draw-start handler's own-box guard treats a press anywhere
+    // on it as "clicking an existing box", not a new draw - a still-open
     // toolbar left near the next box's start point ate that mousedown itself
     // (its own Delete button, landed on by coincidence) instead of ever
     // reaching the page, silently deleting the whiteout box underneath this
     // test the first time it was written. Escape unselects (Sign/Redact's
     // Escape-disarms-and-deselects contract - editor.md), and since the
     // floating toolbar is conditionally rendered only while selected
-    // (`isSelected && isWhiteout`, not just CSS-hidden), a real element count
-    // is what actually proves it is gone, not merely `toBeHidden()` (which
-    // passes on zero matches too, so it cannot tell "removed" from "never
-    // found").
+    // (`isSelected`, for every type since the toolbar-parity fix, not just
+    // CSS-hidden), a real element count is what actually proves it is gone,
+    // not merely `toBeHidden()` (which passes on zero matches too, so it
+    // cannot tell "removed" from "never found").
     await page.keyboard.press('Escape');
     await expect(whiteout.locator('[data-editor-actions]')).toHaveCount(0);
     const boxesBeforeBlackout = await page.locator('[class*="redact-box"]').count();
@@ -429,12 +477,17 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     const blackout = await drawRedaction(page, 'Blackout', { x: 0.15, y: 0.5 }, { x: 0.55, y: 0.7 });
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
     await selectRedaction(blackout);
-    const redDelete = blackout.locator('[class*="redact-element-btn"]');
-    await expect(redDelete).toBeVisible();
-    const redDeleteVisual = await getBox(redDelete, 'Blackout delete button');
-    expect(redDeleteVisual.width, 'delete button visual should stay 24px - only the hit box grows').toBeLessThan(28);
-    const redDeleteHit = await insetHitSize(redDelete);
-    expect(redDeleteHit.width, `visual was ${redDeleteVisual.width}px`).toBeGreaterThanOrEqual(44);
-    expect(redDeleteHit.height, `visual was ${redDeleteVisual.height}px`).toBeGreaterThanOrEqual(44);
+    // Blackout's delete control is now the shared floating toolbar's own
+    // `.element-button` (E7.5's toolbar-parity fix), not a Redact-only
+    // `.redact-element-btn` - so it gets the same `.element-button::before`
+    // 44px floor whiteout's toolbar buttons already got above, proven the
+    // same way (visual stays ~28px, only the hit box grows).
+    const blackoutDelete = blackout.locator('[data-editor-actions] button[title="Delete element"]');
+    await expect(blackoutDelete).toBeVisible();
+    const blackoutDeleteVisual = await getBox(blackoutDelete, 'Blackout toolbar delete button');
+    expect(blackoutDeleteVisual.width, 'delete button visual should stay ~28px - only the hit box grows').toBeLessThan(32);
+    const blackoutDeleteHit = await insetHitSize(blackoutDelete);
+    expect(blackoutDeleteHit.width, `visual was ${blackoutDeleteVisual.width}px`).toBeGreaterThanOrEqual(44);
+    expect(blackoutDeleteHit.height, `visual was ${blackoutDeleteVisual.height}px`).toBeGreaterThanOrEqual(44);
   });
 });

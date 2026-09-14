@@ -17,7 +17,6 @@ import type { GestureControllerOptions } from '../../editor/gestures/controller.
 declare const __dirname: string;
 
 const REDACT_BOX = redactStyles['redact-box'];
-const REDACT_ELEMENT_BTN = redactStyles['redact-element-btn'];
 const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
 function required<T>(value: T | null | undefined, description: string): T {
@@ -581,20 +580,29 @@ describe('PdfRedactTool UI flow', () => {
     expectLatestGestureToCommitOnce();
   });
 
-  // The inline delete button (blackout/blur only) has no data-editor-actions/
-  // data-editor-resizer marker, so useDraggableElement's own target-closest
-  // guards don't catch it - RedactBox wraps the shared hook's handler with its
-  // own .redact-element-btn check instead (see E7.5). Without that wrapper, a
-  // press on the button would also start a drag gesture underneath it.
-  it('does not start a drag when the inline delete button is pressed', async () => {
+  // Blackout/blur now share whiteout's floating toolbar
+  // (`[data-editor-actions]`, rendered on selection), whose wrapper already
+  // stops mousedown/touchstart propagation, so a press on any of its buttons
+  // never reaches RedactBox's own drag handler - one shared guarantee for
+  // every type, not a Redact-only `.redact-element-btn` closest() check
+  // against a lone inline button any more (that check went away with the
+  // button it protected, see E7.5's toolbar-parity fix).
+  it('does not start a drag when the floating toolbar delete button is pressed', async () => {
     const drawArea = await loadFileAndGetDrawArea();
 
-    // Default activeStyle is 'blackout', which renders the inline delete button.
+    // Default activeStyle is 'blackout'.
     await drawBox(drawArea, 50, 200, 200, 500);
 
     const box = container.querySelector(`.${REDACT_BOX}`);
-    const deleteBtn = box.querySelector(`.${REDACT_ELEMENT_BTN}`);
-    expect(deleteBtn).not.toBeNull();
+    // Select the box so the shared floating toolbar renders.
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+
+    const deleteBtn = query<HTMLButtonElement>(box, '[data-editor-actions] button[title="Delete element"]');
 
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
@@ -777,24 +785,24 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(box.style.height)).toBeCloseTo(20);
     });
 
-    it('whiteout uses the floating toolbar delete control instead of the overlapping red corner delete button', async () => {
-      const box = await setupSelectedWhiteoutBox();
-
-      expect(box.hasAttribute('data-editor-shape')).toBe(true);
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).toBeNull();
-      expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
-
-      const toolbarDelete = box.querySelector('[data-editor-actions] button[title="Delete element"]');
-      expect(toolbarDelete).not.toBeNull();
-    });
-
-    it('blackout boxes render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+    // Design review: blackout and blur used to carry their own inline red
+    // "corner" delete button, positioned and styled differently from
+    // whiteout's floating toolbar. All three types now share one selection
+    // chrome (ElementToolbar via RedactBox's `[data-editor-actions]`
+    // wrapper), so these three tests assert the same thing per type instead
+    // of a whiteout-only one and two blackout/blur-only ones with different
+    // assertions.
+    it('whiteout shows the shared floating toolbar, with a delete control, only once selected', async () => {
       const drawArea = await loadFileAndGetDrawArea();
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
+      await act(async () => {
+        whiteoutBtn.click();
+      });
+      await drawBox(drawArea, 100, 300, 250, 500);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
 
-      await drawBox(drawArea, 50, 200, 200, 500);
-
-      const box = container.querySelector(`.${REDACT_BOX}`);
-      expect(box).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -804,14 +812,38 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
-      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
+      expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
     });
 
-    it('blur boxes also render the 8 resize handles and keep the remove button reachable inside the box', async () => {
+    it('blackout shows the shared floating toolbar, with a delete control, only once selected', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      // Default activeStyle is 'blackout'.
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = container.querySelector(`.${REDACT_BOX}`);
+      expect(box).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
+      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      expect(box.hasAttribute('data-editor-shape')).toBe(true);
+      expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
+      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      // No per-element colour control for blackout/blur - only whiteout gets
+      // one, so the toolbar holds exactly its two shared buttons (duplicate,
+      // delete) and nothing else.
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(2);
+    });
+
+    it('blur shows the shared floating toolbar, with a delete control, only once selected', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
       const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
@@ -824,7 +856,7 @@ describe('PdfRedactTool UI flow', () => {
 
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`)).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
       expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
@@ -836,8 +868,8 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.top).toBe('8px');
-      expect(box.querySelector(`.${REDACT_ELEMENT_BTN}`).style.right).toBe('8px');
+      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(2);
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
@@ -1284,7 +1316,17 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
 
-      const deleteBtn = query<HTMLButtonElement>(container, `.${REDACT_ELEMENT_BTN}`);
+      // The delete control only exists in the shared floating toolbar once
+      // the box is selected.
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -1339,22 +1381,36 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 200, 200, 500);
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      expect(boxes()).toHaveLength(2);
 
-      const deleteButtons = () => Array.from(container.querySelectorAll<HTMLButtonElement>(`.${REDACT_ELEMENT_BTN}`));
-      await act(async () => {
-        deleteButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      // The shared toolbar only ever renders on the selected box, so each
+      // delete needs its own select step before its button exists to press.
+      const selectAndDeleteFirstBox = async () => {
+        await act(async () => {
+          boxes()[0].dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        });
+        await act(async () => {
+          window.dispatchEvent(new MouseEvent('mouseup'));
+        });
+        const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+        await act(async () => {
+          deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+      };
+
+      await selectAndDeleteFirstBox();
       expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
+      expect(boxes()).toHaveLength(1);
 
-      await act(async () => {
-        deleteButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      // Select and delete the one remaining box before the first chip's
+      // window clears.
+      await selectAndDeleteFirstBox();
 
       // Still exactly one chip in the one status slot - the second delete's
       // chip replaced the first's, it did not join it.
       expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
-      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(boxes()).toHaveLength(0);
     });
   });
 
