@@ -26,7 +26,9 @@
 //      surface (`pages`/`layouts`/`content`/`styles`/`.astro` components), or
 //      the flat `components` module (HeroDemo/, `compareFigure.css`).
 //   2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and
-//      may never import the `components` module.
+//      may never import the `components` module. They may import site's
+//      `i18n`/`data` (`site-i18n`/`site-data`), but never `site` itself
+//      (pages/layouts/content/styles).
 //   3. `editor` may never import `editor-ui` or `shell` (it is headless).
 //   4. `site` (pages, layouts, content, data, i18n, styles, and the .astro
 //      files still under `src/components/`) may reach a tool only through
@@ -51,6 +53,12 @@
 //      own routes (plus `/`) - a route derived statically from which top-level
 //      `src/pages/<slug>.astro` imports `<t>`'s `Pdf*Tool.tsx`. A spec that
 //      also drives another tool's page belongs under `e2e/` instead (DEBT-01).
+//
+// An `.astro` file's own `<script src="...">` tag is an edge this scan does
+// not see (`src/layouts/HomePageLayout.astro:464` loads `../shell/homeWorkspace.ts`
+// this way): the import graph below only follows `import`/`export ... from`/
+// dynamic `import()`, not markup attributes, and DEBT-10 deliberately left it
+// unparsed rather than teaching this file HTML.
 //
 // Anything not covered by these seven rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
@@ -138,6 +146,9 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   }
   if (CORE_MODULES.has(fromModule) && toModule === 'components') {
     return `${fromModule} may not import the components module`;
+  }
+  if (CORE_MODULES.has(fromModule) && toModule === 'site') {
+    return `${fromModule} may import site-i18n and site-data but not site (pages/layouts/content/styles)`;
   }
   // Rule 3: editor is headless.
   if (fromModule === 'editor' && (toModule === 'editor-ui' || toModule === 'shell')) {

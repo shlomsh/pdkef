@@ -90,6 +90,21 @@ describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
     expect(check(from, 'src/components/HeroDemo/ScrollDriver.tsx'))
       .toBe(`${moduleName} may not import the components module`);
   });
+
+  it.each([
+    ['src/shell/BasePdfTool.tsx', 'shell'],
+    ['src/editor-ui/ColorPicker.tsx', 'editor-ui'],
+    ['src/editor/model/element.ts', 'editor'],
+    ['src/lib/format.js', 'lib'],
+  ])('%s (%s) may not import site (pages/layouts/content/styles)', (from, moduleName) => {
+    expect(check(from, 'src/pages/index.astro'))
+      .toBe(`${moduleName} may import site-i18n and site-data but not site (pages/layouts/content/styles)`);
+  });
+
+  it('may import site-i18n and site-data', () => {
+    expect(check('src/editor/model/element.ts', 'src/i18n/translate.js')).toBeNull();
+    expect(check('src/editor/model/element.ts', 'src/data/tools.js')).toBeNull();
+  });
 });
 
 describe('module boundaries: ruleViolation() - rule 3, editor is headless', () => {
