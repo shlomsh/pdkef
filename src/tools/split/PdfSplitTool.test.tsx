@@ -189,7 +189,7 @@ describe('PdfSplitTool UI flow', () => {
     const cells = Array.from(container.querySelectorAll(`.${styles.cell}`));
     expect(cells.length).toBe(4);
     expect(cells.every((c) => c.classList.contains(styles['is-own-file']))).toBe(true);
-    expect(cells[2].querySelector(`.${styles['cell-caption']}`).textContent).toBe('test-page-3.pdf');
+    expect(cells[2].querySelector(`.${styles['cell-caption']}`).textContent).toBe('…-page-3.pdf');
     expect(cells[2].querySelector(`.${styles['cell-caption']}`).getAttribute('title')).toBe('test-page-3.pdf');
 
     // The segmented control (directly above Download) flips it back - no
