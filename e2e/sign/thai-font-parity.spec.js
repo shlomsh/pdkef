@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { LANGUAGE_COVERAGE } from '../../src/lib/fontCoverageReport.js';
+import { LANGUAGE_COVERAGE } from '../../src/editor/text/fontCoverageReport.js';
 import { resolveBidiRuns } from '../../src/editor/text/bidiRuns.js';
 import { requestedFontFile } from '../../src/editor/text/fonts.js';
 

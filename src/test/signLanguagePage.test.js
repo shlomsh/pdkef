@@ -5,7 +5,7 @@
  * which add or move fonts in LANGUAGE_COVERAGE regularly). This is the seam
  * that enforces that: it reads the YAML content-page entry directly (the
  * same file src/content.config.ts validates at build time) and fails, naming
- * the row, if either column disagrees with src/lib/fontCoverageReport.js:
+ * the row, if either column disagrees with src/editor/text/fontCoverageReport.js:
  *
  *   - column 1 (the language) must resolve to a real LANGUAGE_COVERAGE entry
  *   - every font family named in columns 2-3 must be in THAT language's
@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { parse } from 'yaml';
-import { LANGUAGE_COVERAGE } from './fontCoverageReport.js';
+import { LANGUAGE_COVERAGE } from '../editor/text/fontCoverageReport.js';
 
 const pagePath = path.join(process.cwd(), 'src/content/content-pages/sign-pdf-in-your-language.yaml');
 const page = parse(readFileSync(pagePath, 'utf8'));

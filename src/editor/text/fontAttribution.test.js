@@ -19,9 +19,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
-import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs';
-import { DISPLAY_ONLY_FONTS } from '../../scripts/display-only-fonts.mjs';
+import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
+import { FONT_MANIFEST } from '../../../scripts/font-manifest.mjs';
+import { DISPLAY_ONLY_FONTS } from '../../../scripts/display-only-fonts.mjs';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 

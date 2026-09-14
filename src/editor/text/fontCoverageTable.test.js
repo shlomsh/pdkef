@@ -8,7 +8,7 @@
  * resolver would make silently wrong decisions and nothing would say why.
  * So this regenerates the table in memory from public/fonts/ on every run
  * and asserts it is byte-for-byte the committed module - the same shape of
- * check src/lib/fontCoverage.test.js already runs for HEBREW_CAPABLE_FONTS
+ * check src/editor/text/fontCoverage.test.js already runs for HEBREW_CAPABLE_FONTS
  * and SCRIPT_FALLBACKS, just against the new table instead of a hand-written
  * list.
  *

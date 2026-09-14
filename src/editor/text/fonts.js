@@ -25,7 +25,7 @@ export const TEXT_FONTS = FONT_MANIFEST.filter((font) => font.kind === 'text').m
  * Real ascent/descent for every bundled family, as a fraction of the em —
  * read from each TTF's hhea table (weights within a family share vertical
  * metrics, so this is keyed by family only). Verified against the real asset
- * bytes by src/lib/fontCoverage.test.js, the same way it checks Hebrew glyph
+ * bytes by src/editor/text/fontCoverage.test.js, the same way it checks Hebrew glyph
  * coverage — update both together if a font file is ever swapped.
  *
  * CSS `line-height` sets a fixed-height line box, but a browser positions
@@ -88,7 +88,7 @@ export function textBoxPaddingEm(fontFamily) {
  * Bundled families whose Regular TTF carries Hebrew glyphs. This used to feed
  * SCRIPT_FALLBACKS' Hebrew row (see git history); that row is gone, replaced
  * by the coverage rule below, but this list is still exported and still
- * verified against the real asset bytes by src/lib/fontCoverage.test.js and
+ * verified against the real asset bytes by src/editor/text/fontCoverage.test.js and
  * src/editor/registry/hebrewMarkPlacement.test.js's mark-placement guard, so
  * it stays as a plain, hand-checked fact about the catalogue.
  */

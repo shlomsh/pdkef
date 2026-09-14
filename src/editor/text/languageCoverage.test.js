@@ -1,6 +1,6 @@
 /**
  * The seam between the generated catalogue coverage report
- * (src/lib/fontCoverageReport.js, W7) and the Sign page's Languages card
+ * (src/editor/text/fontCoverageReport.js, W7) and the Sign page's Languages card
  * copy (src/data/tools.js's `languages` entry, rendered by
  * src/components/ToolLanguagesCard.astro).
  *
@@ -16,8 +16,8 @@
  * near its budget), it only fails the build when the two disagree.
  */
 import { describe, it, expect } from 'vitest';
-import { tools } from './../data/tools.js';
-import { HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { tools } from '../../data/tools.js';
+import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
 import { LANGUAGE_COVERAGE, COMBINATION_COVERAGE, CYRILLIC_ANCHOR } from './fontCoverageReport.js';
 
 const signTool = tools.find((t) => t.slug === 'sign');

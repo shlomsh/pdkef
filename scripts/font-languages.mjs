@@ -4,7 +4,7 @@
  *
  * This file is the one place a "language" is defined. Both
  * generate-font-coverage-report.mjs (which writes the committed report) and
- * src/lib/fontCoverageReport.test.js (which regenerates it in memory to
+ * src/editor/text/fontCoverageReport.test.js (which regenerates it in memory to
  * catch drift) import these definitions rather than each hand-maintaining
  * their own copy - the report's whole reason to exist is that "does the
  * catalogue cover X" stops being a claim someone can quietly get wrong.
