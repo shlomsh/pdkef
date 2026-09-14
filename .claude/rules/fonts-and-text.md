@@ -45,17 +45,20 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 
 ## Standing rules
 
-- **The font guards are the `fonts` Playwright project and run only when their inputs change.** The 27
-  specs matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
+- **The font guards are the `fonts` Nx project and run only when their inputs change.** The 27 specs
+  matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
   export render guard, Hebrew composition, language acceptance) were 55% of the whole e2e suite while
-  guarding code that changes in roughly one commit in three. `scripts/change-scope.mjs` is the one
-  list of what counts as an input (`public/fonts`, `src/editor`, `src/lib`, `src/test/fixtures`,
-  `e2e/sign`, the font and language scripts, the dependency files, the Playwright config; nothing
-  under `src/tools/sign/` is an input - ARCH-18's esbuild metafile check confirmed the export graph
-  still does not reach it); `ci.yml`'s `scope` job and the local `test:e2e` script both ask it, and a
-  nightly schedule and every manual dispatch run the guards regardless. A new guard needs a name the
-  globs match, and a new input a guard reads from outside that list goes into `FONT_GUARD_INPUTS` in
-  the same change. `npm run test:e2e:fonts` runs them unconditionally after a build.
+  guarding code that changes in roughly one commit in three. `fonts` (`e2e/sign/project.json`) declares
+  its own inputs as four `implicitDependencies`: `font-assets` (`public/fonts`), `editor`, `lib`, and
+  `tool-sign` - six of the 27 specs navigate to `/sign` themselves (the font-parity and Hebrew-
+  composition guards, which drive the real editor rather than only fixtures), which is why
+  `src/tools/sign/` is an input now, unlike before ARCH-20. `scripts/affected-scope.mjs` asks Nx
+  whether `fonts` is affected rather than keeping a second, hand-written input list
+  (`docs/nx-affected-ci.md` has the mechanics); `ci.yml`'s `scope` job and the local `test:e2e` script
+  both ask it, and a nightly schedule and every manual dispatch run the guards regardless. A new guard
+  needs a name the globs match, and a new input a guard reads from outside today's four goes into
+  `fonts`'s `implicitDependencies` in `e2e/sign/project.json`. `npm run test:e2e:fonts` runs them
+  unconditionally after a build.
 - **Resolve every family through `src/editor/text/fonts.js`** (`resolveFontFamily(family, text)`),
   from `TextNode`, `SignatureDialog` and `src/editor/registry/text.ts` alike. The browser substitutes a
   system font per missing glyph; a PDF embeds one font per run and draws an empty rectangle. Latin-only
