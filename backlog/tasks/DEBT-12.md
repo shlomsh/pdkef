@@ -1,7 +1,7 @@
 ---
 id: "DEBT-12"
 title: "Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "architecture-debt"
 phase: "near-term"
