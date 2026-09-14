@@ -9,6 +9,7 @@ import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
+import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import type { GestureControllerOptions } from '../../editor/gestures/controller.ts';
@@ -1262,6 +1263,124 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
+    });
+  });
+
+  // Design-review finding #3: deleteElement (a box's own X) and clearPage
+  // ("Clear all redactions on this page") used to change `elements` with no
+  // live-region announcement and no way back short of Cmd/Ctrl+Z or the full
+  // "Undo changes" modal. Both now announce and surface a short-lived Undo
+  // chip in the toolbar's status slot (RedactToolbar.tsx swaps EditorToolStatus
+  // for it while one is pending), mirroring Merge's own undo chip.
+  describe('delete and clear-page announce and offer an undo chip (finding #3)', () => {
+    const announcementRegion = () => required(
+      container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
+      'sr-only announcement region',
+    );
+    const statusSlot = () => query<HTMLElement>(container, `.${toolbarStyles.help}[role="status"]`);
+
+    it('announces and offers Undo when a single box is deleted, and Undo restores it', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      const deleteBtn = query<HTMLButtonElement>(container, `.${REDACT_ELEMENT_BTN}`);
+      await act(async () => {
+        deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(announcementRegion().textContent).toContain('Removed 1 box');
+
+      const chip = statusSlot();
+      expect(chip.querySelector(`.${redactStyles['undo-chip']}`)).not.toBeNull();
+      expect(chip.textContent).toContain('Removed 1 box');
+
+      const undoButton = required(chip.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      await act(async () => {
+        undoButton.click();
+      });
+
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(announcementRegion().textContent).toContain('Undid: Deleted');
+    });
+
+    it('announces and offers Undo when a page is cleared, and Undo restores every box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+
+      const clearBtn = required(
+        container.querySelector<HTMLButtonElement>('button[title="Clear all redactions on this page"]'),
+        'Clear page button',
+      );
+      await act(async () => {
+        clearBtn.click();
+      });
+
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(announcementRegion().textContent).toContain('Cleared 2 boxes on page 1');
+
+      const chip = statusSlot();
+      expect(chip.textContent).toContain('Cleared 2 boxes on page 1');
+
+      const undoButton = required(chip.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      await act(async () => {
+        undoButton.click();
+      });
+
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+
+    it('a second delete before the first chip clears replaces it rather than stacking', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+
+      const deleteButtons = () => Array.from(container.querySelectorAll<HTMLButtonElement>(`.${REDACT_ELEMENT_BTN}`));
+      await act(async () => {
+        deleteButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
+
+      await act(async () => {
+        deleteButtons()[0].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      // Still exactly one chip in the one status slot - the second delete's
+      // chip replaced the first's, it did not join it.
+      expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+    });
+  });
+
+  // Design-review finding #5: the Download control never said what it would
+  // produce, and the identity row's file name never hinted at the output
+  // name either.
+  describe('honest export count and output name (finding #5)', () => {
+    it('shows no box count and the plain file name before any box exists', async () => {
+      await loadFileWithoutArming(makePdfFile('secret.pdf'));
+
+      expect(container.querySelector(`.${redactStyles['export-count']}`)).toBeNull();
+      const name = query(container, `.${toolShellStyles.name}`);
+      expect(name.textContent).toBe('secret.pdf');
+    });
+
+    it('shows a live box count and the redacted_ output name once a box exists, updating as more are added', async () => {
+      const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('1 box marked');
+      expect(query(container, `.${toolShellStyles.name}`).textContent).toBe('redacted_secret.pdf');
+
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+
+      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('2 boxes marked');
     });
   });
 });

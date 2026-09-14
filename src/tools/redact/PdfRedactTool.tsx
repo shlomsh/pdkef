@@ -64,6 +64,17 @@ interface RedactDrawingState {
 
 type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 
+// Redact design-review finding #3: one Undo chip, one slot, timed the same as
+// Merge's own (PdfMergeTool.tsx's UNDO_WINDOW_MS/registerUndo) - a second
+// eligible action before this elapses replaces the first's chip rather than
+// stacking a second one.
+const UNDO_WINDOW_MS = 5000;
+
+interface RedactUndoAction {
+  message: string;
+  entryId: string;
+}
+
 export default function PdfRedactTool() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
@@ -146,6 +157,25 @@ export default function PdfRedactTool() {
   const logAction: HistoryLogger<RedactHistoryElement> = (operation, type, pageIndex, description, snapshots) => {
     setActionHistory(prev => [createActionEntry({ operation, type, pageIndex, description, elements: snapshots }), ...prev]);
   };
+
+  // Redact design-review finding #3: deleteElement and clearPage used to
+  // change elements with no announcement and no way back short of the full
+  // history modal or Cmd/Ctrl+Z. This chip mirrors Merge's own
+  // (PdfMergeTool.tsx's undoAction/registerUndo): a short-lived pill in the
+  // toolbar's status slot, naming the entry it can revert by id rather than
+  // "whatever is newest" - correct even if another action lands before it is
+  // clicked (see runUndoChip below).
+  const [undoAction, setUndoAction] = useState<RedactUndoAction | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Redact design-review finding #4: the exported (redacted) bytes an
+  // in-toolbar "Compress it" hand-off can act on, set once a save actually
+  // succeeds and cleared - same as usePdfShare's own prepared file - whenever
+  // the source or the boxes change under it (see the clearPrepared effect
+  // below), so it never hands Compress a stale export.
+  const [exportedForHandoff, setExportedForHandoff] = useState<{ blob: Blob; name: string } | null>(null);
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffFailed, setHandoffFailed] = useState(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
@@ -247,10 +277,17 @@ export default function PdfRedactTool() {
     numPages,
   });
 
-  // A generated PDF must match the current source and redaction boxes.
+  // A generated PDF must match the current source and redaction boxes - the
+  // "Compress it" hand-off's own prepared bytes go stale on exactly the same
+  // change, so it is cleared alongside usePdfShare's own prepared file.
   useEffect(() => {
     clearPrepared();
+    setExportedForHandoff(null);
   }, [file, elements, clearPrepared]);
+
+  useEffect(() => () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+  }, []);
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `presetElements` seeds restored redaction boxes.
@@ -386,13 +423,59 @@ export default function PdfRedactTool() {
     });
   };
 
+  // Registers a short-lived Undo chip for a delete/clear command already
+  // pushed onto actionHistory, and announces it through the live region.
+  // Shared by deleteElement and clearPage (finding #3) - both are complete
+  // atomic commands by the time this runs, so this only has to surface what
+  // already happened, not perform it.
+  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactHistoryElement>) => {
+    setAnnouncement(`${message}.`);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction({ message, entryId: entry.id });
+    undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
+  };
+
+  const clearUndoChip = () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    undoTimerRef.current = null;
+    setUndoAction(null);
+  };
+
+  // Reverts a set of history entries against current state and keeps every
+  // dependent piece in sync - selection, the action history list, and the
+  // "Undo changes" modal's own checklist. Shared by Cmd/Ctrl+Z (undoLast),
+  // the modal's selective revert (handleRevertSelected) and the short-lived
+  // undo chip (runUndoChip) so the three triggers cannot drift on what
+  // reverting actually does.
+  const applyRevert = (entries: ActionHistoryEntry<RedactHistoryElement>[], announcement: string) => {
+    const nextElements = revertHistoryEntries(elements, entries);
+    const survivingIds = new Set(nextElements.map((element) => element.id));
+    setElements(nextElements);
+    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    const revertedIds = new Set(entries.map((entry) => entry.id));
+    setActionHistory(prev => prev.filter((action) => !revertedIds.has(action.id)));
+    setUndoSelection((currentSelection) => {
+      if (![...revertedIds].some((id) => currentSelection.has(id))) return currentSelection;
+      const next = new Set(currentSelection);
+      revertedIds.forEach((id) => next.delete(id));
+      return next;
+    });
+    setAnnouncement(announcement);
+  };
+
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     setElements(prev => prev.filter(el => el.id !== id));
     setActiveBoxId(prev => (prev === id ? null : prev));
     setSelectedBoxId(prev => (prev === id ? null : prev));
-    if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, `Deleted ${el.type} box`, snapshots);
+    if (!el) return;
+    const entry = createActionEntry<RedactHistoryElement>({
+      operation: 'delete', type: 'DELETE_ELEMENT', pageIndex: el.pageIndex, description: `Deleted ${el.type} box`, elements: snapshots,
+    });
+    setActionHistory(prev => [entry, ...prev]);
+    registerUndo('Removed 1 box', entry);
   };
 
   const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
@@ -445,19 +528,7 @@ export default function PdfRedactTool() {
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
-    const nextElements = revertHistoryEntries(elements, [lastAction]);
-    const survivingIds = new Set(nextElements.map((element) => element.id));
-    setElements(nextElements);
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setActionHistory(prev => prev.slice(1));
-    setUndoSelection((currentSelection) => {
-      if (!currentSelection.has(lastAction.id)) return currentSelection;
-      const newSet = new Set(currentSelection);
-      newSet.delete(lastAction.id);
-      return newSet;
-    });
-    setAnnouncement(`Undid: ${lastAction.description}`);
+    applyRevert([lastAction], `Undid: ${lastAction.description}`);
   };
   useUndoShortcut(undoLast);
 
@@ -467,15 +538,21 @@ export default function PdfRedactTool() {
     const idsToRevert = Array.from(undoSelection);
     if (idsToRevert.length === 0) return;
     const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
-    const nextElements = revertHistoryEntries(elements, revertedActions);
-    const survivingIds = new Set(nextElements.map((element) => element.id));
-    setElements(nextElements);
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setActionHistory(prev => prev.filter(action => !idsToRevert.includes(action.id)));
-    setUndoSelection(new Set());
+    applyRevert(revertedActions, 'Reverted selected actions.');
     setUndoModalOpen(false);
-    setAnnouncement('Reverted selected actions.');
+  };
+
+  // The undo chip's own Undo button (finding #3): reverts the exact command
+  // it named, by id, rather than "whatever is newest" - if another action
+  // landed after this one and before the chip was clicked, undoLast() would
+  // silently revert the wrong thing. A stale id (the entry already reverted
+  // some other way while the chip was still showing) is a silent no-op.
+  const runUndoChip = () => {
+    if (!undoAction) return;
+    const entry = actionHistory.find((action) => action.id === undoAction.entryId);
+    clearUndoChip();
+    if (!entry) return;
+    applyRevert([entry], `Undid: ${entry.description}`);
   };
 
   // Passed to ElementToolbar's onChange for whiteout boxes: applies the color and
@@ -500,13 +577,12 @@ export default function PdfRedactTool() {
     setElements(prev => prev.filter(el => el.pageIndex !== pageIndex));
     setActiveBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
-    logAction(
-      'delete',
-      'CLEAR_PAGE',
-      pageIndex,
-      `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`,
-      snapshots
-    );
+    const description = `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`;
+    const entry = createActionEntry<RedactHistoryElement>({
+      operation: 'delete', type: 'CLEAR_PAGE', pageIndex, description, elements: snapshots,
+    });
+    setActionHistory(prev => [entry, ...prev]);
+    registerUndo(description, entry);
   };
 
   const handleSavePdf = async (exportAction = 'download') => {
@@ -527,6 +603,9 @@ export default function PdfRedactTool() {
     try {
       const redactedBlob = await applyPageEdits(file, elements, (p) => setProgress(p));
       const filename = `redacted_${file.name}`;
+      // Finding #4: a successful export (either export path - Download or
+      // Share - counts) is what unlocks the "Compress it" hand-off below.
+      setExportedForHandoff({ blob: redactedBlob, name: filename });
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         setStatus('editing');
@@ -574,6 +653,34 @@ export default function PdfRedactTool() {
     }
   };
 
+  // Finding #4: hands the exported redacted bytes to Compress without
+  // re-picking, the same one-shot baton Merge's own hand-off uses
+  // (draftStore.js's saveHandoff/takeHandoff, consumed on the other end by
+  // useHandoffIntake.ts) - reused here rather than copied, since Redact is
+  // a tool and cannot import another tool's PdfMergeTool.tsx (module
+  // boundaries). Disabled until exportedForHandoff exists (an export has
+  // actually succeeded), mirroring Merge's own `prepared.status !== 'ready'`
+  // gate on its hand-off buttons.
+  const requestCompressHandoff = async () => {
+    if (handoffBusy || !exportedForHandoff) return;
+    setHandoffBusy(true);
+    setHandoffFailed(false);
+    try {
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      const saved = await saveHandoff('compress', {
+        fileName: exportedForHandoff.name,
+        fileType: 'application/pdf',
+        fileBytes: await exportedForHandoff.blob.arrayBuffer(),
+      });
+      if (!saved) throw new Error('handoff');
+      window.location.href = '/compress/';
+    } catch (err) {
+      console.error(err);
+      setHandoffFailed(true);
+      setHandoffBusy(false);
+    }
+  };
+
   return (
     <BasePdfTool
       hasFiles={!!file}
@@ -581,7 +688,13 @@ export default function PdfRedactTool() {
       multiple={false}
       accept=".pdf,application/pdf"
       emptyStateMessage="Select or drop a PDF to redact"
-      fileLabel={file?.name}
+      file={file}
+      // Finding #5/#6: a real page-1 thumbnail (FilePreview.tsx, via `file`)
+      // instead of the generic glyph, and the identity row names what
+      // Download will actually produce once there is something to redact -
+      // rename-in-place is not required, so this stays derived rather than
+      // becoming its own editable field the way Merge's output name is.
+      fileLabel={elements.length > 0 && file ? `redacted_${file.name}` : file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaveState={draftSaveState}
       hasWork={elements.length > 0}
@@ -620,6 +733,11 @@ export default function PdfRedactTool() {
             actionHistory={actionHistory}
             setUndoModalOpen={setUndoModalOpen}
             exporting={status === 'redacting'}
+            undoAction={undoAction}
+            onUndoAction={runUndoChip}
+            handoffReady={!!exportedForHandoff}
+            handoffBusy={handoffBusy}
+            onCompressHandoff={() => { void requestCompressHandoff(); }}
           />
 
           <div className={workspaceStyles['pages-container']}>
@@ -705,6 +823,15 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
+          {/* Finding #5: an honest count beside the always-visible completion
+              pair, updated live off `elements.length` - the Download control
+              used to never say what it would produce. */}
+          {elements.length > 0 && (
+            <p className={styles['export-count']}>
+              {elements.length} box{elements.length === 1 ? '' : 'es'} marked
+            </p>
+          )}
+
           {/* Keep the document-completion actions available after the last
               page, matching Sign. On mobile the compact toolbar prioritizes
               editing controls and can hide Download when native file sharing
@@ -730,6 +857,16 @@ export default function PdfRedactTool() {
             <ErrorMessage title="Redaction stopped." fullWidth>
               {errorDetail}
             </ErrorMessage>
+          )}
+
+          {/* Finding #4: mirrors Merge's own handoffFailed line - the hand-off
+              is a nice-to-have next step, not the primary export, so a failed
+              save-to-IndexedDB reports itself quietly here rather than as a
+              blocking error. */}
+          {handoffFailed && (
+            <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
+              Could not hand this off to Compress. Download it instead and open it there.
+            </p>
           )}
         </div>
       )}
