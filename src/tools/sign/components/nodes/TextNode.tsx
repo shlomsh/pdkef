@@ -10,25 +10,8 @@ import { combLayout, isComb } from '../../../../editor/text/comb.js';
 import { englishSignMessages, type SignMessages } from '../../../../i18n/toolMessages';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
-import { registerTextElementClassNames } from '../../../../editor/text/elementClassNames.ts';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
-
-// Hands the editor core the resolved (possibly hashed) CSS Module class names
-// its gesture-time resize code (registry/text.ts's `writeDOM`) needs to find
-// and toggle DOM nodes by class - a module-level side effect, run once this
-// module is first imported, well before any resize gesture can start. See
-// editor/text/elementClassNames.ts's header comment for the ordering contract.
-registerTextElementClassNames({
-  textDisplay: elementStyles['text-display'],
-  textInput: elementStyles['text-input'],
-  textMeasure: elementStyles['text-measure'],
-  textComb: elementStyles['text-comb'],
-  textCombCell: elementStyles['text-comb-cell'],
-  textCombGuide: elementStyles['text-comb-guide'],
-  textDisplayComb: elementStyles['text-display-comb'],
-});
-
 
 export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
   element: TextElement;
@@ -159,8 +142,10 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     <>
       <div
         ref={textRef}
-        className={[elementStyles['text-display'], comb && elementStyles['text-display-comb']].filter(Boolean).join(' ')}
+        className={elementStyles['text-display']}
         data-editor-text-display
+        data-text-part="display"
+        data-comb={comb ? 'on' : undefined}
         style={{ fontSize: `${textFontSize}px`, '--text-pad-em': `${textPaddingEm}em` }}
         onDblClick={onBeginEdit}
       >
@@ -173,6 +158,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           key="measure"
           className={elementStyles['text-measure']}
           data-editor-text-measure
+          data-text-part="measure"
           dir={textDirection}
           style={{
             fontSize: `${textFontSize}px`,
@@ -195,6 +181,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
             key="comb"
             className={elementStyles['text-comb']}
             data-editor-text-comb
+            data-text-part="comb"
             aria-hidden="true"
             style={{
               // Mounted-but-hidden while a span drag is still under the floor:
@@ -213,6 +200,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
               <span
                 key={`guide-${cell.index}`}
                 className={elementStyles['text-comb-guide']}
+                data-text-part="comb-guide"
                 style={{ left: `${(isRtl ? 1 - cell.index / cells.length : cell.index / cells.length) * 100}%` }}
               />
             ))}
@@ -220,6 +208,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
               <span
                 key={`cell-${cell.index}`}
                 className={elementStyles['text-comb-cell']}
+                data-text-part="comb-cell"
                 style={{ left: `${cell.centerFraction * 100}%` }}
               >
                 {cell.char}
@@ -241,6 +230,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           cols={1}
           className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
           data-editor-text-input
+          data-text-part="input"
           aria-invalid={needsAttention || undefined}
           aria-describedby={fontMessage ? fontDescriptionId : undefined}
           readOnly={!isEditing}

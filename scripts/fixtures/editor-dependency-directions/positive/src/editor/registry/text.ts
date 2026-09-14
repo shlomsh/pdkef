@@ -1,3 +1,3 @@
-import { getTextElementClassNames } from '../text/elementClassNames.js';
+import { getTextParts } from '../text/textParts.js';
 
-export const textClass = getTextElementClassNames().text;
+export const textClass = getTextParts().text;

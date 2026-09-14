@@ -812,8 +812,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(measure().textContent).toContain('0382');
       expect(box.style.width).toBe(before.width);
       expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
-      expect(box.querySelector(`.${elementStyles['text-display']}`).className)
-        .not.toContain(elementStyles['text-display-comb']);
+      expect(box.querySelector(`.${elementStyles['text-display']}`).hasAttribute('data-comb')).toBe(false);
     });
 
     it('leaves a comb\'s span completely alone when its font size is dragged - the two never contend for the same grip', () => {
@@ -852,8 +851,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // after the fact.
       expect(box.style.width).toBe('');
       expect(box.querySelector(`.${elementStyles['text-comb']}`).style.display).toBe('none');
-      expect(box.querySelector(`.${elementStyles['text-display']}`).className)
-        .not.toContain(elementStyles['text-display-comb']);
+      expect(box.querySelector(`.${elementStyles['text-display']}`).hasAttribute('data-comb')).toBe(false);
       expect(box.querySelector(`.${elementStyles['text-input']}`).style.color).toBe('rgb(0, 0, 0)');
 
       act(() => {
