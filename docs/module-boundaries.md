@@ -365,7 +365,10 @@ ticket listed was confirmed real except the two noted as already move-proof (see
 - `scripts/check-editor-dependency-directions.mjs` - its `EXCEPTIONS` list and `layerFor()` both
   hardcode `src/components/SignTool/` paths; every ARCH-16/17/18/19 move that touches Sign needs a
   matching edit here, and ARCH-19 in particular changes what the exceptions list has to say.
-- `scripts/change-scope.mjs`'s `FONT_GUARD_INPUTS` hardcodes `/^src\/components\/SignTool\//`.
+- `scripts/change-scope.mjs`'s `FONT_GUARD_INPUTS` hardcoded `/^src\/components\/SignTool\//` (true
+  when this record was written; ARCH-20 deleted the list entirely rather than relocating it - the
+  `fonts` Nx project's own `implicitDependencies` in `e2e/sign/project.json` is the input list now,
+  DEBT-10).
 - `playwright.config.js`'s `FONT_GUARDS` and `PERF_BUDGETS` globs match `**/sign/*-guard.spec.js`,
   `**/merge/merge-ready-time.spec.js`, etc.; they follow the `e2e/<tool>/` directories into
   `src/tools/<tool>/e2e/` when ARCH-17/18 move them, or need rewriting if the glob shape changes.
