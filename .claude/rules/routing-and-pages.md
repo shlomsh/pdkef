@@ -22,7 +22,8 @@ paths:
 Loaded when adding or moving a page, editing `vercel.json`, or touching `middleware.ts`, the one
 request-time piece of this codebase. Adding a route is a three-place change: the page, its non-slash →
 slash redirect pair in `vercel.json`, and (for a tool) `src/data/tools.js`, which feeds the sitemap
-and the Markdown twin automatically.
+and the Markdown twin automatically. A new SEO/content landing page is not a tool route - it goes
+through the content collection in [content-and-copy], not `tools.js`.
 
 ## Tool registry
 
