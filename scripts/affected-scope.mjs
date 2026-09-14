@@ -41,13 +41,27 @@
 //      change never reaches this script's jobs in CI) -> everything=true.
 //      "Owned" is asked of Nx itself (each project's own `root`), never a
 //      second hand-written path list.
-//   3. Any affected project in {site, shell, editor, editor-ui, lib} ->
-//      everything=true. Every tool depends on all five, so nothing narrows
-//      anyway - this keeps the mapping trivially correct instead of trying
-//      to reason about which tools a shared-core change could plausibly spare.
+//   3. Any affected project in {site, shell, editor, lib} -> everything=true.
+//      Every tool depends on all four, so nothing narrows anyway - this
+//      keeps the mapping trivially correct instead of trying to reason about
+//      which tools a shared-core change could plausibly spare. `editor-ui`
+//      left this set in DEBT-06: its only consumers are Sign and Redact (per
+//      the boundary checker's rules), the tool pages' Tailwind `@source`
+//      lists name no island files (no CSS side channel to a third tool), and
+//      the graph already answers precisely for it - `nx show projects
+//      --affected --files=src/editor-ui/ElementToolbar.tsx` names exactly
+//      editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e.
+//      `editor`'s own fate (whether it can leave too) is DEBT-07, after
+//      DEBT-04.
 //   4. Otherwise narrow: unit_paths is each affected tool-<name> project's
-//      src/tools/<name>/ plus src/test/ (its two tests walk all of src and
-//      must run on any source change); e2e_paths is each such tool's
+//      src/tools/<name>/, plus the root of every other affected project that
+//      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
+//      change still runs editor-ui's own unit tests, with no hand-written
+//      second list - see the `roots` map in deriveScope), plus src/test/
+//      (its two tests walk all of src and must run on any source change).
+//      All of that is sorted alphabetically together, with src/test/ pinned
+//      last regardless (both orders are equally arbitrary; this is just the
+//      one the test pins). e2e_paths is each affected tool's
 //      src/tools/<name>/e2e/ (only the tools that have one) plus site-e2e's
 //      own direct children (e2e/home/, e2e/demo/, ... - never the bare
 //      "e2e/" string: Playwright's CLI path arguments are substring filters
@@ -67,8 +81,12 @@ import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
 // Any project in this set makes narrowing pointless: every tool imports all
-// five, so a change here can affect every tool's behavior.
-export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'editor-ui', 'lib']);
+// four, so a change here can affect every tool's behavior. `editor-ui` is
+// deliberately not here (DEBT-06): its only consumers are Sign and Redact,
+// so the Nx graph already answers precisely for it instead of needing this
+// blanket treatment. `editor` stays for now - DEBT-07 decides its fate,
+// after DEBT-04.
+export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib']);
 
 function nx(args) {
   return execFileSync('npx', ['nx', ...args], {
@@ -169,7 +187,25 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   }
 
   const toolProjects = [...affectedSet].filter((p) => p.startsWith('tool-')).sort();
-  const unitPaths = [...toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`), 'src/test/'];
+  const toolPaths = toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`);
+
+  // Any other affected project (not a tool, not core) whose own root sits
+  // under src/ gets its own root added too, straight from the injected
+  // `roots` map - never a hand-written list - so e.g. an editor-ui-only
+  // change still runs editor-ui's own unit tests (DEBT-06). A root already
+  // covered by the always-present src/test/ below (cross-tool-tests, at
+  // src/test/cross-tool) is skipped, not duplicated.
+  const extraPaths = [...affectedSet]
+    .filter((p) => !p.startsWith('tool-') && !CORE_PROJECTS.has(p))
+    .map((p) => roots.get(p))
+    .filter((root) => root && root.startsWith('src/') && !root.startsWith('src/test/'))
+    .map((root) => `${root}/`);
+
+  // Sorted together, alphabetically; src/test/ is pinned last regardless of
+  // where it would otherwise fall (either order is equally arbitrary here -
+  // this is just the one src/lib/affectedScope.test.js pins).
+  const unitPaths = [...toolPaths, ...extraPaths].sort();
+  unitPaths.push('src/test/');
   const e2ePaths = toolProjects
     .filter((p) => toolE2eExists(p))
     .map((p) => `src/tools/${toolNameOf(p)}/e2e/`);
