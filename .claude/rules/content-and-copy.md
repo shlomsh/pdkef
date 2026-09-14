@@ -54,11 +54,13 @@ Things to know before touching them:
 - **Adding a *kind* of content means editing the schema and the route.** Adding a page, or rewording
   one, means editing one YAML file and nothing else.
 - **The "Last updated" date in the header is git-derived, never authored (SEO-29).**
-  `src/site-lib/gitLastModified.js` dates a page by the commit history of its YAML plus the route template
-  (a localized edition by its own translation file), and the sitemap's `<lastmod>`, the header line and
-  the page's Markdown twin all read that one function, so they cannot disagree. Do not add a date field
-  to the YAML. A commit to `[contentPage].astro` re-dates every English page at once, which is honest
-  (they all changed) but worth knowing before reading the dates as per-page freshness.
+  `src/site-lib/gitLastModified.js` dates a page by the commit history of its YAML alone (a localized
+  edition by its own translation file), and the sitemap's `<lastmod>`, the header line and the page's
+  Markdown twin all read that one function, so they cannot disagree. Do not add a date field to the
+  YAML. The route template does not count: until 2026-09-14 it did, and a one-line import refactor of
+  `[contentPage].astro` (DEBT-05) re-dated all ten guides to that day with no sentence changed. A
+  template change that really alters every page's copy is a deliberate act; touch the YAML files in
+  that commit if the date should move.
 - **One accepted cost:** all eight pages share one route, so they share one CSS bundle, and
   `CompareTable.astro`'s scoped styles now inline on all eight rather than the four that render a
   table (+~320 brotli bytes on those four; duplication factor 9.73x → 9.79x against the 9.85x ratchet).
