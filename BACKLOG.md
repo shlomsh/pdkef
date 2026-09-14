@@ -303,13 +303,13 @@ _None._
 | ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
-| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
+| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
 
 ### Blocked
 

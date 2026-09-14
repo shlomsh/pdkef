@@ -64,7 +64,8 @@ npx nx run-many -t test           18.7-19.8s wall, 15 projects (font-assets/font
 critical path against an 18.7s total, so parallelism does help, just not enough to beat one process
 that pays Vitest's jsdom/transform setup cost once). This confirms the premise directly rather than
 assuming it: CI runs `npx vitest run ${unit_paths}` (one process, narrowed by directory) and
-`npx playwright test ${e2e_paths}` (one process per shard), never `nx affected -t test`/`-t e2e`.
+`npx playwright test ${e2e_paths}` (one process per chromium shard, and one for the webkit job, QUAL-09),
+never `nx affected -t test`/`-t e2e`.
 
 ## The root-project trap, confirmed again
 

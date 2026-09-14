@@ -36,6 +36,9 @@ on:
 # two workers, and halving it needs no knowledge of the code, unlike the
 # per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
 # build, browser install) again, which is the trade the ticket accepts.
+# `e2e-webkit` (QUAL-09, 2026-09-14) is a third, unsharded job beside it: the
+# 21 webkit tests and the perf budgets run once there, so the two chromium
+# shards install and run chromium only.
 #
 # ARCH-20 (2026-09-14): `checks`, each `e2e` shard and each `font-guards` shard narrow
 # their own unit/e2e work to what a real Nx project graph (one project per
@@ -208,8 +211,9 @@ jobs:
       run: npm run test:weight
 
   # The product e2e suite, split into two shards so each pays roughly half
-  # the Playwright wall time (QUAL-05). Every spec except the font guards,
-  # which have their own job below. Each shard builds for itself (10s) instead
+  # the Playwright wall time (QUAL-05). Every chromium spec except the font
+  # guards (their own job below) and webkit/perf (their own job, `e2e-webkit`,
+  # QUAL-09). Each shard builds for itself (10s) instead
   # of waiting for `build` and downloading its dist/: measured on the first
   # sharded run, that put 60s of `build` in front of a 65s fixed cost per
   # shard (checkout, npm ci, browser install) and gave back the whole 43s the
@@ -253,31 +257,94 @@ jobs:
     - name: Build
       run: npm run build
 
-    # Not cached here, on purpose. Measured: a cache hit is 5s to restore plus
-    # 46s of `install-deps` for webkit's apt libraries, against 38s for this
-    # one command. The cache only ever saved the download; the apt half is the
-    # cost, and it is not cacheable. The chromium-only fonts job below does
-    # cache, because there the apt half is 12s.
+    # Chromium only (QUAL-09): webkit and the perf budgets moved to the
+    # unsharded `e2e-webkit` job below, so this stays uncached rather than
+    # newly worth caching. Measured before the split: a cache hit was 5s to
+    # restore plus 46s of `install-deps` for webkit's apt libraries, against
+    # 38s for this one command there; the chromium-only apt half alone runs
+    # 12-15s per the fonts job's comment below, so a cache is a follow-up only
+    # if that shows up as a cost worth avoiding.
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps chromium
+
+    # One command per project (QUAL-09): webkit now lives in its own job
+    # (`e2e-webkit`) instead of being sharded here alongside chromium.
+    # $E2E_PATHS is empty (no filter, the full suite) when affected-scope.mjs
+    # saw everything=true.
+    - name: Run Playwright e2e tests (product chromium, shard ${{ matrix.shard }}/2)
+      env:
+        E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
+      run: npx playwright test --project=chromium --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
+
+    - name: Upload Playwright artifacts
+      if: failure()
+      uses: actions/upload-artifact@v5
+      with:
+        name: playwright-artifacts-product-shard-${{ matrix.shard }}
+        path: |
+          playwright-report/
+          test-results/
+        if-no-files-found: ignore
+
+  # QUAL-09 (2026-09-14): webkit and the perf budgets run once here, unsharded,
+  # instead of inside the `e2e` matrix above. Measured on run 34788031094:
+  # each chromium shard's `playwright install --with-deps chromium webkit`
+  # cost 51s to install a browser that only ran 21 webkit tests, about 32s of
+  # test time; both shards paid the 51s, and after QUAL-06 rebalanced the font
+  # guards, the `e2e` shards were the wall at 180-210s. Splitting webkit out
+  # means the two chromium shards install and run chromium only, and webkit
+  # plus the perf budgets are installed and run exactly once, here.
+  e2e-webkit:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    # Right after npm ci (needs node_modules for `nx`), so this job and the
+    # chromium shards agree on the same affected paths - see the workflow
+    # header comment and docs/nx-affected-ci.md. Empty e2e_paths means either
+    # everything=true (run the full suite) or nothing e2e-relevant is
+    # affected; either way, `--pass-with-no-tests` below makes a narrowed,
+    # zero-match project exit 0 instead of Playwright's default failure.
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Build
+      run: npm run build
+
+    # Also installs chromium: the `perf` project is chromium-based (see
+    # `devices['Desktop Chrome']` in playwright.config.js), and the perf
+    # budgets run in this job too, on the job that has the spare time after
+    # dropping webkit from the two chromium shards.
     - name: Install Playwright browsers
       run: npx playwright install --with-deps chromium webkit
 
-    # One command per project, each sharded, rather than one sharded command
-    # over both: Playwright shards by test count in project order, which put
-    # all 21 webkit tests (3s each, against 1.3s for chromium) in shard 2 and
-    # made it 153s of test time against shard 1's 90s. $E2E_PATHS is empty
-    # (no filter, the full suite) when affected-scope.mjs saw everything=true.
-    - name: Run Playwright e2e tests (product, shard ${{ matrix.shard }}/2)
+    - name: Run Playwright e2e tests (product webkit)
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
-      run: |
-        npx playwright test --project=chromium --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
-        npx playwright test --project=webkit --shard=${{ matrix.shard }}/2 --pass-with-no-tests $E2E_PATHS
+      run: npx playwright test --project=webkit --pass-with-no-tests $E2E_PATHS
 
     # The wall-clock budget specs, on one worker so nothing else on the
     # runner is in the measurement (see PERF_BUDGETS in playwright.config.js).
-    # They run once, in shard 1 only.
+    # Moved here from `e2e` shard 1 by QUAL-09: this job has the spare time
+    # once the chromium shards stop installing webkit.
     - name: Run Playwright e2e tests (performance budgets, one worker)
-      if: matrix.shard == 1
       env:
         E2E_PATHS: ${{ steps.affected.outputs.e2e_paths }}
       run: npx playwright test --project=perf --workers=1 --pass-with-no-tests $E2E_PATHS
@@ -286,7 +353,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v5
       with:
-        name: playwright-artifacts-product-shard-${{ matrix.shard }}
+        name: playwright-artifacts-product-webkit
         path: |
           playwright-report/
           test-results/
@@ -303,9 +370,9 @@ jobs:
   #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
-  # so `checks`, each `e2e` shard and each `font-guards` shard can each run
-  # their own `scripts/affected-scope.mjs` (which needs `node_modules` for
-  # `nx`, hence cannot live here) against the same diff.
+  # so `checks`, each `e2e` shard, each `font-guards` shard and `e2e-webkit`
+  # can each run their own `scripts/affected-scope.mjs` (which needs
+  # `node_modules` for `nx`, hence cannot live here) against the same diff.
   scope:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
