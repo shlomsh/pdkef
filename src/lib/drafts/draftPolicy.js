@@ -6,6 +6,16 @@
 export const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 /**
+ * Bump when a future change needs a real migration step; the editor's
+ * `registry/draftValidation.ts` (`migrateDraftRecord`) is the place to add it.
+ * Stamped onto every record written by `useDraftPersistence.js`'s
+ * `buildRecord`; a record with no `schemaVersion` predates this and is treated
+ * as version 0. Lives here, not in the editor, so the draft layer under
+ * `src/lib/` imports nothing from `src/editor/` (DEBT-04).
+ */
+export const DRAFT_SCHEMA_VERSION = 2;
+
+/**
  * Stamp a newly persisted draft. This is intentionally the sole write-side
  * timestamp helper, shared by the draft store and its display metadata.
  */

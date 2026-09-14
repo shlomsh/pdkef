@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile } from './draftStore.js';
-import { DRAFT_SCHEMA_VERSION } from '../../editor/registry/draftValidation.ts';
+import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // Clears the blocking head script's DOM hint once a real restore check has
 // settled with nothing to restore. Shared by both "no record at all" and
