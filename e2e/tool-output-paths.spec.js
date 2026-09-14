@@ -34,9 +34,12 @@ const tools = [
     name: 'Split',
     path: '/split',
     file: { name: 'source.pdf', mimeType: 'application/pdf', bufferFn: makePdfBuffer },
-    actionName: 'Extract 1 page to single PDF',
-    downloadName: 'Download PDF',
-    downloadAttr: 'source-extracted.pdf',
+    // The stage (2026-09-14): the output is prepared on idle, so there is no
+    // action button; Download is a ready link whose accessible name carries
+    // the count line ("Download 1 PDF 1 page · 1.2 KB"), hence the prefix match.
+    actionName: null,
+    downloadNameMatch: /^Download 1 PDF/,
+    downloadAttr: 'extracted_source.pdf',
   },
   {
     name: 'Compress',
@@ -96,7 +99,9 @@ test.describe('uncovered tools produce a real downloadable file', () => {
 
       await tool.setup?.(page);
 
-      await page.getByRole('button', { name: tool.actionName, exact: true }).click();
+      if (tool.actionName) {
+        await page.getByRole('button', { name: tool.actionName, exact: true }).click();
+      }
 
       const download = tool.downloadNameMatch
         ? page.getByRole('link', { name: tool.downloadNameMatch })

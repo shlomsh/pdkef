@@ -106,12 +106,26 @@ export function pageNumbersToRangeString(numbers) {
   return ranges.join(', ');
 }
 
+// The source's base name, ".pdf" stripped, "split" when nothing is left.
+export function outputBaseName(fileName) {
+  return (fileName || '').replace(/\.pdf$/i, '') || 'split';
+}
+
+// The single-file output is `extracted_<base>.pdf`, the shape every other
+// tool uses (`merged_x.pdf`, `signed_x.pdf`, `compressed_x.pdf`): a prefix in
+// the tool's language, then the name in its own direction, so a Hebrew name
+// needs no bidi isolation (ux-design-guidelines §5). Per-page files keep
+// `<base>-page-<n>.pdf`, one per page, in page order.
+export function outputFileName(fileName, mode, pageNumber) {
+  const base = outputBaseName(fileName);
+  return mode === 'separate' ? `${base}-page-${pageNumber}.pdf` : `extracted_${base}.pdf`;
+}
+
 // Splits the input PDF file based on the selected page numbers and mode.
 // mode: 'combined' | 'separate'
 export async function splitPdf(file, { pageNumbers, mode = 'combined', onProgress }) {
   const bytes = await file.arrayBuffer();
   const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
-  const baseName = file.name.replace(/\.pdf$/i, '') || 'split';
 
   if (mode === 'combined') {
     const merged = await PDFDocument.create();
@@ -127,7 +141,7 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', onProgres
     return [
       {
         blob: new Blob([mergedBytes], { type: 'application/pdf' }),
-        filename: `${baseName}-extracted.pdf`,
+        filename: outputFileName(file.name, 'combined'),
       },
     ];
   } else {
@@ -141,7 +155,7 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', onProgres
       const docBytes = await singleDoc.save();
       results.push({
         blob: new Blob([docBytes], { type: 'application/pdf' }),
-        filename: `${baseName}-page-${pageNum}.pdf`,
+        filename: outputFileName(file.name, 'separate', pageNum),
         pageNumber: pageNum,
       });
       onProgress?.((i + 1) / pageNumbers.length);
