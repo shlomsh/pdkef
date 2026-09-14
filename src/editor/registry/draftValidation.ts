@@ -2,14 +2,11 @@ import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import { isActionHistoryEntry, type ActionHistoryEntry, type HistoryElement } from '../model/actionHistory.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
-
-/**
- * Bump when a future change needs a real migration step; `migrateDraftRecord`
- * is the place to add it. Stamped onto every record written by
- * `useDraftPersistence.js`'s `buildRecord`; a record with no `schemaVersion`
- * predates this and is treated as version 0.
- */
-export const DRAFT_SCHEMA_VERSION = 2;
+// The version constant lives with the draft layer in src/lib/drafts/ (it is
+// stamped there); re-exported so the editor-side callers and tests keep one
+// name for it. `migrateDraftRecord` below is where a bump gets its step.
+import { DRAFT_SCHEMA_VERSION } from '../../lib/drafts/draftPolicy.js';
+export { DRAFT_SCHEMA_VERSION };
 
 const ELEMENT_TYPES: readonly ElementType[] = [
   'text', 'rectangle', 'ellipse', 'line', 'symbol', 'signature', 'whiteout', 'blackout', 'blur',
