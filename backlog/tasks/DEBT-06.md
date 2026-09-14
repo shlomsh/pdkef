@@ -1,7 +1,7 @@
 ---
 id: "DEBT-06"
 title: "editor-ui leaves CORE_PROJECTS: the first change whose affected set the Nx graph decides"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "architecture-debt"
 phase: "quick-win"
@@ -38,3 +38,15 @@ so there is no CSS side channel to a third tool.
 - `node scripts/affected-scope.mjs` on an `src/editor-ui/`-only diff prints `everything=false`,
   `unit_paths=src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/`, `fonts=true`.
 - One green CI run on such a commit, with the `Affected scope` step summary showing the narrow verdict.
+
+## Landed (2026-09-14, `039322a`)
+
+`CORE_PROJECTS` is `{site, shell, editor, lib}`; `unit_paths` adds the root of every affected
+non-tool, non-core project under `src/` from Nx's own roots map. Verified on `main` with a throwaway
+`src/editor-ui/ArmHint.tsx` commit: `everything=false`,
+`unit_paths=src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/`, both tools' `e2e/` plus
+site-e2e's children, `fonts=true`; a `src/shell/` commit still widens. The second acceptance line (a
+green CI run whose `Affected scope` summary shows the narrow verdict) is read off the first
+editor-ui-only push after this landed. Landed beside it: `playwright.config.js` ignores a `.claude/`
+nested inside the scanning checkout (`5c25fa9`, `95eb530`), because agent worktrees inside the repo
+made `playwright test --list` load two Playwright copies and report 0 tests.
