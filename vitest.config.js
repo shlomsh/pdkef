@@ -20,7 +20,11 @@ const DOM_TESTS = [
   'src/lib/use*.{test,spec}.*',
   // DEBT-04 (move A): draftStore.js/draftPolicy.js/useDraftPersistence.js moved here from
   // src/editor/workspace/; draftStore.test.js drives localStorage and fake-indexeddb directly.
-  'src/lib/drafts/*.{test,spec}.js',
+  // Named list, not a wildcard, because DEBT-05 added
+  // draftStoreServiceWorkerSync.test.js to this same folder: it only reads
+  // draftStore.js and public/sw.js as text with node:fs, so it stays a node
+  // test rather than paying for jsdom it never touches.
+  'src/lib/drafts/{draftPolicy,draftStore}.test.js',
   // Literal path list, not a wildcard-folder glob, because compress/compressImage
   // and toImage are single-tool (ARCH-17 moves them to src/tools/<tool>/) while
   // thumbnails.js has more than one tool consumer (docs/module-boundaries.md's
