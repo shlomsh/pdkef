@@ -21,7 +21,7 @@
  */
 import { textForCoverage } from './comb.js';
 import { resolveFontFamily } from './fonts.js';
-import { unrepresentableCharacters } from '../registry/text.ts';
+import { unrepresentableCharacters } from './textMetrics.ts';
 
 /**
  * Every character across every text element that its resolved, embedded font

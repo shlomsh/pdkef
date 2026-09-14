@@ -50,7 +50,12 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // `src/editor/` at all, so this guard's workspace-layer rules do not apply to
 // it. `useEditorDraftPersistence.ts` (the thin workspace-lifecycle bridge that
 // stays in the editor because it depends on the registry) keeps its own
-// `preact/hooks` exception below unchanged.
+// `preact/hooks` exception below unchanged. DEBT-12 removed the
+// `textCoverage.js -> registry/text.ts` exception the same way: the real
+// `unrepresentableCharacters` already lived in the text layer
+// (`text/textMetrics.ts`), with `registry/text.ts` only re-exporting it, so
+// `textCoverage.js` (and `liveFontCoverage.js`, the same shape) now import it
+// from `textMetrics.ts` directly - a text -> text edge, no bridge needed.
 const EXCEPTIONS = [
   {
     from: 'src/editor/registry/renderers.ts',
@@ -66,11 +71,6 @@ const EXCEPTIONS = [
     from: 'src/editor/workspace/useEditorDraftPersistence.ts',
     package: 'preact/hooks',
     reason: 'workspace lifecycle bridge owns draft restore and autosave wiring',
-  },
-  {
-    from: 'src/editor/text/textCoverage.js',
-    target: 'src/editor/registry/text.ts',
-    reason: 'temporary coverage export bridge; keep the public text-coverage API stable',
   },
 ];
 
@@ -126,11 +126,31 @@ function packageRoot(specifier) {
   return specifier.split('/')[0];
 }
 
-function isException(from, target, specifier) {
-  return EXCEPTIONS.some((exception) => exception.from === from
+// Shared by isException() (does this edge clear an exception?) and
+// staleExceptions() (did any edge ever clear this exception?), so the two
+// questions can never drift into different definitions of "matches".
+function exceptionMatches(exception, { from, target, specifier }) {
+  return exception.from === from
     && (exception.package === specifier
       || exception.target === target
-      || (exception.targetPrefix && target?.startsWith(exception.targetPrefix))));
+      || (exception.targetPrefix && target?.startsWith(exception.targetPrefix)));
+}
+
+function isException(from, target, specifier) {
+  return EXCEPTIONS.some((exception) => exceptionMatches(exception, { from, target, specifier }));
+}
+
+// Modelled on check-module-boundaries.mjs's stale-allowlist handling: an
+// EXCEPTIONS entry only earns its keep by actually matching a resolved edge
+// somewhere in the tree. `edges` is every (from, target, specifier) triple
+// checkProject() considered, exactly the universe isException() is asked
+// about - not only the ones that would otherwise violate a rule, since a
+// `package`-scoped exception (e.g. the `preact` entries) never reaches a
+// layer check for a bare specifier with no target. Exported so
+// src/test/editorDependencyDirectionsExceptions.test.js can drive it with a
+// small literal fixture instead of walking the real tree.
+export function staleExceptions(edges, exceptions) {
+  return exceptions.filter((exception) => !edges.some((edge) => exceptionMatches(exception, edge)));
 }
 
 function strippedSource(source) {
@@ -193,6 +213,7 @@ function checkProject(projectRoot) {
   const sourceRoot = path.join(projectRoot, 'src');
   if (!fs.existsSync(sourceRoot)) throw new Error(`Missing source directory: ${sourceRoot}`);
   const violations = [];
+  const edges = [];
 
   for (const file of collectSourceFiles(sourceRoot)) {
     const source = fs.readFileSync(file, 'utf8');
@@ -221,22 +242,29 @@ function checkProject(projectRoot) {
         continue;
       }
       const target = resolved ? path.relative(projectRoot, resolved).split(path.sep).join('/') : null;
+      edges.push({ from, target, specifier });
       const reason = violationFor({ from, target, specifier });
       if (reason) violations.push({ from, target, specifier, reason });
     }
   }
 
-  return violations;
+  return { violations, stale: staleExceptions(edges, EXCEPTIONS) };
 }
 
 function main() {
   const projectRoot = parseRoot(process.argv.slice(2));
-  const violations = checkProject(projectRoot);
-  if (violations.length > 0) {
+  const { violations, stale } = checkProject(projectRoot);
+  if (violations.length > 0 || stale.length > 0) {
     console.error('Editor dependency-direction guard failed:');
     for (const violation of violations) {
       const destination = violation.target || violation.specifier;
       console.error(`  ${violation.from} -> ${destination}: ${violation.reason}`);
+    }
+    if (stale.length > 0) {
+      console.error('\nStale exceptions (remove them): no resolved import matches these EXCEPTIONS entries any more.');
+      for (const exception of stale) {
+        console.error(`  ${exception.from} -> ${exception.target || exception.package}: ${exception.reason}`);
+      }
     }
     process.exitCode = 1;
     return;

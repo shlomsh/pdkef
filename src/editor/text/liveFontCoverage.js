@@ -1,6 +1,6 @@
 import fontkit from '@pdf-lib/fontkit';
 import { resolveFontFamily } from './fonts.js';
-import { unrepresentableCharacters } from '../registry/text.ts';
+import { unrepresentableCharacters } from './textMetrics.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
 
 /**
