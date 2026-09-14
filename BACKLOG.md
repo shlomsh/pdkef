@@ -304,6 +304,7 @@ _None._
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
+| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
 
 ### In progress
 
@@ -323,6 +324,42 @@ _None._
 | ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
 | ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
+
+### Retired
+
+_None._
+
+## Architecture debt
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEBT-01 | P1 | [DEBT-01](backlog/tasks/DEBT-01.md) · Move the two cross-tool Playwright specs out of tool folders and guard the route a tool spec may visit |
+| DEBT-02 | P1 | [DEBT-02](backlog/tasks/DEBT-02.md) · The boundary checker scans test files: a test outside src/test/cross-tool/ may not import a tool it does not belong to |
+| DEBT-03 | P1 | [DEBT-03](backlog/tasks/DEBT-03.md) · change-scope.mjs diffs with --no-renames so a moved file's old owner is affected too |
+| DEBT-04 | P1 | [DEBT-04](backlog/tasks/DEBT-04.md) · Move draft persistence, the pdf.js render context and the Sign/Redact-only hooks to the folders that own them |
+| DEBT-05 | P2 | [DEBT-05](backlog/tasks/DEBT-05.md) · Tests for scripts/ leave src/lib/, and site-only helpers get a home that is not the shared lib |
+| DEBT-06 | P1 | [DEBT-06](backlog/tasks/DEBT-06.md) · editor-ui leaves CORE_PROJECTS: the first change whose affected set the Nx graph decides |
+| DEBT-07 | P2 | [DEBT-07](backlog/tasks/DEBT-07.md) · editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers |
+| DEBT-08 | P2 | [DEBT-08](backlog/tasks/DEBT-08.md) · Data attributes replace the text-element class-name registry |
+| DEBT-09 | P2 | [DEBT-09](backlog/tasks/DEBT-09.md) · The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types |
+| DEBT-10 | P2 | [DEBT-10](backlog/tasks/DEBT-10.md) · Close the checker's core-to-site gap and fix the guidance that contradicts ARCH-20 |
+| DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
+| DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
+| DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
 
 ### Retired
 
