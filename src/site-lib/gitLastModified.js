@@ -41,13 +41,19 @@ export function lastModifiedFor(files) {
   return latest ?? BUILD_TIME;
 }
 
-// The files whose git history dates a documentation page. English pages map
-// to their YAML plus the shared route template that renders them (a template
-// change is a visible change on every page); a localized edition maps to its
-// own translation file, which carries the reviewed copy the reader sees.
+// The files whose git history dates a documentation page: the YAML that holds
+// the copy the reader sees, and nothing else. The shared route template used
+// to count too, on the theory that a template change is a change on every
+// page; in practice DEBT-05 changed one import line in `[contentPage].astro`
+// and every English guide's "Last updated" jumped to that day, telling
+// readers and the sitemap that ten pages changed when no sentence had. A
+// template change that does alter what a reader sees on every page is rare
+// enough to be a deliberate decision: touch the YAML files in that commit, or
+// accept that the date stays with the words. A localized edition maps to its
+// own translation file, which carries the reviewed copy.
 export function documentationSourceFiles(pageId, locale = 'en') {
   if (locale === 'en') {
-    return [`src/content/content-pages/${pageId}.yaml`, 'src/pages/[contentPage].astro'];
+    return [`src/content/content-pages/${pageId}.yaml`];
   }
   return [`src/content/localized-pages/${locale}/${pageId}.yaml`];
 }
