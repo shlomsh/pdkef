@@ -60,11 +60,23 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
    `docs/nx-affected-ci.md` already asked for) is exempt: a test placed there classifies as
    `test-support`, neither a core module nor a tool, so the rule never reaches it. Unlike rules 1-5,
    rule 6 carries no allowlist - it holds at zero violations, not a ratchet down from today's count.
+7. **A `*.spec.js` under `src/tools/<t>/e2e/` may only reference that tool's own routes, plus `/`.**
+   The tool -> routes map is derived, never hand-written: a top-level `src/pages/<slug>.astro` that
+   imports `../tools/<t>/Pdf*Tool` maps route `/<slug>` to tool folder `<t>` (so `/compress/` and
+   `/compress-image/` both belong to `compress`, `/unlock/` to `security`, `/pdf-to-image/` to
+   `to-image`, `/edit-pdf/` to `edit-pages`). A route may appear as a string literal, a template
+   literal, or inside a regex literal, with or without a trailing slash and optionally behind a
+   locale prefix (`/he/redact`); comments are stripped first, so a route named only in prose never
+   counts. A spec that genuinely needs another tool's page - `toolbar-touch-targets.spec.js` driving
+   both `/sign` and `/redact`, `merge-handoff.spec.js` ending on `/compress/` - belongs under `e2e/`
+   instead of a tool's own `e2e/` folder (DEBT-01).
 
-`scripts/check-module-boundaries.mjs` enforces exactly these six rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these seven rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
-never "teach the script a new rule."
+never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,
+`specRouteViolation()`) rather than an edge in the same import graph, since it scans spec text for
+route mentions instead of import specifiers.
 
 ## Evidence
 

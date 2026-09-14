@@ -175,6 +175,16 @@ Cross-checked once: every inferred edge in `nx graph --file` runs in a direction
 exercise). No `editor -> editor-ui`/`shell`, no core -> tool, no tool -> tool edge exists in the
 graph, which is the same answer the checker gives with an empty allowlist.
 
+What narrows a single-tool commit past its own `unit_paths`/`e2e_paths` is only as good as the specs
+actually staying inside that tool's folder. A `src/tools/<t>/e2e/*.spec.js` that also drives another
+tool's page defeats that narrowing silently: a Redact-only commit still narrows to
+`src/tools/redact/e2e/` plus `e2e/`, but a spec sitting under `src/tools/sign/e2e/` that also opens
+`/redact` never runs. `docs/module-boundaries.md`'s rule 7 (`check-module-boundaries.mjs`'s
+`toolSpecRouteViolations()`) is the guard: a spec under a tool's own `e2e/` folder may only reference
+that tool's own routes, plus `/`, checked as a static string/regex-literal scan of the spec's source
+text. A spec that genuinely needs another tool's page lives under `e2e/` instead, where it always runs
+regardless of which single tool a commit narrows to (DEBT-01).
+
 ## The project table vs. the histogram
 
 `scripts/nx-affected-histogram.mjs` classifies each of the last 200 commits on `HEAD`
