@@ -47,7 +47,7 @@ async function assertNoCspViolations(page) {
   expect(violations, `Unexpected CSP violations:\n${violations.join('\n')}`).toEqual([]);
 }
 
-async function openRedactTool(page) {
+async function openRedactTool(page, buffer = null) {
   const browserMessages = [];
   page.on('console', (message) => {
     browserMessages.push(`[${message.type()}] ${message.text()}`);
@@ -74,7 +74,7 @@ async function openRedactTool(page) {
   await fileChooser.setFiles({
     name: 'redact-e2e.pdf',
     mimeType: 'application/pdf',
-    buffer: await makePdfBuffer(),
+    buffer: buffer || await makePdfBuffer(),
   });
 
   try {
@@ -289,5 +289,120 @@ test.describe('Redact editor browser guardrails', () => {
     });
 
     expect(prevented).toBe(true);
+  });
+});
+
+// Design-review findings #1 and #2: jsdom has no layout, so the CSS-only
+// touch-target floors added for this review (`.delete-candidate::before`,
+// `.delete-mark-btn::before`, `.resizer::before`, `.element-button::before`,
+// `.redact-element-btn::before`) need a real browser to prove. Coordinates
+// are read as computed style, matching toolbar-touch-targets.spec.js's own
+// approach of measuring rendered geometry rather than clicking blind.
+test.describe('per-element touch targets (design-review findings #1 and #2)', () => {
+  test.use({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
+
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
+  async function makeTinyTextPdfBuffer() {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([300, 200]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    // A 4pt run renders only a few CSS px tall once pdf.js paints it to the
+    // page canvas at this fixture's scale - finding #1's exact complaint.
+    page.drawText('tiny', { x: 20, y: 150, size: 4, font, color: rgb(0.1, 0.1, 0.1) });
+    return Buffer.from(await doc.save());
+  }
+
+  // Computed `inset` on `::before` (the technique `.resizer`, `.element-button`
+  // and `.redact-element-btn` all use) expanded against the real element's own
+  // rendered rect - CSS `inset` shorthand resolves like `margin`'s 1/2/3/4-value
+  // forms, so this covers every one it can compute to.
+  async function insetHitSize(locator) {
+    return locator.evaluate((el) => {
+      const own = el.getBoundingClientRect();
+      const parts = getComputedStyle(el, '::before').inset.split(' ').map((v) => parseFloat(v) || 0);
+      const [top, right, bottom, left] = parts.length === 1
+        ? [parts[0], parts[0], parts[0], parts[0]]
+        : parts.length === 2
+          ? [parts[0], parts[1], parts[0], parts[1]]
+          : parts.length === 3
+            ? [parts[0], parts[1], parts[2], parts[1]]
+            : parts;
+      return { width: own.width + Math.abs(left) + Math.abs(right), height: own.height + Math.abs(top) + Math.abs(bottom) };
+    });
+  }
+
+  // The centred `min-width`/`min-height` technique `.delete-candidate` and
+  // `.delete-mark-btn` use instead: unlike the resizer/toolbar controls, this
+  // one has to reach its floor even when the real element is *smaller* than
+  // the floor in both dimensions, not just widen a fixed visual by a fixed
+  // amount.
+  async function centeredMinHitSize(locator) {
+    return locator.evaluate((el) => {
+      const own = el.getBoundingClientRect();
+      const cs = getComputedStyle(el, '::before');
+      return {
+        width: Math.max(own.width, parseFloat(cs.minWidth) || 0),
+        height: Math.max(own.height, parseFloat(cs.minHeight) || 0),
+      };
+    });
+  }
+
+  test('finding #1: gives a tiny Delete-tool candidate a real 24px minimum hit box', async ({ page }) => {
+    await openRedactTool(page, await makeTinyTextPdfBuffer());
+    await selectRedactStyle(page, 'Delete');
+
+    const candidate = page.locator('[class*="delete-candidate"]').first();
+    await expect(candidate).toBeVisible();
+
+    const before = await getBox(candidate, 'Delete candidate');
+    // Confirms the fixture actually reproduces the reviewed problem - a
+    // vacuous pass here would mean this guardrail proves nothing.
+    expect(before.height, 'fixture text run should render under the 24px floor').toBeLessThan(24);
+
+    const after = await centeredMinHitSize(candidate);
+    expect(after.width, `hit width ${after.width}px, visual was ${before.width}px`).toBeGreaterThanOrEqual(24);
+    expect(after.height, `hit height ${after.height}px, visual was ${before.height}px`).toBeGreaterThanOrEqual(24);
+
+    // The visible outline is the object's own rect and must stay exactly
+    // that - finding #1 is explicit the hit box grows independently of it.
+    // getBox() re-reads the real DOM element (not the invisible pseudo), so
+    // an unchanged `before` here already is that proof.
+    const stillTiny = await getBox(candidate, 'Delete candidate (after)');
+    expect(stillTiny.width).toBeCloseTo(before.width, 1);
+    expect(stillTiny.height).toBeCloseTo(before.height, 1);
+  });
+
+  test('finding #2: brings the resizer, whiteout toolbar buttons and blackout/blur delete button to 44px under a coarse pointer', async ({ page }) => {
+    await openRedactTool(page);
+
+    const whiteout = await drawRedaction(page, 'Whiteout', { x: 0.18, y: 0.16 }, { x: 0.4, y: 0.22 });
+    await selectRedaction(whiteout);
+
+    const resizer = whiteout.locator('[data-editor-resizer="bottom-right"]');
+    const resizerVisual = await getBox(resizer, 'Resizer handle');
+    expect(resizerVisual.width, 'resizer visual should stay small - only the hit box grows').toBeLessThan(12);
+    const resizerHit = await insetHitSize(resizer);
+    expect(resizerHit.width).toBeGreaterThanOrEqual(44);
+    expect(resizerHit.height).toBeGreaterThanOrEqual(44);
+
+    const floatingButton = whiteout.locator('[data-editor-actions] button').first();
+    await expect(floatingButton).toBeVisible();
+    const floatingVisual = await getBox(floatingButton, 'Floating toolbar button');
+    const floatingHit = await insetHitSize(floatingButton);
+    expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
+    expect(floatingHit.height, `visual was ${floatingVisual.height}px`).toBeGreaterThanOrEqual(44);
+
+    const blackout = await drawRedaction(page, 'Blackout', { x: 0.18, y: 0.3 }, { x: 0.4, y: 0.4 });
+    await selectRedaction(blackout);
+    const redDelete = blackout.locator('[class*="redact-element-btn"]');
+    await expect(redDelete).toBeVisible();
+    const redDeleteVisual = await getBox(redDelete, 'Blackout delete button');
+    expect(redDeleteVisual.width, 'delete button visual should stay 24px - only the hit box grows').toBeLessThan(28);
+    const redDeleteHit = await insetHitSize(redDelete);
+    expect(redDeleteHit.width, `visual was ${redDeleteVisual.width}px`).toBeGreaterThanOrEqual(44);
+    expect(redDeleteHit.height, `visual was ${redDeleteVisual.height}px`).toBeGreaterThanOrEqual(44);
   });
 });

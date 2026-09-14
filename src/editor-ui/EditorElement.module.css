@@ -72,4 +72,10 @@
 .line > svg { pointer-events: none; }
 .line .line-handle { opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; border-radius: 0; }
 .line.active .line-handle, .line:hover .line-handle { opacity: 1; visibility: visible; }
-@media (pointer: coarse) { .element::after { inset: -8px; } .element.active::after { inset: -16px; } .resizer::before { content: ''; position: absolute; inset: -14px; } }
+/* -18px is sized for the smallest resizer visual on screen (`.shape .resizer`
+   at 8px): 8 + 2*18 = 44, the WCAG 2.5.5/HIG touch-target floor. The other
+   resizer variants (10px default, 9px `.shape .resizer.corner`) land a hair
+   over 44 with the same single inset value rather than each carrying its own -
+   over-44 is harmless, under-44 is the bug. Previously -14px, which only
+   reached 36-37px (Redact design-review finding #2). */
+@media (pointer: coarse) { .element::after { inset: -8px; } .element.active::after { inset: -16px; } .resizer::before { content: ''; position: absolute; inset: -18px; } }

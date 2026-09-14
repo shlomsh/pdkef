@@ -17,6 +17,18 @@
   pointer-events: auto;
 }
 
+/* Redact design-review finding #2: this button is a hard 24x24 circle
+   (RedactBox.tsx's inline style) with no touch widening at all, unlike the
+   shared resize handles beside it. Same invisible `::before` overlay as
+   `.resizer::before` (EditorElement.module.css) and `.element-button::before`
+   (EditorControls.module.css): the visible circle stays 24x24, the pseudo
+   reaches the 44px floor (24 + 2*10 = 44). The button already carries its own
+   `position: absolute` inline style, so it is already a valid anchor for the
+   pseudo - no extra positioning rule needed here. */
+@media (pointer: coarse) {
+  .redact-element-btn::before { content: ''; position: absolute; inset: -10px; }
+}
+
 /* Whiteout's border reads as a true erase at rest (transparent) and only
    appears on hover/selection - selection wins over hover when both apply,
    which this rule order encodes (E7.4: state-driven visuals live in CSS,
@@ -50,6 +62,29 @@
   border-radius: 3px;
   border: 1.5px dashed transparent;
   transition: background-color 0.12s var(--ease-out), border-color 0.12s var(--ease-out);
+}
+
+/* Redact design-review finding #1: this div is sized exactly to the PDF
+   object's own rect, with no floor - a text run a few px tall was a few px
+   tall to tap, for a mouse as much as a finger. `::before` gives every
+   candidate an invisible, centred 24x24 CSS px minimum hit area, independent
+   of the visible outline above (which stays exactly the object's rect).
+   Unconditional, not gated to `pointer: coarse`: a several-px-tall run is
+   just as hard to land a mouse click on as a fingertip. Adjacent tiny runs'
+   hit boxes can now overlap; every `.delete-candidate` here shares the same
+   z-index (12, inline in DeletableObjectOverlay.tsx) so ties resolve by DOM
+   order - the later (topmost-painted) sibling's `::before` wins the click,
+   which is deterministic and an accepted resolution for this finding. */
+.delete-candidate::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .delete-candidate:hover {
@@ -109,6 +144,51 @@
   }
 }
 
+/* Redact design-review finding #3: deleteElement (a box's own X) and
+   clearPage ("Clear all redactions on this page") used to change state
+   silently - no live-region announcement, no way to undo but Cmd/Ctrl+Z or
+   the full history modal. This chip takes the toolbar's status-line slot
+   (RedactToolbar.tsx swaps EditorToolStatus for this while an undo is
+   pending) the same way Merge's own undo chip wins its header slot
+   (MergeDocument.module.css's `.undo-chip`, PdfMergeTool.tsx's
+   `registerUndo`/`undoAction`) - one slot, replaced by whatever the next
+   action registers, same success-toned pill. */
+.undo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-pill);
+}
+
+.undo-chip-btn {
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* Redact design-review finding #5: the Download control never said what it
+   would produce. A quiet, end-aligned line beside the always-visible
+   completion Download/Share pair - the honest-numbers pattern from
+   docs/ux-design-guidelines.md §2, sized down to a caption since this tool's
+   primary control is already labelled "Download", not a bare verb. */
+.export-count {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  text-align: end;
+}
+
 /* The undo control stays visible at rest, unlike RedactBox's controls above -
    "marked for deletion" is a stronger claim than "here is a box", and hiding
    the only way to check/undo it behind a hover would make that claim harder
@@ -141,4 +221,23 @@
   background: var(--color-danger);
   color: #fff;
   transform: scale(1.12);
+}
+
+/* Redact design-review finding #1: this 20x20 circle is the actual click
+   target for undoing a delete mark (the outline around it is not
+   clickable), and 20px is already under the 24px floor this finding asks
+   for. Same centred, invisible `::before` overlay as `.delete-candidate`
+   above; the button already carries `position: absolute` (this file, above),
+   so no extra positioning rule is needed. Unconditional for the same reason:
+   a mouse is not exempt from a target this small. */
+.delete-mark-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  min-width: 24px;
+  min-height: 24px;
 }
