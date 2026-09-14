@@ -40,7 +40,8 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
 1. A tool may import `shell`, `editor-ui`, `editor`, `lib`, and site's `i18n`/`data`. A tool may
    never import another tool.
 2. `shell`, `editor-ui`, `editor` and `lib` may never import a tool, and may never import the
-   `components` module (see below).
+   `components` module (see below). They may import site's `i18n`/`data` (`site-i18n`/`site-data`),
+   but never `site` itself (pages/layouts/content/styles).
 3. `editor` may never import `editor-ui` or `shell`. It is headless; Preact only renders from its
    state and binds events to it.
 4. The site (pages, layouts, content, data, i18n, styles, and the `.astro` files still under
