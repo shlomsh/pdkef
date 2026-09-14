@@ -53,6 +53,26 @@ npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI na
   CSS Modules silently (`styles.foo === undefined`), not just the dev server.
 - Deploy: push to `main` and Vercel auto-deploys.
 
+## How we work
+
+- **Team-lead mode.** For anything with independent pieces, delegate to Sonnet subagents instead of
+  doing it all on the main thread; brief each one precisely and verify its report yourself — a
+  subagent's summary describes intent, not necessarily what happened.
+- **One subagent, one task.** Research and exploration never happen on the main thread. A harder
+  problem gets more subagents working in parallel, not more patience from one.
+- **Review is a separate subagent with zero shared context.** Self-review confirms assumptions, it
+  doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact
+  line it applies to.
+- **Simple wins.** Prefer the more elegant solution; three similar lines beat a premature abstraction.
+- **Engineering is a core principle.** Isolation, DRY, and tests aren't optional extras. If a change is
+  quietly causing tech debt (a slowing build, duplicated logic, missing isolation or coverage), raise
+  it and spend the time on better engineering rather than pushing through.
+- **The board reflects reality.** Mark a ticket `in_progress` the moment work starts on it
+  (`backlog/tasks/`, see `backlog/README.md`). Don't let a ticket sit half-done and half-blocked —
+  split the remaining work into a new ticket so the original can close.
+- **Worktrees are the default, and they get cleaned up.** Do non-trivial work in its own `git worktree`;
+  once it's merged to `main`, delete the worktree and its branch.
+
 ## Architecture
 
 **Astro, `output: 'static'`, islands.** Every page is prerendered to flat HTML at build time.
