@@ -6,9 +6,7 @@ import PdfSplitTool from './PdfSplitTool.tsx';
 import { parsePageSelector, pageNumbersToRangeString } from './split.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
-import pageGridStyles from '../../shell/PageGrid.module.css';
 import styles from './PdfSplitTool.module.css';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 
@@ -124,9 +122,81 @@ describe('PdfSplitTool UI flow', () => {
     const selectorInput = container.querySelector('#page-selector-input');
     expect(selectorInput.value).toBe('1-4');
 
-    // Should render 4 page cards
-    const cards = container.querySelectorAll(`.${pageGridStyles['page-card']}`);
+    // Should render 4 page cells, all included, inside the one-document frame
+    const cards = container.querySelectorAll(`.${styles.cell}`);
     expect(cards.length).toBe(4);
+    expect(container.querySelectorAll(`.${styles['is-out']}`).length).toBe(0);
+    expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
+    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_test.pdf');
+
+    // The default mode is shown as a choice, with the alternative beside it
+    const radios = container.querySelectorAll('[role="radio"]');
+    expect(Array.from(radios).map((r) => r.textContent)).toEqual(['One PDF', 'One PDF per page']);
+    expect(radios[0].getAttribute('aria-checked')).toBe('true');
+    expect(radios[1].getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('a toggled cell stays in place and the primary element reflects the count', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cells = () => Array.from(container.querySelectorAll(`.${styles.cell}`));
+    await act(async () => cells()[1].click());
+
+    // Same four cells, same order; the second is dimmed, not moved
+    expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(['Page 1', 'Page 2', 'Page 3', 'Page 4']);
+    expect(cells()[1].classList.contains(styles['is-out'])).toBe(true);
+    expect(container.querySelector('#page-selector-input').value).toBe('1, 3-4');
+    expect(container.querySelector(`.${styles['canvas-count']}`).textContent).toBe('3 of 4 pages');
+
+    // Clear: the frame stays, empty, and the primary element says what to do
+    const clearButton = Array.from(container.querySelectorAll(`.${styles.command}`))
+      .find((b) => b.textContent === 'Clear');
+    await act(async () => clearButton.click());
+    expect(container.querySelector(`.${styles['doc-frame']}`).getAttribute('data-empty')).toBe('true');
+    const primary = container.querySelector(`.${styles.primary}`);
+    expect(primary.getAttribute('data-state')).toBe('empty');
+    expect(primary.textContent).toContain('Pick at least one page');
+  });
+
+  it('switching to one PDF per page regroups the same cells in place', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const perPage = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF per page');
+    await act(async () => perPage.click());
+
+    expect(container.querySelector(`.${styles['doc-frame']}`)).toBeNull();
+    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('4 PDFs, one page each');
+    const cells = Array.from(container.querySelectorAll(`.${styles.cell}`));
+    expect(cells.length).toBe(4);
+    expect(cells.every((c) => c.classList.contains(styles['is-own-file']))).toBe(true);
+    expect(cells[2].querySelector(`.${styles['cell-caption']}`).textContent).toBe('test-page-3.pdf');
+    expect(cells[2].querySelector(`.${styles['cell-caption']}`).getAttribute('title')).toBe('test-page-3.pdf');
+
+    // The quiet line under the primary flips it back
+    const otherMode = container.querySelector(`.${styles['other-mode-link']}`);
+    expect(otherMode.textContent).toBe('save them as one PDF');
+    await act(async () => otherMode.click());
+    expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
   });
 
   it('shares separately split PDFs as multiple native files', async () => {
@@ -147,17 +217,27 @@ describe('PdfSplitTool UI flow', () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    const separateButton = Array.from(container.querySelectorAll(`.${styles['split-card']}`))
-      .find((button) => button.textContent.includes('Individual Pages'));
+    const separateButton = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent === 'One PDF per page');
     await act(async () => separateButton.click());
 
-    const splitButton = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    // The output is prepared on idle; wait past the debounce and the split.
+    const primary = container.querySelector(`.${styles.primary}`);
     await act(async () => {
-      splitButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    expect(primary.getAttribute('data-state')).toBe('ready');
+    expect(primary.textContent).toContain('Download 5 PDFs');
+
+    // Tapping the primary saves all five and reveals the next steps.
+    await act(async () => {
+      primary.click();
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
+    expect(primary.getAttribute('data-state')).toBe('saved');
 
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
+    const shareButton = Array.from(container.querySelectorAll(`.${styles['next-step']}`))
+      .find((b) => b.textContent.includes('Share'));
     expect(shareButton).not.toBeNull();
     await act(async () => shareButton.click());
     const files = nativeShare.share.mock.calls[0][0].files;
@@ -209,7 +289,7 @@ describe('splitPdf library integration with real fixtures', () => {
     const results = await splitPdf(file, { pageNumbers: [2, 3, 4], mode: 'combined' });
 
     expect(results.length).toBe(1);
-    expect(results[0].filename).toBe('num-5-extracted.pdf');
+    expect(results[0].filename).toBe('extracted_num-5.pdf');
     
     const texts = await extractTextFromPdfBlob(results[0].blob);
     expect(texts).toEqual(['12', '13', '14']);
@@ -221,7 +301,7 @@ describe('splitPdf library integration with real fixtures', () => {
     const results = await splitPdf(file, { pageNumbers: [1], mode: 'combined' });
 
     expect(results.length).toBe(1);
-    expect(results[0].filename).toBe('num-5-extracted.pdf');
+    expect(results[0].filename).toBe('extracted_num-5.pdf');
 
     const texts = await extractTextFromPdfBlob(results[0].blob);
     expect(texts).toEqual(['11']);

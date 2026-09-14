@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString, splitPdf } from './split.js';
+import { parsePageSelector, pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
-import fileListStyles from '../../shell/FileList.module.css';
 import pageGridStyles from '../../shell/PageGrid.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
-import { describeFile } from '../../lib/format.js';
+import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 
 let pdfjsLib: any;
@@ -31,47 +31,148 @@ interface SplitPage {
   thumbnail: string | null;
 }
 
-export default function PdfSplitTool() {
+interface OutputFile {
+  url: string;
+  filename: string;
+  pageNumber?: number;
+  blob: Blob;
+}
+
+type Mode = 'combined' | 'separate';
+/** idle: no file. loading: reading the PDF. preparing: the output is being
+ * built on idle after the last change. ready: something to download.
+ * error: the last prepare failed. */
+type Status = 'idle' | 'loading' | 'preparing' | 'ready' | 'error';
+
+/** Above this many pages the per-page mode shows one caption line instead of
+ * a file name under every cell (review 2026-09-14, P1: fifty captions with
+ * the same base name say nothing). */
+const PER_CELL_CAPTION_LIMIT = 24;
+/** Debounce between the last change and the idle prepare. */
+const PREPARE_DELAY_MS = 350;
+
+export interface PdfSplitToolProps {
+  /** Tests only: jsdom cannot navigate. */
+  navigate?: (href: string) => void;
+}
+
+export default function PdfSplitTool({
+  navigate = (href) => { window.location.href = href; },
+}: PdfSplitToolProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pages, setPages] = useState<SplitPage[]>([]);
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
-  const [mode, setMode] = useState('combined'); // 'combined' | 'separate'
-  const [status, setStatus] = useState('idle'); // idle | loading | processing | done | error
+  const [mode, setMode] = useState<Mode>('combined');
+  const [status, setStatus] = useState<Status>('idle');
   const [progress, setProgress] = useState(0);
-  const [downloadFiles, setDownloadFiles] = useState<any[]>([]); // Array of { url, filename, pageNumber }
+  const [outputs, setOutputs] = useState<OutputFile[]>([]);
+  const [saved, setSaved] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffFailed, setHandoffFailed] = useState(false);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
-  const downloadRef = useRef<any>(null);
+  const primaryRef = useRef<HTMLAnchorElement | null>(null);
+  const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  /** Bumped on every change so a prepare that finishes late is dropped. */
+  const prepareSeq = useRef(0);
+  /** A tap on the element while it was still preparing: deliver on ready. */
+  const pendingTap = useRef(false);
+  const outputsRef = useRef<OutputFile[]>([]);
+  outputsRef.current = outputs;
 
-  useEffect(() => {
-    if (status === 'done' && downloadRef.current) {
-      downloadRef.current.focus();
-    }
-  }, [status]);
+  const selectedPages = pages.filter((p) => p.selected).map((p) => p.pageNumber);
+  const selectedCount = selectedPages.length;
+  const renderedCount = pages.filter((p) => p.thumbnail).length;
+  const baseName = file ? outputBaseName(file.name) : '';
 
-  // Clean up object URLs on unmount or file change
-  useEffect(() => {
-    return () => {
-      setDownloadFiles((prev) => {
-        for (const f of prev) URL.revokeObjectURL(f.url);
-        return [];
-      });
-    };
-  }, []);
+  const revokeAll = (list: OutputFile[]) => {
+    for (const f of list) URL.revokeObjectURL(f.url);
+  };
 
-  const resetOutput = () => {
+  useEffect(() => () => revokeAll(outputsRef.current), []);
+
+  // Any edit invalidates the prepared output; the idle prepare below rebuilds it.
+  const invalidate = () => {
+    prepareSeq.current += 1;
+    pendingTap.current = false;
     clearPrepared();
-    setStatus('idle');
-    setProgress(0);
-    setDownloadFiles((prev) => {
-      for (const f of prev) URL.revokeObjectURL(f.url);
+    setSaved(false);
+    setHandoffFailed(false);
+    setOutputs((prev) => {
+      revokeAll(prev);
       return [];
     });
   };
+
+  // Guideline §2: the work happens on idle, debounced after the last change,
+  // cancelled by the next change, so Download is ready by the time the person
+  // reads the page. Nothing here leaves the device.
+  useEffect(() => {
+    if (!file || status === 'loading') return;
+    if (selectedCount === 0) {
+      setStatus('ready');
+      return;
+    }
+    const seq = ++prepareSeq.current;
+    const wanted = selectedPages;
+    setStatus('preparing');
+    setProgress(0);
+    const timer = setTimeout(async () => {
+      try {
+        const results: any[] = await splitPdf(file, {
+          pageNumbers: wanted,
+          mode,
+          onProgress: (value: number) => {
+            if (prepareSeq.current === seq) setProgress(value);
+          },
+        });
+        if (prepareSeq.current !== seq) return;
+        const next: OutputFile[] = results.map((r) => ({
+          ...r,
+          url: URL.createObjectURL(r.blob),
+        }));
+        setOutputs(next);
+        prepareFiles(results.map(({ blob, filename }) => ({ blob, filename, type: 'application/pdf' })));
+        setStatus('ready');
+      } catch (err) {
+        if (prepareSeq.current !== seq) return;
+        console.error(err);
+        setStatus('error');
+        setAnnouncement('Could not prepare the split PDF.');
+      }
+    }, PREPARE_DELAY_MS);
+    return () => clearTimeout(timer);
+    // selectedPages is derived from pages; the join keys the effect on the actual selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, mode, selectedPages.join(','), status === 'loading']);
+
+  const downloadAll = useCallback((list: OutputFile[]) => {
+    list.forEach((f, index) => {
+      setTimeout(() => {
+        const link = document.createElement('a');
+        link.href = f.url;
+        link.download = f.filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }, index * 200);
+    });
+  }, []);
+
+  // A tap while preparing queues the download and delivers on ready.
+  useEffect(() => {
+    if (status !== 'ready' || !pendingTap.current || outputs.length === 0) return;
+    pendingTap.current = false;
+    if (mode === 'combined') primaryRef.current?.click();
+    else {
+      downloadAll(outputs);
+      setSaved(true);
+    }
+  }, [status, outputs, mode, downloadAll]);
 
   const loadDocumentAndThumbnails = async (pdfFile: File) => {
     try {
@@ -79,10 +180,10 @@ export default function PdfSplitTool() {
       const bytes = await pdfFile.arrayBuffer();
       const loadingTask = lib.getDocument({ data: bytes });
       const pdf = await loadingTask.promise;
-      
+
       const pageCount = pdf.numPages;
       setNumPages(pageCount);
-      
+
       const initialPages = Array.from({ length: pageCount }, (_, idx) => ({
         pageNumber: idx + 1,
         selected: true,
@@ -90,25 +191,24 @@ export default function PdfSplitTool() {
       }));
       setPages(initialPages);
       setPageSelector(pageNumbersToRangeString(initialPages.map((p) => p.pageNumber)));
-      setStatus('idle');
+      setStatus('ready');
       setAnnouncement(`Loaded PDF "${pdfFile.name}" with ${pageCount} pages.`);
 
-      // Render thumbnails one-by-one asynchronously
       for (let i = 1; i <= pageCount; i += 1) {
         try {
           const page = await pdf.getPage(i);
           const nativeViewport = page.getViewport({ scale: 1 });
-          const scale = 100 / nativeViewport.width; // thumbnail width target
+          const scale = 100 / nativeViewport.width;
           const viewport = page.getViewport({ scale });
-          
+
           const canvas = document.createElement('canvas');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
           const context = getPdfRenderContext(canvas);
-          
+
           await page.render({ canvasContext: context, viewport }).promise;
           const url = canvas.toDataURL('image/png');
-          
+
           setPages((current) =>
             current.map((p) => (p.pageNumber === i ? { ...p, thumbnail: url } : p)),
           );
@@ -116,7 +216,7 @@ export default function PdfSplitTool() {
           console.error(`Error rendering thumbnail for page ${i}:`, err);
         }
       }
-      
+
       await loadingTask.destroy();
     } catch (err) {
       console.error('Error loading PDF document:', err);
@@ -130,23 +230,18 @@ export default function PdfSplitTool() {
     const pdfs = incoming.filter((f) => f.type === 'application/pdf');
     const rejected = incoming.filter((f) => f.type !== 'application/pdf');
 
-    if (rejected.length > 0) {
-      setRejectedFiles(rejected.map((f) => f.name));
-    } else {
-      setRejectedFiles([]);
-    }
+    setRejectedFiles(rejected.map((f) => f.name));
+    if (pdfs.length === 0) return;
 
-    if (pdfs.length > 0) {
-      const selected = pdfs[0];
-      setFile(selected);
-      setStatus('loading');
-      setProgress(0);
-      setDownloadFiles([]);
-      clearPrepared();
-      setPageSelector('');
-      setPageSelectorError('');
-      loadDocumentAndThumbnails(selected);
-    }
+    const picked = pdfs[0];
+    invalidate();
+    setFile(picked);
+    setPages([]);
+    setPageSelector('');
+    setPageSelectorError('');
+    setNumPages(0);
+    setStatus('loading');
+    void loadDocumentAndThumbnails(picked);
   };
 
   // MERGE-14: a merged PDF handed off from /merge/ (saveHandoff + navigate)
@@ -154,11 +249,11 @@ export default function PdfSplitTool() {
   // manual pick takes. This tool has no draft to race against, so mount is
   // enough - see useHandoffIntake.ts's own comment for why Sign/Redact
   // instead resolve their hand-off ahead of a draft restore.
-  useHandoffIntake('split', (file) => handleFilesAdded([file]));
+  useHandoffIntake('split', (f) => handleFilesAdded([f]));
 
   const handlePageSelectorChange = (value: string) => {
     setPageSelector(value);
-    resetOutput();
+    invalidate();
     try {
       const parsed = parsePageSelector(value, numPages);
       setPages((prev) =>
@@ -166,31 +261,29 @@ export default function PdfSplitTool() {
       );
       setPageSelectorError('');
     } catch (err: any) {
-      // If typing a partial/incomplete selector, don't show error immediately
+      // While a selector is being typed ("1-" or "1,") hold the error.
       const isPartial = /[-,]\s*$/.test(value);
-      if (!isPartial) {
-        setPageSelectorError(err.message);
-      } else {
-        setPageSelectorError('');
-      }
+      setPageSelectorError(isPartial ? '' : err.message);
     }
   };
 
+  // Review 2026-09-14, P1: a toggled cell stays where it is. Membership is
+  // shown by state (dimmed, dashed, struck number), never by moving the cell,
+  // so the next tap lands on the page the finger is over.
   const togglePageSelection = (pageNumber: number) => {
-    resetOutput();
+    invalidate();
     setPages((prev) => {
       const next = prev.map((p) =>
         p.pageNumber === pageNumber ? { ...p, selected: !p.selected } : p,
       );
-      const selectedNums = next.filter((p) => p.selected).map((p) => p.pageNumber);
-      setPageSelector(pageNumbersToRangeString(selectedNums));
+      setPageSelector(pageNumbersToRangeString(next.filter((p) => p.selected).map((p) => p.pageNumber)));
       setPageSelectorError('');
       return next;
     });
   };
 
   const selectAll = () => {
-    resetOutput();
+    invalidate();
     setPages((prev) => {
       const next = prev.map((p) => ({ ...p, selected: true }));
       setPageSelector(pageNumbersToRangeString(next.map((p) => p.pageNumber)));
@@ -200,57 +293,56 @@ export default function PdfSplitTool() {
   };
 
   const selectNone = () => {
-    resetOutput();
-    setPages((prev) => {
-      const next = prev.map((p) => ({ ...p, selected: false }));
-      setPageSelector('');
-      setPageSelectorError('No pages selected');
-      return next;
-    });
+    invalidate();
+    setPages((prev) => prev.map((p) => ({ ...p, selected: false })));
+    setPageSelector('');
+    setPageSelectorError('');
   };
 
-  const handleSplit = async () => {
-    if (!file) return;
-    setPageSelectorError('');
-    
-    let activePages: number[] = [];
-    try {
-      activePages = parsePageSelector(pageSelector, numPages);
-    } catch (err: any) {
-      setPageSelectorError(err.message);
+  const chooseMode = (next: Mode) => {
+    if (next === mode) return;
+    invalidate();
+    setMode(next);
+    setAnnouncement(next === 'combined'
+      ? 'Selected pages will become a single PDF.'
+      : 'Each selected page will become its own PDF.');
+  };
+
+  const onSegmentKeyDown = (e: KeyboardEvent) => {
+    const order: Mode[] = ['combined', 'separate'];
+    const current = order.indexOf(mode);
+    let next: number | null = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (current + 1) % 2;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (current + 1) % 2;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = 1;
+    if (next === null) return;
+    e.preventDefault();
+    chooseMode(order[next]);
+    segmentRefs.current[next]?.focus();
+  };
+
+  const onPrimaryClick = (event: MouseEvent) => {
+    if (selectedCount === 0) {
+      event.preventDefault();
       return;
     }
-
-    if (activePages.length === 0) {
-      setPageSelectorError('Please select at least one page.');
+    if (status === 'preparing') {
+      event.preventDefault();
+      pendingTap.current = true;
+      setAnnouncement('Preparing. The download starts as soon as it is ready.');
       return;
     }
-
-    setStatus('processing');
-    setProgress(0);
-    setAnnouncement('Splitting PDF file...');
-
-    try {
-      const results: any[] = await splitPdf(file, {
-        pageNumbers: activePages,
-        mode,
-        onProgress: setProgress,
-      });
-
-      setDownloadFiles(
-        results.map((r) => ({
-          ...r,
-          url: URL.createObjectURL(r.blob),
-        })),
-      );
-      prepareFiles(results.map(({ blob, filename }) => ({ blob, filename, type: 'application/pdf' })));
-      setStatus('done');
-      setAnnouncement('PDF split complete. Files are ready.');
-    } catch (err) {
-      console.error(err);
-      setStatus('error');
-      setAnnouncement('PDF split failed.');
+    if (status !== 'ready' || outputs.length === 0) {
+      event.preventDefault();
+      return;
     }
+    if (mode === 'separate') {
+      event.preventDefault();
+      downloadAll(outputs);
+    }
+    setSaved(true);
+    setAnnouncement(mode === 'combined' ? 'PDF saved.' : `${outputs.length} PDFs saved.`);
   };
 
   const handleShare = async () => {
@@ -260,32 +352,101 @@ export default function PdfSplitTool() {
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
   };
 
-  const downloadAll = () => {
-    downloadFiles.forEach((f, index) => {
-      setTimeout(() => {
-        const link = document.createElement('a');
-        link.href = f.url;
-        link.download = f.filename;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-      }, index * 200);
-    });
+  // Cross-tool hand-off (guideline §13): park the prepared bytes for Compress
+  // and navigate. Only the single-file mode has one file to hand over.
+  const handoffToCompress = async () => {
+    const output = outputs[0];
+    if (handoffBusy || mode !== 'combined' || !output) return;
+    setHandoffBusy(true);
+    setHandoffFailed(false);
+    try {
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      const ok = await saveHandoff('compress', {
+        fileName: output.filename,
+        fileType: 'application/pdf',
+        fileBytes: await output.blob.arrayBuffer(),
+      });
+      if (!ok) throw new Error('handoff');
+      navigate('/compress/');
+    } catch {
+      setHandoffFailed(true);
+      setHandoffBusy(false);
+    }
   };
 
   const hasFiles = !!file;
-  const selectedCount = pages.filter((p) => p.selected).length;
+  const totalBytes = outputs.reduce((sum, f) => sum + f.blob.size, 0);
+  const perCellCaptions = mode === 'separate' && numPages <= PER_CELL_CAPTION_LIMIT;
+  // A per-cell caption has room for about 16 characters; the page number is
+  // the part that differs, so a long base name is the part that gives way.
+  const shortBase = baseName.length > 10 ? `${baseName.slice(0, 8)}…` : baseName;
+
+  const primaryState = selectedCount === 0
+    ? 'empty'
+    : status === 'preparing' ? 'preparing'
+      : status === 'error' ? 'error'
+        : saved ? 'saved' : 'ready';
+  const combinedOutput = mode === 'combined' ? outputs[0] : undefined;
+  const primaryIsLink = !!combinedOutput && (primaryState === 'ready' || primaryState === 'saved');
+
+  const pageWord = (n: number) => `${n} page${n === 1 ? '' : 's'}`;
+  const fileWord = (n: number) => `${n} PDF${n === 1 ? '' : 's'}`;
+
+  const canvasHeading = mode === 'combined'
+    ? (
+      <>
+        extracted_<bdi class={styles['output-name']}>{baseName}</bdi>
+        <span class={styles['output-ext']}>.pdf</span>
+      </>
+    )
+    : `${fileWord(selectedCount)}, one page each`;
+  const canvasCount = mode === 'combined'
+    ? `${selectedCount} of ${pageWord(numPages)}`
+    : `from ${pageWord(numPages)}`;
+
+  const renderCell = (p: SplitPage) => (
+    <div
+      key={p.pageNumber}
+      class={`${styles.cell}${p.selected ? '' : ` ${styles['is-out']}`}${perCellCaptions && p.selected ? ` ${styles['is-own-file']}` : ''}`}
+      onClick={() => togglePageSelection(p.pageNumber)}
+      role="checkbox"
+      aria-checked={p.selected}
+      aria-label={`Page ${p.pageNumber}`}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          togglePageSelection(p.pageNumber);
+        }
+      }}
+    >
+      <div class={styles['cell-thumb']}>
+        {p.thumbnail ? (
+          <img class={pageGridStyles['page-card-thumb']} src={p.thumbnail} alt="" />
+        ) : (
+          <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
+        )}
+      </div>
+      {perCellCaptions && p.selected ? (
+        <span class={styles['cell-caption']} title={`${baseName}-page-${p.pageNumber}.pdf`}>
+          <bdi>{shortBase}</bdi>-page-{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
+        </span>
+      ) : (
+        <span class={styles['cell-number']}>Page {p.pageNumber}</span>
+      )}
+    </div>
+  );
 
   return (
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool="split"
-      analyticsStatus={status}
+      analyticsStatus={status === 'preparing' ? 'processing' : saved ? 'done' : status}
       onFilesAdded={handleFilesAdded}
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
-      hasWork={status === 'done' || pageSelector.trim() !== ''}
+      hasWork={saved || pageSelector.trim() !== ''}
       workNoun="your page selection"
     >
       {rejectedFiles.length > 0 && (
@@ -303,182 +464,212 @@ export default function PdfSplitTool() {
               <p class={pdfToolStyles['status-text-muted']}>Loading document pages...</p>
             </div>
           ) : (
-            <>
-              <div class={styles['split-options']}>
-                <h3>1. Select split mode</h3>
-                <div class={styles['split-modes']} role="radiogroup" aria-label="Split mode">
-                  <button
-                    type="button"
-                    class={`${styles['split-card']}${mode === 'combined' ? ` ${styles['is-selected']}` : ''}`}
-                    onClick={() => {
-                      setMode('combined');
-                      resetOutput();
-                    }}
-                    role="radio"
-                    aria-checked={mode === 'combined'}
-                  >
-                    <span class={styles['split-card-title']}>Extract Pages</span>
-                    <span class={styles['split-card-desc']}>
-                      Combine selected pages into a single new PDF document.
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    class={`${styles['split-card']}${mode === 'separate' ? ` ${styles['is-selected']}` : ''}`}
-                    onClick={() => {
-                      setMode('separate');
-                      resetOutput();
-                    }}
-                    role="radio"
-                    aria-checked={mode === 'separate'}
-                  >
-                    <span class={styles['split-card-title']}>Split into Individual Pages</span>
-                    <span class={styles['split-card-desc']}>
-                      Extract each selected page as its own separate PDF file.
-                    </span>
-                  </button>
-                </div>
-
-                <h3>2. Choose pages to extract</h3>
-
-                <div class={pdfToolStyles['page-selector-field']}>
-                  <label class={pdfToolStyles['page-selector-label']} for="page-selector-input">
-                    Page range
-                  </label>
-                  <input
-                    id="page-selector-input"
-                    type="text"
-                    class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
-                    placeholder="e.g. 1-3, 5, 8-"
-                    value={pageSelector}
-                    onInput={(e) => handlePageSelectorChange(e.currentTarget.value)}
-                    aria-invalid={!!pageSelectorError}
-                    aria-describedby={pageSelectorError ? 'page-selector-error' : undefined}
-                  />
-                  <p class={pdfToolStyles['field-hint']}>
-                    Enter page numbers or ranges separated by commas (e.g. 1-3, 5, 8-).
-                  </p>
-                </div>
-
-                {pageSelectorError && (
-                  <p id="page-selector-error" class={pdfToolStyles['page-selector-error']} role="alert">
-                    {pageSelectorError}
-                  </p>
-                )}
-
-                <div class={pageGridStyles['grid-actions']}>
-                  <button type="button" onClick={selectAll}>
-                    Select All
-                  </button>
-                  <button type="button" onClick={selectNone}>
-                    Clear Selection
-                  </button>
-                </div>
-
-                <div class={pageGridStyles['pages-grid']} role="group" aria-label="Visual page grid">
-                  {pages.map((p) => (
-                    <div
-                      key={p.pageNumber}
-                      class={`${pageGridStyles['page-card']}${p.selected ? ` ${pageGridStyles['is-selected']}` : ''}`}
-                      onClick={() => togglePageSelection(p.pageNumber)}
-                      role="checkbox"
-                      aria-checked={p.selected}
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === ' ' || e.key === 'Enter') {
-                          e.preventDefault();
-                          togglePageSelection(p.pageNumber);
-                        }
-                      }}
-                    >
-                      <div class={pageGridStyles['page-card-checkbox']}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-
-                      <div class={pageGridStyles['page-card-thumb-container']}>
-                        {p.thumbnail ? (
-                          <img class={pageGridStyles['page-card-thumb']} src={p.thumbnail} alt="" />
-                        ) : (
-                          <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
-                        )}
-                      </div>
-                      <span class={pageGridStyles['page-card-number']}>Page {p.pageNumber}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                class={`${pdfToolStyles['tool-primary-action']}${status === 'processing' ? ` ${pdfToolStyles['is-processing']}` : ''}${status === 'done' ? ` ${pdfToolStyles['is-done']}` : ''}`}
-                disabled={status === 'processing' || selectedCount === 0}
-                onClick={handleSplit}
-              >
-                {status === 'processing' ? (
-                  <ProgressRing progress={progress} label="Splitting…" />
-                ) : selectedCount === 0 ? (
-                  'Select pages to split'
-                ) : mode === 'combined' ? (
-                  `Extract ${selectedCount} page${selectedCount === 1 ? '' : 's'} to single PDF`
-                ) : (
-                  `Split into ${selectedCount} separate PDF${selectedCount === 1 ? '' : 's'}`
-                )}
-              </button>
-
-              {status === 'error' && (
-                <ErrorMessage>
-                  The split operation failed. Make sure the file is not encrypted or damaged.
-                </ErrorMessage>
-              )}
-
-              {status === 'done' && downloadFiles.length > 0 && (
-                <div class={styles['split-downloads']}>
-                  {mode === 'combined' ? (
-                    <a
-                      ref={downloadRef}
-                      class={pdfToolStyles['download-button']}
-                      href={downloadFiles[0].url}
-                      download={downloadFiles[0].filename}
-                    >
-                      <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
-                        <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                      </svg>
-                      Download PDF
-                    </a>
-                  ) : (
-                    <>
-                      <button
-                        ref={downloadRef}
-                        type="button"
-                        class={pdfToolStyles['download-button']}
-                        onClick={downloadAll}
-                      >
-                        Download all {downloadFiles.length} PDFs
-                      </button>
-                      <ul class={`${fileListStyles['file-list']} ${styles['split-download-list']}`}>
-                        {downloadFiles.map((f) => (
-                          <li key={f.pageNumber} class={fileListStyles['file-item']}>
-                            <span class={fileListStyles['file-name']}>Page {f.pageNumber} PDF</span>
-                            <a href={f.url} download={f.filename}>
-                              Download
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
+            <div class={styles.stage}>
+              {/* The canvas: the output, as the person will get it. */}
+              <section class={styles.canvas} aria-label="Your split PDF">
+                <div class={styles['canvas-head']}>
+                  <h3 class={styles['canvas-title']}>{canvasHeading}</h3>
+                  <span class={styles['canvas-count']}>{canvasCount}</span>
+                  {renderedCount < numPages && (
+                    <span class={styles['canvas-status']} role="status">Rendering {renderedCount} of {numPages}</span>
                   )}
-                  <PdfShareButton
-                    visible={shareReady}
-                    onShare={handleShare}
-                    label={downloadFiles.length === 1 ? 'Share PDF' : `Share ${downloadFiles.length} PDFs`}
-                  />
                 </div>
-              )}
-            </>
+
+                {mode === 'combined' ? (
+                  <div class={styles['doc-frame']} data-empty={selectedCount === 0 ? 'true' : undefined}>
+                    <div class={styles['frame-caption']}>
+                      <span>one document</span>
+                      <span class={styles['frame-caption-note']}>
+                        {selectedCount === 0 ? 'Pick at least one page' : `${pageWord(selectedCount)}, in this order`}
+                      </span>
+                    </div>
+                    <div class={styles.grid}>{pages.map(renderCell)}</div>
+                  </div>
+                ) : (
+                  <div class={styles['doc-frames']}>
+                    <div class={styles['frame-caption']}>
+                      <span>separate documents</span>
+                      <span class={styles['frame-caption-note']}>
+                        {selectedCount === 0
+                          ? 'Pick at least one page'
+                          : perCellCaptions
+                            ? `${fileWord(selectedCount)}`
+                            : <>each saves as <bdi>{baseName}</bdi>-page-N.pdf</>}
+                      </span>
+                    </div>
+                    <div class={styles.grid}>{pages.map(renderCell)}</div>
+                  </div>
+                )}
+
+                <p class={styles['canvas-hint']}>
+                  {selectedCount === numPages
+                    ? 'Every page is in. Click a page to leave it out.'
+                    : 'Dimmed pages are left out. Click one to bring it back.'}
+                </p>
+
+                {mode === 'separate' && outputs.length > 0 && (
+                  <ul class={styles['file-list']} aria-label="Files to download">
+                    {outputs.map((f) => (
+                      <li key={f.pageNumber} class={styles['file-item']}>
+                        <bdi class={styles['file-item-name']}>{f.filename}</bdi>
+                        <a href={f.url} download={f.filename} onClick={() => setSaved(true)}>Download</a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {saved && outputs.length > 0 && (
+                  <div class={styles['next-steps']}>
+                    <PdfShareButton
+                      visible={shareReady}
+                      onShare={handleShare}
+                      label={outputs.length === 1 ? 'Share PDF' : `Share ${outputs.length} PDFs`}
+                      className={styles['next-step']}
+                    />
+                    {mode === 'combined' && (
+                      <button
+                        type="button"
+                        class={styles['next-step']}
+                        disabled={handoffBusy}
+                        onClick={() => { void handoffToCompress(); }}
+                      >
+                        <Shrink size={16} aria-hidden="true" />
+                        Compress it
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {handoffFailed && (
+                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
+                    Could not hand the file to Compress. Download it and open Compress instead.
+                  </p>
+                )}
+              </section>
+
+              {/* The rail: commands on the selection, the setting, the primary control. */}
+              <aside class={styles.rail} aria-label="Split options">
+                <div class={styles.commands}>
+                  <div class={pdfToolStyles['page-selector-field']}>
+                    <label for="page-selector-input" class={pdfToolStyles['page-selector-label']}>Pages</label>
+                    <input
+                      id="page-selector-input"
+                      type="text"
+                      class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
+                      value={pageSelector}
+                      onInput={(e) => handlePageSelectorChange((e.target as HTMLInputElement).value)}
+                      placeholder="e.g. 1-3, 5, 8-"
+                      aria-describedby="page-selector-hint"
+                      aria-invalid={!!pageSelectorError}
+                    />
+                  </div>
+                  {pageSelectorError ? (
+                    <p id="page-selector-hint" class={pdfToolStyles['page-selector-error']} role="alert">{pageSelectorError}</p>
+                  ) : (
+                    <p id="page-selector-hint" class={pdfToolStyles['field-hint']}>Numbers or ranges, separated by commas.</p>
+                  )}
+                  <div class={styles['command-row']}>
+                    <button type="button" class={styles.command} onClick={selectAll}>Select all</button>
+                    <button type="button" class={styles.command} onClick={selectNone}>Clear</button>
+                  </div>
+                </div>
+
+                <div class={styles.sheet}>
+                  <div class={styles.setting}>
+                    <div
+                      class={styles.segmented}
+                      role="radiogroup"
+                      aria-label="What to save"
+                      onKeyDown={onSegmentKeyDown}
+                    >
+                      {(['combined', 'separate'] as Mode[]).map((m, index) => (
+                        <button
+                          key={m}
+                          ref={(el) => { segmentRefs.current[index] = el; }}
+                          type="button"
+                          role="radio"
+                          aria-checked={mode === m}
+                          tabIndex={mode === m ? 0 : -1}
+                          class={`${styles.segment}${mode === m ? ` ${styles['is-active']}` : ''}`}
+                          onClick={() => chooseMode(m)}
+                        >
+                          {m === 'combined' ? 'One PDF' : 'One PDF per page'}
+                        </button>
+                      ))}
+                    </div>
+                    <p class={styles['setting-note']}>
+                      {mode === 'combined'
+                        ? 'Selected pages become a single PDF.'
+                        : 'Each selected page becomes its own PDF.'}
+                    </p>
+                  </div>
+
+                  <a
+                    ref={primaryRef}
+                    class={styles.primary}
+                    data-state={primaryState}
+                    href={primaryIsLink ? combinedOutput!.url : undefined}
+                    download={primaryIsLink ? combinedOutput!.filename : undefined}
+                    role={primaryIsLink ? undefined : 'button'}
+                    tabIndex={0}
+                    aria-disabled={primaryState === 'empty' || primaryState === 'error' ? 'true' : undefined}
+                    aria-busy={primaryState === 'preparing' ? 'true' : undefined}
+                    onClick={onPrimaryClick}
+                    onKeyDown={(e) => {
+                      if (!primaryIsLink && (e.key === ' ' || e.key === 'Enter')) {
+                        e.preventDefault();
+                        (e.currentTarget as HTMLAnchorElement).click();
+                      }
+                    }}
+                  >
+                    {primaryState === 'empty' ? (
+                      <span class={styles['primary-label']}>Pick at least one page</span>
+                    ) : primaryState === 'preparing' ? (
+                      <ProgressRing progress={progress} label={`Preparing ${pageWord(selectedCount)}…`} />
+                    ) : primaryState === 'error' ? (
+                      <span class={styles['primary-label']}>Could not prepare this PDF</span>
+                    ) : primaryState === 'saved' ? (
+                      <>
+                        <svg class={styles['primary-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
+                          <path d="M7.5 12.5l3 3 6-6.5" class={pdfToolStyles['check-mark']} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        </svg>
+                        <span class={styles['primary-label']}>
+                          {mode === 'combined' ? 'Saved' : `Saved ${fileWord(outputs.length)}`}
+                        </span>
+                        <span class={styles['primary-detail']}>download again</span>
+                      </>
+                    ) : (
+                      <>
+                        <span class={styles['primary-label']}>
+                          {mode === 'combined' ? 'Download 1 PDF' : `Download ${fileWord(outputs.length)}`}
+                        </span>
+                        <span class={styles['primary-detail']}>
+                          {mode === 'combined'
+                            ? `${pageWord(selectedCount)} · ${formatFileSize(totalBytes)}`
+                            : `1 page each · ${formatFileSize(totalBytes)}`}
+                        </span>
+                      </>
+                    )}
+                  </a>
+
+                  {selectedCount > 0 && status !== 'error' && (
+                    <p class={styles['other-mode']}>
+                      or{' '}
+                      <button type="button" class={styles['other-mode-link']} onClick={() => chooseMode(mode === 'combined' ? 'separate' : 'combined')}>
+                        {mode === 'combined' ? 'save each page as its own PDF' : 'save them as one PDF'}
+                      </button>
+                    </p>
+                  )}
+                </div>
+
+                {status === 'error' && (
+                  <ErrorMessage>
+                    The split failed. Make sure the file is not encrypted or damaged.
+                  </ErrorMessage>
+                )}
+              </aside>
+            </div>
           )}
         </div>
       )}
