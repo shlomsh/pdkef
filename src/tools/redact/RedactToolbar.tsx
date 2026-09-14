@@ -1,3 +1,4 @@
+import { Shrink } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
 import EditorToolStatus from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
@@ -7,6 +8,7 @@ import { makeArmTool, useAutoArmHint } from '../../editor-ui/hooks/toolArming.js
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import styles from '../../editor-ui/SignToolbar.module.css';
+import redactStyles from './PdfRedactTool.module.css';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every
@@ -39,7 +41,12 @@ export default function RedactToolbar({
   elementsCount,
   actionHistory,
   setUndoModalOpen,
-  exporting = false
+  exporting = false,
+  undoAction = null,
+  onUndoAction,
+  handoffReady = false,
+  handoffBusy = false,
+  onCompressHandoff,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -58,6 +65,15 @@ export default function RedactToolbar({
   /** True while a redacted PDF is being generated - guards Download/Share
    * against re-entry so a second click can't start an overlapping export. */
   exporting?: boolean;
+  /** Finding #3: a pending short-lived undo (a box removed, or a page
+   * cleared). Present, this wins the status line's slot over the armed-tool
+   * hint, the same way Merge's own undo chip wins its header slot. */
+  undoAction?: { message: string } | null;
+  onUndoAction?: () => void;
+  /** Finding #4: whether a redacted export exists to hand off to Compress. */
+  handoffReady?: boolean;
+  handoffBusy?: boolean;
+  onCompressHandoff?: () => void;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -109,12 +125,26 @@ export default function RedactToolbar({
     <ToolShell
       editor
       status={
-        <EditorToolStatus
-          copy={activeToolCopy}
-          locked={toolLocked}
-          onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
-          idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
-        />
+        // Finding #3: one slot, and the undo chip wins it - matching
+        // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While
+        // it is showing, the armed-tool hint is not lost, just deferred: it
+        // comes back the moment the chip's 5s timer clears or Undo is
+        // pressed.
+        undoAction ? (
+          <div className={styles.help} role="status">
+            <span className={redactStyles['undo-chip']}>
+              {undoAction.message}
+              <button type="button" className={redactStyles['undo-chip-btn']} onClick={onUndoAction}>Undo</button>
+            </span>
+          </div>
+        ) : (
+          <EditorToolStatus
+            copy={activeToolCopy}
+            locked={toolLocked}
+            onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
+            idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
+          />
+        )
       }
     >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">
@@ -231,6 +261,32 @@ export default function RedactToolbar({
             ? 'Add at least one redaction box first'
             : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
         />
+
+        {/* Finding #4: the quiet next-tool hand-off, right beside the
+            Download/Share pair it depends on - Merge's own "Compress it" /
+            "Sign it" row (docs/ux-design-guidelines.md §13) is the model,
+            reused through draftStore.js's saveHandoff rather than copied
+            (module boundaries forbid importing another tool). Only ever
+            visible once a redacted export actually exists, so it never
+            competes with the existing controls in the toolbars measured by
+            e2e/tool-toolbars/toolbar-touch-targets.spec.js (that spec never
+            exports a file). data-label-priority="1" groups it with Undo/
+            Replace: a next-step convenience, not app vocabulary or the
+            primary export action, so its label is the first to go under
+            width pressure. */}
+        {handoffReady && (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={onCompressHandoff}
+            disabled={handoffBusy}
+            title="Hand the redacted PDF to Compress"
+            data-label-priority="1"
+          >
+            <Shrink size={18} aria-hidden="true" />
+            <span className={styles.label}>Compress it</span>
+          </button>
+        )}
       </div>
     </ToolShell>
   );
