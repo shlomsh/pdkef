@@ -18,6 +18,9 @@ const DOM_TESTS = [
   'src/components/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/**/*.{test,spec}.{jsx,tsx}',
   'src/lib/use*.{test,spec}.*',
+  // DEBT-04 (move A): draftStore.js/draftPolicy.js/useDraftPersistence.js moved here from
+  // src/editor/workspace/; draftStore.test.js drives localStorage and fake-indexeddb directly.
+  'src/lib/drafts/*.{test,spec}.js',
   // Literal path list, not a wildcard-folder glob, because compress/compressImage
   // and toImage are single-tool (ARCH-17 moves them to src/tools/<tool>/) while
   // thumbnails.js has more than one tool consumer (docs/module-boundaries.md's

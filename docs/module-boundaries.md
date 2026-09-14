@@ -267,6 +267,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | Module | Direct consumers |
 | --- | --- |
 | `signHelpers.js` | `ElementToolbar`, `SignTool/DraggableWrapper`, `SignTool/PdfWorkspace`, `SignTool/nodes/{SignatureNode,TextNode}`, `editor/registry/{ellipse,line,rectangle,signature,symbol,textPdf,whiteout}.ts` (the editor core itself - this one can never move to a tool) |
+| `drafts/` (`draftStore.js`, `draftPolicy.js`, `useDraftPersistence.js`; DEBT-04 move A, out of `src/editor/workspace/`) | `PdfMergeTool`, `MergeTool/useMergeDraft` (two dynamic imports plus one direct), `PdfRedactTool`, `PdfSignTool`, `FileDropzone` (shell), `useHandoffIntake.ts` (lib) - and `editor/workspace/useEditorDraftPersistence.ts`, the one editor-side consumer, since it stays in the editor for its registry dependency (`editor/registry/draftValidation.ts`, which `drafts/` imports back the other way) |
 | `format.js` | all nine `Pdf*Tool.tsx` |
 | `usePdfShare.js` | all nine `Pdf*Tool.tsx` |
 | `thumbnails.js` | `FilePreview` (shell), `MergeTool/{PagePreviewDialog,PageStrip}`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfMergeTool`, `SignTool/useDraftPersistence` |

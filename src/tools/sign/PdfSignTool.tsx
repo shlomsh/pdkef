@@ -21,7 +21,7 @@ import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../ed
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
-import { cacheRecentFile } from '../../editor/workspace/draftStore.js';
+import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';

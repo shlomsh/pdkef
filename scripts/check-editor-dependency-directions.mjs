@@ -29,9 +29,16 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 // that hook had no Sign-specific logic (only draftStore.js/draftValidation.ts,
 // both already core) and simply moved to
 // src/editor/workspace/useDraftPersistence.js, re-exported from its old
-// SignTool path for callers outside the editor. The new
-// `useDraftPersistence.js -> preact/hooks` exception below replaces the one
-// `useEditorDraftPersistence.ts` used to need for the same reason.
+// SignTool path for callers outside the editor, which is why a
+// `useDraftPersistence.js -> preact/hooks` exception existed for a while.
+// DEBT-04 (move A) moved `draftStore.js`/`draftPolicy.js`/`useDraftPersistence.js`
+// out of `src/editor/workspace/` to `src/lib/drafts/` (draft persistence has
+// consumers outside Sign/Redact - shell, lib, Merge - so it is not editor-core
+// scoped), which drops that exception entirely: the hook is no longer under
+// `src/editor/` at all, so this guard's workspace-layer rules do not apply to
+// it. `useEditorDraftPersistence.ts` (the thin workspace-lifecycle bridge that
+// stays in the editor because it depends on the registry) keeps its own
+// `preact/hooks` exception below unchanged.
 const EXCEPTIONS = [
   {
     from: 'src/editor/registry/renderers.ts',
@@ -47,11 +54,6 @@ const EXCEPTIONS = [
     from: 'src/editor/workspace/useEditorDraftPersistence.ts',
     package: 'preact/hooks',
     reason: 'workspace lifecycle bridge owns draft restore and autosave wiring',
-  },
-  {
-    from: 'src/editor/workspace/useDraftPersistence.js',
-    package: 'preact/hooks',
-    reason: 'the draft-persistence hook implementation itself (moved from SignTool/ under ARCH-19) owns draft restore and autosave wiring',
   },
   {
     from: 'src/editor/text/textCoverage.js',

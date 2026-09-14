@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const DRAFT_STORE_PATH = 'src/editor/workspace/draftStore.js';
+const DRAFT_STORE_PATH = 'src/lib/drafts/draftStore.js';
 const SERVICE_WORKER_PATH = 'public/sw.js';
 
 const draftStoreSource = fs.readFileSync(path.join(process.cwd(), DRAFT_STORE_PATH), 'utf8');
