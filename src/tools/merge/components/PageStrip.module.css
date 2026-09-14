@@ -234,6 +234,26 @@
   object-fit: contain;
 }
 
+/* A rotated (90/270) thumbnail's inline width/height (PageStrip.tsx
+   `thumbStyle`) are the pre-rotation box, deliberately swapped against
+   `.thumb-box`'s own w/h so the `rotate()` transform lands back on the
+   container's footprint exactly. `max-width`/`max-height` above resolve
+   against THIS element's own containing block (`.thumb-box`, unrotated),
+   so on the swapped axis they clamp the pre-rotation box down to the
+   container's un-rotated size before the transform ever runs - and the
+   flex layout (`.thumb-box` is a flex container) shrinks the same axis a
+   second time, since flex-basis is the inline width and the default
+   flex-shrink lets it lose the fight against `.thumb-box`'s un-rotated
+   main-axis size. Both need suppressing for a rotated thumbnail: it must
+   render at exactly its inline-set box, uncontained, for the transform to
+   reach the container's real footprint. */
+.page[data-rotation='90'] .thumb,
+.page[data-rotation='270'] .thumb {
+  flex-shrink: 0;
+  max-width: none;
+  max-height: none;
+}
+
 .lock-glyph {
   font-size: 1.1rem;
   font-weight: 700;
