@@ -26,6 +26,13 @@ async function makePdfBuffer(label) {
   return Buffer.from(await document.save());
 }
 
+async function makeMultiPagePdfBuffer(label, pageCount) {
+  const document = await PDFDocument.create();
+  for (let i = 0; i < pageCount; i += 1) document.addPage([612, 792]);
+  document.setTitle(label);
+  return Buffer.from(await document.save());
+}
+
 test.describe('Merge on a phone (MERGE-06)', () => {
   test('empty state: Choose files lands within the first screen', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
@@ -203,5 +210,89 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     }));
     expect(kinds).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
     expect(kinds).not.toContain('Options');
+  });
+
+  /* Review finding (2026-09-14): under coarse-pointer emulation the "…"
+     summary measured exactly 36x36 - its `li.chip[data-more]` parent's
+     44px min-height is not part of the summary's own hit box. It now
+     carries the same invisible ::before hit-area overlay as `.action`
+     (PageStrip.module.css) and `.quiet-button` (MergeRail.module.css): a
+     44x44 box centred on the 36px visual. */
+  test('the "…" chip menu summary carries a 44x44 hit-area overlay on touch', async ({ page, browser }, testInfo) => {
+    let work = page;
+    let touchContext;
+    if (testInfo.project.name === 'chromium') {
+      touchContext = await browser.newContext({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
+      work = await touchContext.newPage();
+    }
+
+    await work.goto('/merge/');
+    await work.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+    const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await work.locator('input[type="file"]').setInputFiles(files);
+
+    const summary = work.locator('summary', { hasText: '⋯' }).first();
+    await expect(summary).toBeVisible({ timeout: 10_000 });
+    // The 36px visual is unchanged...
+    const visualBox = await summary.boundingBox();
+    if (!visualBox) throw new Error('Chip menu summary has no bounding box');
+    expect(Math.round(visualBox.height)).toBe(36);
+    // ...while the ::before overlay establishes the 44x44 hit area.
+    const overlay = await summary.evaluate((el) => {
+      const cs = getComputedStyle(el, '::before');
+      return { width: parseFloat(cs.width), height: parseFloat(cs.height), position: cs.position };
+    });
+    expect(overlay.position).toBe('absolute');
+    expect(Math.round(overlay.width)).toBe(44);
+    expect(Math.round(overlay.height)).toBe(44);
+
+    if (touchContext) await touchContext.close();
+  });
+
+  /* Review finding (2026-09-14): the caption's own negative bottom margin
+     (visual tightening, PageStrip.module.css) pulls the first row of its
+     run up underneath it; combined with `position: sticky` and its
+     z-index that overlap was a real hit-test region, not only a paint one
+     - measured, caption bottom 404.53px vs. first-row cell top 398.14px, a
+     6.39px band where `elementFromPoint` returned the caption `<li>`
+     instead of the cell, swallowing the tap. The caption's `::before` now
+     restores pointer events everywhere except that sliver, so the tap
+     falls through to the cell there while the caption's own label stays a
+     valid hit target elsewhere (critique P0 guard, merge-direction-a.spec.js). */
+  test('the sticky per-file caption never intercepts a tap on the row beneath it', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/merge/');
+    await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+    // A run of 4 or more pages gets a full-width caption (PageStrip.tsx).
+    const buffer = await makeMultiPagePdfBuffer('four-pages', 4);
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'four-pages.pdf',
+      mimeType: 'application/pdf',
+      buffer,
+    });
+
+    const caption = page.locator('li[data-caption-for]').first();
+    await expect(caption).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('li[data-key]').first()).toBeVisible();
+
+    const hit = await page.evaluate(() => {
+      const firstCell = document.querySelector('li[data-key]');
+      const rect = firstCell.getBoundingClientRect();
+      // 5px inside the cell's own top-left corner - the exact point the
+      // review's caption-overlap.mjs measured the caption swallowing.
+      const el = document.elementFromPoint(rect.left + 5, rect.top + 5);
+      return {
+        dataKey: el?.closest('[data-key]')?.getAttribute('data-key') ?? null,
+        dataCaptionFor: el?.closest('[data-caption-for]')?.getAttribute('data-caption-for') ?? null,
+      };
+    });
+    expect(hit.dataCaptionFor).toBeNull();
+    expect(hit.dataKey).not.toBeNull();
   });
 });
