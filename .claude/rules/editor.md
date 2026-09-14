@@ -1,35 +1,28 @@
 ---
 paths:
   - "src/editor/**"
-  - "src/tools/**"
   - "src/editor-ui/**"
-  - "src/shell/**"
-  - "src/lib/**"
-  - "e2e/tool-*.spec.js"
+  - "src/tools/sign/**"
+  - "src/tools/redact/**"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
-  - "scripts/check-module-boundaries.mjs"
-  - "scripts/module-boundaries-allowlist.json"
   - "docs/E4-headless-editor-core-plan.md"
   - "docs/editor-module-boundaries-plan.md"
-  - "docs/module-boundaries.md"
   - "docs/view-density-control-spec.md"
   - "docs/sign-redact-draft-validation-plan.md"
-  - "docs/ux-design-guidelines.md"
 ---
 
-# Editor and tool islands (Sign, Redact, and the other tools)
+# Sign/Redact editor
 
-Loaded when working on the Preact tool islands, the headless `src/editor/` core, or `src/lib/`. The
-two constraints on everything here are in CLAUDE.md: no file bytes leave the device, and gestures
-mutate the DOM live and commit state once on release. This file holds the rules that fixed shipped
-bugs, each with its tell and its guard. Fonts and text export: `fonts-and-text.md`. Styling
-boundary: `styling.md`. Design record for the core: [docs/E4-headless-editor-core-plan.md](../../docs/E4-headless-editor-core-plan.md).
-Before designing or reviewing any tool's loaded state, read
-[docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md): the choices settled on Merge (output
-is the centre, one primary element with states, rail row order, undo over confirm, touch, bidi, the
-review method) and the questions to ask of the next tool. The target folder layout for `src/`, the
-dependency rules between tools, shell, editor-ui, editor and lib, and the evidence behind both are in
+Loaded when working on the headless `src/editor/` core, the shared `src/editor-ui/` chrome, or the
+Sign and Redact tool islands. The two constraints on everything here are in CLAUDE.md: no file bytes
+leave the device, and gestures mutate the DOM live and commit state once on release. This file holds
+the rules that fixed shipped bugs, each with its tell and its guard. Fonts and text export:
+`fonts-and-text.md`. Styling boundary: `styling.md`. The other tools, draft persistence, the
+cross-tool hand-off pattern and the UX guideline live in `tools-and-shell.md`. Design record for the
+core: [docs/E4-headless-editor-core-plan.md](../../docs/E4-headless-editor-core-plan.md). The target
+folder layout for `src/`, the dependency rules between tools, shell, editor-ui, editor and lib, and
+the evidence behind both are in
 [docs/module-boundaries.md](../../docs/module-boundaries.md) (ARCH-15); read it before moving a file
 into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
 
@@ -157,50 +150,3 @@ paints each glyph with its own `fillText` at `textAlign: start` and never sets `
 thumbnails, compress, to-image and redact flatten were exposed too. Guards: `pdfRender.test.js` scans
 for a render call that bypasses it; `e2e/localized/pdf-render-direction.spec.js` requires both
 editions to paint the same bitmap.
-
-## Draft persistence (flagship, on-device)
-
-`src/lib/drafts/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-drafts`,
-store `drafts`, keyed by tool name: one draft per tool) holding the full source PDF bytes plus edit
-state, 14-day expiry, no-op when IndexedDB is unavailable. `useDraftPersistence.js` debounce-saves
-while `status === 'editing'`, flushes on `visibilitychange`/`pagehide`, restores silently on mount
-(the draft is the source of truth; download does not clear it), and clears on "Replace file" or
-expiry. Sign and Redact share a `loadPdf()` for fresh picks and restore, and call `seedUniqueId()` (in `sign.js`)
-after restore so new ids don't collide. Nothing is uploaded. It is marketed as crash recovery on the
-sign, redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
-
-## Other tools and `src/lib/`
-
-- **Merge flow**: after a merge the "Merge PDFs" button goes grey (`.is-done`) and focus moves to
-  "Download PDF"; any file mutation (add, remove, reorder, sort) resets to `'idle'` and revokes
-  `downloadUrl`. Reordering is SortableJS on the DOM list; on drop the DOM order is read back into
-  Preact state, which stays the single source of truth.
-- **FAQ disclosure** on tool pages is a details/summary whose summary holds the hero text; a click
-  interceptor makes only the styled `.faq-toggle` link toggle it.
-- `src/tools/merge/merge.js` (`@cantoo/pdf-lib`): `mergePdfs(files, onProgress) -> Blob`, plus `resolvePdfCreationDate(file)`
-  reading `/CreationDate`. `src/lib/sort.js`: `sortByName` (locale-numeric) and `sortByDate`, a
-  cascade of filename date → PDF creation date → `File.lastModified`. The File API cannot read OS
-  birth time and `lastModified` changes on copy/download, so it is deliberately last.
-- `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. The worker is
-  `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url)`, bundled same-origin, never a CDN.
-
-## Test environments and E2E scope
-
-Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
-`.test.tsx`/`.jsx` file anywhere (every tool under `src/tools/` included), what is left of the flat
-`src/components/` (HeroDemo), `src/lib/use*` hook tests, `src/editor/workspace` and `gestures`, and a
-short named list of `.test.js` files that decode images or drive pdf.js (compress/compressImage/
-thumbnails/toImage in both their `src/lib/` and `src/tools/<tool>/` locations,
-`src/tools/sign/useWorkspaceGestures.test.js`, `src/editor/adapters/pdf/redact.test.js`). Booting
-jsdom cost more than the tests it hosted, so a pure-logic test in `src/lib`, `src/tools/<tool>/` or
-`src/editor` pays nothing for a DOM it never touches; one that does need it goes in that list or
-starts with `// @vitest-environment jsdom`.
-
-Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tests under
-`src/tools/<tool>/e2e/`. `e2e/` itself now holds only the cross-tool specs and the font screening
-guards under `e2e/sign/`. A spec under `src/tools/<tool>/e2e/` may only visit that tool's own page;
-one that also visits another tool's page belongs under `e2e/` instead, enforced statically by rule 7
-in `docs/module-boundaries.md` (`npm run test:module-boundaries`). `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
-PDF with pdf.js against per-case baselines: one rasteriser only (poppler vs Chromium noise measured at
-80-88%), and never "is there ink" as a pass condition, since `.notdef` often draws more ink than the
-glyph it replaced.
