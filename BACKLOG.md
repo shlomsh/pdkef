@@ -335,9 +335,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| DEBT-01 | P1 | [DEBT-01](backlog/tasks/DEBT-01.md) · Move the two cross-tool Playwright specs out of tool folders and guard the route a tool spec may visit |
-| DEBT-02 | P1 | [DEBT-02](backlog/tasks/DEBT-02.md) · The boundary checker scans test files: a test outside src/test/cross-tool/ may not import a tool it does not belong to |
-| DEBT-03 | P1 | [DEBT-03](backlog/tasks/DEBT-03.md) · change-scope.mjs diffs with --no-renames so a moved file's old owner is affected too |
 | DEBT-04 | P1 | [DEBT-04](backlog/tasks/DEBT-04.md) · Move draft persistence, the pdf.js render context and the Sign/Redact-only hooks to the folders that own them |
 | DEBT-05 | P2 | [DEBT-05](backlog/tasks/DEBT-05.md) · Tests for scripts/ leave src/lib/, and site-only helpers get a home that is not the shared lib |
 | DEBT-06 | P1 | [DEBT-06](backlog/tasks/DEBT-06.md) · editor-ui leaves CORE_PROJECTS: the first change whose affected set the Nx graph decides |
@@ -348,6 +345,7 @@ _None._
 | DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
+| DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 
 ### In progress
 
@@ -359,7 +357,11 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEBT-01 | P1 | [DEBT-01](backlog/tasks/DEBT-01.md) · Move the two cross-tool Playwright specs out of tool folders and guard the route a tool spec may visit |
+| DEBT-02 | P1 | [DEBT-02](backlog/tasks/DEBT-02.md) · The boundary checker scans test files: a test outside src/test/cross-tool/ may not import a tool it does not belong to |
+| DEBT-03 | P1 | [DEBT-03](backlog/tasks/DEBT-03.md) · change-scope.mjs diffs with --no-renames so a moved file's old owner is affected too |
 
 ### Retired
 
