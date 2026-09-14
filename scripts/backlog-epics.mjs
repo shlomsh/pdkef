@@ -35,6 +35,12 @@ export const epics = [
   // components. The boundaries are worth drawing on their own; scoped CI is
   // what falls out of them.
   { key: 'module-boundaries', label: 'Module boundaries', heading: 'Module boundaries: one folder per tool, an enforced dependency graph, Nx on top (2026-09-13)' },
+  // Opened 2026-09-14 from the architecture review that closed the epic above
+  // (docs/architecture-debt-review-2026-09-14.md): the places the layout still
+  // lies about ownership, the narrowing fail-safes ARCH-20 left unenforced,
+  // and the guidance and guards that drifted. Prioritized for the week of
+  // 2026-09-15; the record holds the reasoning, the tickets the execution.
+  { key: 'architecture-debt', label: 'Architecture debt', heading: 'Architecture debt: what the module-boundaries review found (2026-09-14)' },
 ];
 
 export const statuses = [
