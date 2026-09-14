@@ -18,7 +18,17 @@ vi.mock('../../lib/thumbnails.js', () => ({
 
 import { loadDraft } from '../../lib/drafts/draftStore.js';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
-import { DRAFT_SCHEMA_VERSION, isEditorElement } from '../registry/draftValidation.ts';
+import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
+
+// Mirrors PdfRedactTool.tsx's own `isRedactHistoryElement`: Redact only
+// restores its four element types, so a foreign type (e.g. Sign's `text`)
+// stored under the `redact` draft key is dropped by validateDraftElements
+// rather than reaching render, where `createElementRenderers({})` would throw
+// on it (DEBT-09).
+const REDACT_ELEMENT_TYPES = new Set(['whiteout', 'blackout', 'blur', 'delete']);
+function isRedactElement(value: unknown): value is { id: string; pageIndex: number; type: string } {
+  return isDraftElement(value) && REDACT_ELEMENT_TYPES.has((value as { type: string }).type);
+}
 
 function Harness({ apiRef, props }: any) {
   apiRef.current = { result: useEditorDraftPersistence(props) };
@@ -156,6 +166,29 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
 
     const initialState = props.loadPdf.mock.calls[0][2];
     expect(initialState.actionHistory).toEqual([command]);
+  });
+
+  it('drops a Sign-only element type from a redact record instead of restoring it', async () => {
+    const fileBytes = new TextEncoder().encode('%PDF-1.4').buffer;
+    const textElement = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
+    const blackoutElement = { id: 'blackout-1', type: 'blackout', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 };
+    (loadDraft as any).mockResolvedValue({
+      fileName: 'contract.pdf',
+      fileType: 'application/pdf',
+      fileBytes,
+      elements: [textElement, blackoutElement],
+      extra: { actionHistory: [] },
+    });
+
+    const apiRef: any = { current: null };
+    const props = baseProps({ tool: 'redact', isElement: isRedactElement });
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    await waitAsync();
+
+    expect(props.loadPdf).toHaveBeenCalledTimes(1);
+    expect(props.loadPdf.mock.calls[0][2].elements).toEqual([blackoutElement]);
   });
 
   it('does not throw when loadDraft resolves with no record', async () => {

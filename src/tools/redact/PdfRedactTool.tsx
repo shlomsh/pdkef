@@ -42,9 +42,15 @@ import type { RedactToolType } from '../../editor/model/editorModel.ts';
 type RedactHistoryElement = {
   id: string;
   pageIndex: number;
-  type: string;
+  type: RedactToolType;
   [field: string]: unknown;
 };
+
+const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whiteout', 'blackout', 'blur', 'delete']);
+
+function isRedactHistoryElement(value: unknown): value is RedactHistoryElement {
+  return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
+}
 
 type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
 
@@ -319,7 +325,7 @@ export default function PdfRedactTool() {
     status,
     loadStartedRef,
     loadPdf,
-    isElement: (value): value is RedactHistoryElement => isDraftElement(value),
+    isElement: isRedactHistoryElement,
   });
 
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
