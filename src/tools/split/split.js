@@ -1,4 +1,5 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
+import { applyRotation } from '../../lib/pageOps.js';
 
 // Parses a printer-style page range string (e.g. "1-3, 5, 8-") into a sorted,
 // deduped array of 1-indexed page numbers clamped to [1, pageCount].
@@ -122,21 +123,25 @@ export function outputFileName(fileName, mode, pageNumber) {
 }
 
 // Splits the input PDF file based on the selected page numbers and mode.
-// mode: 'combined' | 'separate'
-export async function splitPdf(file, { pageNumbers, mode = 'combined', onProgress }) {
+// mode: 'combined' | 'separate'. `rotations` is an optional { [pageNumber]:
+// 0|90|180|270 } map of the delta the person applied with the per-cell
+// rotate control, added on top of whatever rotation the source page already
+// carried (pageOps.js's applyRotation, shared with Merge and Edit Pages).
+export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress }) {
   const bytes = await file.arrayBuffer();
   const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
 
   if (mode === 'combined') {
     const merged = await PDFDocument.create();
     const indices = pageNumbers.map((n) => n - 1);
-    
+
     const pages = await merged.copyPages(source, indices);
     for (let i = 0; i < pages.length; i += 1) {
+      applyRotation(pages[i], rotations[pageNumbers[i]]);
       merged.addPage(pages[i]);
       onProgress?.((i + 1) / pages.length);
     }
-    
+
     const mergedBytes = await merged.save();
     return [
       {
@@ -151,6 +156,7 @@ export async function splitPdf(file, { pageNumbers, mode = 'combined', onProgres
       const pageNum = pageNumbers[i];
       const singleDoc = await PDFDocument.create();
       const [copiedPage] = await singleDoc.copyPages(source, [pageNum - 1]);
+      applyRotation(copiedPage, rotations[pageNum]);
       singleDoc.addPage(copiedPage);
       const docBytes = await singleDoc.save();
       results.push({

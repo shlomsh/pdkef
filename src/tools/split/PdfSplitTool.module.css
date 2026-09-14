@@ -109,6 +109,7 @@
 }
 
 .cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -158,6 +159,84 @@
   background: var(--color-surface-soft);
 }
 
+.cell-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.2s var(--ease-out);
+}
+
+/* A page's own rotation (delta from the per-cell rotate control) previews
+   here; split.js applies the same value at export via pageOps.js's
+   applyRotation. 90/270 swap the image's own box before rotating so the
+   post-rotate footprint still fills the (portrait) container exactly - the
+   percentages are the container's own aspect ratio (3:4) inverted. */
+.cell-thumb[data-rotation='90'] .cell-thumb-img,
+.cell-thumb[data-rotation='270'] .cell-thumb-img {
+  width: 133.333%;
+  height: 75%;
+}
+
+.cell-thumb[data-rotation='90'] .cell-thumb-img {
+  transform: rotate(90deg);
+}
+
+.cell-thumb[data-rotation='180'] .cell-thumb-img {
+  transform: rotate(180deg);
+}
+
+.cell-thumb[data-rotation='270'] .cell-thumb-img {
+  transform: rotate(270deg);
+}
+
+/* Always visible (not hover/tap-revealed): the cell body's own tap already
+   toggles inclusion, so a select-to-reveal gesture would collide with it on
+   touch. One button, in a corner, fits without crowding. */
+.rotate-btn {
+  position: absolute;
+  top: 0.3rem;
+  inset-inline-end: 0.3rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  color: var(--color-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+}
+
+/* 44px hit area via a transparent pseudo-element, same technique as Merge's
+   per-cell action cluster (PageStrip.module.css), without inflating the
+   small visual glyph a page thumbnail has room for. */
+.rotate-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+}
+
+.rotate-btn:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.rotate-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  outline-offset: 1px;
+}
+
 .cell-number,
 .cell-caption {
   font-size: 0.75rem;
@@ -180,36 +259,31 @@
   color: var(--color-muted);
 }
 
-.file-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  max-height: 16rem;
-  overflow-y: auto;
-}
-
-.file-item {
-  display: flex;
+/* The single-slot undo chip (rotate today). Same shape as Merge's. */
+.undo-chip {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.9rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.file-item:first-child {
-  border-top: none;
-}
-
-.file-item-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-pill);
   white-space: nowrap;
-  unicode-bidi: isolate;
+}
+
+.undo-chip button {
+  font: inherit;
+  font-weight: 700;
+  color: var(--color-text);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }
 
 .next-steps {
