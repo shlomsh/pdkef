@@ -5,10 +5,10 @@ import {
   pxToPoints,
   scaleFactorFromPx,
   widthPercentToHeightPercent,
-} from '../editor/geometry/coords.js';
-import type { PageGeometry } from '../editor/geometry/coords.ts';
-import { getPointerCoords } from '../editor/gestures/pointer.ts';
-import type { GestureEvent } from '../editor/gestures/controller.ts';
+} from '../../editor/geometry/coords.js';
+import type { PageGeometry } from '../../editor/geometry/coords.ts';
+import { getPointerCoords } from '../../editor/gestures/pointer.ts';
+import type { GestureEvent } from '../../editor/gestures/controller.ts';
 
 type MeasurableElement = Pick<Element, 'getBoundingClientRect'>;
 

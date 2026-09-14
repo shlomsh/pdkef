@@ -7,7 +7,7 @@ import { applyPageEdits } from '../../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../editor/workspace/draftStore.js';
 import { startGesture } from '../../editor/gestures/controller.ts';
-import usePdfCoordinates from '../../lib/usePdfCoordinates.js';
+import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
@@ -29,14 +29,14 @@ import {
   type ActionHistoryEntry,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { useUndoShortcut } from '../../lib/useUndoShortcut.js';
+import { useUndoShortcut } from '../../editor-ui/hooks/useUndoShortcut.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
-import useCurrentPage from '../../lib/useCurrentPage.js';
+import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 
 type RedactHistoryElement = {

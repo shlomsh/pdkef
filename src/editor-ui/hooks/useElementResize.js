@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../editor/gestures/controller.ts';
-import { getElementDefinition } from '../editor/registry/index.ts';
-import { getEffectiveTextDirection } from './signHelpers.js';
+import { startGesture } from '../../editor/gestures/controller.ts';
+import { getElementDefinition } from '../../editor/registry/index.ts';
+import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import {
   DEFAULT_START_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
   ASPECT_RATIO_SYMBOL,
   ASPECT_RATIO_TEXT,
   MIN_COMB_WIDTH_PCT
-} from '../constants/signGeometry.js';
+} from '../../constants/signGeometry.js';
 
 /**
  * Encapsulates the resize gesture for a single element, dispatching per-type

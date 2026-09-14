@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
 import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
-import useDraggableElement from '../../../lib/useDraggableElement.js';
-import useElementResize from '../../../lib/useElementResize.js';
+import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
+import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';

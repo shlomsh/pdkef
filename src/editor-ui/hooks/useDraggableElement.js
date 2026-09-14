@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../editor/gestures/controller.ts';
-import { getEffectiveTextDirection } from './signHelpers.js';
+import { startGesture } from '../../editor/gestures/controller.ts';
+import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
-} from '../constants/signGeometry.js';
+} from '../../constants/signGeometry.js';
 
 /**
  * Encapsulates the complex drag-to-move gesture for a single element inside

@@ -73,7 +73,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - **Tools are one-shot.** An armed tool disarms after one committed placement (`DISARM_TOOL` from
   every creation path in Sign's `useWorkspaceGestures`; `disarmTool()` from Redact's box-commit and
   mark-for-deletion paths), so the click after a placement means "deselect". Both toolbars arm through
-  `src/lib/toolArming.js`'s `makeArmTool`, so they cannot drift. Tell of the old bug: clicking empty
+  `src/editor-ui/hooks/toolArming.js`'s `makeArmTool`, so they cannot drift. Tell of the old bug: clicking empty
   space to get out of a tool placed a stray element, and with a drag tool `ENSURE_MINIMUM_SIZE`
   promoted a zero-size drag into a default box; Redact used to arrive with `'delete'` armed forever.
 - **Repeat placement is opt-in by double-click** (`SET_TOOL` with `{ tool, locked: true }` in Sign;
