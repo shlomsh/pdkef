@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { getElementDefinition } from './index.ts';
-import { getElementRenderer } from './renderers.ts';
+import { createElementRenderers } from './renderers.ts';
+
+const elementRenderers = createElementRenderers({
+  text: () => null,
+  rectangle: () => null,
+  ellipse: () => null,
+  line: () => null,
+  symbol: () => null,
+  signature: () => null,
+  whiteout: () => null,
+} as any);
 
 const validElements = {
   text: { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' },
@@ -18,7 +28,7 @@ describe('element registry schemas', () => {
   it.each(Object.keys(validElements))('exposes the complete module seam for %s', (type) => {
     const definition = getElementDefinition(type as keyof typeof validElements);
     expect(typeof definition.schema).toBe('function');
-    expect(typeof getElementRenderer(type as keyof typeof validElements)).toBe('function');
+    expect(typeof elementRenderers[type as keyof typeof validElements]).toBe('function');
     expect(typeof definition.serialize).toBe('function');
     if (definition.creation.mode === 'external') expect(definition.creation.create).toBeUndefined();
     else expect(typeof definition.creation.create).toBe('function');

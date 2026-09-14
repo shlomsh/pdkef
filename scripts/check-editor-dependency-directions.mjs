@@ -14,16 +14,18 @@ const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist
 //
 // ARCH-19 removed the `renderers.ts -> src/components/SignTool/` targetPrefix
 // exception below: the registry used to import the Preact node components
-// directly, an editor -> tool edge. It is inverted now (registerRenderer in
-// registry/renderers.ts; Sign's PdfWorkspace.tsx registers its node
-// components at module load, before any render), so nothing under
-// src/editor/registry/renderers.ts imports from src/components/ any more -
-// only the `preact` exception below remains, for the registry still creating
-// Preact vnodes from whatever component was registered. The same ticket
-// removed the `text.ts -> EditorElement.module.css` exception below: text.ts's
-// resize paint now finds its DOM parts with `data-text-part` attributes
-// (`registry/text.ts`'s `writeDOM`), so it needs no class names, resolved or
-// otherwise, and no longer imports the tool's CSS Module at all. It also removed the
+// directly, an editor -> tool edge. It is inverted now (renderers.ts exports
+// createElementRenderers, a factory each tool calls once with its own node
+// components; Sign's PdfWorkspace.tsx builds its map at module load, before
+// any render, DEBT-09), so nothing under src/editor/registry/renderers.ts
+// imports from src/components/ any more - only the `preact` exception below
+// remains, for the registry still creating Preact vnodes from whatever
+// component was supplied. The same ticket removed the
+// `text.ts -> EditorElement.module.css` exception below (via a class-name
+// registry that DEBT-08 then deleted): text.ts's resize paint finds its DOM
+// parts with `data-text-part` attributes (`registry/text.ts`'s `writeDOM`), so
+// it needs no class names, resolved or otherwise, and no longer imports the
+// tool's CSS Module at all. ARCH-19 also removed the
 // `useEditorDraftPersistence.ts -> SignTool/useDraftPersistence.js` exception:
 // that hook had no Sign-specific logic (only draftStore.js/draftValidation.ts,
 // both already core) and simply moved to

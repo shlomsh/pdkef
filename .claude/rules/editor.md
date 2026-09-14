@@ -35,9 +35,11 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
   state and binds events to the core. Sign and Redact both sit on it. This is a checked invariant, not
   just prose: `npm run test:module-boundaries` fails on any new `src/editor/` import of a tool or of
   `src/components`, with no editor entry left on the allowlist since ARCH-19. The core never
-  imports a tool's Preact components: a tool registers what the core renders
-  (`registry/renderers.ts`'s `registerRenderer`) from its own entry point, and `getElementRenderer`
-  throws if a type is rendered before its tool registered it.
+  imports a tool's Preact components: a tool builds its own renderer map with
+  `registry/renderers.ts`'s `createElementRenderers(nodeComponents)`, called once from its own entry
+  point, and the returned map throws by type name for any registerable type whose component was not
+  supplied. `registry/text.ts`'s resize paint finds the text node's parts by `data-text-part`
+  attribute, so the core needs no class names from the tool at all.
 - Anchor-preserving box resize has exactly one owner, `registry/boxResize.ts`; CI greps that the
   `maxWidthFromRightGrowth`/`maxHeightFromBottomGrowth` names exist in one file.
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
