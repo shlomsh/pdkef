@@ -29,6 +29,15 @@ export interface DownloadElementProps {
   onChooseFiles?: () => void;
   onPreparingTap?: () => void;
   onDownloadClick?: (event: MouseEvent) => void;
+  /** The output-name heading is mid-rename (a `contenteditable`
+   * span holding live, uncommitted keystrokes). The first-ready autofocus
+   * below must never steal focus out from under that edit - doing so both
+   * interrupts the person's typing and, because the remaining keystrokes
+   * then land on this plain anchor instead of a text field, lets an
+   * ordinary space bar keypress trigger the browser's native page-down
+   * scroll. Defaults to false so every other caller (and every existing
+   * test) is unaffected. */
+  isOutputNameBeingRenamed?: boolean;
 }
 
 /**
@@ -57,6 +66,7 @@ export default function DownloadElement({
   onChooseFiles,
   onPreparingTap,
   onDownloadClick,
+  isOutputNameBeingRenamed = false,
 }: DownloadElementProps) {
   const ref = useRef<HTMLAnchorElement | null>(null);
   const hasBeenReadyRef = useRef(false);
@@ -67,12 +77,17 @@ export default function DownloadElement({
     if (state === 'ready') hasBeenReadyRef.current = true;
   }, [state]);
 
+  // Skip while the output name is mid-rename (see the prop's own
+  // comment) rather than merely deferring - `isOutputNameBeingRenamed` is a
+  // dependency, so the moment the rename commits or cancels this effect
+  // re-runs and still claims the first-ready focus if nothing has since
+  // consumed it (`hasFocusedRef` is only ever set on an actual focus call).
   useEffect(() => {
-    if (state === 'ready' && !hasFocusedRef.current) {
+    if (state === 'ready' && !hasFocusedRef.current && !isOutputNameBeingRenamed) {
       hasFocusedRef.current = true;
       ref.current?.focus({ preventScroll: true });
     }
-  }, [state]);
+  }, [state, isOutputNameBeingRenamed]);
 
   const isLink = (state === 'ready' || state === 'saved') && !!href;
   // One-file: the box itself is a plain surface, never a button in its own

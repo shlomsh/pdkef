@@ -118,4 +118,33 @@ describe('DownloadElement', () => {
     expect(el.hasAttribute('disabled')).toBe(false);
     expect(el.getAttribute('href')).toBeNull();
   });
+
+  // The first-ready autofocus must never steal focus from the
+  // output-name heading mid-rename (src/tools/merge/e2e/merge-layout.spec.js's
+  // "the heading rect never moves on entering edit" is the real-browser
+  // guard for the scroll jump this caused; jsdom proves the focus-stealing
+  // half here).
+  it('the first-ready autofocus is skipped while the output name is being renamed, and fires once the rename ends', () => {
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    const { rerender } = mount({
+      state: 'preparing',
+      totalCount: 2,
+      renderedCount: 0,
+      isOutputNameBeingRenamed: true,
+    });
+    rerender({ state: 'ready', href: 'blob:x', fileName: 'merged.pdf', detail: '2 pages' });
+    // Still renaming: the download link must not have taken focus.
+    expect(document.activeElement).toBe(input);
+
+    rerender({ isOutputNameBeingRenamed: false });
+    // The rename just ended and the state is still 'ready': the deferred
+    // first-ready focus claims it now.
+    expect(document.activeElement).toBe(box());
+
+    input.remove();
+  });
 });

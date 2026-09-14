@@ -1524,6 +1524,7 @@ export default function PdfMergeTool({
                   onChooseFiles={requestReplace}
                   onPreparingTap={onPreparingTap}
                   onDownloadClick={onDownloadTap}
+                  isOutputNameBeingRenamed={isRenamingOutputName}
                 />
 
                 {entries.length >= 2 && (
