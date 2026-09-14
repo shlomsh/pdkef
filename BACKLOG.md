@@ -300,6 +300,10 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
+| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
+| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
+| QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
 
 ### In progress
 
