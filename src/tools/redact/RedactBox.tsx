@@ -3,11 +3,18 @@ import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react
 import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
 import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
 import ElementResizers from '../../editor-ui/ElementResizers.tsx';
-import { getElementRenderer } from '../../editor/registry/renderers.ts';
+import { createElementRenderers } from '../../editor/registry/renderers.ts';
+import type { ElementType } from '../../editor/model/editorModel.ts';
 import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../editor-ui/hooks/useElementResize.js';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+
+// Redact never renders a registered node component - its whiteout/blackout/
+// blur elements always take the `renderTarget: 'redact'` branch inside
+// createElementRenderers(), which is core-only. So this map is built with no
+// components at all; see registry/renderers.ts's own header comment.
+const ELEMENT_RENDERERS = createElementRenderers({});
 
 // Renders one redaction box (blackout/whiteout/blur). Extracted out of PdfRedactTool's
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
@@ -86,7 +93,7 @@ export default function RedactBox({
 
   const isWhiteout = el.type === 'whiteout';
   const hasShapeHandles = true;
-  const surface = getElementRenderer(el.type)({
+  const surface = ELEMENT_RENDERERS[el.type as ElementType]({
     element: el,
     onChange: () => {},
     onSelect: () => {},
@@ -95,7 +102,7 @@ export default function RedactBox({
   });
 
   // Fill/blur/border for every redaction type is owned solely by `surface`
-  // (renderRedactionSurface, via getElementRenderer()) - the host div
+  // (renderRedactionSurface, via createElementRenderers()) - the host div
   // below carries only geometry, interaction chrome, and a selection class
   // (E7.4). Whiteout's border is selection/hover-state-driven, so that part
   // lives in PdfRedactTool.module.css's `.redact-box--whiteout` rules rather

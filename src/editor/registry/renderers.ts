@@ -21,44 +21,49 @@ import { renderRedactionSurface } from './redactionSurface.ts';
 //
 // ARCH-19: the registry used to import the Preact node components directly
 // from Sign's own node-component folder, an editor -> tool edge the module
-// boundary rules forbid. Inverted here: the core exposes `registerRenderer`,
-// and each tool's entry point registers its own node components before the
-// first render (Sign's `PdfWorkspace.tsx` does this for all seven types it
-// draws; Redact never renders a registered component - its whiteout/blackout/
-// blur elements always take the `renderTarget: 'redact'` branch below, which
-// is core-only). `getElementRenderer` throws a clear error if something tries
-// to render a registerable type before its component has landed.
-const nodeComponents: Partial<Record<SignToolType, ComponentType<any>>> = {};
+// boundary rules forbid. Inverted here: the core exposes `createElementRenderers`,
+// a factory each tool calls once, at module load, with its own node components
+// (Sign's `PdfWorkspace.tsx` calls it with all seven types it draws; Redact
+// calls it with `{}` - its whiteout/blackout/blur elements always take the
+// `renderTarget: 'redact'` branch below, which is core-only and never touches
+// a supplied component). The returned map throws a clear error if something
+// tries to render a registerable type whose component was not supplied.
+//
+// The map is typed as `ElementRenderers` (one shared signature) rather than
+// the per-type mapped shape built internally below, so a call site can index
+// it by a element's own `type` field (a union, not a single literal) without
+// TypeScript reducing the call's argument type to `never` - indexing a record
+// whose values are all the same type is safe for a union key; indexing one
+// whose value type varies per key is not.
+export type ElementRenderer = (context: NodeRenderContext<any>) => ComponentChildren;
+export type ElementRenderers = Record<ElementType, ElementRenderer>;
 
-export function registerRenderer(type: SignToolType, component: ComponentType<any>): void {
-  nodeComponents[type] = component;
-}
-
-function requireComponent(type: SignToolType): ComponentType<any> {
-  const component = nodeComponents[type];
-  if (!component) {
-    throw new Error(
-      `No renderer registered for element type "${type}". A tool must call `
-      + `registerRenderer('${type}', Component) from its entry point before rendering it.`,
-    );
+export function createElementRenderers(
+  nodeComponents: Partial<Record<SignToolType, ComponentType<any>>>,
+): ElementRenderers {
+  function requireComponent(type: SignToolType): ComponentType<any> {
+    const component = nodeComponents[type];
+    if (!component) {
+      throw new Error(
+        `No renderer registered for element type "${type}". Pass a "${type}" `
+        + `component to createElementRenderers() from the tool's entry point.`,
+      );
+    }
+    return component;
   }
-  return component;
-}
 
-const renderers: { [K in ElementType]: (context: NodeRenderContext<ElementForType<K>>) => ComponentChildren } = {
-  text: ({ element, onChange, onSelect, pageWidthPoints, messages }) => h(requireComponent('text'), { element, onChange, onSelect, pageWidthPoints, messages, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
-  rectangle: ({ element, messages }) => h(requireComponent('rectangle'), { element, messages, isActive: false, onResizeStart: () => {} }),
-  ellipse: ({ element, messages }) => h(requireComponent('ellipse'), { element, messages, isActive: false, onResizeStart: () => {} }),
-  line: ({ element, messages }) => h(requireComponent('line'), { element, messages, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
-  symbol: ({ element, messages }) => h(requireComponent('symbol'), { element, messages, isActive: false, onResizeStart: () => {} }),
-  signature: ({ element, messages }) => h(requireComponent('signature'), { element, messages, isActive: false, onResizeStart: () => {} }),
-  whiteout: ({ element, renderTarget, messages }) => renderTarget === 'redact'
-    ? renderRedactionSurface('whiteout', element.color)
-    : h(requireComponent('whiteout'), { element, messages, isActive: false, onResizeStart: () => {} }),
-  blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
-  blur: () => renderRedactionSurface('blur'),
-};
-
-export function getElementRenderer<K extends ElementType>(type: K): (context: NodeRenderContext<ElementForType<K>>) => ComponentChildren {
-  return renderers[type];
+  const renderers: { [K in ElementType]: (context: NodeRenderContext<ElementForType<K>>) => ComponentChildren } = {
+    text: ({ element, onChange, onSelect, pageWidthPoints, messages }) => h(requireComponent('text'), { element, onChange, onSelect, pageWidthPoints, messages, isActive: false, isEditing: false, onBeginEdit: () => {}, onResizeStart: () => {} }),
+    rectangle: ({ element, messages }) => h(requireComponent('rectangle'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    ellipse: ({ element, messages }) => h(requireComponent('ellipse'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    line: ({ element, messages }) => h(requireComponent('line'), { element, messages, isActive: false, onResizeStart: () => {}, handlePointerDown: () => {} }),
+    symbol: ({ element, messages }) => h(requireComponent('symbol'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    signature: ({ element, messages }) => h(requireComponent('signature'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    whiteout: ({ element, renderTarget, messages }) => renderTarget === 'redact'
+      ? renderRedactionSurface('whiteout', element.color)
+      : h(requireComponent('whiteout'), { element, messages, isActive: false, onResizeStart: () => {} }),
+    blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
+    blur: () => renderRedactionSurface('blur'),
+  };
+  return renderers;
 }

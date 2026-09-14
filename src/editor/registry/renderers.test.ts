@@ -1,20 +1,16 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import { createElementRenderers } from './renderers.ts';
 
-// registerRenderer/getElementRenderer replaced a static import of the Preact
-// node components (ARCH-19: the editor core may not import a tool). This
-// guards both ends of that contract: a render before registration is a clear
-// error, not a silent blank, and a render after registration returns the
-// registered component's vnode. Each `it` re-imports the module fresh so one
-// test's registration can never leak into another's "before registration"
-// assertion.
-describe('registry/renderers registerRenderer/getElementRenderer', () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
-
-  it('throws a clear error when a registerable type has no registered component yet', async () => {
-    const { getElementRenderer } = await import('./renderers.ts');
-    expect(() => getElementRenderer('text')({
+// createElementRenderers() replaced a static import of the Preact node
+// components (ARCH-19: the editor core may not import a tool). This guards
+// both ends of that contract: a render for a type whose component was not
+// supplied is a clear error, not a silent blank, and a render for a supplied
+// type returns that component's vnode. Each factory call is independent, so
+// one call's components can never leak into another's "no component" case.
+describe('registry/renderers createElementRenderers', () => {
+  it('throws a clear error when a registerable type has no supplied component', () => {
+    const renderers = createElementRenderers({});
+    expect(() => renderers.text({
       element: { id: '1', type: 'text', pageIndex: 0, left: 0, top: 0, text: '' } as any,
       onChange: () => {},
       onSelect: () => {},
@@ -22,11 +18,10 @@ describe('registry/renderers registerRenderer/getElementRenderer', () => {
     })).toThrow(/No renderer registered for element type "text"/);
   });
 
-  it('renders the registered component once registerRenderer has run', async () => {
-    const { getElementRenderer, registerRenderer } = await import('./renderers.ts');
+  it('renders the supplied component for a registerable type', () => {
     function FakeTextNode() { return null; }
-    registerRenderer('text', FakeTextNode as any);
-    const vnode = getElementRenderer('text')({
+    const renderers = createElementRenderers({ text: FakeTextNode as any });
+    const vnode = renderers.text({
       element: { id: '1', type: 'text', pageIndex: 0, left: 0, top: 0, text: '' } as any,
       onChange: () => {},
       onSelect: () => {},
@@ -36,21 +31,21 @@ describe('registry/renderers registerRenderer/getElementRenderer', () => {
     expect(vnode.props.element.id).toBe('1');
   });
 
-  it('never requires a registered component for blackout/blur, or for whiteout targeting redact', async () => {
-    const { getElementRenderer } = await import('./renderers.ts');
-    expect(() => getElementRenderer('blackout')({
+  it('never requires a supplied component for blackout/blur, or for whiteout targeting redact', () => {
+    const renderers = createElementRenderers({});
+    expect(() => renderers.blackout({
       element: { id: '1', type: 'blackout', pageIndex: 0, left: 0, top: 0, width: 10, height: 10 } as any,
       onChange: () => {},
       onSelect: () => {},
       pageWidthPoints: 600,
     })).not.toThrow();
-    expect(() => getElementRenderer('blur')({
+    expect(() => renderers.blur({
       element: { id: '1', type: 'blur', pageIndex: 0, left: 0, top: 0, width: 10, height: 10 } as any,
       onChange: () => {},
       onSelect: () => {},
       pageWidthPoints: 600,
     })).not.toThrow();
-    expect(() => getElementRenderer('whiteout')({
+    expect(() => renderers.whiteout({
       element: { id: '1', type: 'whiteout', pageIndex: 0, left: 0, top: 0, width: 10, height: 10 } as any,
       onChange: () => {},
       onSelect: () => {},
@@ -59,9 +54,9 @@ describe('registry/renderers registerRenderer/getElementRenderer', () => {
     })).not.toThrow();
   });
 
-  it('still throws for whiteout when it is not targeting redact and nothing registered it', async () => {
-    const { getElementRenderer } = await import('./renderers.ts');
-    expect(() => getElementRenderer('whiteout')({
+  it('still throws for whiteout when it is not targeting redact and no component was supplied', () => {
+    const renderers = createElementRenderers({});
+    expect(() => renderers.whiteout({
       element: { id: '1', type: 'whiteout', pageIndex: 0, left: 0, top: 0, width: 10, height: 10 } as any,
       onChange: () => {},
       onSelect: () => {},

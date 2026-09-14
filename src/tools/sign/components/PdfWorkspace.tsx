@@ -4,7 +4,7 @@ import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../../consta
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
-import { getElementRenderer, registerRenderer } from '../../../editor/registry/renderers.ts';
+import { createElementRenderers } from '../../../editor/registry/renderers.ts';
 import TextNode from './nodes/TextNode.tsx';
 import ShapeNode from './nodes/ShapeNode.tsx';
 import LineNode from './nodes/LineNode.tsx';
@@ -12,22 +12,6 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
-
-// Registers Sign's node components with the editor core's renderer registry.
-// A module-level side effect, not a hook: it must run once, before the first
-// `getElementRenderer(...)` call below, and importing this module already
-// guarantees that (ES modules run their top-level code before anything that
-// imports them can call back into it). Redact never needs to do this - its
-// elements always render through the `renderTarget: 'redact'` branch in
-// renderers.ts, which is core-only and never calls into a registered
-// component. See registry/renderers.test.ts for the ordering/error contract.
-registerRenderer('text', TextNode);
-registerRenderer('rectangle', ShapeNode);
-registerRenderer('ellipse', ShapeNode);
-registerRenderer('line', LineNode);
-registerRenderer('symbol', SymbolNode);
-registerRenderer('signature', SignatureNode);
-registerRenderer('whiteout', WhiteoutNode);
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
@@ -53,6 +37,21 @@ import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
+});
+
+// Sign's own map of the seven node components it draws, built once at module
+// load. Redact never builds this map with anything - its whiteout/blackout/
+// blur elements always take the `renderTarget: 'redact'` branch inside
+// createElementRenderers(), which is core-only and never touches a supplied
+// component.
+const ELEMENT_RENDERERS = createElementRenderers({
+  text: TextNode,
+  rectangle: ShapeNode,
+  ellipse: ShapeNode,
+  line: LineNode,
+  symbol: SymbolNode,
+  signature: SignatureNode,
+  whiteout: WhiteoutNode,
 });
 
 export default function PdfWorkspace({
@@ -365,7 +364,7 @@ export default function PdfWorkspace({
                           pageGeometry={size}
                           messages={messages}
                         >
-                          {getElementRenderer(el.type)({
+                          {ELEMENT_RENDERERS[el.type]({
                             element: el,
                             onChange: makeOnChange(el.id),
                             onSelect: makeOnSelect(el.id),
