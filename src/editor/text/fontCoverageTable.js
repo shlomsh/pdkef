@@ -4,7 +4,7 @@
  * Produced by scripts/generate-font-coverage.mjs from the real font bytes in
  * public/fonts/. Rerun that script (npm run generate:font-coverage) and
  * commit the result whenever a font file is added, removed, or replaced.
- * src/lib/fontCoverageTable.test.js regenerates this in memory and fails if
+ * src/editor/text/fontCoverageTable.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
  * Keyed by the exact filename src/editor/adapters/pdf/sign.js's loadCustomFont() requests -

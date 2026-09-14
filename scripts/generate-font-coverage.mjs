@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates src/lib/fontCoverageTable.js from the real font bytes in
+ * Generates src/editor/text/fontCoverageTable.js from the real font bytes in
  * public/fonts/.
  *
  * This is the substrate for W3 (see TODO.md and docs/wysiwyg-text-architecture.md
@@ -13,7 +13,7 @@
  * Run with: npm run generate:font-coverage
  *
  * Whenever a font file in public/fonts/ is added, removed, or replaced, rerun
- * this script and commit the result. src/lib/fontCoverageTable.test.js fails
+ * this script and commit the result. src/editor/text/fontCoverageTable.test.js fails
  * the build if the committed table and the real bytes disagree.
  *
  * The encoding is a hybrid, per file and per block, and picked by measurement
@@ -30,7 +30,7 @@ import { DISPLAY_ONLY_FONTS } from './display-only-fonts.mjs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 const FONT_DIR = join(REPO_ROOT, 'public', 'fonts');
-const OUT_FILE = join(REPO_ROOT, 'src', 'lib', 'fontCoverageTable.js');
+const OUT_FILE = join(REPO_ROOT, 'src', 'editor', 'text', 'fontCoverageTable.js');
 
 /**
  * Blocks where a bitmap is allowed to compete with the range list.
@@ -187,7 +187,7 @@ function generateSource(table, sizeComment) {
  * Produced by scripts/generate-font-coverage.mjs from the real font bytes in
  * public/fonts/. Rerun that script (npm run generate:font-coverage) and
  * commit the result whenever a font file is added, removed, or replaced.
- * src/lib/fontCoverageTable.test.js regenerates this in memory and fails if
+ * src/editor/text/fontCoverageTable.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
  * Keyed by the exact filename src/editor/adapters/pdf/sign.js's loadCustomFont() requests -

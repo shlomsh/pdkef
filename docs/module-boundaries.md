@@ -329,7 +329,7 @@ rest of the Sign/Redact shared chrome rather than in `lib`. Consumers unchanged 
 | `imageToPdf.js` | `PdfImageToPdfTool` | `image-to-pdf` |
 | `useDeletableObjects.js` | `PdfRedactTool` | `redact` |
 | `useViewDensity.js` | `ViewControl.tsx` | `editor-ui`, not a tool - see the `editor-ui` section above |
-| `fontCoverageTable.js` | `src/editor/text/fonts.js` (the editor core) | stays `lib`, not a tool - the core itself is the consumer |
+| `fontCoverageTable.js` | `src/editor/text/fonts.js` (the editor core) | moved to `src/editor/text/` (DEBT-04) - the core itself was the sole consumer |
 
 A module marked "transitive" above (`outline.js`, `fontOfflinePacks.js`, `targetSizeSearch.js`) has no
 *direct* island/editor consumer; it is only reached through another `lib` module that itself has one.

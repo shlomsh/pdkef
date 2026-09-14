@@ -2,7 +2,7 @@
  * GENERATED FILE - do not hand-edit.
  *
  * Produced by scripts/generate-font-coverage-report.mjs from
- * src/lib/fontCoverageTable.js (itself generated from the real font bytes in
+ * src/editor/text/fontCoverageTable.js (itself generated from the real font bytes in
  * public/fonts/) and the character-set definitions in
  * scripts/font-languages.mjs. Rerun that script
  * (npm run generate:font-coverage-report) and commit the result whenever a
