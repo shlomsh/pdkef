@@ -1,7 +1,7 @@
 ---
 id: "DEBT-08"
 title: "Data attributes replace the text-element class-name registry"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "architecture-debt"
 phase: "near-term"
@@ -37,3 +37,20 @@ contract, for six DOM-part lookups and one class toggle.
 - `src/tools/sign/components/DraggableWrapper.gestureInvariants.test.tsx` and the comb resize unit
   tests green; `src/tools/sign/e2e/form-grid-fill.spec.js` and `sign-editor.spec.js` green (comb
   resize is what they exercise); `test:gesture-golden-rule` green.
+
+## Landed (2026-09-14)
+
+`TextNode.tsx` marks display, input, measure, comb, comb-cell and comb-guide with `data-text-part`;
+the display node carries `data-comb="on"` only while a comb is active. `registry/text.ts`'s `writeDOM`
+selects by `[data-text-part="..."]` and sets/removes `data-comb` directly, still a plain mid-gesture
+DOM write. `elementClassNames.ts` (no separate test file existed for it) and the
+`registerTextElementClassNames` call are gone; `EditorElement.module.css` styles
+`.text-display[data-comb="on"]`. Updated the two `DraggableWrapper.interaction.test.tsx` assertions
+to read `data-comb` instead of the retired class, the `elementClassNames` half of the editor.md bullet
+(the `registerRenderer` half was left for the parallel renderer rewrite), and
+`check-editor-dependency-directions.mjs`'s header comment; also renamed its positive fixture pair
+(`elementClassNames.js` to `textParts.js`, unrelated to the real registry) so the module-wide grep for
+the retired name stays clean. `grep -rn "text-display-comb|elementClassNames|TextElementClassNames" src
+scripts .claude` is empty. Green: the named unit suites, `test:gesture-golden-rule`,
+`test:editor-dependency-directions`, `test:module-boundaries`, `check:fast`, and
+`form-grid-fill.spec.js` / `sign-editor.spec.js` under `--project=chromium` against a fresh build.
