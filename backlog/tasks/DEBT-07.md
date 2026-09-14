@@ -5,7 +5,7 @@ status: "open"
 priority: "P2"
 epic: "architecture-debt"
 phase: "near-term"
-depends_on: ["DEBT-04", "DEBT-06", "QUAL-08"]
+depends_on: ["DEBT-04", "DEBT-05", "DEBT-06", "QUAL-08"]
 ---
 
 # DEBT-07 · Inference is load-bearing or it is gone
@@ -41,3 +41,12 @@ script wearing Nx.
   `site-e2e`, and nothing for the seven other tools, on one green CI run.
 - Or: `npm ci` installs 624 lock packages and `node scripts/affected-scope.mjs` prints the same verdict
   as before for each row of `docs/nx-affected-ci.md`'s table.
+
+## Added after DEBT-04 landed (2026-09-14)
+
+DEBT-04's landing note lists what still keeps `editor` in every tool's affected set: `lib -> editor`
+via `liveFontCoverage.js` and five lib tests of editor modules (DEBT-05), `shell -> editor` via
+`CompareSlider.tsx -> gestures/controller.ts`, and `editor -> site` / `lib -> site` via tests importing
+`src/test/fixtures/` (unowned, so `site` claims it; an Nx project at `src/test/` fixes it). The
+"editor leaves CORE" branch of this ticket is only real once those three are gone; measure the
+`editorModel.ts` affected set first.
