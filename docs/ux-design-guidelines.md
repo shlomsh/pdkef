@@ -54,6 +54,13 @@ configure, so nothing is shown. A `<details>` around a single setting is ceremon
 checkbox row. A setting that changes the output sits directly above the primary control, because that
 is where the eye is when it matters.
 
+"Exists" means ready, not "the person already tapped the primary control." Share and Compress it are
+gated on the output being prepared, the same instant the primary control's label changes from
+preparing to ready; gating them on `saved` instead (Split's first build did) hides them behind an
+action the person has not taken yet, which is the wrong order for something meant to sit next to
+Download. A share button that already knows how to hide itself when nothing is ready needs no outer
+gate on top of its own.
+
 A default is shown as a choice among its alternatives, never as one card tinted among lookalikes. A
 segmented control with both options side by side says "there is another way"; two cards where one is
 preselected read as done, and people skip it (a real Split user did, and got the wrong output). When
@@ -82,6 +89,14 @@ Do not mix a setting into a row of commands: a switch among buttons reads as a b
 "·" between buttons; that is link grammar. Reset order, Add files and Clear all are buttons and look
 like buttons: bordered, no fill, one height (36px face, 44px hit area). Underline is for links that
 navigate.
+
+A quiet secondary link that only restates a control already visible one glance away is chrome, not a
+second entry point. Split's primary control once carried "or save each page as its own PDF" under it
+on the assumption the setting above might have scrolled out of view; once §15's stage actually kept
+the setting and the primary control in the same block, the line just repeated the segmented control
+sitting directly above it, and came out. Draw the adjacent-control check before adding a quiet link:
+if the thing it offers is already on screen right next to it, the link is dead weight, not a second
+chance to notice it.
 
 ## 5. Name the output, and let people rename it in place
 
@@ -189,7 +204,31 @@ the output is fully inside the viewport. Split's stage is the reference
 ([split-stage-spec.md](./split-stage-spec.md)); Merge's own tablet width still stacks and should
 move to the sheet.
 
-## Reviewing the next tool: questions to ask first
+## 16. A display-only transform never hides more than the untransformed state did
+
+Rotate is the clearest case, and it now exists in three tools (Merge, Edit Pages, Split), but the
+principle is general: any control that changes how a page *previews* - rotate, a zoom, a fit toggle -
+must never crop content the untransformed preview showed. A crop is a content decision the person
+makes on purpose (Edit Pages' trim, Redact's mark); a rotate button is not one, and a person who taps
+it has not asked to also lose part of the page.
+
+Split's rotate shipped this exact bug and a real user hit it on the first try: a rotated ID scan's own
+photo went missing, because the thumbnail's crop rule (`object-fit: cover`, tuned for the unrotated
+aspect) was still active on the rotated, box-swapped preview, and cropped a thin sliver instead of the
+whole page. The fix is `object-fit: contain` for the transformed state - letterboxed but complete beats
+edge-to-edge and missing the one thing (a photo, a signature, a stamp) the person opened the tool to
+check. Verify with a fixture that has something in the region a naive crop would take first, not a
+fixture where any crop looks fine (blank pages and centred content hide this bug completely; the
+regression here shipped past three centred-content unit tests and would have shipped past the whole
+Playwright suite too).
+
+A second, unrelated way the same feature breaks: a preview that resizes a box to compensate for the
+rotation (so the rotated footprint still fills its cell) is fragile inside a flex or grid container -
+the container's own default sizing (`flex-shrink: 1`, or a pre-existing `max-width: 100%` on the same
+element) can silently override the compensating size before the rotation ever runs, on one axis but
+not the other, which is easy to miss because it looks like a small cosmetic gap rather than a wrong
+number. Measure the rotated box's own `getBoundingClientRect()` against its container's, not just a
+screenshot - the crop bug above hides inside a rect that measures perfectly.
 
 1. What is the output, and is it the centre of the loaded state?
 2. What is the shortest path for the common case, and does any step exist only to make a button
@@ -205,3 +244,5 @@ move to the sheet.
 10. What does the person do next, and does the done state say so?
 11. If a setting changes the shape of the output, does the canvas change shape with it, and can the
     person reach the setting without scrolling away from the canvas?
+12. Does any preview transform (rotate, zoom, fit) crop more of the page than the untransformed
+    preview did, checked with a fixture that has real content near an edge, not a blank or centred one?
