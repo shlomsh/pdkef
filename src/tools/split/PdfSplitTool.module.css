@@ -162,6 +162,13 @@
 .cell-thumb-img {
   width: 100%;
   height: 100%;
+  /* .cell-thumb is a flex container, and a flex item shrinks by default
+     (flex-shrink: 1) to fit the main axis - which silently squeezed the
+     rotated state's widened box (133.333%) back down to the container's own
+     width, while height (the cross axis, unaffected by shrink) applied as
+     specified. That mismatch cropped/shrank a rotated thumbnail instead of
+     filling the cell (Shlomi, manual QA on a real ID scan). */
+  flex-shrink: 0;
   object-fit: cover;
   object-position: top center;
   transition: transform 0.2s var(--ease-out);
