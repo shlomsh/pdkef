@@ -154,7 +154,7 @@ there first, then in its LOC ticket. [content-and-copy]
 ## CI guardrails (invariants are checks, not prose)
 
 `ci.yml` runs, in order: `check:backlog`, `check:guidance`, `test`, `typecheck`,
-`test:editor-dependency-directions`, `test:module-boundaries`, the single-owner box-resize grep,
+`test:editor-dependency-directions` (also the single-owner box-resize check), `test:module-boundaries`,
 `test:gesture-golden-rule`, `check-class-resolution`,
 `test:fonts`, `test:licenses`, `test:dependency-governance`, then `build`, `test:csp`, `test:seo`,
 `test:redirects`, `test:css`, `test:weight`, and Playwright. Ratchets (CSS duplication, dead bytes,

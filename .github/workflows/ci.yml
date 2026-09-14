@@ -129,6 +129,10 @@ jobs:
     - name: Typecheck
       run: npm run typecheck
 
+    # Also covers the box-resize single-owner rule (exactly one file under
+    # src/ may mention maxWidthFromRightGrowth/maxHeightFromBottomGrowth),
+    # folded in under DEBT-12 from its own `git grep` step here so it also
+    # runs in check:fast, not only in CI.
     - name: Verify editor dependency directions
       run: npm run test:editor-dependency-directions
 
@@ -137,9 +141,6 @@ jobs:
     # explicit, shrink-only allowlist of today's violations.
     - name: Verify module boundaries
       run: npm run test:module-boundaries
-
-    - name: Verify shared box-resize owner
-      run: test "$(git grep -l "maxWidthFromRightGrowth\|maxHeightFromBottomGrowth" -- 'src/**' | wc -l | tr -d ' ')" = 1
 
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
