@@ -41,6 +41,31 @@ const FONT_GUARDS = [
   '**/sign/language-acceptance.spec.js',
 ];
 
+// CI splits the guards in two (QUAL-06), because `--shard` divides by test
+// COUNT and the guards differ 30x in size: gurmukhi-tiro-shaping-guard alone
+// is 36.1s, a Latin guard 1s. A count-based `--shard=1/2` measured 64% of the
+// guard time in shard 1 against 36% in shard 2, over the ticket's 60%
+// threshold, so the split is by hand instead. This is the seven heaviest
+// specs by measured time (gurmukhi-tiro-shaping-guard 36.1s,
+// malayalam-shaping-guard 26.1s, malayalam-gayathri-shaping-guard 25.0s,
+// telugu-suranna-shaping-guard 24.6s, bengali-shaping-guard 23.7s,
+// arabic-shaping-guard 22.3s, export-render-guard 17.7s: 175.5s), leaving the
+// other 20 files at 173s. `fonts-shard-2` below is the COMPLEMENT of this
+// list over FONT_GUARDS, not a second hand-picked list, so a new guard spec
+// always lands in shard 2 even if nobody touches this file, and a mislisted
+// or renamed entry here only unbalances the two shards, never drops a spec
+// from either. Keep the export render guard in shard 1: its manual baseline
+// recapture step in ci.yml only runs there.
+const FONT_GUARDS_SHARD_1 = [
+  '**/sign/gurmukhi-tiro-shaping-guard.spec.js',
+  '**/sign/malayalam-shaping-guard.spec.js',
+  '**/sign/malayalam-gayathri-shaping-guard.spec.js',
+  '**/sign/telugu-suranna-shaping-guard.spec.js',
+  '**/sign/bengali-shaping-guard.spec.js',
+  '**/sign/arabic-shaping-guard.spec.js',
+  '**/sign/export-render-guard.spec.js',
+];
+
 // The specs that assert a wall-clock budget (Download ready under 1.6s,
 // thumbnails within 2.5s, the compress preview under 8s at 4x CPU throttle).
 // A budget measured while another worker is burning the same CPUs is noise:
@@ -124,6 +149,20 @@ export default defineConfig({
     {
       name: 'fonts',
       testMatch: FONT_GUARDS,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // The two CI shards (QUAL-06). `fonts` above is untouched and stays what
+    // a local run and `npm run test:e2e:fonts` use; these two only exist for
+    // ci.yml's font-guards matrix.
+    {
+      name: 'fonts-shard-1',
+      testMatch: FONT_GUARDS_SHARD_1,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'fonts-shard-2',
+      testMatch: FONT_GUARDS,
+      testIgnore: [...BASE_IGNORE, ...FONT_GUARDS_SHARD_1],
       use: { ...devices['Desktop Chrome'] },
     },
     {

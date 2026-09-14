@@ -37,7 +37,7 @@ on:
 # per-tool gating ARCH-20 plans. Each shard pays the fixed cost (npm ci,
 # build, browser install) again, which is the trade the ticket accepts.
 #
-# ARCH-20 (2026-09-14): `checks`, each `e2e` shard and `font-guards` narrow
+# ARCH-20 (2026-09-14): `checks`, each `e2e` shard and each `font-guards` shard narrow
 # their own unit/e2e work to what a real Nx project graph (one project per
 # src/shell, src/editor, src/editor-ui, src/lib, src/tools/<tool>/, the site,
 # public/fonts and the e2e trees - see nx.json and the project.json files)
@@ -285,9 +285,9 @@ jobs:
   #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
-  # so `checks`, each `e2e` shard and `font-guards` can each run their own
-  # `scripts/affected-scope.mjs` (which needs `node_modules` for `nx`, hence
-  # cannot live here) against the same diff.
+  # so `checks`, each `e2e` shard and each `font-guards` shard can each run
+  # their own `scripts/affected-scope.mjs` (which needs `node_modules` for
+  # `nx`, hence cannot live here) against the same diff.
   scope:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'pull_request'
@@ -334,10 +334,20 @@ jobs:
   # affected; on the nightly schedule and a manual dispatch (no `scope` job,
   # no base - the baseline recapture needs this) affected-scope.mjs's own
   # fail-open rule makes fonts=true, so those still run.
+  #
+  # QUAL-06 (2026-09-14): matrixed into two shards balanced by measured time
+  # in playwright.config.js (`fonts-shard-1`/`fonts-shard-2`), because on
+  # every run where the guards ran this job was the long pole (144-251s
+  # against 135-180s for the `e2e` shards). Both shards compute the same
+  # `fonts` verdict from affected-scope.mjs and skip together.
   font-guards:
     runs-on: ubuntu-latest
     needs: scope
     if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
 
     steps:
     - uses: actions/checkout@v5
@@ -384,9 +394,9 @@ jobs:
       if: steps.affected.outputs.fonts != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
       run: npx playwright install-deps chromium
 
-    - name: Run Playwright e2e tests (font guards)
+    - name: Run Playwright e2e tests (font guards, shard ${{ matrix.shard }}/2)
       if: steps.affected.outputs.fonts != 'false'
-      run: npx playwright test --project=fonts
+      run: npx playwright test --project=fonts-shard-${{ matrix.shard }}
 
     # Prints the recaptured baseline rather than committing it. Review the
     # decoded file before it lands: a baseline change is a change to what users
@@ -395,7 +405,7 @@ jobs:
       # always(), because a step's `if` otherwise still implies success() and
       # the e2e step above is exactly the one expected to be red when a
       # baseline needs recapturing.
-      if: ${{ always() && inputs.update-export-render-baseline }}
+      if: ${{ always() && inputs.update-export-render-baseline && matrix.shard == 1 }}
       env:
         UPDATE_EXPORT_RENDER_BASELINE: '1'
       run: |
@@ -408,7 +418,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v5
       with:
-        name: playwright-artifacts-fonts
+        name: playwright-artifacts-fonts-shard-${{ matrix.shard }}
         path: |
           playwright-report/
           test-results/
