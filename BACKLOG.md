@@ -335,7 +335,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| DEBT-05 | P2 | [DEBT-05](backlog/tasks/DEBT-05.md) · Tests for scripts/ leave src/lib/, and site-only helpers get a home that is not the shared lib |
 | DEBT-07 | P2 | [DEBT-07](backlog/tasks/DEBT-07.md) · editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers |
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
@@ -357,6 +356,7 @@ _None._
 | DEBT-02 | P1 | [DEBT-02](backlog/tasks/DEBT-02.md) · The boundary checker scans test files: a test outside src/test/cross-tool/ may not import a tool it does not belong to |
 | DEBT-03 | P1 | [DEBT-03](backlog/tasks/DEBT-03.md) · change-scope.mjs diffs with --no-renames so a moved file's old owner is affected too |
 | DEBT-04 | P1 | [DEBT-04](backlog/tasks/DEBT-04.md) · Move draft persistence, the pdf.js render context and the Sign/Redact-only hooks to the folders that own them |
+| DEBT-05 | P2 | [DEBT-05](backlog/tasks/DEBT-05.md) · Tests for scripts/ leave src/lib/, and site-only helpers get a home that is not the shared lib |
 | DEBT-06 | P1 | [DEBT-06](backlog/tasks/DEBT-06.md) · editor-ui leaves CORE_PROJECTS: the first change whose affected set the Nx graph decides |
 | DEBT-08 | P2 | [DEBT-08](backlog/tasks/DEBT-08.md) · Data attributes replace the text-element class-name registry |
 | DEBT-09 | P2 | [DEBT-09](backlog/tasks/DEBT-09.md) · The renderer registry becomes a factory the tool calls, and Redact's restore admits only Redact's element types |
