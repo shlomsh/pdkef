@@ -1,7 +1,7 @@
 ---
 id: "QUAL-09"
 title: "A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "module-boundaries"
 phase: "quick-win"
