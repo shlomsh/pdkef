@@ -37,12 +37,21 @@
 //      `components` - and `HeroDemo/` remain) must never import a tool.
 //      There is no longer a transitional allowance the other way: rule 1
 //      already covers a tool importing `components`, which is not permitted.
+//   6. A test file (anything matching TEST_FILE, below) under `shell`,
+//      `editor-ui`, `editor` or `lib`, or under one tool's own
+//      `src/tools/<name>/` folder, may not import another tool's files: a
+//      core test importing any tool, or a `tool:<a>` test importing
+//      `tool:<b>`. `src/test/` (including `src/test/cross-tool/`, built for
+//      exactly this) is exempt - a test placed there classifies as
+//      `test-support`, not a core module or a tool, so this rule never
+//      reaches it. Unlike rules 1-5, there is no allowlist for rule 6: it
+//      must hold with zero violations, not ratchet down from today's count.
 //
-// Anything not covered by these five rules is not checked here (test
-// infrastructure under src/test/ gets one narrower rule of its own, below,
-// because it is not part of the target layout docs/module-boundaries.md
-// describes); this file is deliberately narrower than a full
-// dependency-cruiser config.
+// Anything not covered by these six rules is not checked here (test
+// infrastructure under src/test/ importing a tool gets one narrower rule of
+// its own, below, because it is not part of the target layout
+// docs/module-boundaries.md describes); this file is deliberately narrower
+// than a full dependency-cruiser config.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,7 +85,12 @@ const MODULE_PREFIXES = [
   // to build its harness, but never a tool - a helper reaching into one
   // tool's internals is the same laundering hazard a `null`/unclassified
   // module used to hide. src/test/**/*.test.js (the repo-wide guards) are
-  // test files themselves, already excluded from the scan by TEST_FILE.
+  // test files themselves, excluded from this main edge scan by TEST_FILE -
+  // that exclusion is only true of this pass, though: rule 6's separate
+  // testImportViolations() pass scans test files directly, and classifies
+  // everything under src/test/ (cross-tool/ included) as `test-support` too,
+  // which is why that folder is exempt from rule 6 rather than needing a
+  // special case for it.
   ['src/test/', () => 'test-support'],
 ];
 
@@ -141,15 +155,71 @@ export function ruleViolation(fromModule, toModule, toRelPath) {
   return null;
 }
 
+// Rule 6: a test file may not launder a cross-tool import a real (non-test)
+// file at the same location would be forbidden from making. Pure decision
+// logic only, so it is unit-testable without walking the tree; the pass
+// that calls it (testImportViolations(), below buildEdges()) supplies the
+// two resolved relative paths. Both `shell`/`editor-ui`/`editor`/`lib` tests
+// and a tool's own tests are covered by the same two checks; `src/test/`
+// (cross-tool/ included) is exempt implicitly, because classify() puts it
+// in `test-support`, neither a core module nor a tool.
+export function testImportViolation(fromRelPath, toRelPath) {
+  const fromModule = classify(fromRelPath);
+  const toModule = classify(toRelPath);
+  if (!fromModule || !toModule || fromModule === toModule) return null;
+  if (CORE_MODULES.has(fromModule) && isTool(toModule)) {
+    return `a test under ${fromModule} may not import a tool`;
+  }
+  if (isTool(fromModule) && isTool(toModule)) {
+    return `a ${fromModule} test may not import another tool`;
+  }
+  return null;
+}
+
+// Rule 6's own pass: same file walk and import-specifier scan buildEdges()
+// (below) uses, over test files instead of the rest of src/, checked against
+// testImportViolation() instead of ruleViolation(). No allowlist - this must
+// be green with zero entries. Placed here (function declarations are
+// hoisted, so the forward references to collectSourceFiles/importSpecifiers/
+// resolveRelativeImport/relOf/edgeKey below are fine) rather than at the end
+// of the file, so a sibling change adding a further rule does not collide
+// with this one on the same lines.
+export function testImportViolations() {
+  const files = collectSourceFiles(SRC, [], { testFiles: true });
+  const seen = new Set();
+  const violations = [];
+  for (const file of files) {
+    const from = relOf(file);
+    const source = fs.readFileSync(file, 'utf8');
+    for (const specifier of importSpecifiers(source)) {
+      if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
+      const resolved = resolveRelativeImport(file, specifier);
+      if (!resolved) continue;
+      const to = relOf(resolved);
+      if (to === from) continue;
+      const key = edgeKey(from, to);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const reason = testImportViolation(from, to);
+      if (reason) violations.push({ from, to, fromModule: classify(from), toModule: classify(to), reason });
+    }
+  }
+  return violations;
+}
+
 // --- import graph: relative-only, mirrors check-editor-dependency-directions.mjs ---
 // Exported (with importSpecifiers and IMPORT_PATTERN) so
 // src/test/moduleBoundariesImportScan.test.js can diff this scan against a real
 // TypeScript AST parse of the same files; main() only runs from the CLI.
-export function collectSourceFiles(dir, out = []) {
+// `testFiles: true` inverts the TEST_FILE filter to collect only test files
+// (rule 6's subject) instead of the default of everything but test files
+// (every other rule's subject); same walker, same extension list, no second
+// directory walk.
+export function collectSourceFiles(dir, out = [], { testFiles = false } = {}) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) collectSourceFiles(full, out);
-    else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name)) && !TEST_FILE.test(entry.name)) out.push(full);
+    if (entry.isDirectory()) collectSourceFiles(full, out, { testFiles });
+    else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name)) && TEST_FILE.test(entry.name) === testFiles) out.push(full);
   }
   return out;
 }
@@ -254,7 +324,9 @@ function main() {
   const unallowed = violations.filter((v) => !allowlistKeys.has(edgeKey(v.from, v.to)));
   const stale = allowlist.filter((entry) => !violationKeys.has(edgeKey(entry.from, entry.to)));
 
-  if (unallowed.length > 0 || stale.length > 0) {
+  const testViolations = testImportViolations();
+
+  if (unallowed.length > 0 || stale.length > 0 || testViolations.length > 0) {
     console.error('Module boundary check failed:');
     if (unallowed.length > 0) {
       console.error('\nNew violations (not on the allowlist):');
@@ -264,13 +336,19 @@ function main() {
       console.error('\nStale allowlist entries (no longer violate; remove them from scripts/module-boundaries-allowlist.json):');
       for (const entry of stale) console.error(`  ${entry.from} -> ${entry.to}`);
     }
+    if (testViolations.length > 0) {
+      console.error('\nTest files crossing a tool boundary (rule 6, no allowlist):');
+      for (const v of testViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
+    }
     process.exitCode = 1;
     return;
   }
 
+  const testFileCount = collectSourceFiles(SRC, [], { testFiles: true }).length;
   console.log(
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
-    + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new).`,
+    + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
+    + `${testFileCount} test files scanned for rule 6, 0 violations.`,
   );
 }
 

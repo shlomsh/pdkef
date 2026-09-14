@@ -53,8 +53,15 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
    where the future `shell` and `editor-ui` still live" - retired the moment ARCH-16 gave `shell`
    and `editor-ui` their own folders; rule 1's list is exhaustive and does not include `components`,
    so a tool importing it is now a violation like any other not on that list.
+6. **A test file may not launder a cross-tool import a real edge in the same location would be
+   forbidden from making** (DEBT-02, out of the 2026-09-14 architecture-debt review): a test under
+   `shell`, `editor-ui`, `editor` or `lib`, or under one tool's own `src/tools/<name>/` folder, may
+   not import another tool's files. `src/test/` (including `src/test/cross-tool/`, the placement
+   `docs/nx-affected-ci.md` already asked for) is exempt: a test placed there classifies as
+   `test-support`, neither a core module nor a tool, so the rule never reaches it. Unlike rules 1-5,
+   rule 6 carries no allowlist - it holds at zero violations, not a ratchet down from today's count.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these five rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these six rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
 never "teach the script a new rule."
