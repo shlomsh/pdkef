@@ -11,7 +11,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { describeFile } from '../../lib/format.js';
-import { getPdfRenderContext } from '../../editor/adapters/pdf/renderContext.js';
+import { getPdfRenderContext } from '../../lib/pdfRender.js';
 
 let pdfjsLib: any;
 async function getPdfjs() {

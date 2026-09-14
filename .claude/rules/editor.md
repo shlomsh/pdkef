@@ -149,13 +149,14 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 ## pdf.js render direction
 
 Every pdf.js render site takes its context from `getPdfRenderContext`
-(`src/editor/adapters/pdf/renderContext.js`), which forces `ltr`. pdf.js paints each glyph with its
-own `fillText` at `textAlign: start` and never sets `direction`, so under `dir="rtl"` every glyph
-(Hebrew and Latin alike) lands shifted by its own advance: `/he/sign/` tore "כרטיס עובד" into
-"כרט ס ע בד". A detached canvas inherits the document root's direction, so thumbnails, compress,
-to-image and redact flatten were exposed too. Guards: `renderContext.test.js` scans for a render call
-that bypasses it; `e2e/localized/pdf-render-direction.spec.js` requires both editions to paint the
-same bitmap.
+(`src/lib/pdfRender.js`, moved out of the editor under DEBT-04 since compress, split, to-image,
+editor-ui and `lib/thumbnails.js` were already its majority consumers), which forces `ltr`. pdf.js
+paints each glyph with its own `fillText` at `textAlign: start` and never sets `direction`, so under
+`dir="rtl"` every glyph (Hebrew and Latin alike) lands shifted by its own advance: `/he/sign/` tore
+"כרטיס עובד" into "כרט ס ע בד". A detached canvas inherits the document root's direction, so
+thumbnails, compress, to-image and redact flatten were exposed too. Guards: `pdfRender.test.js` scans
+for a render call that bypasses it; `e2e/localized/pdf-render-direction.spec.js` requires both
+editions to paint the same bitmap.
 
 ## Draft persistence (flagship, on-device)
 

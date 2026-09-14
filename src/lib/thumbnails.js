@@ -5,7 +5,7 @@
 // content-hashes the worker as a same-origin asset automatically, so it's
 // never fetched from a CDN - required for both offline support and the
 // no-third-party-network privacy guarantee.
-import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+import { getPdfRenderContext } from './pdfRender.js';
 
 let pdfjsLib;
 

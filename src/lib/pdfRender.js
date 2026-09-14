@@ -15,7 +15,7 @@
  * Forcing `ltr` here is correct for every PDF: glyph positions in a content
  * stream are already absolute, whatever script the text is in.
  *
- * `renderContext.test.js` fails if any pdf.js render call site reaches
+ * `pdfRender.test.js` fails if any pdf.js render call site reaches
  * `getContext('2d')` some other way.
  */
 export function getPdfRenderContext(canvas, options) {

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
-import { getPdfRenderContext } from '../editor/adapters/pdf/renderContext.js';
+import { getPdfRenderContext } from '../lib/pdfRender.js';
 import workspaceStyles from './Workspace.module.css';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints

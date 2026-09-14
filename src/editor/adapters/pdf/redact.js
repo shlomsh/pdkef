@@ -1,6 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './pdfjsLoader.js';
-import { getPdfRenderContext } from './renderContext.js';
+import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import { getElementDefinition } from '../../registry/index.ts';
 
 /**
