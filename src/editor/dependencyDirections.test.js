@@ -55,4 +55,11 @@ describe('editor dependency-direction guard', () => {
     expect(result.stderr).toContain('src/editor/adapters/pdf/illegal.ts -> src/editor-ui/ColorPicker.tsx');
     expect(result.stderr).toContain('PDF adapters are one-way');
   });
+
+  it('rejects a second file mentioning the box-resize single-owner names, comment mention included', () => {
+    const result = runFixture('negative-single-owner');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('exactly one file under src/ may mention');
+    expect(result.stderr).toContain('found 2');
+  });
 });

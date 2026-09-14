@@ -40,8 +40,10 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
   point, and the returned map throws by type name for any registerable type whose component was not
   supplied. `registry/text.ts`'s resize paint finds the text node's parts by `data-text-part`
   attribute, so the core needs no class names from the tool at all.
-- Anchor-preserving box resize has exactly one owner, `registry/boxResize.ts`; CI greps that the
-  `maxWidthFromRightGrowth`/`maxHeightFromBottomGrowth` names exist in one file.
+- Anchor-preserving box resize has exactly one owner, `registry/boxResize.ts`;
+  `check-editor-dependency-directions.mjs` fails if the `maxWidthFromRightGrowth`/
+  `maxHeightFromBottomGrowth` names turn up in a second file (`check:fast`, not only CI, since DEBT-12
+  moved this off a standalone `ci.yml` grep step).
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
   `global.css` at zero editor selectors.
 - Warnings you may find in old tickets about "the branch broke the PDF math" or per-frame `onChange`

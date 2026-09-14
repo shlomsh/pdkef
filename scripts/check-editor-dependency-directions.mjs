@@ -18,6 +18,9 @@ const DEFAULT_ROOT = path.resolve(__dirname, '..');
 // the JSDoc paths were fixed at the source and resolveRelativeImport strips a
 // trailing `?query` the same way check-module-boundaries.mjs's own resolver
 // does. layerFor, resolution and the rule matrix below stay this file's own.
+// DEBT-12 also moved the box-resize single-owner check here from a `git grep`
+// step in ci.yml's checks job (see singleOwnerViolation() below), so it now
+// runs in check:fast too, not only in CI.
 const PDF_PACKAGES = new Set(['@cantoo/pdf-lib', '@pdf-lib/fontkit', 'pdfjs-dist']);
 
 // These are seams, not broad layer permissions. Keeping them explicit makes a
@@ -209,11 +212,42 @@ function violationFor({ from, target, specifier }) {
   return null;
 }
 
+// Anchor-preserving box resize has exactly one owner, registry/boxResize.ts
+// (docs/module-boundaries.md, .claude/rules/editor.md). This used to be a
+// `git grep -l ... | wc -l` step in ci.yml's checks job, absent from
+// check:fast; DEBT-12 moved it here so it runs in the fast loop too. It is a
+// plain text scan, not an import-graph edge, over the same file set the rest
+// of this guard already collects (both collectSourceFiles() passes, so a test
+// file mentioning the names counts exactly like the original grep counted
+// one) - a second file only *mentioning* either name, comment included, is
+// exactly what git grep -l would have flagged too.
+const SINGLE_OWNER_NAMES = ['maxWidthFromRightGrowth', 'maxHeightFromBottomGrowth'];
+const SINGLE_OWNER_PATTERN = new RegExp(SINGLE_OWNER_NAMES.join('|'));
+
+function singleOwnerViolation(sourceRoot, projectRoot) {
+  const files = [
+    ...collectSourceFiles(sourceRoot),
+    ...collectSourceFiles(sourceRoot, [], { testFiles: true }),
+  ];
+  const owners = files
+    .filter((file) => SINGLE_OWNER_PATTERN.test(fs.readFileSync(file, 'utf8')))
+    .map((file) => path.relative(projectRoot, file).split(path.sep).join('/'));
+  if (owners.length === 1) return null;
+  return {
+    from: owners.join(', ') || '(no file mentions them)',
+    specifier: SINGLE_OWNER_NAMES.join('/'),
+    reason: `exactly one file under src/ may mention ${SINGLE_OWNER_NAMES.join(' or ')}, found ${owners.length}`,
+  };
+}
+
 function checkProject(projectRoot) {
   const sourceRoot = path.join(projectRoot, 'src');
   if (!fs.existsSync(sourceRoot)) throw new Error(`Missing source directory: ${sourceRoot}`);
   const violations = [];
   const edges = [];
+
+  const singleOwnerReason = singleOwnerViolation(sourceRoot, projectRoot);
+  if (singleOwnerReason) violations.push(singleOwnerReason);
 
   for (const file of collectSourceFiles(sourceRoot)) {
     const source = fs.readFileSync(file, 'utf8');
