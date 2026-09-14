@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,8 +23,11 @@ const distDir = path.join(__dirname, '..', 'dist');
  *
  * So this script reports three numbers instead:
  *
- *   1. Duplication factor - rule bytes shipped across all pages / distinct rule
- *      bytes. 1.0 would mean every page carries only its own CSS.
+ *   1. Family duplication - pages are grouped into families by the hash of their
+ *      largest <style> block (their inlined page-family entry sheet), and this is
+ *      the HEAVIEST family's mean shipped bytes per page / distinct rule bytes
+ *      (see MAX_FAMILY_DUPLICATION below for why it's a max, not a site-wide sum
+ *      or mean).
  *   2. Per-page dead bytes - rules whose selectors mention no class present in that
  *      page's own HTML. Exact for the utility layer, see the caveat below.
  *   3. Single-page utility count - utility classes used by exactly one built page.
@@ -75,215 +79,53 @@ const distDir = path.join(__dirname, '..', 'dist');
  * declarations or frame selectors, not rules).
  */
 
-// Ratchets, set just above the values measured on main (2026-08-14, after E3.5/E3.6
-// promoted --shadow-xs/sm/md/lg and --ease-out/emphasized/spring into @theme and
-// consolidated the transition-[...] long tail to four canonical property lists):
-// duplication 6.78x, worst page 28,019 dead bytes (/licenses/, still ~94% of its
-// class-bearing CSS - that page's ratio is dominated by content, not the
-// shadow/ease/transition cleanup), 144 single-page utilities. Lower these further
-// when work lands that improves a number; never raise one without saying which
-// page got worse and why that is acceptable.
+// DEBT-12 (2026-09-15): the duplication ratchet is the share of the site's
+// distinct CSS that the HEAVIEST page family ships per page. Families are the
+// pages that inline the same entry sheet (src/styles/, one per family per
+// styling.md), detected by hashing each page's largest <style> block rather
+// than a hand-maintained map, so a page can't drift out of the map that names
+// it. The number is max over families of (family mean shipped bytes per page /
+// distinct rule bytes) - MAX_FAMILY_DUPLICATION.
 //
-// Duplication factor was raised again (6.95x -> 9.85x) when the Launch/SEO
-// backlog item landed 8 new static content pages (3 long-tail landing pages, 1
-// Redact landing page, 4 OS how-to guides - see TODO.md). This is the one ratchet
-// here that scales with page *count*, not CSS quality: `inlineStylesheets:
-// 'always'` bakes the whole shared utility stylesheet into every page, so the
-// numerator (bytes shipped, summed across all pages) grows with each new page
-// almost regardless of how disciplined that page's markup is, while the
-// denominator (distinct rule bytes site-wide) barely moves if the new pages reuse
-// the existing utility vocabulary. That's exactly what happened: adding 8 pages
-// (12 -> 20) moved distinct bytes by +455 (102,913 -> 103,368) while shipped bytes
-// rose with page count (697,512 -> 1,014,340), pushing the factor from 6.78x to
-// 9.81x. The other two ratchets below are unaffected by page count and both
-// stayed inside their limits without being touched, which is the signal that this
-// was page growth, not new duplication.
+// It replaced MAX_DUPLICATION_FACTOR (total shipped / distinct), which summed
+// across all pages and so grew whenever a page shipped, regardless of that
+// page's own CSS discipline; it was raised three times in five weeks
+// (6.78x -> 9.92x), the opposite of a ratchet that "only ever goes down"
+// (CLAUDE.md). A site-wide mean per page was tried first and rejected the
+// same day: one below-average page moved it -0.96%, and a heavy localized
+// tool edition would have moved it +4.4% against ~2.4% of headroom. A sum
+// over families was tried next and rejected too: every tool page is its own
+// family (each island's CSS Modules differ), so the first new tool or
+// localized tool edition would have added a term and forced a raise. The max
+// has neither problem: a page joining an existing family moves that family's
+// mean by bytes, a new family lighter than the heaviest changes nothing, and
+// the number goes up only when the heaviest family's sheet grows (or a new
+// family ships more CSS per page than any existing one, which is a nameable
+// event), and down when that sheet is narrowed. Lighter families growing
+// unnoticed is what the per-page dead-bytes and single-page-utility ratchets
+// below are for.
 //
-// THE OBVIOUS FIX WAS MEASURED AND REJECTED (2026-08-20). Since this factor is
-// largely a consequence of `build.inlineStylesheets: 'always'`, the tempting move
-// is to flip that to 'auto' and watch the number collapse. It does collapse, to
-// 1.72x, but only because this script reads inline <style> and nothing else: with
-// the CSS in <link> tags it measures ~34KB of leftovers instead of the ~1.05MB
-// actually shipped, per-page dead bytes read 0, and single-page utilities read 0.
-// All three ratchets would flatline and never fire again. The number would look
-// like a win and would in fact be a blind guard.
+// Measured on the 41-page tree, 15 families (one content family with 21
+// members; a compress/compress-image pair; the three Hebrew tool pages, which
+// share one bundle and are the heaviest; the two home editions; the three
+// trust pages; ten single-page families): heaviest /he/compress/ at
+// 126,153 mean shipped bytes/page over 196,732 distinct = 0.6412x (see
+// `node scripts/check-css-duplication.js` for the live per-family table). A
+// throwaway content page (a copy of how-to-sign-a-pdf-on-mac.yaml, registered
+// in contentPages.js, built, then deleted) joined the 21-member content
+// family and moved the old total/distinct factor 9.2137x -> 9.3481x (+1.46%),
+// the content family's own mean by three bytes, and this number by 0.
 //
-// The config itself also lost on its own merits, so there is no quiet win waiting
-// here: an external stylesheet is render-blocking and discovered only after the
-// document parses, and Astro emits no preload for it, so 'auto' costs one extra
-// serialized round trip and is worse on first-view bytes too (/sign/: 43,097 vs
-// 41,723 brotli). Full numbers and the multi-page and precache analysis are in the
-// comment on `inlineStylesheets` in astro.config.mjs. Read that before touching
-// this constant for that reason.
+// Two facts about how distinct rule bytes get computed, unrelated to page
+// count but still true: `.github/skills/`'s rule tables are excluded from
+// Tailwind's scan by an `@source not` rule in global.css, so they cannot
+// inflate this number with classes no page uses. Tailwind's `/*! tailwindcss
+// ... */` banner comment sits glued to `@layer properties`'s prelude, which
+// is why `stripComments()` exists below - without it the whole properties
+// layer parses as one dead leaf rule.
 //
-// So this ratchet stays what it is: a page-count-sensitive number that is useful
-// for catching a jump between builds at a FIXED page count, and that must be
-// re-based (saying so, as above) whenever pages are added. It is not a measure of
-// style quality on its own; MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES
-// below are the two here that are page-count-invariant and do measure that.
-//
-// Lowered again (9.85x -> 9.15x) on 2026-08-27 after the 38 @font-face rules
-// (5,374 bytes) in global.css moved to src/styles/editorFonts.css, imported
-// only from sign.astro. Six of those rules had just been added (Almarai, for
-// Dari/Farsi) and pushed the previously-passing 9.85x limit to 9.88x - global
-// rules are shared-stylesheet bytes multiplied by all 20 pages same as any
-// other rule, and these were only ever needed on /sign/. Measured after the
-// move: 9.10x (998,544 bytes shipped / 109,671 bytes distinct, page count
-// unchanged at 20), so the limit is set just above that at 9.15x. Distinct
-// bytes did not change (109,671 -> 109,671): moving a rule to a different
-// file doesn't touch how many distinct bytes exist site-wide, only how many
-// pages pay for it. MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES are
-// unmoved: @font-face rules have no class selector, so they were never
-// counted in either metric (measured identical before/after: 28,513 /
-// 131) and this change has nothing to say about them.
-//
-// Re-based (9.15x -> 9.35x) on 2026-08-28 after adding /offline-pdf-form-filler/
-// (20 -> 21 pages). The new page reuses only existing
-// block kinds (prose/steps/columns) and existing icons, so distinct rule bytes
-// were unchanged by the move (112,846 -> 112,846, confirmed by building with and
-// without the new page's registry entry) - this is page-count growth exactly as
-// described above, not new duplication. Measured at 21 pages: 9.32x (1,051,540
-// bytes shipped / 112,846 bytes distinct), so the limit is set just above that
-// at 9.35x. MAX_PAGE_DEAD_BYTES and MAX_SINGLE_PAGE_UTILITIES are unaffected by
-// this page (still 29,021 / 135 with or without it) - see the note where this
-// script is invoked from CI (documented in .claude/rules/styling.md) for the pre-existing 29,021 vs 29,000
-// /licenses/ failure, which predates and is unrelated to this page.
-//
-// Re-based again (9.35x -> 9.60x) on 2026-08-29, and measured on a tree with the
-// documentation-localization work in flight (22 pages: the Hebrew locale tree,
-// /blur-vs-blackout-vs-delete-pdf/ and the Documentation* components). Distinct
-// rule bytes moved 112,846 -> 117,003 with the new components, and shipped bytes
-// 1,051,540 -> 1,115,060 with the page. Measured 9.53x, limit set just above at
-// 9.60x. This is page-count growth as described above, not new duplication: the
-// two page-count-invariant ratchets both IMPROVED in the same build (dead bytes
-// 29,021 -> 26,635, single-page utilities 135 -> 136 against a limit of 148).
-// Re-check this once the localization work settles - it was measured mid-flight
-// and the page count is still moving.
-//
-// Lowered (9.60x -> 7.00x) on 2026-09-04 by ARCH-13, which changed the
-// delivery model rather than the number. The utilities layer used to be one
-// repo-wide compilation that `inlineStylesheets: 'always'` baked into all 22
-// pages: 28,656 identical bytes per page, of which /licenses/ used ~2,300.
-// There are now five entry sheets in src/styles/, one per page family (home,
-// tool, content, licenses, 404), each compiling `source(none)` plus an explicit
-// @source list, so a page carries only utilities its own family can render.
-// Measured across the change, page count unchanged at 22:
-//   duplication      8.39x  -> 5.79x
-//   worst page dead  27,308 -> 7,567   (/licenses/ -> /split/)
-//   shipped bytes    1,162,043 -> 813,201
-//   distinct bytes   138,434 -> 140,435
-// Distinct rose by 2,001 because the same rule text is now generated into more
-// than one entry sheet with slightly different context, and because @theme is
-// `static` (see global.css). That is the denominator getting slightly *worse*
-// while the factor still fell by a third, which is the shape of a real
-// reduction in what each page ships rather than a re-measurement.
-//
-// The limit is set at 7.00x, ~17% above the measured 5.79x, deliberately not
-// at the bone: this ratchet still scales with page count (a new content page
-// adds ~20,000 shipped bytes against a barely-moving denominator, so roughly
-// +0.14x each), and ARCH-13 existed because the previous margin was thin
-// enough that an ordinary UI change tripped the gate. Re-base it when pages are
-// added, saying so, exactly as the entries above do.
-//
-// Re-based (7.00x -> 7.75x) on 2026-09-11 when LOC-02/LOC-03 published the
-// first localized tool pages (/he/merge/, /he/compress/, /he/sign/) and the
-// same day added /pdf-wont-compress-to-100kb/ and the agent-readiness trust
-// pages (23 -> 29 pages). Measured at 29 pages: 7.62x (1,226,740 bytes shipped
-// / 160,938 bytes distinct). Page-count growth as described above, not new
-// duplication: a localized tool page is the tool family's own entry sheet
-// rendered again with different text, so distinct bytes barely moved
-// (159,877 -> 160,938) while the two page-count-invariant ratchets both
-// improved in the same build (worst-page dead bytes 9,430 -> 9,367,
-// single-page utilities 124 -> 119). Expect roughly +0.14x per further
-// localized page; a whole nine-tool edition is ~+1.3x and will need its own
-// re-base when it lands.
-//
-// Re-based (7.75x -> 9.00x) on 2026-09-11 when LOC-05 published seven Hebrew
-// guides (29 -> 36 pages; /he/offline-pdf-form-filler/ held as draft because
-// its English is a redirect). Measured on main the same day, before the guides:
-// 7.63x, worst-page dead bytes 9,709, single-page utilities 114. With them:
-// 8.81x, 9,709, 114 - the two page-count-invariant ratchets did not move by a
-// byte, and distinct bytes are unchanged at 160,871, so this is the +0.14x per
-// added page predicted above (7 x 0.14 = 0.98; measured +1.18, the guides'
-// content-page sheet being a little heavier than a tool page's).
-//
-// Re-based (9.00x -> 9.20x) on 2026-09-12 when SEO-19 added the tenth tool
-// page, /compress-image/ (36 -> 37 pages). Measured immediately before this
-// page (built with its registry entry and page file removed): 8.82x
-// (1,419,225 bytes shipped / 160,998 bytes distinct), worst-page dead bytes
-// 9,709 (/split/), single-page utilities 114. With it: 9.17x (1,476,586 /
-// 161,062), worst-page dead bytes 9,717 (/compress-image/, still under the
-// 10,000 limit), single-page utilities 114 - unchanged, confirming page-count
-// growth rather than new duplication: the new page reuses PdfCompressTool's
-// existing target-size markup and CSS Modules classes almost entirely
-// (distinct bytes moved by only 64), and one whole tool-family page's worth
-// of that shared bundle (~24,461 bytes) is now shipped an 11th time. Limit
-// set just above the measured 9.17x.
-//
-// Re-based (9.20x -> 9.78x) on 2026-09-12 (LOC-09) when /he/ published as a
-// home edition on top of SEO-19's page (37 -> 38 pages). A page costs ~+0.14x
-// (see the notes above), so the two new pages alone put the floor near 9.2x (SEO-19 measured its
-// tool page at +0.35x, a tool-family sheet being heavier than a guide's);
-// the rest is real duplication neither ticket removed, and the number below
-// is measured, not measured-plus-headroom, on purpose: the next page family
-// or locale page has to narrow what a page carries (start with the ~6KB of
-// dead utilities every tool page ships, `/split/` first) rather than nudge
-// this.
-//
-// Measured on main (37 pages): 9.17x, worst-page dead bytes 9,717,
-// single-page utilities 114. On this branch (38 pages): 9.77x (1,563,759 bytes shipped / 160,118 bytes
-// distinct), 9,802 (/compress-image/), 32.
-//   - The chip unification moved every trust-chip rule out of AppBar.astro
-//     (inlined on every page) and out of HomePageLayout.astro's own copy into
-//     TrustChips.astro's scoped block, which Astro inlines only on the pages
-//     that render chips; the wrapper and the RTL flip stayed out of AppBar's
-//     utilities for the same reason (AppBar is @source'd by every family
-//     sheet). What is left over the page-count floor is the on-device badge's
-//     561-1023px sizing and success tint as utilities on every family, and the
-//     home tabs' logical `me-`/`border-s-` classes compiling beside the
-//     physical ones other home components still use.
-//   - Single-page utilities dropping from 114 looks like a win and is not one
-//     to bank: `/he/` renders the home family's utilities a second time, so
-//     what used to be unique to `/` is now on two pages. Same page-count
-//     artifact as the factor itself, read from the other end.
-// Re-based (9.78x -> 9.81x) on 2026-09-12 (SEO-31) when the "Photo and
-// signature size" content page gained a before/after figure
-// (CompareFigure.astro, a static split-image sibling of the Preact
-// CompareSlider component, same relationship ContentTable/CompareTable
-// already have to their own islands). Page count unchanged at 39 - the page
-// already existed - so this is a real new component's scoped <style>, not
-// page-count growth: it inlines into all twelve content pages the same way
-// CompareTable's own scoped block already does (see content-and-copy.md,
-// "One accepted cost"). Measured immediately before this change, on the same
-// tree (post SEO-32/LOC branch merge): 9.70x (1,591,251 bytes shipped /
-// 164,022 bytes distinct). With it: 9.8011x (1,625,014 / 165,799). Limit set
-// at the smallest two-decimal value that clears the measured figure: there
-// is no headroom to give away on a five-page-family split whose
-// distinct-byte cost (+1,777) already undercuts what it ships (+33,763), the
-// residue being paid by the eleven content pages that do not render this
-// figure.
-// Re-based (9.81x -> 9.97x) on 2026-09-12 (SEO-18) when the "Sign a PDF in
-// your own language" content page landed: page count 39 -> 40. Distinct bytes
-// did not move at all (165,744 before and after), worst-page dead bytes
-// (8,295) and single-page utilities (21) byte-identical, so this is the
-// thirteenth content page carrying the same inlined content-family sheet, not
-// new duplication: the page reuses only existing prose/table/checklist blocks
-// and existing icons. Measured on the same tree with LOC-05's CTA mark:
-// 9.80x (1,623,969 / 165,744) at 39 pages, 9.96x (1,651,513 / 165,744) at 40.
-// Limit at the smallest two-decimal value that clears the measured figure.
-// Lowered (9.97x -> 9.92x) on 2026-09-13 (LOC-15) while adding a page, the
-// Indonesian /id/kompres-pdf-di-bawah-1-mb/ (40 -> 41 pages), by paying for
-// it with the SEO-31 residue named above: CompareFigure.astro's CSS is now a
-// raw string emitted as <style is:inline> (with its CSP hash registered via
-// Astro.csp.insertStyleHash) only on the page that renders the figure,
-// instead of a scoped block Astro attached to every page importing
-// ContentPage.astro. Astro follows dynamic imports for CSS too, so a
-// conditional import alone changed nothing (measured: identical bytes).
-// Measured on the same tree: 9.94x (1,656,840 / 166,645) at 40 pages before,
-// 9.76x (1,623,856 / 166,379) at 40 after, 9.92x (1,649,819 / 166,379) at 41
-// with the new page. CompareTable's scoped block is the same leak (thirteen
-// content pages, four render a table) and the next narrowing.
-const MAX_DUPLICATION_FACTOR = 9.92;
+// Limit: the smallest two-decimal value above the measured 0.6412x.
+const MAX_FAMILY_DUPLICATION = 0.65;
 // Lowered (29,000 -> 27,500) on 2026-08-29 to bank most of two fixes that took
 // /licenses/ from 29,021 (red) to 26,635, neither of which was a style change:
 //   - 905 distinct bytes of utilities were being compiled out of the impeccable
@@ -510,12 +352,22 @@ for (const file of htmlFiles) {
     }
   }
 
-  let css = '';
-  for (const [, block] of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) css += block;
+  const styleBlocks = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+  const css = styleBlocks.join('');
   totalRawStyleBytes += Buffer.byteLength(css, 'utf8');
+
+  // Family detection (DEBT-12): the largest <style> block on a page is Astro's
+  // inlined page-family entry sheet (toolPage.css, contentPage.css, etc, see
+  // styling.md); a small second block seen on many pages is a trivial shared
+  // fragment, never the largest. Pages whose largest block is byte-identical
+  // share a family - hashed rather than compared by size so two same-sized but
+  // different sheets can't collide.
+  const largestBlock = styleBlocks.reduce((a, b) => (Buffer.byteLength(b, 'utf8') > Buffer.byteLength(a, 'utf8') ? b : a), '');
+  const familyHash = createHash('sha256').update(largestBlock, 'utf8').digest('hex').slice(0, 16);
 
   const page = {
     label,
+    familyHash,
     shippedBytes: 0,
     deadBytes: { utilities: 0, global: 0 },
     liveBytes: { utilities: 0, global: 0 },
@@ -573,7 +425,32 @@ for (const page of pages) {
 let distinctRuleBytes = 0;
 for (const bytes of distinctRules.values()) distinctRuleBytes += bytes;
 
-const duplicationFactor = totalShippedRuleBytes / distinctRuleBytes;
+// Group pages by familyHash (the hash of each page's largest <style> block, i.e.
+// its inlined page-family entry sheet - see where familyHash is computed above).
+// A family is named by its lexicographically smallest member label, so the name
+// is derived, not hand-maintained, and cannot drift out of sync with a rename.
+const familyGroups = new Map(); // familyHash -> page[]
+for (const page of pages) {
+  if (!familyGroups.has(page.familyHash)) familyGroups.set(page.familyHash, []);
+  familyGroups.get(page.familyHash).push(page);
+}
+const families = [...familyGroups.values()]
+  .map((members) => {
+    const totalShipped = members.reduce((sum, page) => sum + page.shippedBytes, 0);
+    const meanShippedBytesPerPage = totalShipped / members.length;
+    return {
+      name: members.map((page) => page.label).sort()[0],
+      pageCount: members.length,
+      meanShippedBytesPerPage,
+      shareOfDistinct: meanShippedBytesPerPage / distinctRuleBytes,
+    };
+  })
+  .sort((a, b) => b.shareOfDistinct - a.shareOfDistinct);
+
+// The heaviest family's share (see MAX_FAMILY_DUPLICATION): a page joining a
+// family moves that family's mean by bytes, a lighter new family changes
+// nothing, so this moves only when a family's sheet itself changes.
+const familyDuplication = families.length > 0 ? families[0].shareOfDistinct : 0;
 
 const singlePageUtilities = [...utilityClassPages.entries()]
   .filter(([, pageSet]) => pageSet.size === 1)
@@ -604,8 +481,14 @@ const pct = (part, whole) => (whole === 0 ? '0%' : `${Math.round((part / whole) 
 
 console.log(`CSS duplication report (${pages.length} pages, ${kb(totalRawStyleBytes)} of inline <style> shipped):`);
 console.log(
-  `  Duplication factor:     ${duplicationFactor.toFixed(2)}x  (${kb(totalShippedRuleBytes)} shipped / ${kb(distinctRuleBytes)} distinct, limit ${MAX_DUPLICATION_FACTOR.toFixed(2)}x)`,
+  `  Family duplication:     ${familyDuplication.toFixed(2)}x  (heaviest of ${families.length} families, ${kb(distinctRuleBytes)} distinct, limit ${MAX_FAMILY_DUPLICATION.toFixed(2)}x)`,
 );
+console.log('  Per family (name = lexicographically smallest member label):');
+for (const family of families) {
+  console.log(
+    `    ${family.name.padEnd(38)} ${String(family.pageCount).padStart(2)} page(s), ${kb(Math.round(family.meanShippedBytesPerPage)).padStart(14)} mean shipped/page, ${(family.shareOfDistinct * 100).toFixed(2)}% of distinct`,
+  );
+}
 console.log(`  Worst page dead bytes:  ${kb(worstPageDeadBytes)} on ${worstPage.label} (limit ${kb(MAX_PAGE_DEAD_BYTES)})`);
 console.log(`  Single-page utilities:  ${singlePageUtilities.length} (limit ${MAX_SINGLE_PAGE_UTILITIES})`);
 console.log(
@@ -624,10 +507,13 @@ for (const page of [...pages].sort(
 }
 
 const failures = [];
-if (duplicationFactor > MAX_DUPLICATION_FACTOR) {
+if (familyDuplication > MAX_FAMILY_DUPLICATION) {
+  const heaviest = families[0]; // sorted by shareOfDistinct, descending
   failures.push(
-    `Duplication factor ${duplicationFactor.toFixed(2)}x exceeds ${MAX_DUPLICATION_FACTOR.toFixed(2)}x. ` +
-      'A rule added to the shared stylesheet is paid for on all pages; scope it to the page that needs it.',
+    `Family duplication ${familyDuplication.toFixed(2)}x exceeds ${MAX_FAMILY_DUPLICATION.toFixed(2)}x: ` +
+      `the "${heaviest.name}" family (${heaviest.pageCount} page(s)) ships ` +
+      `${kb(Math.round(heaviest.meanShippedBytesPerPage))} per page, that share of all the distinct CSS on the site. ` +
+      'A rule its pages do not need has joined their sheet: scope it to the pages that use it; never raise this limit.',
   );
 }
 if (worstPageDeadBytes > MAX_PAGE_DEAD_BYTES) {

@@ -99,9 +99,11 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
 - **Editor CSS ratchet** (`check-editor-global-css.js`): zero `sign-`/`sig-`/`redact-`/`editor-`/`el-`
   selectors in `global.css`.
 - **CSS duplication** (`check-css-duplication.js`): hard ratchets that only go down. Limits as of
-  2026-09-12 (38 pages): **9.78x** duplication (measured 9.77x, no headroom on purpose), **10,000**
-  worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). The duplication factor is page-count-
-  sensitive by construction; re-base it when pages are added and say so. **The fix is to narrow what a
+  2026-09-15 (41 pages): **0.65x** duplication (measured 0.64x), **10,000**
+  worst-page dead bytes (9,802 on `/compress-image/`), **148** single-page utilities (32). Duplication is
+  the heaviest page family's mean shipped bytes per page over the site's distinct CSS (families are
+  pages sharing an inlined entry sheet, grouped by hashing each page's largest `<style>` block, not a
+  hand-maintained map) - `MAX_FAMILY_DUPLICATION`, DEBT-12 - so a new page never moves it. **The fix is to narrow what a
   page carries, never to raise a limit.**
   **Read the numbers off the script, not off this line.** It said 7.00x/5.79x/7,567/144 until
   2026-09-12, having missed three re-bases (7.75x, 9.00x, 9.78x) as LOC-02/03/05/09 published the
