@@ -275,6 +275,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `fileKind.js` | `FilePreview` (shell), `PdfCompressTool`, `PdfMergeTool` |
 | `productAnalytics.ts` | `BasePdfTool` (shell), `PdfCompressTool`, `PdfSignTool` |
 | `pageOps.js` | `lib/editPages.js` (edit-pages), `lib/merge.js` (merge) - shared between two tools' own lib modules |
+| `pdfRender.js` | `PdfCompressTool` (via `tools/compress/compress.js`), `PdfSplitTool`, `tools/to-image/toImage.js`, `editor-ui/PdfPageCanvas.tsx`, `lib/thumbnails.js`, `editor/adapters/pdf/redact.js` - moved from `src/editor/adapters/pdf/renderContext.js` under DEBT-04, since the editor core (`redact.js`) was one consumer among several outside it |
 | `platform.ts` | `DropzoneEmptyState` (shell), `PdfMergeTool` |
 | `sort.js` | `PdfImageToPdfTool`, `PdfMergeTool` |
 | `toolArming.js` | `RedactToolbar`, `SignTool/SignToolbar` - the shared arming helper `editor.md` already documents by name |

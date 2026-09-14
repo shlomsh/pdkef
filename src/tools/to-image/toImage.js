@@ -3,7 +3,7 @@
 // The worker URL uses Vite's native `new URL(..., import.meta.url)` asset
 // pattern (see thumbnails.js) so it's bundled as a same-origin asset, never
 // fetched from a CDN.
-import { getPdfRenderContext } from '../../editor/adapters/pdf/renderContext.js';
+import { getPdfRenderContext } from '../../lib/pdfRender.js';
 
 let pdfjsLib;
 
