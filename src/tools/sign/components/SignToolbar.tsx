@@ -9,7 +9,7 @@ import ArmHint from '../../../editor-ui/ArmHint.tsx';
 import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
-import { makeArmTool, useAutoArmHint } from '../../../lib/toolArming.js';
+import { makeArmTool, useAutoArmHint } from '../../../editor-ui/hooks/toolArming.js';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
@@ -166,7 +166,7 @@ export default function SignToolbar({
   const hasTextElement = state.elements.some((el) => el.type === 'text');
 
   // One-shot arming, double-click to lock. The gesture itself lives in
-  // lib/toolArming.js so this toolbar and Redact's cannot drift on it.
+  // editor-ui/hooks/toolArming.js so this toolbar and Redact's cannot drift on it.
   const { autoShowTool, noteArmed } = useAutoArmHint();
   const armTool = makeArmTool({
     selectedTool,

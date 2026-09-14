@@ -40,7 +40,7 @@ import {
   revertHistoryEntries,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { useUndoShortcut } from '../../lib/useUndoShortcut.js';
+import { useUndoShortcut } from '../../editor-ui/hooks/useUndoShortcut.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { getSignExportReadiness } from './signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
@@ -53,7 +53,7 @@ import {
 import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
-import useCurrentPage from '../../lib/useCurrentPage.js';
+import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text

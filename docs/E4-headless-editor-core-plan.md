@@ -36,7 +36,7 @@
 
 | Path | Location | Obeys golden rule? |
 |---|---|---|
-| **Sign drag** (move an element) | [`useDraggableElement.js`](../src/lib/useDraggableElement.js) | ✅ DOM-mutate `transform` during; single `onChange` on up |
+| **Sign drag** (move an element) | [`useDraggableElement.js`](../src/editor-ui/hooks/useDraggableElement.js) | ✅ DOM-mutate `transform` during; single `onChange` on up |
 | **Sign resize** (all handles) | [`DraggableWrapper.jsx`](../src/components/SignTool/DraggableWrapper.jsx) `handleResizeStart` (inline, ~250 lines) | ✅ `pendingResize` accumulator + CSSOM during; single `onChange` on up |
 | **Sign create** (drag-drawn: whiteout/line/ellipse/rectangle) | [`useWorkspaceGestures.ts`](../src/lib/useWorkspaceGestures.ts) `handleOverlayPointerDown` | ✅ gesture controller owns move-time DOM preview and commits state once on release |
 | **Redact drag / resize / create** | [`PdfRedactTool.jsx`](../src/components/PdfRedactTool.jsx) `handleBoxDragStart` / `handleBoxResizeStart` / `handlePointerDown`+`drawingState` | ❌ **`updateElement` / `setDrawingState` per move** on all three |
@@ -101,7 +101,7 @@ Both [`PdfSignTool.jsx`](../src/components/PdfSignTool.jsx) and
   [`useEditorDraftPersistence.js`](../src/editor/workspace/useEditorDraftPersistence.js)).
 - **Fullscreen** (real + `pseudo-fullscreen` fallback) and **Escape precedence** while a modal is open.
 - **Undo history** ([`actionHistory.ts`](../src/editor/model/actionHistory.ts),
-  [`useUndoShortcut.js`](../src/lib/useUndoShortcut.js), `UndoHistoryModal`).
+  [`useUndoShortcut.js`](../src/editor-ui/hooks/useUndoShortcut.js), `UndoHistoryModal`).
 - **Download / continue-editing / start-over** flow and URL revocation.
 - **Native share** of the baked PDF via [`usePdfShare.js`](../src/lib/usePdfShare.js) (added on `main`
   in `e2ab13b`, after this epic was scoped). This one is **already shared** — a single hook

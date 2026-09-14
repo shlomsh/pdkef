@@ -271,18 +271,26 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `usePdfShare.js` | all nine `Pdf*Tool.tsx` |
 | `thumbnails.js` | `FilePreview` (shell), `MergeTool/{PagePreviewDialog,PageStrip}`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfMergeTool`, `SignTool/useDraftPersistence` |
 | `useObjectUrls.js` | `MergeTool/usePreparedMerge`, `PdfCompressTool`, `PdfEditPagesTool`, `PdfImageToPdfTool`, `PdfSecurityTool` |
-| `usePdfCoordinates.ts` | `PdfRedactTool`, `SignTool/nodes/TextNode`, plus `useDraggableElement.js`/`useElementResize.js`/`useWorkspaceGestures.ts` internally |
 | `fileKind.js` | `FilePreview` (shell), `PdfCompressTool`, `PdfMergeTool` |
 | `productAnalytics.ts` | `BasePdfTool` (shell), `PdfCompressTool`, `PdfSignTool` |
 | `pageOps.js` | `lib/editPages.js` (edit-pages), `lib/merge.js` (merge) - shared between two tools' own lib modules |
 | `pdfRender.js` | `PdfCompressTool` (via `tools/compress/compress.js`), `PdfSplitTool`, `tools/to-image/toImage.js`, `editor-ui/PdfPageCanvas.tsx`, `lib/thumbnails.js`, `editor/adapters/pdf/redact.js` - moved from `src/editor/adapters/pdf/renderContext.js` under DEBT-04, since the editor core (`redact.js`) was one consumer among several outside it |
 | `platform.ts` | `DropzoneEmptyState` (shell), `PdfMergeTool` |
 | `sort.js` | `PdfImageToPdfTool`, `PdfMergeTool` |
+| `useHandoffIntake.ts` | `PdfCompressTool`, `PdfSplitTool` |
+
+### Moved out of `src/lib/` to `src/editor-ui/hooks/` (DEBT-04)
+
+Sign and Redact were each other's only consumers, never a third tool, so these six belong with the
+rest of the Sign/Redact shared chrome rather than in `lib`. Consumers unchanged from the table above.
+
+| Module | Direct consumers |
+| --- | --- |
 | `toolArming.js` | `RedactToolbar`, `SignTool/SignToolbar` - the shared arming helper `editor.md` already documents by name |
 | `useCurrentPage.js` | `PdfRedactTool`, `PdfSignTool` |
 | `useDraggableElement.js` | `RedactBox`, `SignTool/DraggableWrapper` |
 | `useElementResize.js` | `RedactBox`, `SignTool/DraggableWrapper` |
-| `useHandoffIntake.ts` | `PdfCompressTool`, `PdfSplitTool` |
+| `usePdfCoordinates.ts` | `PdfRedactTool`, `SignTool/nodes/TextNode`, plus `useDraggableElement.js`/`useElementResize.js`/`useWorkspaceGestures.ts` internally |
 | `useUndoShortcut.js` | `PdfRedactTool`, `PdfSignTool` |
 
 ### Site-only or build-only - no island/editor consumer, stays in `src/lib/` (not tool-ownable, but also arguably not "shared tool logic"; not decided here)

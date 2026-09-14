@@ -3,7 +3,7 @@ import EditorToolStatus from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../shell/ToolShell.tsx';
-import { makeArmTool, useAutoArmHint } from '../../lib/toolArming.js';
+import { makeArmTool, useAutoArmHint } from '../../editor-ui/hooks/toolArming.js';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import styles from '../../editor-ui/SignToolbar.module.css';

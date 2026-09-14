@@ -1,6 +1,6 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
-import usePdfCoordinates from '../../../../lib/usePdfCoordinates.js';
+import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
 import { getEffectiveTextDirection } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';

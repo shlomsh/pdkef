@@ -4,8 +4,8 @@ import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
 import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
 import ElementResizers from '../../editor-ui/ElementResizers.tsx';
 import { getElementRenderer } from '../../editor/registry/renderers.ts';
-import useDraggableElement from '../../lib/useDraggableElement.js';
-import useElementResize from '../../lib/useElementResize.js';
+import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
+import useElementResize from '../../editor-ui/hooks/useElementResize.js';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 
