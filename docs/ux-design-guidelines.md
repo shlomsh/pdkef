@@ -3,8 +3,8 @@
 The app-wide guideline for how a PDkef tool looks, behaves and gets reviewed. First written
 2026-09-13 from the Merge rebuild (the `merge-tool` epic, MERGE-01 to MERGE-18), where these choices
 were made and measured; every later tool review adds to it here rather than in its own notes. It is
-kept so the next tool review (Edit PDF Pages is the obvious next one, then Split, Compress, Image to PDF) starts
-from what we already settled instead of rediscovering it. The Merge-specific spec is
+kept so the next tool review (Edit PDF Pages is the obvious next one, then Compress, Image to PDF;
+Split is sketched, see §15) starts from what we already settled instead of rediscovering it. The Merge-specific spec is
 [merge-direction-a-spec.md](./merge-direction-a-spec.md), the sketch is
 [merge-direction-a-sketch.html](./merge-direction-a-sketch.html), and the review that drove the
 second pass is [merge-review-2026-09-13.md](./merge-review-2026-09-13.md). Cross-tool hand-offs are
@@ -23,7 +23,9 @@ prevents moving pages across files. The test for any tool: can the person see ex
 get before they get it, and change it there?
 
 For a tool whose output is a single file (Merge, Edit Pages, Image to PDF, Compress with a visual
-preview) this means a page grid. For Split, it means the output groups.
+preview) this means a page grid. For Split, it means the output groups: one frame holding the
+included pages in one mode, one frame per page in the other, with the left-out pages dimmed below
+([split-stage-spec.md](./split-stage-spec.md)).
 
 ## 2. The simple case is the minimum
 
@@ -51,6 +53,13 @@ Options and next steps appear only once an output exists. Below two files there 
 configure, so nothing is shown. A `<details>` around a single setting is ceremony: one checkbox is a
 checkbox row. A setting that changes the output sits directly above the primary control, because that
 is where the eye is when it matters.
+
+A default is shown as a choice among its alternatives, never as one card tinted among lookalikes. A
+segmented control with both options side by side says "there is another way"; two cards where one is
+preselected read as done, and people skip it (a real Split user did, and got the wrong output). When
+the setting changes the shape of the output, the canvas changes shape with it, in place: the preview
+is the setting. Never number a step that needs no action; "1. Select mode" over a preselected default
+is exactly what gets skipped.
 
 Explanations are one line, appear when they apply and disappear when they do not. "Pages moved across
 files, so files no longer drag as a whole" shows only after a page has crossed a file, with Reset
@@ -168,6 +177,18 @@ Sign; Image to PDF → Merge; Compress → Sign; Sign → Compress for portals w
 - Verify the phone view on a real phone for anything the emulator cannot do (Web Share, scroll
   restoration, keyboard).
 
+## 15. The stage: canvas and commands stay together
+
+The loaded state is one stage, the canvas and its commands, and a command that changes the output is
+never out of view while the canvas is. On desktop the rail is sticky beside the canvas; below that
+the commands on the selection become a sticky chip bar above the canvas and the setting plus the
+primary control become a sticky bottom sheet. A width where the rail stacks under the canvas is a
+bug, not a breakpoint: scroll to the last row and the mode is gone, which is the Split failure
+again. The test: at 1280, 820 and 375, scrolled to the canvas's last row, the control that changes
+the output is fully inside the viewport. Split's stage is the reference
+([split-stage-spec.md](./split-stage-spec.md)); Merge's own tablet width still stacks and should
+move to the sheet.
+
 ## Reviewing the next tool: questions to ask first
 
 1. What is the output, and is it the centre of the loaded state?
@@ -182,3 +203,5 @@ Sign; Image to PDF → Merge; Compress → Sign; Sign → Compress for portals w
 8. Do Hebrew names survive every place a name is shown?
 9. How long until the first visible row renders, and after a restore?
 10. What does the person do next, and does the done state say so?
+11. If a setting changes the shape of the output, does the canvas change shape with it, and can the
+    person reach the setting without scrolling away from the canvas?
