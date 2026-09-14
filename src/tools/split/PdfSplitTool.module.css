@@ -539,18 +539,32 @@
 /* ---------- the two-column stage ---------- */
 
 @media (min-width: 1024px) {
+  /* A grid, not a flex row: the heading row spans both columns so the
+     canvas frame and the rail box share one top edge. */
   .stage {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: var(--space-5);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas:
+      'head head'
+      'canvas rail';
+    align-items: start;
+    gap: var(--space-4) var(--space-5);
+  }
+
+  .canvas-head {
+    grid-area: head;
+  }
+
+  .canvas {
+    grid-area: canvas;
   }
 
   .rail {
+    grid-area: rail;
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
     width: 320px;
-    flex: 0 0 320px;
     position: sticky;
     top: var(--space-3);
     max-height: calc(100vh - var(--space-6));

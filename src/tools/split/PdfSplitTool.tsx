@@ -523,22 +523,25 @@ export default function PdfSplitTool({
             </div>
           ) : (
             <div class={styles.stage}>
+              {/* The heading names the output and spans both columns, so the
+                  canvas frame and the rail start on the same line (Shlomi,
+                  2026-09-14: the two boxes were not top-aligned). */}
+              <div class={styles['canvas-head']}>
+                <h3 id="split-canvas-title" class={styles['canvas-title']}>{canvasHeading}</h3>
+                <span class={styles['canvas-count']}>{canvasCount}</span>
+                {renderedCount < numPages && (
+                  <span class={styles['canvas-status']} role="status">Rendering {renderedCount} of {numPages}</span>
+                )}
+                {undoAction && (
+                  <span class={styles['undo-chip']} role="status">
+                    {undoAction.message}
+                    <button type="button" onClick={undoAction.undo}>Undo</button>
+                  </span>
+                )}
+              </div>
+
               {/* The canvas: the output, as the person will get it. */}
               <section class={styles.canvas} aria-label="Your split PDF">
-                <div class={styles['canvas-head']}>
-                  <h3 class={styles['canvas-title']}>{canvasHeading}</h3>
-                  <span class={styles['canvas-count']}>{canvasCount}</span>
-                  {renderedCount < numPages && (
-                    <span class={styles['canvas-status']} role="status">Rendering {renderedCount} of {numPages}</span>
-                  )}
-                  {undoAction && (
-                    <span class={styles['undo-chip']} role="status">
-                      {undoAction.message}
-                      <button type="button" onClick={undoAction.undo}>Undo</button>
-                    </span>
-                  )}
-                </div>
-
                 {mode === 'combined' ? (
                   <div class={styles['doc-frame']} data-empty={selectedCount === 0 ? 'true' : undefined}>
                     <div class={styles['frame-caption']}>
