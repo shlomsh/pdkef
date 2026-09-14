@@ -573,33 +573,6 @@ export default function PdfSplitTool({
                     : 'Dimmed pages are left out. Click one to bring it back.'}
                 </p>
 
-                {saved && outputs.length > 0 && (
-                  <div class={styles['next-steps']}>
-                    <PdfShareButton
-                      visible={shareReady}
-                      onShare={handleShare}
-                      label={outputs.length === 1 ? 'Share PDF' : `Share ${outputs.length} PDFs`}
-                      className={styles['next-step']}
-                    />
-                    {mode === 'combined' && (
-                      <button
-                        type="button"
-                        class={styles['next-step']}
-                        disabled={handoffBusy}
-                        onClick={() => { void handoffToCompress(); }}
-                      >
-                        <Shrink size={16} aria-hidden="true" />
-                        Compress it
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {handoffFailed && (
-                  <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-                    Could not hand the file to Compress. Download it and open Compress instead.
-                  </p>
-                )}
               </section>
 
               {/* The rail: commands on the selection, the setting, the primary control. */}
@@ -708,12 +681,40 @@ export default function PdfSplitTool({
                     )}
                   </a>
 
+                  {/* Guideline §4, row 6: next steps sit right after the
+                      primary control. The segmented control is directly
+                      above Download in this same block, so a quiet "or
+                      switch mode" line here would only repeat a control
+                      already in view - dropped (Shlomi, 2026-09-14).
+                      Share appears the moment there is something to share
+                      (PdfShareButton's own `visible` prop, not gated behind
+                      a first Download tap); Compress it stays in the row,
+                      disabled until then, so the row doesn't jump in. */}
                   {selectedCount > 0 && status !== 'error' && (
-                    <p class={styles['other-mode']}>
-                      or{' '}
-                      <button type="button" class={styles['other-mode-link']} onClick={() => chooseMode(mode === 'combined' ? 'separate' : 'combined')}>
-                        {mode === 'combined' ? 'save each page as its own PDF' : 'save them as one PDF'}
-                      </button>
+                    <div class={styles['next-steps']}>
+                      <PdfShareButton
+                        visible={shareReady}
+                        onShare={handleShare}
+                        label={outputs.length === 1 ? 'Share PDF' : `Share ${outputs.length} PDFs`}
+                        className={styles['next-step']}
+                      />
+                      {mode === 'combined' && (
+                        <button
+                          type="button"
+                          class={styles['next-step']}
+                          disabled={handoffBusy || !combinedOutput}
+                          onClick={() => { void handoffToCompress(); }}
+                        >
+                          <Shrink size={16} aria-hidden="true" />
+                          Compress it
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {handoffFailed && (
+                    <p class={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
+                      Could not hand the file to Compress. Download it and open Compress instead.
                     </p>
                   )}
                 </div>

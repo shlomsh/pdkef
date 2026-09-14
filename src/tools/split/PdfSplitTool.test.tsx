@@ -192,11 +192,48 @@ describe('PdfSplitTool UI flow', () => {
     expect(cells[2].querySelector(`.${styles['cell-caption']}`).textContent).toBe('test-page-3.pdf');
     expect(cells[2].querySelector(`.${styles['cell-caption']}`).getAttribute('title')).toBe('test-page-3.pdf');
 
-    // The quiet line under the primary flips it back
-    const otherMode = container.querySelector(`.${styles['other-mode-link']}`);
-    expect(otherMode.textContent).toBe('save them as one PDF');
-    await act(async () => otherMode.click());
+    // The segmented control (directly above Download) flips it back - no
+    // separate "or switch mode" link duplicating it (Shlomi, 2026-09-14).
+    const onePdf = Array.from(container.querySelectorAll('[role="radio"]')).find((r) => r.textContent === 'One PDF');
+    await act(async () => onePdf.click());
     expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
+  });
+
+  it('Share appears next to Download as soon as output is ready, not only after a first save', async () => {
+    const nativeShare = mockNativeFileShare();
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+
+    // A real fixture, not the fake makePdfFile(): this test waits for the
+    // actual splitPdf() prepare to resolve, which a synthetic "%PDF-1.4"
+    // body cannot parse.
+    const fixturePath = path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf');
+    const file = new File([fs.readFileSync(fixturePath)], 'num-5.pdf', { type: 'application/pdf' });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [file]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const findShareButton = () =>
+      Array.from(container.querySelectorAll(`.${styles['next-step']}`)).find((b) => b.textContent.includes('Share'));
+
+    // Nothing to share yet: usePdfShare's shareReady is preparedFiles.length
+    // > 0, which only becomes true once the debounced prepare finishes.
+    expect(findShareButton()).toBeUndefined();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    const primary = container.querySelector(`.${styles.primary}`);
+    expect(primary.getAttribute('data-state')).toBe('ready');
+    // Share is visible now, before the primary control has ever been tapped.
+    expect(findShareButton()).not.toBeUndefined();
+    nativeShare.restore();
   });
 
   it('rotating a cell never toggles it, and Undo reverts the rotation', async () => {
