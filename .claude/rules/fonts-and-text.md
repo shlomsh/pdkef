@@ -53,7 +53,10 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   `src/tools/sign/` is an input now, unlike before ARCH-20. `scripts/affected-scope.mjs` asks Nx
   whether `fonts` is affected rather than keeping a second, hand-written input list
   (`docs/nx-affected-ci.md` has the mechanics); `ci.yml`'s `scope` job and the local `test:e2e` script
-  both ask it, and a nightly schedule and every manual dispatch run the guards regardless. A new guard
+  both ask it, and a nightly schedule and every manual dispatch run the guards regardless. `ci.yml`'s
+  `font-guards` job runs the guards as two time-balanced shards (QUAL-06): `fonts-shard-1` in
+  `playwright.config.js` is the seven heaviest specs listed by hand, `fonts-shard-2` is the rest by
+  complement, so a new guard spec runs (in shard 2) until someone rebalances the list. A new guard
   needs a name the globs match, and a new input a guard reads from outside today's four goes into
   `fonts`'s `implicitDependencies` in `e2e/sign/project.json`. `npm run test:e2e:fonts` runs them
   unconditionally after a build.

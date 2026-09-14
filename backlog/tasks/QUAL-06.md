@@ -1,7 +1,7 @@
 ---
 id: "QUAL-06"
 title: "Shard the font guards: the font-guards job is the long pole on every run where it runs"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "module-boundaries"
 phase: "quick-win"
