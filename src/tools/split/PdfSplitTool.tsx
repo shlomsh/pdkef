@@ -4,7 +4,6 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { parsePageSelector, pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
-import pageGridStyles from '../../shell/PageGrid.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
@@ -29,6 +28,9 @@ interface SplitPage {
   pageNumber: number;
   selected: boolean;
   thumbnail: string | null;
+  /** Cumulative delta from the per-cell rotate control, 0/90/180/270, added
+   * on top of the source page's own rotation at export (split.js). */
+  rotation: number;
 }
 
 interface OutputFile {
@@ -88,12 +90,36 @@ export default function PdfSplitTool({
   const selectedCount = selectedPages.length;
   const renderedCount = pages.filter((p) => p.thumbnail).length;
   const baseName = file ? outputBaseName(file.name) : '';
+  // { [pageNumber]: 0|90|180|270 }, non-zero entries only - what splitPdf
+  // applies on top of the source page's own rotation.
+  const rotations = Object.fromEntries(
+    pages.filter((p) => p.rotation).map((p) => [p.pageNumber, p.rotation]),
+  );
+  const rotationKey = pages.map((p) => p.rotation).join(',');
 
   const revokeAll = (list: OutputFile[]) => {
     for (const f of list) URL.revokeObjectURL(f.url);
   };
 
   useEffect(() => () => revokeAll(outputsRef.current), []);
+
+  // A single-slot undo chip (Merge's pattern): the next registered undo
+  // silently replaces a pending one rather than stacking, and it clears
+  // itself after 5s. Rotate is the only action that uses it today.
+  const [undoAction, setUndoAction] = useState<{ message: string; undo: () => void } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const registerUndo = (message: string, perform: () => void) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoAction({
+      message,
+      undo: () => {
+        if (undoTimer.current) clearTimeout(undoTimer.current);
+        setUndoAction(null);
+        perform();
+      },
+    });
+    undoTimer.current = setTimeout(() => setUndoAction(null), 5000);
+  };
 
   // Any edit invalidates the prepared output; the idle prepare below rebuilds it.
   const invalidate = () => {
@@ -126,6 +152,7 @@ export default function PdfSplitTool({
         const results: any[] = await splitPdf(file, {
           pageNumbers: wanted,
           mode,
+          rotations,
           onProgress: (value: number) => {
             if (prepareSeq.current === seq) setProgress(value);
           },
@@ -146,9 +173,10 @@ export default function PdfSplitTool({
       }
     }, PREPARE_DELAY_MS);
     return () => clearTimeout(timer);
-    // selectedPages is derived from pages; the join keys the effect on the actual selection.
+    // selectedPages and rotationKey are derived from pages; the joins key
+    // the effect on the actual selection and rotation, not object identity.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [file, mode, selectedPages.join(','), status === 'loading']);
+  }, [file, mode, selectedPages.join(','), rotationKey, status === 'loading']);
 
   const downloadAll = useCallback((list: OutputFile[]) => {
     list.forEach((f, index) => {
@@ -188,6 +216,7 @@ export default function PdfSplitTool({
         pageNumber: idx + 1,
         selected: true,
         thumbnail: null,
+        rotation: 0,
       }));
       setPages(initialPages);
       setPageSelector(pageNumbersToRangeString(initialPages.map((p) => p.pageNumber)));
@@ -279,6 +308,21 @@ export default function PdfSplitTool({
       setPageSelector(pageNumbersToRangeString(next.filter((p) => p.selected).map((p) => p.pageNumber)));
       setPageSelectorError('');
       return next;
+    });
+  };
+
+  // Rotation is a page property, not a selection one: it applies in either
+  // mode, and toggling a page out and back in keeps whatever rotation it had.
+  const rotatePage = (pageNumber: number) => {
+    const snapshot = pages;
+    invalidate();
+    setPages((prev) =>
+      prev.map((p) => (p.pageNumber === pageNumber ? { ...p, rotation: (p.rotation + 90) % 360 } : p)),
+    );
+    setAnnouncement(`Page ${pageNumber} rotated.`);
+    registerUndo(`Rotated page ${pageNumber}`, () => {
+      invalidate();
+      setPages(snapshot);
     });
   };
 
@@ -420,13 +464,29 @@ export default function PdfSplitTool({
         }
       }}
     >
-      <div class={styles['cell-thumb']}>
+      <div class={styles['cell-thumb']} data-rotation={p.rotation || undefined}>
         {p.thumbnail ? (
-          <img class={pageGridStyles['page-card-thumb']} src={p.thumbnail} alt="" />
+          <img class={styles['cell-thumb-img']} src={p.thumbnail} alt="" />
         ) : (
           <div class={`${pdfToolStyles['thumb-placeholder']} ${pdfToolStyles['thumb-placeholder-fill']}`} />
         )}
       </div>
+      {/* Always visible, not hover/tap-gated: the cell body's own click
+          already toggles inclusion (the frame is the mode), so a second,
+          select-to-reveal gesture like Merge's would collide with it on
+          touch. One small button fits a corner without the crowding three
+          buttons would (ux-design-guidelines §8). */}
+      <button
+        type="button"
+        class={styles['rotate-btn']}
+        aria-label={`Rotate page ${p.pageNumber}`}
+        onClick={(e) => { e.stopPropagation(); rotatePage(p.pageNumber); }}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M13 8a5 5 0 1 1-1.5-3.6" />
+          <path d="M13 2v3h-3" />
+        </svg>
+      </button>
       {perCellCaptions && p.selected ? (
         <span class={styles['cell-caption']} title={`${baseName}-page-${p.pageNumber}.pdf`}>
           <bdi>{shortBase}</bdi>-page-{p.pageNumber}<span class={styles['output-ext']}>.pdf</span>
@@ -473,6 +533,12 @@ export default function PdfSplitTool({
                   {renderedCount < numPages && (
                     <span class={styles['canvas-status']} role="status">Rendering {renderedCount} of {numPages}</span>
                   )}
+                  {undoAction && (
+                    <span class={styles['undo-chip']} role="status">
+                      {undoAction.message}
+                      <button type="button" onClick={undoAction.undo}>Undo</button>
+                    </span>
+                  )}
                 </div>
 
                 {mode === 'combined' ? (
@@ -506,17 +572,6 @@ export default function PdfSplitTool({
                     ? 'Every page is in. Click a page to leave it out.'
                     : 'Dimmed pages are left out. Click one to bring it back.'}
                 </p>
-
-                {mode === 'separate' && outputs.length > 0 && (
-                  <ul class={styles['file-list']} aria-label="Files to download">
-                    {outputs.map((f) => (
-                      <li key={f.pageNumber} class={styles['file-item']}>
-                        <bdi class={styles['file-item-name']}>{f.filename}</bdi>
-                        <a href={f.url} download={f.filename} onClick={() => setSaved(true)}>Download</a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
 
                 {saved && outputs.length > 0 && (
                   <div class={styles['next-steps']}>

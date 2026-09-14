@@ -199,6 +199,33 @@ describe('PdfSplitTool UI flow', () => {
     expect(container.querySelector(`.${styles['doc-frame']}`)).not.toBeNull();
   });
 
+  it('rotating a cell never toggles it, and Undo reverts the rotation', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const cell = container.querySelectorAll(`.${styles.cell}`)[1];
+    const rotateBtn = cell.querySelector(`.${styles['rotate-btn']}`);
+
+    await act(async () => rotateBtn.click());
+    expect(cell.getAttribute('aria-checked')).toBe('true'); // rotating never toggles inclusion
+    expect(cell.querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBe('90');
+
+    const undoChip = container.querySelector(`.${styles['undo-chip']}`);
+    expect(undoChip.textContent).toContain('Rotated page 2');
+    await act(async () => undoChip.querySelector('button').click());
+    expect(cell.querySelector(`.${styles['cell-thumb']}`).getAttribute('data-rotation')).toBeNull();
+    expect(container.querySelector(`.${styles['undo-chip']}`)).toBeNull();
+  });
+
   it('shares separately split PDFs as multiple native files', async () => {
     const nativeShare = mockNativeFileShare();
     URL.createObjectURL = vi.fn(() => 'blob:fake-url');
@@ -321,5 +348,27 @@ describe('splitPdf library integration with real fixtures', () => {
 
     const texts2 = await extractTextFromPdfBlob(results[1].blob);
     expect(texts2).toEqual(['14']);
+  });
+
+  it('applies the per-page rotation map in both modes (pageOps.js, shared with Merge and Edit Pages)', async () => {
+    const { splitPdf } = await vi.importActual('./split.js');
+    const { PDFDocument } = await import('@cantoo/pdf-lib');
+    const file = getFixtureFile('num-5.pdf');
+
+    const combined = await splitPdf(file, {
+      pageNumbers: [1, 2, 3],
+      mode: 'combined',
+      rotations: { 2: 90 },
+    });
+    const combinedDoc = await PDFDocument.load(new Uint8Array(await combined[0].blob.arrayBuffer()));
+    expect(combinedDoc.getPages().map((p) => p.getRotation().angle)).toEqual([0, 90, 0]);
+
+    const separate = await splitPdf(file, {
+      pageNumbers: [2],
+      mode: 'separate',
+      rotations: { 2: 270 },
+    });
+    const separateDoc = await PDFDocument.load(new Uint8Array(await separate[0].blob.arrayBuffer()));
+    expect(separateDoc.getPages()[0].getRotation().angle).toBe(270);
   });
 });
