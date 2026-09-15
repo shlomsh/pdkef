@@ -29,7 +29,7 @@ const isShapeTool = (tool: SignToolType | null): tool is ShapeTool => (
 // than deriving it from TOOL_COPY's own keys, since TOOL_COPY is now built
 // per-render from the message catalogue (LOC-09 stage 1) and this guard has to
 // exist before that render happens.
-const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'];
+const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'];
 const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
 export default function SignToolbar({
@@ -90,6 +90,7 @@ export default function SignToolbar({
   // memo keyed on it would recompute every render anyway.
   const TOOL_COPY: Record<SignToolType, { action: string; button: string }> = {
     text:      { action: t.textAction,      button: t.textButton },
+    date:      { action: t.dateAction,      button: t.dateButton },
     symbol:    { action: t.symbolAction,    button: t.symbolsButton },
     signature: { action: t.signatureAction, button: t.signButton },
     whiteout:  { action: t.whiteoutAction,  button: t.whiteoutButton },
@@ -276,6 +277,34 @@ export default function SignToolbar({
                 <line x1="12" y1="4" x2="12" y2="20" />
               </svg>
               <span className={styles.label}>{t.textButton}</span>
+            </button>
+          </ArmHint>
+
+          <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('date')}
+              aria-pressed={selectedTool === 'date'}
+              data-label-priority="2"
+              // Optional at the same extreme-narrow band as Feedback
+              // (SignToolbar.module.css's [data-optional-control] rule),
+              // unlike a real document-editing tool this pattern is normally
+              // never applied to: unlike Feedback, hiding this loses only the
+              // dedicated shortcut, not the capability - today's date is still
+              // one tap away via the Text tool's own insert-date control
+              // (ElementToolbar.tsx), which never leaves the toolbar. See that
+              // CSS rule's comment for why hiding a document-editing control
+              // is normally off the table.
+              data-optional-control="date"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className={styles.label}>{t.dateButton}</span>
             </button>
           </ArmHint>
 

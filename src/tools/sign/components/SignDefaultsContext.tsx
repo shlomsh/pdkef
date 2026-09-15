@@ -22,6 +22,8 @@ export interface SignDefaultsContextValue {
   lastSymbolWidth: number;
   lastSymbolMark: SymbolMark;
   lastSignatureWidth: number;
+  /** dateFormat.ts's DateFormatId, kept as a plain string here (see editorModel.ts's dateFormatId comment). */
+  lastDateFormat: string;
   rememberColor: (color: string) => void;
   rememberWhiteoutColor: (color: string) => void;
   rememberFont: (fontFamily: string) => void;
@@ -31,6 +33,7 @@ export interface SignDefaultsContextValue {
   rememberSymbolWidth: (width: number) => void;
   rememberSymbolMark: (mark: SymbolMark) => void;
   rememberSignatureWidth: (width: number) => void;
+  rememberDateFormat: (formatId: string) => void;
 }
 
 // Creation defaults for a freshly placed annotation - the color/font/thickness/
@@ -51,6 +54,7 @@ export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   lastSymbolWidth: DEFAULT_SYMBOL_WIDTH_PCT,
   lastSymbolMark: 'check',
   lastSignatureWidth: DEFAULT_START_WIDTH_PCT,
+  lastDateFormat: 'locale',
   rememberColor: noop,
   rememberWhiteoutColor: noop,
   rememberFont: noop,
@@ -59,7 +63,8 @@ export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   rememberThickness: noop,
   rememberSymbolWidth: noop,
   rememberSymbolMark: noop,
-  rememberSignatureWidth: noop
+  rememberSignatureWidth: noop,
+  rememberDateFormat: noop
 });
 
 export function useSignDefaults() {

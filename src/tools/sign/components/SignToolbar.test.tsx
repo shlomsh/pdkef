@@ -95,7 +95,7 @@ describe('SignToolbar Component', () => {
     expect(buttons.length).toBeGreaterThan(0);
 
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 7)).toEqual(['Text', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Feedback']);
+    expect(labels.slice(0, 8)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     const textBtn = required(Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg')), 'Text button');
@@ -538,7 +538,7 @@ describe('SignToolbar Component', () => {
       }
     );
 
-    it.each<SignToolType>(['text', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
+    it.each<SignToolType>(['text', 'date', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
       const text = armAndRead(tool);
       expect(text).toContain('Click on a page to place');
       expect(text).not.toContain('drag');
@@ -743,7 +743,7 @@ describe('SignToolbar Component', () => {
     });
 
     it('never calls these "layers", which nothing else in the product does', () => {
-      for (const tool of ['text', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
+      for (const tool of ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
         expect(armAndRead(tool)).not.toContain('layer');
       }
     });
@@ -751,7 +751,7 @@ describe('SignToolbar Component', () => {
     // "your ellipse" claims you already have one. Signature is the exception and
     // keeps the possessive: it exists before you place it, and it really is yours.
     it('does not hand you an element you have not made yet', () => {
-      for (const tool of ['text', 'symbol', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
+      for (const tool of ['text', 'date', 'symbol', 'whiteout', 'ellipse', 'rectangle', 'line'] satisfies SignToolType[]) {
         expect(armAndRead(tool)).not.toContain('your ');
       }
       expect(armAndRead('signature')).toContain('your signature');

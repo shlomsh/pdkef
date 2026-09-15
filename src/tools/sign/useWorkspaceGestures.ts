@@ -26,6 +26,7 @@ import {
 } from '../../editor/text/combPlacement.ts';
 import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../../editor/registry/symbolMarks.ts';
+import { formatDate, isDateFormatId, toIsoDateString } from '../../editor/text/dateFormat.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
 import {
@@ -90,6 +91,8 @@ export interface WorkspaceGestureOptions {
   initialFont?: string;
   initialFontSize?: number;
   initialDirection?: TextDirection | null;
+  /** Remembered `dateFormat.ts` `DateFormatId`; the 'date' tool only. */
+  initialDateFormat?: string;
   initialSymbolWidth?: number;
   initialSymbolMark?: SymbolMark;
   pageSizes?: PageGeometry[];
@@ -161,6 +164,7 @@ export default function useWorkspaceGestures({
   initialFont = DEFAULT_FONT_FAMILY,
   initialFontSize = DEFAULT_FONT_SIZE_PT,
   initialDirection = null,
+  initialDateFormat = 'locale',
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
@@ -187,7 +191,9 @@ export default function useWorkspaceGestures({
    */
   const handlePageClick = (e: PageClickEvent, pageIndex: number) => {
     if (!selectedTool) return;
-    const definition = getElementDefinition(selectedTool);
+    // 'date' has no registry entry of its own - it places an ordinary
+    // TextElement (see editorModel.ts's SignToolType comment), prefilled below.
+    const definition = getElementDefinition(selectedTool === 'date' ? 'text' : selectedTool);
     if (definition.creation.mode !== 'point') {
       if (definition.creation.mode === 'external' && selectedTool === 'signature') {
         const container = e.currentTarget;
@@ -229,6 +235,13 @@ export default function useWorkspaceGestures({
       symbolMark: initialSymbolMark,
       textHeight,
     });
+    if (selectedTool === 'date' && newEl.type === 'text') {
+      const dateValue = toIsoDateString(new Date());
+      const dateFormatId = isDateFormatId(initialDateFormat) ? initialDateFormat : 'locale';
+      newEl.text = formatDate(dateValue, dateFormatId);
+      newEl.dateFormatId = dateFormatId;
+      newEl.dateValue = dateValue;
+    }
     // A text box placed on a printed grid takes that grid's span and cell
     // count, so the person types once instead of dragging a side handle until
     // the digits happen to line up (MOBI-04). It stays an ordinary text
@@ -301,6 +314,12 @@ export default function useWorkspaceGestures({
       setAnnouncement(combRegion
         ? formatMessage(t.addedTextBoxCombAnnouncementTemplate, { cells: combRegion.cells })
         : t.addedTextBoxAnnouncement);
+    } else if (selectedTool === 'date') {
+      // Already has its content, unlike a freshly placed (empty) text box, so
+      // this selects it for the format control rather than opening a typing
+      // session on text nobody is about to retype.
+      logAction('add', 'ADD_TEXT', pageIndex, t.addedDateBoxDescription, [captureAddedElement(placed, nextElementIndex)]);
+      setAnnouncement(t.addedDateBoxAnnouncement);
     } else {
       logAction('add', 'ADD_SYMBOL', pageIndex, t.addedSymbolDescription, [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement(checkboxRegion ? t.addedSymbolInBoxAnnouncement : t.addedSymbolAnnouncement);
@@ -314,7 +333,10 @@ export default function useWorkspaceGestures({
    */
   const handleOverlayPointerDown = (e: PagePointerEvent, pageIndex: number) => {
     if (!selectedTool) return;
-    const definition = getElementDefinition(selectedTool);
+    // 'date' is point-mode (see handlePageClick above) so this always returns
+    // before using the definition either way; resolved the same for the type
+    // checker.
+    const definition = getElementDefinition(selectedTool === 'date' ? 'text' : selectedTool);
     if (definition.creation.mode !== 'drag' || !definition.creation.create) return;
     if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
     e.stopPropagation();

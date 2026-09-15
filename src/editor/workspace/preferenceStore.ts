@@ -17,6 +17,9 @@ export interface EditorPreferences {
   lastSymbolWidth: number;
   lastSymbolMark: 'check' | 'x' | 'dot';
   lastSignatureWidth: number;
+  /** `editor/text/dateFormat.ts`'s DateFormatId, kept as a plain string here
+   * the same way the model does (editorModel.ts's dateFormatId comment). */
+  dateFormat: string;
 }
 
 export type EditorPreferenceKey = keyof EditorPreferences;
@@ -32,6 +35,7 @@ const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   lastFont: 'pdf-toolkit:lastFont', lastFontSize: 'pdf-toolkit:lastFontSize',
   lastDirection: 'pdf-toolkit:lastDirection', lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
   lastSymbolMark: 'pdf-toolkit:lastSymbolMark', lastSignatureWidth: 'pdf-toolkit:lastSignatureWidth',
+  dateFormat: 'pdf-toolkit:dateFormat',
 };
 const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
@@ -96,12 +100,12 @@ const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPre
   penColor: readString, penThickness: readPositiveNumber, lastColor: readString,
   lastWhiteoutColor: readString, lastFont: readString, lastFontSize: readPositiveNumber,
   lastDirection: readString, lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
-  lastSignatureWidth: readPositiveNumber,
+  lastSignatureWidth: readPositiveNumber, dateFormat: readString,
 };
 const LEGACY_WRITERS: { [K in EditorPreferenceKey]: (value: EditorPreferences[K]) => string } = {
   penColor: String, penThickness: String, lastColor: String, lastWhiteoutColor: String,
   lastFont: String, lastFontSize: String, lastDirection: String, lastSymbolWidth: String,
-  lastSymbolMark: String, lastSignatureWidth: String,
+  lastSymbolMark: String, lastSignatureWidth: String, dateFormat: String,
 };
 
 function isPreferenceValue<K extends EditorPreferenceKey>(key: K, value: unknown): value is EditorPreferences[K] {

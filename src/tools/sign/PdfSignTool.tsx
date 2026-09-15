@@ -163,6 +163,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // size the user already dialed in instead of resetting to the default each time.
   const [lastSignatureWidth, setLastSignatureWidth] = useState(DEFAULT_START_WIDTH_PCT);
 
+  // Last date format chosen (dateFormat.ts's DateFormatId), remembered across
+  // new placements so switching the format on one field doesn't reset for the
+  // next 'date' tool placement.
+  const [lastDateFormat, setLastDateFormat] = useState('locale');
+
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
   const [activeSignature, setActiveSignature] = useState<SavedSignature | null>(null);
@@ -381,6 +386,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (stored) setLastSignatureWidth(stored);
   }, []);
 
+  // Load last-used date format from workspace preferences on mount.
+  useEffect(() => {
+    const stored = getEditorPreference('dateFormat');
+    if (stored) setLastDateFormat(stored);
+  }, []);
+
   // Storage events are only delivered to the *other* same-user tabs. Local
   // interactions update state directly; these subscriptions apply the store's
   // revision-ordered last-writer-wins result everywhere else.
@@ -401,6 +412,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       subscribeToEditorPreference('lastSymbolWidth', ({ value }) => { if (value) setLastSymbolWidth(value); }),
       subscribeToEditorPreference('lastSymbolMark', ({ value }) => { if (value) setLastSymbolMark(value); }),
       subscribeToEditorPreference('lastSignatureWidth', ({ value }) => { if (value) setLastSignatureWidth(value); }),
+      subscribeToEditorPreference('dateFormat', ({ value }) => { if (value) setLastDateFormat(value); }),
     ];
     return () => stops.forEach((stop) => stop());
   }, []);
@@ -458,6 +470,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const rememberDirection = (textDirection: TextDirection) => {
     setLastDirection(textDirection);
     setEditorPreference('lastDirection', textDirection);
+  };
+
+  // Remember the date format last chosen, for future 'date' tool placements
+  const rememberDateFormat = (formatId: string) => {
+    setLastDateFormat(formatId);
+    setEditorPreference('dateFormat', formatId);
   };
 
   // Save new signature to list & localStorage
@@ -954,8 +972,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
           value={{
-            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth,
-            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth
+            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
+            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
           }}
         >
           <SavedSignaturesContext.Provider

@@ -57,6 +57,16 @@
    flex wraps 9 real controls under an uncorrected --controls-per-row: 5. */
 .toolbar { --controls-per-row: 4; }
 .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 5; }
+/* The Date tool (SignToolbar.tsx) added an 11th real child to Sign's
+   Date+Feedback-visible case (was 10) - half of 11 rounded up is 6, not 5, so
+   this needs its own override, later in source order than the 9-of rule
+   above so it wins the cascade on a toolbar matched by both (every true-11
+   toolbar also has a 9th child). Date is `[data-optional-control]` alongside
+   Feedback (see its own comment in SignToolbar.tsx), so the two always show
+   or hide together and the real count is only ever 9 or 11 - never 10 - which
+   is what keeps the exactly-9/not-10 three-way-split selectors further down
+   correct with no changes of their own. */
+.toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 6; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -228,6 +238,19 @@
     .toolbar:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
+  /* 532.0px is where Sign's Date+Feedback-visible eleven controls stop fitting
+     one line at the touch floor (11 * 44 + 10 * 4.8), the same "N * --btn-min-
+     size + (N-1) gaps" arithmetic as the two thresholds above, one more tier
+     up now that Date is a real eleventh control on that toolbar (see the
+     --controls-per-row: 6 rule's own comment). Fires one pixel below, same
+     convention as 495px's whole-number case just above. No real toolbar's
+     true visible count sits at exactly 10 (Date and Feedback hide together),
+     so this and the 495px query never both match the same toolbar - which is
+     fine, since they'd compute the same flex-basis were they to overlap. */
+  @container toolbar (max-width: 531px) {
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
   /* Once even the two-row split stops fitting - five-per-row controls need
      252px of toolbar to fit even at the touch floor - split three ways
      instead, landing a true nine-visible toolbar as 3+3+3 rather than the
@@ -263,9 +286,17 @@
      wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
      that way once already, reproduced deterministically (every run, not an
      intermittent flake) against a real build and caught by CI. */
-  /* Sign's tenth control is the only one that does not act on the document, so
-     below 251px it stands down and lets the nine that do take the three-way
-     split above. Ten cannot be balanced here at all: the 44px touch floor caps
+  /* Feedback does not act on the document, so below 251px it stands down and
+     lets the nine that do take the three-way split above. Date joined it as a
+     second `[data-optional-control]` (SignToolbar.tsx) once it became an
+     eleventh real control on this same toolbar: unlike Feedback, hiding a
+     document-editing control is normally off the table (see below), but
+     Date's own capability is not lost when its toolbar shortcut is - the Text
+     tool's own insert-date control (ElementToolbar.tsx) reaches the same
+     "today's date" text from the row that never hides. The two hide and show
+     together (same attribute, same query), which is what keeps the real
+     count landing on exactly nine or eleven and never ten - nine controls
+     always visible, two optional. Ten cannot be balanced here at all: the 44px touch floor caps
      the line at four regardless of --controls-per-row, and greedy flex turns
      ten into 4+4+2 at a cap of four or five and 3+3+3+1 at three, while the
      balanced 4+3+3 is unreachable at every cap. Nine, by contrast, lands
@@ -291,6 +322,26 @@
      there and both tools keep one code path. */
   @container toolbar (max-width: 251px) {
     .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))):not(:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"])))) > * { --controls-per-row: 3; }
+  }
+
+  /* Eleven's own version of the 251px rule above, at eleven's own clamp point
+     rather than nine's: --controls-per-row: 6 needs each control at
+     (W - 5 * 4.8) / 6 >= 44px, which stops holding below 288.0px (fires one
+     pixel below, same whole-number convention as 495px/531px). Below it the
+     floor wins and flex packs greedily at whatever raw count of 44px targets
+     fits - 5 at this width, stranding the true eleven as 5+5+1. Dropping to
+     four instead lands it as 4+4+3 (a one-off balance, same shape as nine's
+     own 3+3+3): four holds above the 44px floor throughout this whole band,
+     from 240px (56.4px each) down to 287px (68.2px each), so unlike nine's
+     case this needs only one value, not a further three-way step at some
+     narrower width - eleven never gets small enough to need one, since below
+     239px Date and Feedback are gone and the real count is nine, already
+     covered above. Scoped the same way as nine's rule (has an 11th, matching
+     both Sign's true-eleven cases; there is no true-ten case per the comment
+     above the 251px rule, so no `:not(:has(nth-child(12...)))` guard is
+     needed the way nine's rule needs one against ten). */
+  @container toolbar (max-width: 287px) {
+    .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 4; }
   }
 
   /* 239.2px is where ten controls stop fitting five to a line at the touch
