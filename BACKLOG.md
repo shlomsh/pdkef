@@ -44,7 +44,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| MOBI-02 | P2 | [MOBI-02](backlog/tasks/MOBI-02.md) · A form filled in PDkef still ships with its live, empty fields |
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
@@ -63,6 +62,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| MOBI-02 | P2 | [MOBI-02](backlog/tasks/MOBI-02.md) · A form filled in PDkef still ships with its live, empty fields |
 | MOBI-03 | P1 | [MOBI-03](backlog/tasks/MOBI-03.md) · Recover fillable geometry from a flat form's own vector content |
 | MOBI-04 | P1 | [MOBI-04](backlog/tasks/MOBI-04.md) · Tap a detected comb run and type the whole number once |
 | MOBI-05 | P2 | [MOBI-05](backlog/tasks/MOBI-05.md) · Tap a detected checkbox to place a mark in it |
