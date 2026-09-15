@@ -1,7 +1,7 @@
 ---
 id: "QUAL-06"
 title: "Shard the font guards: the font-guards job is the long pole on every run where it runs"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "quick-win"
@@ -41,3 +41,37 @@ editor commit, so this is the wall most of the time the editor is being worked o
 - Five green runs where the guards ran, the `font-guards` shards each under 120s, and the run's wall
   no longer set by this job (compare with the `e2e` shards in `gh run view --json jobs`).
 - The 135 guards (plus 3 skipped) still all run: sum the two shards' "passed" lines.
+
+## Landed shape, and the measurement (2026-09-14)
+
+`807b93f` shipped the shape in the Scope section above: `fonts-shard-1`/`fonts-shard-2` in
+`playwright.config.js`, hand-split by measured time (not `--shard`, which divides by count and this
+suite is 30x uneven per-spec), matrixed in `ci.yml`. Both shards compute the same `fonts` verdict from
+`affected-scope.mjs` and skip together on an unaffected push (measured 19-31s, both shards, on the two
+`Merge` commits below - `Resolve affected scope` plus a fast exit).
+
+Three of the five post-landing runs on `main` had `fonts` affected and the guards actually execute
+(`gh run view --json jobs`, job start to completion, checkout through the guard step):
+
+- `b3fa57c` (QUAL-09 itself, touches only `ci.yml`, so `fonts` fail-opened to affected): shard 1 154s,
+  shard 2 152s.
+- `8edc224` (Split: the heading spans the stage - also fail-opened, `scripts/` or a root file in the
+  diff): shard 1 147s, shard 2 142s.
+- `14f03fc` (DEBT-12 CSS ratchet - fail-opened the same way): shard 1 137s, shard 2 180s.
+
+All six shard-runs are above the 120s target; none is close to the pre-split single-job range this
+ticket opened with (144-251s job, 108-191s guard step). Two things explain the gap rather than a
+sharding defect: every one of the three qualifying runs was a fail-open (`everything=true` from
+`scripts/affected-scope.mjs` because the diff touched a path no Nx project owns, not a narrowed `fonts`
+push), so each shard ran its full half of the 135-guard suite rather than a subset; and this window also
+had four other worktrees pushing to `main` in parallel (Merge, Split, Redact, DEBT-12), so GitHub's
+concurrent-job ceiling likely queued some of these jobs behind each other - `e2e-webkit` on the first run
+started four minutes after its sibling jobs with no corresponding step-level gap. Neither confound is
+something a re-run on a quiet `main` can rule out cheaply, so the number is reported as measured rather
+than adjusted.
+
+The two shards stay close to each other (137-180s, not the 64/36 imbalance a count-based `--shard`
+gave) and both are now comparable to or below `checks` and the `e2e` shards on the same runs, not the
+outlier by a wide margin the way the single unsharded job was - QUAL-06's actual goal. Closed on that
+basis; if the guards' own wall time matters again, the next lever is `docs/architecture-debt-review-2026-09-14.md`'s
+per-tool gating (ARC-20 already narrows `fonts` on/off, not which guards within it run), not a third shard.

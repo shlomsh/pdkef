@@ -306,10 +306,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
-| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
+_None._
 
 ### Blocked
 
@@ -325,6 +322,8 @@ _None._
 | ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
 | ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
+| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
+| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
 
 ### Retired
 
