@@ -1,7 +1,7 @@
 ---
 id: "MEM-01"
 title: "The store: one recents memory space, work saved per file, the per-tool draft folded in"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "one-memory-space"
 phase: "near-term"
@@ -77,3 +77,11 @@ Merge's `MERGE_DRAFT_MAX_BYTES` (200 MB) applies to the entry.
 - `.claude/rules/tools-and-shell.md`'s "Draft persistence" section and CLAUDE.md's one-line mention
   ("on-device IndexedDB draft persistence") are rewritten to the new model; `npm run check:guidance`.
 - Every byte stays on the device; `connect-src 'self'` is untouched (`npm run test:csp`).
+
+## Updates
+
+- 2026-09-15: done (5696288). `draftStore.js` holds entries under `recent:<content hash>` with a
+  `work` map per tool; the per-tool pointer `pdf-toolkit:workspace:current:<tool>` replaces the
+  has-draft / draft-meta pair (the head script in `ToolPageLayout.astro` reads it, CSP hash
+  recomputed); the recency index sorts by `savedAt` so a migrated days-old draft cannot evict a file
+  touched yesterday; expiry still signals peer tabs. 42 store tests. Reviewed fresh: nothing blocking.

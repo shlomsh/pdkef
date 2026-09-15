@@ -1,7 +1,7 @@
 ---
 id: "MEM-03"
 title: "Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "one-memory-space"
 phase: "near-term"
@@ -49,3 +49,12 @@ the promise is the same ("close the tab, come back, it's where you left it") and
   B opens; back on the home page A's tile still opens A with its work.
 - `BasePdfTool.test.tsx`: Replace confirms with and without work; a drop confirms after the fact.
 - `check:fast`, then the full `ci.yml` chain once before the push.
+
+## Updates
+
+- 2026-09-15: done (05c3b11). Dialog and its messages gone; a recent tile sets the pointer and hands
+  off, a Merge tile sets the pointer and navigates. Replace always asks with the copy above;
+  `hasWork`/`workNoun` removed from `BasePdfTool` and every tool. Sign FAQ and the home autosave
+  blurb updated (JSON-LD in step, `test:seo` green); `he/sign.yaml` and `he.yaml` twins are AI drafts
+  with recomputed `sourceHash`, pending Shlomi's read-through. Full `ci.yml` chain green locally
+  including Playwright (151 product + 5 perf + 134 font).

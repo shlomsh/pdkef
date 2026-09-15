@@ -367,32 +367,6 @@ _None._
 
 _None._
 
-## One memory space
-
-### Open
-
-_None._
-
-### In progress
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
-| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
-| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
-
-### Blocked
-
-_None._
-
-### Done
-
-_None._
-
-### Retired
-
-_None._
-
 # Closed epics
 
 Every task in these epics is done or retired. They collapse here so the board above is only live work; the task files keep the full record.
@@ -521,3 +495,17 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+
+## One memory space
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
+| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
+| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
+
+### Retired
+
+_None._

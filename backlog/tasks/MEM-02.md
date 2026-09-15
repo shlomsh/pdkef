@@ -1,7 +1,7 @@
 ---
 id: "MEM-02"
 title: "Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "one-memory-space"
 phase: "near-term"
@@ -33,3 +33,11 @@ legacy_state: "Open"
   page directly, the work is back. Open a second file from the home page, then reopen the first from
   its tile: its work is back too, nothing was overwritten.
 - Unit tests for the hook changes in place of the per-tool ones; `check:fast` green.
+
+## Updates
+
+- 2026-09-15: done (e151ab6). The hooks already behaved under the entry model; the one real fix was
+  Merge's "Compress it / Sign it" hand-off, which still asked about and deleted Sign's draft. Real-store
+  unit tests for two tools' work on one PDF and for Merge's Clear all keeping the set; one Playwright
+  resume-and-pointer spec per tool, executed green (the pointer move in a spec goes via the home page
+  first, since the editor's pagehide flush re-points at what it just saved).
