@@ -229,8 +229,6 @@ export default function PdfEditPagesTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file, pages.length)}
-      hasWork={hasEdits || status === 'done'}
-      workNoun="your page changes"
     >
       {hasFiles && (
         <div class="tool-workspace">

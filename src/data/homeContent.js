@@ -68,11 +68,14 @@ export const homeContent = {
   draftPersistence: {
     kicker: 'Privacy & Convenience',
     heading: 'Close the tab. Keep your progress.',
+    // MEM-03: the promise now also covers opening a different file - it used
+    // to only mention closing a tab or restarting the computer, back when a
+    // second file could overwrite the first one's saved work.
     paragraph:
-      'Your PDF and edits are saved in this browser as you work. Come back after closing a tab or restarting your computer and continue from your saved draft.',
+      "Your PDF and edits are saved in this browser as you work. Close the tab, restart your computer, or open a different file: everything stays exactly where you left it, ready in your recent files on the home page.",
     pill: 'Autosaved to device',
     availability:
-      'Available in <strong>Sign &amp; Fill</strong> and <strong>Redact &amp; Blur</strong>. Drafts stay on this device; clearing browser data removes them.',
+      'Available in <strong>Sign &amp; Fill</strong> and <strong>Redact &amp; Blur</strong>. Your saved work stays on this device; clearing browser data removes it.',
   },
   offlineInstall: {
     heading: 'Your PDF tools, even offline',

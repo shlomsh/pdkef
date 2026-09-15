@@ -505,8 +505,6 @@ export default function PdfSplitTool({
       file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages)}
-      hasWork={saved || pageSelector.trim() !== ''}
-      workNoun="your page selection"
     >
       {rejectedFiles.length > 0 && (
         <p class={pdfToolStyles['hint-message']} role="status">

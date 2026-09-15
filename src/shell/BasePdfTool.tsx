@@ -46,8 +46,6 @@ interface BasePdfToolProps {
    * thumbnails), gets today's icon unchanged. */
   file?: File | null;
   draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
-  hasWork?: boolean;
-  workNoun?: string;
   onClearAll?: () => void;
   clearSummary?: string;
   ownsShell?: boolean;
@@ -110,13 +108,6 @@ export default function BasePdfTool({
   fileMeta,
   file = null,
   draftSaveState = 'idle',
-  /* Is there anything a replacement would destroy? False skips the
-     confirmation entirely: nothing has been done to this file yet, so asking
-     would be noise. */
-  hasWork = false,
-  /* What the confirmation calls the thing being discarded, in the tool's own
-     words: it reads "...and discards your redaction boxes." */
-  workNoun,
   /* List tools only. Its presence is what puts a Clear all beside Add files:
      for a list those are two genuinely different intents, not the drift this
      shell exists to remove. */
@@ -153,7 +144,6 @@ export default function BasePdfTool({
   hideIdentity = false,
 }: BasePdfToolProps) {
   const sm: ShellMessages = { ...englishShellMessages, ...shellMessages };
-  const work = workNoun ?? sm.workDefault;
   const [isDraggingOverWorkspace, setIsDraggingOverWorkspace] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [confirmPickerOpen, setConfirmPickerOpen] = useState(false);
@@ -207,9 +197,12 @@ export default function BasePdfTool({
     // changes across that transition.
   }, [hasFiles, checkingDraft]);
 
-  // Adding to a list costs nothing and an untouched tool has nothing to lose;
-  // anything else has to be agreed to first.
-  const costsSomething = hasFiles && hasWork && !multiple;
+  // MEM-03: replacing a single loaded file always asks now, whether or not
+  // there is work on it to lose - the dialog no longer protects work, it
+  // just catches an unintended click and says the file isn't gone, only
+  // closed (see replaceOpening/replaceChoosing below). Adding to a list
+  // still costs nothing: `!multiple` is the only gate left.
+  const costsSomething = hasFiles && !multiple;
 
   // A dropped file arrives already chosen, so this is the earliest the user can
   // be asked - and because the file is in hand, the question can name it.
@@ -416,14 +409,16 @@ export default function BasePdfTool({
 
       {children}
 
-      {/* Replacing a file is the one destructive thing a single-file tool can
-          do, so it says what is going and what goes with it. It never appears
-          when there is nothing to lose - see `hasWork`.
+      {/* MEM-03: replacing a single loaded file always asks now - not to
+          protect work about to be lost (nothing is; the current file moves
+          to recents, it doesn't close for good), but to catch an unintended
+          click. The copy says so: it names what's closing and where it
+          goes, never "discards" or "can't be undone".
 
           Two ways in, asked at whichever point comes first. Pressing Replace
           asks before the picker opens, so nobody hunts through their filesystem
-          only to be told at the end that it will cost them; a dropped file is
-          already chosen, so that one can name it. */}
+          only to be told at the end what it costs; a dropped file is already
+          chosen, so that one can name it. */}
       <ConfirmDialog
         open={!!pendingFiles || confirmPickerOpen}
         titleId="confirm-replace-title"
@@ -435,17 +430,17 @@ export default function BasePdfTool({
         onConfirm={confirmReplace}
       >
         {/* The sentence is one template so a translator can reorder it; the
-            two file names are re-inserted as marked spans after formatting. */}
+            file names are re-inserted as marked spans after formatting. The
+            picker path never had a file to name, so it interpolates only
+            {current}. */}
         {renderTemplate(
           formatMessage(pendingFiles ? sm.replaceOpening : sm.replaceChoosing, {
             file: '\u0000file\u0000',
             current: '\u0000current\u0000',
-            work,
           }),
           { file: pendingFiles?.[0]?.name ?? '', current: fileLabel || sm.theCurrentPdf },
           dialogStyles['confirm-file'],
         )}
-        {' '}{sm.replaceTail}{draftSaveState === 'saved' ? ` ${sm.replaceDraftGoes}` : ''}
       </ConfirmDialog>
 
       <ConfirmDialog

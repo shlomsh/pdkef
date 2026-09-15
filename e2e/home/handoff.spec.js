@@ -16,9 +16,15 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
  * straight to the tool's own draft key, and because that store is keyed by tool
  * and saveDraft does a put(), one drop replaced a saved draft outright - source
  * bytes, annotations and all. The record it left behind had no fileBytes, so the
- * restore path skipped it and the dropped file was lost too. Both halves were
- * silent, which is why the third test below matters most: it declines the
- * confirmation and then checks the original draft is still there to be restored.
+ * restore path skipped it and the dropped file was lost too.
+ *
+ * MEM-03 (2026-09-15): the "Open this instead?" confirmation this file used to
+ * cover on the second and third tests is gone. Once a tool's work lives on its
+ * own recents entry rather than a fixed per-tool draft slot (MEM-01), opening a
+ * different file overwrites nothing, so there is nothing left to ask about -
+ * the replaced file becomes its own tile instead. The second test below now
+ * proves that directly: a drop hands off with no dialog, and the file it
+ * replaced is still there afterward, not lost the way the original bug lost it.
  */
 
 async function makePdfBuffer(label) {
@@ -175,7 +181,7 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
     await expect(identity(page)).toContainText('dropped-on-home.pdf');
   });
 
-  test('a drop that would discard a saved draft asks first, naming both files', async ({ page }) => {
+  test('a drop that would replace a saved draft hands off with no confirmation, and the replaced file stays in recents', async ({ page }) => {
     await seedSignDraft(page, {
       fileName: 'half-signed-lease.pdf',
       bytes: await makePdfBuffer('Lease'),
@@ -186,14 +192,8 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
       bytes: await makePdfBuffer('Dropped on the home page'),
     });
 
-    const dialog = page.getByRole('dialog', { name: 'Open this instead?' });
-    await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('dropped-on-home.pdf');
-    await expect(dialog).toContainText('half-signed-lease.pdf');
-    // The question is asked before anything is written, so we are still here.
-    expect(new URL(page.url()).pathname).toBe('/');
-
-    await dialog.getByRole('button', { name: 'Open it', exact: true }).click();
+    // MEM-03: no warning, ever - the dropped file hands off straight away.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     // '/sign/' with the slash: that is the canonical URL this site serves (see
     // CLAUDE.md, URL canonicalization), and the handoff now navigates straight
     // to it instead of to '/sign' and taking a 308 hop on the way. The glob
@@ -201,29 +201,22 @@ test.describe('home page hands a dropped PDF to the Sign tool', () => {
     // navigation that had already happened - the log even said so.
     await page.waitForURL('**/sign/');
     await expect(identity(page)).toContainText('dropped-on-home.pdf');
-  });
 
-  test('declining leaves the saved draft intact and restorable', async ({ page }) => {
-    await seedSignDraft(page, {
-      fileName: 'half-signed-lease.pdf',
-      bytes: await makePdfBuffer('Lease'),
+    // The whole point: the file this replaced is not gone. MEM-01 folds a
+    // legacy per-tool draft into the shared recents entry on first access, so
+    // it shows up back on the home page as its own tile, still there to
+    // resume - not silently destroyed the way the original bug destroyed it.
+    // That first access is the tool's own fire-and-forget cacheRecentFile
+    // (after a dynamic import and a page render), so wait for the migrated
+    // row to reach the recents index before leaving the page.
+    await page.waitForFunction(() => {
+      try {
+        return (localStorage.getItem('pdf-toolkit:workspace:recent-files') || '').includes('half-signed-lease.pdf');
+      } catch {
+        return false;
+      }
     });
-
-    await dropOnHomeDropzone(page, {
-      name: 'dropped-on-home.pdf',
-      bytes: await makePdfBuffer('Dropped on the home page'),
-    });
-
-    const dialog = page.getByRole('dialog', { name: 'Open this instead?' });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(dialog).toBeHidden();
-    expect(new URL(page.url()).pathname).toBe('/');
-
-    // The whole point: the draft the user did not agree to lose is still the one
-    // the Sign tool opens. Under the old code it had already been overwritten
-    // before this dialog could even be rendered.
-    await page.goto('/sign');
-    await expect(identity(page)).toContainText('half-signed-lease.pdf');
+    await page.goto('/');
+    await expect(page.locator('#home-files li').filter({ hasText: 'half-signed-lease.pdf' })).toHaveCount(1);
   });
 });

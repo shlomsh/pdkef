@@ -10,18 +10,9 @@ export interface RecentFileItem {
   preview?: string;
   savedAt?: number;
   bundledSample?: boolean;
-  /** MERGE-13: a saved Merge draft rather than a single cached source file -
-   * there is no `cacheId` to hand to `loadRecentFile` for one of these, since
-   * it is not one document but a file set plus a page plan. It renders as a
-   * plain navigation link instead of a button: the tool itself restores its
-   * own draft on load (see useMergeDraft.ts), so there is nothing for
-   * FileDropzone's handoff-confirmation flow to do here. */
-  draft?: boolean;
-  /** Output page count for a draft item, from draftStore's readDraftMeta. */
+  /** Output page count, e.g. a Merge entry's planned page total
+   * (draftStore's recency index). Shown as a second detail line when present. */
   pageCount?: number;
-  /** Where a draft item's link goes; built by FileDropzone from its own
-   * toolHref() so a localized page still resumes the localized edition. */
-  href?: string;
 }
 
 export default function RecentFiles({
@@ -73,28 +64,13 @@ export default function RecentFiles({
                 {identity}
                 <span class={styles.sub}>{meta.gridTitle}</span>
               </button>
-            ) : file.draft ? (
-              // A draft is a plain navigation link, not a button: there is no
-              // handoff confirmation to run first (unlike a recent *source*
-              // file, which could collide with a draft already open in the
-              // target tool - see openRecent in FileDropzone.tsx), because
-              // this already *is* that tool's own draft. The tool restores it
-              // itself on load.
-              <a
-                class={styles.document}
-                aria-label={formatMessage(messages.openRecentAriaLabel, { name: file.fileName })}
-                href={file.href || `/${file.tool}/`}
-              >
-                {identity}
-                <span class={styles.sub}>{meta.gridTitle}</span>
-                {typeof file.pageCount === 'number' && (
-                  <span class={styles.sub}>
-                    {file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })}
-                  </span>
-                )}
-                {savedAtLabel && <span class={styles.sub}>{savedAtLabel}</span>}
-              </a>
             ) : (
+              // MEM-03: every recent entry, Merge's file set included, opens
+              // through the same button now - the tool it belongs to already
+              // has its own work on it (draftStore.js's one memory space), so
+              // there is no per-tool draft it could collide with. See
+              // openRecent in FileDropzone.tsx for how a Merge row and an
+              // ordinary source file each resume from here.
               <button
                 type="button"
                 class={styles.document}
@@ -104,6 +80,11 @@ export default function RecentFiles({
               >
                 {identity}
                 <span class={styles.sub}>{meta.gridTitle}</span>
+                {typeof file.pageCount === 'number' && (
+                  <span class={styles.sub}>
+                    {file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })}
+                  </span>
+                )}
                 {savedAtLabel && <span class={styles.sub}>{savedAtLabel}</span>}
               </button>
             )}

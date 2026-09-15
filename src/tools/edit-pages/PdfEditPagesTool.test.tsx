@@ -274,7 +274,7 @@ describe('PdfEditPagesTool UI flow', () => {
 
     const confirmation = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
     expect(confirmation.open).toBe(true);
-    expect(confirmation.textContent).toContain('discards your page changes');
+    expect(confirmation.textContent).toContain('stays in your recent files');
 
     window.URL.createObjectURL = originalCreateObjectURL;
     window.URL.revokeObjectURL = originalRevokeObjectURL;

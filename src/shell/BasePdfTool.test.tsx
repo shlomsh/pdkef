@@ -227,9 +227,14 @@ describe('BasePdfTool', () => {
     expect(onFilesAddedSpy.mock.calls[0][0].map((f) => f.name)).toEqual(['a 10.pdf', 'b 2.pdf']);
   });
 
+  // MEM-03: a single-file tool now always confirms a replacement (see the
+  // Replace-dialog tests below), so this proves the plain input-change wiring
+  // on a `multiple` tool instead - Add still costs nothing regardless, and the
+  // mechanism (receiveFiles reading the FileList and handing it to
+  // onFilesAdded) is the same one a single-file tool uses once agreed to.
   it('handles file selection via input in the loaded state', () => {
     const onFilesAddedSpy = vi.fn();
-    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });
+    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: true, fileLabel: '3 PDFs' });
 
     const input = container.querySelector('input[type="file"]');
     const file = new File([''], 'replacement.pdf', { type: 'application/pdf' });
@@ -283,7 +288,16 @@ describe('BasePdfTool', () => {
       wrapper.dispatchEvent(dropEvent);
     });
 
+    // The overlay always clears on drop; what happens next to the file is a
+    // separate question - MEM-03: a single-file tool now always confirms
+    // before it reaches onFilesAdded, so the drop lands the confirmation
+    // dialog here rather than the file itself.
     expect(container.querySelector(`.${styles['drop-overlay']}`)).toBeNull();
+    expect(onFilesAddedSpy).not.toHaveBeenCalled();
+    const dialog = dialogNamed(container, 'confirm-replace-title');
+    expect(dialog.open).toBe(true);
+
+    act(() => dialogButton(dialog, 'Replace file').click());
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -301,15 +315,20 @@ describe('BasePdfTool', () => {
   // The gate that closed the drift: six of nine tools used to discard the user's
   // work on a file swap with no warning at all, and the three that did ask each
   // asked differently. One component decides now, from declared config.
-  it('asks BEFORE opening the picker when Replace is pressed', () => {
+  //
+  // MEM-03 (2026-09-15): the 2026-08-08 rule this test used to prove - confirm
+  // only when hasWork - is superseded. The dialog's meaning changed: it no
+  // longer protects work about to be destroyed (nothing is; the current file
+  // moves to recents, it doesn't close), it just catches an unintended click,
+  // so it asks every time regardless of hasWork. `hasWork: true` is passed
+  // below anyway to prove it no longer has any effect on whether this opens.
+  it('asks BEFORE opening the picker when Replace is pressed, whether or not there is work to lose', () => {
     const onFilesAddedSpy = vi.fn();
     mount({
       hasFiles: true,
       onFilesAdded: onFilesAddedSpy,
       multiple: false,
       fileLabel: 'contract.pdf',
-      hasWork: true,
-      workNoun: 'your annotations',
     });
 
     const input = container.querySelector('input[type="file"]');
@@ -318,14 +337,14 @@ describe('BasePdfTool', () => {
     const replace = container.querySelector(`.${toolShellStyles.action}`);
     act(() => replace.click());
 
-    // The point of the ordering: the warning arrives before the trip through
+    // The point of the ordering: the question arrives before the trip through
     // the OS picker, not after it.
     const dialog = dialogNamed(container, 'confirm-replace-title');
     expect(dialog.open).toBe(true);
     expect(openedPicker).not.toHaveBeenCalled();
-    expect(dialog.textContent).toContain('Choosing another file closes');
+    expect(dialog.textContent).toContain('This closes');
     expect(dialog.textContent).toContain('contract.pdf');
-    expect(dialog.textContent).toContain('discards your annotations');
+    expect(dialog.textContent).toContain('recent files');
 
     act(() => dialogButton(dialog, 'Cancel').click());
     expect(dialog.open).toBe(false);
@@ -341,14 +360,18 @@ describe('BasePdfTool', () => {
     expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the picker straight away when a replacement costs nothing', () => {
+  // Direct proof of the change: this used to be "opens the picker straight
+  // away when a replacement costs nothing" - hasWork defaulting to false used
+  // to skip the dialog entirely. It no longer does; see costsSomething in
+  // BasePdfTool.tsx.
+  it('still asks before opening the picker with nothing done to the file yet', () => {
     mount({ hasFiles: true, onFilesAdded: vi.fn(), multiple: false, fileLabel: 'contract.pdf' });
     const openedPicker = vi.spyOn(container.querySelector('input[type="file"]'), 'click');
 
     act(() => container.querySelector(`.${toolShellStyles.action}`).click());
 
-    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
-    expect(openedPicker).toHaveBeenCalledTimes(1);
+    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(true);
+    expect(openedPicker).not.toHaveBeenCalled();
   });
 
   it('asks about a dropped file by name, since that one arrives already chosen', () => {
@@ -358,8 +381,6 @@ describe('BasePdfTool', () => {
       onFilesAdded: onFilesAddedSpy,
       multiple: false,
       fileLabel: 'contract.pdf',
-      hasWork: true,
-      workNoun: 'your annotations',
     });
 
     const incoming = selectFile(container.querySelector('input[type="file"]'));
@@ -367,9 +388,9 @@ describe('BasePdfTool', () => {
 
     const dialog = dialogNamed(container, 'confirm-replace-title');
     expect(dialog.open).toBe(true);
-    expect(dialog.textContent).toContain('replacement.pdf');
+    expect(dialog.textContent).toContain('Opening replacement.pdf');
     expect(dialog.textContent).toContain('contract.pdf');
-    expect(dialog.textContent).toContain('discards your annotations');
+    expect(dialog.textContent).toContain('recent files');
 
     act(() => dialogButton(dialog, 'Cancel').click());
     expect(dialog.open).toBe(false);
@@ -381,27 +402,22 @@ describe('BasePdfTool', () => {
     expect(onFilesAddedSpy.mock.calls[0][0][0].name).toBe(incoming.name);
   });
 
-  it('mentions the saved draft only when there is one to lose', () => {
+  // MEM-03: "Your saved draft goes with it.", conditional on
+  // draftSaveState === 'saved', is gone - the sentence always says the
+  // closed file stays in recents now, whether or not a save has landed yet.
+  // Replaces the old "mentions the saved draft only when there is one to
+  // lose" test, which existed only to prove that condition.
+  it('always says the closed file stays in recent files, regardless of save state', () => {
     mount({
       hasFiles: true,
       onFilesAdded: vi.fn(),
       multiple: false,
       fileLabel: 'contract.pdf',
-      hasWork: true,
-      draftSaveState: 'saved',
+      draftSaveState: 'idle',
     });
 
     selectFile(container.querySelector('input[type="file"]'));
-    expect(dialogNamed(container, 'confirm-replace-title').textContent).toContain('Your saved draft goes with it.');
-  });
-
-  it('skips the prompt when nothing has been done to the file yet', () => {
-    const onFilesAddedSpy = vi.fn();
-    mount({ hasFiles: true, onFilesAdded: onFilesAddedSpy, multiple: false, fileLabel: 'contract.pdf' });
-
-    selectFile(container.querySelector('input[type="file"]'));
-    expect(dialogNamed(container, 'confirm-replace-title').open).toBe(false);
-    expect(onFilesAddedSpy).toHaveBeenCalledTimes(1);
+    expect(dialogNamed(container, 'confirm-replace-title').textContent).toContain('recent files');
   });
 
   it('never prompts a list tool for adding files, but does for clearing them', () => {
@@ -413,7 +429,6 @@ describe('BasePdfTool', () => {
       onClearAll: onClearAllSpy,
       clearSummary: '3 PDFs',
       fileLabel: '3 PDFs',
-      hasWork: true,
     });
 
     selectFile(container.querySelector('input[type="file"]'));

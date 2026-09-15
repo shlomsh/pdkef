@@ -45,42 +45,30 @@ describe('RecentFiles', () => {
     expect(onOpenRecent).toHaveBeenCalledWith(file);
   });
 
-  // MERGE-13: a saved Merge draft resumes straight through a link, since the
-  // tool restores its own draft on load - there is no handoff confirmation to
-  // run first the way an ordinary recent *source* file needs (see
-  // openRecent in FileDropzone.tsx).
-  it('renders a merge draft as a plain link, with its page count and no busy/disabled state', () => {
+  // MEM-01 folded Merge's entry into the same recency index every other
+  // tool's work lives in, so a saved Merge set is an ordinary row here now,
+  // not a special link - see this file's own comment on the button branch,
+  // and openRecent in FileDropzone.tsx for how it resumes from the click.
+  it('renders a saved merge set as the ordinary button, with its page count', () => {
     const onOpenRecent = vi.fn();
-    mount([{
-      tool: 'merge',
-      fileName: 'invoice + 2 more',
-      draft: true,
-      href: '/merge/',
-      pageCount: 7,
-      savedAt: Date.now() - 60_000,
-    }], { onOpenRecent, busy: true });
+    const file = {
+      cacheId: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more',
+      pageCount: 7, savedAt: Date.now() - 60_000,
+    };
+    mount([file], { onOpenRecent });
 
-    // Not the ordinary cached-file button path.
-    expect(container.querySelector('button')).toBeNull();
-    const link = container.querySelector('a');
-    expect(link).not.toBeNull();
-    expect(link.getAttribute('href')).toBe('/merge/');
-    expect(link.textContent).toContain('invoice + 2 more');
-    expect(link.textContent).toContain('Merge PDF');
-    expect(link.textContent).toContain('7 pages');
-    link.click();
-    // A plain navigation link, not wired to the recent-file open handler.
-    expect(onOpenRecent).not.toHaveBeenCalled();
+    expect(container.querySelector('a')).toBeNull();
+    const button = container.querySelector('button[aria-label^="Open recent PDF"]');
+    expect(button).not.toBeNull();
+    expect(button.textContent).toContain('invoice + 2 more');
+    expect(button.textContent).toContain('Merge PDF');
+    expect(button.textContent).toContain('7 pages');
+    button.click();
+    expect(onOpenRecent).toHaveBeenCalledWith(file);
   });
 
-  it('omits the page count line when a draft has none yet', () => {
-    mount([{ tool: 'merge', fileName: 'a.pdf', draft: true, href: '/merge/' }]);
-    const link = container.querySelector('a');
-    expect(link.textContent).not.toMatch(/page/);
-  });
-
-  it('falls back to /<tool>/ when a draft item carries no href', () => {
-    mount([{ tool: 'merge', fileName: 'a.pdf', draft: true }]);
-    expect(container.querySelector('a').getAttribute('href')).toBe('/merge/');
+  it('omits the page count line when a file has none', () => {
+    mount([{ cacheId: 'sha256:x', tool: 'sign', fileName: 'a.pdf' }]);
+    expect(container.querySelector('button').textContent).not.toMatch(/page/);
   });
 });

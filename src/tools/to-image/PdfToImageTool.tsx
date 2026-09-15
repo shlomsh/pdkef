@@ -149,8 +149,6 @@ export default function PdfToImageTool() {
       multiple={false}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
-      hasWork={status === 'done' || pageSelector.trim() !== ''}
-      workNoun="the images you just made"
     >
       {hasFiles && (
         <div class="tool-workspace">

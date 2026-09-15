@@ -104,8 +104,6 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
-      hasWork={status === 'done' || password !== ''}
-      workNoun="the password you entered"
     >
       {hasFiles && mode && (
         <div class="tool-workspace">

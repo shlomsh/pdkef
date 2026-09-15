@@ -287,9 +287,9 @@ test.describe('Redact editor browser guardrails', () => {
 
     await page.getByRole('button', { name: 'Replace file', exact: true }).click();
 
-    const confirmation = page.getByRole('dialog', { name: 'Replace this file?' });
+    const confirmation = page.getByRole('dialog', { name: 'Open a different file?' });
     await expect(confirmation).toBeVisible();
-    await expect(confirmation).toContainText('discards your redaction boxes');
+    await expect(confirmation).toContainText('stays in your recent files');
 
     // The first Escape closes the top-layer dialog; it must not also exit full screen.
     await page.keyboard.press('Escape');
