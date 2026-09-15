@@ -4,6 +4,7 @@ paths:
   - "src/editor-ui/**"
   - "src/tools/sign/**"
   - "src/tools/redact/**"
+  - "src/lib/gestures/**"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
   - "docs/E4-headless-editor-core-plan.md"
@@ -29,11 +30,14 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
 ## Shape of the editor (landed, do not re-migrate)
 
 - `src/editor/` is meant to be plain TS with no Preact: the document model (`model/editorModel.ts`,
-  one typed union keyed on the flat `type` discriminant), geometry, the gesture controller
-  (`gestures/controller.ts`), and a per-type registry (`registry/`: render, resize, serialize,
-  schema per module; `blackout`, `blur` and `whiteout` are each a module). Preact only renders from
-  state and binds events to the core. Sign and Redact both sit on it. This is a checked invariant, not
-  just prose: `npm run test:module-boundaries` fails on any new `src/editor/` import of a tool or of
+  one typed union keyed on the flat `type` discriminant), geometry, and a per-type registry
+  (`registry/`: render, resize, serialize, schema per module; `blackout`, `blur` and `whiteout` are
+  each a module). The gesture controller (`src/lib/gestures/controller.ts`) moved out of the editor
+  under DEBT-04 (part 2): `CompareSlider` (shell) needed the same golden-rule engine for its
+  before/after drag handle, so it now lives in `src/lib/` alongside the editor's own consumers
+  (Sign, Redact, `editor-ui`'s drag/resize hooks) - see the Gesture golden rule section below. Preact
+  only renders from state and binds events to the core. Sign and Redact both sit on it. This is a
+  checked invariant, not just prose: `npm run test:module-boundaries` fails on any new `src/editor/` import of a tool or of
   `src/components`, with no editor entry left on the allowlist since ARCH-19. The core never
   imports a tool's Preact components: a tool builds its own renderer map with
   `registry/renderers.ts`'s `createElementRenderers(nodeComponents)`, called once from its own entry

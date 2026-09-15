@@ -8,7 +8,7 @@ import {
 } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getPointerCoords } from '../../editor/gestures/pointer.ts';
-import type { GestureEvent } from '../../editor/gestures/controller.ts';
+import type { GestureEvent } from '../../lib/gestures/controller.ts';
 
 type MeasurableElement = Pick<Element, 'getBoundingClientRect'>;
 

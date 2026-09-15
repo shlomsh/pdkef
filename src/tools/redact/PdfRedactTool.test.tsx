@@ -12,7 +12,7 @@ import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
-import type { GestureControllerOptions } from '../../editor/gestures/controller.ts';
+import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
 
 declare const __dirname: string;
 
@@ -33,8 +33,8 @@ const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Moc
 // Exercise the real controller while wrapping each commit callback. This proves
 // the Redact integration, rather than only controller.ts in isolation, commits
 // one final state patch regardless of how many pointer moves a gesture has.
-vi.mock('../../editor/gestures/controller.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../editor/gestures/controller.ts')>();
+vi.mock('../../lib/gestures/controller.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/gestures/controller.ts')>();
   return {
     ...actual,
     startGesture: <Patch,>(options: GestureControllerOptions<Patch>) => {

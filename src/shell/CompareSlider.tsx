@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { startGesture } from '../editor/gestures/controller.ts';
+import { startGesture } from '../lib/gestures/controller.ts';
 import styles from './CompareSlider.module.css';
 
 interface CompareSliderProps {
@@ -19,7 +19,7 @@ const ARROW_STEP = 5;
 
 // A before/after reveal slider for the Compress tool (SEO-25). Built on the
 // same "imperative-during, commit-on-release" gesture controller Sign and
-// Redact use for drag/resize/create (src/editor/gestures/controller.ts) -
+// Redact use for drag/resize/create (src/lib/gestures/controller.ts) -
 // see CLAUDE.md's gesture golden rule (Part II §1.2/§4). During the drag the
 // handle position is written straight to a CSS custom property on the
 // container (no Preact state per frame); the final position commits to
