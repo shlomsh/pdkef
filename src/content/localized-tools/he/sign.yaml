@@ -34,7 +34,7 @@ reviewNotes: >-
   and to FAQ answers outside this page's translated subset (Hindi/Marathi,
   Vietnamese, Bengali, Turkish, Cyrillic/Thai); nothing this page renders
   changed. Hash recomputed once on the merged tree, not per font.
-sourceHash: 'fnv1a64:d8a1a79d9606755f'
+sourceHash: 'fnv1a64:90788668f9271e4b'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי
@@ -114,13 +114,19 @@ faq:
       כן. הכלי הזה רץ כולו על המכשיר שלכם, אז אין חשבון ואין עותק של
       המסמך בצד שרת. תמונת החתימה מוטבעת בקובץ ה-PDF בזיכרון בלבד, ולעולם
       לא עוזבת את המחשב או הנייד שלכם.
+  # MEM-03 (2026-09-15): re-translated to match tools.js's updated English -
+  # opening a different file no longer clears this one's saved work, so the
+  # old "עד שתחליפו את הקובץ" (until you replace the file) claim is gone.
+  # AI draft, not reviewed copy, pending Shlomi's read-through - unlike the
+  # rest of this page, which stays reviewed and unaffected.
   - question: 'מה קורה אם הדפדפן קורס באמצע מילוי טופס?'
     answer: >-
       העבודה שלכם לא נעלמת. תוך כדי הוספת טקסט, סמלים וחתימות, הכלי שומר
       את ההתקדמות אוטומטית באחסון מקומי בדפדפן שלכם, ומשחזר אותה
       אוטומטית בפעם הבאה שתפתחו את הכלי באותו מכשיר. מכיוון שזה קורה על
-      המכשיר שלכם, הקובץ עדיין לעולם לא מועלה, והטיוטה השמורה נשארת עד
-      שתחליפו את הקובץ, או במשך 14 יום אם לא תחזרו.
+      המכשיר שלכם, הקובץ עדיין לעולם לא מועלה. גם פתיחת קובץ אחר לא
+      מוחקת את זה: הוא נשאר ברשימת הקבצים האחרונים בדף הבית, מוכן להמשך,
+      למשך עד 14 יום.
   - question: 'השפה שלי תצא נכון בקובץ שהורדתי, או תהפוך לריבועים ריקים?'
     answer: >-
       נכון, בכל פעם, כי הגופנים מגיעים בתוך הכלי במקום להסתמך על מה

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta, readCurrentEntryId } from '../lib/drafts/draftStore.js';
-import ConfirmDialog from './ConfirmDialog.tsx';
-import dialogStyles from './Dialog.module.css';
+import { saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
@@ -9,54 +7,17 @@ import { tools } from '../data/tools.js';
 import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
 
-/* MERGE-13: a saved Merge draft is not something openRecent's generic
-   handoff flow can open (it holds a file set and a page plan, not one PDF
-   to hand to a single target tool), so it is read from draftStore's own
-   pointer and prepended, first, ahead of the ordinary recents list - the
-   most recently touched document on this device is either the thing you
-   were in the middle of, or the last thing you opened, and the draft
-   always wins that comparison when one exists.
-
-   MEM-01 folded Merge's entry into the same recents index every other
-   tool's work lives in (draftStore.js's one memory space), so the same
-   entry would otherwise also come back from readRecentFiles() below and
-   render a second time. Filtering it out by id, rather than by tool, is
-   what keeps this correct once MEM-02/03 lets a Sign/Redact tile carry
-   work too - only the entry already shown above is excluded, never a
-   different file that merely happens to be Merge's most recent. */
-function readHomeRecents(toolHref: (tool: string) => string): RecentFileItem[] {
-  const items: RecentFileItem[] = [];
-  const draft = readDraftMeta('merge');
-  const draftId = readCurrentEntryId('merge');
-  if (draft?.fileName) {
-    items.push({
-      tool: 'merge',
-      fileName: draft.fileName,
-      preview: draft.preview,
-      savedAt: draft.savedAt,
-      draft: true,
-      href: toolHref('merge'),
-      pageCount: typeof draft.pageCount === 'number' && Number.isFinite(draft.pageCount) ? draft.pageCount : undefined,
-    });
-  }
-  return items
-    .concat(readRecentFiles().filter((entry: any) => entry.id !== draftId).map((entry: any) => ({ ...entry, cacheId: entry.id })))
-    .slice(0, 6);
+/* MEM-03: every entry in the recency index - Sign/Redact source PDFs and a
+   Merge file set alike - is an ordinary row now that work lives on the entry
+   rather than in a separate per-tool draft slot (draftStore.js's one memory
+   space). There is no longer a Merge-only row to read separately and dedupe
+   against this list. readRecentFiles() already caps at six itself; the slice
+   here is the same belt-and-suspenders this always had, not new capping
+   logic. */
+function readHomeRecents(): RecentFileItem[] {
+  return readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })).slice(0, 6);
 }
 
-/* Splits messages.confirmHandoffBody on its literal '{file}'/'{draft}'
-   placeholders and re-inserts the two file names as styled spans, so a
-   translated sentence can reorder them freely while keeping the
-   .confirm-file emphasis - the same idea as BasePdfTool.tsx's own
-   renderTemplate, using the plain placeholder text as the split marker
-   instead of a NUL sentinel. */
-function renderConfirmBody(template: string, file: string, draft: string) {
-  return template.split(/(\{file\}|\{draft\})/).map((part, index) => {
-    if (part === '{file}') return <span key={index} class={dialogStyles['confirm-file']}>{file}</span>;
-    if (part === '{draft}') return <span key={index} class={dialogStyles['confirm-file']}>{draft}</span>;
-    return part;
-  });
-}
 export default function FileDropzone({
   toolTarget,
   final = false,
@@ -82,7 +43,6 @@ export default function FileDropzone({
   toolHrefs?: Record<string, string>;
 }) {
   const toolHref = (tool: string) => toolHrefs?.[tool] ?? `/${tool}/`;
-  const [pending, setPending] = useState<{ file: File; draftName?: string; tool: string } | null>(null);
   // `null` means "browser storage has not been read yet", and it is the state
   // both the server render and the client's first render start from, so the
   // two agree by construction. That agreement is the whole point: recent files
@@ -97,14 +57,16 @@ export default function FileDropzone({
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
-  const handOff = async (file: File, { discardDraft = false, tool = toolTarget }: { discardDraft?: boolean; tool?: string } = {}) => {
+  // MEM-03: no more "Open this instead?" - once work lives on the entry
+  // rather than a per-tool draft slot, opening a file here overwrites
+  // nothing, so a hand-off is just park-the-bytes-then-navigate.
+  const handOff = async (file: File, tool = toolTarget) => {
     setBusy(true);
     try {
       const saved = await saveHandoff(tool, {
         fileName: file.name, fileType: file.type || 'application/pdf', fileBytes: await file.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
-      if (discardDraft && !(await deleteDraft(tool))) throw new Error('draft');
       window.location.href = toolHref(tool);
     } catch {
       setError(messages.handoffFailed);
@@ -118,29 +80,31 @@ export default function FileDropzone({
     const file = incoming[0];
     if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf') { setError(messages.notAPdf); return; }
     setError('');
-    const draft: any = await loadDraft(toolTarget);
-    if (draft?.fileBytes || draft?.files) setPending({ file, draftName: draft.fileName, tool: toolTarget });
-    else await handOff(file);
+    await handOff(file);
   };
   const openRecent = async (recent: RecentFileItem) => {
     if (busy || !recent.cacheId) return;
     setBusy(true);
+    // A Merge entry holds a file set and a page plan, not one PDF a
+    // single-file hand-off can carry (saveHandoff's contract), so it can't go
+    // through handOff the way every other tool's recent file does. Point the
+    // tool at this entry directly; it restores itself from the pointer.
+    if (recent.tool === 'merge') {
+      setCurrentEntry('merge', recent.cacheId);
+      window.location.href = toolHref('merge');
+      return;
+    }
     try {
       const cached: any = await loadRecentFile(recent.cacheId);
       if (!cached?.fileBytes) throw new Error('missing-recent');
       const target = cached.tool || recent.tool;
+      // The entry behind this tile already exists, so its pointer can be set
+      // synchronously here - the cheapest way to make the target tool resume
+      // it (its pre-paint hint, hasDraftHint) even before the hand-off below
+      // is consumed on the next page load.
+      setCurrentEntry(target, recent.cacheId);
       const file = new File([cached.fileBytes], cached.fileName, { type: cached.fileType || 'application/pdf' });
-      const draft: any = await loadDraft(target);
-      if (draft?.fileBytes || draft?.files) {
-        if (draft.sourceId === recent.cacheId) {
-          window.location.href = toolHref(target);
-          return;
-        }
-        setPending({ file, draftName: draft.fileName, tool: target });
-        setBusy(false);
-      } else {
-        await handOff(file, { tool: target });
-      }
+      await handOff(file, target);
     } catch {
       setError(messages.recentFileUnavailable);
       setBusy(false);
@@ -184,7 +148,7 @@ export default function FileDropzone({
     return () => cleanups.forEach(cleanup => cleanup());
   }, [busy, final]);
   useEffect(() => {
-    const refresh = () => setRecents(readHomeRecents(toolHref));
+    const refresh = () => setRecents(readHomeRecents());
     refresh();
     window.addEventListener('pageshow', refresh);
     window.addEventListener('storage', refresh);
@@ -250,19 +214,6 @@ export default function FileDropzone({
         void handleFiles(files);
       }} />
       {error && <p class={styles.error} role="alert">{error}</p>}
-      <ConfirmDialog
-        open={!!pending}
-        titleId={final ? 'confirm-final-handoff' : 'confirm-handoff'}
-        title={messages.confirmHandoffTitle}
-        confirmLabel={messages.confirmHandoffConfirm}
-        cancelLabel={messages.cancelLabel}
-        closeLabel={messages.closeLabel}
-        onCancel={() => setPending(null)} onConfirm={() => {
-          const next = pending; setPending(null);
-          if (next) void handOff(next.file, { discardDraft: true, tool: next.tool });
-        }}>
-        {renderConfirmBody(messages.confirmHandoffBody, pending?.file.name ?? '', pending?.draftName ?? '')}
-      </ConfirmDialog>
     </div>
   );
 }

@@ -43,12 +43,17 @@ founderStory:
       subtitle: 'הקבצים לא עוזבים את המכשיר שלכם'
     - title: 'קוד פתוח'
       subtitle: 'בדקו את הקוד בעצמכם'
+# MEM-03: paragraph/availability re-translated (AI draft, not reviewed copy
+# - the same caveat this file's header already carries) to match
+# homeContent.js's updated English, which now also covers opening a
+# different file and coming back to the first from the home page, not only
+# closing the tab or restarting the computer.
 draftPersistence:
   kicker: 'פרטיות ונוחות'
   heading: 'סוגרים את הלשונית. שומרים על ההתקדמות.'
-  paragraph: 'קובץ ה-PDF והעריכות שלכם נשמרים בדפדפן הזה תוך כדי העבודה. חוזרים אחרי סגירת לשונית או הפעלה מחדש של המחשב, וממשיכים מהטיוטה השמורה.'
+  paragraph: 'קובץ ה-PDF והעריכות שלכם נשמרים בדפדפן הזה תוך כדי העבודה. סוגרים לשונית, מפעילים מחדש את המחשב, או פותחים קובץ אחר: הכול נשאר בדיוק איפה שהפסקתם, מוכן ברשימת הקבצים האחרונים בדף הבית.'
   pill: 'נשמר אוטומטית במכשיר'
-  availability: 'זמין בכלים <strong>חתימה ומילוי</strong> ו<strong>טשטוש ומחיקה</strong>. הטיוטות נשארות במכשיר הזה, וניקוי נתוני הדפדפן מוחק אותן.'
+  availability: 'זמין בכלים <strong>חתימה ומילוי</strong> ו<strong>טשטוש ומחיקה</strong>. העבודה השמורה שלכם נשארת במכשיר הזה, וניקוי נתוני הדפדפן מוחק אותה.'
 offlineInstall:
   heading: 'כלי ה-PDF שלכם, גם בלי אינטרנט'
   lead: 'התקינו את PDkef כדי לקבל מקום על מסך הבית. ברגע שכלי מוכן לעבודה לא מקוונת, תוכלו לעבוד גם בלי חיבור לאינטרנט.'
@@ -88,5 +93,8 @@ reviewNotes: >-
   section 7, then read through by Shlomi on the rendered page. 2026-09-12
   (SEO-34): English title, description, subhead and faq changed to target
   "pdf tools"; Hebrew does not yet mirror them; re-reviewed and approved by
-  Shlomi on the deployed site the same day.
-sourceHash: 'fnv1a64:4fab6a78a1930af9'
+  Shlomi on the deployed site the same day. 2026-09-15 (MEM-03):
+  draftPersistence.paragraph/availability changed in homeContent.js (opening
+  a different file no longer clears saved work) and re-translated to match;
+  not yet re-reviewed.
+sourceHash: 'fnv1a64:589f978553f6aaf5'

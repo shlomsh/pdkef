@@ -75,7 +75,7 @@ describe('PdfSecurityTool', () => {
   // Replace is the one file action this tool has now: Start over used to sit
   // beside it saying the same thing, once in the form above and again under the
   // result. Swapping the file while a password is typed still has to ask.
-  it('confirms before a replacement discards the password', async () => {
+  it('confirms before a replacement closes the file with a password typed', async () => {
     securityLib.isPdfEncrypted.mockResolvedValue(true);
     mount();
 
@@ -92,7 +92,7 @@ describe('PdfSecurityTool', () => {
     expect(dialog.open).toBe(true);
     expect(dialog.textContent).toContain('replacement.pdf');
     expect(dialog.textContent).toContain('test.pdf');
-    expect(dialog.textContent).toContain('discards the password you entered');
+    expect(dialog.textContent).toContain('stays in your recent files');
 
     const cancel = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Cancel');
     await act(async () => cancel.click());
@@ -109,7 +109,10 @@ describe('PdfSecurityTool', () => {
     expect(container.textContent).toContain('replacement.pdf');
   });
 
-  it('replaces without asking when nothing has been entered yet', async () => {
+  // MEM-03: Replace always asks, even with nothing entered yet. The dialog no
+  // longer guards work (the file stays in recent files with whatever was done
+  // to it); it catches an unintended click.
+  it('still asks before replacing when nothing has been entered yet', async () => {
     securityLib.isPdfEncrypted.mockResolvedValue(true);
     mount();
 
@@ -117,8 +120,9 @@ describe('PdfSecurityTool', () => {
     await loadFile('replacement.pdf');
 
     const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
-    expect(dialog.open).toBe(false);
-    expect(container.textContent).toContain('replacement.pdf');
+    expect(dialog.open).toBe(true);
+    expect(dialog.textContent).toContain('closes test.pdf');
+    expect(container.textContent).toContain('File "test.pdf" loaded');
   });
 
   it('performs unlocking successfully', async () => {

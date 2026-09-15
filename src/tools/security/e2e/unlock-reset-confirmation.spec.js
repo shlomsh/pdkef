@@ -9,8 +9,9 @@ async function makePdfBuffer() {
 
 // Unlock used to show two controls that both meant "give me a different file":
 // Start over above the form and Start over again under the result. There is one
-// now, Replace file, and it still has to ask before it throws anything away.
-test('asks before a replacement discards the Unlock password', async ({ page }) => {
+// now, Replace file, and it always asks first (MEM-03): the dialog catches an
+// unintended click, the file itself stays in recent files.
+test('asks before a replacement closes the file, even with only a password typed', async ({ page }) => {
   await page.goto('/unlock');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -26,7 +27,7 @@ test('asks before a replacement discards the Unlock password', async ({ page }) 
   // an unscoped text match is ambiguous while the dialog is in the DOM.
   const identity = page.locator('[class*="_identity_"]');
   const replace = page.getByRole('button', { name: 'Replace file', exact: true });
-  const dialog = page.getByRole('dialog', { name: 'Replace this file?' });
+  const dialog = page.getByRole('dialog', { name: 'Open a different file?' });
 
   // Pressing Replace asks first; the picker only opens once the answer is yes,
   // so nobody walks through their filesystem to be warned at the end of it.
@@ -44,8 +45,8 @@ test('asks before a replacement discards the Unlock password', async ({ page }) 
 
   await replace.click();
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText('Choosing another file closes');
-  await expect(dialog).toContainText('discards the password you entered');
+  await expect(dialog).toContainText('This closes');
+  await expect(dialog).toContainText('stays in your recent files');
 
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
   await expect(dialog).toBeHidden();

@@ -140,9 +140,6 @@ export interface MergeMessages {
    * it shares one row with Compress it, Sign it and Options on a phone. */
   shareLabel: string;
   handoffSign: string;
-  handoffConfirmTitle: string;
-  handoffConfirmBody: string;
-  handoffConfirm: string;
   handoffFailed: string;
   installLine: string;
   installWithPrompt: string;
@@ -253,9 +250,9 @@ const englishMergeMessages: MergeMessages = {
   handoffCompress: 'Compress it',
   shareLabel: 'Share',
   handoffSign: 'Sign it',
-  handoffConfirmTitle: 'Replace the saved draft?',
-  handoffConfirmBody: 'That tool still has a draft saved on this device: {draft}. Opening the merged file there replaces it.',
-  handoffConfirm: 'Replace and open',
+  // MEM-03: handoffConfirm* (the "Replace the saved draft?" warning) is gone
+  // - MEM-02 dropped its last consumer in PdfMergeTool.tsx alongside the
+  // same one-memory-space change this file's Replace-dialog copy reflects.
   handoffFailed: 'Could not hand the file over. Download it instead.',
   installLine: 'This page is saved in your browser now, so merging works even without a connection.',
   installWithPrompt: 'You can also {install} it like an app.',
@@ -363,9 +360,6 @@ const hebrewMergeMessages: MergeMessages = {
   handoffCompress: 'לכווץ אותו',
   shareLabel: 'שיתוף',
   handoffSign: 'לחתום עליו',
-  handoffConfirmTitle: 'להחליף את הטיוטה השמורה?',
-  handoffConfirmBody: 'בכלי הזה עדיין שמורה טיוטה על המכשיר: {draft}. פתיחת הקובץ המאוחד שם תחליף אותה.',
-  handoffConfirm: 'להחליף ולפתוח',
   handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   installLine: 'הדף הזה שמור עכשיו בדפדפן, אז המיזוג עובד גם בלי חיבור לאינטרנט.',
   installWithPrompt: 'אפשר גם {install} אותו כמו אפליקציה.',
@@ -448,7 +442,6 @@ export interface CompressMessages {
   sharedSuccessfully: string;
   sharingCanceled: string;
   shareError: string;
-  workNoun: string;
   /* One island now accepts a PDF, JPEG or PNG (the board-epic-cleanup merge
    * of the standalone Compress Image tool into this one) and dispatches by
    * file type at runtime, so its message catalogue carries both flavours.
@@ -474,7 +467,6 @@ export interface CompressMessages {
   imageFailed: string;
   imageSharedSuccessfully: string;
   imageSharingCanceled: string;
-  imageWorkNoun: string;
   /* Button anchor (SEO-25, 2026-09-12): DownloadButton's second line and the
    * compare toggle's two states. Shared by the PDF and image halves alike -
    * both compute the same shape of detail line and use the same toggle. */
@@ -540,7 +532,6 @@ const englishCompressMessages: CompressMessages = {
   sharedSuccessfully: 'Compressed PDF shared successfully.',
   sharingCanceled: 'Sharing canceled. Your compressed PDF is still ready.',
   shareError: 'Could not open the share sheet. Please try again.',
-  workNoun: 'the compressed PDF you just made',
   compressImage: 'Compress Image',
   imageCompressionFailedBody: 'The file may be corrupted or an unsupported image. Please try another JPG or PNG.',
   imageSuccessTitle: 'Image Successfully Compressed!',
@@ -558,7 +549,6 @@ const englishCompressMessages: CompressMessages = {
   imageFailed: 'Image compression failed.',
   imageSharedSuccessfully: 'Compressed image shared successfully.',
   imageSharingCanceled: 'Sharing canceled. Your compressed image is still ready.',
-  imageWorkNoun: 'the compressed image you just made',
   downloadDetailSmaller: '{size}, {percent}% smaller',
   downloadDetailClosest: 'closest achievable: {size}',
   compareShow: 'Compare with original',
@@ -639,7 +629,6 @@ const hebrewCompressMessages: CompressMessages = {
   sharedSuccessfully: 'ה-PDF המכווץ שותף.',
   sharingCanceled: 'השיתוף בוטל. ה-PDF המכווץ עדיין מוכן.',
   shareError: 'לא הצלחנו לפתוח את חלון השיתוף. נסו שוב.',
-  workNoun: 'ה-PDF המכווץ שיצרתם',
   compressImage: 'כיווץ תמונה',
   imageCompressionFailedBody: 'ייתכן שהקובץ פגום או שזה סוג תמונה לא נתמך. נסו קובץ JPG או PNG אחר.',
   imageSuccessTitle: 'התמונה כווצה בהצלחה!',
@@ -657,7 +646,6 @@ const hebrewCompressMessages: CompressMessages = {
   imageFailed: 'כיווץ התמונה נכשל.',
   imageSharedSuccessfully: 'התמונה המכווצת שותפה.',
   imageSharingCanceled: 'השיתוף בוטל. התמונה המכווצת עדיין מוכנה.',
-  imageWorkNoun: 'התמונה המכווצת שיצרתם',
   downloadDetailSmaller: '{size}, קטן ב-{percent}%',
   downloadDetailClosest: 'הגודל הקרוב ביותר: {size}',
   compareShow: 'השוואה למקור',
@@ -1108,14 +1096,7 @@ export interface ShellMessages {
   replaceConfirmChoose: string;
   replaceOpening: string;
   replaceChoosing: string;
-  replaceTail: string;
-  replaceDraftGoes: string;
   theCurrentPdf: string;
-  workDefault: string;
-  /** Sign's own `workNoun` for the replace confirmation ("...and discards
-   * your annotations"). Lives here because Sign has no island catalogue of
-   * its own (its editor stays English, LOC-02) while its shell is localized. */
-  signWorkNoun: string;
   clearDialogTitle: string;
   clearConfirm: string;
   clearBody: string;
@@ -1162,16 +1143,17 @@ const englishShellMessages: ShellMessages = {
   clearTitle: 'Remove every file and start again',
   cancel: 'Cancel',
   closeDialog: 'Close dialog',
-  replaceDialogTitle: 'Replace this file?',
+  // MEM-03 (2026-09-15): Replace now always asks, and the question changed
+  // meaning - it no longer protects work about to be destroyed (nothing is,
+  // any more), it just catches an unintended click and says where the
+  // current file is going. See draftStore.js's header comment on the
+  // one-memory-space model this replaces the old per-tool-draft warning for.
+  replaceDialogTitle: 'Open a different file?',
   replaceConfirmFile: 'Replace file',
   replaceConfirmChoose: 'Choose a file',
-  replaceOpening: 'Opening {file} closes {current} and discards {work}.',
-  replaceChoosing: 'Choosing another file closes {current} and discards {work}.',
-  replaceTail: "That can't be undone.",
-  replaceDraftGoes: 'Your saved draft goes with it.',
+  replaceOpening: "Opening {file} closes {current}. It stays in your recent files with everything you've done, so you can come back to it from the home page.",
+  replaceChoosing: "This closes {current}. It stays in your recent files with everything you've done, so you can come back to it from the home page.",
   theCurrentPdf: 'the current PDF',
-  workDefault: 'the work you have done here',
-  signWorkNoun: 'your annotations',
   clearDialogTitle: 'Clear all files?',
   clearConfirm: 'Clear all',
   clearBody: 'This empties the list{of} and the order you put it in. Nothing is removed from your device.',
@@ -1208,16 +1190,14 @@ const hebrewShellMessages: ShellMessages = {
   clearTitle: 'הסרת כל הקבצים והתחלה מחדש',
   cancel: 'ביטול',
   closeDialog: 'סגירת החלון',
-  replaceDialogTitle: 'להחליף את הקובץ?',
+  // MEM-03: AI draft, not reviewed copy - the same caveat the rest of this
+  // file's Hebrew catalogues carry, pending Shlomi's read-through.
+  replaceDialogTitle: 'לפתוח קובץ אחר?',
   replaceConfirmFile: 'החלפת קובץ',
   replaceConfirmChoose: 'בחירת קובץ',
-  replaceOpening: 'פתיחת {file} סוגרת את {current} ומוחקת את {work}.',
-  replaceChoosing: 'בחירת קובץ אחר סוגרת את {current} ומוחקת את {work}.',
-  replaceTail: 'אי אפשר לבטל את זה.',
-  replaceDraftGoes: 'הטיוטה השמורה תימחק איתו.',
+  replaceOpening: 'פתיחת {file} סוגרת את {current}. הוא נשאר ברשימת הקבצים האחרונים עם כל מה שעשיתם, כך שתוכלו לחזור אליו מהדף הבית.',
+  replaceChoosing: 'הפעולה הזו סוגרת את {current}. הוא נשאר ברשימת הקבצים האחרונים עם כל מה שעשיתם, כך שתוכלו לחזור אליו מהדף הבית.',
   theCurrentPdf: 'ה-PDF הנוכחי',
-  workDefault: 'העבודה שעשיתם כאן',
-  signWorkNoun: 'ההערות והחתימות שהוספתם',
   clearDialogTitle: 'לנקות את כל הקבצים?',
   clearConfirm: 'ניקוי הכול',
   clearBody: 'הרשימה{of} והסדר שקבעתם יתרוקנו. שום דבר לא נמחק מהמכשיר שלכם.',
@@ -1243,11 +1223,14 @@ export function getShellMessages(locale: DocumentationLocaleId): ShellMessages |
  * `messages` prop. Additive and backward compatible: the component defaults
  * to `englishFileDropzoneMessages` when no prop is passed, so every existing
  * caller (the two `<FileDropzone>` instances on the English home page) is
- * unaffected. `confirmHandoffBody` takes `{file}`/`{draft}` placeholders via
- * `formatMessage`, so a translated sentence can reorder them freely (unlike
- * BasePdfTool.tsx's replace-confirmation, this dialog's file names are not
- * re-wrapped in a styled `<span>` after formatting - a minor simplification,
- * not a behavior this ticket depends on).
+ * unaffected.
+ *
+ * MEM-03: the "Open this instead?" confirmation this catalogue used to carry
+ * (`confirmHandoffTitle`/`confirmHandoffConfirm`/`confirmHandoffBody`,
+ * `cancelLabel`/`closeLabel`) is gone. Once a recent file's work lives on its
+ * own entry (draftStore.js), opening a different one from the home page
+ * overwrites nothing, so there is nothing left to warn about - see
+ * FileDropzone.tsx's `handOff`/`openRecent`.
  */
 export interface FileDropzoneMessages {
   handoffFailed: string;
@@ -1262,11 +1245,6 @@ export interface FileDropzoneMessages {
    * tool's name is never hardcoded to English ("Sign & Fill") - docs/
    * home-page-localization-plan.md, section 2 row 21. */
   practiceDocumentCaption: string;
-  confirmHandoffTitle: string;
-  confirmHandoffConfirm: string;
-  confirmHandoffBody: string;
-  cancelLabel: string;
-  closeLabel: string;
 }
 
 const englishFileDropzoneMessages: FileDropzoneMessages = {
@@ -1279,11 +1257,6 @@ const englishFileDropzoneMessages: FileDropzoneMessages = {
   chooseFiles: 'Choose files',
   orDropPdfsHere: 'or drop PDFs here',
   practiceDocumentCaption: 'Practice document · opens in {tool}',
-  confirmHandoffTitle: 'Open this instead?',
-  confirmHandoffConfirm: 'Open it',
-  confirmHandoffBody: "Opening {file} replaces your saved work in {draft}. That can't be undone.",
-  cancelLabel: 'Cancel',
-  closeLabel: 'Close dialog',
 };
 
 // LOC-09's own draft (see he.yaml's own status: draft), reviewed alongside it
@@ -1304,11 +1277,6 @@ const hebrewFileDropzoneMessages: FileDropzoneMessages = {
   chooseFiles: 'בחירת קבצים',
   orDropPdfsHere: 'או גררו לכאן קבצי PDF',
   practiceDocumentCaption: 'מסמך לתרגול · נפתח בכלי {tool}',
-  confirmHandoffTitle: 'לפתוח את זה במקום?',
-  confirmHandoffConfirm: 'פתיחה',
-  confirmHandoffBody: 'פתיחת {file} תחליף את העבודה השמורה שלכם ב-{draft}. אי אפשר לבטל את זה.',
-  cancelLabel: 'ביטול',
-  closeLabel: 'סגירת החלון',
 };
 
 const fileDropzoneMessages: Partial<Record<DocumentationLocaleId, FileDropzoneMessages>> = {

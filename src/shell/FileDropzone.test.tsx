@@ -3,24 +3,15 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta, readCurrentEntryId } from '../lib/drafts/draftStore.js';
+import { saveDraft, saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../lib/drafts/draftStore.js', () => ({
-  loadDraft: vi.fn(() => Promise.resolve(null)),
-  deleteDraft: vi.fn(() => Promise.resolve(true)),
   saveDraft: vi.fn(() => Promise.resolve(true)),
   saveHandoff: vi.fn(() => Promise.resolve(true)),
+  setCurrentEntry: vi.fn(),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
-  // MERGE-13: no merge draft by default; the one test below that cares
-  // overrides this per-case.
-  readDraftMeta: vi.fn(() => null),
-  // MEM-01: the id readHomeRecents dedupes the natural recents list against,
-  // so the merge draft prepended above never also shows up a second time
-  // now that Merge's entry lives in the same recents index as every other
-  // tool's. No pointer by default.
-  readCurrentEntryId: vi.fn(() => null),
 }));
 
 function dropOn(dropzone, files) {
@@ -28,7 +19,7 @@ function dropOn(dropzone, files) {
   event.dataTransfer = { files };
   return act(async () => {
     dropzone.dispatchEvent(event);
-    // The handoff path is async (loadDraft, then arrayBuffer) before it commits.
+    // The handoff path is async (file.arrayBuffer(), then saveHandoff) before it commits.
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
@@ -38,12 +29,9 @@ describe('FileDropzone', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    loadDraft.mockResolvedValue(null);
     readRecentFiles.mockReturnValue([]);
     loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
-    readDraftMeta.mockReturnValue(null);
-    readCurrentEntryId.mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -147,15 +135,18 @@ describe('FileDropzone', () => {
       expect(container.textContent).not.toContain('recent-6.pdf');
     });
 
-    it('resumes the active draft instead of asking to replace it from its own recent card', async () => {
+    // MEM-03: opening a recent tile no longer asks anything, whether or not
+    // it happens to be the file already open in the target tool - once work
+    // lives on the entry rather than a per-tool draft slot, there is nothing
+    // a second open could overwrite. Replaces the old "resumes the active
+    // draft instead of asking to replace it" test, which existed only to
+    // prove the since-removed same-file dialog shortcut.
+    it('opens a recent file straight away: no dialog, and its pointer is set before the hand-off', async () => {
       readRecentFiles.mockReturnValue([{
         id: 'sha256:active', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
       }]);
       loadRecentFile.mockResolvedValue({
         tool: 'sign', fileName: 'contract.pdf', fileType: 'application/pdf', fileBytes: new ArrayBuffer(8),
-      });
-      loadDraft.mockResolvedValue({
-        sourceId: 'sha256:active', fileName: 'contract.pdf', fileBytes: new ArrayBuffer(8),
       });
       mount();
       await act(async () => { await Promise.resolve(); });
@@ -165,65 +156,37 @@ describe('FileDropzone', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
       });
 
-      expect(container.querySelector('dialog').open).toBe(false);
-      expect(deleteDraft).not.toHaveBeenCalled();
-      expect(saveHandoff).not.toHaveBeenCalled();
+      expect(container.querySelector('dialog')).toBeNull();
+      expect(setCurrentEntry).toHaveBeenCalledWith('sign', 'sha256:active');
+      expect(saveHandoff).toHaveBeenCalledTimes(1);
+      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
     });
 
-    it('shows a saved merge draft first, as a plain link straight to the tool', () => {
-      readDraftMeta.mockReturnValue({
-        fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
-      });
+    // MEM-01 folded Merge's entry into the same recency index every other
+    // tool's work lives in, so a saved Merge set is an ordinary row from
+    // readRecentFiles() now (replacing the old readDraftMeta('merge') prepend
+    // and its by-id dedupe, both removed). What stays Merge-specific is how
+    // opening one resumes: a file set plus a page plan cannot go through
+    // saveHandoff's single-file contract, so this is pointer-only.
+    it('opens a saved merge set by pointer alone, skipping the single-file hand-off path', async () => {
       readRecentFiles.mockReturnValue([{
-        id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
+        id: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
       }]);
       mount({ toolTarget: 'sign', href: '/sign?action=open' });
+      await act(async () => { await Promise.resolve(); });
 
-      const items = Array.from(container.querySelectorAll('li'));
-      expect(items).toHaveLength(2);
-      const draftItem = items[0];
-      expect(draftItem.textContent).toContain('invoice + 2 more');
-      expect(draftItem.textContent).toContain('Merge PDF');
-      expect(draftItem.textContent).toContain('7 pages');
-      const link = draftItem.querySelector('a');
-      expect(link).not.toBeNull();
-      expect(link.getAttribute('href')).toBe('/merge/');
-      // The second item is still the ordinary cached-file button, unaffected.
-      expect(items[1].querySelector('button[aria-label^="Open recent PDF"]')).not.toBeNull();
-    });
+      const item = container.querySelector('li');
+      expect(item.textContent).toContain('invoice + 2 more');
+      expect(item.textContent).toContain('7 pages');
 
-    // MEM-01: since a Merge entry now lives in the same recents index as
-    // every other tool's work, readRecentFiles() can return the exact same
-    // id the draft-meta tile above already represents - it must not render
-    // twice.
-    it('does not show the saved merge draft a second time from the natural recents list', () => {
-      readDraftMeta.mockReturnValue({
-        fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
+      await act(async () => {
+        container.querySelector('button[aria-label^="Open recent PDF"]').click();
+        await new Promise((resolve) => setTimeout(resolve, 0));
       });
-      readCurrentEntryId.mockReturnValue('sha256:merge-set');
-      readRecentFiles.mockReturnValue([
-        { id: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7 },
-        { id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now() },
-      ]);
-      mount({ toolTarget: 'sign', href: '/sign?action=open' });
 
-      const items = Array.from(container.querySelectorAll('li'));
-      expect(items).toHaveLength(2);
-      expect(items.filter((li) => li.textContent.includes('invoice + 2 more'))).toHaveLength(1);
-      expect(items[1].textContent).toContain('contract.pdf');
-    });
-
-    it('counts a merge draft toward the six-item cap, displacing the oldest recent file', () => {
-      readDraftMeta.mockReturnValue({ fileName: 'a + 1 more', savedAt: Date.now(), pageCount: 1 });
-      readRecentFiles.mockReturnValue(Array.from({ length: 6 }, (_, index) => ({
-        id: `cached-${index}`, tool: 'sign', fileName: `recent-${index}.pdf`, savedAt: Date.now() - index,
-      })));
-      mount();
-
-      const names = Array.from(container.querySelectorAll('li')).map((li) => li.textContent);
-      expect(names).toHaveLength(6);
-      expect(names[0]).toContain('a + 1 more');
-      expect(container.textContent).not.toContain('recent-5.pdf');
+      expect(setCurrentEntry).toHaveBeenCalledWith('merge', 'sha256:merge-set');
+      expect(loadRecentFile).not.toHaveBeenCalled();
+      expect(saveHandoff).not.toHaveBeenCalled();
     });
 
     it('draws an empty preview box when a cached file has no preview', () => {
@@ -273,7 +236,6 @@ describe('FileDropzone', () => {
       // The bug this replaces: writing the drop into the draft key destroyed
       // whatever was saved there. Nothing here may touch a draft.
       expect(saveDraft).not.toHaveBeenCalled();
-      expect(deleteDraft).not.toHaveBeenCalled();
     });
 
     // index.astro always passes `href`, so the click-to-choose picker is a
@@ -296,60 +258,16 @@ describe('FileDropzone', () => {
       expect(input.value).toBe('');
     });
 
-    it('asks before a drop would discard a saved draft, naming both files', async () => {
-      loadDraft.mockResolvedValue({
-        fileName: 'lease.pdf',
-        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-      });
+    // MEM-03: dropping a file that would replace what's open in the target
+    // tool no longer asks anything - the file it replaces is never gone,
+    // only parked in recents, so there is nothing left to confirm. Replaces
+    // the three tests that used to cover the "Open this instead?" dialog's
+    // ask/cancel/confirm cycle.
+    it('hands a dropped file straight to the target tool, with no confirmation', async () => {
       const dropzone = mountTarget();
       await dropOn(dropzone, [pdf()]);
 
-      const dialog = container.querySelector('dialog');
-      expect(dialog.textContent).toContain('contract.pdf');
-      expect(dialog.textContent).toContain('lease.pdf');
-      // Still nothing committed while the question is open.
-      expect(saveHandoff).not.toHaveBeenCalled();
-      expect(deleteDraft).not.toHaveBeenCalled();
-    });
-
-    it('leaves the draft alone when the confirmation is cancelled', async () => {
-      loadDraft.mockResolvedValue({
-        fileName: 'lease.pdf',
-        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-      });
-      const dropzone = mountTarget();
-      await dropOn(dropzone, [pdf()]);
-
-      const cancel = [...container.querySelectorAll('button')].find(
-        (button) => button.textContent.trim() === 'Cancel',
-      );
-      await act(async () => {
-        cancel.click();
-        await Promise.resolve();
-      });
-
-      expect(saveHandoff).not.toHaveBeenCalled();
-      expect(deleteDraft).not.toHaveBeenCalled();
-      expect(container.querySelector('dialog').open).toBeFalsy();
-    });
-
-    it('discards the draft and hands off once the user agrees', async () => {
-      loadDraft.mockResolvedValue({
-        fileName: 'lease.pdf',
-        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
-      });
-      const dropzone = mountTarget();
-      await dropOn(dropzone, [pdf()]);
-
-      const confirm = [...container.querySelectorAll('button')].find(
-        (button) => button.textContent.trim() === 'Open it',
-      );
-      await act(async () => {
-        confirm.click();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-
-      expect(deleteDraft).toHaveBeenCalledWith('sign');
+      expect(container.querySelector('dialog')).toBeNull();
       expect(saveHandoff).toHaveBeenCalledTimes(1);
       expect(saveHandoff.mock.calls[0][1].fileName).toBe('contract.pdf');
     });
@@ -358,18 +276,12 @@ describe('FileDropzone', () => {
       const dropzone = mountTarget();
       await dropOn(dropzone, []);
       expect(saveHandoff).not.toHaveBeenCalled();
-      expect(loadDraft).not.toHaveBeenCalled();
     });
-    it('does not discard a draft if handoff storage fails', async () => {
-      loadDraft.mockResolvedValue({ fileName: 'lease.pdf', fileBytes: new ArrayBuffer(8) });
+
+    it('reports an error, and never navigates, if handoff storage fails', async () => {
       saveHandoff.mockResolvedValue(false);
       const area = mountTarget();
       await dropOn(area, [pdf()]);
-      await act(async () => {
-        [...container.querySelectorAll('button')].find(button => button.textContent.trim() === 'Open it').click();
-        await new Promise(resolve => setTimeout(resolve, 0));
-      });
-      expect(deleteDraft).not.toHaveBeenCalled();
       expect(container.querySelector('[role="alert"]')?.textContent).toContain('could not save this file');
     });
 

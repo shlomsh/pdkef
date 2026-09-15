@@ -578,8 +578,6 @@ export default function PdfCompressTool({
       file={file}
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
-      hasWork={status === 'done'}
-      workNoun={kind === 'image' ? t.imageWorkNoun : t.workNoun}
       shellMessages={shellMessages}
       compact
     >

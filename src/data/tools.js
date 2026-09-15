@@ -250,7 +250,7 @@ export const tools = [
       },
       {
         question: 'What happens if my browser crashes while filling out a form?',
-        answer: 'Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded, and your saved draft stays until you replace the file, or for 14 days if you never come back.',
+        answer: "Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded. Opening a different file doesn't erase this one either: it stays in your recent files on the home page, ready to pick up again, for up to 14 days.",
       },
       {
         question: 'Will my language come out right in the downloaded PDF, or turn into empty boxes?',

@@ -701,8 +701,6 @@ export default function PdfRedactTool() {
       fileLabel={elements.length > 0 && file ? `redacted_${file.name}` : file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaveState={draftSaveState}
-      hasWork={elements.length > 0}
-      workNoun="your redaction boxes"
       ownsShell
       checkingDraft={isRestoring}
     >

@@ -9,7 +9,7 @@ import type {
 } from '../../editor/model/editorModel.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { englishShellMessages, englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
+import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './components/SignToolContext.tsx';
 import { SignDefaultsContext } from './components/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
@@ -942,8 +942,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       fileLabel={file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null, shellMessages)}
       draftSaveState={draftSaveState}
-      hasWork={elements.length > 0}
-      workNoun={shellMessages?.signWorkNoun ?? englishShellMessages.signWorkNoun}
       ownsShell
       shellMessages={shellMessages}
       checkingDraft={isRestoring}
