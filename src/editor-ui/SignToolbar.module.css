@@ -97,7 +97,25 @@
 .highlight:hover { color: var(--color-surface); background: var(--color-highlight); }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .shapes-label { display: flex; align-items: center; gap: 2px; }
-.help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; }
+/* The idle tip and every tool's armed row (icon+sentence+pill+hint) are all
+   rendered at once here, stacked in one grid cell like `.status-hint` below -
+   only one is `.help-shown`, the rest are `.help-spare` (visibility, so each
+   still contributes its own height and none reach the accessibility tree).
+   Without this, `.help` held only whichever one state was current, so clicking
+   a tool swapped the short idle span for the much taller armed row, `.identity`
+   grew, and the toolbar sitting right under it shifted down between the two
+   clicks of a double-click - the button you meant to click twice was no longer
+   under the pointer for the second one. A fixed min-height once stood in here
+   instead and only covered the single-line case: the armed sentence is
+   translated into 20 languages and wraps to two or three lines at plenty of
+   real toolbar widths, so a constant was always going to be wrong for someone.
+   Rendering every state and letting Grid take the max of their real, current-
+   width, current-language heights is the only version that is never wrong. */
+.help-stack { display: grid; flex: 1 1 auto; min-width: 0; }
+.help-row { grid-area: 1 / 1; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.help-shown { visibility: visible; }
+.help-spare { visibility: hidden; }
 /* The one control that turns "keep adding" on and off - the only way out of a
    locked tool that exists on a phone, where there is no Escape key and no
    reliable double-click (a double-tap is the browser's zoom gesture). It sits

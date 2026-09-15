@@ -143,6 +143,7 @@ export default function RedactToolbar({
             locked={toolLocked}
             onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
             idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
+            reserveCopies={Object.values(TOOL_COPY)}
           />
         )
       }

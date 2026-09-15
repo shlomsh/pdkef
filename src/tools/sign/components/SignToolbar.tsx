@@ -249,6 +249,7 @@ export default function SignToolbar({
       locked={toolLocked}
       onToggleKeepOn={() => selectedTool && (toolLocked ? unlockTool(selectedTool) : lockTool(selectedTool))}
       idle={`${t.tipIdle}${hasTextElement ? ` ${t.tipEditText}` : ''}`}
+      reserveCopies={Object.values(TOOL_COPY)}
       keepOnLabel={t.keepOn}
       keepOnTitleOn={t.keepOnTitleOn}
       keepOnTitleOff={t.keepOnTitleOff}
