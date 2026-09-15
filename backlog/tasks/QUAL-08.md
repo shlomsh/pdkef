@@ -10,9 +10,9 @@ depends_on: ["ARCH-20"]
 
 # QUAL-08 · The narrowing rate, measured on post-move commits
 
-*Filed 2026-09-14.* ARCH-20's own acceptance ("record the numbers before and after on a week of
-runs") is the one part of it that a branch cannot deliver; this ticket is that measurement, so
-ARCH-20 can close and the next decision (ARCH-21, QUAL-07) rests on data rather than the histogram.
+*Filed 2026-09-14; split from ARCH-20's production-measurement acceptance item.* ARCH-20's Nx
+implementation is complete. This ticket owns only the post-landing evidence and the decisions that
+depend on it (ARCH-21, QUAL-07 and DEBT-07).
 
 ## Problem
 
@@ -39,6 +39,14 @@ full. Whether that holds on real, post-move history is unknown.
 
 ## Acceptance
 
-- The table and the shares are in ARCH-20's Notes, and ARCH-20 is closed.
+- The table and shares are recorded here, with a short result linked from ARCH-20's Notes.
 - A recommendation, with the numbers behind it, on whether ARCH-21 (split `site`) is worth doing:
   if page-only commits are under one in ten, it is not.
+
+## Current state
+
+The sampling gate is no longer a reason to wait. As of 2026-09-15, `9b4f944..HEAD` contains 76
+commits, 59 of them non-docs under `scripts/change-scope.mjs`'s production classification. That is
+past the ticket's 40-non-doc-commit threshold. What remains is to collect the per-run Actions data,
+summarize the buckets and timings, cross-check the same window locally, and make the ARCH-21
+recommendation.
