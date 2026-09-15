@@ -4,6 +4,11 @@ import { scrollStory, stageLocator } from './heroDemoHelpers.js';
 import { SAMPLE_FILE_NAME } from '../../src/shell/sampleDocument.ts';
 test.use({serviceWorkers:'block'});
 
+// MEM-01: a raw workspace record is now a content-addressed entry (its own
+// `tool` field is the primary key, `recent:<id>`, not a friendly tool name),
+// carrying every tool's work in one `work` map rather than one record per
+// tool. `tools` below is which tools have work on that entry, derived the
+// same way readDraftMeta/hasDraftHint do - see draftStore.js's header comment.
 async function draftSnapshot(page) {
   return page.evaluate(async () => {
     const dbs = await indexedDB.databases();
@@ -13,7 +18,12 @@ async function draftSnapshot(page) {
       request.onsuccess = () => {
         const db = request.result;
         const records = db.transaction('workspace').objectStore('workspace').getAll();
-        records.onsuccess = () => { resolve(records.result.map(({tool, fileName, savedAt}) => ({tool,fileName,savedAt}))); db.close(); };
+        records.onsuccess = () => {
+          resolve(records.result
+            .filter(record => typeof record.tool === 'string' && record.tool.startsWith('recent:'))
+            .map(({fileName, savedAt, work}) => ({fileName, savedAt, tools: Object.keys(work || {})})));
+          db.close();
+        };
       };
     });
   });
@@ -47,7 +57,7 @@ test('complete stories, information, session handoff, and real bundled sample en
   await expect(page).toHaveURL(/\/sign\/$/);
   await expect(page.locator('canvas').first()).toBeVisible({timeout:20000});
   await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
-  await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool:'sign',fileName:SAMPLE_FILE_NAME})]));
+  await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({fileName:SAMPLE_FILE_NAME, tools: expect.arrayContaining(['sign'])})]));
   await page.goto('/');
   const recent = page.locator('.workspace-launcher button[aria-label^="Open recent PDF"]');
   await expect(recent).toContainText(SAMPLE_FILE_NAME);
@@ -81,6 +91,21 @@ test('the complete form fits above the dock on a laptop and iPhone-sized viewpor
 });
 
 
+// MEM-01: the entry's index row (pdf-toolkit:workspace:recent-files) is
+// where preview/savedAt live now, found via the tool's pointer
+// (pdf-toolkit:workspace:current:<tool>) - see draftStore.js's header
+// comment. Both are read directly here rather than through draftStore.js
+// itself, the same way ToolPageLayout.astro's own pre-paint script does,
+// since page.evaluate cannot import an ES module.
+async function currentIndexRow(page, tool) {
+  return page.evaluate(tool => {
+    const id = localStorage.getItem('pdf-toolkit:workspace:current:' + tool);
+    if (!id) return null;
+    const entries = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
+    return entries.find(entry => entry.id === id) ?? null;
+  }, tool);
+}
+
 test('the same source PDF is deduplicated to its latest tool and opens from the desktop launcher', async ({ page }) => {
   const bytes = readFileSync('public/images/redaction-guide/sample.pdf');
   for (const tool of ['sign','redact']) {
@@ -88,16 +113,17 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await page.locator('input[type="file"]').first().setInputFiles({name:`my-${tool}-document.pdf`,mimeType:'application/pdf',buffer:bytes});
     await expect(page.locator('canvas').first()).toBeVisible();
-    await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({tool,fileName:`my-${tool}-document.pdf`})]));
-    await expect.poll(() => page.evaluate(tool => JSON.parse(localStorage.getItem('pdf-toolkit:workspace:draft-meta:' + tool))?.preview, tool)).toMatch(/^data:image/);
+    await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({fileName:`my-${tool}-document.pdf`, tools: expect.arrayContaining([tool])})]));
+    await expect.poll(async () => (await currentIndexRow(page, tool))?.preview).toMatch(/^data:image/);
   }
-  // Simulate an older saved draft whose thumbnail lost the autosave race.
+  // Simulate an older saved entry whose thumbnail lost the autosave race.
   const savedAt = await page.evaluate(() => {
-    const key = 'pdf-toolkit:workspace:draft-meta:sign';
-    const meta = JSON.parse(localStorage.getItem(key));
-    delete meta.preview;
-    localStorage.setItem(key, JSON.stringify(meta));
-    return meta.savedAt;
+    const id = localStorage.getItem('pdf-toolkit:workspace:current:sign');
+    const entries = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files'));
+    const entry = entries.find(item => item.id === id);
+    delete entry.preview;
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(entries));
+    return entry.savedAt;
   });
   await page.goto('/');
   const icons = page.locator('.workspace-launcher li button[aria-label^="Open recent PDF"]');
@@ -111,7 +137,7 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await expect(icon.locator('img')).toBeVisible();
     await expect(icon).toContainText('just now');
   }
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pdf-toolkit:workspace:draft-meta:sign')).savedAt)).toBe(savedAt);
+  expect((await currentIndexRow(page, 'sign'))?.savedAt).toBe(savedAt);
   const before = await draftSnapshot(page);
   await page.evaluate(() => window.scrollTo(0, 0));
   await scrollStory(page,'blur',1);

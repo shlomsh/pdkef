@@ -293,7 +293,7 @@ describe('useMergeDraft', () => {
     expect(apiRef.current.draftSaveState).toBe('saved');
   });
 
-  it('clearDraft deletes the record and the hint', async () => {
+  it('clearDraft deletes the pointer (MEM-01: the entry itself stays in recents)', async () => {
     const entry = baseEntry(1, 'a.pdf', 1);
     const apiRef = { current: null };
     await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
@@ -304,8 +304,10 @@ describe('useMergeDraft', () => {
       await apiRef.current.clearDraft();
     });
 
+    // loadDraft('merge') follows the pointer, which clearDraft just dropped -
+    // it reads null even though the entry and its bytes are still in recents.
     expect(await loadDraft('merge')).toBeNull();
-    expect(localStorage.getItem('pdf-toolkit:workspace:has-draft:merge')).toBeNull();
+    expect(localStorage.getItem('pdf-toolkit:workspace:current:merge')).toBeNull();
   });
 
   it('reads each entry\'s bytes only once across several autosaves', async () => {

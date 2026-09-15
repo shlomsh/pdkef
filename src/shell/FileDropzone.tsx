@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../lib/drafts/draftStore.js';
+import { loadDraft, deleteDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta, readCurrentEntryId } from '../lib/drafts/draftStore.js';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import dialogStyles from './Dialog.module.css';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
@@ -9,15 +9,25 @@ import { tools } from '../data/tools.js';
 import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
 
-/* MERGE-13: a saved Merge draft is not one of readRecentFiles()' cached
-   *source* documents (it holds a file set and a page plan, not one PDF), so
-   it is read from draftStore's own hint and prepended, first, ahead of the
-   ordinary recents list - the most recently touched document on this device
-   is either the thing you were in the middle of, or the last thing you
-   opened, and the draft always wins that comparison when one exists. */
+/* MERGE-13: a saved Merge draft is not something openRecent's generic
+   handoff flow can open (it holds a file set and a page plan, not one PDF
+   to hand to a single target tool), so it is read from draftStore's own
+   pointer and prepended, first, ahead of the ordinary recents list - the
+   most recently touched document on this device is either the thing you
+   were in the middle of, or the last thing you opened, and the draft
+   always wins that comparison when one exists.
+
+   MEM-01 folded Merge's entry into the same recents index every other
+   tool's work lives in (draftStore.js's one memory space), so the same
+   entry would otherwise also come back from readRecentFiles() below and
+   render a second time. Filtering it out by id, rather than by tool, is
+   what keeps this correct once MEM-02/03 lets a Sign/Redact tile carry
+   work too - only the entry already shown above is excluded, never a
+   different file that merely happens to be Merge's most recent. */
 function readHomeRecents(toolHref: (tool: string) => string): RecentFileItem[] {
   const items: RecentFileItem[] = [];
   const draft = readDraftMeta('merge');
+  const draftId = readCurrentEntryId('merge');
   if (draft?.fileName) {
     items.push({
       tool: 'merge',
@@ -30,7 +40,7 @@ function readHomeRecents(toolHref: (tool: string) => string): RecentFileItem[] {
     });
   }
   return items
-    .concat(readRecentFiles().map((entry: any) => ({ ...entry, cacheId: entry.id })))
+    .concat(readRecentFiles().filter((entry: any) => entry.id !== draftId).map((entry: any) => ({ ...entry, cacheId: entry.id })))
     .slice(0, 6);
 }
 
