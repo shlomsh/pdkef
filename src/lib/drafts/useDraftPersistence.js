@@ -281,9 +281,19 @@ export function useDraftPersistence({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, tool]);
 
+  // MEM-01/02: `deleteDraft` clears only this tool's work on the entry it is
+  // currently pointed at, then drops the pointer - the entry itself, its
+  // bytes, and every *other* tool's work on it stay in recents. An ordinary
+  // file replacement never calls this at all: loadPdf.ts's `loadPdf` moves
+  // straight to the new file and lets `cacheRecentFile`/`saveDraft` point the
+  // tool at the new entry, leaving the outgoing entry exactly as it was. The
+  // one caller of `clearDraft` is loadPdf.ts's `restored && (fail | timeout)`
+  // path: a restored draft that turned out unusable, where dropping this
+  // tool's own broken work (and the pointer to it) is the right outcome.
   const clearDraft = () => {
-    // A replacement clears the stored record while its next file is still
-    // loading. Invalidate any completion from the outgoing file immediately.
+    // Invalidate any in-flight completion from the outgoing snapshot
+    // immediately, so a save that was already on the wire cannot resurrect
+    // what this call just cleared.
     revisionRef.current += 1;
     return deleteDraft(tool);
   };

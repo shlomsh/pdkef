@@ -26,7 +26,7 @@ import {
   useMergeDraft, MERGE_DRAFT_SCHEMA_VERSION,
 } from './useMergeDraft.ts';
 import {
-  loadDraft, saveDraft, MERGE_DRAFT_MAX_BYTES,
+  loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
 } from '../../../lib/drafts/draftStore.js';
 import { planForFile } from '../mergePlan.ts';
 
@@ -308,6 +308,31 @@ describe('useMergeDraft', () => {
     // it reads null even though the entry and its bytes are still in recents.
     expect(await loadDraft('merge')).toBeNull();
     expect(localStorage.getItem('pdf-toolkit:workspace:current:merge')).toBeNull();
+  });
+
+  // MEM-02: the test above proves the pointer is gone; this one proves the
+  // other half of "Clear all" - the entry itself, the file set's bytes, stays
+  // a recoverable recent (MEM-01's entry model: Clear all only ever drops
+  // Merge's own work + pointer, never the file). Mirrors
+  // draftStore.test.js's "deleteDraft on a Merge entry ... keeps the file in
+  // recents with an empty work map", driven through the hook instead of the
+  // store directly.
+  it('clearDraft ("Clear all") leaves the file set in recents with an empty work map', async () => {
+    const entry = baseEntry(1, 'a.pdf', 1);
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ entries: [entry], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await flushDebounce(150);
+    const id = await sourceIdForFiles([{ fileBytes: await entry.file.arrayBuffer() }]);
+
+    await act(async () => {
+      await apiRef.current.clearDraft();
+    });
+
+    const recovered = await loadRecentFile(id);
+    expect(recovered).not.toBeNull();
+    expect(recovered.files).toHaveLength(1);
+    expect(new TextDecoder().decode(recovered.files[0].fileBytes)).toBe('%PDF-1.4 a.pdf');
+    expect(recovered.work).toEqual({});
   });
 
   it('reads each entry\'s bytes only once across several autosaves', async () => {

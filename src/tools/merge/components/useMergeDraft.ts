@@ -333,6 +333,14 @@ export function useMergeDraft({
   // The island calls this from Clear all / Start again; the hook never
   // clears the record on its own when entries drops to zero (see the module
   // doc comment on MergeDraftPersistence for why that split is deliberate).
+  //
+  // MEM-01/02: `deleteDraft` clears only Merge's work on the entry it is
+  // currently pointed at (the plan/options for that file set) and drops the
+  // pointer; the entry - its files' bytes, and any other tool's work on the
+  // same content - stays in recents. Clear all is a real "start over", so
+  // this is the one place in Merge that is supposed to discard work, unlike
+  // adding or replacing files (see performHandoff's comment in
+  // PdfMergeTool.tsx for the hand-off case this is not).
   const clearDraft = useCallback(async () => {
     revisionRef.current += 1;
     return deleteDraft(TOOL);
