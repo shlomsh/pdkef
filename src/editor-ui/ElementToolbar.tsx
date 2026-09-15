@@ -7,6 +7,7 @@ import { getEffectiveTextDirection } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
+import { formatDate, isDateFormatId, nextDateFormatId } from '../editor/text/dateFormat.ts';
 import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
 import styles from './EditorControls.module.css';
 
@@ -77,6 +78,18 @@ export default function ElementToolbar({
   // alone.
   const boldActive = currentWeight === 'bold' && canBold;
   const italicActive = currentStyle === 'italic' && canItalic;
+
+  // A box is "date-flavored" exactly when both fields are set (editorModel.ts's
+  // dateFormatId comment) - the anchor day (`dateValue`) is what a format
+  // switch reformats from, never "today" again, so a draft reopened days
+  // later doesn't drift.
+  const dateFormatId = element.type === 'text' && isDateFormatId(element.dateFormatId) ? element.dateFormatId : null;
+  const isDateField = dateFormatId !== null && typeof element.dateValue === 'string';
+  const cycleDateFormat = () => {
+    if (!isDateField || !dateFormatId) return;
+    const nextFormatId = nextDateFormatId(dateFormatId);
+    onChange({ dateFormatId: nextFormatId, text: formatDate(element.dateValue, nextFormatId) });
+  };
 
   return (
     <>
@@ -153,6 +166,19 @@ export default function ElementToolbar({
               <PilcrowRight size={14} strokeWidth={2.5} />
             )}
           </button>
+          {isDateField && (
+            <>
+              <div className={styles.divider} />
+              <button
+                type="button"
+                className={buttonClass()}
+                onClick={cycleDateFormat}
+                title={formatMessage(t.dateFormatCycleTitleTemplate, { example: element.text })}
+              >
+                {element.text}
+              </button>
+            </>
+          )}
           {isComb(element) && (
             <>
               <div className={styles.divider} />

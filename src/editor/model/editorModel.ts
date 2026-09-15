@@ -32,8 +32,14 @@ export type ElementType =
   | 'blackout'
   | 'blur';
 
-/** Element kinds the Sign workspace can arm for placement. */
-export type SignToolType = Exclude<ElementType, 'blackout' | 'blur'>;
+/**
+ * Element kinds the Sign workspace can arm for placement, plus `'date'`: not
+ * a distinct element type (there is no `DateElement`), just another way to
+ * arm the text tool - `useWorkspaceGestures.ts` resolves it to the `text`
+ * registry definition and prefills the placed `TextElement`'s content. See
+ * `dateFormatId`/`dateValue` below.
+ */
+export type SignToolType = Exclude<ElementType, 'blackout' | 'blur'> | 'date';
 
 /** Tool identifiers exposed by the destructive Redact workspace. */
 export type RedactToolType = 'delete' | 'blackout' | 'blur' | 'whiteout';
@@ -109,6 +115,18 @@ export interface TextElement extends ElementBase {
    * set it only for a field with cells left blank.
    */
   combCells?: number;
+  /**
+   * Set only on a box created by the 'date' tool: which of `dateFormat.ts`'s
+   * `DateFormatId`s `text` was last rendered in, kept as a plain string here
+   * (this model has no dependency on `editor/text/`) so a format switch
+   * (ElementToolbar.tsx's cycling control) can regenerate `text` from
+   * `dateValue` instead of guessing at the string the person is looking at.
+   * Absent on an ordinary text box - a box is "date-flavored" exactly when
+   * both this and `dateValue` are set.
+   */
+  dateFormatId?: string;
+  /** The calendar day this box was placed with, `YYYY-MM-DD`, in local time. */
+  dateValue?: string;
 }
 
 /** A stroked rectangle outline. */

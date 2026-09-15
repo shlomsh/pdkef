@@ -14,6 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { formatDate, toIsoDateString } from '../../editor/text/dateFormat.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -435,5 +436,54 @@ describe('useWorkspaceGestures – coordinate placement', () => {
     handleOverlayPointerDown(makeMouseDownEvent(500, 500, overlay), 0);
     expect(dispatch).not.toHaveBeenCalled();
     window.addEventListener.mockRestore();
+  });
+});
+
+describe('useWorkspaceGestures – date tool', () => {
+  const overlay = makeOverlay();
+  const todayIso = toIsoDateString(new Date());
+
+  it('places an ordinary text element prefilled with today\'s date, in the locale format by default', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'date' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({
+      type: 'text',
+      text: formatDate(todayIso, 'locale'),
+      dateFormatId: 'locale',
+      dateValue: todayIso,
+    });
+  });
+
+  it('prefills using a remembered initialDateFormat instead of the locale default', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'date', initialDateFormat: 'iso' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({
+      text: todayIso,
+      dateFormatId: 'iso',
+    });
+  });
+
+  it('ignores a corrupt/unknown initialDateFormat and falls back to locale', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'date', initialDateFormat: 'not-a-real-format' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({ dateFormatId: 'locale' });
+  });
+
+  it('applies the remembered color and font like an ordinary text box', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'date',
+      initialColor: '#ff3300',
+      initialFont: 'Noto Sans Hebrew',
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({ color: '#ff3300', fontFamily: 'Noto Sans Hebrew' });
+  });
+
+  it('selects the placed date but does not open a typing session on it', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'date' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: expect.any(String) });
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EDITING_ELEMENT_ID' }));
+    expect(dispatch).toHaveBeenCalledWith({ type: 'DISARM_TOOL' });
   });
 });

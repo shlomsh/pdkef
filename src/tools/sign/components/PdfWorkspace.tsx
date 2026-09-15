@@ -22,6 +22,7 @@ import type { FormFieldRegions } from '../useFormFieldRegions.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
 import { detectTextDirection } from '../../../lib/signHelpers.js';
+import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../signExportReadiness.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -122,8 +123,8 @@ export default function PdfWorkspace({
   const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
   useAutoFontProvisioning(elements);
   const {
-    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark,
-    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth
+    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
+    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
   } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -156,6 +157,7 @@ export default function PdfWorkspace({
     initialFont: activeTextElement?.fontFamily || lastFont,
     initialFontSize: activeTextElement?.fontSize || lastFontSize,
     initialDirection: initialTextDirection,
+    initialDateFormat: lastDateFormat,
     initialSymbolWidth: lastSymbolWidth,
     initialSymbolMark: lastSymbolMark,
     pageSizes,
@@ -186,8 +188,18 @@ export default function PdfWorkspace({
   // Defined with useCallback so the factory reference is stable; the returned
   // function closes over the element id captured at call time.
   const makeOnChange = useCallback((id: string) => (fields: EditorElementPatch) => {
-    updateElement(id, fields);
     const element = elements.find(e => e.id === id);
+    // Typing over a placed date field's own text detaches it from the format
+    // control (ElementToolbar's cycle button reads dateFormatId/dateValue) -
+    // otherwise a later click on that control would silently discard whatever
+    // was retyped. Only a plain text write does this; the cycle action itself
+    // always sends dateFormatId alongside text, so it passes through.
+    const patch = (element?.type === 'text' && isDateFormatId(element.dateFormatId) && element.dateValue
+      && !('dateFormatId' in fields) && 'text' in fields && fields.text !== undefined
+      && fields.text !== formatDate(element.dateValue, element.dateFormatId))
+      ? { ...fields, dateFormatId: undefined, dateValue: undefined }
+      : fields;
+    updateElement(id, patch);
     if (fields.color) {
       if (element?.type === 'whiteout') {
         rememberWhiteoutColor(fields.color);
@@ -214,8 +226,11 @@ export default function PdfWorkspace({
         const typedDirection = detectTextDirection(fields.text);
         if (typedDirection) rememberDirection(typedDirection);
       }
+      // A format switched on one date field (ElementToolbar's cycling control)
+      // sets the format for the next 'date' tool placement, same as font/color.
+      if ('dateFormatId' in fields && fields.dateFormatId) rememberDateFormat(fields.dateFormatId);
     }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth]);
+  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();

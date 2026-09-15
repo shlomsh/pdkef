@@ -72,6 +72,7 @@ function defaultDefaults(overrides: Partial<SignDefaultsContextValue> = {}): Sig
     lastSymbolWidth: 5,
     lastSymbolMark: 'check',
     lastSignatureWidth: 20,
+    lastDateFormat: 'locale',
     rememberColor: vi.fn(),
     rememberWhiteoutColor: vi.fn(),
     rememberFont: vi.fn(),
@@ -81,6 +82,7 @@ function defaultDefaults(overrides: Partial<SignDefaultsContextValue> = {}): Sig
     rememberSymbolWidth: vi.fn(),
     rememberSymbolMark: vi.fn(),
     rememberSignatureWidth: vi.fn(),
+    rememberDateFormat: vi.fn(),
     ...overrides
   };
 }

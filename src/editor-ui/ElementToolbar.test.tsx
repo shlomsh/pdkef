@@ -224,3 +224,66 @@ describe('ElementToolbar Bold/Italic honesty (W5)', () => {
     expect(changes).toEqual({ fontWeight: 'bold' });
   });
 });
+
+// A date field only ever comes from the 'date' tool (useWorkspaceGestures.ts),
+// which sets dateFormatId + dateValue on creation - ElementToolbar itself
+// never tags a box, it only offers the format-cycling control once a box
+// already carries both fields, and only ever reformats from that stored
+// anchor day - see editorModel.ts's dateFormatId comment.
+describe('ElementToolbar date field controls', () => {
+  let container: HTMLDivElement | null;
+
+  afterEach(() => {
+    if (container) {
+      act(() => render(null, container as any));
+      container.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mount(element: any, onChange = (_changes: any) => {}) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <ElementToolbar element={element} onChange={onChange} onClone={() => {}} onDelete={() => {}} />,
+        container as any
+      );
+    });
+    return {
+      cycle: container.querySelector('button[title^="Date format:"]') as HTMLButtonElement,
+    };
+  }
+
+  it('shows no format-cycling control on an ordinary text box', () => {
+    const { cycle } = mount({ id: 'e1', type: 'text', text: 'Hello', fontFamily: 'Arimo' });
+    expect(cycle).toBeFalsy();
+  });
+
+  it('shows the format-cycling control once a box is tagged, reading the live text as its label', () => {
+    const { cycle } = mount({
+      id: 'e4', type: 'text', text: '2026-09-15', fontFamily: 'Arimo', dateFormatId: 'iso', dateValue: '2026-09-15',
+    });
+    expect(cycle).toBeTruthy();
+    expect(cycle.textContent).toBe('2026-09-15');
+  });
+
+  it('cycling the format regenerates text from the stored dateValue, not from "today"', () => {
+    let changes: any = null;
+    const { cycle } = mount(
+      { id: 'e5', type: 'text', text: '2026-09-15', fontFamily: 'Arimo', dateFormatId: 'iso', dateValue: '2026-09-15' },
+      (c) => { changes = c; },
+    );
+
+    act(() => { cycle.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+    expect(changes.dateFormatId).toBe('dmy');
+    expect(changes.text).toBe('15/09/2026');
+  });
+
+  it('ignores a garbage dateFormatId rather than treating the box as a date field', () => {
+    const { cycle } = mount({ id: 'e6', type: 'text', text: 'hi', fontFamily: 'Arimo', dateFormatId: 'nope', dateValue: '2026-09-15' });
+    expect(cycle).toBeFalsy();
+  });
+});

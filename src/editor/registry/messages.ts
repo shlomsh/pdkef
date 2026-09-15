@@ -25,6 +25,7 @@
 export interface SignMessages {
   toolbarLabel: string;
   textButton: string;
+  dateButton: string;
   symbolsButton: string;
   shapesButton: string;
   whiteoutButton: string;
@@ -37,6 +38,7 @@ export interface SignMessages {
   shareButton: string;
   downloadButton: string;
   textAction: string;
+  dateAction: string;
   symbolAction: string;
   signatureAction: string;
   whiteoutAction: string;
@@ -130,6 +132,9 @@ export interface SignMessages {
   boxesFollowingTitle: string;
   oneBoxMoreTitle: string;
   textColorTitle: string;
+  /** ElementToolbar.tsx's date-format-cycling readout, shown once a text box
+   * was placed by the 'date' tool. */
+  dateFormatCycleTitleTemplate: string;
   checkMarkTitle: string;
   xMarkTitle: string;
   dotMarkTitle: string;
@@ -217,6 +222,8 @@ export interface SignMessages {
   addedTextBoxDescription: string;
   addedTextBoxCombAnnouncementTemplate: string;
   addedTextBoxAnnouncement: string;
+  addedDateBoxDescription: string;
+  addedDateBoxAnnouncement: string;
   addedSymbolDescription: string;
   addedSymbolInBoxAnnouncement: string;
   addedSymbolAnnouncement: string;
