@@ -628,8 +628,19 @@ describe('PdfMergeTool UI flow', () => {
     expect(navigate).toHaveBeenCalledWith('/compress/');
   });
 
-  it('asks before replacing a saved Sign draft on hand-off (MERGE-14)', async () => {
-    // Keyed by tool: the draft component also asks the store about 'merge' on mount.
+  // MEM-01/02: this used to ask first, and on confirmation call
+  // draftStore.deleteDraft('sign') before handing off - see PdfMergeTool.tsx's
+  // performHandoff comment for why that was a holdover from the old
+  // one-slot-per-tool draft model. Under the entry model, opening the merged
+  // output in Sign (useEditorDraftPersistence's beforeRestore -> cacheRecentFile)
+  // just moves Sign's pointer to this new entry; whatever Sign was previously
+  // pointed at, and its work, is untouched - there is nothing left to confirm
+  // or to discard, so the hand-off now goes straight through, exactly like the
+  // Compress case above.
+  it('hands the merged result to Sign without asking, even when Sign already has a draft of its own (MEM-01/02)', async () => {
+    // Still returns a 'sign' record so this test would catch a regression
+    // that brings the old ask-first check back; performHandoff no longer
+    // calls loadDraft('sign') at all, so this is never actually read.
     draftStore.loadDraft.mockImplementation(async (tool) => (tool === 'sign' ? { fileName: 'contract.pdf', fileBytes: new ArrayBuffer(4) } : null));
     const navigate = vi.fn();
     mount({ navigate });
@@ -641,16 +652,11 @@ describe('PdfMergeTool UI flow', () => {
       button.click();
       await flush(10);
     });
-    expect(draftStore.saveHandoff).not.toHaveBeenCalled();
-    const dialog = Array.from(container.querySelectorAll('dialog')).find((d) => d.textContent.includes('contract.pdf'));
-    expect(dialog).not.toBeUndefined();
-    const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent === 'Replace and open');
-    await act(async () => {
-      confirm.click();
-      await flush(10);
-    });
-    expect(draftStore.deleteDraft).toHaveBeenCalledWith('sign');
+    expect(draftStore.saveHandoff).toHaveBeenCalledTimes(1);
     expect(draftStore.saveHandoff.mock.calls[0][0]).toBe('sign');
+    // Sign's existing entry (and its work) is never touched by this hand-off.
+    expect(draftStore.deleteDraft).not.toHaveBeenCalled();
+    expect(Array.from(container.querySelectorAll('dialog')).find((d) => d.textContent.includes('contract.pdf'))).toBeUndefined();
     expect(navigate).toHaveBeenCalledWith('/sign/');
   });
 

@@ -73,8 +73,9 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     // navigation ago, so it opens ahead of any draft. Resolving it *before*
     // loadDraft rather than racing it is what makes that deterministic: both are
     // async, and whichever claimed loadStartedRef first would otherwise win by
-    // timing. The home page has already asked about the draft by this point (see
-    // FileDropzone), so arriving here means the user chose this file.
+    // timing. A handoff is strictly newer than anything the pointer names (the
+    // home page never asks any more, MEM-03: opening a file overwrites nothing,
+    // the previous file keeps its work on its own recents entry).
     beforeRestore: async () => {
       const handoff = (await takeHandoff(tool)) as DraftRecord | null;
       if (!handoff || loadStartedRef.current) return false;

@@ -70,6 +70,104 @@ test('a file set and a page rotation survive closing and reopening the tab', asy
   await expect(restored.locator('#merge-pages-heading [class*="name"]').first()).toHaveText(nameBefore);
 });
 
+// MEM-02: writes a second, unrelated multi-file entry straight into the
+// workspace store and points Merge at it - the equivalent of choosing a
+// different file set through Add files, done through the store directly
+// (page.evaluate) rather than through the home page, which MEM-03 is
+// changing in this same wave. Mirrors sign-draft-restore.spec.js and
+// redact-draft-restore.spec.js's own putSecondEntryOnPointer helpers, shaped
+// for Merge's multi-file record instead of a single fileBytes. The
+// schemaVersion literal (1) mirrors useMergeDraft.ts's
+// MERGE_DRAFT_SCHEMA_VERSION constant - not imported here since page.evaluate
+// runs in the browser, with no access to this file's own module graph.
+async function putSecondEntryOnPointer(page, buffer, fileName) {
+  const base64 = buffer.toString('base64');
+  return page.evaluate(async ({ base64, fileName }) => {
+    const fileBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+    const id = `sha256:${'d'.repeat(64)}`;
+    await new Promise((resolve, reject) => {
+      const request = indexedDB.open('pdf-toolkit-workspace', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('workspace')) db.createObjectStore('workspace', { keyPath: 'tool' });
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('workspace', 'readwrite');
+        tx.objectStore('workspace').put({
+          tool: `recent:${id}`,
+          id,
+          fileName,
+          fileType: 'application/pdf',
+          files: [{ fileName, fileType: 'application/pdf', fileBytes }],
+          savedAt: Date.now(),
+          work: {
+            merge: {
+              plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+              options: { addPageNumbers: false },
+              outputName: null,
+              schemaVersion: 1,
+            },
+          },
+        });
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      };
+      request.onerror = () => reject(request.error);
+    });
+    localStorage.setItem('pdf-toolkit:workspace:current:merge', id);
+    return id;
+  }, { base64, fileName });
+}
+
+test('moving the pointer to a second file set and back leaves the first set\'s rotation untouched', async ({ page }) => {
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
+    name,
+    mimeType: 'application/pdf',
+    buffer: await makePdfBuffer(name),
+  })));
+  await page.locator('input[type="file"]').setInputFiles(files);
+
+  const grid = page.locator('ul[class*="grid"]');
+  const firstCard = grid.locator('> li[data-key]').first();
+  await expect(firstCard).toBeVisible({ timeout: 10_000 });
+  await firstCard.hover();
+  await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+  await expect(firstCard).toHaveAttribute('data-rotation', '90');
+  await expect(page.locator('[class*="draft-status-row"]', { hasText: 'Draft saved' })).toBeVisible({ timeout: 10_000 });
+
+  // The real content-addressed pointer for the [one.pdf, two.pdf] set,
+  // captured before anything else moves it.
+  const entryAId = await page.evaluate(() => localStorage.getItem('pdf-toolkit:workspace:current:merge'));
+  expect(entryAId).toBeTruthy();
+
+  const fileB = await makePdfBuffer('three.pdf');
+  // Leave the editor first, as a person would (home page), so its pagehide
+  // flush has already saved and re-pointed at the file it was showing before
+  // the pointer moves: a save always points the tool at what it just saved.
+  await page.goto('/');
+  await putSecondEntryOnPointer(page, fileB, 'three.pdf');
+
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await expect(page.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(1);
+  await expect(page.locator('ul[class*="file-list"] > li[class*="file-row"]')).toContainText('three.pdf');
+
+  // Move the pointer back to the first set - exactly what clicking its tile
+  // on the home page does under the hood (setCurrentEntry) - and confirm the
+  // rotation is back: opening the second set never touched it.
+  await page.goto('/');
+  await page.evaluate((id) => localStorage.setItem('pdf-toolkit:workspace:current:merge', id), entryAId);
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+  await expect(page.locator('ul[class*="file-list"] > li[class*="file-row"]')).toHaveCount(2);
+  const restoredGrid = page.locator('ul[class*="grid"]');
+  await expect(restoredGrid.locator('> li[data-key]').first()).toHaveAttribute('data-rotation', '90', { timeout: 10_000 });
+});
+
 test('a renamed output name survives closing and reopening the tab', async ({ page, context }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();

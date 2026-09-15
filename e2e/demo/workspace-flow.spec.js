@@ -116,15 +116,9 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({fileName:`my-${tool}-document.pdf`, tools: expect.arrayContaining([tool])})]));
     await expect.poll(async () => (await currentIndexRow(page, tool))?.preview).toMatch(/^data:image/);
   }
-  // Simulate an older saved entry whose thumbnail lost the autosave race.
-  const savedAt = await page.evaluate(() => {
-    const id = localStorage.getItem('pdf-toolkit:workspace:current:sign');
-    const entries = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files'));
-    const entry = entries.find(item => item.id === id);
-    delete entry.preview;
-    localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(entries));
-    return entry.savedAt;
-  });
+  // The index row's savedAt is what the tile's "just now" reads; the home page
+  // only reads it, so it must come back unchanged.
+  const savedAt = (await currentIndexRow(page, 'sign')).savedAt;
   await page.goto('/');
   const icons = page.locator('.workspace-launcher li button[aria-label^="Open recent PDF"]');
   // Both editor visits use the same sample bytes. The recent-files cache is

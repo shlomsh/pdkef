@@ -23,7 +23,6 @@ import { formatFileSize } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import docStyles from './components/MergeDocument.module.css';
@@ -385,7 +384,6 @@ export default function PdfMergeTool({
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffFailed, setHandoffFailed] = useState(false);
-  const [handoffConfirm, setHandoffConfirm] = useState<{ tool: HandoffTool; draftName: string } | null>(null);
   /* MERGE-17 */
   const [showInstallLine, setShowInstallLine] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -1029,23 +1027,31 @@ export default function PdfMergeTool({
   }, [installPrompt]);
 
   // MERGE-14: park the merged bytes for the target tool and navigate. The
-  // merge draft stays (MERGE-13), so Back returns to the same set. Sign keeps
-  // a draft of its own; if one exists, ask first, as the home page does.
-  const performHandoff = useCallback(async (tool: HandoffTool, discardDraft: boolean) => {
+  // merge draft stays (MERGE-13), so Back returns to the same set.
+  //
+  // MEM-01/02: this used to ask first and, on confirmation, delete Sign's
+  // existing draft before handing off - a holdover from the old one-slot-per-tool
+  // model, where opening a second file in Sign meant overwriting the only
+  // draft it could hold. Under the entry model every source PDF (content hash)
+  // keeps its own `work` map, so claiming this hand-off in Sign
+  // (useEditorDraftPersistence's beforeRestore -> cacheRecentFile) just moves
+  // Sign's pointer to the merged output's own entry; whatever Sign was
+  // previously pointed at, and its work, is untouched. Nothing here needs to
+  // discard anything, so there is nothing left to confirm.
+  const performHandoff = useCallback(async (tool: HandoffTool) => {
     if (!prepared.blob) return;
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
       // The store is only needed once a result is being handed off, so it
       // stays out of the eager graph like the grid and the draft hook.
-      const { saveHandoff, deleteDraft } = await import('../../lib/drafts/draftStore.js');
+      const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
         fileName,
         fileType: 'application/pdf',
         fileBytes: await prepared.blob.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
-      if (discardDraft && !(await deleteDraft(tool))) throw new Error('draft');
       navigate(hrefs[tool]);
     } catch {
       setHandoffFailed(true);
@@ -1055,15 +1061,7 @@ export default function PdfMergeTool({
 
   const requestHandoff = useCallback(async (tool: HandoffTool) => {
     if (handoffBusy || !prepared.blob) return;
-    if (tool === 'sign') {
-      const { loadDraft } = await import('../../lib/drafts/draftStore.js');
-      const draft = (await loadDraft('sign')) as { fileName?: string } | null;
-      if (draft) {
-        setHandoffConfirm({ tool, draftName: draft.fileName || '' });
-        return;
-      }
-    }
-    await performHandoff(tool, false);
+    await performHandoff(tool);
   }, [handoffBusy, prepared.blob, performHandoff]);
 
   const onDownloadTap = useCallback(() => {
@@ -1576,23 +1574,6 @@ export default function PdfMergeTool({
               </div>
             </div>
           </div>
-
-          <ConfirmDialog
-            open={!!handoffConfirm}
-            titleId="merge-handoff-confirm"
-            title={t.handoffConfirmTitle}
-            confirmLabel={t.handoffConfirm}
-            cancelLabel={sm.cancel}
-            closeLabel={sm.closeDialog}
-            onCancel={() => setHandoffConfirm(null)}
-            onConfirm={() => {
-              const target = handoffConfirm;
-              setHandoffConfirm(null);
-              if (target) void performHandoff(target.tool, true);
-            }}
-          >
-            {formatMessage(t.handoffConfirmBody, { draft: handoffConfirm?.draftName ?? '' })}
-          </ConfirmDialog>
             </div>
           )}
         </ToolShellBridge>
