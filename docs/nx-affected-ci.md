@@ -37,10 +37,36 @@ the repo root, `.nx/` gitignored:
 | `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | `scope:fonts` | - | ✓ |
 | `site-e2e` | `e2e` | `scope:site` | - | ✓ |
 | `cross-tool-tests` | `src/test/cross-tool` (nested inside `site`'s root) | `scope:tests` | ✓ | - |
+| `site-test` | `src/test` (`cross-tool-tests` nests inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
 
 `fonts`' `implicitDependencies`: `font-assets`, `editor`, `lib`, `tool-sign` - the export pipeline the
 27 font screening guards actually exercise. `site-e2e`'s `implicitDependencies`: `site`, `shell`, and
 every `tool-*` project - Playwright specs have no import edges Nx can infer on their own.
+
+**`site-test` (DEBT-04, second pass):** before this project existed, `src/test/` had no Nx project of
+its own, so `@nx/js`'s inference fell back to attributing it to `site` (root project, `sourceRoot:
+"src"`) - the same "unowned file" fallback `ownerOf()` uses, just at the Nx-graph layer instead of
+`affected-scope.mjs`'s own. Five files import from it in a way that mattered: `src/lib/signHelpers.test.js`
+and `src/editor/text/{bidiRuns,fonts}.test.js` import `src/test/fixtures/wysiwygStrings.js`;
+`src/shell/{FileDropzone,BasePdfTool}.test.tsx` import `src/test/setInputFiles.js`. That gave `lib` and
+`editor` a real edge to `site` (on top of `shell`'s), which is exactly what DEBT-07 needs gone before
+`editor` can leave `CORE_PROJECTS`: `site` is itself core, so any project it can reach becomes
+unnarrowable. `site-test` (`src/test/project.json`, `cross-tool-tests` nested inside it the same way
+`fonts` nests inside `site-e2e`) gives those five files - and the five repo-wide guard tests already
+in `src/test/` (`moduleBoundariesImportScan`, `moduleBoundariesRules`, `noCamelCaseSvgAttrs`,
+`signLanguagePage`, `editorDependencyDirectionsExceptions`) - a home Nx can name, so the edge each of
+those five test files makes now lands on `site-test`, not `site`. Several `src/tools/<t>/*.test.*`
+files reach into `src/test/fixtures/`/`setInputFiles.js` too (`grep -rl "from '.*test/fixtures\|from
+'.*test/setInputFiles" src` finds them); those tool -> `site-test` edges are fine and expected - a
+tool depending on test-support infrastructure is not the coupling DEBT-07 cares about, since each
+tool's own commits already run that tool's own tests regardless of what they import.
+`scripts/affected-scope.mjs`'s `deriveScope()` needed one fix for this: its `extraPaths` filter only
+excluded a project root that *starts with* `src/test/` (so `cross-tool-tests`, rooted at
+`src/test/cross-tool`, was already skipped, since `src/test/` is unconditionally appended to
+`unit_paths` afterward) - `site-test`'s own root is the literal string `src/test` (no trailing
+slash), which that `startsWith` check does not match, so without the fix a `site-test`-only change
+would have pushed `src/test/` into `unit_paths` twice. The filter now excludes `src/test` exactly, as
+well as anything nested under it.
 
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
 `nx show projects --affected --files=<changed files>` once, then CI runs ONE `vitest run <paths>` and
