@@ -1171,7 +1171,7 @@ describe('PdfRedactTool UI flow', () => {
     // Scoped to the toolbar's own help/status line, not just any [role="status"]
     // - the sr-only announcement region at the top of PdfRedactTool.tsx has the
     // same role for its own, unrelated reason (live-announcing text changes).
-    const statusChip = () => query<HTMLButtonElement>(container, `.${toolbarStyles.help}[role="status"] button`);
+    const statusChip = () => query<HTMLButtonElement>(container, `.${toolbarStyles.help} [role="status"] button`);
 
     it('names the armed tool rather than the action, and locks it on when clicked', async () => {
       await loadFileAndGetDrawArea(); // arms Blackout, unlocked
@@ -1225,7 +1225,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
   });
@@ -1280,7 +1280,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
 
@@ -1293,7 +1293,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       });
 
-      expect(container.querySelector(`.${toolbarStyles.help}[role="status"]`)).toBeNull();
+      expect(container.querySelector(`.${toolbarStyles.help} [role="status"]`)).toBeNull();
       expect(drawArea.style.touchAction).toBe('auto');
     });
   });
@@ -1309,6 +1309,9 @@ describe('PdfRedactTool UI flow', () => {
       container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
       'sr-only announcement region',
     );
+    // Unlike statusChip above, this is the undo-chip branch (RedactToolbar.tsx
+    // renders `role="status"` directly on `.help` itself while one is
+    // pending, not on a descendant), so no space before the attribute.
     const statusSlot = () => query<HTMLElement>(container, `.${toolbarStyles.help}[role="status"]`);
 
     it('announces and offers Undo when a single box is deleted, and Undo restores it', async () => {

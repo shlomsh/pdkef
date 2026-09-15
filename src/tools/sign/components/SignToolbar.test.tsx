@@ -615,7 +615,11 @@ describe('SignToolbar Component', () => {
         );
       });
 
-      const tip = () => container.querySelector(`.${styles.help}`).textContent;
+      // EditorToolStatus stacks every possible row (idle plus every armed
+      // tool's, hidden) in `.help` at once, to hold its height steady across
+      // arming - see SignToolbar.module.css's `.help` comment. Only the
+      // `.help-shown` row is the one actually on screen.
+      const tip = () => container.querySelector(`.${styles['help-shown']}`).textContent;
       // No direction word: the tip lives in the shell's file row now, which sits
       // above the toolbar, so "above" would have been pointing the wrong way.
       expect(tip()).toContain('pick a tool to start');
@@ -1097,7 +1101,7 @@ describe('SignToolbar Component', () => {
     const textBtn = findExactButton(toolbar, hebrewSignMessages.textButton);
     expect(textBtn).not.toBeUndefined();
 
-    const tip = query(container, `.${styles.help}`);
+    const tip = query(container, `.${styles['help-shown']}`);
     expect(tip.textContent).toBe(hebrewSignMessages.tipIdle);
   });
 });

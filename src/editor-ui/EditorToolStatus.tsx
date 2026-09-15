@@ -45,12 +45,16 @@ import { formatMessage } from '../i18n/toolMessages';
  * @param {boolean} props.locked - whether the armed tool stays on across placements
  * @param {function} props.onToggleKeepOn - flip that setting, leaving the tool armed either way
  * @param {any} props.idle - what to say when no tool is armed
+ * @param {Array<{action: string, button: string}>} [props.reserveCopies] - every other tool
+ *   this toolbar can arm, rendered hidden purely to hold the row's height steady - see the
+ *   comment on `.help` in SignToolbar.module.css for why arming needs this at all.
  */
 export default function EditorToolStatus({
   copy,
   locked,
   onToggleKeepOn,
   idle,
+  reserveCopies = [],
   // LOC-09 stage 1: individual label props, not a whole message catalogue -
   // this component is shared with Redact, which stays English by not passing
   // any of these, so every default here is the exact literal this file used
@@ -68,6 +72,7 @@ export default function EditorToolStatus({
   locked: boolean;
   onToggleKeepOn: () => void;
   idle: string;
+  reserveCopies?: Array<{ action: string; button: string }>;
   keepOnLabel?: string;
   keepOnTitleOn?: string;
   keepOnTitleOff?: string;
@@ -76,42 +81,42 @@ export default function EditorToolStatus({
   lang?: string;
   dir?: 'ltr' | 'rtl';
 }) {
-  // No tool armed: standing advice, and deliberately not a live region. It is
-  // not reporting a change, and announcing it on every state change would talk
-  // over whatever actually did change.
-  if (!copy) {
-    return (
-      <div className={styles.help} dir={dir} lang={lang}>
-        <span>{idle}</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.help} role="status" dir={dir} lang={lang}>
+  // The interactive row for whichever tool is actually armed. Pulled out so the
+  // hidden reservations below (real copy text, no live handlers) can share its
+  // markup instead of drifting from it.
+  const armedRow = (rowCopy: { action: string; button: string }, interactive: boolean) => (
+    <>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
         <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
-      <span>{copy.action}</span>
+      <span>{rowCopy.action}</span>
       {/* aria-checked, not a second sentence: the knob says "on" to the eye and
           this says it to a screen reader, so the line does not have to spend a
           phone's scarce vertical space stating a state the control is already
           showing. The pill itself only tints - the knob is what moves, because
           a switch whose whole row changes colour reads as a button that swapped
-          identity rather than as one setting that changed value. */}
-      <button
-        type="button"
-        role="switch"
-        className={`${styles['status-action']}${locked ? ` ${styles['status-action-on']}` : ''}`}
-        onClick={onToggleKeepOn}
-        aria-checked={locked}
-        title={formatMessage(locked ? keepOnTitleOn : keepOnTitleOff, { button: copy.button })}
-      >
-        <span className={styles['status-switch']} aria-hidden="true" />
-        {formatMessage(keepOnLabel, { button: copy.button })}
-      </button>
+          identity rather than as one setting that changed value. A hidden
+          reservation renders a plain span here, never a second real switch. */}
+      {interactive ? (
+        <button
+          type="button"
+          role="switch"
+          className={`${styles['status-action']}${locked ? ` ${styles['status-action-on']}` : ''}`}
+          onClick={onToggleKeepOn}
+          aria-checked={locked}
+          title={formatMessage(locked ? keepOnTitleOn : keepOnTitleOff, { button: rowCopy.button })}
+        >
+          <span className={styles['status-switch']} aria-hidden="true" />
+          {formatMessage(keepOnLabel, { button: rowCopy.button })}
+        </button>
+      ) : (
+        <span className={styles['status-action']}>
+          <span className={styles['status-switch']} aria-hidden="true" />
+          {formatMessage(keepOnLabel, { button: rowCopy.button })}
+        </span>
+      )}
       {/* Shown only on a device that has the gesture it names: a double-tap is
           the browser's zoom and a phone has no Escape key, so on touch both of
           these would be advice you cannot follow. `.status-hint` is display:none
@@ -127,15 +132,55 @@ export default function EditorToolStatus({
           its left edge is a function of its total width - and a hint that grew
           or shrank on toggle dragged the switch sideways with it, out from under
           the pointer mid-click. Reserving the wider of the two costs a hidden
-          span and needs no measured width to keep in sync. */}
+          span and needs no measured width to keep in sync.
+
+          A hidden reservation row (`interactive` false) pins both to
+          `status-hint-spare`, never `status-hint-shown`: `visibility` is only
+          inherited until something sets it explicitly, and `status-hint-shown`
+          does exactly that - inside a row its own ancestor `.help-row` has just
+          set to `visibility: hidden`, that one span's `visible` won a fight the
+          ancestor should have won, and every reservation row's "or double-click
+          <button>" painted on screen at once, stacked on top of the real one. */}
       <span className={styles['status-hint']}>
-        <span className={locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
+        <span className={interactive && locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
           {hintEsc}
         </span>
-        <span className={locked ? styles['status-hint-spare'] : styles['status-hint-shown']}>
-          {formatMessage(hintDoubleClick, { button: copy.button })}
+        <span className={interactive && !locked ? styles['status-hint-shown'] : styles['status-hint-spare']}>
+          {formatMessage(hintDoubleClick, { button: rowCopy.button })}
         </span>
       </span>
+    </>
+  );
+
+  return (
+    <div className={styles.help} dir={dir} lang={lang}>
+      {/* Everything this toolbar could ever show lives here at once - the idle
+          tip, whichever tool is actually armed, and a hidden copy of every other
+          tool's row - stacked in one grid cell (`.help-stack`/`.help-row` in
+          SignToolbar.module.css) so the tallest of them, at the current width
+          and in the current language, sets the row's real height permanently.
+          `role="status"` moves with the armed row itself, since that is the one
+          state change worth announcing; the idle tip is standing advice, not a
+          change, and a hidden reservation is not a state at all. */}
+      <div className={`${styles['help-stack']}`}>
+        <div className={`${styles['help-row']} ${!copy ? styles['help-shown'] : styles['help-spare']}`}>
+          <span>{idle}</span>
+        </div>
+        {copy && (
+          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+            {armedRow(copy, true)}
+          </div>
+        )}
+        {reserveCopies.map((rowCopy) => (
+          <div
+            key={rowCopy.button + rowCopy.action}
+            className={`${styles['help-row']} ${styles['help-spare']}`}
+            aria-hidden="true"
+          >
+            {armedRow(rowCopy, false)}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
