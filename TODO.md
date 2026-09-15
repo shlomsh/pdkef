@@ -100,6 +100,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-07 | P2 | [MOBI-07](backlog/tasks/MOBI-07.md) · Pre-generate the signed PDF so Share is one tap, not two |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
+| MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 
 
 ## Site quality: accessibility, CSS correctness and theming
