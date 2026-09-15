@@ -261,15 +261,38 @@ jobs:
     - name: Build
       run: npm run build
 
+    - name: Resolve Playwright version
+      id: playwright
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
     # Chromium only (QUAL-09): webkit and the perf budgets moved to the
-    # unsharded `e2e-webkit` job below, so this stays uncached rather than
-    # newly worth caching. Measured before the split: a cache hit was 5s to
-    # restore plus 46s of `install-deps` for webkit's apt libraries, against
-    # 38s for this one command there; the chromium-only apt half alone runs
-    # 12-15s per the fonts job's comment below, so a cache is a follow-up only
-    # if that shows up as a cost worth avoiding.
-    - name: Install Playwright browsers
+    # unsharded `e2e-webkit` job below. Caching was measured and rejected for
+    # the old, pre-QUAL-09 combined chromium+webkit shape that used to run
+    # here: a cache hit was 5s to restore plus 46s of `install-deps` for
+    # webkit's apt libraries, against 38s for the single uncached install
+    # there, so the cache only saved the download, not the apt cost, and
+    # wasn't worth it. That combination no longer runs in this job. This job
+    # now installs chromium only, and each of the two shards pays that apt
+    # cost separately; `font-guards`'s own comment below measured its
+    # chromium-only apt half at 12-19s per shard, so a hit here is worth
+    # trading for even though the old combined case was not. PROJECTION, not
+    # a fresh CI measurement (nothing here can exercise GitHub's real cache
+    # backend) - whoever reviews the next few runs should confirm the cache
+    # actually hits and actually saves the time this comment assumes.
+    - name: Install Playwright browsers (cache miss)
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium
+
+    - name: Install Playwright system dependencies (cache hit)
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium
 
     # One command per project (QUAL-09): webkit now lives in its own job
     # (`e2e-webkit`) instead of being sharded here alongside chromium.
@@ -332,12 +355,42 @@ jobs:
     - name: Build
       run: npm run build
 
+    - name: Resolve Playwright version
+      id: playwright
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        # Own key, distinct from `e2e`'s and `font-guards`'s: this job caches
+        # a different browser set (chromium + webkit) than either, and
+        # sharing a key with one of them would evict on alternating runs.
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-webkit
+
     # Also installs chromium: the `perf` project is chromium-based (see
     # `devices['Desktop Chrome']` in playwright.config.js), and the perf
     # budgets run in this job too, on the job that has the spare time after
     # dropping webkit from the two chromium shards.
-    - name: Install Playwright browsers
+    #
+    # QUAL-09's own measurement (run 34788031094) was against the old shape
+    # where each of the two chromium shards paid `install --with-deps chromium
+    # webkit` uncached, at 51s a shard; that measurement never covered this
+    # job, which pays the combined apt cost exactly once instead of twice.
+    # Caching that one-time apt cost trades a restore for a chromium+webkit
+    # `install-deps`, which is worth it whenever the restore is cheaper than
+    # apt, per the same reasoning as `e2e` above. PROJECTION, not a fresh CI
+    # measurement (nothing here can exercise GitHub's real cache backend) -
+    # whoever reviews the next few runs should confirm the cache actually
+    # hits and actually saves the time this comment assumes.
+    - name: Install Playwright browsers (cache miss)
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps chromium webkit
+
+    - name: Install Playwright system dependencies (cache hit)
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium webkit
 
     - name: Run Playwright e2e tests (product webkit)
       env:
