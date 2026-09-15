@@ -11,3 +11,6 @@ dist/
 playwright-report/
 test-results/
 .nx/
+# Synced from node_modules/pdfjs-dist/wasm/ by scripts/sync-pdfjs-wasm.mjs
+# (postinstall) - see src/lib/pdfjsWasm.js.
+public/pdfjs-dist-wasm/

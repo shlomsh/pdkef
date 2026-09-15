@@ -6,6 +6,7 @@
 // never fetched from a CDN - required for both offline support and the
 // no-third-party-network privacy guarantee.
 import { getPdfRenderContext } from './pdfRender.js';
+import { PDFJS_WASM_URL } from './pdfjsWasm.js';
 
 let pdfjsLib;
 
@@ -54,7 +55,11 @@ function getSharedWorker(lib) {
 
 function openDocument(lib, bytes) {
   const worker = getSharedWorker(lib);
-  return lib.getDocument(worker ? { data: bytes, worker } : { data: bytes });
+  return lib.getDocument(
+    worker
+      ? { data: bytes, worker, wasmUrl: PDFJS_WASM_URL }
+      : { data: bytes, wasmUrl: PDFJS_WASM_URL },
+  );
 }
 
 const TARGET_WIDTH = 150;

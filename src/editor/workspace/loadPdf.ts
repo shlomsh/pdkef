@@ -1,4 +1,5 @@
 import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
+import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
@@ -121,7 +122,7 @@ export async function loadPdf({
   try {
     const lib = await getPdfjs();
     if (!isCurrent()) return;
-    loadingTask = lib.getDocument({ data: bytes.slice(0) });
+    loadingTask = lib.getDocument({ data: bytes.slice(0), wasmUrl: PDFJS_WASM_URL });
     document = await loadingTask.promise;
     if (!isCurrent()) {
       // A loading task can resolve at the exact moment it is replaced. Its
