@@ -24,6 +24,7 @@ const ROOTS = new Map([
   ['fonts', 'e2e/sign'],
   ['font-assets', 'public/fonts'],
   ['cross-tool-tests', 'src/test/cross-tool'],
+  ['site-test', 'src/test'],
 ]);
 
 describe('ownerOf', () => {
@@ -335,6 +336,23 @@ describe('deriveScope', () => {
     expect(scope.fonts).toBe(true);
     expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
     expect(scope.e2e_paths).toContain('src/tools/redact/e2e/');
+  });
+
+  // DEBT-04 (second pass): src/test/ got its own Nx project, `site-test`,
+  // rooted at the literal string `src/test` (no trailing slash) - unlike
+  // `cross-tool-tests` (rooted at `src/test/cross-tool`), that root does not
+  // match the `startsWith('src/test/')` check extraPaths already used to
+  // skip src/test/'s own roots, so without the `root !== 'src/test'` guard
+  // this would have doubled `src/test/` in unit_paths.
+  it('does not duplicate src/test/ when site-test itself is affected', () => {
+    const scope = deriveScope({
+      files: ['src/test/setInputFiles.js'],
+      affected: ['site-test', 'tool-sign'],
+      roots: ROOTS,
+      toolE2eExists: () => true,
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   it('still widens to everything on a shell change', () => {

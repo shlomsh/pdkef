@@ -58,7 +58,9 @@
 //      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
 //      change still runs editor-ui's own unit tests, with no hand-written
 //      second list - see the `roots` map in deriveScope), plus src/test/
-//      (its two tests walk all of src and must run on any source change).
+//      (its own Nx project is `site-test`; several of its guard tests walk
+//      all of src and must run on any source change, so this is
+//      unconditional, not gated on `site-test` itself being affected).
 //      All of that is sorted alphabetically together, with src/test/ pinned
 //      last regardless (both orders are equally arbitrary; this is just the
 //      one the test pins). e2e_paths is each affected tool's
@@ -193,12 +195,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   // under src/ gets its own root added too, straight from the injected
   // `roots` map - never a hand-written list - so e.g. an editor-ui-only
   // change still runs editor-ui's own unit tests (DEBT-06). A root already
-  // covered by the always-present src/test/ below (cross-tool-tests, at
-  // src/test/cross-tool) is skipped, not duplicated.
+  // covered by the always-present src/test/ below is skipped, not
+  // duplicated: both `cross-tool-tests` (root `src/test/cross-tool`, caught
+  // by the `startsWith` check) and `site-test` itself (root the literal
+  // `src/test`, which `startsWith('src/test/')` does not match - no trailing
+  // slash - so it needs its own equality check, DEBT-04 second pass).
   const extraPaths = [...affectedSet]
     .filter((p) => !p.startsWith('tool-') && !CORE_PROJECTS.has(p))
     .map((p) => roots.get(p))
-    .filter((root) => root && root.startsWith('src/') && !root.startsWith('src/test/'))
+    .filter((root) => root && root.startsWith('src/') && root !== 'src/test' && !root.startsWith('src/test/'))
     .map((root) => `${root}/`);
 
   // Sorted together, alphabetically; src/test/ is pinned last regardless of
