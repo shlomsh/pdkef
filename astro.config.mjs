@@ -142,10 +142,11 @@ export default defineConfig({
       // comment on the script has the exact command to recompute it.
       scriptDirective: {
         src: ["'self'"],
-        // Recomputed for LOC-02's draft-hint fix (last path segment instead of
-        // every slash stripped, so a locale prefix like /he/ doesn't leak into
-        // the draft-hint key - see ToolPageLayout.astro's comment on the script).
-        hashes: ['sha256-7Dl4kn157x5qAPORXEcZZoT/2ruo3vYGZpKTCOWr7aw=']
+        // Recomputed for MEM-01: the script now reads the per-tool "current
+        // entry" pointer (pdf-toolkit:workspace:current:<slug>) instead of
+        // the retired has-draft:<slug> hint key - see ToolPageLayout.astro's
+        // comment on the script.
+        hashes: ['sha256-md/+fnfuuZjS0JdmfUowmAYev0TV4PUaXOM92ZGLWRw=']
       },
       styleDirective: { src: ["'self'"] }
     }

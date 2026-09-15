@@ -3,6 +3,7 @@ import type { ComponentChildren, ComponentType } from 'preact';
 import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
+import { hasDraftHint } from '../../lib/drafts/draftStore.js';
 import {
   insertPages,
   isGrouped,
@@ -235,13 +236,13 @@ type HandoffTool = 'compress' | 'sign';
 
 /* MERGE-13: the same synchronous hint ToolPageLayout.astro's pre-paint script
    and useDraftPersistence read, so the empty state can be held back on the
-   first render, before the draft module (a dynamic import) has even loaded. */
+   first render, before the draft module (a dynamic import) has even loaded.
+   Goes through draftStore's own hasDraftHint (MEM-01) rather than reading a
+   localStorage key directly - this used to duplicate that key's literal
+   name, which is exactly the kind of copy that silently stops matching the
+   moment the store's key format changes. */
 function hasMergeDraftHint(): boolean {
-  try {
-    return localStorage.getItem('pdf-toolkit:workspace:has-draft:merge') === '1';
-  } catch {
-    return false;
-  }
+  return hasDraftHint('merge');
 }
 
 function prefersReducedMotion(): boolean {

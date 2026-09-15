@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import FileDropzone from './FileDropzone.tsx';
-import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta } from '../lib/drafts/draftStore.js';
+import { loadDraft, deleteDraft, saveDraft, saveHandoff, readRecentFiles, loadRecentFile, readDraftMeta, readCurrentEntryId } from '../lib/drafts/draftStore.js';
 import { setInputFiles } from '../test/setInputFiles.js';
 
 vi.mock('../lib/drafts/draftStore.js', () => ({
@@ -16,6 +16,11 @@ vi.mock('../lib/drafts/draftStore.js', () => ({
   // MERGE-13: no merge draft by default; the one test below that cares
   // overrides this per-case.
   readDraftMeta: vi.fn(() => null),
+  // MEM-01: the id readHomeRecents dedupes the natural recents list against,
+  // so the merge draft prepended above never also shows up a second time
+  // now that Merge's entry lives in the same recents index as every other
+  // tool's. No pointer by default.
+  readCurrentEntryId: vi.fn(() => null),
 }));
 
 function dropOn(dropzone, files) {
@@ -38,6 +43,7 @@ describe('FileDropzone', () => {
     loadRecentFile.mockResolvedValue(null);
     saveHandoff.mockResolvedValue(true);
     readDraftMeta.mockReturnValue(null);
+    readCurrentEntryId.mockReturnValue(null);
   });
 
   afterEach(() => {
@@ -184,6 +190,27 @@ describe('FileDropzone', () => {
       expect(link.getAttribute('href')).toBe('/merge/');
       // The second item is still the ordinary cached-file button, unaffected.
       expect(items[1].querySelector('button[aria-label^="Open recent PDF"]')).not.toBeNull();
+    });
+
+    // MEM-01: since a Merge entry now lives in the same recents index as
+    // every other tool's work, readRecentFiles() can return the exact same
+    // id the draft-meta tile above already represents - it must not render
+    // twice.
+    it('does not show the saved merge draft a second time from the natural recents list', () => {
+      readDraftMeta.mockReturnValue({
+        fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
+      });
+      readCurrentEntryId.mockReturnValue('sha256:merge-set');
+      readRecentFiles.mockReturnValue([
+        { id: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7 },
+        { id: 'sha256:contract', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now() },
+      ]);
+      mount({ toolTarget: 'sign', href: '/sign?action=open' });
+
+      const items = Array.from(container.querySelectorAll('li'));
+      expect(items).toHaveLength(2);
+      expect(items.filter((li) => li.textContent.includes('invoice + 2 more'))).toHaveLength(1);
+      expect(items[1].textContent).toContain('contract.pdf');
     });
 
     it('counts a merge draft toward the six-item cap, displacing the oldest recent file', () => {

@@ -25,16 +25,26 @@ lib, and the evidence behind both are in
 `scripts/module-boundaries-allowlist.json`); read it before moving a file between folders, including
 into or out of `src/tools/merge/` or `src/editor/`.
 
-## Draft persistence (flagship, on-device)
+## Draft persistence (flagship, on-device) - one memory space (MEM-01)
 
-`src/lib/drafts/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-drafts`,
-store `drafts`, keyed by tool name: one draft per tool) holding the full source PDF bytes plus edit
-state, 14-day expiry, no-op when IndexedDB is unavailable. `useDraftPersistence.js` debounce-saves
-while `status === 'editing'`, flushes on `visibilitychange`/`pagehide`, restores silently on mount
-(the draft is the source of truth; download does not clear it), and clears on "Replace file" or
-expiry. Sign and Redact share a `loadPdf()` for fresh picks and restore, and call `seedUniqueId()` (in `sign.js`)
-after restore so new ids don't collide. Nothing is uploaded. It is marketed as crash recovery on the
-sign, redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
+`src/lib/drafts/draftStore.js` is a dependency-free IndexedDB wrapper (DB `pdf-toolkit-workspace`,
+store `workspace`, keyPath `tool`) holding **one memory space**, not a per-tool draft: the unit is an
+**entry**, keyed by content hash (`sourceIdForBytes`/`sourceIdForFiles`), carrying its source bytes
+once and a `work` map of what every tool has done to it (`{ sign: {...}, redact: {...} }`), so the
+same PDF signed and then redacted keeps both. A tool's "current" file is a localStorage pointer
+(`setCurrentEntry`/`readCurrentEntryId`/`hasDraftHint`/`readDraftMeta`), not a fixed slot - opening a
+different file moves the pointer and touches nothing else. Eviction is recency only, six entries,
+regardless of whether an entry carries work; age expiry stays 14 days per entry
+(`draftPolicy.js`, one `savedAt`). No-op when IndexedDB is unavailable. A legacy pre-MEM-01 per-tool
+record is folded into its entry on first access (`migrateLegacyDraft`), once per module lifetime.
+
+`useDraftPersistence.js` debounce-saves while `status === 'editing'`, flushes on
+`visibilitychange`/`pagehide`, restores silently on mount by following the pointer (the entry is the
+source of truth; download does not clear it), and "Replace file" now clears only this tool's work on
+the pointed entry - the file, its bytes, and every other tool's work on it stay in recents. Sign and
+Redact share a `loadPdf()` for fresh picks and restore, and call `seedUniqueId()` (in `sign.js`) after
+restore so new ids don't collide. Nothing is uploaded. It is marketed as crash recovery on the sign,
+redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
 
 ## Other tools and `src/lib/`
 

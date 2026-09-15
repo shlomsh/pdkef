@@ -131,7 +131,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
           var slug = segments[segments.length - 1] || '';
           var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
           document.documentElement.setAttribute('data-view-density', density);
-          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:workspace:has-draft:' + slug) === '1') {
+          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:workspace:current:' + slug)) {
             document.documentElement.setAttribute('data-draft-hint', '1');
           }
         } catch (e) {}

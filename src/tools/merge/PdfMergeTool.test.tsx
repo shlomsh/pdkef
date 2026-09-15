@@ -93,6 +93,12 @@ describe('PdfMergeTool UI flow', () => {
     draftStore.deleteDraft.mockClear();
     draftStore.loadDraft.mockReset();
     draftStore.loadDraft.mockImplementation(async () => null);
+    // Same reason loadDraft gets reset above: vi.mock factory mocks keep
+    // whatever a previous test left them at (restoreAllMocks only touches
+    // real spies), and the one test below that needs hasMergeDraftHint() to
+    // read true sets it explicitly - every other test needs it back at false.
+    draftStore.hasDraftHint.mockReset();
+    draftStore.hasDraftHint.mockReturnValue(false);
     originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
     window.URL.revokeObjectURL = vi.fn();
@@ -692,7 +698,11 @@ describe('PdfMergeTool UI flow', () => {
     // The picked-up-sentence-to-chip flip below advances virtual time via
     // fake timers instead of waiting out a real 5s timer.
     const clearDraft = vi.fn(async () => true);
-    localStorage.setItem('pdf-toolkit:workspace:has-draft:merge', '1');
+    // MEM-01: hasMergeDraftHint() now goes through draftStore's own
+    // hasDraftHint (a pointer + recency-index check) instead of reading a
+    // localStorage key directly, so the mocked module is what needs to say
+    // "yes, there's something to check" here.
+    draftStore.hasDraftHint.mockReturnValue(true);
     document.documentElement.setAttribute('data-draft-hint', '1');
     mount();
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
