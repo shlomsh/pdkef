@@ -42,7 +42,9 @@ const DOM_TESTS = [
   // pure-logic and stay under node (proven by running them there).
   'src/tools/sign/useWorkspaceGestures.test.js',
   'src/editor/workspace/**/*.{test,spec}.{js,jsx,ts,tsx}',
-  'src/editor/gestures/**/*.{test,spec}.{js,jsx,ts,tsx}',
+  // DEBT-04 (part 2): the gesture controller moved to src/lib/gestures/ (shell's
+  // CompareSlider needed it too), taking its DOM-driving test with it.
+  'src/lib/gestures/**/*.{test,spec}.{js,jsx,ts,tsx}',
   'src/editor/adapters/pdf/redact.test.js',
 ];
 

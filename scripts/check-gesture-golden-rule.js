@@ -4,12 +4,15 @@ import { fileURLToPath } from 'node:url';
 
 // E7.8(a) - static guard for the gesture golden rule (ARCHITECTURE §1.2/§4):
 // mutate the DOM during a gesture, commit application state exactly once on
-// release. `src/editor/gestures/controller.ts`'s `computePatch` is the single
+// release. `src/lib/gestures/controller.ts`'s `computePatch` is the single
 // choke point every drag/resize/create gesture in Sign and Redact routes
 // through on every pointermove/touchmove - it must only *compute* a patch,
-// never dispatch it. This is a regression guard, not a parser: it uses brace
-// counting rather than a real AST, matching every `computePatch` call site
-// in the repo as of E4/E4.4.
+// never dispatch it. Moved out of `src/editor/` under DEBT-04 (part 2) once
+// CompareSlider (shell) needed it too, alongside the editor's own consumers;
+// this guard walks all of `src/` generically, so the move needs no change
+// here beyond this comment. This is a regression guard, not a parser: it uses
+// brace counting rather than a real AST, matching every `computePatch` call
+// site in the repo as of E4/E4.4.
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

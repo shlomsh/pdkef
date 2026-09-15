@@ -6,7 +6,7 @@ import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { applyPageEdits } from '../../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
-import { startGesture } from '../../editor/gestures/controller.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';

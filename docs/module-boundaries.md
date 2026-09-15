@@ -186,12 +186,15 @@ single tool owns them; they are consumed by the generic tool chrome or by more t
 - `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. It is imported
   by one `.astro` site component (`CompareFigure.astro`, for blog-style content) and by one tool
   (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js` perf budget measures).
-  It imports `src/editor/gestures/controller.ts` directly, so it needs to land somewhere that may
-  import `editor` - `shell` qualifies, `site` does not (rule 4 forbids the site importing a tool
-  directly, and `PdfCompressTool.tsx` importing it back is `tool -> shell`, allowed). This is a gap
-  in the ticket's shell list, not a contradiction of it: nothing in the target layout names a home
-  for a component two different consumers (one site, one tool) both need, and shell is the closest
-  fit already defined.
+  At the time of this record it imported `src/editor/gestures/controller.ts` directly, so it needed
+  to land somewhere that may import `editor` - `shell` qualifies, `site` does not (rule 4 forbids the
+  site importing a tool directly, and `PdfCompressTool.tsx` importing it back is `tool -> shell`,
+  allowed). This is a gap in the ticket's shell list, not a contradiction of it: nothing in the
+  target layout names a home for a component two different consumers (one site, one tool) both need,
+  and shell is the closest fit already defined. **Since superseded (DEBT-04, part 2):** the gesture
+  controller itself moved to `src/lib/gestures/controller.ts`, so this is now a `shell -> lib` edge,
+  not `shell -> editor` - the placement reasoning above is left as ARCH-16's own, at the time it was
+  true.
 
 None of these four additions are in the ticket's example list. Flagging them here is the point of
 this record: ARCH-16 should not have to rediscover them by running the mover and reading a build
@@ -290,6 +293,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `dropFiles.js` | moved to `src/shell/` (DEBT-04) - `BasePdfTool` and `DropzoneEmptyState` were its only consumers, both already `shell` |
 | `sort.js` | `PdfImageToPdfTool`, `PdfMergeTool` |
 | `useHandoffIntake.ts` | `PdfCompressTool`, `PdfSplitTool` |
+| `gestures/controller.ts` | `CompareSlider` (shell), `PdfRedactTool`, `SignTool/useWorkspaceGestures`, `editor-ui/hooks/{useDraggableElement,useElementResize,usePdfCoordinates}` - moved from `src/editor/gestures/controller.ts` under DEBT-04 (part 2), since `CompareSlider` (shell) was a real non-editor consumer, the same shape as `pdfRender.js` above; `src/editor/gestures/pointer.ts` stayed put, `editor-ui`'s only consumer of it |
 
 ### Moved out of `src/lib/` to `src/editor-ui/hooks/` (DEBT-04)
 

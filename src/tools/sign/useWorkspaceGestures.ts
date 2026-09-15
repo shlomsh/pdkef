@@ -1,6 +1,6 @@
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
-import { startGesture } from '../../editor/gestures/controller.ts';
-import type { GestureEvent } from '../../editor/gestures/controller.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
+import type { GestureEvent } from '../../lib/gestures/controller.ts';
 import { createElementId } from '../../editor/model/ids.ts';
 import {
   captureAddedElement,

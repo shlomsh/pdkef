@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../../editor/gestures/controller.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import {

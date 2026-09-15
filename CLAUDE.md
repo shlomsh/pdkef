@@ -112,7 +112,7 @@ brackets carries the evidence; do not relearn it.
   `vercel.json` is verified only by `npm run build && npm run preview`. Never `is:inline` a script;
   never add `script-src`/`default-src` to the `vercel.json` header. [csp-scripts-pwa]
 - **Gesture golden rule.** Drag, resize and create mutate the DOM during the gesture and commit state
-  exactly once on release, through `src/editor/gestures/controller.ts`. Never route `pointermove`
+  exactly once on release, through `src/lib/gestures/controller.ts`. Never route `pointermove`
   through state or a store. Statically enforced by `check-gesture-golden-rule.js`. [editor]
 - **Tools are one-shot; selection and text editing are separate states.** An armed tool disarms after
   one placement; double-click locks it; the "Stop" chip is the only exit on touch. [editor]

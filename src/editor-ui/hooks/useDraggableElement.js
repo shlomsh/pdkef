@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
-import { startGesture } from '../../editor/gestures/controller.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
 import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
