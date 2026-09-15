@@ -1,5 +1,6 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
+import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import { searchTargetSize } from './targetSizeSearch.js';
 
 let pdfjsLib;
@@ -53,7 +54,7 @@ export async function compressPdf(file, { level = 'medium', onProgress } = {}) {
 
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const loadingTask = lib.getDocument({ data: bytes });
+  const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
 
   const pdfDoc = await PDFDocument.create();
@@ -151,7 +152,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
 
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const loadingTask = lib.getDocument({ data: bytes });
+  const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
 
   try {

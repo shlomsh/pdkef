@@ -11,6 +11,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
+import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 
 let pdfjsLib: any;
 async function getPdfjs() {
@@ -206,7 +207,7 @@ export default function PdfSplitTool({
     try {
       const lib = await getPdfjs();
       const bytes = await pdfFile.arrayBuffer();
-      const loadingTask = lib.getDocument({ data: bytes });
+      const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
       const pdf = await loadingTask.promise;
 
       const pageCount = pdf.numPages;

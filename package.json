@@ -6,7 +6,7 @@
   "description": "Free, open-source PDF tools that run 100% locally in your browser - no upload, no signup, no watermark.",
   "license": "MIT",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/sync-pdfjs-wasm.mjs",
     "dev": "astro dev",
     "build": "node scripts/generate-font-manifest.mjs --check && node scripts/generate-language-acceptance.mjs --check && astro build && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",
@@ -34,6 +34,7 @@
     "generate:licenses": "node scripts/runtime-license-inventory.mjs --write",
     "generate:language-acceptance": "node scripts/generate-language-acceptance.mjs",
     "generate:backlog": "node scripts/generate-backlog.mjs",
+    "sync:pdfjs-wasm": "node scripts/sync-pdfjs-wasm.mjs",
     "check:fast": "npm run check:backlog && npm run check:guidance && npm run test:editor-dependency-directions && npm run test:module-boundaries && npm run test:gesture-golden-rule && node scripts/check-class-resolution.js && npm run test:changed && npm run typecheck",
     "check:backlog": "node scripts/generate-backlog.mjs --check",
     "check:guidance": "node scripts/check-guidance-budget.js",

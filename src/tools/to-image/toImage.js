@@ -4,6 +4,7 @@
 // pattern (see thumbnails.js) so it's bundled as a same-origin asset, never
 // fetched from a CDN.
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
+import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 
 let pdfjsLib;
 
@@ -130,7 +131,7 @@ export async function convertPdfToImages(
 ) {
   const lib = await getPdfjs();
   const bytes = await file.arrayBuffer();
-  const loadingTask = lib.getDocument({ data: bytes });
+  const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdf = await loadingTask.promise;
   const baseName = file.name.replace(/\.pdf$/i, '') || 'page';
   const extension = EXTENSION_BY_FORMAT[format] ?? 'png';

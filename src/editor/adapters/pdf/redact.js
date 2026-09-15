@@ -1,6 +1,7 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './pdfjsLoader.js';
 import { getPdfRenderContext } from '../../../lib/pdfRender.js';
+import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 
 /**
@@ -19,7 +20,7 @@ export async function redactPdf(file, elements, onProgress) {
   
   // We need pdf.js to render pages to an image canvas for flattening
   const pdfjs = await getPdfjs();
-  const loadingTask = pdfjs.getDocument({ data: bytes });
+  const loadingTask = pdfjs.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
   const pdfjsDoc = await loadingTask.promise;
 
   for (let i = 0; i < sourceDoc.getPageCount(); i++) {
