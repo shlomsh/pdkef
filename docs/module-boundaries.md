@@ -410,8 +410,8 @@ ARCH-18                ARCH-19
 QUAL-05 (e2e sharding) runs independently, alongside any of the above - no file-move dependency.
 ```
 
-**Status as of this revision: ARCH-16 through ARCH-19 and QUAL-05 have landed on `main`; ARCH-20 is
-in progress on a separate branch.** ARCH-16 landed first because nothing else could move until the
+**Status: ARCH-16 through ARCH-20 and QUAL-05 have landed on `main`; the post-landing measurement is
+tracked separately in QUAL-08.** ARCH-16 landed first because nothing else could move until the
 shared shell and editor UI had a folder that was not the one every tool was also leaving (the
 ticket's own framing: "tools cannot move into folders of their own until the things they share have
 a home"). ARCH-17 landed next: the six simple tools plus Redact proved the pattern (island + owned
@@ -419,8 +419,8 @@ components + owned lib modules + owned e2e, one commit each) on tools with no ep
 complication. ARCH-18 and ARCH-19 both depended only on ARCH-16 (not on ARCH-17) and ran in
 parallel: ARCH-18 was blocked externally on the merge-tool epic branch landing on `main`, which had
 nothing to do with the editor core, so a second session picked up ARCH-19 while ARCH-18 waited; both
-have since landed. ARCH-20 depends on all three folder-moving tickets because Nx's tags need the
-folders to exist to enforce anything precise, and is the one still in flight. QUAL-05 had no
+have since landed. ARCH-20 depended on all three folder-moving tickets because Nx's tags needed the
+folders to exist to enforce anything precise. QUAL-05 had no
 `depends_on` in the backlog and touched only `ci.yml`'s job matrix, so it landed independently of the
 rest.
 

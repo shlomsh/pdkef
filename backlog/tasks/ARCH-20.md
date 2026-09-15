@@ -1,7 +1,7 @@
 ---
 id: "ARCH-20"
 title: "Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "longer-term"
@@ -77,10 +77,8 @@ site-only commits skip the other tools' unit and e2e work; about half of the pro
   present-day single-tool changes directly (`src/tools/compress/PdfCompressTool.tsx` ->
   `["tool-compress","site-e2e"]`, `fonts=false`; see `docs/nx-affected-ci.md` for the full table) -
   this just was not measurable against 200 commits of history that mostly predates the layout.
-- **Still open, deliberately left to the ticket's own acceptance bar**: "record the numbers before and
-  after on a week of runs" needs real `ci.yml` production runs, which a single local checkout cannot
-  produce - this is for whoever watches the first week of PRs against this branch once it lands on
-  `main`. Also open: splitting `site` so a page-only commit narrows (today `site` is one of the five
-  core projects that force `everything`, so a `src/pages/*.astro`-only change still runs everything -
-  see `docs/nx-affected-ci.md`'s Follow-ups), and `check-module-boundaries.mjs`'s multi-line-import
-  miss (a real, separate bug the prep spike found, out of this ticket's scope).
+- Closed 2026-09-15. The implementation, local checks, CI integration and direct affected-scope
+  acceptance examples are complete. The production-run measurement was split into
+  [QUAL-08](QUAL-08.md), because it requires post-landing history rather than more ARCH-20
+  implementation. The other follow-ups are independently tracked: [ARCH-21](ARCH-21.md) owns the
+  possible `site` split, and DEBT-12 closed the import-scanner gap.
