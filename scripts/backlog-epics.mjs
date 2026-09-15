@@ -41,6 +41,11 @@ export const epics = [
   // and the guidance and guards that drifted. Prioritized for the week of
   // 2026-09-15; the record holds the reasoning, the tickets the execution.
   { key: 'architecture-debt', label: 'Architecture debt', heading: 'Architecture debt: what the module-boundaries review found (2026-09-14)' },
+  // Opened 2026-09-15 from Shlomi's read of the home page's "Open this instead?"
+  // dialog: a file in PDkef is never final, so every opened file keeps its work
+  // in the one recents memory space and the per-tool "draft" (the older half of
+  // the store, one slot per tool) goes away with the warning that defended it.
+  { key: 'one-memory-space', label: 'One memory space', heading: 'One memory space: every opened file keeps its work, no drafts (2026-09-15)' },
 ];
 
 export const statuses = [
