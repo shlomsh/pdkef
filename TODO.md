@@ -271,6 +271,15 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 
 
+## One memory space: every opened file keeps its work, no drafts (2026-09-15)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
+| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
+| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
+
+
 ## Migrated context and history
 
 The prose, decisions, and supporting evidence formerly interleaved with tickets live in [backlog/reference/migrated-todo-context.md](backlog/reference/migrated-todo-context.md). It is reference material, not a task tracker.
