@@ -371,16 +371,15 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
-| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
+_None._
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
+| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
+| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
 
 ### Blocked
 
