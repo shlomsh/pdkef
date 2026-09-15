@@ -1,7 +1,7 @@
 ---
 id: "MEM-03"
 title: "Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "one-memory-space"
 phase: "near-term"

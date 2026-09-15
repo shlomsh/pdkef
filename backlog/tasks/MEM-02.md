@@ -1,7 +1,7 @@
 ---
 id: "MEM-02"
 title: "Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "one-memory-space"
 phase: "near-term"
