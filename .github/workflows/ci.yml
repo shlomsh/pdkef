@@ -6,7 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
   # The font guards are path-gated below; the nightly run is the backstop that
-  # catches a runner image or browser change none of our own commits made.
+  # catches a runner image or browser change none of our own commits made. It
+  # skips itself (via `scope`'s `nightly_unchanged` output) when nothing has
+  # landed since its own last completed run - a quiet repo has nothing new for
+  # it to catch, and the previous night's run already vouched for that commit.
   schedule:
     - cron: "17 3 * * *"
   # The exported-PDF render guard's baseline is platform-bound and must be
@@ -59,7 +62,7 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     needs: scope
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -172,7 +175,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: scope
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -223,7 +226,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: scope
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
@@ -298,7 +301,7 @@ jobs:
   e2e-webkit:
     runs-on: ubuntu-latest
     needs: scope
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
 
     steps:
     - uses: actions/checkout@v5
@@ -369,6 +372,14 @@ jobs:
   # that read those files. Fails open: without a resolvable base, nothing is
   # docs-only and every other job runs.
   #
+  # Also runs on `schedule` (not just `push`/`pull_request`) so its own
+  # `nightly_unchanged` output can gate the nightly cron: `docs_only` resolves
+  # to false there (no `before` sha to diff against), which is harmless - it
+  # only widens, and `nightly_unchanged` is the output that actually narrows a
+  # scheduled run. `workflow_dispatch` (the manual baseline recapture) is
+  # deliberately left out here: it still skips `scope` entirely and fails open
+  # through `needs.scope.result != 'success'`, same as before.
+  #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
   # so `checks`, each `e2e` shard, each `font-guards` shard and `e2e-webkit`
@@ -376,10 +387,14 @@ jobs:
   # `node_modules` for `nx`, hence cannot live here) against the same diff.
   scope:
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'schedule'
     outputs:
       docs_only: ${{ steps.classify.outputs.docs_only }}
       base: ${{ steps.classify.outputs.base }}
+      nightly_unchanged: ${{ steps.nightly.outputs.unchanged }}
+    permissions:
+      actions: read
+      contents: read
 
     steps:
     - uses: actions/checkout@v5
@@ -388,6 +403,28 @@ jobs:
       uses: actions/setup-node@v5
       with:
         node-version: '22.x'
+
+    # The nightly cron is a backstop for a runner-image or browser change none
+    # of our own commits made (see the workflow header); on a quiet repo there
+    # is nothing new for it to catch. Compares HEAD against the most recent
+    # *completed* scheduled run's commit, not the last push - a push already
+    # ran the full matrix itself, so what the nightly needs to know is whether
+    # anything has landed since it last ran. Fails open (unchanged=false) on
+    # the first-ever scheduled run or any API error, same policy as
+    # `docs_only` below: an unresolvable comparison never hides a real run.
+    - name: Check for commits since the last nightly run
+      id: nightly
+      if: github.event_name == 'schedule'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        LAST_SHA=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?event=schedule&status=completed&per_page=1" \
+          --jq '.workflow_runs[0].head_sha // empty' || echo "")
+        if [ -n "$LAST_SHA" ] && [ "$LAST_SHA" = "${{ github.sha }}" ]; then
+          echo "unchanged=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "unchanged=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Classify the change against its base
       id: classify
@@ -429,7 +466,7 @@ jobs:
   font-guards:
     runs-on: ubuntu-latest
     needs: scope
-    if: always() && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
     strategy:
       fail-fast: false
       matrix:
