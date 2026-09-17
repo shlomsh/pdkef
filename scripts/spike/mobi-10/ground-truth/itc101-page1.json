@@ -17,26 +17,27 @@
       "id": "t001",
       "kind": "comb",
       "bounds": {
-        "x": 0.3662,
-        "y": 0.1128,
-        "width": 0.1126,
-        "height": 0.0154
+        "x": 0.3703,
+        "y": 0.1085,
+        "width": 0.109,
+        "height": 0.0095
       },
       "label": "שנת המס",
-      "cells": 4
+      "cells": 4,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.26)"
     },
     {
       "id": "t002",
       "kind": "comb",
       "bounds": {
-        "x": 0.047,
-        "y": 0.1996,
-        "width": 0.1752,
-        "height": 0.0214
+        "x": 0.0482,
+        "y": 0.2103,
+        "width": 0.1707,
+        "height": 0.0067
       },
       "label": "מספר תיק ניכויים",
       "cells": 9,
-      "notes": "first cell pre-printed \"9\"; 8 blank cells follow"
+      "notes": "first cell pre-printed \"9\"; 8 blank cells follow; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.30)"
     },
     {
       "id": "t003",
@@ -75,25 +76,27 @@
       "id": "t006",
       "kind": "date",
       "bounds": {
-        "x": 0.047,
-        "y": 0.2637,
-        "width": 0.1556,
-        "height": 0.0166
+        "x": 0.0482,
+        "y": 0.2728,
+        "width": 0.1517,
+        "height": 0.0084
       },
       "label": "תאריך עליה",
-      "cells": 8
+      "cells": 8,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.42)"
     },
     {
       "id": "t007",
       "kind": "date",
       "bounds": {
-        "x": 0.2026,
-        "y": 0.2637,
-        "width": 0.1529,
-        "height": 0.0166
+        "x": 0.1999,
+        "y": 0.2728,
+        "width": 0.1528,
+        "height": 0.0084
       },
       "label": "תאריך לידה",
-      "cells": 8
+      "cells": 8,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.42)"
     },
     {
       "id": "t008",
@@ -121,38 +124,40 @@
       "id": "t010",
       "kind": "comb",
       "bounds": {
-        "x": 0.7393,
-        "y": 0.2637,
-        "width": 0.1678,
-        "height": 0.0166
+        "x": 0.736,
+        "y": 0.2728,
+        "width": 0.1715,
+        "height": 0.0084
       },
       "label": "מספר זהות (9 ספרות)",
-      "cells": 9
+      "cells": 9,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.43)"
     },
     {
       "id": "t011",
       "kind": "comb",
       "bounds": {
-        "x": 0.8215,
-        "y": 0.2958,
-        "width": 0.0823,
-        "height": 0.0095
+        "x": 0.6594,
+        "y": 0.3098,
+        "width": 0.2481,
+        "height": 0.0062
       },
       "label": "מספר דרכון (למי שאין מספר ת.ז.)",
-      "cells": 8,
-      "notes": "cell count estimated from comb width"
+      "cells": 13,
+      "notes": "cell count estimated from comb width; corrected by reviewer 2026-09-17: passport is a 13-cell comb run (counted in the 300-dpi crop), not 8 cells"
     },
     {
       "id": "t012",
       "kind": "comb",
       "bounds": {
-        "x": 0.0496,
-        "y": 0.2946,
-        "width": 0.1342,
-        "height": 0.0119
+        "x": 0.0482,
+        "y": 0.3014,
+        "width": 0.134,
+        "height": 0.0049
       },
       "label": "מיקוד / כתובת פרטית",
-      "cells": 7
+      "cells": 7,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.40)"
     },
     {
       "id": "t013",
@@ -390,13 +395,14 @@
       "id": "t034",
       "kind": "date",
       "bounds": {
-        "x": 0.0504,
-        "y": 0.4597,
-        "width": 0.1562,
-        "height": 0.0154
+        "x": 0.0517,
+        "y": 0.4568,
+        "width": 0.1523,
+        "height": 0.0082
       },
       "label": "תאריך תחילת העבודה בשנת המס",
-      "cells": 8
+      "cells": 8,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.28)"
     },
     {
       "id": "t035",
@@ -465,577 +471,813 @@
       "label": "מלגה (1) / אני מקבל/ת"
     },
     {
-      "id": "t041",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.4407,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.4692,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 1",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t041"
     },
     {
-      "id": "t042",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.4407,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.4692,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 1",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t042"
     },
     {
-      "id": "t043",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.4407,
+        "y": 0.4515,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "שם / פרטים על ילדיי, שורה 1"
+      "label": "שם / פרטים על ילדיי, שורה 1",
+      "notes": "table row band from raster rules",
+      "id": "t043"
     },
     {
-      "id": "t044",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.4407,
+        "y": 0.4515,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 1"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 1",
+      "notes": "table row band from raster rules",
+      "id": "t044"
     },
     {
-      "id": "t045",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.4407,
+        "y": 0.4515,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 1"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 1",
+      "notes": "table row band from raster rules",
+      "id": "t045"
     },
     {
-      "id": "t046",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.477,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.4952,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 2",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t046"
     },
     {
-      "id": "t047",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.477,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.4952,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 2",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t047"
     },
     {
-      "id": "t048",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.477,
+        "y": 0.4775,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "שם / פרטים על ילדיי, שורה 2"
+      "label": "שם / פרטים על ילדיי, שורה 2",
+      "notes": "table row band from raster rules",
+      "id": "t048"
     },
     {
-      "id": "t049",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.477,
+        "y": 0.4775,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 2"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 2",
+      "notes": "table row band from raster rules",
+      "id": "t049"
     },
     {
-      "id": "t050",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.477,
+        "y": 0.4775,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 2"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 2",
+      "notes": "table row band from raster rules",
+      "id": "t050"
     },
     {
-      "id": "t051",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.5134,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.5212,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 3",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t051"
     },
     {
-      "id": "t052",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.5134,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.5212,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 3",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t052"
     },
     {
-      "id": "t053",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.5134,
+        "y": 0.5037,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "שם / פרטים על ילדיי, שורה 3"
+      "label": "שם / פרטים על ילדיי, שורה 3",
+      "notes": "table row band from raster rules",
+      "id": "t053"
     },
     {
-      "id": "t054",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.5134,
+        "y": 0.5037,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 3"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 3",
+      "notes": "table row band from raster rules",
+      "id": "t054"
     },
     {
-      "id": "t055",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.5134,
+        "y": 0.5037,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 3"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 3",
+      "notes": "table row band from raster rules",
+      "id": "t055"
     },
     {
-      "id": "t056",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.5497,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.5472,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 4",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t056"
     },
     {
-      "id": "t057",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.5497,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.5472,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 4",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t057"
     },
     {
-      "id": "t058",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.5497,
+        "y": 0.5296,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "שם / פרטים על ילדיי, שורה 4"
+      "label": "שם / פרטים על ילדיי, שורה 4",
+      "notes": "table row band from raster rules",
+      "id": "t058"
     },
     {
-      "id": "t059",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.5497,
+        "y": 0.5296,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 4"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 4",
+      "notes": "table row band from raster rules",
+      "id": "t059"
     },
     {
-      "id": "t060",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.5497,
+        "y": 0.5296,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 4"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 4",
+      "notes": "table row band from raster rules",
+      "id": "t060"
     },
     {
-      "id": "t061",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.5861,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.5732,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 5",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t061"
     },
     {
-      "id": "t062",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.5861,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.5732,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 5",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t062"
     },
     {
-      "id": "t063",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.5861,
+        "y": 0.5556,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "שם / פרטים על ילדיי, שורה 5"
+      "label": "שם / פרטים על ילדיי, שורה 5",
+      "notes": "table row band from raster rules",
+      "id": "t063"
     },
     {
-      "id": "t064",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.5861,
+        "y": 0.5556,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 5"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 5",
+      "notes": "table row band from raster rules",
+      "id": "t064"
     },
     {
-      "id": "t065",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.5861,
+        "y": 0.5556,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 5"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 5",
+      "notes": "table row band from raster rules",
+      "id": "t065"
     },
     {
-      "id": "t066",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.6224,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.5992,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 6",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t066"
     },
     {
-      "id": "t067",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.6224,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.5992,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 6",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t067"
     },
     {
-      "id": "t068",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.6224,
+        "y": 0.5815,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "שם / פרטים על ילדיי, שורה 6"
+      "label": "שם / פרטים על ילדיי, שורה 6",
+      "notes": "table row band from raster rules",
+      "id": "t068"
     },
     {
-      "id": "t069",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.6224,
+        "y": 0.5815,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 6"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 6",
+      "notes": "table row band from raster rules",
+      "id": "t069"
     },
     {
-      "id": "t070",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.6224,
+        "y": 0.5815,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 6"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 6",
+      "notes": "table row band from raster rules",
+      "id": "t070"
     },
     {
-      "id": "t071",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.6588,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.6252,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 7",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t071"
     },
     {
-      "id": "t072",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.6588,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.6252,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 7",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t072"
     },
     {
-      "id": "t073",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.6588,
+        "y": 0.6075,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "שם / פרטים על ילדיי, שורה 7"
+      "label": "שם / פרטים על ילדיי, שורה 7",
+      "notes": "table row band from raster rules",
+      "id": "t073"
     },
     {
-      "id": "t074",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.6588,
+        "y": 0.6075,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 7"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 7",
+      "notes": "table row band from raster rules",
+      "id": "t074"
     },
     {
-      "id": "t075",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.6588,
+        "y": 0.6075,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0262
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 7"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 7",
+      "notes": "table row band from raster rules",
+      "id": "t075"
     },
     {
-      "id": "t076",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.6951,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.6512,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 8",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t076"
     },
     {
-      "id": "t077",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.6951,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.6512,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 8",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t077"
     },
     {
-      "id": "t078",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.6951,
+        "y": 0.6337,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "שם / פרטים על ילדיי, שורה 8"
+      "label": "שם / פרטים על ילדיי, שורה 8",
+      "notes": "table row band from raster rules",
+      "id": "t078"
     },
     {
-      "id": "t079",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.6951,
+        "y": 0.6337,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 8"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 8",
+      "notes": "table row band from raster rules",
+      "id": "t079"
     },
     {
-      "id": "t080",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.6951,
+        "y": 0.6337,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 8"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 8",
+      "notes": "table row band from raster rules",
+      "id": "t080"
     },
     {
-      "id": "t081",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.7314,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.6772,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 9",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t081"
     },
     {
-      "id": "t082",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.7314,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.6772,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 9",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t082"
     },
     {
-      "id": "t083",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.7314,
+        "y": 0.6596,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "שם / פרטים על ילדיי, שורה 9"
+      "label": "שם / פרטים על ילדיי, שורה 9",
+      "notes": "table row band from raster rules",
+      "id": "t083"
     },
     {
-      "id": "t084",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.7314,
+        "y": 0.6596,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 9"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 9",
+      "notes": "table row band from raster rules",
+      "id": "t084"
     },
     {
-      "id": "t085",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.7314,
+        "y": 0.6596,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.026
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 9"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 9",
+      "notes": "table row band from raster rules",
+      "id": "t085"
     },
     {
-      "id": "t086",
       "kind": "date",
+      "cells": 8,
       "bounds": {
-        "x": 0.4222,
-        "y": 0.7678,
-        "width": 0.1572,
-        "height": 0.0363
+        "x": 0.4293,
+        "y": 0.7032,
+        "width": 0.1535,
+        "height": 0.0085
       },
       "label": "תאריך לידה / פרטים על ילדיי, שורה 10",
-      "cells": 8
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t086"
     },
     {
-      "id": "t087",
       "kind": "comb",
+      "cells": 9,
       "bounds": {
-        "x": 0.5794,
-        "y": 0.7678,
-        "width": 0.1754,
-        "height": 0.0363
+        "x": 0.5828,
+        "y": 0.7032,
+        "width": 0.1712,
+        "height": 0.0085
       },
       "label": "מספר זהות / פרטים על ילדיי, שורה 10",
-      "cells": 9
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t087"
     },
     {
-      "id": "t088",
       "kind": "text",
       "bounds": {
         "x": 0.7548,
-        "y": 0.7678,
+        "y": 0.6856,
         "width": 0.1346,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "שם / פרטים על ילדיי, שורה 10"
+      "label": "שם / פרטים על ילדיי, שורה 10",
+      "notes": "table row band from raster rules",
+      "id": "t088"
     },
     {
-      "id": "t089",
       "kind": "checkbox",
       "bounds": {
         "x": 0.8893,
-        "y": 0.7678,
+        "y": 0.6856,
         "width": 0.0136,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 10"
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 10",
+      "notes": "table row band from raster rules",
+      "id": "t089"
     },
     {
-      "id": "t090",
       "kind": "checkbox",
       "bounds": {
         "x": 0.9029,
-        "y": 0.7678,
+        "y": 0.6856,
         "width": 0.0106,
-        "height": 0.0363
+        "height": 0.0259
       },
-      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 10"
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 10",
+      "notes": "table row band from raster rules",
+      "id": "t090"
     },
     {
-      "id": "t091",
+      "kind": "date",
+      "cells": 8,
+      "bounds": {
+        "x": 0.4293,
+        "y": 0.7292,
+        "width": 0.1535,
+        "height": 0.0085
+      },
+      "label": "תאריך לידה / פרטים על ילדיי, שורה 11",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t091"
+    },
+    {
+      "kind": "comb",
+      "cells": 9,
+      "bounds": {
+        "x": 0.5828,
+        "y": 0.7292,
+        "width": 0.1712,
+        "height": 0.0085
+      },
+      "label": "מספר זהות / פרטים על ילדיי, שורה 11",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t092"
+    },
+    {
+      "kind": "text",
+      "bounds": {
+        "x": 0.7548,
+        "y": 0.7115,
+        "width": 0.1346,
+        "height": 0.026
+      },
+      "label": "שם / פרטים על ילדיי, שורה 11",
+      "notes": "table row band from raster rules",
+      "id": "t093"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8893,
+        "y": 0.7115,
+        "width": 0.0136,
+        "height": 0.026
+      },
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 11",
+      "notes": "table row band from raster rules",
+      "id": "t094"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.9029,
+        "y": 0.7115,
+        "width": 0.0106,
+        "height": 0.026
+      },
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 11",
+      "notes": "table row band from raster rules",
+      "id": "t095"
+    },
+    {
+      "kind": "date",
+      "cells": 8,
+      "bounds": {
+        "x": 0.4293,
+        "y": 0.7552,
+        "width": 0.1535,
+        "height": 0.0085
+      },
+      "label": "תאריך לידה / פרטים על ילדיי, שורה 12",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t096"
+    },
+    {
+      "kind": "comb",
+      "cells": 9,
+      "bounds": {
+        "x": 0.5828,
+        "y": 0.7552,
+        "width": 0.1712,
+        "height": 0.0085
+      },
+      "label": "מספר זהות / פרטים על ילדיי, שורה 12",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t097"
+    },
+    {
+      "kind": "text",
+      "bounds": {
+        "x": 0.7548,
+        "y": 0.7375,
+        "width": 0.1346,
+        "height": 0.0262
+      },
+      "label": "שם / פרטים על ילדיי, שורה 12",
+      "notes": "table row band from raster rules",
+      "id": "t098"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8893,
+        "y": 0.7375,
+        "width": 0.0136,
+        "height": 0.0262
+      },
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 12",
+      "notes": "table row band from raster rules",
+      "id": "t099"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.9029,
+        "y": 0.7375,
+        "width": 0.0106,
+        "height": 0.0262
+      },
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 12",
+      "notes": "table row band from raster rules",
+      "id": "t100"
+    },
+    {
+      "kind": "date",
+      "cells": 8,
+      "bounds": {
+        "x": 0.4293,
+        "y": 0.7812,
+        "width": 0.1535,
+        "height": 0.0085
+      },
+      "label": "תאריך לידה / פרטים על ילדיי, שורה 13",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t101"
+    },
+    {
+      "kind": "comb",
+      "cells": 9,
+      "bounds": {
+        "x": 0.5828,
+        "y": 0.7812,
+        "width": 0.1712,
+        "height": 0.0085
+      },
+      "label": "מספר זהות / פרטים על ילדיי, שורה 13",
+      "notes": "table row from raster rules; comb strip from raster-verified detector geometry",
+      "id": "t102"
+    },
+    {
+      "kind": "text",
+      "bounds": {
+        "x": 0.7548,
+        "y": 0.7637,
+        "width": 0.1346,
+        "height": 0.0258
+      },
+      "label": "שם / פרטים על ילדיי, שורה 13",
+      "notes": "table row band from raster rules",
+      "id": "t103"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.8893,
+        "y": 0.7637,
+        "width": 0.0136,
+        "height": 0.0258
+      },
+      "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 13",
+      "notes": "table row band from raster rules",
+      "id": "t104"
+    },
+    {
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.9029,
+        "y": 0.7637,
+        "width": 0.0106,
+        "height": 0.0258
+      },
+      "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 13",
+      "notes": "table row band from raster rules",
+      "id": "t105"
+    },
+    {
+      "id": "t106",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3973,
@@ -1046,7 +1288,7 @@
       "label": "אין לי הכנסות אחרות"
     },
     {
-      "id": "t092",
+      "id": "t107",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3973,
@@ -1057,7 +1299,7 @@
       "label": "יש לי הכנסות אחרות"
     },
     {
-      "id": "t093",
+      "id": "t108",
       "kind": "checkbox",
       "bounds": {
         "x": 0.1992,
@@ -1068,7 +1310,7 @@
       "label": "שכר עבודה (יומי) (5) / הכנסות אחרות"
     },
     {
-      "id": "t094",
+      "id": "t109",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3973,
@@ -1079,7 +1321,7 @@
       "label": "משכורת חודש (2) / הכנסות אחרות"
     },
     {
-      "id": "t095",
+      "id": "t110",
       "kind": "checkbox",
       "bounds": {
         "x": 0.1992,
@@ -1090,7 +1332,7 @@
       "label": "קצבה (6) / הכנסות אחרות"
     },
     {
-      "id": "t096",
+      "id": "t111",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3973,
@@ -1101,7 +1343,7 @@
       "label": "משכורת בעד משרה נוספת (3) / הכנסות אחרות"
     },
     {
-      "id": "t097",
+      "id": "t112",
       "kind": "checkbox",
       "bounds": {
         "x": 0.1992,
@@ -1112,7 +1354,7 @@
       "label": "מלגה (1) / הכנסות אחרות"
     },
     {
-      "id": "t098",
+      "id": "t113",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3974,
@@ -1123,7 +1365,7 @@
       "label": "משכורת חלקית (4) / הכנסות אחרות"
     },
     {
-      "id": "t099",
+      "id": "t114",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3956,
@@ -1134,7 +1376,7 @@
       "label": "אבקש לקבל נקודות זיכוי ומדרגות מס כנגד הכנסתי זו (סעיף ד)"
     },
     {
-      "id": "t100",
+      "id": "t115",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3957,
@@ -1145,7 +1387,7 @@
       "label": "אני מקבל/ת נקודות זיכוי ומדרגות מס מהכנסה אחרת"
     },
     {
-      "id": "t101",
+      "id": "t116",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3957,
@@ -1156,7 +1398,7 @@
       "label": "אין מפרישים עבורי לקרן השתלמות בגין הכנסתי האחרת"
     },
     {
-      "id": "t102",
+      "id": "t117",
       "kind": "checkbox",
       "bounds": {
         "x": 0.3957,
@@ -1167,31 +1409,33 @@
       "label": "אין מפרישים עבורי לקצבה/לביטוח אובדן כושר עבודה בגין הכנסתי האחרת"
     },
     {
-      "id": "t103",
+      "id": "t118",
       "kind": "date",
       "bounds": {
-        "x": 0.047,
-        "y": 0.8303,
-        "width": 0.1556,
-        "height": 0.0166
+        "x": 0.0476,
+        "y": 0.836,
+        "width": 0.1528,
+        "height": 0.0084
       },
       "label": "תאריך עליה / בן/בת הזוג",
-      "cells": 8
+      "cells": 8,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.49)"
     },
     {
-      "id": "t104",
+      "id": "t119",
       "kind": "date",
       "bounds": {
-        "x": 0.2026,
-        "y": 0.8303,
-        "width": 0.1529,
-        "height": 0.0166
+        "x": 0.2005,
+        "y": 0.836,
+        "width": 0.1523,
+        "height": 0.0084
       },
       "label": "תאריך לידה / בן/בת הזוג",
-      "cells": 8
+      "cells": 8,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.49)"
     },
     {
-      "id": "t105",
+      "id": "t120",
       "kind": "text",
       "bounds": {
         "x": 0.3555,
@@ -1202,7 +1446,7 @@
       "label": "שם פרטי / בן/בת הזוג"
     },
     {
-      "id": "t106",
+      "id": "t121",
       "kind": "text",
       "bounds": {
         "x": 0.529,
@@ -1213,30 +1457,33 @@
       "label": "שם משפחה / בן/בת הזוג"
     },
     {
-      "id": "t107",
+      "id": "t122",
       "kind": "comb",
       "bounds": {
-        "x": 0.7393,
-        "y": 0.8303,
-        "width": 0.1678,
-        "height": 0.0166
+        "x": 0.7354,
+        "y": 0.836,
+        "width": 0.1705,
+        "height": 0.0084
       },
       "label": "מספר זהות (9 ספרות) / בן/בת הזוג",
-      "cells": 9
+      "cells": 9,
+      "notes": "; corrected by reviewer 2026-09-17: strip snapped to the raster-verified comb geometry (was IoU 0.49)"
     },
     {
-      "id": "t108",
-      "kind": "text",
+      "id": "t123",
+      "kind": "comb",
       "bounds": {
-        "x": 0.7393,
-        "y": 0.8445,
-        "width": 0.1678,
-        "height": 0.0154
+        "x": 0.7083,
+        "y": 0.8596,
+        "width": 0.1976,
+        "height": 0.0146
       },
-      "label": "מספר דרכון (למי שאין מספר ת.ז.) / בן/בת הזוג"
+      "label": "מספר דרכון (למי שאין מספר ת.ז.) / בן/בת הזוג",
+      "cells": 13,
+      "notes": "; corrected by reviewer 2026-09-17: passport is a 13-cell comb run (counted in the 300-dpi crop), not 8 cells"
     },
     {
-      "id": "t109",
+      "id": "t124",
       "kind": "checkbox",
       "bounds": {
         "x": 0.4745,
@@ -1247,7 +1494,7 @@
       "label": "יש לבן/בת הזוג הכנסה מ:"
     },
     {
-      "id": "t110",
+      "id": "t125",
       "kind": "checkbox",
       "bounds": {
         "x": 0.6884,
@@ -1258,7 +1505,7 @@
       "label": "אין לבן/בת הזוג כל הכנסה"
     },
     {
-      "id": "t111",
+      "id": "t126",
       "kind": "checkbox",
       "bounds": {
         "x": 0.1356,
@@ -1269,7 +1516,7 @@
       "label": "הכנסה אחרת / הכנסת בן/בת הזוג"
     },
     {
-      "id": "t112",
+      "id": "t127",
       "kind": "checkbox",
       "bounds": {
         "x": 0.269,
@@ -1280,7 +1527,7 @@
       "label": "עבודה/קצבה/עסק / הכנסת בן/בת הזוג"
     },
     {
-      "id": "t113",
+      "id": "t128",
       "kind": "date",
       "bounds": {
         "x": 0.7309,
@@ -1291,7 +1538,7 @@
       "label": "תאריך השינוי / שינויים במהלך השנה, שורה 1"
     },
     {
-      "id": "t114",
+      "id": "t129",
       "kind": "text",
       "bounds": {
         "x": 0.3943,
@@ -1302,7 +1549,7 @@
       "label": "פרטי השינוי / שינויים במהלך השנה, שורה 1"
     },
     {
-      "id": "t115",
+      "id": "t130",
       "kind": "date",
       "bounds": {
         "x": 0.1922,
@@ -1313,7 +1560,7 @@
       "label": "תאריך ההודעה / שינויים במהלך השנה, שורה 1"
     },
     {
-      "id": "t116",
+      "id": "t131",
       "kind": "signature",
       "bounds": {
         "x": 0.047,
@@ -1324,7 +1571,7 @@
       "label": "חתימת העובד/ת / שינויים במהלך השנה, שורה 1"
     },
     {
-      "id": "t117",
+      "id": "t132",
       "kind": "date",
       "bounds": {
         "x": 0.7309,
@@ -1335,7 +1582,7 @@
       "label": "תאריך השינוי / שינויים במהלך השנה, שורה 2"
     },
     {
-      "id": "t118",
+      "id": "t133",
       "kind": "text",
       "bounds": {
         "x": 0.3943,
@@ -1346,7 +1593,7 @@
       "label": "פרטי השינוי / שינויים במהלך השנה, שורה 2"
     },
     {
-      "id": "t119",
+      "id": "t134",
       "kind": "date",
       "bounds": {
         "x": 0.1922,
@@ -1357,7 +1604,7 @@
       "label": "תאריך ההודעה / שינויים במהלך השנה, שורה 2"
     },
     {
-      "id": "t120",
+      "id": "t135",
       "kind": "signature",
       "bounds": {
         "x": 0.047,
@@ -1368,7 +1615,7 @@
       "label": "חתימת העובד/ת / שינויים במהלך השנה, שורה 2"
     },
     {
-      "id": "t121",
+      "id": "t136",
       "kind": "date",
       "bounds": {
         "x": 0.7309,
@@ -1379,7 +1626,7 @@
       "label": "תאריך השינוי / שינויים במהלך השנה, שורה 3"
     },
     {
-      "id": "t122",
+      "id": "t137",
       "kind": "text",
       "bounds": {
         "x": 0.3943,
@@ -1390,7 +1637,7 @@
       "label": "פרטי השינוי / שינויים במהלך השנה, שורה 3"
     },
     {
-      "id": "t123",
+      "id": "t138",
       "kind": "date",
       "bounds": {
         "x": 0.1922,
@@ -1401,7 +1648,7 @@
       "label": "תאריך ההודעה / שינויים במהלך השנה, שורה 3"
     },
     {
-      "id": "t124",
+      "id": "t139",
       "kind": "signature",
       "bounds": {
         "x": 0.047,
@@ -1411,5 +1658,6 @@
       },
       "label": "חתימת העובד/ת / שינויים במהלך השנה, שורה 3"
     }
-  ]
+  ],
+  "review": "2026-09-17 reviewer pass: children table rebuilt as 13 rows (agent had 10), passport fields are 13-cell combs, comb strips snapped to raster-verified geometry; see per-target notes"
 }

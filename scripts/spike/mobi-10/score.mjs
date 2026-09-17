@@ -8,7 +8,7 @@
  *
  * Kind compatibility: exact match; 'unknown' matches anything; the group
  * {'text','table-cell','date'} is mutually compatible; the group
- * {'checkbox','radio'} is mutually compatible. Nothing else is compatible.
+ * {'checkbox','radio'} is mutually compatible, and so is {'comb','date'}. Nothing else is.
  *
  * Per-kind rows read from two sides, because a compatible-but-not-exact match
  * (e.g. a 'radio' candidate matching a 'checkbox' target) has no single kind
@@ -52,8 +52,11 @@ function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+// 'date' sits in both groups: a date is drawn either as a blank line (text-like)
+// or as a comb of digit cells; which one is a label question, not a geometry one.
 const KIND_GROUPS = [
   new Set(['text', 'table-cell', 'date']),
+  new Set(['comb', 'date']),
   new Set(['checkbox', 'radio']),
 ];
 
