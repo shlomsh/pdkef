@@ -397,3 +397,25 @@ What else the capture shows, against the 09-11 one:
   `how to blur text in pdf adobe`) unchanged: how-to intent, as read before.
 
 No copy change follows from this. The measurement is clean now; let it run to 10-08.
+
+### 2026-09-17, later: the Generative AI features report, and a copy change on the page
+
+**Shlomi exported Search Console's "Performance on Search: Generative AI features" report** (28 days
+to 09-15, impressions only; the export carries no clicks column). Site-wide 407 impressions, and
+`/redact/` is 363 of them (89%). Daily: 2 to 10 through August, 27 on 09-08, 46 on 09-11, then 56 and
+58 on 09-14/15. Web impressions in the same days are around 260 a day, so roughly one in five of our
+impressions now comes with an AI feature on the page, and that share is growing faster than web
+impressions are. Desktop 346, mobile 60. India 139, US 29, Israel 21, Indonesia 20. Other pages: the
+photo-size page 15 (indexed five days ago), the Android guide 10, `/` 6, `/compress/` 5, `/he/sign/` 4.
+
+Read with the 09-17 SERP capture above: the single query where the overview now cites Smallpdf is one
+of many; across the blur family we are still being shown inside AI features, more each day. This report
+is the instrument for the "cited but not clicked" question from here, and it goes in the 10-08 pull.
+
+**Copy on `/redact/` changed on 2026-09-17**, on Shlomi's call, with the freeze above raised and
+overruled: the Redact toolbar now lists Blur first (`f48fcbd8`, island only) and three static strings in
+`src/data/tools.js` (the how-it-works lead and the two steps that opened with Delete) now lead with Blur
+(`e0c16e19`). Title, h1, meta and every FAQ are unchanged, and the blur-is-not-removal caveat is where
+it was. Google's snippet for this query family has been body copy, so the 10-08 CTR reading is of the
+reordered copy, crawled whenever Google next visits (it has been visiting every few days). Note it as a
+second variable in that read, not as a clean before/after.

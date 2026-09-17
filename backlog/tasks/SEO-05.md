@@ -150,3 +150,23 @@ at 9.9 (`compress pdf to 100kb` alone: 0 clicks on 84 at 9.58; `file compressor 
 and `/compress/` is 7 clicks on 309 at 9.64, against 10.14 over the three months. No change on the
 cluster, and three days is too short to read as one. What changed is the status of the 10-08 read: it
 is now a verdict on the copy, not on the crawl. Do not layer another rewrite before it.
+
+## The real SERP, captured 2026-09-17: a rank gap, not a snippet gap
+
+Shlomi ran `compress pdf to 100kb` by hand (signed in, Google's footer says results are personalised).
+Page one, top to bottom: Adobe (`Compress PDF to 100KB Online - 100% Free at Acrobat.com`, 4.6 stars,
+281,831), bigpdf.11zon.com, Duplichecker, iLovePDF, Aback Tools (`Compress PDF to 100KB`, snippet
+*"ideal for government portals, KYC uploads, and job application systems with strict size limits"*),
+SmallSEOTools, Zamzar, PDF24 (4.9, 14,972), an AI Overview citing Adobe and PDFgear, then pdfkits.app.
+**PDkef is not on page one in this capture.** GSC's 7-day average is 9.58, which is the same thing said
+in numbers: the page-one boundary.
+
+What that changes. Every organic title above is the exact phrase `Compress PDF to 100KB`, and every
+snippet says upload. Our title already matches the phrase. At position ten nobody scrolls to the
+snippet, so the 2026-09-10 meta hypothesis cannot be tested by CTR from here, and a flat CTR on 10-08
+will not be evidence against it. This ticket's zero-click is a rank gap at the boundary, in a field of
+exact-match titles plus review stars, which is authority (SEO-03) territory. Two smaller observations
+for later, not now: "People also search for" carries `Compress PDF to 100KB free offline`, a phrasing
+where the installable app is a true claim nobody above us can make, and `Compress JPG to 100KB`, which
+is SEO-19's demand. Aback Tools has taken the portal-limits angle in its snippet; SEO-17's page is the
+right answer to that once it is indexed. No copy change on `/compress/` from this.
