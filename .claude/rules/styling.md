@@ -51,6 +51,13 @@ for escaped literals (button/dropzone shadows and the body glow have been hardco
 - The editor's stateful appearance is never inline conditional utility strings: state lives once as a
   class on the parent and CSS fans it out. Never delete a `.sign-*` cascade without checking every
   state (active, RTL, dark, mobile, whiteout) in a running editor.
+- **An Astro `<style>` only reaches elements its own component renders.** Every compound selector
+  outside `:global()` gets that component's `data-astro-cid-*` appended, so a rule written in a layout
+  against a child component's element (`.tool-stage .tool-hero` in `ToolPageLayout.astro`, where the
+  hero is `ToolHero.astro`'s) compiles to a selector nothing matches and fails silently. Wrap the whole
+  selector in `:global(...)`, or put the rule in the component that owns the element, and verify a
+  cross-component rule in the built CSS (`dist/`) rather than by reading the source. QUAL-10 measured
+  a 32px hero drop at 900px from exactly this.
 
 ## Tailwind mechanics
 
