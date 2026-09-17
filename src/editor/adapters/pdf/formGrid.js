@@ -324,7 +324,7 @@ function uniqueCheckboxes(boxes) {
  * Both corners go through `pdfPointToPagePercent`, so a rotated page or a
  * translated crop box comes out right without this module knowing how.
  */
-function toPagePercentBox(geometry, { x0, y0, x1, y1 }) {
+export function toPagePercentBox(geometry, { x0, y0, x1, y1 }) {
   const a = pdfPointToPagePercent({ x: x0, y: y0 }, geometry);
   const b = pdfPointToPagePercent({ x: x1, y: y1 }, geometry);
   return {

@@ -1,5 +1,18 @@
 # MOBI-10 spike: `cells.mjs`, the combined ink+text heuristic
 
+> **Update, MOBI-11 step 1 (2026-09-17):** the algorithm below now lives in product code as
+> `src/editor/adapters/pdf/formCells.js`; `cells.mjs` is a thin CLI wrapper over it. Porting it
+> and writing its unit tests found a real bug: a closed cell's own shape
+> (`{left, right, bottom, top}`) didn't match what `rectIntersectArea` expected
+> (`{x0, y0, x1, y1}`), so a cell's own printed text was never actually found and the "own text
+> hugging an edge" path below never fired — `headerAbove` (unaffected, different field names)
+> carried most labels anyway, which is why the bug wasn't visible in the numbers. Fixed in
+> `formCells.js`'s `cellRect()`. Effect on the numbers below, IoU >= 0.5 union with the baseline
+> detector: form 101 recall/precision 69.8%/89.0% → 69.1%/91.4%; health 86.7%/80.2% →
+> 86.7%/94.2%. The rules, failure classes and per-kind numbers in this file are otherwise as
+> measured before the fix and were not rewritten; see `docs/mobi-10-field-map-spike.md` for the
+> current top-line table.
+
 `cells.mjs` looks for the input regions `formGrid.js`'s comb/checkbox detector deliberately
 leaves alone (see its own docstring): free-text fields, date lines and signature boxes drawn as
 plain ruled cells rather than combs or checkboxes. It reuses `pageInk.js`'s vector ink

@@ -50,14 +50,24 @@ radio, 15 text, 6 comb, 2 date, 1 signature. Each correction is recorded per tar
 | LLM vision, image only (reference, no runtime path) | 8.6% / 8.6% / 58% of 12 | 8.0% / 7.0% / 83% of 6 |
 | Existing MOBI-03 detector (combs + checkboxes) | 53.2% / **100%** / n.a. | 73.3% / **100%** / n.a. |
 | + geometric label association (`label.mjs`) | 53.2% / 100% / **90.5%** | 73.3% / 100% / **96.4%** |
-| + ink-grid cell heuristic (`cells.mjs`), union | **69.8% / 89.0% / 82.5%** | **86.7% / 80.2% / 96.9%** |
+| + ink-grid cell heuristic (`cells.mjs`), union | **69.1% / 91.4% / 83.3%** | **86.7% / 94.2% / 96.9%** |
 | Gate | 90 / 90 / 85 | 90 / 90 / 85 |
 
-Per kind, union on form 101: comb 20/20, date 23/24, checkbox 36/62 (the 26 misses are the
-children table's "1"/"2" tick columns, ruled cells rather than drawn squares, plus none of the
-drawn squares), signature 2/3, text 16/30 with 6 false positives. On the health form: radio
-51/51, comb 4/6 (phone and mobile are one run to the detector and area-code + number to the
-form), text 10/15 with 16 false positives, date 0/2 and signature 0/1 (the physician row has no
+Numbers above are post-MOBI-11-step-1 (2026-09-17): lifting `cells.mjs` into product code
+(`src/editor/adapters/pdf/formCells.js`) and writing its unit tests surfaced a real bug — a
+closed cell's own printed text was never actually found (a field-name mismatch made the overlap
+check silently `NaN`), so the "own text hugging an edge" path never fired and a few explanatory
+boxes were never filtered. Fixing it moved precision from 89.0%/80.2% to 91.4%/94.2% at a
+negligible recall cost (69.8%→69.1% on form 101; unchanged on the health form) — see
+`formCells.js`'s module docstring for the fix and `git log` for the before/after scoring. The
+original, pre-fix numbers are what the GO/NO-GO/REWORK decision below was made on; the decision
+does not change; the older report files under `scripts/spike/mobi-10/` were not rewritten.
+
+Per kind, union on form 101 (current numbers): comb 20/20, date 23/24, checkbox 36/62 (the 26
+misses are the children table's "1"/"2" tick columns, ruled cells rather than drawn squares, plus
+none of the drawn squares), signature 1/3, text 16/30 with 7 false positives. On the health form:
+radio 51/51, comb 4/6 (phone and mobile are one run to the detector and area-code + number to the
+form), text 10/15 with 4 false positives, date 0/2 and signature 0/1 (the physician row has no
 ink around it at all).
 
 ### What each source actually is
@@ -103,10 +113,23 @@ own ink walk, which already exists.
 
 MOBI-11: a reviewable field-map stage in Sign. Run the union detector on open, show the proposed
 fields as editable regions with their labels, let the person delete, resize, add and re-label,
-and only then feed MOBI-06's next/previous navigation. Precision at 80-89% is acceptable for a
-review surface and unacceptable for a form that fills itself; recall at 70-87% means "add a
-field" stays a first-class action. Bring the cell heuristic's seven failure classes down with
+and only then feed MOBI-06's next/previous navigation. Precision at 91-94% is acceptable for a
+review surface and unacceptable for a form that fills itself; recall at 69-87% means "add a
+field" stays a first-class action. Bring the cell heuristic's remaining failure classes down with
 unit fixtures from these two forms, and add a Latin-script form to the corpus.
+
+**Step 1, done 2026-09-17:** `label.mjs` and `cells.mjs` are lifted into product code -
+`src/editor/adapters/pdf/fieldLabels.js` (`labelFieldCandidates`) and `formCells.js`
+(`detectCellCandidates`/`detectPageCellCandidates`) - in the editor's own page-percent
+coordinate model (0..100, top-left, y down; the one transform `formGrid.js` already uses, see
+SIGN-05/ARCH-02), with unit tests (`fieldLabels.test.js`, `formCells.test.js`, synthetic content
+streams in `formGrid.test.js`'s own style). The spike's CLI scripts are now thin wrappers over
+these modules (fraction <-> percent conversion only), so `score.mjs` against the committed
+ground truth stays a live regression check on the product code, not a second implementation.
+Verified against both real source PDFs (outside the repo) before and after: identical detection
+counts to the historical spike run, confirming the port changed units, not behavior - except for
+the bug fix above, found by the new unit tests. Remaining MOBI-11 work: wire this into the Sign
+UI as a reviewable proposal, and close the failure classes in `report-cells.md`.
 
 ## Reproducing
 
