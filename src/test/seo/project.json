@@ -1,0 +1,16 @@
+{
+  "name": "seo-content-guards",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/test/seo",
+  "tags": ["scope:tests"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/test/seo/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
