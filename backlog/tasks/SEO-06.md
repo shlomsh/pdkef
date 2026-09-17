@@ -238,3 +238,7 @@ is among them (nor `/pdf-wont-compress-to-100kb/`, `/sign-pdf-in-your-language/`
 is "not indexed", which this export cannot split into "crawled, not indexed" and "never crawled", so the
 Week 4 gate is not readable from it. The Not-indexed export with its reason categories is the file the
 10-08 read needs; ask for it with the three-month Performance export.
+
+*2026-09-17, later:* Shlomi re-requested `/blur-vs-blackout-vs-delete-pdf/` (first request 09-10).
+Dated in `docs/seo-last-crawled.json`. If it lands within a day like the 09-11 batch did, the nine were
+never fetched; if it does not, the Not-indexed export is the next question.
