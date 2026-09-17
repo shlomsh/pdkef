@@ -90,6 +90,13 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   control `/unlock/` stayed at 08-21, so the visit was bought, not earned. A dated request is the
   cheapest lever on this domain and it is used once per URL. ([SEO-04](../backlog/tasks/SEO-04.md),
   [SEO-28](../backlog/tasks/SEO-28.md))
+- **Competitor titles in a language are not evidence of how natives say it.** LOC-01 read "מיזוג PDF"
+  as the Hebrew market term off PDF24, Adobe and Sejda's `/he/` titles; Shlomi's native read is that
+  Israelis say איחוד, and Trends (Israel, 12 months) has the two at near parity, 60 to 52. Those
+  titles are translations of "merge". Carry both words, lead with the native one, and check a
+  synonym on Trends before trusting the incumbents' word choice. Also: צירוף is attach, not merge,
+  so `צירוף קבצים` at position 9 with zero clicks was wrong intent, not a snippet problem.
+  ([LOC-03](../backlog/tasks/LOC-03.md))
 - **The on-device claim is copyable in words, and in Indonesian it has been.** gethonestpdf.com ranks
   third for `kompres pdf 1 mb` saying "langsung di browser" with our target sizes and portal angle,
   the fourth language after Vietnamese, Spanish and Italian where a local site holds the claim. Only
@@ -325,7 +332,7 @@ Bing/DuckDuckGo 2026-09-10 for the SEO-04/05 rows. The softest column here.
 | compress pdf to 100kb (cluster) | 9.9 (7-day) | 178 (7-day) | 2026-09-17 | Adobe (4.6, 281,831), bigpdf/11zon, Duplichecker, iLovePDF, Aback Tools, SmallSEOTools, Zamzar, PDF24 (4.9, 14,972), AI Overview citing Adobe and PDFgear (Google SERP 2026-09-17, we are page two) | Rank at the page-one boundary; exact-match titles plus stars | SEO-05, SEO-17, SEO-03 |
 | file compressor to 100kb | 9.60 | 81 | 2026-09-10 | generic file compressors | Tool shipped 2026-09-12 (`/compress/` now takes JPEG/PNG; `/compress-image/` for image-word queries); not yet indexed | SEO-19 |
 | sign pdf on android / iphone (cluster) | 51.7 | 154 | 2026-09-10 | DocHub, Smallpdf, OS vendor docs | Rank, from near zero; ranks on the OS guides | SEO-08 |
-| צירוף קבצים / איחוד קבצי pdf (Hebrew merge) | 9 / 40 | 5 / 1 (7-day) | 2026-09-17 | PDF24 (5.0, 24,060), FreePDFConvert, AvePDF, Adobe, Sejda, plus local lexa.co.il, mypdf.co.il, itspdf (Google SERP 2026-09-17) | `איחוד` missing from the Hebrew `seoTitle` | LOC-03 |
+| איחוד קבצי pdf / מיזוג קבצי pdf (Hebrew merge; צירוף is attach intent, dropped) | 40 / 43 | 1 / 2 (7-day) | 2026-09-17 | PDF24 (5.0, 24,060), FreePDFConvert, AvePDF, Adobe, Sejda, plus local lexa.co.il, mypdf.co.il, itspdf (Google SERP 2026-09-17) | איחוד now leads title, h1 and tool name (2026-09-17); Trends has the two verbs at parity | LOC-03 |
 | `/sign/` itself (queries withheld) | 11.64 | 42 | 2026-09-10 | unknown | Title changed 2026-09-11; re-measure CTR vs 2.38% | SEO-07 |
 | extract pdf / pdf extractor | 84.9 | 88 | 2026-09-10 | iLovePDF, Sejda | Vocabulary: we say "split" | SEO-09 |
 | merge pdf / combine pdf | 90.0 | 6 | 2026-09-10 | iLovePDF, Smallpdf | Authority; "combine" absent from title/h1 until SEO-35 | SEO-35, SEO-10, SEO-03 |
@@ -377,8 +384,8 @@ impressions, 1 click, position 13.03.
 
 **Non-Latin queries, by script**
 
-Hebrew only: 48 query rows, 0 clicks, 82 impressions, weighted position 50.3. The merge family ranks
-best (`צירוף קבצים` 5 impressions at 9, `קיבוץ pdf` 3 at 35, `איחוד pdf` 2 at 31.5, `מיזוג קבצי pdf` 2
+Hebrew only: 48 query rows, 0 clicks, 82 impressions, weighted position 50.3. `צירוף קבצים` (5 at 9)
+is attach intent, not merge, and is excluded. The merge family ranks best (`קיבוץ pdf` 3 at 35, `איחוד pdf` 2 at 31.5, `מיזוג קבצי pdf` 2
 at 43); the sign family is at 46 to 79 (`חתימה דיגיטלית חינם pdf` 7 at 64, `חתימה על מסמך pdf` 5 at
 72.6); compress phrasings (`כיווץ`, `הקטנת`, `דחוס`) at 39 to 67. `כיווץ` outnumbers `דחיסה`, as
 LOC-01 predicted. Full list in [LOC-03](../backlog/tasks/LOC-03.md).

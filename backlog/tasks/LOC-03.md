@@ -159,8 +159,8 @@ indexed yet.
 | `/he/compress/` | 0 | 11 | 0% | 52.64 | `/compress/`: 7 / 309 at 9.64 |
 
 Hebrew queries in `Queries.csv`: 48 rows, 82 impressions, 0 clicks, weighted position 50.3 (a lower
-bound, privacy filter). Merge phrasings sit best: `צירוף קבצים` at 9, `קיבוץ pdf` at 35, the
-`איחוד`/`מיזוג`/`חיבור` family at 25 to 46. Sign phrasings are all at 46 to 79 (`חתימה דיגיטלית חינם
+bound, privacy filter). Merge phrasings sit best: `קיבוץ pdf` at 35, the `איחוד`/`מיזוג`/`חיבור`
+family at 25 to 46 (`צירוף קבצים` at 9 is attach intent, not merge; see below). Sign phrasings are all at 46 to 79 (`חתימה דיגיטלית חינם
 pdf`, 7 impressions at 64, is the largest). Compress phrasings (`כיווץ`, `הקטנת`, `דחוס`) at 39 to 67.
 Israel site-wide: 9 clicks on 145 impressions at 32.12. Search appearance "Translated results": 59
 impressions, 1 click, which is the machine-translation effect LOC-07 described, now measured.
