@@ -46,9 +46,17 @@
     "/unlock/": "2026-08-21"
   },
   "indexingRequested": {
+    "/blur-vs-blackout-vs-delete-pdf/": [
+      "2026-09-10",
+      "2026-09-17"
+    ],
     "/compress-image/": [
       "2026-09-11",
       "2026-09-12"
+    ],
+    "/id/kompres-pdf-di-bawah-1-mb/": [
+      "2026-09-13",
+      "2026-09-17"
     ],
     "/pdf-wont-compress-to-100kb/": [
       "2026-09-11",
@@ -56,9 +64,6 @@
     ],
     "/photo-and-signature-size-for-forms/": [
       "2026-09-12"
-    ],
-    "/id/kompres-pdf-di-bawah-1-mb/": [
-      "2026-09-13"
     ]
   }
 }

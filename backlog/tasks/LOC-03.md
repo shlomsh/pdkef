@@ -167,3 +167,24 @@ impressions, 1 click, which is the machine-translation effect LOC-07 described, 
 
 Read: `/he/merge/` is drawing more impressions than `/merge/` itself, on the phrasing the ticket
 predicted, while ranking on page three; Sign is page five and worse. Nothing to change before 11-06.
+
+### Hebrew merge SERPs, captured 2026-09-17
+
+Shlomi ran the two merge phrasings by hand (signed-in browser, Google's footer says results are
+personalised, so positions here are indicative and GSC's are the record).
+
+**`צירוף קבצים`** (GSC: 5 impressions at 9): PDF24 (5.0 stars, 24,060) first, **PDkef second**, then
+FreePDFConvert, AvePDF, Adobe, lexa.co.il, Sejda, Aspose, itspdf. Our displayed title is the `seoTitle`
+as shipped, `מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef`, and the snippet is the steps copy.
+
+**`איחוד קבצי pdf`** (GSC: 1 impression at 40): PDF24, FreePDFConvert, AvePDF, Adobe, Sejda,
+mypdf.co.il, itspdf, lexa.co.il, Microsoft Store. **We are not on page one.** Every page-one result
+carries `מיזוג` in its title; the three that also carry `איחוד` (mypdf, itspdf, lexa) are small local
+sites, which is the thin native field LOC-11 said to look for. "People also search for" mixes both
+verbs (`מיזוג pdf בחינם`, `איחוד קבצי pdf אונליין חינם`, `חיבור קבצים לקובץ אחד`).
+
+**The gap is the title.** `src/content/localized-tools/he/merge.yaml` already says `איחוד` in the h1
+and subhead but the `seoTitle` says only `מיזוג`; GSC has the `איחוד` family at 25 to 46 and the
+`מיזוג` family at 37 to 43, both below the `צירוף` row. This is the Hebrew edition of SEO-35's
+"combine" move: add `איחוד` to the `seoTitle`, nothing else, and let 11-06 read it. Shlomi reviews
+Hebrew copy, so it ships only with his wording. Filed as the next step, not done here.

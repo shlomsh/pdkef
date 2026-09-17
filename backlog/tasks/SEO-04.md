@@ -369,3 +369,31 @@ Ask for that screenshot at the 10-08 read, or sooner if convenient. The four-wee
 from 2026-09-11, so 10-08 is exactly four weeks.
 
 `/` was crawled 2026-09-12, so the favicon question above is testable at the 10-08 read too.
+
+### The SERP, captured again 2026-09-17: the indexed title is the live one
+
+Shlomi ran `blur text in pdf` by hand the same day. **Google now displays
+`Blur PDF Online Free - Blackout & Redact Text - PDkef`**, the live title, so the 2026-09-11 finding is
+closed: the index caught up on the 09-11 recrawl and every reading from here is of the shipped copy.
+The four-week CTR window for the thirteen runs 2026-09-11 to 10-08.
+
+What else the capture shows, against the 09-11 one:
+
+- **Snippet is body copy again, not the meta.** Displayed: *"Choose your PDF, select Blur, and click
+  and drag across the area. Adjust the box, then choose Download. There is no signup, upload, or
+  watermark."* That is the how-to steps from `src/data/tools.js`, not the rewritten meta description.
+  Google has now discarded our meta on three of three captures of this query family, so the meta
+  rewrite is measurable only where Google chooses to show it; the steps copy is the snippet.
+- **We are the first organic result in this capture** (GSC's 7-day average is 7.21; the browser was
+  signed in and Google's footer says results are personalised, so read the position from GSC, not the
+  screenshot). Order: us, AI Overview, Videos (three YouTube how-tos), iLovePDF, Adobe, Quora, Smallpdf
+  (4.5 stars, 185,194), Tungsten, PDF24 (4.9, 749), PDFgear.
+- **The AI Overview no longer cites us.** It now cites Smallpdf, and its text argues against blur
+  itself: *"Real blurring only changes pixels visually and leaves the text layer underneath"*, and
+  recommends redaction. On 09-11 we were the first tool it named. So the citation was never a durable
+  asset, and an AI Overview that steers away from the query's own verb sits directly under a page
+  titled "Blur". It is one more reason `blur text in pdf` converts worse than `blur pdf`.
+- Video carousel and "People also search for" (`blur text in pdf online`, `blackout text in pdf free`,
+  `how to blur text in pdf adobe`) unchanged: how-to intent, as read before.
+
+No copy change follows from this. The measurement is clean now; let it run to 10-08.

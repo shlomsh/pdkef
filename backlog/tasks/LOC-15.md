@@ -302,3 +302,7 @@ read, split out to [LOC-17](LOC-17.md) so this ticket does not sit open with not
   resolution at floor quality on photos (SEO-31's finding again, milder at 200 KB).
 - The languages-page artifact's per-language reviewer note: Shlomi confirmed the live artifact
   does not say "source a paid native reviewer" for Indonesian, so no edit was needed there.
+
+*2026-09-17:* `/id/kompres-pdf-di-bawah-1-mb/` was absent from the Coverage -> Valid export; Shlomi
+re-requested it (first request 09-13), dated in `docs/seo-last-crawled.json`. Indonesia in the 7-day
+window to 09-15: 7 clicks on 232 impressions at 8.64, all on English pages.
