@@ -1,12 +1,12 @@
 ---
 id: "QUAL-10"
 title: "Saved-work restore must not shift Sign, Redact, or Merge"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "site-quality"
 phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-17"
 ---
 
 # QUAL-10 · Saved-work restore must not shift the page
@@ -124,3 +124,96 @@ changes; they are one integrated restore/CLS wave.
    `PLAYWRIGHT_PORT=4191 npx playwright test src/tools/sign/e2e/sign-saved-work-restore-acceptance.spec.js src/tools/redact/e2e/redact-saved-work-restore-acceptance.spec.js src/tools/merge/e2e/merge-saved-work-restore-acceptance.spec.js e2e/editor-mobile-identity.spec.js e2e/tool-layout.spec.js --project=chromium --workers=1`
 4. Once all three Merge cases pass, run the full unit/build/typecheck/CSP set,
    review the diff, then commit. Do not deploy until the user explicitly asks.
+
+## Merge restore, closed out (2026-09-17)
+
+Starting point `392a6547`: Merge restore CLS `0.10788598035236042` at 1512x900
+and `0.09322598688271604` at 900x900; the mobile case timed out while seeding.
+
+### What was actually moving
+
+Layout-shift source attribution (a `PerformanceObserver` on `layout-shift`
+with `entry.sources`, run against the built preview) put every point of both
+desktop figures on `[data-tool-followups]` and `main`: the static content
+under the workspace was revealed at ~74ms and then pushed down at ~116ms when
+the grid mounted. Neither the rail nor the restore sentence contributed.
+
+The cause was two readers of one hint disagreeing. The acceptance spec
+deliberately corrupts the recent-files index; the head script keeps its
+pre-paint marker in that case (the index is an optimisation, IndexedDB is
+the truth), but `hasDraftHint()` returned `false`, so the island started as
+"not restoring, no files" and removed `data-merge-restore` before IndexedDB
+had answered.
+
+Widening the spec's observation window past the five-second "Picked up"
+sentence found three more movements the short window had hidden:
+
+1. The rail's status row unmounted with the sentence, and the row carrying
+   the Start fresh button was 15px taller than plain text (shift 0.0006).
+2. The row then read "Saving draft…" and never stopped: once the effect
+   consumed the restore-skip flag, the derived state took the settled
+   restored revision for a pending write on the next unrelated render. The
+   stored revision never changed; the label was wrong, and it was only ever
+   hidden by the sentence.
+3. At 900px the hero dropped 32px when the hint cleared (0.0046). The
+   layout's compact-hero rules for Merge were dead CSS: written Astro-scoped
+   in ToolPageLayout, they compiled against the layout's `data-astro-cid`
+   while the hero carries ToolHero's. On the phone the header slot shrank
+   4px when the sentence left (0.0016).
+
+### Changes
+
+- `src/lib/drafts/draftStore.js`: `hasDraftHint` mirrors the head script: a
+  pointer whose index is unparseable keeps the hint. Unit test added.
+- `src/tools/merge/PdfMergeTool.tsx`: one `workspaceReady` expression both
+  releases the marker and sets `data-merge-workspace-ready`; a restored
+  workspace keeps the rail status row (blank after the sentence) and a
+  silent child in the phone header slot; `reset()` clears
+  `isRestoredWorkspace`.
+- `src/tools/merge/components/useMergeDraft.ts`: the settled restored
+  revision reads as idle on every render (`settledRestoredRevisionRef`),
+  with a re-render regression test.
+- `MergeRail.module.css`: the status row is a 36px flex line, end-aligned.
+  `MergeDocument.module.css`: the phone chip is 28px tall.
+- `src/layouts/ToolPageLayout.astro`: the Merge hero rules are whole
+  `:global()` selectors.
+- The acceptance spec seeds the phone case by tapping the card (the action
+  cluster is `display: none` until `data-selected` below 768px), asserts the
+  sentence departs, and reads CLS only after it has.
+- `useMergeDraft`'s derived state lets a cross-tab `conflict` win before the
+  clean restored state (fresh review caught the ordering).
+- Merged `origin/main` (SIGN-27). Its one-line, preview-less editor identity
+  supersedes this ticket's phone preview grid, so
+  `e2e/editor-mobile-identity.spec.js` was retired;
+  `e2e/tool-toolbars/toolbar-phone-row.spec.js` is the phone guard. Redact's
+  toolbar keeps SIGN-27's always-mounted status stack and passes an empty
+  idle sentence on restored work. The Sign/Redact acceptance specs read
+  SIGN-27's phone card as it is: the page-count meta text is present but
+  not shown below 560px, and the keep-on switch is labelled "Keep on" there.
+
+### Measurements after (controlled Chromium, built preview)
+
+| Viewport | Merge restore CLS | follow-ups top | status shown | stored revision |
+| --- | --- | --- | --- | --- |
+| 1512x900 | 0.000 (one 0-value thumbnail entry) | one value | none | unchanged |
+| 900x900 | 0.000 | one value | none | unchanged |
+| 390x844 | 0.000 | one value | none | unchanged |
+
+Observed through 7.5s after navigation, so past the five-second sentence.
+
+Sign and Redact strict acceptance stayed green at all three viewports on the
+merged tree, as did the tool-layout and SIGN-27 phone-row guards. The full
+non-browser chain passed: 154 unit files / 2931 tests, typecheck 0 errors,
+backlog, guidance, editor dependency directions, module boundaries, gesture
+golden rule, class resolution, fonts, licences, dependency governance, CSP
+(42 pages), SEO, redirects, CSS ratchets, page weight.
+
+### Left open
+
+- Between 768 and 1023px the restore sentence has no placement at all (the
+  rail is hidden, the phone chip is desktop-hidden). A restored tablet
+  workspace says nothing about being restored. Product question, not a CLS
+  one.
+- A fresh pick's first "Saving draft…" still appears 700ms after the edit in
+  a row that did not exist before; that is user-input-adjacent and tiny, and
+  left as is.

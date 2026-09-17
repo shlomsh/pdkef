@@ -170,7 +170,12 @@ for (const restoreCase of RESTORE_CASES) {
     await restored.goto('/redact/');
     await restored.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(restored.locator('[class*="redact-box"]')).toHaveCount(1);
-    await expect(restored.getByText('77 pages', { exact: false })).toBeVisible();
+    // The restored page count is in the identity at every width; below 560px
+    // SIGN-27 keeps that meta text out of the one-row phone card, so only
+    // its presence is asserted there.
+    const pageCount = restored.getByText('77 pages', { exact: false });
+    if (restoreCase.viewport.width < 560) await expect(pageCount).toHaveCount(1);
+    else await expect(pageCount).toBeVisible();
     await expect(restored.getByText('Tip: pick a tool to start. Delete takes an image or text run out of the file itself.', { exact: true })).toHaveCount(0);
 
     // More than the 700ms debounce: a restoration is not an edit, so neither
@@ -205,7 +210,8 @@ for (const restoreCase of RESTORE_CASES) {
     await blackout.click();
     await expect(restored.locator('[data-tool-shell] [role="status"]')
       .getByText('Click and drag on a page to draw a blackout box.', { exact: true })).toBeVisible();
-    await expect(restored.getByRole('switch', { name: 'Keep Blackout on' })).toHaveAttribute('aria-checked', 'false');
+    // SIGN-27: the switch reads "Keep on" below 560px, "Keep Blackout on" above.
+    await expect(restored.getByRole('switch', { name: /^Keep (Blackout )?on$/ })).toHaveAttribute('aria-checked', 'false');
 
     // A person making one new blackout has exactly the inverse behavior: one
     // dirty transition, one completed save, and precisely one revision bump.
