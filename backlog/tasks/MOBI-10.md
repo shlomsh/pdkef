@@ -1,7 +1,7 @@
 ---
 id: "MOBI-10"
 title: "Spike: can PDF Inspector map a flat form into answerable fields?"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "near-term"
