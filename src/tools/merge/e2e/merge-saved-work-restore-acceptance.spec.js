@@ -117,8 +117,16 @@ for (const restoreCase of RESTORE_CASES) {
     await openMergeTool(page, files);
 
     const firstCard = page.locator('ul[class*="grid"] > li[data-key]').first();
-    await firstCard.hover();
-    await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+    // Below 768px the page's action cluster is not a hover affordance: it is
+    // `display: none` until the card itself is tapped (`data-selected`), so a
+    // phone seeds the same rotation through the tap the real UI asks for.
+    if (restoreCase.viewport.width < 768) {
+      await firstCard.click();
+      await firstCard.getByRole('button', { name: /^Rotate page/ }).click();
+    } else {
+      await firstCard.hover();
+      await firstCard.getByRole('button', { name: /^Rotate page/ }).click({ force: true });
+    }
     await expect(firstCard).toHaveAttribute('data-rotation', '90');
     if (restoreCase.hasRailStatus) {
       await expect(page.locator('[class*="draft-status-row"]', { hasText: 'Draft saved' })).toBeVisible({ timeout: 15_000 });
