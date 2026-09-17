@@ -4,57 +4,6 @@
 
 The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This summary is generated and read-only.
 
-## Sign tool architecture
-
-### Open
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| SIGN-28 | P2 | [SIGN-28](backlog/tasks/SIGN-28.md) · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top |
-
-### In progress
-
-_None._
-
-### Blocked
-
-_None._
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| SIGN-01 | P1 | [SIGN-01](backlog/tasks/SIGN-01.md) · Recover after export failure |
-| SIGN-02 | P2 | [SIGN-02](backlog/tasks/SIGN-02.md) · Repair selection/editing invariants |
-| SIGN-03 | P2 | [SIGN-03](backlog/tasks/SIGN-03.md) · Retry failed live font loads |
-| SIGN-04 | P1 | [SIGN-04](backlog/tasks/SIGN-04.md) · Preserve Unicode content and whitespace |
-| SIGN-05 | P1 | [SIGN-05](backlog/tasks/SIGN-05.md) · One page-coordinate transform |
-| SIGN-06 | P1 | [SIGN-06](backlog/tasks/SIGN-06.md) · Report actual draft-save state |
-| SIGN-07 | P1 | [SIGN-07](backlog/tasks/SIGN-07.md) · Make the offline requirement testable |
-| SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
-| SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
-| SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
-| SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
-| SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
-| SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
-| SIGN-14 | P2 | [SIGN-14](backlog/tasks/SIGN-14.md) · Separate editor core, UI, and export adapters incrementally |
-| SIGN-15 | P2 | [SIGN-15](backlog/tasks/SIGN-15.md) · Bound document/render/gesture lifecycles |
-| SIGN-16 | P2 | [SIGN-16](backlog/tasks/SIGN-16.md) · Trustworthy delivery checks and docs |
-| SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
-| SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
-| SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
-| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
-| SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
-| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
-| SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
-| SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
-| SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
-| SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
-
-### Retired
-
-_None._
-
 ## Fonts and script support
 
 ### Open
@@ -426,6 +375,45 @@ _None._
 # Closed epics
 
 Every task in these epics is done or retired. They collapse here so the board above is only live work; the task files keep the full record.
+
+## Sign tool architecture
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SIGN-01 | P1 | [SIGN-01](backlog/tasks/SIGN-01.md) · Recover after export failure |
+| SIGN-02 | P2 | [SIGN-02](backlog/tasks/SIGN-02.md) · Repair selection/editing invariants |
+| SIGN-03 | P2 | [SIGN-03](backlog/tasks/SIGN-03.md) · Retry failed live font loads |
+| SIGN-04 | P1 | [SIGN-04](backlog/tasks/SIGN-04.md) · Preserve Unicode content and whitespace |
+| SIGN-05 | P1 | [SIGN-05](backlog/tasks/SIGN-05.md) · One page-coordinate transform |
+| SIGN-06 | P1 | [SIGN-06](backlog/tasks/SIGN-06.md) · Report actual draft-save state |
+| SIGN-07 | P1 | [SIGN-07](backlog/tasks/SIGN-07.md) · Make the offline requirement testable |
+| SIGN-08 | P1 | [SIGN-08](backlog/tasks/SIGN-08.md) · Share the effective typography descriptor |
+| SIGN-09 | P1 | [SIGN-09](backlog/tasks/SIGN-09.md) · Direction defaults and native IME input |
+| SIGN-10 | P2 | [SIGN-10](backlog/tasks/SIGN-10.md) · A language/font source of truth and acceptance matrix |
+| SIGN-11 | P2 | [SIGN-11](backlog/tasks/SIGN-11.md) · Versioned, validated shared persistence |
+| SIGN-12 | P2 | [SIGN-12](backlog/tasks/SIGN-12.md) · Make required undo dependable |
+| SIGN-13 | P2 | [SIGN-13](backlog/tasks/SIGN-13.md) · Anonymous usage and error maintenance signals |
+| SIGN-14 | P2 | [SIGN-14](backlog/tasks/SIGN-14.md) · Separate editor core, UI, and export adapters incrementally |
+| SIGN-15 | P2 | [SIGN-15](backlog/tasks/SIGN-15.md) · Bound document/render/gesture lifecycles |
+| SIGN-16 | P2 | [SIGN-16](backlog/tasks/SIGN-16.md) · Trustworthy delivery checks and docs |
+| SIGN-17 | P1 | [SIGN-17](backlog/tasks/SIGN-17.md) · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work |
+| SIGN-18 | P1 | [SIGN-18](backlog/tasks/SIGN-18.md) · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten |
+| SIGN-19 | P1 | [SIGN-19](backlog/tasks/SIGN-19.md) · Four shaping/render guards passed on macOS and failed on Linux CI |
+| SIGN-21 | P1 | [SIGN-21](backlog/tasks/SIGN-21.md) · Make the browser guard helpers reachable from the preview server |
+| SIGN-22 | P1 | [SIGN-22](backlog/tasks/SIGN-22.md) · Restore the CSS release gate after adding language-request actions |
+| SIGN-23 | P1 | [SIGN-23](backlog/tasks/SIGN-23.md) · Make non-default language fonts explicitly offline-ready |
+| SIGN-24 | P1 | [SIGN-24](backlog/tasks/SIGN-24.md) · Separate saved-signature assets from scalar preferences |
+| SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
+| SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
+| SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
+
+### Retired
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SIGN-28 | P2 | [SIGN-28](backlog/tasks/SIGN-28.md) · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top |
 
 ## Editor architecture
 
