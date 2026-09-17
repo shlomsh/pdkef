@@ -1,17 +1,28 @@
 ---
 id: "SIGN-28"
 title: "Export moves to a sticky bottom sheet on phones, leaving one row of tools on top"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: ["SIGN-27"]
-legacy_state: "Opened 2026-09-17 as step 2 of the SIGN-27 design"
+legacy_state: "Retired 2026-09-18: won't do, current two-row layout judged good enough"
 ---
 
-# SIGN-28 · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top
+# SIGN-28 · ~~Export moves to a sticky bottom sheet on phones, leaving one row of tools on top~~
 
-## Scope and acceptance
+## Retired 2026-09-18: won't do
+
+Reviewed against a real device screenshot of the live tool (a two-row 390px toolbar: Text/Date/
+Symbols/Shapes/Whiteout/Sign, then Undo/Feedback/Full screen/Replace/Share) before starting the
+layout work this ticket describes. Shlomi's call: the current compressed toolbar is good enough as
+shipped, not worth the sticky-bottom-sheet rework and the accompanying Date/Feedback placement
+decision below. The real gap this surfaced - Download only reachable after scrolling past every
+rendered page image on a multi-page document - is not addressed by this retirement and is not
+currently tracked elsewhere; reopen there first if it comes up again, rather than reopening this
+ticket's full layout scope.
+
+## Original scope and acceptance (superseded, kept for record)
 
 **After SIGN-27 the sticky editor card on a phone is ~155px: one context row and a two-line button
 grid.** The second line exists because the grid mixes two kinds of thing - the tools you work with
