@@ -332,7 +332,7 @@ export const tools = [
     ariaLabel: 'Blur & Redact PDF tool',
     aboutHeading: 'How to blur, black out, white out or delete PDF content',
     aboutLead:
-      "Choose the result you want. Delete removes a selected text or image element from the PDF page. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans, and because the marked page is flattened into one image on download, the redaction is permanent: there's no text layer left underneath to recover.",
+      "Choose the result you want. Blur softens visual detail, Blackout creates a solid cover, and Whiteout clears an area visually. Blur, Blackout and Whiteout work on typed PDFs and scans, and because the marked page is flattened into one image on download, the redaction is permanent: there's no text layer left underneath to recover. Delete removes a selected text or image element from the PDF page.",
     freeNoteLead:
       'Blur or black out PDFs for free, with no signup, watermark, or daily cap. Your file and saved draft stay on your device. For examples and the trade-offs, see <a class="font-medium text-[var(--color-primary-text)]" href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout or Delete: the visual guide</a>. Want to work offline? <a class="font-medium text-[var(--color-primary-text)]" href="/install-pdf-app/">Install PDkef</a> and let its required assets load before disconnecting.',
     aboutSketch: 'grid',
@@ -341,8 +341,8 @@ export const tools = [
     faqIconPos: 'bl',
     steps: [
       { title: 'Open your PDF', text: 'Choose a PDF from your device or drag it into the tool. It opens in your browser without being uploaded.' },
-      { title: 'Choose the result', text: 'Use Delete to click a highlighted text or image element. Use Blur, Blackout or Whiteout to drag over an area. You can mix the tools in the same PDF.' },
-      { title: 'Download your changed PDF', text: 'Delete removes the selected element from the page. Pages with Blur, Blackout or Whiteout flatten automatically into one image, making that export a one-way change with no selectable or searchable text on the marked page.' },
+      { title: 'Choose the result', text: 'Use Blur, Blackout or Whiteout to drag over an area. Use Delete to click a highlighted text or image element. You can mix the tools in the same PDF.' },
+      { title: 'Download your changed PDF', text: 'Pages with Blur, Blackout or Whiteout flatten automatically into one image, making that export a one-way change with no selectable or searchable text on the marked page. Delete removes the selected element from the page.' },
     ],
     faq: [
       { question: 'How can I blur text in a PDF for free?', answer: 'Choose your PDF, select Blur, and click and drag across the area. Adjust the box, then choose Download. There is no signup, upload, or watermark. The marked page is flattened automatically. Blur is a visual mask; use Blackout for confidential text.' },
