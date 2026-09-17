@@ -14,30 +14,31 @@ reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-17'
 reviewNotes: >-
   2026-09-11: rendered page approved for publish. 09-12: English title and h1
-  gained combine (SEO-35), Hebrew unchanged, re-approved on the deployed site.
-  09-13: MERGE-05/09/12/13 rewrote the English subhead, steps 2-3 and added a
-  drafts FAQ; Hebrew step 3 and that FAQ answer are AI drafts, still pending
-  Shlomi's review. 2026-09-17: seoTitle gained איחוד (LOC-03); Shlomi read the
-  old and new title side by side and approved.
+  gained combine (SEO-35), Hebrew unchanged, re-approved. 09-13:
+  MERGE-05/09/12/13 rewrote the English subhead, steps 2-3 and added a drafts
+  FAQ; Hebrew step 3 and that FAQ answer are AI drafts, still pending Shlomi's
+  review. 2026-09-17: איחוד becomes the lead word everywhere (title, h1, tool
+  name, headings, body verbs) on Shlomi's native read that מיזוג is not how
+  Israelis say merge; מיזוג stays as the synonym in title, h1 and description.
 sourceHash: 'fnv1a64:0201a3330d66a29c'
-seoTitle: 'מיזוג ואיחוד קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
+seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
-  מזגו ואחדו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
+  אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
   מספרי עמודים והורידו. הכול קורה בדפדפן, הקובץ לא עולה לשום שרת. בלי הרשמה
   ובלי סימן מים.
-schemaName: 'PDkef - מיזוג PDF'
-toolName: 'מיזוג PDF'
-h1: 'מיזוג קבצי PDF בחינם: איחוד קבצים ישירות בדפדפן'
+schemaName: 'PDkef - איחוד PDF'
+toolName: 'איחוד PDF'
+h1: 'איחוד קבצי PDF בחינם: מיזוג קבצים ישירות בדפדפן'
 subhead: >-
   איחוד או חיבור של כמה קבצי PDF למסמך אחד: גררו כדי לסדר, הוסיפו מספרי
   עמודים אם צריך, והורידו. הקובץ נשאר אצלכם במכשיר.
-ariaLabel: 'כלי מיזוג PDF'
-aboutHeading: 'איך ממזגים קבצי PDF בחינם בדפדפן'
+ariaLabel: 'כלי איחוד PDF'
+aboutHeading: 'איך מאחדים קבצי PDF בחינם בדפדפן'
 aboutLead: >-
   איחוד כמה קבצי PDF לקובץ אחד, ישירות בדפדפן. בלי העלאה ובלי שרת באמצע:
   הקבצים שלכם לא עוזבים את המכשיר.
 freeNoteLead: >-
-  מזגו כמה קבצי PDF שתרצו, בכל סדר, בלי סימן מים ובלי הגבלת עמודים. המיזוג
+  אחדו כמה קבצי PDF שתרצו, בכל סדר, בלי סימן מים ובלי הגבלת עמודים. האיחוד
   רץ על המכשיר שלכם, אז אין מה להעלות ואין מכסות.
 steps:
   - title: 'הוסיפו את קבצי ה-PDF'
@@ -64,11 +65,11 @@ faq:
   - question: 'יש הגבלה על גודל הקובץ או מספר העמודים?'
     answer: >-
       PDkef לא מציב שום מגבלה מלאכותית. המגבלה היחידה היא הזיכרון הפנוי
-      במכשיר שלכם, כי המיזוג מתבצע מקומית.
+      במכשיר שלכם, כי האיחוד מתבצע מקומית.
   - question: 'אפשר לאחד קבלות סרוקות או דוחות לקובץ PDF אחד?'
     answer: >-
       כן, זה אחד השימושים הנפוצים. הוסיפו כל עמוד סרוק או דוח PDF, סדרו
-      אותם, ומזגו לקובץ אחד לדוח הוצאות, לתיק עבודות או לספר.
+      אותם, ואחדו לקובץ אחד לדוח הוצאות, לתיק עבודות או לספר.
   - question: 'מה קורה לקבצים שלי אם סוגרים את הלשונית באמצע?'
     answer: >-
       שום דבר לא הולך לאיבוד. תוך כדי הוספת קבצים, שינוי סדר, סיבוב או דילוג
@@ -76,6 +77,6 @@ faq:
       והדילוגים באחסון המקומי של הדפדפן, ומשחזר הכול אוטומטית בפעם הבאה
       שתפתחו את הכלי באותו מכשיר. קבוצת קבצים גדולה מאוד אולי לא תיכנס
       לאחסון המקומי של הדפדפן; במקרה כזה הכלי מודיע שהטיוטה לא נשמרה במקום
-      להעמיד פנים שכן, והמיזוג עצמו ממשיך לעבוד בכל מקרה. טיוטות שמורות פגות
+      להעמיד פנים שכן, והאיחוד עצמו ממשיך לעבוד בכל מקרה. טיוטות שמורות פגות
       תוקף אחרי 14 יום בלי שינוי. במכשיר משותף, נקו את נתוני האתר בסיום; זה
       גם מוחק טיוטות שמורות והעדפות.

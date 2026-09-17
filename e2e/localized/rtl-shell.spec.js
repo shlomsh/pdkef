@@ -80,7 +80,7 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
   // The island is localized, not just the shell around it: with one file the
   // Download element asks for one more in Hebrew; Sort only renders once
   // there are two files, as one select with Reversed folded in.
-  await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד PDF אחד כדי למזג');
+  await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד PDF אחד כדי לאחד');
   await page.setInputFiles('input[type=file]', {
     name: 'second.pdf',
     mimeType: 'application/pdf',
