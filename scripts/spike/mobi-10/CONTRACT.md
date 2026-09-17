@@ -40,7 +40,7 @@ A comb run is ONE candidate with `cells`, not one per cell.
   "sourceUrl": "<gov.il URL>",
   "pageIndex": 0,
   "pageSize": { "width": 595.275, "height": 841.89 },
-  "render": { "file": "itc101-1.png", "width": 1240, "height": 1754 },
+  "render": { "file": "itc101-1.png", "width": 1241, "height": 1754 },
   "targets": [
     { "id": "t001", "kind": "comb", "bounds": { "x": 0.1, "y": 0.2, "width": 0.3, "height": 0.02 },
       "label": "מספר זהות", "cells": 9, "notes": "" }
