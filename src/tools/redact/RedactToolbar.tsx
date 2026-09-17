@@ -17,8 +17,15 @@ import redactStyles from './PdfRedactTool.module.css';
 //
 // Nothing here mentions hovering. Delete's copy used to open with "Hover to
 // find...", which describes a gesture half this tool's users do not have.
+//
+// Delete's sentence stops at "delete it": "from the file" was the idle tip's
+// job ("Delete takes an image or text run out of the file itself"), and on a
+// phone every sentence here shares one fixed-height row with the keep-on
+// switch beside it, sized by the longest of them - the extra clause was a
+// third line that every tool's row then paid for (e2e/tool-toolbars/
+// toolbar-phone-row.spec.js).
 const TOOL_COPY: Record<RedactToolType, { action: string; button: string }> = {
-  delete:   { action: 'Click a highlighted image or text run to delete it from the file.', button: 'Delete' },
+  delete:   { action: 'Click a highlighted image or text run to delete it.', button: 'Delete' },
   blackout: { action: 'Click and drag on a page to draw a blackout box.',                  button: 'Blackout' },
   whiteout: { action: 'Click and drag on a page to draw a whiteout box.',                  button: 'Whiteout' },
   blur:     { action: 'Click and drag on a page to blur an area.',                         button: 'Blur' },
@@ -125,27 +132,26 @@ export default function RedactToolbar({
     <ToolShell
       editor
       status={
-        // Finding #3: one slot, and the undo chip wins it - matching
-        // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While
-        // it is showing, the armed-tool hint is not lost, just deferred: it
-        // comes back the moment the chip's 5s timer clears or Undo is
-        // pressed.
-        undoAction ? (
-          <div className={styles.help} role="status">
+        <EditorToolStatus
+          copy={activeToolCopy}
+          locked={toolLocked}
+          onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
+          idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
+          reserveCopies={Object.values(TOOL_COPY)}
+          // Finding #3: one slot, and the undo chip wins it - matching
+          // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While
+          // it is showing, the armed-tool hint is not lost, just deferred: it
+          // comes back the moment the chip's 5s timer clears or Undo is
+          // pressed. It rides inside EditorToolStatus's stack rather than
+          // replacing it so the slot keeps its reserved height while the chip
+          // comes and goes (see that component's `override`).
+          override={undoAction && (
             <span className={redactStyles['undo-chip']}>
               {undoAction.message}
               <button type="button" className={redactStyles['undo-chip-btn']} onClick={onUndoAction}>Undo</button>
             </span>
-          </div>
-        ) : (
-          <EditorToolStatus
-            copy={activeToolCopy}
-            locked={toolLocked}
-            onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
-            idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
-            reserveCopies={Object.values(TOOL_COPY)}
-          />
-        )
+          )}
+        />
       }
     >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">

@@ -138,8 +138,8 @@
    clearPage ("Clear all redactions on this page") used to change state
    silently - no live-region announcement, no way to undo but Cmd/Ctrl+Z or
    the full history modal. This chip takes the toolbar's status-line slot
-   (RedactToolbar.tsx swaps EditorToolStatus for this while an undo is
-   pending) the same way Merge's own undo chip wins its header slot
+   (RedactToolbar.tsx hands it to EditorToolStatus as `override` while an undo
+   is pending) the same way Merge's own undo chip wins its header slot
    (MergeDocument.module.css's `.undo-chip`, PdfMergeTool.tsx's
    `registerUndo`/`undoAction`) - one slot, replaced by whatever the next
    action registers, same success-toned pill. */
