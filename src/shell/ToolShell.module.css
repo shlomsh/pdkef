@@ -379,90 +379,95 @@
 }
 
 .editor .identity {
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
 }
 
-/* On a phone the editor identity still needs its PDF preview to read as part
-   of the document label, not as a detached line above it. The normal shell
-   intentionally remains a wrapping flex row because its independent action
-   controls need that freedom; Sign and Redact are different: their toolbar
-   always owns the next line. A tiny two-column grid keeps the preview beside
-   the filename/metadata stack, while an optional tool-status line stays below
-   the text instead of forcing either primary piece to wrap. */
-@media (max-width: 559px) {
-  .editor .identity {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      'preview text'
-      'status status';
-    column-gap: 0.55rem;
-    row-gap: 0.3rem;
-  }
-
-  .editor .icon {
-    grid-area: preview;
-  }
-
-  .editor .text {
-    grid-area: text;
-    width: 100%;
-  }
-
-  .editor .status {
-    grid-area: status;
-    margin-inline-start: 0;
-  }
-}
-
-/* From tablet up the identity states itself on one line - name, pages, size,
+/* The identity states itself on one line at every width - name, pages, size,
    draft chip, reading as a single sentence the way a document editor's title bar
    does. Stacking the name over its metadata cost a second text line, and in this
-   variant that line is expensive: the card is sticky and now carries the toolbar
-   underneath it, so its height comes straight off the document. The icon shrinks
-   with it, since a 34px square was only that big to match a two-line block.
-
-   Phones keep the stack. There a filename can fill the width on its own, and
-   stacking is the only arrangement where the metadata survives at all.
+   variant that line is expensive: the card is sticky and carries the toolbar
+   underneath it, so its height comes straight off the document.
 
    The name is the only part allowed to give ground: it is the part that can be
    arbitrarily long, and it already ellipsises. Pinning the metadata means a long
    name eats into itself rather than the row splitting the loss and truncating
    "496 KB" as well. */
-@media (min-width: 560px) {
+.editor .text {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.editor .meta {
+  flex: 0 0 auto;
+}
+
+/* The interpunct the metadata already uses between its own parts, so the whole
+   line reads as one list instead of a title with a caption stuck to it. It
+   hangs off .meta, which is only rendered when there is something to separate
+   from. */
+.editor .meta::before {
+  content: '·';
+  color: var(--color-muted);
+}
+
+/* Phones: one row above the toolbar, not three. The card is sticky, so every
+   line of it is a line the document never gets back, and at 390px the old
+   shape (thumbnail + two-line identity, then a hint band, then the grid) was
+   ~250px of an ~850px screen before a single page pixel.
+
+   The identity text and the status line share ONE grid cell. Nothing is armed:
+   the filename shows and the status stack is invisible (its idle tip is gone
+   here, see `.help-idle` in SignToolbar.module.css, and its reservations are
+   already `visibility: hidden`). Something is armed, or Redact's undo chip is
+   up: `data-status-active` appears on the status and the filename hides
+   instead. The cell's height is the max of both in every state, so arming
+   cannot move the toolbar under it - and that is the whole reason they share
+   a cell instead of hiding by turns. The second click of a double-click has
+   to land on the button the first one did (editor.md, "Repeat placement"),
+   and the swap back after the undo chip's timer would otherwise be a layout
+   shift with no input to excuse it. `visibility`, not `display`, on the
+   hidden filename for the same reason: it keeps contributing its height.
+
+   The pages/size text goes too: the page count is in every "Page N" heading
+   below and the size is not something you act on in an editor. The draft
+   chip stays - "Draft saved" is the one word on this row a phone user is
+   looking for. When the chip is not up, `.meta` is empty and hides, so the
+   interpunct does not dangle after the name. */
+@media (max-width: 559px) {
+  .editor {
+    /* The card sits flush with the top of the viewport instead of 1rem down:
+       once the page has scrolled, that gap was 16px of nothing on a screen
+       where nothing is what there is least of. Safe-area for a notch. */
+    top: env(safe-area-inset-top, 0px);
+  }
+
   .editor .identity {
-    padding-top: 0.35rem;
-    padding-bottom: 0.35rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
   }
 
-  .editor .icon {
-    width: 26px;
-    height: 26px;
-    border-radius: 7px;
+  .editor .text,
+  .editor .status {
+    grid-area: 1 / 1;
+    min-width: 0;
   }
 
-  .editor .icon svg {
-    width: 15px;
-    height: 15px;
+  .editor .identity:has([data-status-active]) .text {
+    visibility: hidden;
   }
 
-  .editor .text {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 0.4rem;
+  .editor .meta-text {
+    display: none;
   }
 
-  .editor .meta {
-    flex: 0 0 auto;
+  .editor .meta:not(:has(.saved)) {
+    display: none;
   }
 
-  /* The interpunct the metadata already uses between its own parts, so the whole
-     line reads as one list instead of a title with a caption stuck to it. It
-     hangs off .meta, which is only rendered when there is something to separate
-     from. */
-  .editor .meta::before {
-    content: '·';
-    color: var(--color-muted);
+  .editor .meta-text + .saved::before {
+    content: none;
   }
 }
 

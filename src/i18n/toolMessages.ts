@@ -700,6 +700,8 @@ const englishSignMessages: SignMessages = {
   tipIdle: 'Tip: pick a tool to start.',
   tipEditText: 'Double-click a text box to edit it.',
   keepOn: 'Keep {button} on',
+  // Phone width only, beside a sentence that has just named the tool.
+  keepOnShort: 'Keep on',
   keepOnTitleOn: 'Switch off to go back to one at a time. {button} stays selected either way.',
   keepOnTitleOff: 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
   hintEsc: 'or press Esc to stop entirely',
@@ -889,6 +891,7 @@ const hebrewSignMessages: SignMessages = {
   tipIdle: 'טיפ: בחרו כלי כדי להתחיל.',
   tipEditText: 'לחצו לחיצה כפולה על תיבת טקסט כדי לערוך אותה.',
   keepOn: 'להשאיר את {button} פעיל',
+  keepOnShort: 'להשאיר פעיל',
   keepOnTitleOn: 'כבו כדי לחזור לפעולה חד-פעמית. {button} נשאר מסומן בכל מקרה.',
   keepOnTitleOff: 'השאירו את {button} פעיל כדי להשתמש בו כמה פעמים. לחיצה כפולה על {button} עושה את אותו הדבר.',
   hintEsc: 'או לחצו Esc כדי לעצור לגמרי',
