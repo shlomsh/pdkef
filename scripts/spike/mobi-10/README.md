@@ -1,9 +1,8 @@
 # MOBI-10 spike tooling: non-anydoc signals, scorer, overlay
 
 Three scripts, ESM node, run from the repo root. See `CONTRACT.md` for the shared data shapes
-(`CandidateField`, ground-truth file) and the coordinate model. `anydoc-run.mjs` /
-`anydoc-to-candidates.mjs` / `report-anydoc.md` are a different agent's work on the anydoc/PDF
-Inspector signal; not covered here.
+(`CandidateField`, ground-truth file) and the coordinate model. `report-anydoc.md` records the anydoc / PDF Inspector
+signal (a negative result; its runner was not kept).
 
 ## 1. `extract.mjs` — native-widget + pdfjs-layout signals
 
@@ -65,8 +64,7 @@ order, for both sample forms. Confirmed two ways:
    readable Hebrew phrases.
 
 This is `pdf.js` text extraction specifically, not `pdf-inspector`/anydoc — SEO-32's RTL concern was
-about the anydoc dependency's own text pipeline, which is a separate signal covered by the other
-agent's `anydoc-*.mjs` scripts and `report-anydoc.md`, not by this one.
+about the anydoc dependency's own text pipeline, which is a separate signal covered by `report-anydoc.md`, not by this one.
 
 ## 2. `score.mjs` — greedy IoU scorer
 
@@ -116,14 +114,11 @@ node scripts/spike/mobi-10/score.mjs \
   --candidates scripts/spike/mobi-10/out/itc101/candidates.pdfjs-layout.json \
   --out scripts/spike/mobi-10/out/itc101/report.pdfjs-layout.json
 
-node scripts/spike/mobi-10/score.mjs \
-  --truth scripts/spike/mobi-10/ground-truth/itc101-page1.json \
-  --candidates scripts/spike/mobi-10/out/itc101/candidates.anydoc.json \
-  --out scripts/spike/mobi-10/out/itc101/report.anydoc.json
 ```
 
-(swap `itc101` for `health` for the second form; the anydoc candidates file name depends on what the
-other agent's `anydoc-to-candidates.mjs` writes).
+(swap `itc101` for `health` for the second form; `label.mjs` and `cells.mjs` write further
+candidates files, scored the same way; the decision record in `docs/mobi-10-field-map-spike.md`
+has the full table).
 
 ## 3. `overlay.mjs` — visual check
 

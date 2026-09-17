@@ -1,3 +1,6 @@
+> The runner scripts this report describes (`anydoc-run.mjs`, `anydoc-to-candidates.mjs`) were
+> dropped from the branch after the decision; the evidence below stands on its own.
+
 # MOBI-10 spike: `@firecrawl/anydoc-wasm` recon
 
 Question: does `@firecrawl/anydoc-wasm` (wraps the Rust crate `pdf-inspector`) tell us **where**
