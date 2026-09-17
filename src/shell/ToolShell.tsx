@@ -20,7 +20,8 @@ interface ToolShellContextValue {
   /** The loaded file itself, single-file tools only (BasePdfTool drops this
    * for `multiple` tools - see its own comment). Optional and usually absent:
    * only lets the identity row show a real thumbnail (FilePreview.tsx)
-   * instead of the generic glyph when a tool has it to give. */
+   * instead of the generic glyph when a tool has it to give. The editor
+   * variant ignores it - see the `editor` note on ToolShell. */
   file?: File | null;
   draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
   multiple?: boolean;
@@ -115,7 +116,16 @@ export function useToolShell() {
  * `status` is the tool's live hint line. It rides in the identity row rather
  * than under the toolbar because that row is mostly empty space past the
  * filename, and a hint on a line of its own cost 53px of the most valuable band
- * on the page - directly above the document - to say one short sentence.
+ * on the page - directly above the document - to say one short sentence. On a
+ * phone the two go further and share one fixed-height row: the filename shows
+ * while nothing is armed, the hint takes its place while something is (see the
+ * phone block in ToolShell.module.css).
+ *
+ * The editor variant has no thumbnail. The document is right there under the
+ * card, at full size, so a 34px picture of its first page said nothing the eye
+ * had not already got - and on a phone it was what forced the name and the
+ * metadata to stack into two lines beside it. Dropping it also spares Sign and
+ * Redact a page-1 render they were only doing for that thumbnail.
  *
  * `data-tool-shell` is the page's "a file is open" signal. This component is
  * rendered only once a file is loaded, in every tool, so it is the one honest
@@ -138,7 +148,7 @@ export default function ToolShell({ editor = false, status = null, children }: {
   return (
     <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`} data-tool-shell>
       <div class={styles.identity}>
-        <FilePreview file={file} />
+        {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
           <span class={styles.name}>

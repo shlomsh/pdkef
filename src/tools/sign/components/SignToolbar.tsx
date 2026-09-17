@@ -251,6 +251,7 @@ export default function SignToolbar({
       idle={`${t.tipIdle}${hasTextElement ? ` ${t.tipEditText}` : ''}`}
       reserveCopies={Object.values(TOOL_COPY)}
       keepOnLabel={t.keepOn}
+      keepOnShort={t.keepOnShort}
       keepOnTitleOn={t.keepOnTitleOn}
       keepOnTitleOff={t.keepOnTitleOff}
       hintEsc={t.hintEsc}
