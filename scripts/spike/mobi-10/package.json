@@ -1,0 +1,9 @@
+{
+  "name": "mobi-10-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@firecrawl/anydoc-wasm": "^0.2.4",
+    "@napi-rs/canvas": "^0.1.100"
+  }
+}
