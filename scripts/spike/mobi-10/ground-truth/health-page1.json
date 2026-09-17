@@ -1,0 +1,1327 @@
+{
+  "form": "health",
+  "sha256": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53",
+  "sourceUrl": "https://www.gov.il/BlobFolder/service/issue_firearms_license_to_a_private_individual/he/services_health-declaration-2021.pdf",
+  "pageIndex": 0,
+  "pageSize": {
+    "width": 595.32,
+    "height": 841.92
+  },
+  "render": {
+    "file": "health-1.png",
+    "width": 1241,
+    "height": 1754
+  },
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0639,
+        "y": 0.2861,
+        "width": 0.2604,
+        "height": 0.0137
+      },
+      "label": "שנת לידה"
+    },
+    {
+      "id": "t002",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.3243,
+        "y": 0.2861,
+        "width": 0.179,
+        "height": 0.0137
+      },
+      "label": "מספר תעודת זהות",
+      "cells": 9
+    },
+    {
+      "id": "t003",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5033,
+        "y": 0.2861,
+        "width": 0.179,
+        "height": 0.0137
+      },
+      "label": "שם פרטי"
+    },
+    {
+      "id": "t004",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6823,
+        "y": 0.2861,
+        "width": 0.2508,
+        "height": 0.0137
+      },
+      "label": "שם משפחה"
+    },
+    {
+      "id": "t005",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0639,
+        "y": 0.3274,
+        "width": 0.0826,
+        "height": 0.0137
+      },
+      "label": "מיקוד"
+    },
+    {
+      "id": "t006",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1465,
+        "y": 0.3274,
+        "width": 0.1105,
+        "height": 0.0137
+      },
+      "label": "ישוב"
+    },
+    {
+      "id": "t007",
+      "kind": "text",
+      "bounds": {
+        "x": 0.257,
+        "y": 0.3274,
+        "width": 0.0984,
+        "height": 0.0137
+      },
+      "label": "ת\"ד"
+    },
+    {
+      "id": "t008",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3554,
+        "y": 0.3274,
+        "width": 0.0919,
+        "height": 0.0137
+      },
+      "label": "דירה"
+    },
+    {
+      "id": "t009",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4473,
+        "y": 0.3274,
+        "width": 0.0964,
+        "height": 0.0137
+      },
+      "label": "בית"
+    },
+    {
+      "id": "t010",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5436,
+        "y": 0.3274,
+        "width": 0.1512,
+        "height": 0.0137
+      },
+      "label": "כתובת – רחוב"
+    },
+    {
+      "id": "t011",
+      "kind": "text",
+      "bounds": {
+        "x": 0.6948,
+        "y": 0.3274,
+        "width": 0.2383,
+        "height": 0.0137
+      },
+      "label": "עיסוק"
+    },
+    {
+      "id": "t012",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.0639,
+        "y": 0.3411,
+        "width": 0.21,
+        "height": 0.0134
+      },
+      "label": "פקס",
+      "cells": 9,
+      "notes": "single 9-cell run, no area-code/number split (unlike טלפון and נייד below)"
+    },
+    {
+      "id": "t013",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.3207,
+        "y": 0.3411,
+        "width": 0.0697,
+        "height": 0.0134
+      },
+      "label": "נייד",
+      "cells": 3,
+      "notes": "area-code cells of the mobile number; separated from the 7-digit run by a printed dash, not a target"
+    },
+    {
+      "id": "t014",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.4162,
+        "y": 0.3411,
+        "width": 0.1625,
+        "height": 0.0134
+      },
+      "label": "נייד",
+      "cells": 7,
+      "notes": "7-digit run of the mobile number, adjacent to the נייד caption"
+    },
+    {
+      "id": "t015",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.6219,
+        "y": 0.3411,
+        "width": 0.0697,
+        "height": 0.0134
+      },
+      "label": "טלפון",
+      "cells": 3,
+      "notes": "area-code cells of the phone number; separated from the 7-digit run by a printed dash, not a target"
+    },
+    {
+      "id": "t016",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.717,
+        "y": 0.3411,
+        "width": 0.1625,
+        "height": 0.0134
+      },
+      "label": "טלפון",
+      "cells": 7,
+      "notes": "7-digit run of the phone number, adjacent to the טלפון caption"
+    },
+    {
+      "id": "t017",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0639,
+        "y": 0.3545,
+        "width": 0.8692,
+        "height": 0.0134
+      },
+      "label": "כתובת דואר אלקטרוני",
+      "notes": "one wide blank cell; the printed @ glyph near x=384-393pt is decorative, not a divider"
+    },
+    {
+      "id": "t018",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.4236,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "1. האם עברת אירוע של איבוד הכרה ב-5 שנים האחרונות? אם כן, מתי? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t019",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.4236,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "1. האם עברת אירוע של איבוד הכרה ב-5 שנים האחרונות? אם כן, מתי? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t020",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.4453,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "2. האם הינך סובל מסחרחורות וחוסר שיווי משקל? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t021",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.4453,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "2. האם הינך סובל מסחרחורות וחוסר שיווי משקל? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t022",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.4564,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "3. האם אתה סובל מאפילפסיה (מחלת הכיפיון)? אם כן, מתי היה ההתקף האחרון? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t023",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.4564,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "3. האם אתה סובל מאפילפסיה (מחלת הכיפיון)? אם כן, מתי היה ההתקף האחרון? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t024",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.4781,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "4. האם אתה מקבל בקביעות תרופות? אם כן, פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t025",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.4781,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "4. האם אתה מקבל בקביעות תרופות? אם כן, פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t026",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.502,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "5. האם עברת אי פעם אירוע מוחי (שבץ מוחי)? אם כן, מתי? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t027",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.502,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "5. האם עברת אי פעם אירוע מוחי (שבץ מוחי)? אם כן, מתי? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t028",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.5237,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "6. האם הינך סובל ממחלת לב? אם כן, פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t029",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.5237,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "6. האם הינך סובל ממחלת לב? אם כן, פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t030",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.5476,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "7. האם אתה סובל מסכרת? אם כן, מהו סוג הטיפול שהנך מקבל לאיזון הסוכרת? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t031",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.5476,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "7. האם אתה סובל מסכרת? אם כן, מהו סוג הטיפול שהנך מקבל לאיזון הסוכרת? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t032",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.5693,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "8. האם עברת התקפים של ירידה חדה ברמת הסוכר בדם? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t033",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.5693,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "8. האם עברת התקפים של ירידה חדה ברמת הסוכר בדם? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t034",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.5804,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "9. האם יש הפרעות במהירות תגובה: זיכרון, התמצאות בזמן ובמקום? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t035",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.5804,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "9. האם יש הפרעות במהירות תגובה: זיכרון, התמצאות בזמן ובמקום? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t036",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.6021,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "10. האם אתה סובל מבעיות נפשיות? אם כן, האם טופלת או הינך מטופל? פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t037",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.6021,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "10. האם אתה סובל מבעיות נפשיות? אם כן, האם טופלת או הינך מטופל? פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t038",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.6365,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "11. האם אתה נוטל או נטלת בעבר תרופות המיועדות לטיפול במחלת נפש, מצבי רוח, ערנות ובעיות שינה? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t039",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.6365,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "11. האם אתה נוטל או נטלת בעבר תרופות המיועדות לטיפול במחלת נפש, מצבי רוח, ערנות ובעיות שינה? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t040",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.6582,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "12. האם אתה נוטל סמים או תרופות העלולות להשפיע על מצב ההכרה או יכולת שיפוט? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t041",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.6582,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "12. האם אתה נוטל סמים או תרופות העלולות להשפיע על מצב ההכרה או יכולת שיפוט? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t042",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.6799,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "13. האם אתה צורך משקאות חריפים? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t043",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.6799,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "13. האם אתה צורך משקאות חריפים? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t044",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.5825,
+        "y": 0.691,
+        "width": 0.0065,
+        "height": 0.0057
+      },
+      "label": "14. האם אושפזת בעבר במוסד לגמילה או במוסד פסיכיאטרי? אם כן, פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t045",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.541,
+        "y": 0.691,
+        "width": 0.0077,
+        "height": 0.0054
+      },
+      "label": "14. האם אושפזת בעבר במוסד לגמילה או במוסד פסיכיאטרי? אם כן, פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "applicant declaration grid (הצהרת מבקש הבדיקה)"
+    },
+    {
+      "id": "t046",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.4239,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "1. האם ידוע לך על מחלה נוירולוגית? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t047",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.4242,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "1. האם ידוע לך על מחלה נוירולוגית? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t048",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.4361,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "2. האם היו אירועים של איבוד הכרה ב-5 שנים האחרונות? אם כן, מתי? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t049",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.4364,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "2. האם היו אירועים של איבוד הכרה ב-5 שנים האחרונות? אם כן, מתי? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t050",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.4718,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "3. האם סובל מאפילפסיה (מחלת הכיפיון)? אם כן, מתי היה ההתקף האחרון? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t051",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.4721,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "3. האם סובל מאפילפסיה (מחלת הכיפיון)? אם כן, מתי היה ההתקף האחרון? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t052",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.5074,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "4. האם עבר אי פעם אירוע מוחי (שבץ מוחי)? אם כן, מתי? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t053",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.5077,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "4. האם עבר אי פעם אירוע מוחי (שבץ מוחי)? אם כן, מתי? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t054",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.5314,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "5. האם יש הפרעות מוטוריות או תחושתיות והפרעות בקואורדינציה? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t055",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.5316,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "5. האם יש הפרעות מוטוריות או תחושתיות והפרעות בקואורדינציה? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t056",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.5553,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "6. האם יש קישיון פרק או קטיעה? פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t057",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.5556,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "6. האם יש קישיון פרק או קטיעה? פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t058",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.5792,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "7. האם סובל ממחלת לב? האם סובל מהפרעות קצב? אם כן, פרט: / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t059",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.5795,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "7. האם סובל ממחלת לב? האם סובל מהפרעות קצב? אם כן, פרט: / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t060",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.6149,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "8. האם ידוע על הפרעות פסיכיאטריות? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t061",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.6152,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "8. האם ידוע על הפרעות פסיכיאטריות? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t062",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.6388,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "9. האם ניתן טיפול תרופתי פסיכיאטרי? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t063",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.6391,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "9. האם ניתן טיפול תרופתי פסיכיאטרי? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t064",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1814,
+        "y": 0.6628,
+        "width": 0.0069,
+        "height": 0.0066
+      },
+      "label": "10. האם לדעתך ישנו מקום להערכה פסיכיאטרית עדכנית? / כן",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t065",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.1355,
+        "y": 0.6631,
+        "width": 0.0085,
+        "height": 0.006
+      },
+      "label": "10. האם לדעתך ישנו מקום להערכה פסיכיאטרית עדכנית? / לא",
+      "options": [
+        {
+          "label": "כן"
+        },
+        {
+          "label": "לא"
+        }
+      ],
+      "notes": "physician medical-findings grid (ממצאים רפואיים ושאלון רפואי, ימולא על ידי הרופא)"
+    },
+    {
+      "id": "t066",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.467,
+        "y": 0.7707,
+        "width": 0.0138,
+        "height": 0.0096
+      },
+      "label": "למיטב ידיעתי, על סמך אחד מאלה / אני מטפל קבוע במבקש, זה שלוש שנים לפחות בקופת חולים ____",
+      "options": [
+        {
+          "label": "אני מטפל קבוע במבקש, זה שלוש שנים לפחות בקופת חולים ____"
+        },
+        {
+          "label": "אני מטפל במבקש שהוא עולה חדש וטרם חלפו שלוש שנים מיום עלייתו ____"
+        },
+        {
+          "label": "עיינתי בתיקו הרפואי בכל קופת חולים בה היה שלוש שנים שקדמו לבדיקה"
+        }
+      ],
+      "notes": "one-of-three basis for the physician's identification of the applicant"
+    },
+    {
+      "id": "t067",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1597,
+        "y": 0.781,
+        "width": 0.2118,
+        "height": 0.0118
+      },
+      "label": "אני מטפל קבוע במבקש... בקופת חולים ____",
+      "notes": "blank line for the health-fund name, only relevant if the first basis option is ticked"
+    },
+    {
+      "id": "t068",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.467,
+        "y": 0.7989,
+        "width": 0.0138,
+        "height": 0.0096
+      },
+      "label": "למיטב ידיעתי, על סמך אחד מאלה / אני מטפל במבקש שהוא עולה חדש וטרם חלפו שלוש שנים מיום עלייתו ____",
+      "options": [
+        {
+          "label": "אני מטפל קבוע במבקש, זה שלוש שנים לפחות בקופת חולים ____"
+        },
+        {
+          "label": "אני מטפל במבקש שהוא עולה חדש וטרם חלפו שלוש שנים מיום עלייתו ____"
+        },
+        {
+          "label": "עיינתי בתיקו הרפואי בכל קופת חולים בה היה שלוש שנים שקדמו לבדיקה"
+        }
+      ],
+      "notes": "one-of-three basis for the physician's identification of the applicant"
+    },
+    {
+      "id": "t069",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1597,
+        "y": 0.8093,
+        "width": 0.1441,
+        "height": 0.0118
+      },
+      "label": "אני מטפל במבקש שהוא עולה חדש... מיום עלייתו ____",
+      "notes": "blank line for the immigration date, only relevant if the second basis option is ticked"
+    },
+    {
+      "id": "t070",
+      "kind": "radio",
+      "bounds": {
+        "x": 0.467,
+        "y": 0.8253,
+        "width": 0.0138,
+        "height": 0.0096
+      },
+      "label": "למיטב ידיעתי, על סמך אחד מאלה / עיינתי בתיקו הרפואי בכל קופת חולים בה היה שלוש שנים שקדמו לבדיקה",
+      "options": [
+        {
+          "label": "אני מטפל קבוע במבקש, זה שלוש שנים לפחות בקופת חולים ____"
+        },
+        {
+          "label": "אני מטפל במבקש שהוא עולה חדש וטרם חלפו שלוש שנים מיום עלייתו ____"
+        },
+        {
+          "label": "עיינתי בתיקו הרפואי בכל קופת חולים בה היה שלוש שנים שקדמו לבדיקה"
+        }
+      ],
+      "notes": "one-of-three basis for the physician's identification of the applicant; this option has no blank line, it is a complete statement"
+    },
+    {
+      "id": "t071",
+      "kind": "date",
+      "bounds": {
+        "x": 0.7609,
+        "y": 0.8625,
+        "width": 0.1397,
+        "height": 0.0131
+      },
+      "label": "תאריך",
+      "notes": "applicant's signature block (חתימת מבקש הבדיקה)"
+    },
+    {
+      "id": "t072",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.5583,
+        "y": 0.8625,
+        "width": 0.1864,
+        "height": 0.0131
+      },
+      "label": "חתימת מבקש הבדיקה"
+    },
+    {
+      "id": "t073",
+      "kind": "date",
+      "bounds": {
+        "x": 0.3714,
+        "y": 0.8562,
+        "width": 0.1016,
+        "height": 0.0118
+      },
+      "label": "תאריך",
+      "notes": "physician's certification block (אישור הרופא)"
+    },
+    {
+      "id": "t074",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2516,
+        "y": 0.8562,
+        "width": 0.1016,
+        "height": 0.0118
+      },
+      "label": "שם רופא"
+    },
+    {
+      "id": "t075",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1064,
+        "y": 0.8562,
+        "width": 0.127,
+        "height": 0.0118
+      },
+      "label": "מס' רישיון",
+      "notes": "printed caption below this blank reads '(חתימה וחותמת)' (signature and stamp); no separate signature line is provided elsewhere in the physician block, so the physician's signature/stamp most likely also lands at or beside this field"
+    }
+  ]
+}
