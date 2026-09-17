@@ -30,7 +30,7 @@ const hebrewToolCards: Record<string, CardCopy> = {
     description: 'טשטשו אזורים ב-PDF, השחירו פרטים פרטיים או מחקו טקסט ותמונות. הקובץ נשאר במכשיר שלכם.',
   },
   merge: {
-    title: 'מיזוג PDF',
+    title: 'איחוד PDF',
     description: 'אחדו כמה קבצי PDF למסמך אחד, בכל סדר, בלי הגבלת עמודים ובלי סימן מים.',
   },
   'pdf-to-image': {

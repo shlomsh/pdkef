@@ -205,3 +205,21 @@ wording is pending Shlomi's review the same way; flip `reviewedAt`/add a `review
 off on the Hebrew.
 
 *Landed 2026-09-17:* Shlomi read the old and new title side by side and said to proceed. Reads at 11-06 with the rest of the pilot.
+
+## 2026-09-17, later: איחוד leads, and צירוף is not a merge query
+
+Two corrections from Shlomi, a native speaker, with a Trends check behind them (Israel, past 12
+months, web: `מיזוג pdf` averages about 60, `איחוד pdf` about 52, `צירוף pdf` flat at zero):
+
+- **איחוד is how Israelis say merge; מיזוג is the word the incumbents' translated titles use.** Both
+  are searched at near parity, so the page carries both, and the native word leads: title
+  `איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef`, h1 `איחוד קבצי PDF בחינם: מיזוג
+  קבצים ישירות בדפדפן`, tool name / card / aria / schema `איחוד PDF`, headings and body verbs
+  (אחדו, האיחוד, מאחדים) throughout the merge edition, the home description and privacy line, and the
+  merge island's Hebrew strings. מיזוג stays once in the title, h1 and description. LOC-01's note that
+  "מיזוג PDF is the market term" was read off competitor titles, which are translations; corrected.
+- **צירוף means attach, not merge.** `צירוף קבצים` was our best-ranking Hebrew query (5 impressions
+  at position 9) with zero clicks: attach-a-file intent landing on a merge page. It leaves the merge
+  cluster and should not count toward this ticket's read.
+
+Shipped the same day; reviewedAt on the merge and home files is 2026-09-17.
