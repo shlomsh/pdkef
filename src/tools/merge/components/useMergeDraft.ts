@@ -178,6 +178,12 @@ export function useMergeDraft({
   // it is consumed once the parent has finished deriving the restored
   // workspace. Actual edits after that still take the normal path.
   const skipRestoredSnapshotAutosaveRef = useRef(false);
+  // The revision the flag above was consumed at. That snapshot is the stored
+  // record itself, so it never gets a write of its own; the derived state
+  // below must keep reading it as idle on every later render, not only on
+  // the one that happened to run before the effect (QUAL-10: a re-render
+  // five seconds later otherwise showed a "Saving draft…" that never ended).
+  const settledRestoredRevisionRef = useRef<number | null>(null);
   // `pagehide`/`visibilitychange` can land in the tiny interval between
   // onRestore() updating the parent and the autosave effect above consuming
   // its flag. Keep that flush from writing the same restored snapshot too.
@@ -328,6 +334,7 @@ export function useMergeDraft({
       // snapshot. Mark its revision settled so a later pagehide/visibility
       // flush cannot turn reopening a tab into a second write.
       savedRevisionRef.current = currentRevision;
+      settledRestoredRevisionRef.current = currentRevision;
       return undefined;
     }
     const revision = currentRevision;
@@ -388,7 +395,8 @@ export function useMergeDraft({
   // deliberately have no scheduled write. Expose that honestly as idle too:
   // the revision mismatch below would otherwise render a misleading
   // "Saving draft…" chip despite the autosave/flush guards above.
-  const restoredSnapshotIsClean = skipRestoredSnapshotAutosaveRef.current;
+  const restoredSnapshotIsClean = skipRestoredSnapshotAutosaveRef.current
+    || settledRestoredRevisionRef.current === currentRevision;
   // sourceChanged (via the revision bump above) runs during render, before an
   // in-flight write's completion can paint over it - derive pending for the
   // new snapshot until its own effect records the real state, so there is no

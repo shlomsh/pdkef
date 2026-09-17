@@ -331,16 +331,21 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
        generic `[data-tool-shell]` loaded-state selector. Match the
        synchronous restore marker and the restored workspace's stable marker
        here, in the page layout that owns both, so 900px restores do not
-       expand the hero after the hint is cleared. */
+       expand the hero after the hint is cleared.
+
+       The whole selector is `:global()`: the hero is ToolHero.astro's
+       element and carries that component's scope attribute, so a scoped
+       `.tool-hero` written here compiles to a selector nothing matches
+       (QUAL-10 measured the hero dropping 32px at 900px for exactly that). */
     @media (max-width: 1023px) {
-      :global(html[data-view-density='condensed'][data-merge-restore]) .tool-stage .tool-hero[data-hero-condensable],
-      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-stage .tool-hero[data-hero-condensable] {
+      :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable]),
+      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable]) {
         padding-top: 1.5rem;
         padding-bottom: 0.75rem;
       }
 
-      :global(html[data-view-density='condensed'][data-merge-restore]) .tool-stage .tool-hero[data-hero-condensable] [data-hero-sub],
-      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-stage .tool-hero[data-hero-condensable] [data-hero-sub] {
+      :global(html[data-view-density='condensed'][data-merge-restore] .tool-hero[data-hero-condensable] [data-hero-sub]),
+      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace]) .tool-hero[data-hero-condensable] [data-hero-sub]) {
         display: none;
       }
     }

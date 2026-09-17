@@ -84,7 +84,7 @@ async function installRestoreTrace(page) {
     let frames = 0;
     const sample = () => {
       capture();
-      if (frames++ < 360) requestAnimationFrame(sample);
+      if (frames++ < 720) requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
     try {
@@ -169,6 +169,17 @@ for (const restoreCase of RESTORE_CASES) {
     await expect(restored.getByText('Saving draft…', { exact: true })).toHaveCount(0);
     await expect(restored.getByText('Draft saved', { exact: true })).toHaveCount(0);
     expect(await readMergeWork(restored)).toEqual(reopenedBaseline);
+
+    // The restore sentence is shown for five seconds and then goes. Its slot
+    // (the desktop rail's status row, the phone's header row) must stay put
+    // when it does, so the observation window closes only after that.
+    // Both placements are in the DOM (CSS picks one); between 768 and 1023px
+    // neither is shown, so only the timer's departure is asserted there.
+    const pickedUp = restored.getByText('Picked up where you left off');
+    const { width } = restoreCase.viewport;
+    if (width < 768 || width >= 1024) await expect(pickedUp.filter({ visible: true })).toHaveCount(1);
+    await expect(pickedUp).toHaveCount(0, { timeout: 10_000 });
+    await restored.waitForTimeout(300);
 
     const trace = await restored.evaluate(() => window.__mergeSavedWorkRestoreTrace());
     expect(trace.emptyStates.length).toBeGreaterThan(0);

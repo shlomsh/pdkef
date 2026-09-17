@@ -44,6 +44,9 @@ function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }) {
   const [restored, setRestored] = useState(null);
   const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(false);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
+  // An unrelated parent re-render (PdfMergeTool's five-second restore
+  // sentence timing out, say) with the snapshot unchanged.
+  const [, setTick] = useState(0);
   const entries = restored?.files.map((file, id) => ({ id, file, pageCount: null, thumbnail: null, error: null })) ?? [];
   const draft = useMergeDraft({
     enabled: true,
@@ -56,7 +59,7 @@ function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }) {
     autosaveDebounceMs,
     onRestore: setRestored,
   });
-  apiRef.current = { ...draft, setRestoreHydrationComplete, setAddPageNumbers };
+  apiRef.current = { ...draft, setRestoreHydrationComplete, setAddPageNumbers, rerender: () => setTick((tick) => tick + 1) };
   return null;
 }
 
@@ -210,6 +213,13 @@ describe('useMergeDraft', () => {
 
     // The delayed inspect/thumbnail completion itself is still clean.
     act(() => apiRef.current.setRestoreHydrationComplete(true));
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('idle');
+    expect((await loadDraft('merge')).revision).toBe(before.revision);
+    // ...and stays idle on a later render with nothing changed: the settled
+    // restored snapshot has no write of its own to be pending for.
+    act(() => apiRef.current.rerender());
+    expect(apiRef.current.draftSaveState).toBe('idle');
     await flushDebounce(150);
     expect(apiRef.current.draftSaveState).toBe('idle');
     expect((await loadDraft('merge')).revision).toBe(before.revision);

@@ -394,6 +394,11 @@ export default function PdfMergeTool({
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [onIos, setOnIos] = useState(false);
 
+  // The one readiness condition: the restore marker is released and the
+  // layout wrapper below carries `data-merge-workspace-ready` on the same
+  // commit, so the page is never revealed before the grid is in the DOM.
+  const workspaceReady = Boolean(PageStrip) && plan.length > 0;
+
   const grouped = useMemo(() => isGrouped(plan), [plan]);
   // Keyed on what the merge reads, not on the entries array itself: a
   // thumbnail arriving late replaces an entry object and must not cancel and
@@ -525,8 +530,8 @@ export default function PdfMergeTool({
     // pre-paint marker as soon as IndexedDB returns: the restored files still
     // need to make it through inspection and this dynamically-loaded surface.
     // A missing/stale draft has no files, so it is released immediately.
-    if (entries.length === 0 || PageStrip) document.documentElement.removeAttribute('data-merge-restore');
-  }, [draftState.isRestoring, entries.length, PageStrip]);
+    if (entries.length === 0 || workspaceReady) document.documentElement.removeAttribute('data-merge-restore');
+  }, [draftState.isRestoring, entries.length, workspaceReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -720,6 +725,7 @@ export default function PdfMergeTool({
     setSortMode('added');
     setRenderedCount(0);
     setShowPickedUpSentence(false);
+    setIsRestoredWorkspace(false);
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
     setShowShortcutsHint(false);
     shortcutsShownRef.current = false;
@@ -1218,7 +1224,7 @@ export default function PdfMergeTool({
           {({ requestReplace, requestClear }) => (
             <div
               class={docStyles.layout}
-              data-merge-workspace-ready={PageStrip && plan.length > 0 ? '' : undefined}
+              data-merge-workspace-ready={workspaceReady ? '' : undefined}
               data-merge-restored-workspace={isRestoredWorkspace || undefined}
             >
           <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
@@ -1375,6 +1381,11 @@ export default function PdfMergeTool({
                     </span>
                   ) : shortcutsHintVisible ? (
                     <span class={docStyles['shortcuts-hint']} role="status">{t.shortcutsLine}</span>
+                  ) : isRestoredWorkspace ? (
+                    /* QUAL-10: below 768px this slot is its own row and
+                       `:empty` folds it away, so the sentence timing out
+                       would lift the grid. Keep one silent child in the slot. */
+                    <span class={docStyles['header-draft-chip']} aria-hidden="true" />
                   ) : null}
                 </div>
               </div>
@@ -1492,13 +1503,17 @@ export default function PdfMergeTool({
                     moves Add files / Clear all below it and the Hebrew
                     edition mirrors it for free (text-align: end is a logical
                     property). */}
-                {(showPickedUpSentence || draftStatusLabel) && (
+                {/* QUAL-10: a restored workspace keeps this row after the
+                    sentence's five seconds are up (blank, then "Draft saved"
+                    on the first real edit), so its going never pulls the rows
+                    below it up. A fresh pick has no row until its first save. */}
+                {(showPickedUpSentence || draftStatusLabel || isRestoredWorkspace) && (
                   <div class={railStyles['draft-status-row']}>
                     {showPickedUpSentence ? (
                       <>
                         {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
                       </>
-                    ) : draftStatusLabel}
+                    ) : (draftStatusLabel ?? '\u00a0')}
                   </div>
                 )}
 
