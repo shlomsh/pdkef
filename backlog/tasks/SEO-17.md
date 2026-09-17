@@ -117,3 +117,7 @@ eight-week read still starts from the date Shlomi requests indexing, recorded he
 it measures the page with this photo/signature addition already in it, not the pre-edit version.
 Suggest `/compress-image/` gets requested the same day, so the two URLs run as one experiment against
 the same portal-limit intent.
+
+*2026-09-17:* still not indexed, per Shlomi's Coverage -> Valid export. It is the one URL requested on
+09-11/09-12 that has not landed; every other requested URL was crawled within a day. The 09-11 request
+hit the quota (above), so the effective request date is 09-12, and the eight-week read stays 2026-11-06.

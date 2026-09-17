@@ -118,3 +118,7 @@ about what re-encoding a PNG to JPEG does to transparency and to text screenshot
 - `/compress/` and the new tool link to each other on the PDF-versus-image distinction.
 - `npm run build && npm run preview` verified for CSP and hydration before this is called done.
 - Ships alone in its week, so its indexing can be attributed.
+
+*2026-09-17:* `/compress-image/` was crawled and indexed on 2026-09-12, the day of its second request
+(Coverage -> Valid export). First impressions: 2, position 6.0, 7-day window to 09-15. The eight-week
+fold-in read counts from 09-11.

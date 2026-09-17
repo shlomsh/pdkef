@@ -245,3 +245,16 @@ second-most-linked page on the site and was still skipped, the opposite of what 
 look like. SEO-28 tracks it as recrawl-scheduling behavior, and the `/merge/`/`/unlock/` control group
 this refresh sets up is exactly the same observation SEO-28's recheck needs - one capture now answers
 both.
+
+## Capture 2026-09-17: second crawl-date snapshot, from the Coverage export
+
+Shlomi exported Coverage -> Pages -> Valid on 2026-09-17, which carries a `Last crawled` column for
+every indexed URL in one file, so this capture did not need URL Inspection one by one. Written into
+`docs/seo-last-crawled.json` (`captured: 2026-09-17`, method noted in its `_readme`). Result: all nine
+stale URLs requested on 09-11 were crawled between 09-11 and 09-14; the two unrequested controls split
+(`/merge/` moved, `/unlock/` did not, see SEO-28). 21 URLs are indexed, up from 11: the three `/he/` tool
+pages, four `/he/` guides, `/about/`, `/compress-image/` and `/photo-and-signature-size-for-forms/` are
+new. The never-crawled nine are all still absent from the Valid list, and this export cannot say whether
+they were crawled and not indexed or never fetched; the Not-indexed export (procedure step 1) is what
+reads that, and it is the file still missing for SEO-06's gate. `/pdf-wont-compress-to-100kb/` is the
+one requested URL not yet indexed.

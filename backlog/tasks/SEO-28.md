@@ -103,3 +103,28 @@ this ticket is measurement and a decision point, not a code fix, because no code
 Diagnosis complete, nothing in `src/` to change. The three outcomes above are decided by the next
 `docs/seo-last-crawled.json` capture on **2026-10-08**, read against the `/merge/` and `/unlock/`
 control. Marked `blocked` until then.
+
+## Interim read 2026-09-17: recrawled, and the control is split
+
+From Shlomi's Coverage -> Valid export of 2026-09-17 (`Last crawled` column, now in
+`docs/seo-last-crawled.json` under `captured: 2026-09-17`):
+
+| URL | 2026-09-11 capture | 2026-09-17 capture | Requested? |
+| --- | --- | --- | --- |
+| `/redact/` | 2026-07-07 | 2026-09-11 | yes, 09-11 |
+| `/split/` | 2026-07-05 | 2026-09-11 | yes, 09-11 |
+| `/compress/` | 2026-08-09 | 2026-09-12 | yes, 09-11 |
+| `/merge/` | 2026-08-18 | 2026-09-12 | **no** (control) |
+| `/unlock/` | 2026-08-21 | 2026-08-21 | **no** (control) |
+
+Both starved pages were crawled the day they were requested. Of the two controls, `/unlock/` did not
+move, which is this ticket's second outcome: the recrawl was bought by the request, not earned by
+rising crawl trust, so keep watching rather than close. `/merge/` did move, but it is no longer a clean
+control: `/he/merge/` was crawled on 2026-09-11 (its own request) and carries a reciprocal `hreflang`
+alternate pointing at `/merge/`, so the 09-12 visit is at least as likely to be that discovery as
+scheduler behaviour. The 10-08 read should treat `/unlock/` as the only clean control and not credit
+`/merge/`'s move to rising trust.
+
+The staleness script now flags five pages stale by one to five days (post-crawl edits from the MEM-03,
+MERGE and Split commits of 09-13 to 09-15). That is edit-faster-than-crawl churn on pages Google now
+visits every few days, not the two-month starvation this ticket is about; none of them is resubmitted.

@@ -143,3 +143,27 @@ the deploy.
 **Indexing requested 2026-09-11** for `/he/compress/`, `/he/merge/` and `/he/sign/` (Shlomi, Search
 Console URL Inspection). The eight-week success read counts from this date: first check at the
 2026-10-08 refresh, through LOC-06's per-locale table; the eight-week mark is 2026-11-06.
+
+## Interim read 2026-09-17: first Hebrew data, seven weeks early
+
+Not the eight-week read (2026-11-06), but the first real numbers, from Shlomi's 2026-09-17 exports
+(Performance, last 7 days, 2026-09-09 to 09-15; Coverage -> Valid). All three tool pages were crawled
+and indexed on 2026-09-11, the day of their requests; four of the seven Hebrew guides (the OS ones)
+followed on 09-13, and `install-pdf-app`, `open-source-pdf-editor` and `sign-pdf-no-signup` are not
+indexed yet.
+
+| Page | Clicks | Impressions | CTR | Position | English sibling |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `/he/merge/` | 0 | 67 | 0% | 27.34 | `/merge/`: 0 / 5 at 5.80 |
+| `/he/sign/` | 2 | 49 | 4.08% | 47.63 | `/sign/`: 1 / 9 at 6.11 |
+| `/he/compress/` | 0 | 11 | 0% | 52.64 | `/compress/`: 7 / 309 at 9.64 |
+
+Hebrew queries in `Queries.csv`: 48 rows, 82 impressions, 0 clicks, weighted position 50.3 (a lower
+bound, privacy filter). Merge phrasings sit best: `צירוף קבצים` at 9, `קיבוץ pdf` at 35, the
+`איחוד`/`מיזוג`/`חיבור` family at 25 to 46. Sign phrasings are all at 46 to 79 (`חתימה דיגיטלית חינם
+pdf`, 7 impressions at 64, is the largest). Compress phrasings (`כיווץ`, `הקטנת`, `דחוס`) at 39 to 67.
+Israel site-wide: 9 clicks on 145 impressions at 32.12. Search appearance "Translated results": 59
+impressions, 1 click, which is the machine-translation effect LOC-07 described, now measured.
+
+Read: `/he/merge/` is drawing more impressions than `/merge/` itself, on the phrasing the ticket
+predicted, while ranking on page three; Sign is page five and worse. Nothing to change before 11-06.
