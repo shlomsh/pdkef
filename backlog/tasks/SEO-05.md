@@ -170,3 +170,28 @@ for later, not now: "People also search for" carries `Compress PDF to 100KB free
 where the installable app is a true claim nobody above us can make, and `Compress JPG to 100KB`, which
 is SEO-19's demand. Aback Tools has taken the portal-limits angle in its snippet; SEO-17's page is the
 right answer to that once it is indexed. No copy change on `/compress/` from this.
+
+## The pre-copy baseline, from Shlomi's compare view (2026-09-17)
+
+Search Console, page filter `/compress/`, week over week, captured 2026-09-17:
+
+| Week | Impressions | Clicks | CTR | Position |
+| --- | ---: | ---: | ---: | ---: |
+| 8/27 to 9/2 | 42 | 3 | 7.1% | 10.7 |
+| 9/3 to 9/9 | 365 | 10 | 2.7% | 9.7 |
+
+The daily line steps from about 36 to 68 between **9/6 and 9/7**. `/compress/` was crawled on 08-09
+and not again until 09-12, so this is Google re-scoring the page it already held, not reading anything
+we shipped: the 09-10 meta, SEO-13's line and SEO-33's vocabulary all postdate the step and none can
+claim it. The page was admitted to a much wider query set at the page-one boundary; nine times the
+impressions, three times the clicks, and the marginal impressions convert at about 2%, which is what
+position ten looks like. The 7.1% on the earlier week is three clicks on 42 impressions, noise.
+
+The 7-day export for 9/9 to 9/15 (309 impressions, 7 clicks, 2.27% at 9.64) says it held. **So the
+baseline the 10-08 read compares against is about 350 impressions a week at position 10 with 2 to 3%
+CTR**, not the 326-in-three-months the scope above was written from. A CTR read against the 42-a-week
+figure would show a collapse that is really a denominator change.
+
+Same shape as the site-wide chart, which rose from 9/2 onward before any request: Redact's re-score
+came with a bought recrawl, Compress's came without one. Two mechanisms, and the second is the domain
+being re-weighed, which is SEO-03's lever, not this ticket's.
