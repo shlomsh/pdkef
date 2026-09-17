@@ -98,12 +98,11 @@ _None._
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
+| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
+_None._
 
 ### Blocked
 
@@ -120,6 +119,7 @@ _None._
 | MOBI-04 | P1 | [MOBI-04](backlog/tasks/MOBI-04.md) · Tap a detected comb run and type the whole number once |
 | MOBI-05 | P2 | [MOBI-05](backlog/tasks/MOBI-05.md) · Tap a detected checkbox to place a mark in it |
 | MOBI-07 | P2 | [MOBI-07](backlog/tasks/MOBI-07.md) · Pre-generate the signed PDF so Share is one tap, not two |
+| MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 
 ### Retired
 
