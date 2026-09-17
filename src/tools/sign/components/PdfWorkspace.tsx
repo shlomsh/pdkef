@@ -61,7 +61,7 @@ export default function PdfWorkspace({
   workspaceRef,
   numPages,
   pageSizes,
-  formRegions = { combs: [], checkboxes: [] },
+  formRegions = { combs: [], checkboxes: [], cells: [] },
   pdfDocument,
   pageWrapperRefs,
   setTempPlacement,
@@ -357,12 +357,14 @@ export default function PdfWorkspace({
                       onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
                       onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
                     >
-                      {(selectedTool === 'text' || selectedTool === 'symbol') && (
-                        <FormFieldHints
-                          regions={selectedTool === 'text' ? formRegions.combs : formRegions.checkboxes}
-                          kind={selectedTool === 'text' ? 'comb' : 'checkbox'}
-                          pageIndex={pageIdx}
-                        />
+                      {(selectedTool === 'text' || selectedTool === 'date') && (
+                        <>
+                          <FormFieldHints regions={formRegions.combs} kind="comb" pageIndex={pageIdx} />
+                          <FormFieldHints regions={formRegions.cells} kind="cell" pageIndex={pageIdx} />
+                        </>
+                      )}
+                      {selectedTool === 'symbol' && (
+                        <FormFieldHints regions={formRegions.checkboxes} kind="checkbox" pageIndex={pageIdx} />
                       )}
                       {pageElements.map((el) => (
                         <DraggableWrapper

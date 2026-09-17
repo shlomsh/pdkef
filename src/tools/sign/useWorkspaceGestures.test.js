@@ -302,6 +302,59 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
 });
 
 // ---------------------------------------------------------------------------
+// MOBI-11 — free-text cells: snap the tap to the cell's centre, never `width`
+// ---------------------------------------------------------------------------
+
+describe('useWorkspaceGestures – detected free-text cell snapping', () => {
+  const overlay = makeOverlay();
+  // A blank name cell covering the raw tap point (500, 500 = 50%/50%) but
+  // off-centre within it, so a snap to the cell's own centre is
+  // distinguishable from the box merely landing near the tap.
+  const nameCell = { pageIndex: 0, left: 44, top: 44, width: 20, height: 20 };
+
+  it('centres a new text box on the cell instead of the raw tap point', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const added = firstAddElement(dispatch);
+    expect(added.left).toBeCloseTo(54, 5); // nameCell.left + width / 2
+    // top is the cell's vertical centre, minus half the box's own natural
+    // height (the same textHeight/2 a raw tap at that point would use).
+    expect(added.top).toBeGreaterThan(nameCell.top);
+    expect(added.top).toBeLessThan(nameCell.top + nameCell.height);
+  });
+
+  it('never sets width on the snapped element - a free-text cell is not a comb', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).width).toBeUndefined();
+  });
+
+  it('leaves an unsnapped text box exactly where tapped when no cell is under it', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).left).toBeCloseTo(50, 5);
+  });
+
+  it('ignores a detected cell while the symbol tool is armed', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    // Not snapped to the cell's centre (nameCell.left + width / 2 = 54):
+    // the symbol tool has its own region (formRegions.checkboxes), and a
+    // detected free-text cell is never a match for it.
+    expect(firstAddElement(dispatch).left).not.toBeCloseTo(54, 5);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Drag-drawn shapes — pointer-down placement
 // ---------------------------------------------------------------------------
 
@@ -485,5 +538,35 @@ describe('useWorkspaceGestures – date tool', () => {
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: expect.any(String) });
     expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_EDITING_ELEMENT_ID' }));
     expect(dispatch).toHaveBeenCalledWith({ type: 'DISARM_TOOL' });
+  });
+
+  // MOBI-11: 'date' places an ordinary text element (see the definition
+  // lookup in useWorkspaceGestures.ts), so it gets the same detected-field
+  // snap as 'text' - a date written on a printed comb, or in a blank cell,
+  // is exactly as common on these forms as a plain typed date.
+  it('snaps to a detected comb run the same way the text tool does', () => {
+    const dateRun = { pageIndex: 0, left: 40, top: 49, width: 15, height: 0.9, cells: 8 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'date',
+      formRegions: { combs: [dateRun], checkboxes: [], cells: [] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const added = firstAddElement(dispatch);
+    expect(added.left).toBeCloseTo(40, 5);
+    expect(added.combCells).toBe(8);
+    expect(added.text).toBe(formatDate(todayIso, 'locale')); // still prefilled
+  });
+
+  it('centres on a detected free-text cell the same way the text tool does', () => {
+    const dateCell = { pageIndex: 0, left: 44, top: 44, width: 20, height: 20 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'date',
+      formRegions: { combs: [], checkboxes: [], cells: [dateCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const added = firstAddElement(dispatch);
+    expect(added.left).toBeCloseTo(54, 5); // dateCell.left + width / 2
+    expect(added.width).toBeUndefined(); // never a comb
+    expect(added.text).toBe(formatDate(todayIso, 'locale'));
   });
 });

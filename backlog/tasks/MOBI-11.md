@@ -26,11 +26,11 @@ not available at runtime anyway.
   checkboxes, `label.mjs` labels, `cells.mjs` cells, lifted out of `scripts/spike/mobi-10/` into
   `src/editor/adapters/pdf/` with unit fixtures from both spike forms) and offer the result as a
   proposed field map, never as filled content. *Lifted 2026-09-17* — the union detector is
-  product code now (`fieldLabels.js`, `formCells.js`, both unit-tested); wiring it into a Sign
-  UI proposal step is still open.
-- [ ] The person can delete, resize, add and re-label a proposed field; nothing is written into the
-  PDF until they type into a field they have kept. "Add a field" is a first-class action because
-  recall is not 100%.
+  product code now (`fieldLabels.js`, `formCells.js`, both unit-tested).
+- [ ] **Wired 2026-09-17, but not as a review layer** — see "Step 2" below for why. The person
+  never sees a proposal to delete/resize/relabel; nothing is written until they tap and type, same
+  as every other tool. "Add a field" was already a first-class action (drag a text box by hand) and
+  stays exactly that.
 - [ ] Each proposal carries its label and kind; a low-confidence proposal is visibly tentative.
 - [ ] MOBI-06's next/previous navigation consumes the reviewed map, not the raw detector output.
 - [ ] Bring the failure classes in `scripts/spike/mobi-10/report-cells.md` down with fixtures,
@@ -56,7 +56,43 @@ overall REWORK decision are unchanged. Detail and the updated top-line table: `d
 mobi-10-field-map-spike.md`; the older per-run numbers in `scripts/spike/mobi-10/report-cells.md`
 carry a dated addendum rather than being rewritten.
 
-Remaining: everything else in the scope list above - the Sign UI proposal/review step, MOBI-06
+**Step 2, done 2026-09-17 (`useFormFieldRegions.ts`, `useWorkspaceGestures.ts`,
+`combPlacement.ts`, `FormFieldHints.tsx`, `PdfWorkspace.tsx`, `PdfSignTool.tsx`):** wired
+`formCells.js`'s free-text cells into Sign, but as an extension of MOBI-03/04's already-shipped
+pattern, not the "reviewable proposal, delete/resize/add/relabel" layer this ticket originally
+described.
+
+Why the deviation: MOBI-03/04 already ships a working answer to the same question, for combs and
+checkboxes - a faint outline hint shown only while the matching tool is armed, and a tap near it
+snaps the ordinary text-tool/symbol-tool placement to the detected region. No separate "proposal"
+state, no accept/reject step; the detected region just makes the existing one-shot tool land in
+the right place. Free-text cells now get the same treatment: while the text or date tool is
+armed, a solid-bordered hint shows over every detected cell (`FormFieldHints`, new `cell` kind),
+and a tap anywhere near one centres the placed text box on the cell instead of the raw tap point
+(`combPlacement.ts`'s new `cellRegionAt`/`cellCenterPoint`). Deliberately narrower than a comb
+snap: it only ever moves `left`/`top`, never sets `width` - `comb.js`'s `isComb` is derived from
+`width` alone, so giving an ordinary field an explicit width would silently turn it into a
+one-character-per-cell comb the moment someone typed a second letter. A "propose, then review and
+edit the proposal" layer is a materially bigger, different UI than anything in this editor today
+(every tool here is one-shot per the arming-model invariants in `.claude/rules/editor.md`), and
+building one wasn't re-litigated against that invariant before starting, so it didn't ship today.
+Whether this editor should ever grow that second interaction model, instead of extending the
+snap-on-tap pattern further, is now an open design question rather than a decision.
+
+Text extraction reuses the same `pdfjs` document `PdfWorkspace` already renders pages from
+(`pdfDocument`, passed into the hook), rather than parsing the file a third time; ink/geometry for
+cell detection is a second, independent walk from `detectPageRegions`'s own internal one, kept
+separate rather than refactored out of a shipped, tested feature. Per Shlomi's steer: the date
+tool places an ordinary text element under the hood and now gets the exact same comb and cell
+snap as the text tool throughout (it previously only got neither). Signature-kind cells are
+detected but filtered out before reaching the UI - signature placement is a different creation
+mode (a saved-signature dialog, not a point tap) and wiring it in is a separate piece of work.
+`labelFieldCandidates` (the dedicated label-association pass) is not called in this wiring; each
+cell still carries whatever label `formCells.js`'s own header/own-text lookup found, but nothing
+in the UI surfaces it yet - the hint layer stays purely visual, `aria-hidden`, matching the
+existing comb/checkbox hints exactly.
+
+Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
 wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition.
 
 ## Ideas harvested from the parallel spike branch (deleted 2026-09-17)

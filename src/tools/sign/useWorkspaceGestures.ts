@@ -19,6 +19,8 @@ import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
 import {
+  cellCenterPoint,
+  cellRegionAt,
   checkboxRegionAt,
   combRegionAt,
   placeCombOnRegion,
@@ -96,7 +98,8 @@ export interface WorkspaceGestureOptions {
   initialSymbolWidth?: number;
   initialSymbolMark?: SymbolMark;
   pageSizes?: PageGeometry[];
-  /** Printed grids recovered from the page's own vector content (MOBI-03). */
+  /** Printed grids and free-text cells recovered from the page's own vector
+   * content and text (MOBI-03, MOBI-11). */
   formRegions?: FormFieldRegions;
   nextElementIndex?: number;
   gestureCancelRef?: { current: (() => void) | null };
@@ -168,7 +171,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
-  formRegions = { combs: [], checkboxes: [] },
+  formRegions = { combs: [], checkboxes: [], cells: [] },
   elements = [],
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
@@ -247,11 +250,23 @@ export default function useWorkspaceGestures({
     // the digits happen to line up (MOBI-04). It stays an ordinary text
     // element with `width` set - `isComb` is still derived from `width` and
     // gains no second source of truth - so undo, draft persistence and the
-    // export registry all carry on unchanged.
+    // export registry all carry on unchanged. 'date' places an ordinary text
+    // element too (see the definition lookup above), so it gets the same
+    // snap as 'text' throughout this block.
     const point = { x: leftPercent, y: topPercent };
-    const combRegion = selectedTool === 'text'
+    const snapsToFields = selectedTool === 'text' || selectedTool === 'date';
+    const combRegion = snapsToFields
       ? combRegionAt(formRegions.combs, point, pageIndex)
       : null;
+    // A free-text cell (MOBI-11: a name, an address line - no fixed pitch)
+    // only matters when the tap did not already land on a comb; combs are
+    // the more specific match and formCells.js already skips any cell that
+    // overlaps one, so this is a defensive ordering rather than a real
+    // ambiguity today.
+    const cellRegion = snapsToFields && !combRegion
+      ? cellRegionAt(formRegions.cells, point, pageIndex)
+      : null;
+    const cellCenter = cellRegion ? cellCenterPoint(cellRegion) : null;
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
@@ -292,10 +307,16 @@ export default function useWorkspaceGestures({
         pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
         pageHeightPoints,
       })
-      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
-        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
-        pageHeightPoints,
-      }));
+      // A free-text cell only moves the box's centre, never sets `width` -
+      // see cellCenterPoint's own docstring for why. Re-centring by the same
+      // textHeight/2 the raw tap would have used keeps the vertical result
+      // identical to a tap landing exactly on the cell's middle.
+      : cellCenter
+        ? { left: cellCenter.left, top: Math.max(0, cellCenter.top - textHeight / 2) }
+        : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
+          pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+          pageHeightPoints,
+        }));
     const placed = snapped ? { ...newEl, ...snapped } : newEl;
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
