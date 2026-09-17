@@ -34,3 +34,23 @@ not available at runtime anyway.
 - Bring the seven failure classes in `scripts/spike/mobi-10/report-cells.md` down with fixtures,
   and add a Latin-script flat form to the ground-truth corpus so the numbers are not Hebrew-only.
 - Re-score with `score.mjs` against the reviewed ground truth; the numbers go in the spike record.
+
+## Ideas harvested from the parallel spike branch (deleted 2026-09-17)
+
+A second session ran the same spike on `claude/mobi-10-research-15aa19` with similar tools and,
+by its owner's account, similar results; it recorded no scores, so nothing quantitative survives.
+Two design ideas from its code are worth keeping, unverified:
+
+- **Read AcroForm `/TU` tooltips as labels** when a form does carry widgets (widget-level `/TU`
+  over field-level, then the field name), plus `MaxLen` and the comb flag. Free, high-precision
+  labels for hybrid or partially fillable forms; both spike forms had no widgets, so the landed
+  `extract.mjs` never needed it.
+- **Group a row or column of checkboxes into one radio question** with a shared label found
+  above or beside the group, leaving ungroupable checkboxes as they are. A checkbox row is usually
+  one question with N options, which is what a review surface should show.
+
+It also tried merging dotted-leader segments closer than 6 pt into one span before treating them
+as a blank line, aimed at failure class 2 in `scripts/spike/mobi-10/report-cells.md`; untested.
+Its W-9 ground truth was mostly the form's own AcroForm field list (20 of 22 targets), so it does
+not stand in for the Latin-script flat form this ticket still wants.
+
