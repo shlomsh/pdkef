@@ -1,7 +1,7 @@
 ---
 id: "SIGN-27"
 title: "One context row over the editor toolbar on phones"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "quick-win"
@@ -46,3 +46,9 @@ on the build: Redact card 260px → 155px; the "Page 1" heading starts 110px hig
 Step 2 of the same design: move Download / Share / Replace to a sticky bottom sheet (UX guideline
 §8, the Merge pattern) so the top row is one line of tools. It changes where Download lives and
 needs a home for Sign's optional Date and Feedback controls, so it is its own decision.
+
+## Status 2026-09-17: done
+
+Landed on `main` the same day. Measured at 390px: Redact card 260px → 155px, Sign 155px, "Page 1"
+110px higher; arming leaves the toolbar rect unchanged in both tools. The bottom-sheet step is not
+filed yet - decide it together with Sign's control count.
