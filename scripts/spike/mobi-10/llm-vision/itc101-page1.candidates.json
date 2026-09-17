@@ -1,0 +1,2138 @@
+[
+  {
+    "id": "llm-0001",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.36477226924627165,
+      "y": 0.10262257696693272,
+      "width": 0.12091898428053205,
+      "height": 0.014253135689851768
+    },
+    "kind": "comb",
+    "label": "שנת המס",
+    "required": "unknown",
+    "confidence": 0.75,
+    "source": "llm-vision",
+    "cells": 4
+  },
+  {
+    "id": "llm-0002",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8363563079403467,
+      "y": 0.19327251995438996,
+      "width": 0.12212817412333736,
+      "height": 0.026225769669327253
+    },
+    "kind": "text",
+    "label": "שם (המעסיק)",
+    "question": "What is the employer name?",
+    "required": "unknown",
+    "confidence": 0.7,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0003",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.3635630794034663,
+      "y": 0.19327251995438996,
+      "width": 0.4727932285368803,
+      "height": 0.026225769669327253
+    },
+    "kind": "text",
+    "label": "כתובת (המעסיק)",
+    "required": "unknown",
+    "confidence": 0.7,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0004",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.24425634824667472,
+      "y": 0.19327251995438996,
+      "width": 0.11930673115679162,
+      "height": 0.026225769669327253
+    },
+    "kind": "text",
+    "label": "מספר טלפון (המעסיק)",
+    "required": "unknown",
+    "confidence": 0.65,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0005",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.05078597339782346,
+      "y": 0.19327251995438996,
+      "width": 0.19347037484885127,
+      "height": 0.026225769669327253
+    },
+    "kind": "comb",
+    "label": "מספר תיק ניכויים",
+    "required": "unknown",
+    "confidence": 0.65,
+    "source": "llm-vision",
+    "cells": 8,
+    "notes": "first digit \"9\" pre-printed"
+  },
+  {
+    "id": "llm-0006",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7609834744054816,
+      "y": 0.2619726339794755,
+      "width": 0.19145505844417574,
+      "height": 0.019384264538198404
+    },
+    "kind": "comb",
+    "label": "מספר זהות",
+    "question": "What is the ID number?",
+    "required": "unknown",
+    "confidence": 0.8,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0007",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5449415558242644,
+      "y": 0.2619726339794755,
+      "width": 0.21604191858121724,
+      "height": 0.019384264538198404
+    },
+    "kind": "text",
+    "label": "שם משפחה",
+    "question": "What is the last name?",
+    "required": "unknown",
+    "confidence": 0.7,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0008",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.36960902861749295,
+      "y": 0.2619726339794755,
+      "width": 0.17533252720677148,
+      "height": 0.019384264538198404
+    },
+    "kind": "text",
+    "label": "שם פרטי",
+    "question": "What is the first name?",
+    "required": "unknown",
+    "confidence": 0.7,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0009",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.20999596936719064,
+      "y": 0.2619726339794755,
+      "width": 0.1596130592503023,
+      "height": 0.019384264538198404
+    },
+    "kind": "comb",
+    "label": "תאריך לידה",
+    "question": "What is the date of birth?",
+    "required": "unknown",
+    "confidence": 0.65,
+    "source": "llm-vision",
+    "cells": 8
+  },
+  {
+    "id": "llm-0010",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.04836759371221282,
+      "y": 0.2619726339794755,
+      "width": 0.16162837565497784,
+      "height": 0.019384264538198404
+    },
+    "kind": "comb",
+    "label": "תאריך עליה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 8
+  },
+  {
+    "id": "llm-0011",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.75453446191052,
+      "y": 0.2936145952109464,
+      "width": 0.19790407093913745,
+      "height": 0.014253135689851768
+    },
+    "kind": "comb",
+    "label": "מספר דרכון (למי שאין מספר ת.ז.)",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0012",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.39903264812575573,
+      "y": 0.2936145952109464,
+      "width": 0.3555018137847642,
+      "height": 0.014253135689851768
+    },
+    "kind": "text",
+    "label": "רחוב/שכונה",
+    "required": "unknown",
+    "confidence": 0.5,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0013",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.34663442160419183,
+      "y": 0.2936145952109464,
+      "width": 0.05239822652156389,
+      "height": 0.014253135689851768
+    },
+    "kind": "text",
+    "label": "מספר (בית)",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0014",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.18057234985892784,
+      "y": 0.2936145952109464,
+      "width": 0.166062071745264,
+      "height": 0.014253135689851768
+    },
+    "kind": "text",
+    "label": "עיר/ישוב",
+    "required": "unknown",
+    "confidence": 0.5,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0015",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.05078597339782346,
+      "y": 0.2936145952109464,
+      "width": 0.12978637646110439,
+      "height": 0.014253135689851768
+    },
+    "kind": "comb",
+    "label": "מיקוד",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision",
+    "cells": 7
+  },
+  {
+    "id": "llm-0016",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9068923821039904,
+      "y": 0.32525655644241735,
+      "width": 0.028214429665457477,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "זכר",
+    "question": "Sex: male?",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0017",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9068923821039904,
+      "y": 0.3452109464082098,
+      "width": 0.028214429665457477,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "נקבה",
+    "question": "Sex: female?",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0018",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7742845626763402,
+      "y": 0.32525655644241735,
+      "width": 0.1007658202337767,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "רווק/ה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0019",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.641273679967755,
+      "y": 0.32525655644241735,
+      "width": 0.1007658202337767,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "נשוי/אה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0020",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5082627972591697,
+      "y": 0.32525655644241735,
+      "width": 0.1007658202337767,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "גרוש/ה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0021",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7073760580411125,
+      "y": 0.3452109464082098,
+      "width": 0.16122531237404272,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "אלמן/ה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0022",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5082627972591697,
+      "y": 0.3452109464082098,
+      "width": 0.16122531237404272,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "פרוד/ה (חובה לצרף אישור פ\"ש)",
+    "required": true,
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0023",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4538492543329303,
+      "y": 0.32525655644241735,
+      "width": 0.05441354292623942,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "תושב ישראל - כן",
+    "question": "Is a resident of Israel?",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0024",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4538492543329303,
+      "y": 0.3452109464082098,
+      "width": 0.05441354292623942,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "תושב ישראל - לא",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0025",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.41555824264409513,
+      "y": 0.32525655644241735,
+      "width": 0.03829101168883515,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "חבר קיבוץ - לא",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0026",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.22611850060459493,
+      "y": 0.32525655644241735,
+      "width": 0.1894397420395002,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "כן. הכנסותיי ממעסיק זה מועברות לקיבוץ",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0027",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.22611850060459493,
+      "y": 0.3452109464082098,
+      "width": 0.22773075372833534,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "כן. הכנסותיי ממעסיק זה אינן מועברות לקיבוץ",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0028",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.05078597339782346,
+      "y": 0.32525655644241735,
+      "width": 0.17533252720677148,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "חבר בקופת חולים - לא",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0029",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.12091898428053205,
+      "y": 0.3452109464082098,
+      "width": 0.10519951632406288,
+      "height": 0.015678449258836945
+    },
+    "kind": "checkbox",
+    "label": "כן, שם הקופה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0030",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.05078597339782346,
+      "y": 0.3452109464082098,
+      "width": 0.07013301088270858,
+      "height": 0.015678449258836945
+    },
+    "kind": "text",
+    "label": "שם הקופה",
+    "question": "Which health fund (kupat holim)?",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0031",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.6078194276501411,
+      "y": 0.36459521094640823,
+      "width": 0.34461910519951633,
+      "height": 0.017388825541619156
+    },
+    "kind": "text",
+    "label": "כתובת דואר אלקטרוני",
+    "question": "What is the email address?",
+    "required": "unknown",
+    "confidence": 0.65,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0032",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.3550987505038291,
+      "y": 0.36459521094640823,
+      "width": 0.25272067714631197,
+      "height": 0.017388825541619156
+    },
+    "kind": "text",
+    "label": "מספר טלפון",
+    "question": "What is the phone number?",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0033",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.042724707779121324,
+      "y": 0.36459521094640823,
+      "width": 0.31237404272470776,
+      "height": 0.017388825541619156
+    },
+    "kind": "text",
+    "label": "מספר טלפון נייד",
+    "question": "What is the mobile phone number?",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0034",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.46892816419612315,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 1 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0035",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.46892816419612315,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 1 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0036",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.46892816419612315,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 1 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0037",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.46892816419612315,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 1 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0038",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.46892816419612315,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 1 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0039",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.49370669239540393,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 2 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0040",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.49370669239540393,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 2 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0041",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.49370669239540393,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 2 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0042",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.49370669239540393,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 2 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0043",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.49370669239540393,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 2 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0044",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.5184852205946847,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 3 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0045",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.5184852205946847,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 3 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0046",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.5184852205946847,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 3 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0047",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.5184852205946847,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 3 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0048",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.5184852205946847,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 3 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0049",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.5432637487939654,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 4 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0050",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.5432637487939654,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 4 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0051",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.5432637487939654,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 4 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0052",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.5432637487939654,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 4 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0053",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.5432637487939654,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 4 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0054",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.5680422769932462,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 5 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0055",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.5680422769932462,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 5 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0056",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.5680422769932462,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 5 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0057",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.5680422769932462,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 5 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0058",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.5680422769932462,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 5 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0059",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.592820805192527,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 6 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0060",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.592820805192527,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 6 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0061",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.592820805192527,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 6 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0062",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.592820805192527,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 6 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0063",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.592820805192527,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 6 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0064",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.6175993333918077,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 7 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0065",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.6175993333918077,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 7 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0066",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.6175993333918077,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 7 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0067",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.6175993333918077,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 7 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0068",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.6175993333918077,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 7 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0069",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.6423778615910886,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 8 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0070",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.6423778615910886,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 8 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0071",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.6423778615910886,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 8 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0072",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.6423778615910886,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 8 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0073",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.6423778615910886,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 8 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0074",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.6671563897903692,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 9 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0075",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.6671563897903692,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 9 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0076",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.6671563897903692,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 9 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0077",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.6671563897903692,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 9 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0078",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.6671563897903692,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 9 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0079",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.69193491798965,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 10 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0080",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.69193491798965,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 10 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0081",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.69193491798965,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 10 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0082",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.69193491798965,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 10 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0083",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.69193491798965,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 10 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0084",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.7167134461889307,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 11 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0085",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.7167134461889307,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 11 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0086",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.7167134461889307,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 11 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0087",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.7167134461889307,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 11 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0088",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.7167134461889307,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 11 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0089",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.7414919743882116,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 12 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0090",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.7414919743882116,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 12 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0091",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.7414919743882116,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 12 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0092",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.7414919743882116,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 12 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0093",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.7414919743882116,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 12 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0094",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4252317613865377,
+      "y": 0.7662705025874923,
+      "width": 0.1531640467553406,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 13 - תאריך לידה",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0095",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.5783958081418783,
+      "y": 0.7662705025874923,
+      "width": 0.20959290608625555,
+      "height": 0.024778528199280763
+    },
+    "kind": "comb",
+    "label": "ילד 13 - מספר זהות",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0096",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7879887142281338,
+      "y": 0.7662705025874923,
+      "width": 0.09270455461507457,
+      "height": 0.024778528199280763
+    },
+    "kind": "text",
+    "label": "ילד 13 - שם",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0097",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8806932688432084,
+      "y": 0.7662705025874923,
+      "width": 0.05642885933091495,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 13 - טור 2 (מקבל/ת קצבת ילדים)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0098",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.9371221281741233,
+      "y": 0.7662705025874923,
+      "width": 0.030229746070133012,
+      "height": 0.024778528199280763
+    },
+    "kind": "checkbox",
+    "label": "ילד 13 - טור 1 (בחזקתך)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0099",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.046352277307537285,
+      "y": 0.43899657924743446,
+      "width": 0.1592099959693672,
+      "height": 0.018529076396807297
+    },
+    "kind": "comb",
+    "label": "תאריך תחילת העבודה בשנת המס",
+    "required": "unknown",
+    "confidence": 0.65,
+    "source": "llm-vision",
+    "cells": 6
+  },
+  {
+    "id": "llm-0100",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.43329532497149376,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "משכורת חודש",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0101",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.44612314709236034,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "משכורת בעד משרה נוספת",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0102",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.4603762827822121,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "משכורת חלקית",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0103",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.4732041049030787,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "שכר עבודה (עובד יומי)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0104",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.49173318129988597,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "קצבה",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0105",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.37484885126964934,
+      "y": 0.5031356898517674,
+      "width": 0.02418379685610641,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "מלגה",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0106",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.5344925883694412,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "אין לי הכנסות אחרות",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0107",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.5843785632839225,
+      "width": 0.016122531237404272,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "משכורת חודש",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0108",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.5943557582668187,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "משכורת בעד משרה נוספת",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0109",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.6057582668187002,
+      "width": 0.016122531237404272,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "משכורת חלקית",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0110",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.2257154373236598,
+      "y": 0.5843785632839225,
+      "width": 0.016122531237404272,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "שכר עבודה (עובד יומי)",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0111",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.2257154373236598,
+      "y": 0.5943557582668187,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "קצבה",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0112",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.2257154373236598,
+      "y": 0.6057582668187002,
+      "width": 0.016122531237404272,
+      "height": 0.009977194982896237
+    },
+    "kind": "checkbox",
+    "label": "מלגה",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0113",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.6328392246294184,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "אבקש לקבל נקודות זיכוי ומדרגות מס כנגד הכנסתי זו",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0114",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.6542189281641961,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "אני מקבל/ת נקודות זיכוי ומדרגות מס מהכנסה אחרת ועל כן איני זכאי/ת להן כנגד הכנסה זו",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0115",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.6984036488027366,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "אין מפרישים עבורי לקרן השתלמות בגין הכנסתי האחרת",
+    "required": "unknown",
+    "confidence": 0.3,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0116",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.42724707779121324,
+      "y": 0.7411630558722919,
+      "width": 0.016122531237404272,
+      "height": 0.011402508551881414
+    },
+    "kind": "checkbox",
+    "label": "אין מפרישים עבורי לקצבה/לביטוח אובדן כושר עבודה",
+    "required": "unknown",
+    "confidence": 0.3,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0117",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7847642079806529,
+      "y": 0.8266818700114025,
+      "width": 0.16767432486900444,
+      "height": 0.01767388825541619
+    },
+    "kind": "comb",
+    "label": "מספר זהות (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.7,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0118",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.6122531237404273,
+      "y": 0.8266818700114025,
+      "width": 0.1725110842402257,
+      "height": 0.01767388825541619
+    },
+    "kind": "text",
+    "label": "שם משפחה (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0119",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.3619508262797259,
+      "y": 0.8266818700114025,
+      "width": 0.2503022974607013,
+      "height": 0.01767388825541619
+    },
+    "kind": "text",
+    "label": "שם פרטי (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0120",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.2011285771866183,
+      "y": 0.8266818700114025,
+      "width": 0.1608222490931076,
+      "height": 0.01767388825541619
+    },
+    "kind": "comb",
+    "label": "תאריך לידה (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 8
+  },
+  {
+    "id": "llm-0121",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.042724707779121324,
+      "y": 0.8266818700114025,
+      "width": 0.15840386940749698,
+      "height": 0.01767388825541619
+    },
+    "kind": "comb",
+    "label": "תאריך עליה (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.5,
+    "source": "llm-vision",
+    "cells": 8
+  },
+  {
+    "id": "llm-0122",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.7525191455058444,
+      "y": 0.8568985176738882,
+      "width": 0.19991938734381298,
+      "height": 0.01767388825541619
+    },
+    "kind": "comb",
+    "label": "מספר דרכון (בן/בת הזוג)",
+    "required": "unknown",
+    "confidence": 0.55,
+    "source": "llm-vision",
+    "cells": 9
+  },
+  {
+    "id": "llm-0123",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.4860943168077388,
+      "y": 0.8537628278221209,
+      "width": 0.1652559451833938,
+      "height": 0.02280501710376283
+    },
+    "kind": "checkbox",
+    "label": "אין לבן/בת הזוג כל הכנסה",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0124",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.33413945989520355,
+      "y": 0.8537628278221209,
+      "width": 0.15195485691253527,
+      "height": 0.02280501710376283
+    },
+    "kind": "checkbox",
+    "label": "יש לבן/בת הזוג הכנסה מ:",
+    "required": "unknown",
+    "confidence": 0.4,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0125",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.27005239822652155,
+      "y": 0.8537628278221209,
+      "width": 0.06408706166868199,
+      "height": 0.02280501710376283
+    },
+    "kind": "checkbox",
+    "label": "קצבה/עסק",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0126",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.20556227327690446,
+      "y": 0.8537628278221209,
+      "width": 0.06449012494961709,
+      "height": 0.02280501710376283
+    },
+    "kind": "checkbox",
+    "label": "עבודה",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0127",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.04030632809351068,
+      "y": 0.8537628278221209,
+      "width": 0.11487303506650544,
+      "height": 0.02280501710376283
+    },
+    "kind": "checkbox",
+    "label": "הכנסה אחרת",
+    "required": "unknown",
+    "confidence": 0.35,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0128",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8581217251108424,
+      "y": 0.9047890535917902,
+      "width": 0.094316807738815,
+      "height": 0.03078677309007982
+    },
+    "kind": "date",
+    "label": "שינוי 1 - תאריך השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0129",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.19427650141072147,
+      "y": 0.9047890535917902,
+      "width": 0.6638452237001209,
+      "height": 0.03078677309007982
+    },
+    "kind": "text",
+    "label": "שינוי 1 - פרטי השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0130",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.10842402257154374,
+      "y": 0.9047890535917902,
+      "width": 0.08585247883917775,
+      "height": 0.03078677309007982
+    },
+    "kind": "date",
+    "label": "שינוי 1 - תאריך ההודעה",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0131",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.042724707779121324,
+      "y": 0.9047890535917902,
+      "width": 0.06569931479242241,
+      "height": 0.03078677309007982
+    },
+    "kind": "signature",
+    "label": "שינוי 1 - חתימת העובד/ת",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0132",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8581217251108424,
+      "y": 0.93557582668187,
+      "width": 0.094316807738815,
+      "height": 0.02765108323831243
+    },
+    "kind": "date",
+    "label": "שינוי 2 - תאריך השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0133",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.19427650141072147,
+      "y": 0.93557582668187,
+      "width": 0.6638452237001209,
+      "height": 0.02765108323831243
+    },
+    "kind": "text",
+    "label": "שינוי 2 - פרטי השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0134",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.10842402257154374,
+      "y": 0.93557582668187,
+      "width": 0.08585247883917775,
+      "height": 0.02765108323831243
+    },
+    "kind": "date",
+    "label": "שינוי 2 - תאריך ההודעה",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0135",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.042724707779121324,
+      "y": 0.93557582668187,
+      "width": 0.06569931479242241,
+      "height": 0.02765108323831243
+    },
+    "kind": "signature",
+    "label": "שינוי 2 - חתימת העובד/ת",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0136",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.8581217251108424,
+      "y": 0.9632269099201825,
+      "width": 0.094316807738815,
+      "height": 0.02765108323831243
+    },
+    "kind": "date",
+    "label": "שינוי 3 - תאריך השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0137",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.19427650141072147,
+      "y": 0.9632269099201825,
+      "width": 0.6638452237001209,
+      "height": 0.02765108323831243
+    },
+    "kind": "text",
+    "label": "שינוי 3 - פרטי השינוי",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0138",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.10842402257154374,
+      "y": 0.9632269099201825,
+      "width": 0.08585247883917775,
+      "height": 0.02765108323831243
+    },
+    "kind": "date",
+    "label": "שינוי 3 - תאריך ההודעה",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  },
+  {
+    "id": "llm-0139",
+    "pageIndex": 0,
+    "bounds": {
+      "x": 0.042724707779121324,
+      "y": 0.9632269099201825,
+      "width": 0.06569931479242241,
+      "height": 0.02765108323831243
+    },
+    "kind": "signature",
+    "label": "שינוי 3 - חתימת העובד/ת",
+    "required": "unknown",
+    "confidence": 0.45,
+    "source": "llm-vision"
+  }
+]
