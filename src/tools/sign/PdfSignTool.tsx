@@ -596,9 +596,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     await loadPdf(selected, bytes);
   };
 
-  // Printed grids on the loaded form, so placing a text box on one takes its
-  // span and cell count instead of needing a side-handle drag (MOBI-04).
-  const formRegions = useFormFieldRegions(sourceBytes, numPages);
+  // Printed grids and free-text cells on the loaded form, so placing a text
+  // box on one takes its span and cell count instead of needing a
+  // side-handle drag (MOBI-04), or at least starts centred on the field
+  // instead of wherever the tap landed (MOBI-11). Needs the same pdf.js
+  // document PdfWorkspace already renders pages from, for the page's text.
+  const formRegions = useFormFieldRegions(sourceBytes, numPages, pdfDocument);
 
   // Setup draft persistence hook
   const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({

@@ -153,6 +153,42 @@ export function checkboxRegionAt(
 }
 
 /**
+ * A detected free-text cell (MOBI-11's `formCells.js`: a name, an address
+ * line, a date written on a blank line - a closed printed cell with no comb
+ * teeth and no fixed pitch) is already a real, usually multi-word-sized
+ * rectangle, unlike a checkbox. This margin is just forgiveness for tap and
+ * measurement imprecision, not a "smaller than a fingertip" correction.
+ */
+const CELL_HIT_MARGIN_PERCENT = 0.5;
+
+export function cellRegionAt(
+  regions: FieldRegion[],
+  point: { x: number; y: number },
+  pageIndex: number,
+): FieldRegion | null {
+  return regionAt(regions, point, pageIndex, {
+    top: CELL_HIT_MARGIN_PERCENT,
+    bottom: CELL_HIT_MARGIN_PERCENT,
+    sides: CELL_HIT_MARGIN_PERCENT,
+  });
+}
+
+/**
+ * Where to centre a freshly placed text box on a detected free-text cell.
+ *
+ * Deliberately not a `placeCombOnRegion`-style placement: that sets `width`,
+ * and `comb.js`'s `isComb` is derived from `width` alone (see its own
+ * docstring), so giving an ordinary field an explicit width would silently
+ * turn it into a one-character-per-cell comb the moment someone typed a
+ * second letter. A free-text field just needs a better starting point than
+ * the raw tap - the cell's own centre - and then grows exactly the way any
+ * hand-placed text box does, RTL anchoring included.
+ */
+export function cellCenterPoint(region: FieldRegion): { left: number; top: number } {
+  return { left: region.left + region.width / 2, top: region.top + region.height / 2 };
+}
+
+/**
  * The largest font size whose characters still fit the printed cell.
  *
  * A comb whose cells are narrower than the characters in them has stopped

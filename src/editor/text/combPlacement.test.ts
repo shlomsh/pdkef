@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   baselineDropEm,
+  cellCenterPoint,
+  cellRegionAt,
   checkboxRegionAt,
   combFontSize,
   combRegionAt,
@@ -70,6 +72,41 @@ describe('checkboxRegionAt', () => {
 
   it('rejects a tap well clear of any box', () => {
     expect(checkboxRegionAt([yes, no], { x: 40, y: 42.7 }, 0)).toBeNull();
+  });
+});
+
+describe('cellRegionAt', () => {
+  // A blank name cell on the health declaration, well over a checkbox in size.
+  const nameCell: FieldRegion = { pageIndex: 0, left: 30.5, top: 28.6, width: 26.0, height: 1.4 };
+
+  it('finds the cell a tap lands in', () => {
+    expect(cellRegionAt([nameCell], { x: 40, y: 29 }, 0)).toBe(nameCell);
+  });
+
+  it('accepts a tap a little outside the cell, for tap and measurement slack', () => {
+    expect(cellRegionAt([nameCell], { x: 30.2, y: 28.3 }, 0)).toBe(nameCell);
+  });
+
+  it('rejects a tap well clear of the cell', () => {
+    expect(cellRegionAt([nameCell], { x: 10, y: 28.6 }, 0)).toBeNull();
+  });
+
+  it('rejects a tap on another page', () => {
+    expect(cellRegionAt([nameCell], { x: 40, y: 29 }, 1)).toBeNull();
+  });
+
+  it('picks the nearer cell when two tap areas overlap', () => {
+    const left: FieldRegion = { pageIndex: 0, left: 10, top: 40, width: 10, height: 2 };
+    const right: FieldRegion = { pageIndex: 0, left: 20.4, top: 40, width: 10, height: 2 };
+    expect(cellRegionAt([left, right], { x: 19.8, y: 41 }, 0)).toBe(left);
+    expect(cellRegionAt([left, right], { x: 20.6, y: 41 }, 0)).toBe(right);
+  });
+});
+
+describe('cellCenterPoint', () => {
+  it('returns the middle of the region, not the raw tap', () => {
+    const region: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
+    expect(cellCenterPoint(region)).toEqual({ left: 43, top: 28.7 });
   });
 });
 

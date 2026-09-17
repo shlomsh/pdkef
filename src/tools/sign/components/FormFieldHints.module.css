@@ -34,3 +34,12 @@
 .field-hint-checkbox {
   border-radius: 1px;
 }
+
+/* A free-text cell is also a real, already-closed rectangle - outlined as
+   drawn, like a checkbox - but with a solid border rather than the dashed
+   default, so it doesn't read as "this is a comb" at a glance. Same token,
+   different border style: not a second colour to keep track of. */
+.field-hint-cell {
+  border-style: solid;
+  border-radius: 3px;
+}
