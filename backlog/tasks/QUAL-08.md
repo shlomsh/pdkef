@@ -42,6 +42,29 @@ full. Whether that holds on real, post-move history is unknown.
 - The table and shares are recorded here, with a short result linked from ARCH-20's Notes.
 - A recommendation, with the numbers behind it, on whether ARCH-21 (split `site`) is worth doing:
   if page-only commits are under one in ten, it is not.
+- A recommendation on DEBT-07, using the same narrowing-rate data: whether finishing the
+  `SignMessages` edge (below) and flipping `editor` out of `CORE_PROJECTS` is worth doing, and
+  whether Nx itself is worth its footprint (227 of 851 lock packages) given how often narrowing
+  actually pays off.
+
+## DEBT-07 input (2026-09-17)
+
+Cutting the two edges DEBT-04's addendum named split into one real fix and one non-fix:
+
+- `signLanguagePage.test.js`'s edge to `editor` is gone (nested as its own `seo-content-guards`
+  project, the same shape as `cross-tool-tests`): `lib` and `site-test` both dropped out of
+  `editor`'s affected set.
+- `src/i18n/`'s edge to `editor` (the `SignMessages` type, re-exported by `toolMessages.ts`) did
+  not narrow anything by giving `src/i18n/` its own Nx project. `i18n` is a hub every tool and the
+  site itself legitimately import (module-boundaries rule 1), so `editor -> i18n -> {every tool,
+  site}` still marks everything affected on any editor change - the same reach the old `site`
+  fallback had, just now a named, real edge instead of an attribution artifact. The actual fix is
+  to reverse it: define `SignMessages` in `src/i18n/` and have `editor/registry/messages.ts` import
+  it from there. `editor -> site-i18n` is already an allowed direction (DEBT-10's carve-out), so
+  this is a real cut, not another relabeling - just not attempted yet, pending this ticket's
+  recommendation on whether the narrowing is worth finishing at all.
+
+See `backlog/tasks/DEBT-07.md`'s "## Investigated (2026-09-17)" section for the full measurement.
 
 ## Current state
 

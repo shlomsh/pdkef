@@ -14,7 +14,7 @@ and is not part of this history - its `project.json` files name folders that no 
 
 ## What landed
 
-Eighteen `project.json` files, no workspace conversion, no per-project `package.json`, `nx.json` at
+Twenty `project.json` files, no workspace conversion, no per-project `package.json`, `nx.json` at
 the repo root, `.nx/` gitignored:
 
 | Project | Root | Tags | `test` | `e2e` |
@@ -24,6 +24,7 @@ the repo root, `.nx/` gitignored:
 | `editor-ui` | `src/editor-ui` | `scope:editor-ui` | ✓ | - |
 | `lib` | `src/lib` | `scope:lib` | ✓ | - |
 | `site` | `src` (not the repo root - see below) | `scope:site` | ✓ | - |
+| `i18n` | `src/i18n` | `scope:i18n` | ✓ | - |
 | `tool-merge` | `src/tools/merge` | `scope:tool`, `tool:merge` | ✓ | ✓ |
 | `tool-sign` | `src/tools/sign` | `scope:tool`, `tool:sign` | ✓ | ✓ |
 | `tool-redact` | `src/tools/redact` | `scope:tool`, `tool:redact` | ✓ | ✓ |
@@ -36,8 +37,9 @@ the repo root, `.nx/` gitignored:
 | `font-assets` | `public/fonts` | `scope:font-assets` | ✓ (`test:fonts`) | - |
 | `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | `scope:fonts` | - | ✓ |
 | `site-e2e` | `e2e` | `scope:site` | - | ✓ |
-| `cross-tool-tests` | `src/test/cross-tool` (nested inside `site`'s root) | `scope:tests` | ✓ | - |
-| `site-test` | `src/test` (`cross-tool-tests` nests inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
+| `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | `scope:tests` | ✓ | - |
+| `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
+| `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | `scope:tests` | ✓ | - |
 
 `fonts`' `implicitDependencies`: `font-assets`, `editor`, `lib`, `tool-sign` - the export pipeline the
 27 font screening guards actually exercise. `site-e2e`'s `implicitDependencies`: `site`, `shell`, and
@@ -52,10 +54,11 @@ and `src/editor/text/{bidiRuns,fonts}.test.js` import `src/test/fixtures/wysiwyg
 `editor` a real edge to `site` (on top of `shell`'s), which is exactly what DEBT-07 needs gone before
 `editor` can leave `CORE_PROJECTS`: `site` is itself core, so any project it can reach becomes
 unnarrowable. `site-test` (`src/test/project.json`, `cross-tool-tests` nested inside it the same way
-`fonts` nests inside `site-e2e`) gives those five files - and the five repo-wide guard tests already
-in `src/test/` (`moduleBoundariesImportScan`, `moduleBoundariesRules`, `noCamelCaseSvgAttrs`,
-`signLanguagePage`, `editorDependencyDirectionsExceptions`) - a home Nx can name, so the edge each of
-those five test files makes now lands on `site-test`, not `site`. Several `src/tools/<t>/*.test.*`
+`fonts` nests inside `site-e2e`) gives those five files - and the repo-wide guard tests already in
+`src/test/` (`moduleBoundariesImportScan`, `moduleBoundariesRules`, `noCamelCaseSvgAttrs`,
+`editorDependencyDirectionsExceptions`; a fifth, `signLanguagePage`, moved out again under DEBT-07 -
+see below) - a home Nx can name, so the edge each of those test files makes now lands on `site-test`,
+not `site`. Several `src/tools/<t>/*.test.*`
 files reach into `src/test/fixtures/`/`setInputFiles.js` too (`grep -rl "from '.*test/fixtures\|from
 '.*test/setInputFiles" src` finds them); those tool -> `site-test` edges are fine and expected - a
 tool depending on test-support infrastructure is not the coupling DEBT-07 cares about, since each
@@ -67,6 +70,38 @@ excluded a project root that *starts with* `src/test/` (so `cross-tool-tests`, r
 slash), which that `startsWith` check does not match, so without the fix a `site-test`-only change
 would have pushed `src/test/` into `unit_paths` twice. The filter now excludes `src/test` exactly, as
 well as anything nested under it.
+
+**`seo-content-guards` (DEBT-07):** `signLanguagePage.test.js` (the fifth of `site-test`'s original
+five repo-wide guard tests) is not misplaced the way the other four are test-support - it is a
+legitimately cross-cutting test, checking `src/content/content-pages/sign-pdf-in-your-language.yaml`
+(the SEO content page) against `src/editor/text/fontCoverageReport.js`'s real `LANGUAGE_COVERAGE` data
+- the same category of concern `cross-tool-tests` exists for. Sitting inside `site-test` gave this one
+file's edge to `editor` the same reach `cross-tool-tests`' own tests have, except `site-test` is
+depended on far more broadly (`lib`, `shell`, every tool, `fonts`), so this single file alone
+reproduced the width the old `site -> editor` edge used to have. The fix is the same shape as
+`cross-tool-tests`: a nested project, `src/test/seo/project.json` (`seo-content-guards`, name chosen
+for what it actually checks - site content pages against editor data - not `signLanguagePage-tests`,
+since a future guard of the same shape belongs here too), sibling to `cross-tool-tests` inside
+`site-test`'s root. Measured: moving the file out of `site-test` and into this sibling project drops
+both `lib` and `site-test` out of `editorModel.ts`'s affected set (`lib`'s only path to `editor` was
+`lib -> site-test -> editor`, entirely through this one file) - see "Investigated (2026-09-17)" below
+for the full before/after.
+
+**Where this still falls short of `editor` leaving `CORE_PROJECTS`:** splitting `src/i18n/` into its
+own project (above) does not, by itself, remove `site` (or any tool) from `editorModel.ts`'s affected
+set, unlike `site-test`'s split. The reason is structural, not a missed step: `site` has a real,
+unavoidable edge to `i18n` (astro pages and layouts import the message catalogues to render at all),
+and every tool has its own real, permitted edge straight to `i18n` (module-boundaries rule 1: "a tool
+may import site's i18n/data"). `src/i18n/toolMessages.ts` still does
+`import type { SignMessages } from '../editor/registry/messages'`, so `i18n -> editor` is a real edge
+too - and unlike `site-test`'s five files, this one cannot be moved to a neutral test-support project,
+because it is production code that both the editor's registry and every tool's message catalogue
+consumer need. So the chain `tool -> i18n -> editor` (and `site -> i18n -> editor`) reproduces the same
+"everything" result the old `site`-fallback attribution used to produce, just through a real graph
+edge into a narrow, non-core project instead of through `CORE_PROJECTS`'s override on `site`. Severing
+it needs the design decision DEBT-04 already flagged and explicitly left open - moving or duplicating
+`SignMessages` so `i18n` no longer imports anything from `editor` - not a mechanical reattribution.
+See DEBT-07's "Investigated (2026-09-17)" note for the measured numbers.
 
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
 `nx show projects --affected --files=<changed files>` once, then CI runs ONE `vitest run <paths>` and
@@ -177,16 +212,22 @@ that recreates the ARCH-20 problem goes red instead of silently widening every n
    `e2e_paths` regardless of whether it existed. Both are fixed in the same commit
    (`8a49ceb`); see its message for the full detail.
 
-## Where `docs/module-boundaries.md`'s `lib -> i18n` coupling still applies
+## Where the `shell -> i18n` (formerly `lib -> i18n`) coupling still applies
 
-`arch-20-prep` found `src/lib/useWorkspaceGestures.ts` has a genuine runtime import from
-`src/i18n/toolMessages.ts` (`englishSignMessages`, `formatMessage`, `signElementTypeLabel`), which
-widens any i18n-only change to all of `lib`'s dependents. Since `lib` is one of `affected-scope.mjs`'s
-four CORE_PROJECTS (any change there is `everything` regardless of dependents), this coupling changes
-nothing about what `affected-scope.mjs` outputs today - a `src/i18n/` change is owned by `site` (also a
-core project) anyway, so it is `everything` either way. It remains real, pre-existing coupling worth
-knowing about if `lib`'s own dependents ever need to be enumerated precisely (e.g. if a future change
-narrows `site` itself - see Follow-ups), and does not block anything here.
+`arch-20-prep` found `src/lib/useWorkspaceGestures.ts` had a genuine runtime import from
+`src/i18n/toolMessages.ts` (`englishSignMessages`, `formatMessage`, `signElementTypeLabel`); ARCH-17/18
+later moved that file to `src/tools/sign/useWorkspaceGestures.ts` (Sign's own folder, not `lib`), and
+today it is `src/shell/` that carries the real edge instead (`RecentFiles.tsx`, `ToolShell.tsx`,
+`BasePdfTool.tsx`, `FileDropzone.tsx`, `DropzoneEmptyState.tsx` all import from `src/i18n/`). Every
+tool also has its own direct, permitted edge to `i18n` (module-boundaries rule 1). None of this widens
+any change to `i18n` past what already happens: `shell` is one of `affected-scope.mjs`'s CORE_PROJECTS
+(any change there is `everything` regardless of dependents) and `site` has its own real edge to `i18n`
+(see above) - both already force `everything` on any `src/i18n/`-only change, independent of `i18n` now
+having its own Nx project. This is real, pre-existing coupling worth knowing about if `shell`'s (or a
+tool's) own dependents ever need to be enumerated precisely (e.g. if a future change narrows `site`
+itself - see Follow-ups), and does not block anything here. It is also the reason `i18n` becoming its
+own project could not, on its own, free `editor` from `CORE_PROJECTS` - see "Where this still falls
+short" above and DEBT-07's "Investigated (2026-09-17)" note.
 
 `editor-ui` left CORE_PROJECTS in DEBT-06 (2026-09-14): every consumer of `src/editor-ui/*` is Sign or
 Redact (measured: `nx show projects --affected --files=src/editor-ui/ElementToolbar.tsx` answers
