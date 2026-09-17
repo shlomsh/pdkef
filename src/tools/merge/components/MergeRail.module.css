@@ -360,7 +360,15 @@
   /* 13px, not a rem: the card scales its root a little and 0.8125rem measured 12.48px. */
   font-size: 13px;
   color: var(--color-muted);
-  text-align: end;
+  /* QUAL-10: the row is as tall with plain text as with the Start fresh
+     button (36px), so the sentence timing out and "Draft saved" taking its
+     place never moves the rows below. Flex end-alignment mirrors for RTL. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  min-height: 36px;
 }
 
 .quiet-button {

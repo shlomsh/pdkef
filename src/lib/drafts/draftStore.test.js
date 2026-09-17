@@ -112,6 +112,16 @@ describe('hasDraftHint and readDraftMeta (pointer + recency index, no IndexedDB)
     expect(hasDraftHint('sign')).toBe(true);
   });
 
+  it('hasDraftHint agrees with the head script on a corrupt index: a pointer keeps the hint', () => {
+    // ToolPageLayout's pre-paint script keeps its restore marker when the
+    // index cannot be parsed; the island must not contradict it and release
+    // the marker before IndexedDB has answered (QUAL-10).
+    setCurrentEntry('merge', 'sha256:a');
+    localStorage.setItem('pdf-toolkit:workspace:recent-files', '{not valid json');
+    expect(hasDraftHint('merge')).toBe(true);
+    expect(hasDraftHint('sign')).toBe(false);
+  });
+
   it('readDraftMeta returns null with no pointer', () => {
     expect(readDraftMeta('sign')).toBeNull();
   });

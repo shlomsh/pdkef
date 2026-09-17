@@ -566,6 +566,14 @@ export function readDraftMeta(tool) {
  * entry" - it says nothing about whether the entry actually has `work[tool]`
  * on it, only that there is something to try restoring.
  *
+ * The two readers must agree. The head script keeps its pre-paint restore
+ * marker when the index is unparseable (the index is an optimisation, the
+ * IndexedDB record is the truth), so this returns true there too. When it
+ * said false while the marker was set, Merge's island took "not restoring,
+ * no files" at face value and dropped the marker before IndexedDB answered,
+ * which revealed the page and then pushed everything down as the grid
+ * mounted (QUAL-10).
+ *
  * @param {string} tool
  * @returns {boolean}
  */
@@ -573,7 +581,17 @@ export function hasDraftHint(tool) {
   try {
     const id = readCurrentEntryId(tool);
     if (!id) return false;
+    if (!indexIsParseable()) return true;
     return readIndexEntries().some((entry) => entry.id === id);
+  } catch {
+    return false;
+  }
+}
+
+function indexIsParseable() {
+  try {
+    JSON.parse(localStorage.getItem(RECENT_FILES_META_KEY) || '[]');
+    return true;
   } catch {
     return false;
   }

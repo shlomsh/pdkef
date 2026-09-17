@@ -225,6 +225,9 @@
 @media (max-width: 767px) {
   .header-draft-chip {
     display: inline-flex;
+    /* QUAL-10: as tall as the Start fresh button it carries, so the silent
+       placeholder that follows the sentence keeps the header row's height. */
+    min-height: 28px;
   }
 }
 
