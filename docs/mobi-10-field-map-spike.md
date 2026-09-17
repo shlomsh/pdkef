@@ -111,7 +111,7 @@ unit fixtures from these two forms, and add a Latin-script form to the corpus.
 ## Reproducing
 
 ```bash
-cd scripts/spike/mobi-10 && npm install --no-package-lock   # anydoc-wasm and @napi-rs/canvas, nested only
+cd scripts/spike/mobi-10 && npm install --no-package-lock   # @napi-rs/canvas for overlays, nested only
 node scripts/spike/mobi-10/extract.mjs --input <pdf> --page 1 --out <dir>
 node scripts/spike/mobi-10/label.mjs --candidates <dir>/candidates.pdfjs-layout.json --text <dir>/text-items.json --out <dir>/candidates.pdfjs-layout+labels.json
 node scripts/spike/mobi-10/cells.mjs --input <pdf> --page 1 --baseline <dir>/candidates.pdfjs-layout.json --text <dir>/text-items.json --out <dir>/candidates.combined-heuristic.json
@@ -119,5 +119,7 @@ node scripts/spike/mobi-10/score.mjs --truth scripts/spike/mobi-10/ground-truth/
 node scripts/spike/mobi-10/overlay.mjs --render <page.png> --truth <gt.json> --candidates <a.json> --out <overlay.png>
 ```
 
-`anydoc-run.mjs` and the LLM-vision candidates (`scripts/spike/mobi-10/llm-vision/`) complete the
-table. `CONTRACT.md` is the shared data shape. No root dependency was added; nothing fills a form.
+The anydoc runner and the LLM-vision candidate maps were dropped from the branch as negative
+results; `scripts/spike/mobi-10/report-anydoc.md` keeps the anydoc evidence (versions, quoted
+types, what each mode emitted). `CONTRACT.md` is the shared data shape. No root dependency was
+added; nothing fills a form.
