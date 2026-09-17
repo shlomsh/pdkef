@@ -50,3 +50,57 @@ via `liveFontCoverage.js` and five lib tests of editor modules (DEBT-05), `shell
 `src/test/fixtures/` (unowned, so `site` claims it; an Nx project at `src/test/` fixes it). The
 "editor leaves CORE" branch of this ticket is only real once those three are gone; measure the
 `editorModel.ts` affected set first.
+
+## Investigated (2026-09-17)
+
+DEBT-04's second pass (2026-09-15) landed `site-test` and named two more edges its own pass had not
+cut: `site -> editor` (via `src/i18n/toolMessages.ts`'s `import type { SignMessages }`, `src/i18n/`
+having no Nx project of its own so `site` claimed it) and `site-test -> editor` (via
+`src/test/signLanguagePage.test.js` importing `LANGUAGE_COVERAGE` from
+`src/editor/text/fontCoverageReport.js`). Both are now cut, one commit each:
+
+- `src/i18n/` got its own Nx project (`src/i18n/project.json`, name `i18n`, same shape as `site-test`).
+- `signLanguagePage.test.js` moved to `src/test/seo/signLanguagePage.test.js` with its own nested
+  project (`seo-content-guards`, sibling of `cross-tool-tests` inside `site-test`, same shape).
+
+Measured, `nx show projects --affected --files=src/editor/model/editorModel.ts` (cold graph,
+`rm -rf .nx`, `NX_DAEMON=false`):
+
+- **Before** (unchanged from DEBT-04's own note, reproduced): 18 of 19 projects (only `font-assets`
+  absent) - `editor`, `cross-tool-tests`, `tool-redact`, `site-e2e`, `tool-sign`, `fonts`, `editor-ui`,
+  `site-test`, `tool-image-to-pdf`, `tool-edit-pages`, `tool-compress`, `tool-security`,
+  `tool-to-image`, `tool-merge`, `tool-split`, `shell`, `lib`, `site`.
+- **After both cuts**: still 18 projects, but `lib` and `site-test` are genuinely gone -
+  `cross-tool-tests`, `editor`, `editor-ui`, `fonts`, `i18n`, `seo-content-guards`, `shell`, `site`,
+  `site-e2e`, `tool-compress`, `tool-edit-pages`, `tool-image-to-pdf`, `tool-merge`, `tool-redact`,
+  `tool-security`, `tool-sign`, `tool-split`, `tool-to-image`.
+
+**Not the seven-project target** (`editor`, `cross-tool-tests`, `tool-redact`, `site-e2e`, `tool-sign`,
+`fonts`, `editor-ui`) - eleven extra projects remain: `site`, `i18n`, `seo-content-guards`, `shell`,
+and all eight tool projects except `tool-redact`/`tool-sign`. This is a real, structural finding, not a
+missed step in either cut:
+
+- The `signLanguagePage.test.js` move fully worked in isolation - it is the entire reason `lib` and
+  `site-test` now correctly drop out (`lib`'s only path to `editor` was `lib -> site-test -> editor`,
+  entirely through that one file). `seo-content-guards` itself still carries a real, expected edge to
+  `editor` (same shape as `cross-tool-tests` - it is a legitimate cross-cutting guard, not a misplaced
+  test), which is why it - like `cross-tool-tests` - belongs in any honest "final" target list.
+- The `src/i18n/` split did **not** shrink the set the way `site-test`'s split did, and this is
+  structural: `site` has a real, unavoidable edge to `i18n` (astro pages/layouts import the message
+  catalogues to render at all - not an inference artifact), and every tool has its own real, permitted
+  edge straight to `i18n` (module-boundaries rule 1: "a tool may import site's i18n/data"). `i18n`
+  itself still has a real edge to `editor` (`toolMessages.ts`'s `SignMessages` re-export), so
+  `tool -> i18n -> editor` and `site -> i18n -> editor` reproduce the same "everything" result the old
+  `site`-fallback attribution produced - just through a real graph edge into a narrow, non-core project
+  instead of through `CORE_PROJECTS`'s override on `site`. This confirms what DEBT-04's own note already
+  flagged: severing it needs the design decision left open there (moving or duplicating `SignMessages`
+  so `i18n` no longer imports anything from `editor`), not a mechanical reattribution - out of scope for
+  this pass, which only proves the graph mechanism itself is clean where a mechanical fix is possible.
+
+Full detail and prose in `docs/nx-affected-ci.md` ("What landed", the `seo-content-guards` and
+"Where this still falls short" notes, and the rewritten `shell -> i18n` coupling section).
+
+This ticket's own decision - whether to actually flip `CORE_PROJECTS` to drop `editor` (which today
+would still only narrow `lib`/`site-test` out, not reach the seven-project target), and whether Nx
+itself is worth keeping at all - still waits on QUAL-08's separate CI-narrowing-value measurement,
+untouched here. Status stays `open`.
