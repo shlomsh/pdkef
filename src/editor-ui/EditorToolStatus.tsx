@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import styles from './SignToolbar.module.css';
 import { formatMessage } from '../i18n/toolMessages';
 
@@ -48,6 +49,11 @@ import { formatMessage } from '../i18n/toolMessages';
  * @param {Array<{action: string, button: string}>} [props.reserveCopies] - every other tool
  *   this toolbar can arm, rendered hidden purely to hold the row's height steady - see the
  *   comment on `.help` in SignToolbar.module.css for why arming needs this at all.
+ * @param {any} [props.override] - something that takes the slot over for a while (Redact's
+ *   undo chip). It is rendered *inside* the same stack, over the same reservations, rather
+ *   than in place of this component: a chip mounted instead of the stack was a row of its own
+ *   height, so the toolbar under it moved when the chip appeared and again, 5s later with no
+ *   input to excuse it, when the chip went.
  */
 export default function EditorToolStatus({
   copy,
@@ -55,12 +61,17 @@ export default function EditorToolStatus({
   onToggleKeepOn,
   idle,
   reserveCopies = [],
+  override = null,
   // LOC-09 stage 1: individual label props, not a whole message catalogue -
   // this component is shared with Redact, which stays English by not passing
   // any of these, so every default here is the exact literal this file used
   // to hardcode. SignToolbar.tsx is the only caller passing its own values,
   // read from src/i18n/toolMessages.ts's SignMessages.
   keepOnLabel = 'Keep {button} on',
+  // The phone-width label, where the pill sits beside the sentence that has
+  // just named the tool ("...draw a blackout box.") and every character of it
+  // is a character the sentence has to wrap around - see `.keep-short`.
+  keepOnShort = 'Keep on',
   keepOnTitleOn = 'Switch off to go back to one at a time. {button} stays selected either way.',
   keepOnTitleOff = 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
   hintEsc = 'or press Esc to stop entirely',
@@ -73,7 +84,9 @@ export default function EditorToolStatus({
   onToggleKeepOn: () => void;
   idle: string;
   reserveCopies?: Array<{ action: string; button: string }>;
+  override?: ComponentChildren;
   keepOnLabel?: string;
+  keepOnShort?: string;
   keepOnTitleOn?: string;
   keepOnTitleOff?: string;
   hintEsc?: string;
@@ -81,17 +94,28 @@ export default function EditorToolStatus({
   lang?: string;
   dir?: 'ltr' | 'rtl';
 }) {
+  // Both labels are always in the DOM and CSS picks one by width (`.keep-long`
+  // / `.keep-short` in SignToolbar.module.css), so the pill's width - and with
+  // it the row's wrap - is settled by the stylesheet, never by a resize
+  // listener. `display: none` keeps the unused one out of the accessible name.
+  const keepOnText = (button: string) => (
+    <>
+      <span className={styles['keep-long']}>{formatMessage(keepOnLabel, { button })}</span>
+      <span className={styles['keep-short']}>{formatMessage(keepOnShort, { button })}</span>
+    </>
+  );
+
   // The interactive row for whichever tool is actually armed. Pulled out so the
   // hidden reservations below (real copy text, no live handlers) can share its
   // markup instead of drifting from it.
   const armedRow = (rowCopy: { action: string; button: string }, interactive: boolean) => (
     <>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <svg className={styles['help-icon']} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
         <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
-      <span>{rowCopy.action}</span>
+      <span className={styles['help-text']}>{rowCopy.action}</span>
       {/* aria-checked, not a second sentence: the knob says "on" to the eye and
           this says it to a screen reader, so the line does not have to spend a
           phone's scarce vertical space stating a state the control is already
@@ -109,12 +133,12 @@ export default function EditorToolStatus({
           title={formatMessage(locked ? keepOnTitleOn : keepOnTitleOff, { button: rowCopy.button })}
         >
           <span className={styles['status-switch']} aria-hidden="true" />
-          {formatMessage(keepOnLabel, { button: rowCopy.button })}
+          {keepOnText(rowCopy.button)}
         </button>
       ) : (
         <span className={styles['status-action']}>
           <span className={styles['status-switch']} aria-hidden="true" />
-          {formatMessage(keepOnLabel, { button: rowCopy.button })}
+          {keepOnText(rowCopy.button)}
         </span>
       )}
       {/* Shown only on a device that has the gesture it names: a double-tap is
@@ -153,7 +177,12 @@ export default function EditorToolStatus({
   );
 
   return (
-    <div className={styles.help} dir={dir} lang={lang}>
+    // `data-status-active` is how the shell (ToolShell.module.css) knows this
+    // line has something live to say. On a phone the identity line and this one
+    // share a single fixed-height row, and that attribute is what swaps the
+    // filename out for the armed row. It is an attribute rather than a class
+    // because the two live in different CSS modules.
+    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override ? '' : undefined}>
       {/* Everything this toolbar could ever show lives here at once - the idle
           tip, whichever tool is actually armed, and a hidden copy of every other
           tool's row - stacked in one grid cell (`.help-stack`/`.help-row` in
@@ -163,10 +192,14 @@ export default function EditorToolStatus({
           state change worth announcing; the idle tip is standing advice, not a
           change, and a hidden reservation is not a state at all. */}
       <div className={`${styles['help-stack']}`}>
-        <div className={`${styles['help-row']} ${!copy ? styles['help-shown'] : styles['help-spare']}`}>
+        <div className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override ? styles['help-shown'] : styles['help-spare']}`}>
           <span>{idle}</span>
         </div>
-        {copy && (
+        {override ? (
+          <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
+            {override}
+          </div>
+        ) : copy && (
           <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
             {armedRow(copy, true)}
           </div>

@@ -138,8 +138,8 @@
    clearPage ("Clear all redactions on this page") used to change state
    silently - no live-region announcement, no way to undo but Cmd/Ctrl+Z or
    the full history modal. This chip takes the toolbar's status-line slot
-   (RedactToolbar.tsx swaps EditorToolStatus for this while an undo is
-   pending) the same way Merge's own undo chip wins its header slot
+   (RedactToolbar.tsx hands it to EditorToolStatus as `override` while an undo
+   is pending) the same way Merge's own undo chip wins its header slot
    (MergeDocument.module.css's `.undo-chip`, PdfMergeTool.tsx's
    `registerUndo`/`undoAction`) - one slot, replaced by whatever the next
    action registers, same success-toned pill. */
@@ -147,12 +147,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
+  white-space: nowrap;
   color: var(--color-text);
   background: var(--color-success-soft);
   border: 1px solid var(--color-success);
   border-radius: var(--radius-pill);
+}
+
+/* One line, always. The status slot's height is reserved by the armed tools'
+   rows (EditorToolStatus), not by this chip, so a message that wrapped would
+   grow the sticky card on its way in and shrink it on its way out - the
+   second one 5s later with no input to excuse it. "Cleared 3 boxes on page
+   12" losing its tail to an ellipsis on a narrow phone is the cheaper loss. */
+.undo-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .undo-chip-btn {

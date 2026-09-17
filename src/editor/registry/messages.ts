@@ -50,6 +50,7 @@ export interface SignMessages {
   /** No leading space - EditorToolStatus's idle tip composes `${tipIdle} ${tipEditText}` itself. */
   tipEditText: string;
   keepOn: string;
+  keepOnShort: string;
   keepOnTitleOn: string;
   keepOnTitleOff: string;
   hintEsc: string;

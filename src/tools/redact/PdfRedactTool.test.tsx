@@ -1309,10 +1309,11 @@ describe('PdfRedactTool UI flow', () => {
       container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
       'sr-only announcement region',
     );
-    // Unlike statusChip above, this is the undo-chip branch (RedactToolbar.tsx
-    // renders `role="status"` directly on `.help` itself while one is
-    // pending, not on a descendant), so no space before the attribute.
-    const statusSlot = () => query<HTMLElement>(container, `.${toolbarStyles.help}[role="status"]`);
+    // The chip rides in EditorToolStatus's own stack (RedactToolbar.tsx hands
+    // it over as `override`), so it is the shown `role="status"` row inside
+    // `.help`, over the same hidden reservations the armed rows use. That is
+    // what keeps the slot's height put while the chip comes and goes.
+    const statusSlot = () => query<HTMLElement>(container, `.${toolbarStyles.help} [role="status"]`);
 
     it('announces and offers Undo when a single box is deleted, and Undo restores it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
@@ -1340,6 +1341,12 @@ describe('PdfRedactTool UI flow', () => {
       const chip = statusSlot();
       expect(chip.querySelector(`.${redactStyles['undo-chip']}`)).not.toBeNull();
       expect(chip.textContent).toContain('Removed 1 box');
+      // The chip did not replace the stack: every tool's hidden reservation is
+      // still there under it, holding the row's height, and the shell is told
+      // the slot is live (that attribute is what hides the filename on a phone).
+      const help = required(chip.closest<HTMLElement>(`.${toolbarStyles.help}`), 'help stack around the chip');
+      expect(help.hasAttribute('data-status-active')).toBe(true);
+      expect(help.querySelectorAll(`.${toolbarStyles['help-spare']}`).length).toBeGreaterThanOrEqual(4);
 
       const undoButton = required(chip.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
       await act(async () => {

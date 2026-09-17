@@ -116,6 +116,36 @@
 .help-row { grid-area: 1 / 1; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
 .help-shown { visibility: visible; }
 .help-spare { visibility: hidden; }
+/* The phone label of the keep-on switch, swapped in by width below; on a wider
+   screen it is the long one that shows. Both are always in the DOM. */
+.keep-short { display: none; }
+/* Phones (ToolShell.module.css's phone block is the other half of this): the
+   status shares one fixed-height row with the filename, so it has to be
+   compact in *every* armed state, since the tallest of them is what the row
+   costs in all of them.
+   - The idle tip is not rendered at all. The filename takes that turn of the
+     row; a returning user does not need "pick a tool to start" above a row of
+     tools, and a first-time one gets the tool's own sentence on the first tap.
+     `display: none` rather than `visibility`, so it does not vote on the
+     row's height either.
+   - The switch sits beside the sentence, not under it. Wrapping under it was
+     what made every armed state two bands tall (a two-line sentence plus a
+     32px pill); beside it, a two-line sentence and the pill are the same
+     ~36px, so the row is one band whichever tool is armed.
+   - The switch says "Keep on", not "Keep Blackout on": the sentence beside it
+     has just named the tool, and the long label's extra ~45px was a third
+     line for the longest sentences.
+   - The info glyph goes: 14px plus a gap that the sentence needs more. */
+@media (max-width: 559px) {
+  .help { font-size: .78rem; }
+  .help-idle { display: none; }
+  .help-row { flex-wrap: nowrap; }
+  .help-icon { display: none; }
+  .help-text { flex: 1 1 auto; min-width: 0; }
+  .status-action { flex: 0 0 auto; }
+  .keep-long { display: none; }
+  .keep-short { display: inline; }
+}
 /* The one control that turns "keep adding" on and off - the only way out of a
    locked tool that exists on a phone, where there is no Escape key and no
    reliable double-click (a double-tap is the browser's zoom gesture). It sits
