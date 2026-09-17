@@ -99,6 +99,8 @@ describe('PdfSecurityTool', () => {
     expect(dialog.open).toBe(false);
     expect(container.textContent).toContain('test.pdf');
     expect(container.textContent).not.toContain('replacement.pdf');
+    // Cancel keeps the old file, so it keeps whatever was typed for it too.
+    expect(passwordInput.value).toBe('hunter2');
 
     await loadFile('replacement.pdf');
     const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
@@ -107,6 +109,9 @@ describe('PdfSecurityTool', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
     });
     expect(container.textContent).toContain('replacement.pdf');
+    // A confirmed replacement is a new file: the old password does not carry
+    // over to it (handleFilesAdded resets password on every accepted file).
+    expect(passwordInput.value).toBe('');
   });
 
   // MEM-03: Replace always asks, even with nothing entered yet. The dialog no
