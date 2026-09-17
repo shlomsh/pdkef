@@ -232,3 +232,9 @@ crawl discovery on pages that don't. Scoped separately as
 Content and link work shipped; `/edit-pdf/` deliberately descoped (see above). What remains is the
 coverage recheck on **2026-10-08**, which is also the gate for every new-URL ticket (SEO-19 to 24).
 Marked `blocked` until that capture; reopen with a finding if any of the nine is still uncrawled.
+
+*2026-09-17:* Shlomi's Coverage -> Valid export lists 21 indexed URLs and none of the never-crawled nine
+is among them (nor `/pdf-wont-compress-to-100kb/`, `/sign-pdf-in-your-language/` or `/licenses/`). That
+is "not indexed", which this export cannot split into "crawled, not indexed" and "never crawled", so the
+Week 4 gate is not readable from it. The Not-indexed export with its reason categories is the file the
+10-08 read needs; ask for it with the three-month Performance export.

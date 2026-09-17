@@ -35,16 +35,16 @@ move today.
 
 | Ticket | State | Date | Result in one line | Next check |
 | --- | --- | --- | --- | --- |
-| SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | 2026-10-08: recapture `seo-last-crawled.json`, see whether the requested URLs moved and whether `/merge/` and `/unlock/` (not requested) moved too |
+| SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | **Recaptured 2026-09-17** from the Coverage -> Valid export: all nine requested URLs crawled 09-11 to 09-14; 21 indexed, up from 11; controls split (`/merge/` moved, `/unlock/` did not, SEO-28) | 2026-10-08: three-month export plus the Not-indexed export |
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
 | SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done (description/homepage/topics fixed, README's language paragraph corrected from 11 to the real 20); referring-domain baseline captured at zero external mentions (proxy method, see caveat); one outreach submitted (pluja/awesome-privacy PR); two venues found ineligible on traction gates (awesome-selfhosted: no tagged release; openalternative.co: under 10 stars, confirmed by its own form); both PDF-specific awesome-lists submitted 2026-09-11 (abhi18av PR #68, OneOffTech issue #81); **first tagged release published**: [v1.0.0](https://github.com/shlomsh/pdkef/releases/tag/v1.0.0) at `038b5d7`, 2026-09-11 19:54 UTC (awesome-selfhosted becomes eligible 2027-01-12); Astro Showcase comment posted; PWA directories and Lissy93/awesome-privacy still queued | [section 8](#8-reference-seo-03-venue-list-and-outreach-log): watch #1103, #68, #81; submit awesome-selfhosted after 2027-01-12; revisit openalternative.co past 10 stars |
-| SEO-04 blur zero-click | open, blocked on a recrawl | 2026-09-11 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested | 2026-10-08: first check whether the indexed title changed; only then is CTR a verdict |
-| SEO-05 compress CTR + honesty | open, same recrawl exposure | 2026-09-10 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet | same first check as SEO-04 |
-| SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done) | 2026-10-08 coverage recheck = **the Week 4 gate** |
+| SEO-04 blur zero-click | open, recrawled, CTR window running | 2026-09-17 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested; **interim 2026-09-17: `/redact/` crawled 09-11, the day of the request, and the site's clicks stepped from 36 to 86 a week the same day; `/redact/` at 6.93 (was 13.13), blur cluster 28 clicks in 7 days (was 22 in 3 months), 3 of the 13 zero-click queries now click** | 2026-10-08, four weeks from the recrawl: SERP title screenshot for `blur text in pdf`, then CTR on the thirteen |
+| SEO-05 compress CTR + honesty | open, recrawled 09-12 | 2026-09-17 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet; interim 2026-09-17: crawled 09-12, no movement on the 100KB cluster in the three days since (0 clicks on 84 for `compress pdf to 100kb`) | 2026-10-08 is now a verdict on the copy, not the crawl |
+| SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done); 2026-09-17: none of the nine in the Valid list, which cannot split crawled-not-indexed from never-crawled | 2026-10-08 coverage recheck = **the Week 4 gate**, needs the Not-indexed export |
 | SEO-07 `/sign/` language story | done | 2026-09-11 | language card leads with the claim; comb fields, RTL growth and refuse-while-typing now stated; title changed | 2026-10-08: `/sign/` CTR vs 2.38%, after recrawl |
 | SEO-11 review protocol | done | 2026-09-11 | section 7 | |
 | SEO-12 Sign review | done, no change | 2026-09-11 | method run end to end; SEO-07 had already shipped everything it would propose; the "no change" verdict is the model for SEO-13 to 16 | |
-| SEO-28 Redact/Split recrawl starvation | open | 2026-09-11 | the two best pages are the least crawled and nothing we control (headers, `lastmod`, link counts) explains it; separate mechanism from SEO-06 | 2026-10-08 crawl dates |
+| SEO-28 Redact/Split recrawl starvation | open | 2026-09-11 | the two best pages are the least crawled and nothing we control (headers, `lastmod`, link counts) explains it; separate mechanism from SEO-06; **2026-09-17: `/redact/` and `/split/` crawled 09-11 on request; `/unlock/` (clean control) unmoved, so the recrawl was bought, not earned; `/merge/` moved but `/he/merge/`'s hreflang crawl contaminates it as a control** | 2026-10-08: `/unlock/` is the only clean control |
 | SEO-08 OS how-to guides | done | 2026-09-11 | top-ten read: Adobe/HowToGeek win on authority alone (SEO-03 territory); real peer group (other client-side tool vendors) wins on a visible date/byline (SEO-29) and on showing the tool, not just describing it - a subhead-comparison draft was reversed on product guidance (these pages document PDkef's own flow, not a comparison), so the shipped fix is three real `/sign/` screenshots added to all four guides instead; WhatsApp already covered on all four, no change; consolidation rejected | 2026-10-08 positions |
 | SEO-29 visible date on content pages | done | 2026-09-11 | "Last updated <date>" line in the content-page header, on all 11 pages and every localized edition; git-derived through the same `src/site-lib/gitLastModified.js` the sitemap and the Markdown twins now read, so the three cannot disagree; no byline (a real author exists in the schema, rendering it is a positioning call left open) | 2026-10-08: guide-cluster positions, read alongside SEO-08 and not attributed to this alone |
 | SEO-13 Compress review | done | 2026-09-11 | ran end to end; passthrough and no-cap were already visible outside the FAQ (SEO-05); shipped one line stating the honest miss in `aboutLead`; non-PDF-keyword traffic recommendation fed into SEO-19, not built now | |
@@ -52,10 +52,10 @@ move today.
 | SEO-15 Image-to-PDF/PDF-to-Image/Edit-Pages review | done | 2026-09-11 | shipped: image-to-pdf's privacy fact tied to what it protects (ID pages, consent forms); pdf-to-image's no-zip limitation disclosed above the fold and in FAQ; edit-pdf's candidate differentiator didn't survive the competitive check, no change shipped there | |
 | SEO-09 Split/extract vocabulary | open, landed | 2026-09-11 | `freeNoteLead` cross-links between `/split/` and `/edit-pdf/` now state the extract-vs-remove distinction each way; the "Is this a PDF page extractor?" FAQ entry reconciled to name Edit PDF Pages as the alternative; h1/subhead/steps already said "extract" before this ticket; indexing re-requested, still showing 2026-07-05 as of this update - too soon to have been acted on | 2026-10-08: confirm `/split/` recrawled, then read extract-cluster position (was 85) |
 | SEO-10 Merge no-limit fact | open, landed | 2026-09-11 | the no-limit/no-watermark fact now renders server-side above the tool on `/merge/` (`OfflineProof` register, device-memory caveat kept, no competitor named); `seoDescription` rewritten to mention it; `test:seo`/`test:css`/`test:weight`/unit suite green | 2026-10-08: position/CTR reading after recrawl (was 36.13, 0 clicks) |
-| SEO-17 Portal size-limits page | open, shipped | 2026-09-11 | `/pdf-wont-compress-to-100kb/` live, hub `compress`; every size in the measured table came from running real files (1/5/10-page scans, one typed page) through the actual `compressPdfToTarget` at 100KB in a live browser, not estimated; the ten-page "met the byte target but body text is blurry" finding is stated in the body, not buried in FAQ; portal limits cited to primary sources (IBPS 500KB PDF cap, NTA UGC-NET 10-200KB photo / 4-30KB signature) with links; `test:seo`/`test:csp`/`test:css`/`test:weight`/full unit suite (2137 tests) all green | 2026-10-08: indexing + first impressions/position read |
+| SEO-17 Portal size-limits page | open, shipped | 2026-09-11 | `/pdf-wont-compress-to-100kb/` live, hub `compress`; every size in the measured table came from running real files (1/5/10-page scans, one typed page) through the actual `compressPdfToTarget` at 100KB in a live browser, not estimated; the ten-page "met the byte target but body text is blurry" finding is stated in the body, not buried in FAQ; portal limits cited to primary sources (IBPS 500KB PDF cap, NTA UGC-NET 10-200KB photo / 4-30KB signature) with links; `test:seo`/`test:csp`/`test:css`/`test:weight`/full unit suite (2137 tests) all green | 2026-09-17: still not indexed, the one requested URL that has not landed; 2026-10-08 recheck, eight-week read 2026-11-06 |
 | SEO-25 compress before/after preview | open, shipped ahead of its own gate | 2026-09-12 | drag (or arrow-key) reveal slider shipped on `/compress/`, opt-in on every device (renders nothing until tapped), reusing `src/editor/gestures/controller.ts`'s golden-rule pattern for the drag; picked up before SEO-05/SEO-13's SERP-movement half of the depends_on gate was measured, per Shlomi's explicit go-ahead - see the ticket's Implementation section; 2026-09-12: the comparison also runs on images and opens by default after Compress (a skeleton with a status line while the PDF render is async), and the Download link now replaces the Compress button in place with the result size as its second line, so nothing above the button moves (ticket: Button anchor) | 2026-10-08: CTR effect on the compress-quality cluster, alongside SEO-05/SEO-13/SEO-04 |
-| SEO-19 image to a target size | in progress, shipped ahead of its gate | 2026-09-12 | one compress island accepts PDF, JPEG and PNG and dispatches by type (`src/lib/compressImage.js` over the shared `src/lib/targetSizeSearch.js`); `/compress/` keeps its PDF title and H1, `/compress-image/` is a second URL with an image H1 mounting the same island, kept as an experiment; raised to P1 the same day on LOC-11's autocomplete sweep (photo-to-target-KB is what every locale types first); picked up ahead of the Week 4 gate on Shlomi's call, same as SEO-25; real-browser JPEG/PNG guardrail under `e2e/compress/`; manual pass done 2026-09-12 on the dev server | indexing request for `/compress-image/` (date in SEO-19), then the eight-week fold-in read: image-word queries reach it, it stays; only the format-agnostic family `/compress/` also gets, fold it in with a redirect |
-| SEO-31 photo and signature size page | open, shipped | 2026-09-12 | `/photo-and-signature-size-for-forms/` live, hub `compress-image`; eight-row table of real phone photos run through the shipped image compressor at IBPS/NTA/UPSC targets (portrait, signature, document), crop-first lesson stated in the body, limits cited to the portals' own PDFs; `/pdf-wont-compress-to-100kb/` gained its photo/signature half the same day | indexing request (date in SEO-31), then the same eight-week read as SEO-17 |
+| SEO-19 image to a target size | in progress, shipped ahead of its gate | 2026-09-12 | one compress island accepts PDF, JPEG and PNG and dispatches by type (`src/lib/compressImage.js` over the shared `src/lib/targetSizeSearch.js`); `/compress/` keeps its PDF title and H1, `/compress-image/` is a second URL with an image H1 mounting the same island, kept as an experiment; raised to P1 the same day on LOC-11's autocomplete sweep (photo-to-target-KB is what every locale types first); picked up ahead of the Week 4 gate on Shlomi's call, same as SEO-25; real-browser JPEG/PNG guardrail under `e2e/compress/`; manual pass done 2026-09-12 on the dev server; indexed 2026-09-12, 2 impressions at 6.0 by 09-15 | indexing request for `/compress-image/` (date in SEO-19), then the eight-week fold-in read: image-word queries reach it, it stays; only the format-agnostic family `/compress/` also gets, fold it in with a redirect |
+| SEO-31 photo and signature size page | open, shipped | 2026-09-12 | `/photo-and-signature-size-for-forms/` live, hub `compress-image`; eight-row table of real phone photos run through the shipped image compressor at IBPS/NTA/UPSC targets (portrait, signature, document), crop-first lesson stated in the body, limits cited to the portals' own PDFs; `/pdf-wont-compress-to-100kb/` gained its photo/signature half the same day; indexed 2026-09-12, 27 impressions / 1 click at 2.96 by 09-15 | 2026-11-07 eight-week read |
 | SEO-33 compress vocabulary | open | 2026-09-12 | decided from the 2026-09-12 three-instrument read (section 2): `/compress/` is our one page-one head-term page and never says "size reducer", "shrink" (twice, body only) or "resize", the 1M-to-10M phrasings Keyword Planner lists for pdkef.com; add them plus two honest FAQ entries, no new URL | indexing requested 2026-09-12; 2026-10-08 positions on `pdf size reducer`, `shrink pdf size`, `resize pdf` |
 | SEO-34 home page targets `pdf tools` | open | 2026-09-12 | `/` has the site's best CTR (11% at 22.30) and no target query; `pdf tools` is 100K-1M and +900% YoY on the pdkef.com ideas list; title/h1/description shaped around it, layout untouched | indexing requested 2026-09-12; 2026-10-08 impressions on `pdf tools` / `free pdf tools` |
 | SEO-35 merge decision | open | 2026-09-12 | **merge is an authority fight, not a content fight**: title and h1 gain "combine" (`combine pdf` 1M-10M), nothing else; effort redirected to SEO-03; do not reopen "expand `/merge/`" until the referring-domain count moves | 2026-10-08 with SEO-10; no indexing request (SEO-28 control) |
@@ -64,7 +64,7 @@ move today.
 | SEO-27 localization decision | retired | 2026-09-11 | superseded: the Hindi half was settled by LOC-01's measurement, the Hebrew-guides half is LOC-05 | |
 | LOC-01 demand measurement | done | 2026-09-11 | Trends + `hl`/`gl` SERPs + GSC-by-country for Hebrew, Indonesian, Malay, Hindi (Shlomi's browser; report in `docs/localized-search-research-brief-report.md`). **Malay and Hindi flat at 0 on every instrument** (16 Hindi probes incl. Hinglish; GSC India all English, zero Hinglish leakage). Hebrew small but real, free to review. Indonesian at parity on compress/sign - and a SERP owned end to end by the majors at 300k-700k reviews; Google already machine-translates our English page there. Criterion 2 of the decision rule does not hold for Indonesian | ROI judgment closed by LOC-07 |
 | LOC-02 localized tool-page mechanism | done | 2026-09-11 | route, review gate, localized islands and shell, RTL, switcher, sitemap alternates + reciprocal `hreflang`, five `verify-seo.js` guards, `/he/` out of the precache | |
-| LOC-03 Hebrew pilot | open, shipped | 2026-09-11 | `/he/compress/`, `/he/merge/`, `/he/sign/` reviewed by Shlomi and live (indexable, in the sitemap); indexing requested 2026-09-11, so the eight-week read runs to 2026-11-06 | 2026-10-08: Hebrew queries in GSC via LOC-06's per-locale table |
+| LOC-03 Hebrew pilot | open, shipped | 2026-09-11 | `/he/compress/`, `/he/merge/`, `/he/sign/` reviewed by Shlomi and live (indexable, in the sitemap); indexing requested 2026-09-11, so the eight-week read runs to 2026-11-06; **interim 2026-09-17: all three indexed 09-11, four of seven guides 09-13; `/he/merge/` 67 impressions at 27 (more than `/merge/` itself), `/he/sign/` 2 clicks / 49 at 48; 82 Hebrew query impressions, 0 clicks, position 50** | 2026-11-06; 3.7 has the first table |
 | LOC-04 Indonesian pilot | retired | 2026-09-11 | LOC-01 cleared demand (Trends parity on compress/sign) but LOC-07's ROI judgment found criterion 2 fails on the real SERP (iLovePDF/Smallpdf/Adobe/PDF24/Canva, 300k-700k reviews each, same field `/merge/` loses to in English at position 36.13/0 clicks) and Indonesian is already machine-bridged by Google's translated-results list | reopen only alongside LOC-03 producing impressions, or an English page reaching page one on its own head term |
 | LOC-05 Hebrew guides | done | 2026-09-12 | seven of eight published and live for Shlomi's review on the deployed site (`offline-pdf-form-filler` held: its English is a retired redirect); five were stale against SEO-08's screenshots and were updated; links resolve inside `/he/` where an edition exists | indexing requested 2026-09-12 for every published guide; CTA disclosure gap closed; outcome folded into LOC-03's read |
 | LOC-06 per-locale refresh table | done | 2026-09-11 | `seo-refresh.mjs` gained section 3.7 (pages grouped by `src/i18n/localePrefixes.js` prefix next to their English sibling, non-Latin queries clustered by detected script, a country breakdown for the locale's pilot country); pure logic in `scripts/seoRefreshLib.mjs`, unit-tested (`src/lib/seoRefresh.test.js`, 27 tests); findings doc section 3.7 added as "not yet run" and section 6 procedure updated - no real numbers yet, that is the 2026-10-08 read | 2026-10-08: first real per-locale table, folded into LOC-03's outcome |
@@ -84,6 +84,15 @@ move today.
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **An indexing request on a starved URL is acted on the same day, and the ranking re-score comes
+  with it.** `/redact/` was crawled on 2026-09-11, the day it was requested after 65 days; site
+  clicks stepped from 36 to 86 a week that day and `/redact/` moved from 13 to 7. The unrequested
+  control `/unlock/` stayed at 08-21, so the visit was bought, not earned. A dated request is the
+  cheapest lever on this domain and it is used once per URL. ([SEO-04](../backlog/tasks/SEO-04.md),
+  [SEO-28](../backlog/tasks/SEO-28.md))
+- **The Coverage -> Valid export carries `Last crawled` for every indexed URL in one file**, so the
+  crawl-date capture no longer needs URL Inspection one URL at a time; only the Not-indexed export
+  says whether an absent URL was ever fetched. ([SEO-01](../backlog/tasks/SEO-01.md))
 - **We win where Trends is flat and lose where it is tall; do not chase the tallest line.** A
   three-instrument read on 2026-09-12 (Google Trends past 12 months worldwide; iLovePDF's Keyword
   Planner export; Keyword Planner's ideas list for pdkef.com) said three things at once. `blur pdf`
@@ -262,7 +271,17 @@ at 6.65). United States 4 / 360 at 31.97. Then Malaysia, Indonesia, the Philippi
 India query is in English. Desktop 52 / 1,764 at 25.21; mobile 18 / 430 at 14.70 - mobile ranks better
 and is under-served.
 
-### 3.4 Indexing and crawl state (captured 2026-09-11)
+### 3.4 Indexing and crawl state (captured 2026-09-11, recaptured 2026-09-17)
+
+**2026-09-17 recapture** (Coverage -> Valid export, `docs/seo-last-crawled.json`): 21 URLs indexed, up
+from 11. Every URL requested on 09-11 was crawled between 09-11 and 09-14 (`/redact/` and `/split/`
+09-11, `/compress/` and `/` 09-12, `/sign/` and three OS guides 09-14). New in the index: `/he/compress/`,
+`/he/merge/`, `/he/sign/` (09-11), four `/he/` OS guides (09-13), `/about/`, `/compress-image/` and
+`/photo-and-signature-size-for-forms/` (09-12). Controls: `/merge/` 09-12 (unrequested, but reachable
+from `/he/merge/`'s hreflang), `/unlock/` still 08-21. Still absent from the Valid list: the
+never-crawled nine, `/pdf-wont-compress-to-100kb/`, `/sign-pdf-in-your-language/`, `/licenses/`, three
+Hebrew guides and `/he/`; whether any was crawled needs the Not-indexed export. The 2026-09-11 baseline
+below is kept for the comparison.
 
 27 URLs tracked, 11 indexed. **Never crawled (9):** `/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`,
 `/image-to-pdf/`, `/install-pdf-app/`, `/offline-pdf-form-filler/`, `/open-source-pdf-editor/`,
@@ -310,34 +329,40 @@ Bing/DuckDuckGo 2026-09-10 for the SEO-04/05 rows. The softest column here.
 
 ### 3.7 By locale
 
-**Not yet run - first read at the 2026-10-08 refresh** ([LOC-06](../backlog/tasks/LOC-06.md)). The
-sections above cluster queries by English intent words and read pages by their own URL, so a Hebrew
-query lands in no cluster and `/he/compress/` is invisible next to `/compress/` even though both are
-in the export. `node scripts/seo-refresh.mjs` now prints this section too (section 6 step 2 covers
-both at once); paste its output over the tables below rather than the numbers shown here, which are
-the shape the script prints, not a measurement.
+**First read 2026-09-17, interim; the scheduled read is the 2026-10-08 refresh**
+([LOC-06](../backlog/tasks/LOC-06.md)). The sections above cluster queries by English intent words and
+read pages by their own URL, so a Hebrew query lands in no cluster and `/he/compress/` is invisible
+next to `/compress/` even though both are in the export. `node scripts/seo-refresh.mjs` prints this
+section too (section 6 step 2 covers both at once); paste its output over the tables below.
 
 Same privacy-filter caveat as 3.1, more so here: a locale with only a handful of impressions has
 proportionally more of its queries omitted by Search Console's privacy filter, so the query list below
 is a lower bound on what the locale actually receives - more than usual, since a small locale's whole
 query list can sit under the filter's threshold.
 
+**Interim, 7-day window 2026-09-09 to 09-15 (exported 2026-09-17).** The first real data, seven weeks
+before LOC-03's read. The 2026-10-08 refresh replaces these tables with the script's output from a
+three-month export; paste over, do not append.
+
 **/he/ pages vs. their English sibling**
 
 | Page | Clicks | Impressions | CTR | Position | English sibling | Sibling clicks | Sibling impressions | Sibling CTR | Sibling position |
 | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
-| _not yet run_ | | | | | | | | | |
+| `/he/merge/` | 0 | 67 | 0% | 27.34 | `/merge/` | 0 | 5 | 0% | 5.80 |
+| `/he/sign/` | 2 | 49 | 4.08% | 47.63 | `/sign/` | 1 | 9 | 11.11% | 6.11 |
+| `/he/compress/` | 0 | 11 | 0% | 52.64 | `/compress/` | 7 | 309 | 2.27% | 9.64 |
 
-Pilot country for `/he/`: Israel (`src/i18n/localePrefixes.js`'s `pilotCountry` map). _Country row not
-yet read._
+Pilot country for `/he/`: Israel (`src/i18n/localePrefixes.js`'s `pilotCountry` map). Israel, site-wide:
+9 clicks, 145 impressions, 6.21% CTR, position 32.12. Search appearance "Translated results": 59
+impressions, 1 click, position 13.03.
 
 **Non-Latin queries, by script**
 
-_Not yet run._ Every query in `Queries.csv` that carries a non-Latin script (Hebrew, Arabic,
-Devanagari, Bengali, Tamil, Telugu, Thai, CJK - `\p{Script=...}` per `scripts/seoRefreshLib.mjs`)
-prints as its own cluster with the raw query string, clicks, impressions and position, grouped by
-script and sorted by impressions - the direct check of whether the Hebrew phrasing LOC-01 predicted
-(e.g. "כיווץ" over "דחיסה") is what actually arrived.
+Hebrew only: 48 query rows, 0 clicks, 82 impressions, weighted position 50.3. The merge family ranks
+best (`צירוף קבצים` 5 impressions at 9, `קיבוץ pdf` 3 at 35, `איחוד pdf` 2 at 31.5, `מיזוג קבצי pdf` 2
+at 43); the sign family is at 46 to 79 (`חתימה דיגיטלית חינם pdf` 7 at 64, `חתימה על מסמך pdf` 5 at
+72.6); compress phrasings (`כיווץ`, `הקטנת`, `דחוס`) at 39 to 67. `כיווץ` outnumbers `דחיסה`, as
+LOC-01 predicted. Full list in [LOC-03](../backlog/tasks/LOC-03.md).
 
 ---
 

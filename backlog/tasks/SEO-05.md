@@ -140,3 +140,13 @@ Shipped and indexing requested; nothing left to build. The remaining work is rea
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+## Interim read 2026-09-17: recrawled on 09-12, no movement yet
+
+From Shlomi's 2026-09-17 exports (Coverage -> Valid; Performance, last 7 days, 2026-09-09 to 09-15).
+`/compress/` was crawled on **2026-09-12**, so the 2026-09-10 snippet change has been in the index for
+three of the seven days in this window. In that window the 100KB cluster is 2 clicks on 178 impressions
+at 9.9 (`compress pdf to 100kb` alone: 0 clicks on 84 at 9.58; `file compressor to 100kb`: 1 on 9),
+and `/compress/` is 7 clicks on 309 at 9.64, against 10.14 over the three months. No change on the
+cluster, and three days is too short to read as one. What changed is the status of the 10-08 read: it
+is now a verdict on the copy, not on the crawl. Do not layer another rewrite before it.

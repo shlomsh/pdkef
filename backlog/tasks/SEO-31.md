@@ -286,3 +286,7 @@ pages the same way `CompareTable.astro`'s already does (`content-and-copy.md`, "
 the distant ridges when you look for it, and nothing that stops the picture being a picture. That is
 the honest read of a 19KB file at 1210 by 680, and it is the point of showing it rather than only
 tabulating it. Checked in the built page at 1280 and 390 wide (Chromium, 2026-09-12).
+
+*2026-09-17:* indexed on 2026-09-12, the day of the request (Coverage -> Valid export), and already
+ranking: 27 impressions, 1 click, position 2.96 in the 7-day window to 09-15. Too small to read, logged
+as the first data point ahead of the 2026-11-07 read.

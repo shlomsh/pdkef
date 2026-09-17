@@ -325,3 +325,47 @@ Shipped and indexing requested; nothing left to build. The remaining work is rea
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+## Interim read 2026-09-17: the recrawl landed, and the clicks came with it
+
+Not the scheduled read (that stays 2026-10-08, from a three-month export) but a dated signal from two
+of Shlomi's exports of 2026-09-17: Performance, last 7 days (2026-09-09 to 09-15), and Coverage -> Valid
+with its `Last crawled` column.
+
+**The first question is answered.** `/redact/` was crawled on **2026-09-11**, the day of the indexing
+request, after sitting at 2026-07-07. The daily chart steps up the same day: 6 clicks on 09-09 and
+09-10, then 19, 13, 11, 16, 14. Previous seven days (09-02 to 09-08, from the 09-11 export): 36 clicks
+on 1,049 impressions. This window: 86 on 1,840. `/redact/` alone took 70 of them at position 6.93,
+against 13.13 over the whole three months to 09-08. The blur cluster earned 28 clicks in seven days,
+more than the 22 it earned in the three months before.
+
+**The thirteen, 7-day window against the three-month baseline:**
+
+| Query | 3-month imps | 3-month pos | 7-day clicks | 7-day imps | 7-day pos |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| blur text in pdf | 32 | 11.44 | 0 | 24 | 7.21 |
+| blur text in pdf online free | 23 | 6.65 | 3 | 18 | 4.72 |
+| pdf blur tool | 17 | 8.47 | 0 | 13 | 7.31 |
+| blur pdf online free | 16 | 7.38 | 2 | 30 | 4.57 |
+| blur in pdf | 16 | 8.12 | 1 | 7 | 5.29 |
+| blackout text in pdf free | 13 | 9.77 | 0 | 2 | 9.50 |
+| blur out pdf | 10 | 9.30 | - | - | - |
+| pdf blur text | 8 | 9.88 | 0 | 3 | 6.00 |
+| pdf text blur online | 7 | 7.14 | 0 | 1 | 8.00 |
+| blur text pdf | 7 | 7.57 | 0 | 2 | 10.00 |
+| blur the pdf | 7 | 7.86 | 0 | 9 | 6.22 |
+| online pdf blur tool | 6 | 5.83 | - | - | - |
+| black and blur pdf | 5 | 9.00 | 0 | 1 | 10.00 |
+
+Three of the thirteen click now, and those three moved from positions 6.6 to 8.1 up to 4.6 to 5.3.
+The page-two row, `blur text in pdf`, moved from 11.44 to 7.21 and is still zero-click, which is what
+the how-to intent and AI Overview reading above predicts for it. Twelve page-one blur rows with 5+
+impressions still sit at zero clicks, so the pattern is weakened, not gone.
+
+**What is still not proven.** Nothing here saw the SERP. The recrawl, the position move and the first
+clicks all fall on 2026-09-11, which is what "the new title reached the index" looks like, but the
+displayed title for `blur text in pdf` is still the check that makes the CTR a verdict on the copy.
+Ask for that screenshot at the 10-08 read, or sooner if convenient. The four-week CTR window counts
+from 2026-09-11, so 10-08 is exactly four weeks.
+
+`/` was crawled 2026-09-12, so the favicon question above is testable at the 10-08 read too.
