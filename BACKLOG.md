@@ -98,11 +98,12 @@ _None._
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
-| MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 
 ### Blocked
 
