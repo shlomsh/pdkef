@@ -1,8 +1,36 @@
 import { getElementDefinition } from '../editor/registry/index.ts';
 import type { EditorElement } from '../editor/model/editorModel.ts';
-import type { NodeResizeStart } from './nodeResizeTypes.ts';
+import type { ResizeHandle } from '../editor/registry/types.ts';
+import { getPointerCoords } from '../editor/gestures/pointer.ts';
+import type { EditorPointerEvent, NodeResizeStart } from './nodeResizeTypes.ts';
 import { englishSignMessages, type SignMessages } from '../i18n/toolMessages';
 import styles from './EditorElement.module.css';
+
+// Under `pointer: coarse` each handle carries a 44px halo (see the -18px inset
+// in EditorElement.module.css), and a text box shorter than ~38px cannot hold
+// three of them along one edge: the side handle, rendered last, swallowed every
+// touch aimed at a corner, so a date could only be resized from the toolbar.
+// The browser's hit test says which halo was touched; the handle the user
+// meant is the one whose centre is nearest the touch point.
+export function nearestHandle(event: EditorPointerEvent, pressed: HTMLElement, fallback: ResizeHandle): ResizeHandle {
+  const siblings = pressed.parentElement?.querySelectorAll<HTMLElement>('[data-editor-resizer]');
+  if (!siblings) return fallback;
+  const point = getPointerCoords(event);
+  let best = fallback;
+  let bestDistance = Infinity;
+  siblings.forEach((node) => {
+    const rect = node.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    const dx = rect.left + rect.width / 2 - point.x;
+    const dy = rect.top + rect.height / 2 - point.y;
+    const distance = dx * dx + dy * dy;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = node.dataset.editorResizer as ResizeHandle;
+    }
+  });
+  return best;
+}
 
 export default function ElementResizers({ element, isActive, onResizeStart, messages }: {
   element: EditorElement;
@@ -37,8 +65,8 @@ export default function ElementResizers({ element, isActive, onResizeStart, mess
             className={[styles.resizer, isLineHandle && styles['line-handle'], isCorner && styles.corner, !isLineHandle && styles[handle]].filter(Boolean).join(' ')}
             data-editor-resizer={handle}
             style={isLineHandle ? { position: 'absolute', left: `${point.left}%`, top: `${point.top}%`, pointerEvents: 'auto', cursor: 'crosshair', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' } : undefined}
-            onMouseDown={(event) => onResizeStart(event, handle)}
-            onTouchStart={(event) => onResizeStart(event, handle)}
+            onMouseDown={(event) => onResizeStart(event, nearestHandle(event, event.currentTarget, handle))}
+            onTouchStart={(event) => onResizeStart(event, nearestHandle(event, event.currentTarget, handle))}
             title={isLineHandle ? undefined
               : element.type !== 'text' ? t.dragToResizeTitle
               // On a comb the two grips do different jobs, and saying so is the

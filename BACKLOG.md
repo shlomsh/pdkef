@@ -121,6 +121,7 @@ _None._
 | MOBI-05 | P2 | [MOBI-05](backlog/tasks/MOBI-05.md) · Tap a detected checkbox to place a mark in it |
 | MOBI-07 | P2 | [MOBI-07](backlog/tasks/MOBI-07.md) · Pre-generate the signed PDF so Share is one tap, not two |
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
+| MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
 
 ### Retired
 
