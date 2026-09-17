@@ -9,6 +9,11 @@ test.use({serviceWorkers:'block'});
 // carrying every tool's work in one `work` map rather than one record per
 // tool. `tools` below is which tools have work on that entry, derived the
 // same way readDraftMeta/hasDraftHint do - see draftStore.js's header comment.
+// QUAL-10: opening or restoring an unchanged document deliberately does not
+// write to `work` any more - only a real edit does (useDraftPersistence.js's
+// `isDirty`), so a freshly opened file's `tools` stays `[]` here. Use
+// currentIndexRow below to assert the entry itself (cacheRecentFile writes
+// that independently of isDirty) rather than `work`.
 async function draftSnapshot(page) {
   return page.evaluate(async () => {
     const dbs = await indexedDB.databases();
@@ -27,6 +32,21 @@ async function draftSnapshot(page) {
       };
     });
   });
+}
+
+// MEM-01: the entry's index row (pdf-toolkit:workspace:recent-files) is
+// where preview/savedAt live now, found via the tool's pointer
+// (pdf-toolkit:workspace:current:<tool>) - see draftStore.js's header
+// comment. Both are read directly here rather than through draftStore.js
+// itself, the same way ToolPageLayout.astro's own pre-paint script does,
+// since page.evaluate cannot import an ES module.
+async function currentIndexRow(page, tool) {
+  return page.evaluate(tool => {
+    const id = localStorage.getItem('pdf-toolkit:workspace:current:' + tool);
+    if (!id) return null;
+    const entries = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
+    return entries.find(entry => entry.id === id) ?? null;
+  }, tool);
 }
 
 test('complete stories, information, session handoff, and real bundled sample entry', async ({ page }) => {
@@ -57,7 +77,10 @@ test('complete stories, information, session handoff, and real bundled sample en
   await expect(page).toHaveURL(/\/sign\/$/);
   await expect(page.locator('canvas').first()).toBeVisible({timeout:20000});
   await expect(page.getByText(SAMPLE_FILE_NAME, {exact:true}).first()).toBeVisible();
-  await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({fileName:SAMPLE_FILE_NAME, tools: expect.arrayContaining(['sign'])})]));
+  // QUAL-10: opening alone deliberately writes no `work` (that starts on the
+  // first real edit); the entry and its current-tool pointer are what land
+  // immediately, which is what the recents card below actually reads.
+  await expect.poll(async () => (await currentIndexRow(page, 'sign'))?.fileName).toBe(SAMPLE_FILE_NAME);
   await page.goto('/');
   const recent = page.locator('.workspace-launcher button[aria-label^="Open recent PDF"]');
   await expect(recent).toContainText(SAMPLE_FILE_NAME);
@@ -90,22 +113,6 @@ test('the complete form fits above the dock on a laptop and iPhone-sized viewpor
   }
 });
 
-
-// MEM-01: the entry's index row (pdf-toolkit:workspace:recent-files) is
-// where preview/savedAt live now, found via the tool's pointer
-// (pdf-toolkit:workspace:current:<tool>) - see draftStore.js's header
-// comment. Both are read directly here rather than through draftStore.js
-// itself, the same way ToolPageLayout.astro's own pre-paint script does,
-// since page.evaluate cannot import an ES module.
-async function currentIndexRow(page, tool) {
-  return page.evaluate(tool => {
-    const id = localStorage.getItem('pdf-toolkit:workspace:current:' + tool);
-    if (!id) return null;
-    const entries = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
-    return entries.find(entry => entry.id === id) ?? null;
-  }, tool);
-}
-
 test('the same source PDF is deduplicated to its latest tool and opens from the desktop launcher', async ({ page }) => {
   const bytes = readFileSync('public/images/redaction-guide/sample.pdf');
   for (const tool of ['sign','redact']) {
@@ -113,7 +120,10 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await page.locator('input[type="file"]').first().setInputFiles({name:`my-${tool}-document.pdf`,mimeType:'application/pdf',buffer:bytes});
     await expect(page.locator('canvas').first()).toBeVisible();
-    await expect.poll(() => draftSnapshot(page)).toEqual(expect.arrayContaining([expect.objectContaining({fileName:`my-${tool}-document.pdf`, tools: expect.arrayContaining([tool])})]));
+    // QUAL-10: opening alone writes no `work` (that starts on the first real
+    // edit) - the entry and its current-tool pointer are what dedup/resume
+    // actually read, so assert those instead of `work`.
+    await expect.poll(async () => (await currentIndexRow(page, tool))?.fileName).toBe(`my-${tool}-document.pdf`);
     await expect.poll(async () => (await currentIndexRow(page, tool))?.preview).toMatch(/^data:image/);
   }
   // The index row's savedAt is what the tile's "just now" reads; the home page
