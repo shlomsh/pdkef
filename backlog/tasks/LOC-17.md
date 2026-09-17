@@ -45,3 +45,10 @@ on, `+900%` YoY against a flat "jadi 1 mb" ("to 1 MB").
   it does not reopen LOC-14's gate, it closes this line of work.
 - **No second Indonesian page and no second language starts before this read is in** - the rule
   carries over unchanged from LOC-15.
+
+*2026-09-17:* second indexing request the same day (the page was absent from the Coverage -> Valid
+export). The field was re-read with `hl=id&gl=id`: not thin at 1 MB, and gethonestpdf.com now holds the
+on-device claim natively at position three; full capture and the two decisions (reviewer deferred to
+this read; any second page is 100 KB) are in LOC-15. Read this ticket against that: page two on
+`kompres pdf 1 mb` / `di bawah 1 mb` is the success bar, and the 100 KB family's impressions are the
+signal for the next page.

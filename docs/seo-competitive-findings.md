@@ -76,7 +76,7 @@ move today.
 | LOC-12 two-month re-check | open, due 2026-11-12 | 2026-09-12 | Countries and in-language queries re-checked against the 2026-09-10 baseline; ROI gate in LOC-11 | |
 | LOC-13 Spanish target-size pilot | open | 2026-09-12 | One Mexican portal-limits page (SEO-17's model), paid native reviewer, standalone localized page (not an hreflang twin); reads eight weeks after indexing | Reviewer sourcing, portal limits research |
 | LOC-14 Indonesian target-size gate | done | 2026-09-12 | Keyword Planner 50,000/month on `kompres pdf 1 mb`, Trends steady at 1 MB, second-tier field, gate passed at 1 MB only | LOC-15 builds |
-| LOC-15 Indonesian target-size pilot | open | 2026-09-12 | One page, under 1 MB PDF plus under 200 KB photo, paid native reviewer, standalone page | Reviewer sourcing, portal-limit research |
+| LOC-15 Indonesian target-size pilot | done, reviewer deferred | 2026-09-17 | `/id/kompres-pdf-di-bawah-1-mb/` live under AI review, indexing requested 09-13 and 09-17; **field re-read with `hl=id&gl=id`: not thin at 1 MB, and gethonestpdf.com holds the on-device claim natively at position three**; reviewer hire waits for the read; any second page is 100 KB (three of nine results translated) | LOC-17, 2026-11-08 |
 
 ---
 
@@ -90,6 +90,12 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   control `/unlock/` stayed at 08-21, so the visit was bought, not earned. A dated request is the
   cheapest lever on this domain and it is used once per URL. ([SEO-04](../backlog/tasks/SEO-04.md),
   [SEO-28](../backlog/tasks/SEO-28.md))
+- **The on-device claim is copyable in words, and in Indonesian it has been.** gethonestpdf.com ranks
+  third for `kompres pdf 1 mb` saying "langsung di browser" with our target sizes and portal angle,
+  the fourth language after Vietnamese, Spanish and Italian where a local site holds the claim. Only
+  the demonstrable behaviour (offline in devtools, the installable app) and the open source are not
+  copyable in a snippet; positioning reviews (section 7) should lean on those. Reviewer spend on the
+  Indonesian page is deferred to its read. ([LOC-15](../backlog/tasks/LOC-15.md))
 - **About a fifth of our impressions now come with an AI feature on the page, and Redact is 89% of
   them.** The Generative AI features report (first pulled 2026-09-17, 28 days) shows 407 impressions
   rising from single digits in August to 58 a day, tracking the recrawl. It exports impressions only.

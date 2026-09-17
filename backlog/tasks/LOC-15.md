@@ -306,3 +306,35 @@ read, split out to [LOC-17](LOC-17.md) so this ticket does not sit open with not
 *2026-09-17:* `/id/kompres-pdf-di-bawah-1-mb/` was absent from the Coverage -> Valid export; Shlomi
 re-requested it (first request 09-13), dated in `docs/seo-last-crawled.json`. Indonesia in the 7-day
 window to 09-15: 7 clicks on 232 impressions at 8.64, all on English pages.
+
+## Field re-read 2026-09-17: the on-device claim is now held natively
+
+Shlomi captured the three SERPs with `hl=id&gl=id` (Indonesian interface and location):
+
+- **`kompres pdf 1 mb`**: iLovePDF, Pi7, HonestPDF, Smallpdf (513,046 reviews), 11zon, Zamzar,
+  Canva, ihatepdf, PDF24. Seven of nine native; only Zamzar and ihatepdf carry the translated badge.
+- **`kompres pdf di bawah 1 mb`**: iLovePDF, Pi7, Smallpdf, 11zon, ihatepdf (translated), FreeCompress,
+  Adobe's own `id_id` page, easypdf.fr's dated "Kompres PDF ke 1 MB Gratis: 5 Jenis Dokumen Diuji"
+  (18 Aug 2026, this page's exact shape), PDF24. Eight of nine native.
+- **`kompres pdf 100kb`**: Pi7, Adobe (translated), Zamzar (translated), 11zon, PDFgear (translated),
+  iLovePDF, Duplichecker, ZeePDF, HiPDF. Three of nine translated, more small sites, no tested-documents
+  content page. The thinnest of the three.
+
+**The line above, "No result in any of the five SERPs claims on-device processing", no longer holds.**
+gethonestpdf.com, position three on `kompres pdf 1 mb`, natively: *"Kompres PDF langsung di browser dan
+gratis, termasuk ke ukuran tertentu seperti 1 MB, 500 KB, atau 200 KB untuk batas unggah pendaftaran dan
+lamaran kerja"*. That is this page's claim, its target sizes and its portal angle, held by a competitor
+in Indonesian. The pattern LOC-11 found in Vietnamese (O.Convertor), Spanish (UnePDF) and Italian
+(regispro.it) has arrived here too.
+
+**Decisions from it (Shlomi, 2026-09-17):**
+
+- **Reviewer hire deferred to the LOC-17 read (2026-11-08).** The page is live under AI review; native
+  polish does not create a differentiator the field no longer lacks. If it reaches page two on its own,
+  the reviewer is the next spend; if it gets no impressions, the reviewer would not have changed that.
+- **A second Indonesian page, if any, targets 100 KB, not 1 MB**: the thinner field, and the size
+  Indonesian users already type at the English `/compress/` (7-day window to 09-15: Indonesia 232
+  impressions, 7 clicks, `kompres pdf 100kb` and `kompres pdf dibawah 100kb` among the queries).
+- **The on-device claim is copyable in words.** What is not copyable is the demonstrable behaviour
+  (offline in devtools, the installable app) and the open source; the SEO-11 protocol's evidence list
+  should lean on those two. Noted in the findings doc.
