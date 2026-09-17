@@ -25,6 +25,7 @@ const ROOTS = new Map([
   ['font-assets', 'public/fonts'],
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
+  ['i18n', 'src/i18n'],
 ]);
 
 describe('ownerOf', () => {
@@ -77,7 +78,9 @@ describe('ownerOf', () => {
     ['src/tools/edit-pages/PdfEditPagesTool.tsx', 'tool-edit-pages'],
     ['src/pages/index.astro', 'site'],
     ['src/data/tools.js', 'site'],
-    ['src/i18n/toolMessages.ts', 'site'],
+    // DEBT-07: src/i18n/ got its own Nx project (same shape as site-test), so
+    // this now resolves to 'i18n', not the 'site' fallback it used to.
+    ['src/i18n/toolMessages.ts', 'i18n'],
     ['public/fonts/Kalam-Regular.ttf', 'font-assets'],
     ['e2e/sign/hebrew-composition-guard.spec.js', 'fonts'],
     ['e2e/sign/fixtures/exportRenderBaseline.json', 'fonts'],
