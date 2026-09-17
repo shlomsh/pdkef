@@ -27,7 +27,11 @@ jsdom cost more than the tests it hosted, so a pure-logic test in `src/lib`, `sr
 starts with `// @vitest-environment jsdom`.
 
 Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tests under
-`src/tools/<tool>/e2e/`. `e2e/` itself now holds only the cross-tool specs and the font screening
+`src/tools/<tool>/e2e/`. A spec earns its place only by asserting something jsdom genuinely cannot -
+a real tab close/reopen surviving through real browser storage, real layout or line-wrapping, a real
+Fullscreen API element, drag-time pointer behaviour, a hydration/CSP flow - not by re-proving what a
+unit test already proves under jsdom (DEBT-13); the 1:10 figure is a smell to notice when a tool's e2e
+folder is growing, never a target to hit. `e2e/` itself now holds only the cross-tool specs and the font screening
 guards under `e2e/sign/`. A spec under `src/tools/<tool>/e2e/` may only visit that tool's own page;
 one that also visits another tool's page belongs under `e2e/` instead, enforced statically by rule 7
 in `docs/module-boundaries.md` (`npm run test:module-boundaries`). `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
