@@ -1,0 +1,31 @@
+[
+  {
+    "id": "c001",
+    "pageIndex": 0,
+    "bounds": { "x": 0.1, "y": 0.1, "width": 0.3, "height": 0.05 },
+    "kind": "comb",
+    "label": "מספר זהות (9 ספרות)",
+    "cells": 9,
+    "required": "unknown",
+    "confidence": 0.8,
+    "source": "pdfjs-layout"
+  },
+  {
+    "id": "c002",
+    "pageIndex": 0,
+    "bounds": { "x": 0.5, "y": 0.5, "width": 0.02, "height": 0.02 },
+    "kind": "radio",
+    "required": "unknown",
+    "confidence": 0.9,
+    "source": "pdfjs-layout"
+  },
+  {
+    "id": "c003",
+    "pageIndex": 0,
+    "bounds": { "x": 0.9, "y": 0.9, "width": 0.05, "height": 0.05 },
+    "kind": "checkbox",
+    "required": "unknown",
+    "confidence": 0.6,
+    "source": "pdfjs-layout"
+  }
+]
