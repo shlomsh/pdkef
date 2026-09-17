@@ -19,7 +19,7 @@ title: 'כלי PDF חינמיים - פרטיים, מקומיים, בלי הרש�
 description: 'חבילת כלי PDF חינמית וקוד פתוח שרצה כולה בדפדפן שלכם. מיזוג, חתימה, פיצול, טשטוש, כיווץ והמרה של קבצי PDF, בלי העלאה לשרת, בלי חשבון ובלי סימן מים. הקבצים שלכם לא עוזבים את המכשיר.'
 h1: 'כלי PDF חינמיים שרצים אך ורק על המכשיר שלכם'
 h1Accent: 'על המכשיר שלכם'
-subhead: 'מיזוג, חתימה, פיצול, טשטוש וכיווץ קבצי PDF. בלי הרשמה, בלי התקנה, שום דבר לא יוצא מהמכשיר שלכם.'
+subhead: 'איחוד, פיצול, כיווץ, חתימה, טשטוש והמרה של קבצי PDF. עשרה כלי PDF, בלי הרשמה, בלי התקנה, ושום דבר לא יוצא מהמכשיר שלכם.'
 faqKicker: 'כמה תשובות שימושיות'
 faq:
   - question: 'האם הכלים באמת חינמיים?'
@@ -87,14 +87,14 @@ closing:
 locale: 'he'
 status: 'published'
 reviewer: 'Claude Sonnet 5'
-reviewedAt: '2026-09-12'
+reviewedAt: '2026-09-17'
 reviewNotes: >-
-  Hebrew copy drafted by Claude Sonnet 5 per docs/home-page-localization-plan.md
-  section 7, then read through by Shlomi on the rendered page. 2026-09-12
-  (SEO-34): English title, description, subhead and faq changed to target
-  "pdf tools"; Hebrew does not yet mirror them; re-reviewed and approved by
-  Shlomi on the deployed site the same day. 2026-09-15 (MEM-03):
-  draftPersistence.paragraph/availability changed in homeContent.js (opening
-  a different file no longer clears saved work) and re-translated to match;
-  not yet re-reviewed.
+  Hebrew copy drafted by Claude Sonnet 5 per
+  docs/home-page-localization-plan.md section 7, read through by Shlomi on the
+  rendered page. 2026-09-12 (SEO-34): English title, description, subhead and
+  faq retargeted to "pdf tools"; re-approved by Shlomi on the deployed site.
+  2026-09-15 (MEM-03): draftPersistence paragraph/availability re-translated,
+  not yet re-reviewed. 2026-09-17: subhead now mirrors the English (order,
+  המרה, עשרה כלי PDF) and says איחוד, the merge synonym LOC-03 found ranking;
+  wording chosen by Shlomi.
 sourceHash: 'fnv1a64:589f978553f6aaf5'
