@@ -53,6 +53,18 @@ async function drawRedaction(page, styleName, startRatio, endRatio) {
   await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
 }
 
+async function measureRestoreCls(page) {
+  await page.addInitScript(() => {
+    let cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) cls += entry.value;
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+    window.__savedWorkRestoreCls = () => cls;
+  });
+}
+
 // Same idea as sign-draft-restore.spec.js's putSecondEntryOnPointer: writes a
 // second, unrelated entry straight into the workspace store and points
 // Redact at it, standing in for a manual pick of a different PDF without
@@ -95,9 +107,12 @@ test('Redact resumes a closed tab\'s work, and moving the pointer to a second fi
 
   await page.close();
   const reopened = await context.newPage();
+  await reopened.setViewportSize({ width: 1440, height: 900 });
+  await measureRestoreCls(reopened);
   await reopened.goto('/redact/');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(1, { timeout: 10_000 });
+  expect(await reopened.evaluate(() => window.__savedWorkRestoreCls())).toBeLessThanOrEqual(0.1);
 
   const fileB = await makePdfBuffer('file B');
   // Leave the editor first, as a person would (home page), so its pagehide

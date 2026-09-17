@@ -53,6 +53,32 @@ async function addText(page, text, xRatio, yRatio) {
   await expect(input).toHaveValue(text);
 }
 
+async function measureRestoreCls(page) {
+  await page.addInitScript(() => {
+    let cls = 0;
+    const followupTrace = [];
+    let framesRemaining = 180;
+    const sample = () => {
+      const followups = document.querySelector('[data-tool-followups]');
+      if (followups) {
+        followupTrace.push({
+          visible: getComputedStyle(followups).visibility === 'visible',
+          editorReady: Boolean(document.querySelector('[data-tool-shell]')),
+        });
+      }
+      if (framesRemaining-- > 0) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) cls += entry.value;
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+    window.__savedWorkRestoreCls = () => cls;
+    window.__savedWorkFollowupTrace = () => followupTrace;
+  });
+}
+
 // Writes a second, unrelated entry straight into the workspace store and
 // points Sign at it - the equivalent of a manual pick of a different PDF,
 // done through the store directly (page.evaluate) rather than through the
@@ -97,12 +123,22 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   // The real content-addressed pointer, captured before anything else moves it.
   const entryAId = await page.evaluate(() => localStorage.getItem('pdf-toolkit:workspace:current:sign'));
   expect(entryAId).toBeTruthy();
+  // Returning users can choose Relaxed. The pre-paint reservation must cover
+  // that preference too, even though the hero itself stays expanded.
+  await page.evaluate(() => localStorage.setItem('pdf-toolkit:view-density', 'relaxed'));
 
   await page.close();
   const reopened = await context.newPage();
+  await reopened.setViewportSize({ width: 900, height: 900 });
+  await measureRestoreCls(reopened);
   await reopened.goto('/sign/');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
+  await expect(reopened.locator('html')).toHaveAttribute('data-view-density', 'relaxed');
+  await expect(reopened.locator('html')).toHaveAttribute('data-draft-hint', '1');
+  expect(await reopened.evaluate(() => window.__savedWorkFollowupTrace()
+    .some(({ visible, editorReady }) => visible && !editorReady))).toBe(false);
+  expect(await reopened.evaluate(() => window.__savedWorkRestoreCls())).toBeLessThanOrEqual(0.1);
 
   // Put a second, distinct file on the pointer directly through the store.
   const fileB = await makePdfBuffer('file B');
@@ -126,4 +162,21 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await reopened.goto('/sign/');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
+});
+
+test('Sign ignores a stale saved-work pointer before its first paint', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await measureRestoreCls(page);
+  await page.addInitScript(() => {
+    localStorage.clear();
+    localStorage.setItem('pdf-toolkit:workspace:current:sign', 'sha256:stale');
+  });
+
+  await page.goto('/sign/');
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await expect(page.getByText('Choose file', { exact: true })).toBeVisible();
+  // A pointer without a matching recent-file index row cannot restore. Do not
+  // reserve a viewport first and collapse it after hydration.
+  await expect(page.locator('html')).not.toHaveAttribute('data-draft-hint');
+  expect(await page.evaluate(() => window.__savedWorkRestoreCls())).toBeLessThanOrEqual(0.1);
 });

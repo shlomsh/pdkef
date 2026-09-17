@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
@@ -80,6 +80,19 @@ export default function PdfRedactTool() {
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [elements, setElements] = useState<RedactHistoryElement[]>([]);
+  // A returning person already knows this editor contains saved work. Do not
+  // spend the identity row repeating the neutral newcomer tip after that work
+  // restores; tool-specific instructions remain available whenever a tool is
+  // armed. Manual picks deliberately reset this to the welcoming default.
+  const [showWelcomeTip, setShowWelcomeTip] = useState(true);
+  // Draft persistence needs an editor-owned baseline, not a guess based on
+  // when a File object first appeared. A load/restoration captures the current
+  // revision; every real document operation advances it.
+  const [documentRevision, setDocumentRevision] = useState(0);
+  const [draftBaselineRevision, setDraftBaselineRevision] = useState(0);
+  const documentRevisionRef = useRef(documentRevision);
+  documentRevisionRef.current = documentRevision;
+  const markDocumentEdited = () => setDocumentRevision((revision) => revision + 1);
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
@@ -241,6 +254,14 @@ export default function PdfRedactTool() {
   };
 
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // The restored document's 77 page canvases acquire their intrinsic size
+  // asynchronously. Keep the informational content below the editor out of
+  // paint until all of those dimensions are real: otherwise it visibly walks
+  // down once per canvas while Redact reconstructs a long saved document.
+  // This is deliberately Redact-local; Sign's workspace has its own render
+  // path and this is not a layout contract shared with Merge.
+  const renderedPageNumbersRef = useRef(new Set<number>());
+  const [sizedPageCount, setSizedPageCount] = useState(0);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
@@ -253,6 +274,15 @@ export default function PdfRedactTool() {
   useEffect(() => () => {
     loadIdRef.current++;
     loadControllerRef.current?.cancel();
+  }, []);
+
+  const handlePageViewportReady = useCallback((pageNum: number) => {
+    // PdfPageCanvas calls this immediately after it gives the canvas its real
+    // viewport dimensions. A Set makes repeated React effects harmless and
+    // correctly accepts a legitimate 300×150 PDF page.
+    if (renderedPageNumbersRef.current.has(pageNum)) return;
+    renderedPageNumbersRef.current.add(pageNum);
+    setSizedPageCount(renderedPageNumbersRef.current.size);
   }, []);
 
   // What the Delete tool can offer to click on: images and text runs the PDF
@@ -309,6 +339,9 @@ export default function PdfRedactTool() {
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
       initialize: () => {
+        renderedPageNumbersRef.current = new Set();
+        setSizedPageCount(0);
+        setShowWelcomeTip(!restored);
         setFile(selected);
         setPdfDocument(null);
         setNumPages(0);
@@ -316,6 +349,7 @@ export default function PdfRedactTool() {
         setProgress(0);
         setElements(presetElements);
         setActionHistory(preset.actionHistory);
+        setDraftBaselineRevision(documentRevisionRef.current);
         setUndoSelection(new Set());
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
@@ -360,6 +394,7 @@ export default function PdfRedactTool() {
     elements,
     actionHistory,
     status,
+    isDirty: documentRevision !== draftBaselineRevision,
     loadStartedRef,
     loadPdf,
     isElement: isRedactHistoryElement,
@@ -412,6 +447,7 @@ export default function PdfRedactTool() {
         const id = uniqueId();
         const element: RedactHistoryElement = { id, pageIndex, ...patch, type, color };
         setElements(prev => [...prev, element]);
+        markDocumentEdited();
         logAction('add', `ADD_${type.toUpperCase()}`, pageIndex, `Added ${type} box`, [captureAddedElement(element, elements.length)]);
         setAnnouncement(`Added ${type} box.`);
         disarmTool();
@@ -451,6 +487,7 @@ export default function PdfRedactTool() {
     const nextElements = revertHistoryEntries(elements, entries);
     const survivingIds = new Set(nextElements.map((element) => element.id));
     setElements(nextElements);
+    markDocumentEdited();
     setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     const revertedIds = new Set(entries.map((entry) => entry.id));
@@ -466,11 +503,12 @@ export default function PdfRedactTool() {
 
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
+    if (!el) return;
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     setElements(prev => prev.filter(el => el.id !== id));
+    markDocumentEdited();
     setActiveBoxId(prev => (prev === id ? null : prev));
     setSelectedBoxId(prev => (prev === id ? null : prev));
-    if (!el) return;
     const entry = createActionEntry<RedactHistoryElement>({
       operation: 'delete', type: 'DELETE_ELEMENT', pageIndex: el.pageIndex, description: `Deleted ${el.type} box`, elements: snapshots,
     });
@@ -480,6 +518,7 @@ export default function PdfRedactTool() {
 
   const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
+    markDocumentEdited();
   };
 
   // Delete tool: clicking a highlighted object queues it for removal by
@@ -509,6 +548,7 @@ export default function PdfRedactTool() {
       end: object.end,
     };
     setElements(prev => [...prev, element]);
+    markDocumentEdited();
     logAction(
       'add',
       'ADD_DELETE',
@@ -568,6 +608,7 @@ export default function PdfRedactTool() {
   // type), so this only has to append it and make it the new selection.
   const cloneElement = (cloned: RedactHistoryElement) => {
     setElements(prev => [...prev, cloned]);
+    markDocumentEdited();
     setSelectedBoxId(cloned.id);
     setActiveBoxId(cloned.id);
     logAction('add', 'DUPLICATE_ELEMENT', cloned.pageIndex, `Duplicated ${cloned.type} box`, [captureAddedElement(cloned, elements.length)]);
@@ -579,6 +620,7 @@ export default function PdfRedactTool() {
     const snapshots = captureElementSnapshots(elements, (element) => element.pageIndex === pageIndex);
     const removedIds = removed.map(el => el.id);
     setElements(prev => prev.filter(el => el.pageIndex !== pageIndex));
+    markDocumentEdited();
     setActiveBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
     const description = `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`;
@@ -718,6 +760,7 @@ export default function PdfRedactTool() {
           className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'redacting' ? ` ${workspaceStyles['is-processing']}` : ''}`}
           ref={workspaceRef}
           aria-busy={status === 'redacting'}
+          data-redact-workspace-ready={numPages > 0 && sizedPageCount === numPages ? 'true' : 'false'}
         >
           <RedactToolbar
             activeStyle={activeStyle}
@@ -740,6 +783,7 @@ export default function PdfRedactTool() {
             handoffReady={!!exportedForHandoff}
             handoffBusy={handoffBusy}
             onCompressHandoff={() => { void requestCompressHandoff(); }}
+            showWelcomeTip={showWelcomeTip}
           />
 
           <div className={workspaceStyles['pages-container']}>
@@ -767,7 +811,11 @@ export default function PdfRedactTool() {
                     position: 'relative',
                   }}
                 >
-                  <PdfPageCanvas pdfDocument={pdfDocument} pageNum={i + 1} />
+                  <PdfPageCanvas
+                    pdfDocument={pdfDocument}
+                    pageNum={i + 1}
+                    onViewportReady={handlePageViewportReady}
+                  />
 
                   {/* Render existing redaction boxes (delete marks render separately below - they
                       have no color/drag/resize, so RedactBox and the registry it draws through

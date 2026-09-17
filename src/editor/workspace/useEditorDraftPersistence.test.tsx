@@ -16,7 +16,7 @@ vi.mock('../../lib/thumbnails.js', () => ({
   renderDraftPreview: vi.fn(() => Promise.resolve(null)),
 }));
 
-import { loadDraft } from '../../lib/drafts/draftStore.js';
+import { deleteDraft, loadDraft } from '../../lib/drafts/draftStore.js';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
@@ -49,6 +49,7 @@ function baseProps(overrides: any = {}) {
     elements: [],
     actionHistory: [],
     status: 'idle',
+    isDirty: false,
     loadStartedRef: { current: false },
     loadPdf: vi.fn(),
     isElement: isEditorElement,
@@ -63,11 +64,15 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     (loadDraft as any).mockReset();
+    (deleteDraft as any).mockReset();
+    (deleteDraft as any).mockResolvedValue(true);
   });
 
   afterEach(() => {
     act(() => render(null, container));
     container.remove();
+    document.documentElement.removeAttribute('data-draft-hint');
+    document.documentElement.removeAttribute('data-editor-restore');
   });
 
   it('calls loadPdf once with only the valid elements from a mixed record', async () => {
@@ -133,6 +138,31 @@ describe('useEditorDraftPersistence - restore migrates and validates', () => {
     await waitAsync();
 
     expect(props.loadPdf).not.toHaveBeenCalled();
+  });
+
+  it('discards invalid editor work and its first-paint markers so it cannot re-arm on the next visit', async () => {
+    // The persistence hook has already established that bytes exist before it
+    // calls onRestore. An empty filename therefore reaches editor validation
+    // and represents a malformed record the generic store cannot diagnose.
+    (loadDraft as any).mockResolvedValue({
+      fileName: '',
+      fileType: 'application/pdf',
+      fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+      elements: [],
+    });
+    document.documentElement.setAttribute('data-draft-hint', '1');
+    document.documentElement.setAttribute('data-editor-restore', '1');
+
+    const props = baseProps({ tool: 'redact' });
+    act(() => {
+      render(<Harness apiRef={{ current: null }} props={props} />, container);
+    });
+    await waitAsync();
+
+    expect(props.loadPdf).not.toHaveBeenCalled();
+    expect(deleteDraft).toHaveBeenCalledWith('redact');
+    expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-editor-restore')).toBe(false);
   });
 
   it('forwards only validated, self-contained history commands to the editor loader', async () => {

@@ -2,7 +2,7 @@ import { useMemo } from 'preact/hooks';
 import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
-import { takeHandoff } from '../../lib/drafts/draftStore.js';
+import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
 
 interface DraftRecord {
   fileName: string;
@@ -19,6 +19,8 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
   status: string;
+  /** Explicitly supplied by the editor's document baseline/revision contract. */
+  isDirty: boolean;
   loadStartedRef: { current: boolean };
   loadPdf: (
     file: File,
@@ -46,6 +48,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   elements,
   actionHistory,
   status,
+  isDirty,
   loadStartedRef,
   loadPdf,
   isElement,
@@ -69,6 +72,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     elements,
     extra,
     status,
+    isDirty,
     // A pending handoff is a file the user dropped on the home page one
     // navigation ago, so it opens ahead of any draft. Resolving it *before*
     // loadDraft rather than racing it is what makes that deterministic: both are
@@ -88,7 +92,14 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       if (loadStartedRef.current) return;
       const validated = validateDraftRecord(migrateDraftRecord(record), isElement);
       if (!validated) {
+        // `loadDraft` found an entry, but this editor cannot safely render its
+        // work. Merely removing the live first-paint marker would make this
+        // visit recover, then let the same current-entry pointer re-arm the
+        // marker on every later navigation. Remove only this tool's malformed
+        // work (the source PDF and any other tool's work remain in recents),
+        // exactly as a failed restored PDF load does through clearDraft.
         clearDraftHintAttribute();
+        void deleteDraft(tool).catch(() => {});
         return;
       }
       loadStartedRef.current = true;

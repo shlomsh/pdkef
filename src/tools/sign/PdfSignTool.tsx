@@ -114,7 +114,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [sourceBytes, setSourceBytes] = useState<ArrayBuffer | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision, draftBaselineRevision }, dispatch } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   // Export errors are recoverable without unmounting the editor. A failed
@@ -539,8 +539,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
-        dispatch({ type: 'SET_ELEMENTS', payload: presetElements });
-        dispatch({ type: 'SET_ACTION_HISTORY', payload: preset.actionHistory });
+        dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: presetElements, actionHistory: preset.actionHistory } });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         dispatch({ type: 'SET_TOOL', payload: null });
         seedUniqueId(presetElements);
@@ -609,6 +608,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     elements,
     actionHistory,
     status,
+    isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
     loadStartedRef,
     loadPdf,
     isElement: isEditorElement,

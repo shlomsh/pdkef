@@ -91,6 +91,19 @@ describe('SignToolContext Reducer', () => {
     expect(nextState.elements).toEqual(elements);
   });
 
+  it('treats a loaded or restored document as the autosave baseline', () => {
+    const elements = [textElement('restored-1')];
+    const history = [addHistory('history-1', 'ADD_TEXT', elements[0])];
+    const state = { ...initialState, documentRevision: 7 };
+    const loaded = reducer(state, { type: 'LOAD_DOCUMENT', payload: { elements, actionHistory: history } });
+
+    expect(loaded.elements).toEqual(elements);
+    expect(loaded.actionHistory).toEqual(history);
+    expect(loaded.documentRevision).toBe(8);
+    expect(loaded.draftBaselineRevision).toBe(8);
+    expect(reducer(loaded, { type: 'UPDATE_ELEMENT', payload: { id: 'restored-1', changes: { text: 'Edited' } } }).documentRevision).toBe(9);
+  });
+
   it('increments the document revision for every change that can invalidate an export', () => {
     const withRevision: SignToolState = { ...initialState, documentRevision: 7, elements: [textElement('el-1')] };
     expect(reducer(withRevision, { type: 'UPDATE_ELEMENT', payload: { id: 'el-1', changes: { text: 'Changed' } } }).documentRevision).toBe(8);

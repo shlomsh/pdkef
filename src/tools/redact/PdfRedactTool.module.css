@@ -231,3 +231,17 @@
   min-width: 24px;
   min-height: 24px;
 }
+
+/* A saved Redact workspace can be dozens of canvas pages long. pdf.js gives
+   each canvas its final dimensions independently, so content after the
+   workspace would otherwise become visible and then step downward during a
+   restore. ToolPageLayout already hides the stream until the editor shell
+   mounts; this Redact-only refinement releases it after the canvas geometry is
+   stable. It applies only to an explicitly hinted saved-work restore, never
+   to an ordinary file pick. */
+:global(html[data-editor-restore]:has([data-redact-workspace-ready='false']) [data-tool-followups]) {
+  /* ToolPageLayout's shell-ready rule deliberately restores visibility with
+     the same selector weight. This later, tool-specific readiness condition
+     must win until the final canvas sets its viewport. */
+  visibility: hidden !important;
+}

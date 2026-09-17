@@ -9,10 +9,16 @@ export default function PdfPageCanvas({
   pdfDocument,
   pageNum,
   pageGeometry,
+  onViewportReady,
 }: {
   pdfDocument: PDFDocumentProxy | null;
   pageNum: number;
   pageGeometry?: PageGeometry;
+  /** Optional consumer signal emitted once this canvas has its final layout
+   * dimensions. Redact uses it to release static content after a saved
+   * multi-page workspace has stopped growing; callers that omit it retain the
+   * existing rendering behavior. */
+  onViewportReady?: (pageNum: number) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -37,6 +43,7 @@ export default function PdfPageCanvas({
 
         canvas.width = viewport.width;
         canvas.height = viewport.height;
+        onViewportReady?.(pageNum);
 
         const context = getPdfRenderContext(canvas);
         if (!context || !active) return;
@@ -57,7 +64,7 @@ export default function PdfPageCanvas({
       renderTask?.cancel?.();
       page?.cleanup?.();
     };
-  }, [pdfDocument, pageNum, pageGeometry?.rotation]);
+  }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady]);
 
   return (
     <canvas

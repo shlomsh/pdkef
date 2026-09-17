@@ -154,10 +154,10 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      opt-out instead of permanent, and a per-tool `condenseOnLoad` flag
      (`[data-hero-condensable]`, only rendered on the header when the tool
      opts in - see src/data/tools.js) so short single-card tools never fold at
-     all. The draft-hint trigger already bakes the density check into whether
-     `data-draft-hint` gets set (ToolPageLayout.astro's inline script only
-     sets it when density is condensed), so it only needs the condensable
-     gate repeated here - not the density one again.
+     all. `data-draft-hint` itself is density-independent: ToolPageLayout also
+     uses it to reserve space while saved work restores for Relaxed users.
+     These selectors therefore repeat the density gate, so changing to
+     Relaxed expands the hero while the reservation remains available.
 
      A third gate, viewport width, was added 2026-09-12 (Shlomi, from the
      /compress/ and /merge/ pass: picking a file used to shrink this title and
@@ -177,7 +177,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      fit again before ever reverting this split. */
   @media (max-width: 1023px) {
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable],
-    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] {
+    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
 
       /* Below the desktop breakpoint the hero opens with 56px (pt-14) of air
@@ -189,7 +189,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     }
 
     :global(html[data-view-density='condensed']:has([data-tool-shell])) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
+    :global(html[data-view-density='condensed'][data-draft-hint]) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
     }
   }
@@ -207,24 +207,34 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      asked for - that request was about the automatic, permanent fold on
      tools with no control to turn it back on.
 
-     Nothing here can reach `src/data/tools.js` or add a marker to
-     `ToolShell.tsx` (both out of scope for this change), so Sign/Redact are
-     told apart by `ViewControl`'s own DOM footprint instead:
-     `[aria-label="View density"]`, which only that control renders and only
-     once a file is open - the same moment `[data-tool-shell]` and this gate
-     start mattering. Every other condensable tool (Compress included) has
-     no such element and falls through to the desktop-relaxed rule above. */
+     Once hydration has mounted the editor, Sign/Redact are told apart by
+     `ViewControl`'s own DOM footprint: `[aria-label="View density"]`. During
+     a saved-work restore, however, that control cannot exist yet: the inline
+     head script has already established the validated, Sign/Redact-only
+     `data-editor-restore` marker while IndexedDB and Preact are still loading.
+     It is the synchronous equivalent of the mounted control, so both paths
+     must use the identical declarations. This keeps the pre-paint geometry
+     from changing when the control appears.
+
+     The marker is deliberately narrower than `data-draft-hint`. Merge also
+     uses the latter to reserve its first viewport, but has no View Density
+     control. ToolPageLayout only writes `data-editor-restore` after the
+     current pointer matches a recent-file index row; an obviously stale
+     pointer therefore remains a fresh, expanded visit instead of collapsing
+     then expanding when hydration rejects it. Every other condensable tool
+     (Compress included) falls through to the desktop-relaxed rule above. */
   @media (min-width: 1024px) {
     :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable],
-    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] {
+    :global(html[data-view-density='condensed'][data-editor-restore]) .tool-hero[data-hero-condensable] {
       padding-bottom: 0.75rem;
       --hero-title: 1.75rem;
       --hero-icon: 2.5rem;
     }
 
     :global(html[data-view-density='condensed']:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub],
-    :global(html[data-draft-hint]:has([aria-label='View density'])) .tool-hero[data-hero-condensable] [data-hero-sub] {
+    :global(html[data-view-density='condensed'][data-editor-restore]) .tool-hero[data-hero-condensable] [data-hero-sub] {
       display: none;
     }
+
   }
 </style>

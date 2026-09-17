@@ -80,6 +80,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
+| QUAL-10 | P1 | [QUAL-10](backlog/tasks/QUAL-10.md) · Saved-work restore must not shift Sign, Redact, or Merge |
 
 ### In progress
 

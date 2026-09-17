@@ -66,6 +66,12 @@ async function flushDebounceAndMicrotasks() {
   });
 }
 
+function renderFirstEdit(apiRef, props, container) {
+  act(() => {
+    render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'first-edit' }] }} />, container);
+  });
+}
+
 describe('useDraftPersistence - save outcome reporting', () => {
   let container;
   let apiRef;
@@ -87,9 +93,11 @@ describe('useDraftPersistence - save outcome reporting', () => {
   it('keeps a preview that finishes before the debounced save writes its older snapshot', async () => {
     saveDraft.mockResolvedValue(true);
     renderDraftPreview.mockResolvedValueOnce('data:image/jpeg;base64,preview');
+    const props = baseProps();
     await act(async () => {
-      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+      render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    renderFirstEdit(apiRef, props, container);
     await flushDebounceAndMicrotasks();
     expect(attachDraftPreview).toHaveBeenLastCalledWith('sign', 'data:image/jpeg;base64,preview');
     expect(attachDraftPreview.mock.invocationCallOrder.at(-1)).toBeGreaterThan(saveDraft.mock.invocationCallOrder.at(-1));
@@ -97,9 +105,12 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('reports "saved" only once the underlying write actually succeeds', async () => {
     saveDraft.mockResolvedValue(true);
+    const props = baseProps();
     act(() => {
-      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+      render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    expect(apiRef.current.result.draftSaveState).toBe('idle');
+    renderFirstEdit(apiRef, props, container);
     expect(apiRef.current.result.draftSaveState).toBe('pending');
 
     await flushDebounceAndMicrotasks();
@@ -111,9 +122,11 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('reports "error", never "saved", when the write fails without throwing', async () => {
     saveDraft.mockResolvedValue(false);
+    const props = baseProps();
     act(() => {
-      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+      render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    renderFirstEdit(apiRef, props, container);
 
     await flushDebounceAndMicrotasks();
 
@@ -123,9 +136,11 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
   it('reports "error", never "saved", when the write rejects', async () => {
     saveDraft.mockRejectedValue(new Error('storage unavailable'));
+    const props = baseProps();
     act(() => {
-      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+      render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    renderFirstEdit(apiRef, props, container);
 
     await flushDebounceAndMicrotasks();
 
@@ -145,6 +160,18 @@ describe('useDraftPersistence - save outcome reporting', () => {
     expect(apiRef.current.result.draftSaveState).toBe('idle');
   });
 
+  it('does not write or announce a save for an unedited opened file', async () => {
+    saveDraft.mockResolvedValue(true);
+    act(() => {
+      render(<Harness apiRef={apiRef} props={baseProps()} />, container);
+    });
+
+    await flushDebounceAndMicrotasks();
+
+    expect(saveDraft).not.toHaveBeenCalled();
+    expect(apiRef.current.result.draftSaveState).toBe('idle');
+  });
+
   it('does not let an older successful write mark a newer failed revision saved', async () => {
     let finishFirst;
     saveDraft
@@ -154,11 +181,12 @@ describe('useDraftPersistence - save outcome reporting', () => {
     act(() => {
       render(<Harness apiRef={apiRef} props={props} />, container);
     });
+    renderFirstEdit(apiRef, props, container);
     const firstRevision = apiRef.current.result.draftSaveRevision;
     await flushDebounceAndMicrotasks();
 
     act(() => {
-      render(<Harness apiRef={apiRef} props={{ ...props, elements: [{ id: 'newer-edit' }] }} />, container);
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'newer-edit' }] }} />, container);
     });
     expect(apiRef.current.result.draftSaveRevision).toBeGreaterThan(firstRevision);
     await flushDebounceAndMicrotasks();
@@ -170,6 +198,56 @@ describe('useDraftPersistence - save outcome reporting', () => {
       await Promise.resolve();
     });
     expect(apiRef.current.result.draftSaveState).toBe('error');
+  });
+
+  it('never flushes an untouched restored document on hide or page exit', async () => {
+    saveDraft.mockResolvedValue(true);
+    const visibilityDescriptor = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    try {
+      act(() => {
+        render(<Harness apiRef={apiRef} props={baseProps({ elements: [{ id: 'restored-edit' }], isDirty: false })} />, container);
+      });
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'));
+        window.dispatchEvent(new Event('pagehide'));
+      });
+      await flushDebounceAndMicrotasks();
+      expect(saveDraft).not.toHaveBeenCalled();
+      expect(apiRef.current.result.draftSaveState).toBe('idle');
+    } finally {
+      if (visibilityDescriptor) Object.defineProperty(document, 'visibilityState', visibilityDescriptor);
+    }
+  });
+
+  it('writes the first genuine edit once even if pagehide beats its debounce', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    await flushDebounceAndMicrotasks();
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+
+  it('keeps an already-saved revision settled when pagehide fires later', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    await act(async () => Promise.resolve());
+
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
   });
 });
 

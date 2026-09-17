@@ -1,6 +1,7 @@
 // @ts-nocheck - test-only, mirrors PageStrip.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
+import { useState } from 'preact/hooks';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { webcrypto } from 'node:crypto';
 // fake-indexeddb, not a mock of draftStore.js: MERGE-13's own draftStore.test.js
@@ -32,6 +33,30 @@ import { planForFile } from '../mergePlan.ts';
 
 function Harness({ apiRef, options }) {
   apiRef.current = useMergeDraft(options);
+  return null;
+}
+
+// Mirrors PdfMergeTool's restore path: parent state is rebuilt from the
+// stored files, then page-count/thumbnail inspection eventually declares the
+// restored workspace complete. Keeping that stateful bridge here makes the
+// no-autosave assertion cover the hook's real render/effect timing.
+function RestoredWorkspaceHarness({ apiRef, autosaveDebounceMs = 40 }) {
+  const [restored, setRestored] = useState(null);
+  const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(false);
+  const [addPageNumbers, setAddPageNumbers] = useState(false);
+  const entries = restored?.files.map((file, id) => ({ id, file, pageCount: null, thumbnail: null, error: null })) ?? [];
+  const draft = useMergeDraft({
+    enabled: true,
+    entries,
+    plan: restored?.plan ?? [],
+    options: { addPageNumbers },
+    title: 'merged_invoice',
+    outputName: null,
+    restoreHydrationComplete,
+    autosaveDebounceMs,
+    onRestore: setRestored,
+  });
+  apiRef.current = { ...draft, setRestoreHydrationComplete, setAddPageNumbers };
   return null;
 }
 
@@ -167,6 +192,42 @@ describe('useMergeDraft', () => {
     await mount(apiRef, baseOptions({ onRestore }));
 
     expect(onRestore.mock.calls[0][0].outputName).toBe('Custom name');
+  });
+
+  it('keeps a restored workspace idle through derived hydration and only saves a later real edit', async () => {
+    await saveDraft('merge', {
+      files: [{ fileName: 'invoice.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('A').buffer }],
+      plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+      options: { addPageNumbers: false }, fileName: 'merged_invoice', schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+    });
+    const before = await loadDraft('merge');
+    const apiRef = { current: null };
+    act(() => render(<RestoredWorkspaceHarness apiRef={apiRef} />, container));
+    await act(async () => { await wait(80); });
+    expect(apiRef.current.draftSaveState).toBe('idle');
+    await flushDebounce(150);
+    expect((await loadDraft('merge')).revision).toBe(before.revision);
+
+    // The delayed inspect/thumbnail completion itself is still clean.
+    act(() => apiRef.current.setRestoreHydrationComplete(true));
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('idle');
+    expect((await loadDraft('merge')).revision).toBe(before.revision);
+
+    // A person changing an option after restore gets the normal one-save
+    // lifecycle, proving the quiet baseline did not disable persistence.
+    act(() => apiRef.current.setAddPageNumbers(true));
+    expect(apiRef.current.draftSaveState).toBe('pending');
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('saved');
+    const afterEdit = await loadDraft('merge');
+    expect(afterEdit.revision).toBe(before.revision + 1);
+
+    // A late pagehide after the debounce is a flush only when there is work
+    // it has not already persisted; this settled edit must stay one write.
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    await flushDebounce(100);
+    expect((await loadDraft('merge')).revision).toBe(afterEdit.revision);
   });
 
   it('treats a stored record with an out-of-range plan fileId as no draft: nothing restored, the record deleted, the hint attribute cleared', async () => {

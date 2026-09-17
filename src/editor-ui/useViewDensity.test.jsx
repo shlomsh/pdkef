@@ -93,13 +93,10 @@ describe('useViewDensity', () => {
     expect(apiRef.current[0]).toBe('condensed');
   });
 
-  // Regression: ToolPageLayout.astro's pre-paint script sets a static
-  // `data-draft-hint` attribute for CLS avoidance before hydration, and
-  // ToolHero.astro's collapse CSS treats it as its own trigger, independent
-  // of `data-view-density`. Switching to Relaxed at runtime must retire that
-  // stale hint too, or the hero stays collapsed and the click looks like a
-  // no-op - see ToolHero.astro's comment on the two gates.
-  it('switching away from condensed clears a stale draft-hint attribute', () => {
+  // The hint reserves space while saved work restores. Its hero treatment is
+  // density-gated in ToolHero, so switching to Relaxed must preserve the hint
+  // rather than reintroduce an editor-size layout shift.
+  it('switching away from condensed preserves a saved-work hint', () => {
     document.documentElement.setAttribute('data-draft-hint', '1');
     act(() => {
       render(<Harness apiRef={apiRef} />, container);
@@ -107,7 +104,7 @@ describe('useViewDensity', () => {
     expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
 
     act(() => apiRef.current[1]('relaxed'));
-    expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(false);
+    expect(document.documentElement.hasAttribute('data-draft-hint')).toBe(true);
   });
 
   it('does not touch draft-hint while density stays condensed', () => {
