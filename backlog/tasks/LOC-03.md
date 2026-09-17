@@ -187,4 +187,21 @@ verbs (`מיזוג pdf בחינם`, `איחוד קבצי pdf אונליין חי
 and subhead but the `seoTitle` says only `מיזוג`; GSC has the `איחוד` family at 25 to 46 and the
 `מיזוג` family at 37 to 43, both below the `צירוף` row. This is the Hebrew edition of SEO-35's
 "combine" move: add `איחוד` to the `seoTitle`, nothing else, and let 11-06 read it. Shlomi reviews
-Hebrew copy, so it ships only with his wording. Filed as the next step, not done here.
+Hebrew copy, so it ships only with his wording. Shipped the same day, next section.
+
+## 2026-09-17: seoTitle gains איחוד, pending Shlomi's Hebrew wording approval
+
+Per this ticket's own "Hebrew merge SERPs, captured 2026-09-17" section: `/he/merge/`'s h1 and subhead
+already say איחוד, but `seoTitle` said only מיזוג, and Google's page one for `איחוד קבצי pdf` is titles
+that carry איחוד while we are absent there (present for `צירוף קבצים`). `seoTitle` changed from
+`'מיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'` to
+`'מיזוג ואיחוד קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'` on branch
+`claude/he-merge-title-ichud`. No other field changed: `sourceHash` hashes the normalized English
+`tools.js` source, which is untouched, so it did not need updating; `reviewNotes` already sat at 597 of
+its 600-character schema max with no room for a new dated entry, so it was left as-is rather than
+trimming the existing history. `status` stays `'published'` and `reviewedAt` stays `2026-09-12`, matching
+how earlier unreviewed AI-drafted copy in this file was handled: shipped, not re-approved. This title
+wording is pending Shlomi's review the same way; flip `reviewedAt`/add a `reviewNotes` line once he signs
+off on the Hebrew.
+
+*Landed 2026-09-17:* Shlomi read the old and new title side by side and said to proceed. Reads at 11-06 with the rest of the pilot.
