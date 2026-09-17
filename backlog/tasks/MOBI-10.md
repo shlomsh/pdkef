@@ -1,15 +1,21 @@
 ---
 id: "MOBI-10"
 title: "Spike: can PDF Inspector map a flat form into answerable fields?"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done"
 ---
 
 # MOBI-10 · Spike: can PDF Inspector map a flat form into answerable fields?
+
+**Done 2026-09-17, decision REWORK.** Record: [docs/mobi-10-field-map-spike.md](../../docs/mobi-10-field-map-spike.md).
+anydoc / pdf-inspector emits no coordinates for PDF input at all, so it cannot help locate fields;
+the on-device geometry path reaches 70-87% recall, 80-89% precision, 83-97% labels on the two
+Hebrew forms, under the gate for automatic filling and inside it for a reviewable field map. The
+follow-up is MOBI-11. Tooling and reviewed ground truth live in `scripts/spike/mobi-10/`.
 
 ## Why this is a prerequisite
 
@@ -118,10 +124,10 @@ This spike produces a written **GO**, **NO-GO**, or **REWORK** decision.
 
 ## Acceptance criteria
 
-- [ ] A local, reproducible spike runner accepts `--input <pdf-path>` and does not require an external upload.
-- [ ] A short research report records package/license/version evidence, including the resolved `pdf-inspector` version, supported metadata, local bundle/runtime impact, and offline/CSP feasibility.
-- [ ] The reviewed page-1 field map and annotated overlay exist for the original income-tax form; the source PDF itself is not committed.
-- [ ] Baseline, PDF Inspector/AnyDoc, PDF.js/vector, and combined results are reported using the defined metrics for the Hebrew form and a second non-Hebrew form.
-- [ ] The report contains a clear GO/NO-GO/REWORK recommendation and, if GO, a narrowly scoped implementation ticket for a reviewable field-map stage before conversational filling.
-- [ ] No production dependency or automatic-fill behavior is added by this spike.
+- [x] A local, reproducible spike runner accepts `--input <pdf-path>` and does not require an external upload.
+- [x] A short research report records package/license/version evidence, including the resolved `pdf-inspector` version, supported metadata, local bundle/runtime impact, and offline/CSP feasibility.
+- [x] The reviewed page-1 field map and annotated overlay exist for the original income-tax form; the source PDF itself is not committed.
+- [x] Baseline, PDF Inspector/AnyDoc, PDF.js/vector, and combined results are reported using the defined metrics for the Hebrew form and a second form. The second form (the health declaration) is also Hebrew, at the owner's choice; a Latin-script form is carried into MOBI-11.
+- [x] The report contains a clear GO/NO-GO/REWORK recommendation and, if GO, a narrowly scoped implementation ticket for a reviewable field-map stage before conversational filling.
+- [x] No production dependency or automatic-fill behavior is added by this spike.
 
