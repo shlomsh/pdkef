@@ -193,7 +193,8 @@ function printTable(report) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const truth = readJson(args.truth);
-  const targets = truth.targets || [];
+  // CONTRACT.md puts pageIndex on the ground-truth file, not on each target.
+  const targets = (truth.targets || []).map((t) => ({ pageIndex: truth.pageIndex ?? 0, ...t }));
   const candidates = readJson(args.candidates);
 
   const { matches, misses, falsePositives } = greedyMatch(targets, candidates, args.iou);
