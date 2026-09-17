@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { parse } from 'yaml';
-import { LANGUAGE_COVERAGE } from '../editor/text/fontCoverageReport.js';
+import { LANGUAGE_COVERAGE } from '../../editor/text/fontCoverageReport.js';
 
 const pagePath = path.join(process.cwd(), 'src/content/content-pages/sign-pdf-in-your-language.yaml');
 const page = parse(readFileSync(pagePath, 'utf8'));
