@@ -144,10 +144,13 @@ export default function RedactToolbar({
           // comes back the moment the chip's 5s timer clears or Undo is
           // pressed. It rides inside EditorToolStatus's stack rather than
           // replacing it so the slot keeps its reserved height while the chip
-          // comes and goes (see that component's `override`).
+          // comes and goes (see that component's `override`). Nothing reserves
+          // height for the chip itself, so it must never be taller than the
+          // rows that are reserved: one line, ellipsised, never wrapped
+          // (`.undo-chip-text`).
           override={undoAction && (
             <span className={redactStyles['undo-chip']}>
-              {undoAction.message}
+              <span className={redactStyles['undo-chip-text']}>{undoAction.message}</span>
               <button type="button" className={redactStyles['undo-chip-btn']} onClick={onUndoAction}>Undo</button>
             </span>
           )}
