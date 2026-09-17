@@ -401,10 +401,10 @@ export function useMergeDraft({
   // in-flight write's completion can paint over it - derive pending for the
   // new snapshot until its own effect records the real state, so there is no
   // transient stale "Draft saved" chip between an edit and its own autosave.
-  const draftSaveState: MergeDraftSaveState = restoredSnapshotIsClean
-    ? 'idle'
-    : saveState.state === 'conflict'
+  const draftSaveState: MergeDraftSaveState = saveState.state === 'conflict'
     ? 'conflict'
+    : restoredSnapshotIsClean
+    ? 'idle'
     : saveState.revision === currentRevision
     ? saveState.state
     : (canPersist ? 'pending' : 'idle');

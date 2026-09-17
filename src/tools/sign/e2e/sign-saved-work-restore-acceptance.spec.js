@@ -163,7 +163,12 @@ for (const restoreCase of RESTORE_CASES) {
     await restored.goto('/sign/');
     await restored.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(restored.locator('[data-editor-text-input]')).toHaveValue('Saved before restoring');
-    await expect(restored.getByText('77 pages', { exact: false })).toBeVisible();
+    // The restored page count is in the identity at every width; below 560px
+    // SIGN-27 keeps that meta text out of the one-row phone card, so only
+    // its presence is asserted there.
+    const pageCount = restored.getByText('77 pages', { exact: false });
+    if (restoreCase.viewport.width < 560) await expect(pageCount).toHaveCount(1);
+    else await expect(pageCount).toBeVisible();
 
     // More than the 700ms debounce: a restore is not an edit, so neither the
     // pending nor saved chip may appear after the editor has settled.
