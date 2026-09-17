@@ -98,11 +98,12 @@ _None._
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
-| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Blocked
 
