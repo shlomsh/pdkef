@@ -59,9 +59,11 @@ for (const tool of tools) {
       const toolbar = page.locator('[role="toolbar"]');
       const name = card.locator('[class*="name"]').first();
 
-      // Idle: the filename is the row, and there is no thumbnail beside it.
+      // Idle: the filename is the row, and there is no thumbnail beside it
+      // (FilePreview's box is ToolShell.module.css's `.icon`, hashed to
+      // `_icon_…`; the status line's `help-icon` glyph does not match that).
       await expect(name).toBeVisible();
-      expect(await card.locator('[class*="icon"] img, [class*="icon"] svg').count()).toBe(0);
+      expect(await card.locator('[class*="_icon_"], img').count()).toBe(0);
       const idleCard = await rect(card);
       const idleToolbar = await rect(toolbar);
       expect(idleCard.height, `card is ${idleCard.height}px tall`).toBeLessThanOrEqual(MAX_CARD_HEIGHT);

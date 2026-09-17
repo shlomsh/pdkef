@@ -147,12 +147,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  max-width: 100%;
+  min-width: 0;
   padding: 0.25rem 0.7rem;
   font-size: 0.8rem;
+  white-space: nowrap;
   color: var(--color-text);
   background: var(--color-success-soft);
   border: 1px solid var(--color-success);
   border-radius: var(--radius-pill);
+}
+
+/* One line, always. The status slot's height is reserved by the armed tools'
+   rows (EditorToolStatus), not by this chip, so a message that wrapped would
+   grow the sticky card on its way in and shrink it on its way out - the
+   second one 5s later with no input to excuse it. "Cleared 3 boxes on page
+   12" losing its tail to an ellipsis on a narrow phone is the cheaper loss. */
+.undo-chip-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .undo-chip-btn {
