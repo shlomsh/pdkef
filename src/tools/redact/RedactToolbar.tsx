@@ -47,6 +47,7 @@ export default function RedactToolbar({
   handoffReady = false,
   handoffBusy = false,
   onCompressHandoff,
+  showWelcomeTip = true,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -74,6 +75,9 @@ export default function RedactToolbar({
   handoffReady?: boolean;
   handoffBusy?: boolean;
   onCompressHandoff?: () => void;
+  /** A restored document is already in progress, so omit the newcomer-only
+   * idle tip until the person selects a tool. */
+  showWelcomeTip?: boolean;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -137,7 +141,7 @@ export default function RedactToolbar({
               <button type="button" className={redactStyles['undo-chip-btn']} onClick={onUndoAction}>Undo</button>
             </span>
           </div>
-        ) : (
+        ) : (activeToolCopy || showWelcomeTip) ? (
           <EditorToolStatus
             copy={activeToolCopy}
             locked={toolLocked}
@@ -145,7 +149,7 @@ export default function RedactToolbar({
             idle="Tip: pick a tool to start. Delete takes an image or text run out of the file itself."
             reserveCopies={Object.values(TOOL_COPY)}
           />
-        )
+        ) : null
       }
     >
       <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">

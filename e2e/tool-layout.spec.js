@@ -76,6 +76,103 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
   }
 });
 
+// The Sign/Redact editor is restored asynchronously, while the inline head
+// script knows synchronously that a local entry is likely. On desktop, its
+// `data-editor-restore` marker must therefore select precisely the same hero
+// geometry that the hydrated View Density control selects later. A bare
+// draft-hint is intentionally insufficient: it is also used by Merge and can
+// be stale, so it must keep the ordinary fresh-visit hero rather than produce
+// a collapse followed by an inverse shift when the hint is rejected.
+test('uses the hydrated Sign/Redact density geometry for a validated first-paint restore only', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/sign/');
+
+  const measureHero = () => page.evaluate(() => {
+    const hero = document.querySelector('.tool-hero');
+    const title = hero?.querySelector('h1');
+    const icon = hero?.querySelector('.tool-hero-icon');
+    const subhead = hero?.querySelector('[data-hero-sub]');
+    if (!hero || !title || !icon || !subhead) return null;
+    return {
+      height: hero.getBoundingClientRect().height,
+      titleSize: getComputedStyle(title).fontSize,
+      iconSize: icon.getBoundingClientRect().width,
+      paddingBottom: getComputedStyle(hero).paddingBottom,
+      subheadDisplay: getComputedStyle(subhead).display,
+    };
+  });
+
+  await page.evaluate(() => {
+    document.documentElement.setAttribute('data-view-density', 'condensed');
+    document.documentElement.removeAttribute('data-draft-hint');
+    document.documentElement.removeAttribute('data-editor-restore');
+  });
+  const fresh = await measureHero();
+
+  // A stale generic hint is not proof that this is the Sign/Redact editor
+  // restore path. In particular, it cannot substitute for the marker before
+  // ViewControl has mounted.
+  await page.evaluate(() => document.documentElement.setAttribute('data-draft-hint', '1'));
+  const staleHint = await measureHero();
+  expect(staleHint).toEqual(fresh);
+
+  await page.evaluate(() => document.documentElement.setAttribute('data-editor-restore', '1'));
+  const firstPaintRestore = await measureHero();
+
+  await page.evaluate(() => {
+    document.documentElement.removeAttribute('data-editor-restore');
+    const control = document.createElement('div');
+    control.setAttribute('aria-label', 'View density');
+    control.dataset.testViewDensity = '1';
+    document.body.appendChild(control);
+  });
+  const hydratedControl = await measureHero();
+
+  expect(firstPaintRestore).not.toEqual(fresh);
+  expect(firstPaintRestore).toEqual(hydratedControl);
+});
+
+// A localStorage pointer and its recents row can agree while IndexedDB has
+// already lost the actual file. The restore hook then removes both markers.
+// The layout must make that compact-to-expanded correction while the temporary
+// tool body and follow-ups are still hidden, so no already-visible content is
+// pulled up the page (inverse CLS). This test drives that exact marker-removal
+// boundary without making the layout suite depend on draft-store internals.
+test('does not create inverse CLS when a validated restore marker is later rejected', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/sign/');
+
+  await page.evaluate(async () => {
+    document.documentElement.setAttribute('data-view-density', 'condensed');
+    document.documentElement.setAttribute('data-draft-hint', '1');
+    document.documentElement.setAttribute('data-editor-restore', '1');
+    // Let the compact marker state settle before starting the observation: the
+    // user can only see the later stale-restore correction, not this test's
+    // synthetic setup transition.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    let cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (!entry.hadRecentInput) cls += entry.value;
+      }
+    }).observe({ type: 'layout-shift' });
+    window.__staleRestoreInverseCls = () => cls;
+  });
+
+  await page.evaluate(async () => {
+    document.documentElement.removeAttribute('data-editor-restore');
+    document.documentElement.removeAttribute('data-draft-hint');
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  });
+
+  // Hero typography itself necessarily changes by a few pixels when stale
+  // work becomes a fresh visit. Keep all previously visible downstream
+  // content stationary; 0.001 leaves room for that sub-pixel glyph-box
+  // remeasurement while staying two orders of magnitude below good CLS.
+  expect(await page.evaluate(() => window.__staleRestoreInverseCls())).toBeLessThanOrEqual(0.001);
+});
+
 // ToolPageLayout.astro once held the hero+card wrapper to a full viewport
 // `min-height` and centred #app inside it, which left up to 461px of blank
 // space between the card and "How it works" at 1280x900 (viewport-driven,

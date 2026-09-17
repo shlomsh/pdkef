@@ -131,8 +131,27 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
           var slug = segments[segments.length - 1] || '';
           var density = localStorage.getItem('pdf-toolkit:view-density') || 'condensed';
           document.documentElement.setAttribute('data-view-density', density);
-          if (density === 'condensed' && localStorage.getItem('pdf-toolkit:workspace:current:' + slug)) {
+          var entryId = localStorage.getItem('pdf-toolkit:workspace:current:' + slug);
+          var currentEntryIsKnown = false;
+          if (entryId) {
+            try {
+              var recentFiles = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
+              currentEntryIsKnown = Array.isArray(recentFiles) && recentFiles.some(function (entry) { return entry && entry.id === entryId; });
+            } catch (e) {
+              // The entry index is an optimisation, not the source of truth.
+              // Keep the pre-paint restore guard when it is corrupt; the
+              // IndexedDB restore will promptly clear a stale pointer before
+              // any hidden empty state can become visible.
+              currentEntryIsKnown = true;
+            }
+          }
+          if (currentEntryIsKnown) {
             document.documentElement.setAttribute('data-draft-hint', '1');
+            if (slug === 'sign' || slug === 'redact') {
+              document.documentElement.setAttribute('data-editor-restore', '1');
+            } else if (slug === 'merge') {
+              document.documentElement.setAttribute('data-merge-restore', '1');
+            }
           }
         } catch (e) {}
       })();
@@ -182,7 +201,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         not a wrapped one: e2e/tool-layout.spec.js's `body > div > div`
         locator must keep resolving to the app bar only. */}
     {(tool.slug === 'sign' || tool.slug === 'redact') && (
-      <p class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+      <p data-tool-restore-followup class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
         {messages.airplaneModeNotice}
       </p>
     )}
@@ -227,21 +246,32 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   </div>
 
   <style>
-    /* MERGE-06 (2026-09-13, Shlomi): on a desktop the hero and the empty
-       dropzone fill the first screen, so "How it works" starts below the
-       fold the way it does on the other tools' pages. Keyed off the card's
-       own `data-fill-viewport` (BasePdfTool's `fillViewport` prop, which
-       Merge sets only while it has no files), not off a page-level
-       min-height: SEO-25 removed a viewport-tall wrapper because it left up
-       to 460px of blank space under a short card, and e2e/tool-layout.spec.js
-       still guards that gap. Here the dropzone itself grows, so there is no
-       blank space to leave, and the moment a file lands the attribute goes
-       and the card flows at its own height again. */
+    /* A tool normally flows at its own height: SEO-25 deliberately removed a
+       viewport-tall wrapper because it left up to 460px of blank space below
+       a short card, and the mobile layout must never vertically centre one.
+
+       Saved work is a different first-paint state. The inline head script
+       knows synchronously that a local entry may be restored and sets
+       `data-draft-hint` before the browser paints. Sign and Redact then load
+       the actual PDF and editor asynchronously. Without the reservation
+       below, that loaded editor grows after first paint and pushes every
+       server-rendered section below it down the page - a severe CLS event.
+       Keep the old viewport/flex geometry only during this hinted restore.
+       A stale hint clears itself once IndexedDB says there is no entry, and a
+       fresh visitor never receives the attribute, so neither path gains blank
+       space.
+
+       Merge's empty state has the same desktop geometry requirement for a
+       different reason: its own card asks to fill the first viewport. */
     @media (min-width: 1024px) {
+      :global(html[data-draft-hint]) .tool-stage,
       .tool-stage:has([data-fill-viewport]) {
         min-height: calc(100svh - 3.5rem);
       }
 
+      :global(html[data-draft-hint]) .tool-stage main,
+      :global(html[data-draft-hint]) .tool-stage #app,
+      :global(html[data-draft-hint]) .tool-stage #app > astro-island,
       .tool-stage:has([data-fill-viewport]) main,
       .tool-stage:has([data-fill-viewport]) #app,
       .tool-stage:has([data-fill-viewport]) #app > astro-island {
@@ -249,6 +279,69 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         flex: 1 1 auto;
         flex-direction: column;
         min-height: 0;
+      }
+    }
+
+    /* A restored editor has an inherently document-sized body: one A4 page
+       can be taller than the viewport, and a multi-page PDF taller still.
+       A fixed min-height can only move that later shift; it cannot eliminate
+       it. Do not paint the temporary empty card or the static content stream
+       below it while Sign/Redact reconstruct saved work. The nearby
+       airplane-mode note follows the same rule. They remain in layout (so
+       their final geometry is already resolved) but are invisible until the
+       real editor shell exists. Visibility, rather than display, preserves
+       each component's native layout and prevents a card flashing at one
+       coordinate then moving to another.
+
+       `data-editor-restore` is deliberately Sign/Redact-only. Merge shares
+       `data-draft-hint` but has a different loaded shell. A failed or stale
+       restore removes both markers in useDraftPersistence, revealing the
+       ordinary empty state. */
+    :global(html[data-editor-restore]) .tool-stage [data-tool-restore-followup],
+    :global(html[data-editor-restore]) .tool-stage main,
+    :global(html[data-editor-restore]) [data-tool-followups] {
+      visibility: hidden;
+    }
+
+    :global(html[data-editor-restore]:has([data-tool-shell])) .tool-stage [data-tool-restore-followup],
+    :global(html[data-editor-restore]:has([data-tool-shell])) .tool-stage main,
+    :global(html[data-editor-restore]:has([data-tool-shell])) [data-tool-followups] {
+      visibility: visible;
+    }
+
+    /* Merge restores a saved *set* of source PDFs. Its file list and page
+       grid arrive after the lightweight persistence island, so reserving a
+       short dropzone alone still lets that temporary UI be replaced by a
+       document-sized workspace. Keep both the temporary card and the static
+       stream below it out of paint until the actual grid has mounted. Unlike
+       Sign/Redact this is not an editor shell and intentionally has its own
+       marker and readiness signal. A stale pointer releases immediately in
+       PdfMergeTool once the restore check returns with no files. */
+    :global(html[data-merge-restore]) .tool-stage main,
+    :global(html[data-merge-restore]) [data-tool-followups] {
+      visibility: hidden;
+    }
+
+    :global(html[data-merge-restore]:has([data-merge-workspace-ready])) .tool-stage main,
+    :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups] {
+      visibility: visible;
+    }
+
+    /* Merge has no ToolShell, so its compact hero cannot use ToolHero's
+       generic `[data-tool-shell]` loaded-state selector. Match the
+       synchronous restore marker and the restored workspace's stable marker
+       here, in the page layout that owns both, so 900px restores do not
+       expand the hero after the hint is cleared. */
+    @media (max-width: 1023px) {
+      :global(html[data-view-density='condensed'][data-merge-restore]) .tool-stage .tool-hero[data-hero-condensable],
+      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-stage .tool-hero[data-hero-condensable] {
+        padding-top: 1.5rem;
+        padding-bottom: 0.75rem;
+      }
+
+      :global(html[data-view-density='condensed'][data-merge-restore]) .tool-stage .tool-hero[data-hero-condensable] [data-hero-sub],
+      :global(html[data-view-density='condensed']:has([data-merge-restored-workspace])) .tool-stage .tool-hero[data-hero-condensable] [data-hero-sub] {
+        display: none;
       }
     }
 
@@ -268,8 +361,20 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
     .tool-stage:has([data-tool-loaded]) [data-merge-note] {
       display: none;
     }
+
+    /* A fresh Merge pick is user input, so folding this supporting sentence
+       away is harmless there. A restored workspace has no such input: the
+       note was in the server HTML at first paint, and removing it later
+       pulls the document and every static section upward. Keep its exact
+       slot while it is visually quiet for this restored-only path. */
+    :global(html[data-merge-restore]) [data-merge-note],
+    .tool-stage:has([data-merge-restored-workspace]) [data-merge-note] {
+      display: block;
+      visibility: hidden;
+    }
   </style>
 
+  <div data-tool-followups>
   {/* OfflineProof (DEMO-04): only Sign and Redact, the live status line
       only - see the component's own header comment for why the claim
       sentence is not rendered here anymore. */}
@@ -315,4 +420,5 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   <Footer variants={variants} locale={locale} labels={messages} />
 
   {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
+  </div>
 </BaseLayout>

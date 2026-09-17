@@ -15,6 +15,7 @@ export type { EditorElementPatch } from '../../../editor/model/editorModel.ts';
 export type SignToolAction =
   | { type: 'SET_TOOL'; payload: SignToolType | null | { tool: SignToolType; locked: boolean } }
   | { type: 'DISARM_TOOL' }
+  | { type: 'LOAD_DOCUMENT'; payload: { elements: EditorElement[]; actionHistory: ActionHistoryEntry<EditorElement>[] } }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
@@ -46,6 +47,8 @@ export interface SignToolState {
   actionHistory: ActionHistoryEntry<EditorElement>[];
   /** Monotonic document version; exports must match the version they started with. */
   documentRevision: number;
+  /** Revision captured when a file is opened/restored; later revisions are edits. */
+  draftBaselineRevision?: number;
 }
 
 export interface SignToolContextValue {
@@ -79,12 +82,28 @@ const initialState: SignToolState = {
   editingElementId: null,
   actionHistory: [],
   documentRevision: 0,
+  draftBaselineRevision: 0,
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
 
 export function reducer(state: SignToolState, action: SignToolAction): SignToolState {
   switch (action.type) {
+    // Loading is a baseline, never a person edit. Keeping that fact in the
+    // document model (rather than inferring it from File identity in the draft
+    // hook) means restored element hydration cannot accidentally autosave.
+    case 'LOAD_DOCUMENT': {
+      const documentRevision = nextDocumentRevision(state);
+      return {
+        ...state,
+        elements: action.payload.elements,
+        actionHistory: action.payload.actionHistory,
+        activeElementId: null,
+        editingElementId: null,
+        documentRevision,
+        draftBaselineRevision: documentRevision,
+      };
+    }
     case 'SET_TOOL': {
       // Payload is either a bare tool name (the common one-shot case) or
       // { tool, locked } when the user has asked to keep the tool armed.

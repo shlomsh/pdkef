@@ -380,6 +380,11 @@ export default function PdfMergeTool({
     () => ({ isRestoring: hasMergeDraftHint(), draftSaveState: 'idle' }),
   );
   const clearDraftRef = useRef<(() => Promise<boolean>) | null>(null);
+  const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(true);
+  // Persists for this mounted workspace after a valid restore. The page shell
+  // uses it to retain the first-paint geometry that a fresh picker is allowed
+  // to collapse after a user gesture.
+  const [isRestoredWorkspace, setIsRestoredWorkspace] = useState(false);
   const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
   const [handoffBusy, setHandoffBusy] = useState(false);
@@ -513,8 +518,15 @@ export default function PdfMergeTool({
   // Clear all or Start again, so the attribute goes as soon as the check has
   // settled either way. Without this the card came back blank after Clear all.
   useEffect(() => {
-    if (!draftState.isRestoring) document.documentElement.removeAttribute('data-draft-hint');
-  }, [draftState.isRestoring]);
+    if (draftState.isRestoring) return;
+    document.documentElement.removeAttribute('data-draft-hint');
+    // A Merge restore holds the temporary shell and static content below it
+    // invisible until PageStrip has mounted the real grid. Do not clear its
+    // pre-paint marker as soon as IndexedDB returns: the restored files still
+    // need to make it through inspection and this dynamically-loaded surface.
+    // A missing/stale draft has no files, so it is released immediately.
+    if (entries.length === 0 || PageStrip) document.documentElement.removeAttribute('data-merge-restore');
+  }, [draftState.isRestoring, entries.length, PageStrip]);
 
   useEffect(() => {
     let cancelled = false;
@@ -534,10 +546,13 @@ export default function PdfMergeTool({
     setModel({ entries: restoredEntries, plan });
     setAddPageNumbers(restored.options.addPageNumbers);
     setCustomOutputName(restored.outputName);
+    setRestoreHydrationComplete(false);
+    setIsRestoredWorkspace(true);
     setShowPickedUpSentence(true);
     if (pickedUpTimerRef.current) clearTimeout(pickedUpTimerRef.current);
     pickedUpTimerRef.current = setTimeout(() => setShowPickedUpSentence(false), 5000);
-    for (const entry of restoredEntries) inspectEntry(entry);
+    void Promise.allSettled(restoredEntries.map((entry) => inspectEntry(entry)))
+      .then(() => setRestoreHydrationComplete(true));
   }, []);
 
   useEffect(() => {
@@ -558,7 +573,7 @@ export default function PdfMergeTool({
   }, [grouped, entries.length > 0]);
 
   const inspectEntry = useCallback((entry: FileEntry) => {
-    inspectPdf(entry.file)
+    const inspection = inspectPdf(entry.file)
       .then(({ pageCount, encrypted, creationDate }) => {
         setModel((current) => {
           if (!current.entries.some((e) => e.id === entry.id)) return current;
@@ -589,7 +604,7 @@ export default function PdfMergeTool({
       });
     // Thumbnails are nice-to-have, not blocking: render as they resolve
     // instead of waiting before the file appears.
-    renderThumbnail(entry.file)
+    const thumbnail = renderThumbnail(entry.file)
       .then((thumbnail) => {
         setModel((current) => ({
           ...current,
@@ -597,6 +612,7 @@ export default function PdfMergeTool({
         }));
       })
       .catch(() => {});
+    return Promise.all([inspection, thumbnail]).then(() => undefined);
   }, []);
 
   const insertEntries = useCallback((newEntries: FileEntry[], atIndex: number) => {
@@ -1173,6 +1189,7 @@ export default function PdfMergeTool({
           options={draftOptions}
           title={title}
           outputName={customOutputName}
+          restoreHydrationComplete={restoreHydrationComplete}
           onRestore={onDraftRestore}
           onStateChange={setDraftState}
           registerClear={(clear) => { clearDraftRef.current = clear; }}
@@ -1199,7 +1216,11 @@ export default function PdfMergeTool({
       {hasFiles && (
         <ToolShellBridge>
           {({ requestReplace, requestClear }) => (
-            <div class={docStyles.layout}>
+            <div
+              class={docStyles.layout}
+              data-merge-workspace-ready={PageStrip && plan.length > 0 ? '' : undefined}
+              data-merge-restored-workspace={isRestoredWorkspace || undefined}
+            >
           <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
 
           {/* Phone chip row (Shlomi's reduction, wave 2): replaces the add

@@ -382,6 +382,39 @@
   padding: 0.5rem 0.75rem;
 }
 
+/* On a phone the editor identity still needs its PDF preview to read as part
+   of the document label, not as a detached line above it. The normal shell
+   intentionally remains a wrapping flex row because its independent action
+   controls need that freedom; Sign and Redact are different: their toolbar
+   always owns the next line. A tiny two-column grid keeps the preview beside
+   the filename/metadata stack, while an optional tool-status line stays below
+   the text instead of forcing either primary piece to wrap. */
+@media (max-width: 559px) {
+  .editor .identity {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      'preview text'
+      'status status';
+    column-gap: 0.55rem;
+    row-gap: 0.3rem;
+  }
+
+  .editor .icon {
+    grid-area: preview;
+  }
+
+  .editor .text {
+    grid-area: text;
+    width: 100%;
+  }
+
+  .editor .status {
+    grid-area: status;
+    margin-inline-start: 0;
+  }
+}
+
 /* From tablet up the identity states itself on one line - name, pages, size,
    draft chip, reading as a single sentence the way a document editor's title bar
    does. Stacking the name over its metadata cost a second text line, and in this

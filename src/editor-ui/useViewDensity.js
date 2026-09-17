@@ -26,17 +26,11 @@ export default function useViewDensity() {
   useEffect(() => {
     try {
       document.documentElement.setAttribute('data-view-density', density);
-      // `data-draft-hint` (ToolPageLayout.astro's pre-paint script) is a static
-      // proxy for "density was condensed at load time AND a draft exists" - it
-      // never updates itself afterward. ToolHero.astro's collapse CSS treats it
-      // as its own, density-independent trigger, so once density flips away
-      // from condensed at runtime this stale hint is the only thing left
-      // holding the hero collapsed, and clicking Relaxed would silently do
-      // nothing. Retiring it here keeps it truthful: it can only ever mean
-      // what it claims to mean at the moment it's read.
-      if (density !== 'condensed') {
-        document.documentElement.removeAttribute('data-draft-hint');
-      }
+      // `data-draft-hint` is the first-paint signal that saved work may load.
+      // It must outlive a density change because ToolPageLayout uses it to
+      // reserve the editor's desktop geometry during restoration. ToolHero
+      // independently gates its compact presentation on this density value,
+      // so Relaxed still expands the hero without discarding the restore hint.
     } catch {
       // Locked-down/private-browsing contexts: the tool must not break because
       // a preference could not be applied.

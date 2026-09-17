@@ -63,6 +63,10 @@ export interface UseMergeDraftOptions {
    * from the restored file list) apart from "renamed to something that
    * happens to equal the automatic name". */
   outputName: string | null;
+  /** False while the parent is deriving page counts and thumbnails for a
+   * restored set. Those derived values are not a user edit and must not
+   * replay the autosave/status cycle. */
+  restoreHydrationComplete?: boolean;
   onRestore: (restored: MergeDraftRestore) => void;
   /** Tests shorten the wait; the tool never passes it. */
   autosaveDebounceMs?: number;
@@ -130,6 +134,7 @@ export function useMergeDraft({
   options,
   title,
   outputName,
+  restoreHydrationComplete = true,
   onRestore,
   autosaveDebounceMs = AUTOSAVE_DEBOUNCE_MS,
 }: UseMergeDraftOptions): UseMergeDraftResult {
@@ -159,8 +164,24 @@ export function useMergeDraft({
 
   const [saveState, setSaveState] = useState<{ state: MergeDraftSaveState; revision: number }>({ state: 'idle', revision: 0 });
   const writePromisesRef = useRef(new Map<number, Promise<boolean>>());
+  // A pagehide after the debounce has already persisted this exact revision
+  // must not manufacture a second write/revision. Event handlers read this
+  // ref rather than a render's saveState closure, which can be stale at the
+  // moment a tab is being closed.
+  const savedRevisionRef = useRef<number | null>(null);
 
   const [isRestoring, setIsRestoring] = useState(() => enabled && hasDraftHint(TOOL));
+  // Restoring recreates the live entries from an already-persisted snapshot.
+  // Those state updates must not be mistaken for a person changing the merge:
+  // apart from a needless IndexedDB write it briefly surfaced "Saving draft"
+  // and "Draft saved" on every resumed workspace. The next autosave effect
+  // it is consumed once the parent has finished deriving the restored
+  // workspace. Actual edits after that still take the normal path.
+  const skipRestoredSnapshotAutosaveRef = useRef(false);
+  // `pagehide`/`visibilitychange` can land in the tiny interval between
+  // onRestore() updating the parent and the autosave effect above consuming
+  // its flag. Keep that flush from writing the same restored snapshot too.
+  const restoreInProgressRef = useRef(enabled);
 
   // A storage event never fires in the writer tab, only in its peers - see
   // draftStore.js's notifyDraftChange. Surface the conflict rather than
@@ -236,6 +257,7 @@ export function useMergeDraft({
         // started; it stays stored as a best-effort older revision, but must
         // not make the current one claim a save it never made.
         if (revision === revisionRef.current) {
+          if (saved) savedRevisionRef.current = revision;
           setSaveState({ state: saved ? 'saved' : 'error', revision });
         }
         return saved;
@@ -260,7 +282,10 @@ export function useMergeDraft({
     restoreAttempted.current = true;
     let cancelled = false;
     const stopWaiting = () => {
-      if (!cancelled) setIsRestoring(false);
+      if (!cancelled) {
+        restoreInProgressRef.current = false;
+        setIsRestoring(false);
+      }
     };
     const timeoutId = setTimeout(stopWaiting, RESTORE_TIMEOUT_MS);
     (async () => {
@@ -269,6 +294,7 @@ export function useMergeDraft({
       clearTimeout(timeoutId);
       const restore = parseRestorableRecord(record);
       if (restore) {
+        skipRestoredSnapshotAutosaveRef.current = true;
         latest.current.onRestore(restore);
       } else {
         // No usable draft: draftStore already cleared the localStorage hint
@@ -295,6 +321,15 @@ export function useMergeDraft({
   // when that revision actually moves.
   useEffect(() => {
     if (!enabled || latest.current.entries.length === 0) return undefined;
+    if (skipRestoredSnapshotAutosaveRef.current) {
+      if (!restoreHydrationComplete) return undefined;
+      skipRestoredSnapshotAutosaveRef.current = false;
+      // The stored record already represents this whole reconstructed
+      // snapshot. Mark its revision settled so a later pagehide/visibility
+      // flush cannot turn reopening a tab into a second write.
+      savedRevisionRef.current = currentRevision;
+      return undefined;
+    }
     const revision = currentRevision;
     setSaveState({ state: 'pending', revision });
     const timer = setTimeout(() => {
@@ -303,7 +338,7 @@ export function useMergeDraft({
     }, autosaveDebounceMs);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, currentRevision, autosaveDebounceMs]);
+  }, [enabled, currentRevision, autosaveDebounceMs, restoreHydrationComplete]);
 
   // Best-effort immediate flush when the tab is hidden or being unloaded.
   // Continuous debounced autosave is what actually survives a crash (a
@@ -312,9 +347,11 @@ export function useMergeDraft({
   useEffect(() => {
     if (!enabled) return undefined;
     const flush = () => {
+      if (restoreInProgressRef.current || skipRestoredSnapshotAutosaveRef.current) return;
       const { entries, plan, options, title, outputName } = latest.current;
       if (entries.length === 0) return;
       const revision = revisionRef.current;
+      if (savedRevisionRef.current === revision) return;
       setSaveState({ state: 'pending', revision });
       buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
     };
@@ -347,11 +384,18 @@ export function useMergeDraft({
   }, []);
 
   const canPersist = enabled && entries.length > 0;
+  // While restored files are being inspected, their synthetic state changes
+  // deliberately have no scheduled write. Expose that honestly as idle too:
+  // the revision mismatch below would otherwise render a misleading
+  // "Saving draft…" chip despite the autosave/flush guards above.
+  const restoredSnapshotIsClean = skipRestoredSnapshotAutosaveRef.current;
   // sourceChanged (via the revision bump above) runs during render, before an
   // in-flight write's completion can paint over it - derive pending for the
   // new snapshot until its own effect records the real state, so there is no
   // transient stale "Draft saved" chip between an edit and its own autosave.
-  const draftSaveState: MergeDraftSaveState = saveState.state === 'conflict'
+  const draftSaveState: MergeDraftSaveState = restoredSnapshotIsClean
+    ? 'idle'
+    : saveState.state === 'conflict'
     ? 'conflict'
     : saveState.revision === currentRevision
     ? saveState.state
