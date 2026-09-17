@@ -85,7 +85,15 @@ export default function RecentFiles({
                     {file.pageCount === 1 ? messages.pageCountOne : formatMessage(messages.pageCountOther, { count: file.pageCount })}
                   </span>
                 )}
-                {savedAtLabel && <span class={styles.sub}>{savedAtLabel}</span>}
+                {savedAtLabel && (
+                  // formatSavedAt resolves against the browser's locale, so
+                  // this is often an LTR "2 days ago" on an RTL page (/he/),
+                  // where the page's base direction would reorder it to
+                  // "days ago 2". <bdi> defaults to dir="auto": the string
+                  // keeps its own direction, and the localized "just now"
+                  // fallback comes through the same wrapper.
+                  <span class={styles.sub}><bdi>{savedAtLabel}</bdi></span>
+                )}
               </button>
             )}
           </li>;
