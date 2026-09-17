@@ -28,6 +28,7 @@ import {
 } from './useMergeDraft.ts';
 import {
   loadDraft, saveDraft, loadRecentFile, sourceIdForFiles, MERGE_DRAFT_MAX_BYTES,
+  setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.js';
 import { planForFile } from '../mergePlan.ts';
 
@@ -404,6 +405,51 @@ describe('useMergeDraft', () => {
     expect(recovered.files).toHaveLength(1);
     expect(new TextDecoder().decode(recovered.files[0].fileBytes)).toBe('%PDF-1.4 a.pdf');
     expect(recovered.work).toEqual({});
+  });
+
+  // DEBT-13: replaces merge-restore.spec.js's "moving the pointer to a second
+  // file set and back leaves the first set's rotation untouched" e2e test -
+  // MEM-02's pointer model (setCurrentEntry/readCurrentEntryId, a
+  // content-addressed entry per file set) is plain localStorage plus
+  // fake-indexeddb, nothing a real browser tab uniquely provides, so the same
+  // round trip proves it here: saveDraft twice (each call points 'merge' at
+  // whichever entry it just wrote, exactly like opening a different file set
+  // through the home page), then setCurrentEntry back to the first entry's id
+  // (what clicking its tile does under the hood) and confirm its plan is
+  // exactly as saved - the second entry never touched it.
+  it('moving the pointer to a second entry and back leaves the first entry\'s plan untouched', async () => {
+    await saveDraft('merge', {
+      files: [
+        { fileName: 'one.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('one').buffer },
+        { fileName: 'two.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('two').buffer },
+      ],
+      plan: [
+        { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
+        { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+      ],
+      options: { addPageNumbers: false },
+      fileName: 'merged_one',
+      schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+    });
+    const entryAId = readCurrentEntryId('merge');
+    expect(entryAId).toBeTruthy();
+
+    // A second, unrelated file set - saving it moves the 'merge' pointer.
+    await saveDraft('merge', {
+      files: [{ fileName: 'three.pdf', fileType: 'application/pdf', fileBytes: new TextEncoder().encode('three').buffer }],
+      plan: [{ key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false }],
+      options: {},
+      fileName: 'three',
+      schemaVersion: MERGE_DRAFT_SCHEMA_VERSION,
+    });
+    expect(readCurrentEntryId('merge')).not.toBe(entryAId);
+
+    setCurrentEntry('merge', entryAId);
+    const restored = await loadDraft('merge');
+    expect(restored.plan).toEqual([
+      { key: '0:0', fileId: 0, pageIndex: 0, rotation: 90, skipped: false },
+      { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+    ]);
   });
 
   it('reads each entry\'s bytes only once across several autosaves', async () => {
