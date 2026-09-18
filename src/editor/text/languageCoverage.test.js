@@ -61,7 +61,7 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     // Tillana was appended after Kalam's sibling handwriting faces.
     expect(LANGUAGE_COVERAGE.devanagari.full.map((f) => f.family)).toEqual(['Kalam', 'Tillana', 'Mukta']);
     // Marathi is a separate report row (Devanagari's set - ळ/ऱ already sit
-    // inside it, see scripts/font-languages.mjs) so a font that covered Hindi
+    // inside it, see src/editor/text/languageAlphabets.js) so a font that covered Hindi
     // but not those two letters would show up here as a real disagreement.
     expect(LANGUAGE_COVERAGE.marathi.full.map((f) => f.family)).toEqual(['Kalam', 'Tillana', 'Mukta']);
     const note = supportedNote('Hindi, Marathi, and Devanagari');
@@ -287,7 +287,7 @@ describe('Sign Languages card: combination claims implied by the copy', () => {
 
 describe('Sign Languages card: request and contribution path', () => {
   it('the currently uncovered scripts do not appear as a LANGUAGE_COVERAGE id with any coverage', () => {
-    // These ids are deliberately NOT in scripts/font-languages.mjs at all -
+    // These ids are deliberately NOT in src/editor/text/languageAlphabets.js at all -
     // the report has no row for emoji or for India's remaining scripts
     // because no bundled family draws any of them (see
     // docs/wysiwyg-text-architecture.md §4.2). Japanese, Bengali, Korean,
@@ -295,7 +295,7 @@ describe('Sign Languages card: request and contribution path', () => {
     // like these once and were removed from this list when their own
     // catalogue rows landed. Chinese never got one (it has no compact
     // alphabet the way Korean's Hangul does, see fonts.js's CATALOGUE
-    // comment and font-languages.mjs's header), so 'zh' was never a real id
+    // comment and languageAlphabets.js's header), so 'zh' was never a real id
     // and its absence here is definitional, not a graduation. Asserting the
     // real ids' absence means a language quietly gaining a report row - the
     // generator's own signal that some font now covers it - would show up as

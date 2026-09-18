@@ -202,7 +202,7 @@ export const EXPORT_RENDER_CORPUS = [
 
   // 안녕하세요 ("annyeonghaseyo", "hello", the common formal greeting) - five
   // precomposed Hangul syllables, all inside the modern syllable block
-  // Noto Sans KR covers in full (font-languages.mjs's `korean` entry).
+  // Noto Sans KR covers in full (languageAlphabets.js's `korean` entry).
   // Confirmed present via fontkit against the real NotoSansKR-Regular.ttf
   // bytes.
   textCase('korean-noto-sans-kr', '안녕하세요', { fontFamily: 'Noto Sans KR' }),

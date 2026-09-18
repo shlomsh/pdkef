@@ -4,20 +4,20 @@
  * Produced by scripts/generate-font-coverage-report.mjs from
  * src/editor/text/fontCoverageTable.js (itself generated from the real font bytes in
  * public/fonts/) and the character-set definitions in
- * scripts/font-languages.mjs. Rerun that script
+ * src/editor/text/languageAlphabets.js. Rerun that script
  * (npm run generate:font-coverage-report) and commit the result whenever a
  * font file or a language definition changes.
  * src/editor/text/fontCoverageReport.test.js regenerates this in memory and fails if
  * it disagrees with what is committed here.
  *
  * "full" means the family's -Regular.ttf has a glyph for every codepoint the
- * language's real alphabet needs (scripts/font-languages.mjs). "partial"
+ * language's real alphabet needs (src/editor/text/languageAlphabets.js). "partial"
  * means some but not all, reported as a fraction - never rounded up to full.
  *
  * "Full" is full against a stated alphabet, and two exclusions are worth
  * knowing before quoting a row: Hebrew omits meteg (U+05BD) and rafe
  * (U+05BF), and Devanagari omits the Dravidian-loan letters U+0929/U+0934.
- * Both are reasoned in scripts/font-languages.mjs. Meteg in particular is
+ * Both are reasoned in src/editor/text/languageAlphabets.js. Meteg in particular is
  * genuinely absent from Heebo, Assistant, Gveret Levin and Alef, so a
  * "Hebrew: full" row for those four means ordinary vowelized Hebrew, not
  * every mark the block defines - and someone who does type one still gets

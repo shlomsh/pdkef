@@ -51,7 +51,7 @@
  */
 
 // 32 base consonants (ক..হ), minus the same four Unicode-unassigned
-// codepoints scripts/font-languages.mjs's BENGALI_CONSONANTS excludes
+// codepoints src/editor/text/languageAlphabets.js's BENGALI_CONSONANTS excludes
 // (0x09A9, 0x09B1, 0x09B3-0x09B5 - reserved retroflex slots Bengali's block
 // never assigned), and minus RA (র) and YA (য), which this file uses as the
 // trigger letters for reph/ra-phala/ya-phala rather than as an ordinary base

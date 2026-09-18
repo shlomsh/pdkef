@@ -11,12 +11,11 @@ paths:
   - "src/tools/sign/components/ExportReadinessNotice*"
   - "src/tools/sign/components/nodes/**"
   - "src/styles/editorFonts.css"
+  - "src/tools/sign/languageAcceptance*"
   - "public/fonts/**"
-  - "scripts/font-*"
   - "scripts/fonts/**"
   - "scripts/generate-font-*"
   - "scripts/check-font-*"
-  - "scripts/display-only-fonts.mjs"
   - "scripts/*language-acceptance*"
   - "e2e/sign/*-guard.spec.js"
   - "e2e/sign/*-parity.spec.js"
@@ -148,10 +147,13 @@ Every expensive failure here was an omission.
 2. **Add the TTFs to `public/fonts/`** and run `npm run test:fonts`. If `glyf` is unaligned, repad to
    `padding = 4` in fontTools and verify outlines, metrics and cmap byte-identical per glyph (about half
    the Brahmic faces needed it).
-3. **Register** in `src/editor/text/fonts.js` (`HANDWRITING_FONTS` or `TEXT_FONTS`), add `@font-face`
-   in `src/styles/editorFonts.css`, and a label in `src/editor-ui/FontPickerMenu.tsx` if needed.
+3. **Register** the family in `src/editor/text/fontManifest.js` (kind, styleTag, metrics, faces -
+   `HANDWRITING_FONTS`/`TEXT_FONTS` in `src/editor/text/fonts.js` derive from this, nothing to edit
+   there directly) and its license metadata in the sibling `src/editor/text/fontLicenses.js`, then run
+   `npm run generate:font-manifest` to refresh `src/styles/editorFonts.css` and the
+   `THIRD_PARTY_LICENSES.md` font lists. Add a label in `src/editor-ui/FontPickerMenu.tsx` if needed.
 4. **New script: add a `SCRIPT_FALLBACKS` row.**
-5. **Update `scripts/font-languages.mjs`** for a new language or character set, then regenerate and
+5. **Update `src/editor/text/languageAlphabets.js`** for a new language or character set, then regenerate and
    commit both GENERATED files: `npm run generate:font-coverage` (`src/editor/text/fontCoverageTable.js`) and
    `npm run generate:font-coverage-report` (`src/editor/text/fontCoverageReport.js`). Their tests regenerate in
    memory and fail on disagreement.
@@ -162,9 +164,10 @@ Every expensive failure here was an omission.
    runner-pinned: run the CI workflow with the `update-export-render-baseline` input and commit the
    printed file after reviewing the diff, which should be purely additive. Missed once (FONT-05 added
    three CJK cases with no baseline and CI went red).
-8. **Attribution** in `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro`
-   (`fontAttribution.test.js`), and **user-facing copy** in `src/data/tools.js`: language list,
-   per-language note, FAQ. Any known divergence is named to the user there.
+8. **Attribution** via the `src/editor/text/fontLicenses.js` entry from step 3, checked against
+   `THIRD_PARTY_LICENSES.md` and `src/pages/licenses.astro` by `fontAttribution.test.js`, and
+   **user-facing copy** in `src/data/tools.js`: language list, per-language note, FAQ. Any known
+   divergence is named to the user there.
 9. **Check page weight**; fonts load on demand but repo and per-font size still count.
 
 ## Export mechanics

@@ -1,9 +1,10 @@
 /**
  * Named rollout and acceptance contract for text added by the Sign tool.
  *
- * `coverageIds` point at the real-alphabet definitions in font-languages.mjs.
- * Shipped rows must name the fonts and standing Chrome/PDF guards that prove
- * them. Planned rows deliberately carry no acceptance evidence.
+ * `coverageIds` point at the real-alphabet definitions in
+ * src/editor/text/languageAlphabets.js. Shipped rows must name the fonts and
+ * standing Chrome/PDF guards that prove them. Planned rows deliberately
+ * carry no acceptance evidence.
  */
 export const LANGUAGE_ACCEPTANCE_MATRIX = [
   {

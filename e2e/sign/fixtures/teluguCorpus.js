@@ -61,7 +61,7 @@
  * POLLU, U+0C58-U+0C5D) and the fraction/era signs (U+0C77-U+0C7F) are
  * deliberately excluded as historical or specialist, not part of ordinary
  * modern Telugu writing - mirroring DEVANAGARI_VOWELS' exclusion of vocalic
- * L in scripts/font-languages.mjs.
+ * L in src/editor/text/languageAlphabets.js.
  */
 
 const RA = 'ర';

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { readFile } from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../scripts/language-acceptance.mjs';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../src/tools/sign/languageAcceptance.js';
 
 const offlineLanguageLayouts = new Map([
   ['arabic', { xRatio: 0.75, yRatio: 0.25 }],

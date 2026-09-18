@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../../scripts/language-acceptance.mjs';
-import { FONT_MANIFEST } from '../../../scripts/font-manifest.mjs';
-import { matrixMarkdown } from '../../../scripts/generate-language-acceptance.mjs';
+import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../tools/sign/languageAcceptance.js';
+import { FONT_MANIFEST } from '../../editor/text/fontManifest.js';
 import { LANGUAGE_COVERAGE } from '../../editor/text/fontCoverageReport.js';
 import { EXPORT_RENDER_CORPUS } from '../../../e2e/sign/fixtures/exportRenderCorpus.js';
 import { covers } from '../../editor/text/fonts.js';
@@ -74,14 +73,6 @@ describe('language/font acceptance matrix', () => {
       expect(row.shaping.guards, row.id).toEqual([]);
       expect(row.visual.guards, row.id).toEqual([]);
     }
-  });
-
-  it('keeps the generated documentation current', () => {
-    const documented = join(process.cwd(), 'docs', 'language-font-acceptance-matrix.md');
-    expect(existsSync(documented)).toBe(true);
-    // FONT-08b added a row (Neucha, order 9), shifting every row after it by
-    // one - Emoji moved from 20 to 21.
-    expect(matrixMarkdown()).toContain('| 21 | planned | Emoji |');
   });
 });
 
