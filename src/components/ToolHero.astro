@@ -32,11 +32,13 @@ const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, s
 // safer" rule QUAL-13's h1 split used. `subhead` splits into one
 // `data-hero-sentence` span per sentence below (kept exactly as before, for
 // the phone-condensed rule that hides every sentence after the first); only
-// when the whole-subhead count is exactly 1 do we look for the sentence that
-// carries it and split that one sentence's text around a
-// `data-hero-accent` span. before + subheadAccent + after reassembles to
-// exactly that sentence, so the <p>'s textContent stays byte for byte what
-// SEO tests expect.
+// when the whole-subhead count is exactly 1 do we look for a sentence that
+// carries it whole and split that one sentence's text around a
+// `data-hero-accent` span. A phrase that straddled a ". " boundary would be
+// counted once and found in no sentence, which falls through to the same
+// unstroked render. before + subheadAccent + after reassembles to exactly
+// that sentence, so the <p>'s textContent stays byte for byte what SEO tests
+// expect.
 function countOccurrences(haystack: string, needle: string): number {
   if (!needle) return 0;
   let count = 0;

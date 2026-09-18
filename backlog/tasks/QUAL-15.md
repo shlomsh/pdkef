@@ -1,12 +1,12 @@
 ---
 id: "QUAL-15"
 title: "The citron stroke leaves the tool H1s and marks the subhead's on-device closer"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
 depends_on: ["QUAL-13"]
-legacy_state: "In progress 2026-09-19"
+legacy_state: "Done 2026-09-19"
 ---
 
 # QUAL-15 · The stroke marks the on-device closer

@@ -33,6 +33,16 @@ describe('documentation shell messages', () => {
     })).toThrow(/hi.*previewNotice/);
   });
 
+  it('lets a locale publish without heroAccent, and only without that key', () => {
+    const { heroAccent, ...withoutAccent } = getDocumentationShellMessages('en');
+    expect(heroAccent).toBe('on your device');
+    expect(() => assertDocumentationShellMessages('hi', withoutAccent)).not.toThrow();
+    expect(() => assertDocumentationShellMessages('hi', {
+      ...withoutAccent,
+      language: '',
+    })).toThrow(/hi.*language/);
+  });
+
   it('rejects a missing catalog before an RTL locale can publish', () => {
     expect(() => getDocumentationShellMessages('ar')).toThrow(/ar.*required before a page can publish/);
   });
