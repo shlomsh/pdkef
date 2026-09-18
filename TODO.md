@@ -119,6 +119,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-10 | P1 | [QUAL-10](backlog/tasks/QUAL-10.md) · Saved-work restore must not shift Sign, Redact, or Merge |
 | QUAL-11 | P2 | [QUAL-11](backlog/tasks/QUAL-11.md) · Mint and paper: retheme the palette so green is the ground and warmth is the paper |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
+| QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 
 
 ## Search acquisition: competitive keyword gaps
