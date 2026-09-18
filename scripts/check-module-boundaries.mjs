@@ -58,9 +58,9 @@
 //      generators, research tooling - none of it ships, so app source
 //      depending on it would mean the shipped app depends on files a build
 //      never bundles. Like rule 6, this holds at zero violations with no
-//      allowlist, and deliberately covers test files too: the known
-//      violation today is `src/test/editorDependencyDirectionsExceptions.test.js`
-//      importing `staleExceptions()` from `check-editor-dependency-directions.mjs`.
+//      allowlist, and deliberately covers test files too: a checker's own
+//      unit test (e.g. `check-editor-dependency-directions.test.mjs`) lives
+//      beside the script it tests, in `scripts/`, never under `src/test/`.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge this scan does
 // not see (`src/layouts/HomePageLayout.astro:464` loads `../shell/homeWorkspace.ts`
@@ -240,8 +240,8 @@ export function testImportViolations() {
 
 // --- import graph: relative-only, mirrors check-editor-dependency-directions.mjs ---
 // Exported (with importSpecifiers and IMPORT_PATTERN) so
-// src/test/moduleBoundariesImportScan.test.js can diff this scan against a real
-// TypeScript AST parse of the same files; main() only runs from the CLI.
+// scripts/check-module-boundaries.import-scan.test.mjs can diff this scan against
+// a real TypeScript AST parse of the same files; main() only runs from the CLI.
 // `testFiles: true` inverts the TEST_FILE filter to collect only test files
 // (rule 6's subject) instead of the default of everything but test files
 // (every other rule's subject); same walker, same extension list, no second
@@ -464,7 +464,7 @@ function routeMentionPattern(slug) {
 // owner}, owner being the tool that actually owns that route). Returns []
 // for a spec outside src/tools/<t>/e2e/, for one that stays on its own tool's
 // routes, and for `/` (never in routeMap, so never flagged). Exported so
-// src/test/moduleBoundariesRules.test.js can drive it with a small literal
+// scripts/check-module-boundaries.rules.test.mjs can drive it with a small literal
 // routeMap and no dependency on the real src/pages/.
 export function specRouteViolation(specRelPath, source, routeMap) {
   const ownerMatch = specRelPath.match(/^src\/tools\/([^/]+)\/e2e\//);
@@ -523,9 +523,9 @@ export function toolSpecRouteViolations() {
 // --- rule 8: nothing under src/, public/ or e2e/ may import from scripts/ -----
 // ARCH-22: scripts/ is dev-only real estate; app source may never depend on
 // it. Same shape as rule 6 - no allowlist, holds at zero violations, and
-// deliberately scans test files too, since the known violation today is one
-// (src/test/editorDependencyDirectionsExceptions.test.js importing
-// staleExceptions() from check-editor-dependency-directions.mjs). Rules 1-7
+// deliberately scans test files too - a checker's own unit test (e.g.
+// check-editor-dependency-directions.test.mjs) lives beside the script it
+// tests, in scripts/, never under src/test/. Rules 1-7
 // only ever needed to walk src/ (buildEdges()'s SRC-only collectSourceFiles());
 // this pass walks public/ and e2e/ too, of its own accord, rather than
 // widening that shared walk - public/ has no ES imports today (public/sw.js

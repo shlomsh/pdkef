@@ -1,11 +1,11 @@
 // Unit coverage for check-editor-dependency-directions.mjs's stale-exception
 // detection, the same pattern check-module-boundaries.mjs's stale-allowlist
-// handling already has a unit test for (moduleBoundariesRules.test.js drives
-// classify()/ruleViolation() the same way, against literal fixtures rather
-// than the real tree). staleExceptions() is the guard's own exported pure
-// function, not a reimplementation of it.
+// handling already has a unit test for (check-module-boundaries.rules.test.mjs
+// drives classify()/ruleViolation() the same way, against literal fixtures
+// rather than the real tree). staleExceptions() is the guard's own exported
+// pure function, not a reimplementation of it.
 import { describe, expect, it } from 'vitest';
-import { staleExceptions } from '../../scripts/check-editor-dependency-directions.mjs';
+import { staleExceptions } from './check-editor-dependency-directions.mjs';
 
 describe('editor dependency-direction guard: staleExceptions()', () => {
   it('fails an exception that no resolved edge matches', () => {

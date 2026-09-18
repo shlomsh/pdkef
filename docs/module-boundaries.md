@@ -79,8 +79,8 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
    ships. App source depending on it would mean the shipped app depends on files a build never
    bundles, and a script could be deleted or rewritten without a single product test noticing. Like
    rule 6, this holds at zero violations with no allowlist, and deliberately covers test files too -
-   the known violation today is `src/test/editorDependencyDirectionsExceptions.test.js`, which
-   imports `staleExceptions()` from `scripts/check-editor-dependency-directions.mjs`. Rules 1-7 only
+   a checker's own unit test (e.g. `scripts/check-editor-dependency-directions.test.mjs`) lives
+   beside the script it tests, in `scripts/`, never under `src/test/`. Rules 1-7 only
    ever needed to walk `src/`; rule 8's own pass (`scriptsImportViolations()`) also walks `public/`
    and `e2e/`, since either could gain a real edge into `scripts/` that a `src/`-only walk would miss.
 

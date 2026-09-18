@@ -4,7 +4,7 @@
 // scan `npm run test:module-boundaries` runs. classify()/ruleViolation() are the
 // checker's own exported helpers - this file is not a reimplementation of them.
 import { describe, expect, it } from 'vitest';
-import { classify, ruleViolation, specRouteViolation, testImportViolation } from '../../scripts/check-module-boundaries.mjs';
+import { classify, ruleViolation, specRouteViolation, testImportViolation } from './check-module-boundaries.mjs';
 
 function check(from, to) {
   return ruleViolation(classify(from), classify(to), to);
