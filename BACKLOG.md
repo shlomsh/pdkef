@@ -352,7 +352,6 @@ _None._
 | DEBT-07 | P2 | [DEBT-07](backlog/tasks/DEBT-07.md) · editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers |
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |
-| DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
 
 ### In progress
 
@@ -378,6 +377,7 @@ _None._
 | DEBT-11 | P2 | [DEBT-11](backlog/tasks/DEBT-11.md) · Split editor.md so a Merge or shell edit loads tool rules, not the Sign editor's, and src/test/ loads something |
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
+| DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
 
 ### Retired
 
