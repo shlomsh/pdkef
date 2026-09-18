@@ -86,9 +86,14 @@ describe('Mint and paper contrast contracts', () => {
     expect(contrast(home('--color-muted'), background)).toBeGreaterThanOrEqual(4.5);
   });
 
-  // QUAL-13: the tool-page hero's citron stroke (ToolHero.astro) and the
-  // editor toolbar's --color-primary-soft hover fill (SignToolbar.module.css).
-  it.each(['--color-primary-text', '--color-citron-ink'])(
+  // QUAL-13: the citron stroke's own contract, and the editor toolbar's
+  // --color-primary-soft hover fill (SignToolbar.module.css). QUAL-15 moved
+  // the stroke from the h1 (which used --color-primary-text as its own
+  // foreground, still covered above) to the subhead, whose text keeps its
+  // plain lead colour under the band: ToolHero's `<p data-hero-sub>` sets no
+  // color of its own (`.type-lead` in global.css is size/weight/line-height
+  // only), so it inherits `body`'s `--color-text`. That pair joins the set.
+  it.each(['--color-primary-text', '--color-citron-ink', '--color-text'])(
     'keeps %s AA-readable on the citron stroke',
     (foreground) => {
       expect(contrast(root(foreground), root('--color-citron'))).toBeGreaterThanOrEqual(4.5);

@@ -181,7 +181,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       condensing keys off its own data attributes and OfflineProof renders
       after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
   <div class="tool-stage flex flex-col">
-    <ToolHero icon={tool.icon} title={tool.h1} h1Accent={tool.h1Accent} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
+    <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} subheadAccent={messages.heroAccent} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
 
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
         that isn't already said elsewhere on this page - the app bar's
