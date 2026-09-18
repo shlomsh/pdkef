@@ -344,6 +344,29 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(added.textDirection).toBe('rtl');
   });
 
+  it('seeds the box with the page\'s printed direction, not the remembered one - a Hebrew form opens right-aligned even after an English field', () => {
+    // Reported live: on a Hebrew form, every field-spanned box opened with a
+    // left-aligned cursor. The placeholder is English but the person types
+    // their own language, and the page already says which way that reads.
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialDirection: 'ltr',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell], pageDirections: ['rtl'] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).textDirection).toBe('rtl');
+  });
+
+  it('leaves a free tap away from any field on the remembered direction - the page seed is for field-spanned boxes only', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialDirection: 'ltr',
+      formRegions: { combs: [], checkboxes: [], cells: [], pageDirections: ['rtl'] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).textDirection).toBe('ltr');
+  });
+
   it('never sets width on the snapped element - a free-text cell is not a comb', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',

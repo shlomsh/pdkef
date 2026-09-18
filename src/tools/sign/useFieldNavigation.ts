@@ -155,6 +155,13 @@ export default function useFieldNavigation({
     const pageWidthPoints = pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS;
     const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
     const id = createElementId();
+    // Seeded from the FORM's own printed direction, not the product's usual
+    // English/LTR default a free placement gets (PdfWorkspace.tsx) - a field
+    // reached by Next is sitting on one specific spot on a page whose own
+    // text already reads a given way, and getEffectiveTextDirection only
+    // honours this seed for a field-spanned box in the first place (see its
+    // own doc), so a free box elsewhere is never affected by it.
+    const direction = formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
     const newEl = definition.creation.create({
       id,
       pageIndex: field.region.pageIndex,
@@ -164,7 +171,7 @@ export default function useFieldNavigation({
       strokeWidth: DEFAULT_STROKE_WIDTH,
       font: initialFont,
       fontSize: initialFontSize,
-      direction: 'ltr',
+      direction,
     });
     // A comb takes the run's span and cell count; a free-text cell takes its
     // span as `minWidth` - see placeTextOnField's own docstring. Shared with

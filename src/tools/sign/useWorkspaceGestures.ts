@@ -269,6 +269,17 @@ export default function useWorkspaceGestures({
     const field: TypableField | null = combRegion
       ? { kind: 'comb', region: combRegion }
       : cellRegion ? { kind: 'cell', region: cellRegion } : null;
+    // A field-spanned box has no growing edge to anchor either way
+    // (combPlacement.ts) and is sitting on one specific spot on a page whose
+    // own text already reads a given direction, so it takes that direction -
+    // never `initialDirection`'s product default - the same seed
+    // useFieldNavigation.ts uses for the identical case reached by Next
+    // instead of a tap. getEffectiveTextDirection only honours this seed for
+    // a field-spanned box in the first place (see its own doc), so a free
+    // placement elsewhere still gets `initialDirection` untouched.
+    if (field && newEl.type === 'text') {
+      newEl.textDirection = formRegions.pageDirections?.[pageIndex] ?? initialDirection ?? 'ltr';
+    }
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;

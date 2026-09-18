@@ -9,6 +9,24 @@ describe('sign text direction helpers', () => {
     expect(getEffectiveTextDirection({ text: '27/05/2008', textDirection: 'rtl' })).toBe('ltr');
   });
 
+  it('honours the seeded direction on an empty field-spanned box (comb `width` or cell `minWidth`)', () => {
+    // A box placed on a detected field on a Hebrew form is seeded 'rtl' from
+    // the page itself (useWorkspaceGestures / useFieldNavigation). It has no
+    // growing edge to mis-anchor, so before anything is typed it shows a
+    // right-aligned cursor - the reported live bug was a left-aligned one.
+    expect(getEffectiveTextDirection({ text: '', textDirection: 'rtl', width: 17 })).toBe('rtl');
+    expect(getEffectiveTextDirection({ text: '', textDirection: 'rtl', minWidth: 26 })).toBe('rtl');
+    expect(getEffectiveTextDirection({ text: '', textDirection: 'ltr', minWidth: 26 })).toBe('ltr');
+    // Typed text still wins over the seed, both ways.
+    expect(getEffectiveTextDirection({ text: 'Hello', textDirection: 'rtl', minWidth: 26 })).toBe('ltr');
+    expect(getEffectiveTextDirection({ text: '27/05/2008', textDirection: 'rtl', width: 17 })).toBe('ltr');
+  });
+
+  it('keeps an empty field-spanned box left-anchored even when it reads RTL', () => {
+    expect(textAnchorsRightEdge({ type: 'text', text: '', textDirection: 'rtl', width: 17 })).toBe(false);
+    expect(textAnchorsRightEdge({ type: 'text', text: '', textDirection: 'rtl', minWidth: 26 })).toBe(false);
+  });
+
   it('follows the first typed strong language direction', () => {
     expect(detectTextDirection('Hello שלום')).toBe('ltr');
     expect(detectTextDirection('שלום Hello')).toBe('rtl');

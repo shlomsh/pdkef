@@ -111,11 +111,22 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
     expect(setAnnouncement).toHaveBeenCalledWith(expect.not.stringContaining('printed boxes'));
   });
 
-  it('creates a fresh field starting LTR, same as a tap does, regardless of the page direction', () => {
+  it('seeds a fresh field with the page\'s own printed direction, so an empty box on a Hebrew form already aligns right', () => {
+    // Reported live: every field-spanned box opened with a left-aligned
+    // cursor on a Hebrew form because the seed was a hardcoded 'ltr'. The
+    // English placeholder is only a hint; the person types their own language.
     const { goToNext, dispatch } = makeHook({ formRegions });
     goToNext();
     const el = addedElement(dispatch) as TextElement;
-    expect(el.textDirection).toBe('ltr');
+    expect(el.textDirection).toBe('rtl');
+  });
+
+  it('seeds LTR on a left-to-right page - the seed is the form\'s direction, not a Hebrew default', () => {
+    const { goToNext, dispatch } = makeHook({
+      formRegions: { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr'] },
+    });
+    goToNext();
+    expect((addedElement(dispatch) as TextElement).textDirection).toBe('ltr');
   });
 
   it('applies the given font/size/color, same knobs useWorkspaceGestures exposes', () => {
