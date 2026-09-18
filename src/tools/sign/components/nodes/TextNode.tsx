@@ -1,7 +1,7 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { getEffectiveTextDirection } from '../../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
@@ -241,7 +241,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           onInput={handleInput}
           onFocus={onSelect}
           style={{
-            textAlign: textDirection === 'rtl' ? 'right' : 'left',
+            textAlign: getTextAlign(element),
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
             fontWeight: typography.weight,

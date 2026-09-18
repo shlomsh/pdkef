@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
-import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, textAnchorsRightEdge } from './signHelpers.js';
+import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, getTextAlign, textAnchorsRightEdge } from './signHelpers.js';
 
 describe('sign text direction helpers', () => {
   it('defaults empty and neutral legacy fields to English/LTR', () => {
@@ -95,5 +95,35 @@ describe('dominantTextDirection', () => {
   it('gives digits and punctuation no vote and falls back to LTR', () => {
     expect(dominantTextDirection(['123', '27/05/2008', '', undefined])).toBe('ltr');
     expect(dominantTextDirection([])).toBe('ltr');
+  });
+});
+
+describe('getTextAlign', () => {
+  // A box on a detected cell of a Hebrew form: seeded RTL by the tap.
+  const onHebrewForm = (text, extra = {}) => ({ type: 'text', text, minWidth: 13, textDirection: 'rtl', ...extra });
+
+  it('puts a phone number or a date at the right of its cell on a Hebrew form, with the Hebrew answers', () => {
+    expect(getTextAlign(onHebrewForm('0528200202'))).toBe('right');
+    expect(getTextAlign(onHebrewForm('18/09/2026'))).toBe('right');
+    expect(getTextAlign(onHebrewForm(''))).toBe('right');
+  });
+
+  it('still lays those digits out left to right - only the alignment follows the form', () => {
+    expect(getEffectiveTextDirection(onHebrewForm('0528200202'))).toBe('ltr');
+  });
+
+  it('follows the text\'s own direction once it has letters', () => {
+    expect(getTextAlign(onHebrewForm('Shlomi'))).toBe('left');
+    expect(getTextAlign({ type: 'text', text: 'שלומי', minWidth: 13, textDirection: 'ltr' })).toBe('right');
+  });
+
+  it('is the person\'s explicit choice when they made one', () => {
+    expect(getTextAlign(onHebrewForm('0528200202', { textAlign: 'center' }))).toBe('center');
+    expect(getTextAlign(onHebrewForm('שלומי', { textAlign: 'left' }))).toBe('left');
+  });
+
+  it('gives a free box the start edge of its own text, never a remembered seed', () => {
+    expect(getTextAlign({ type: 'text', text: '0528200202', textDirection: 'rtl' })).toBe('left');
+    expect(getTextAlign({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('right');
   });
 });

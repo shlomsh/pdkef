@@ -149,6 +149,39 @@ describe('text serialize font choice', () => {
   });
 });
 
+describe('text serialize alignment in a field-spanned box', () => {
+  // A 20%-wide cell on a 612pt page is 122.4pt across; the stub font makes
+  // every string 42pt wide, so where each line starts is observable.
+  async function serializeSpanned(element: Record<string, unknown>) {
+    const page = { drawText: vi.fn() };
+    await textDefinition.serialize(element as never, {
+      page, pdfWidth: 612, pdfHeight: 792, pdfX: 100, pdfY: 700,
+      loadCustomFont: async () => ({ widthOfTextAtSize: () => 42 }),
+      baselineOffset: () => 0.85,
+    } as never);
+    return page.drawText.mock.calls.map(([, options]) => Number(options.x.toFixed(3)));
+  }
+
+  const base = { type: 'text', id: 't1', pageIndex: 0, left: 10, top: 10, fontSize: 12, fontFamily: 'Arimo', color: '#000000', minWidth: 20 };
+
+  it('starts a phone number at the cell\'s right edge on a Hebrew form, where the editor shows it', async () => {
+    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'rtl' })).toEqual([100 + 122.4 - 42]);
+  });
+
+  it('starts it at the left edge on an English form', async () => {
+    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'ltr' })).toEqual([100]);
+  });
+
+  it('centres it in the cell when asked to', async () => {
+    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'rtl', textAlign: 'center' })).toEqual([100 + (122.4 - 42) / 2]);
+  });
+
+  it('aligns against the box, not the cell, once a line has outgrown the cell', async () => {
+    const wide = { ...base, minWidth: 5, text: 'Shlomi', textAlign: 'right' }; // 30.6pt cell, 42pt line
+    expect(await serializeSpanned(wide)).toEqual([100]);
+  });
+});
+
 describe('comb serialize', () => {
   // A 10%-wide comb on a 612pt page is 61.2pt across; the stub font reports
   // every glyph as 42pt wide, so each x is its cell centre minus 21.

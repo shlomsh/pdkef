@@ -18,12 +18,16 @@ const RTL_CHAR = /[\u0591-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
 // is Hebrew.
 const NEUTRAL_ONLY = /^[0-9\s/\-.:,()+]*$/;
 
+/** The direction of the text's first letter, or null when it has none. */
+export function strongTextDirection(text) {
+  const firstStrong = (text || '').match(STRONG_DIRECTION_CHAR)?.[0];
+  if (!firstStrong) return null;
+  return RTL_CHAR.test(firstStrong) ? 'rtl' : 'ltr';
+}
+
 export function detectTextDirection(text) {
   const value = text || '';
-  const firstStrong = value.match(STRONG_DIRECTION_CHAR)?.[0];
-  if (firstStrong) return RTL_CHAR.test(firstStrong) ? 'rtl' : 'ltr';
-  if (value && NEUTRAL_ONLY.test(value)) return 'ltr';
-  return null;
+  return strongTextDirection(value) || (value && NEUTRAL_ONLY.test(value) ? 'ltr' : null);
 }
 
 /**
@@ -71,6 +75,27 @@ export function getEffectiveTextDirection(element) {
   return detectTextDirection(element.text)
     || ((element.width || element.minWidth) && element.textDirection)
     || 'ltr';
+}
+
+/**
+ * Which edge of its box a text element's lines sit against: an explicit
+ * `textAlign`, else the start edge of the text's own direction.
+ *
+ * Only a field-spanned box (`minWidth`) has room for this to show - a free
+ * box hugs its text and a comb places one character per cell. For that box,
+ * text with no letters of its own (a phone number, a date) follows the
+ * FORM's direction - the seed `textDirection` carries - rather than the
+ * digits' own LTR: on a Hebrew form a phone number belongs at the right of
+ * its cell like the Hebrew answers around it, not at the left (live report).
+ * Layout direction (`getEffectiveTextDirection`) deliberately stays LTR for
+ * that text - digits still read left to right - only the alignment follows
+ * the form.
+ */
+export function getTextAlign(element) {
+  if (element.textAlign) return element.textAlign;
+  const seed = element.minWidth ? element.textDirection : null;
+  const direction = strongTextDirection(element.text) || seed || getEffectiveTextDirection(element);
+  return direction === 'rtl' ? 'right' : 'left';
 }
 
 /**

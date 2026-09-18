@@ -14,7 +14,7 @@ import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '.
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
-import { getEffectiveTextDirection, hexToRgbFractions } from '../../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../../lib/signHelpers.js';
 import { resolveTypography } from '../text/fonts.js';
 import { fontkitFont, shapedWidth, type BidiDirection } from '../text/textMetrics.ts';
 
@@ -148,23 +148,29 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
     return { fallbackLine: null, lineWidth, runs, runWidths: runWidths as number[] };
   });
 
-  // Where an RTL line's right end sits. A free RTL box anchors its right edge
-  // on `left` (DraggableWrapper's `right: 100 - left`), so the line ends at
-  // pdfX. A box on a detected form cell (`minWidth`, editorModel.ts) is
-  // left-anchored like a comb and at least the cell wide, growing past it
-  // only when a line outgrows it - so its right end is the wider of the two,
-  // exactly as the wrapper's `min-width` resolves on screen.
+  // Where a line starts. A free box hugs its text: an LTR line starts at
+  // pdfX, an RTL one ends there (DraggableWrapper's `right: 100 - left`). A
+  // box on a detected form cell (`minWidth`, editorModel.ts) is left-anchored
+  // and at least the cell wide, growing only when a line outgrows it - the
+  // wrapper's `min-width` on screen - and its lines sit against whichever
+  // edge getTextAlign says, exactly as the textarea's text-align does.
   const widestLine = Math.max(0, ...measured.map((line) => line.lineWidth));
   const spanPoints = element.minWidth ? (element.minWidth / 100) * pdfWidth : 0;
-  const rtlRightEdge = element.minWidth ? pdfX + Math.max(spanPoints, widestLine) : pdfX;
+  const boxWidth = Math.max(spanPoints, widestLine);
+  const align = getTextAlign(element);
+  const lineStart = (lineWidth: number) => {
+    if (!element.minWidth) return isRtl ? pdfX - lineWidth : pdfX;
+    if (align === 'center') return pdfX + (boxWidth - lineWidth) / 2;
+    return align === 'right' ? pdfX + boxWidth - lineWidth : pdfX;
+  };
 
   measured.forEach(({ fallbackLine, lineWidth, runs, runWidths }, lineIndex) => {
     const y = baselineAdjustedY - lineIndex * lineHeight;
     if (fallbackLine !== null) {
-      page.drawText(fallbackLine, { x: isRtl ? rtlRightEdge - lineWidth : pdfX, y, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
+      page.drawText(fallbackLine, { x: lineStart(lineWidth), y, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
       return;
     }
-    let pen = isRtl ? rtlRightEdge - lineWidth : pdfX;
+    let pen = lineStart(lineWidth);
     runs.forEach((run, runIndex) => {
       drawShapedRun(page, { text: run.text, pdfFont: resolvedFont, size: fontSizeInPoints, x: pen, y, color: rgb(r, g, b), direction: run.direction });
       pen += runWidths[runIndex];

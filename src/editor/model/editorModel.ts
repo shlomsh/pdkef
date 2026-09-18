@@ -126,6 +126,13 @@ export interface TextElement extends ElementBase {
    */
   minWidth?: number;
   /**
+   * Where the text sits inside a field-spanned box (`minWidth`), when the
+   * person has chosen: absent follows the form's direction - see
+   * signHelpers' getTextAlign. A free box hugs its text and a comb places
+   * per cell, so neither has anywhere for this to show.
+   */
+  textAlign?: 'left' | 'center' | 'right';
+  /**
    * Set only on a box created by the 'date' tool: which of `dateFormat.ts`'s
    * `DateFormatId`s `text` was last rendered in, kept as a plain string here
    * (this model has no dependency on `editor/text/`) so a format switch
