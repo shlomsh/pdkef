@@ -1,9 +1,9 @@
 import { useId } from 'preact/hooks';
-import { PilcrowLeft, PilcrowRight } from 'lucide-preact';
+import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import { getEffectiveTextDirection } from '../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
 import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
@@ -38,6 +38,12 @@ export default function ElementToolbar({
   // comb.js's isComb), so clearing it here is what actually turns it off.
   const setFontSize = (fontSize: number) => onChange(isComb(element) ? { fontSize, width: 0 } : { fontSize });
   const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
+  // Only a box spanning a detected form cell has room to align in; a free box
+  // hugs its text and a comb places one character per cell.
+  const canAlign = element.type === 'text' && !!element.minWidth && !isComb(element);
+  const textAlign: 'left' | 'center' | 'right' = canAlign ? getTextAlign(element) : 'left';
+  const NEXT_ALIGN = { left: 'center', center: 'right', right: 'left' } as const;
+  const alignTitle = { left: t.alignLeftTitle, center: t.alignCenterTitle, right: t.alignRightTitle }[textAlign];
   // element.type is the geometry discriminator directly (no shape/shapeType wrapper).
   const actualType = element.type;
   const isLine = actualType === 'line';
@@ -166,6 +172,19 @@ export default function ElementToolbar({
               <PilcrowRight size={14} strokeWidth={2.5} />
             )}
           </button>
+          {canAlign && (
+            <button
+              type="button"
+              className={buttonClass()}
+              onClick={() => onChange({ textAlign: NEXT_ALIGN[textAlign] })}
+              title={alignTitle}
+              aria-label={alignTitle}
+            >
+              {textAlign === 'center' && <TextAlignCenter size={14} strokeWidth={2.5} />}
+              {textAlign === 'left' && <TextAlignStart size={14} strokeWidth={2.5} />}
+              {textAlign === 'right' && <TextAlignEnd size={14} strokeWidth={2.5} />}
+            </button>
+          )}
           {isDateField && (
             <>
               <div className={styles.divider} />

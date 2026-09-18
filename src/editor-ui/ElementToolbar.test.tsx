@@ -132,6 +132,53 @@ describe('ElementToolbar text direction indicator', () => {
   });
 });
 
+describe('ElementToolbar alignment control', () => {
+  let container: HTMLDivElement | null;
+
+  afterEach(() => {
+    if (container) {
+      act(() => render(null, container as any));
+      container.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mount(element: Record<string, unknown>, onChange: (change: Record<string, unknown>) => void = () => {}) {
+    if (container) {
+      act(() => render(null, container as any));
+      container.remove();
+    }
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(
+        <ElementToolbar element={{ id: 'align', type: 'text', fontFamily: 'Arimo', ...element }} onChange={onChange} onClone={() => {}} onDelete={() => {}} />,
+        container as any
+      );
+    });
+    return container.querySelector('button[title^="Text sits"], button[title^="Text is centred"]') as HTMLButtonElement | null;
+  }
+
+  it('offers it only on a box spanning a detected cell - not a free box, not a comb', () => {
+    expect(mount({ text: '0528200202', minWidth: 13 })).not.toBeNull();
+    expect(mount({ text: '0528200202' })).toBeNull();
+    expect(mount({ text: '038243085', width: 17 })).toBeNull();
+  });
+
+  it('shows where the text sits now and cycles left, centre, right on click', () => {
+    const changes: Record<string, unknown>[] = [];
+    const button = mount({ text: '0528200202', minWidth: 13, textDirection: 'rtl' }, (change: Record<string, unknown>) => changes.push(change))!;
+    expect(button.title).toBe('Text sits at the right of its field. Click to move it left');
+    act(() => button.click());
+    expect(changes).toEqual([{ textAlign: 'left' }]);
+    const centred = mount({ text: '0528200202', minWidth: 13, textAlign: 'center' }, (change: Record<string, unknown>) => changes.push(change))!;
+    expect(centred.title).toBe('Text is centred in its field. Click to move it right');
+    act(() => centred.click());
+    expect(changes[1]).toEqual({ textAlign: 'right' });
+  });
+});
+
 // W5 (docs/wysiwyg-text-architecture.md §3.4): Bold/Italic must be disabled,
 // not synthesised-looking, on a family with no real face for that style -
 // this used to render bold on screen and upright in the download.

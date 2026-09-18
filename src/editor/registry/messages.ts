@@ -132,6 +132,10 @@ export interface SignMessages {
   ltrTextTitle: string;
   directionRtlAria: string;
   directionLtrAria: string;
+  /** The one align control's title/aria, by the box's current alignment. */
+  alignLeftTitle: string;
+  alignCenterTitle: string;
+  alignRightTitle: string;
   oneBoxFewerTitle: string;
   boxesFixedTitle: string;
   boxesFollowingTitle: string;
