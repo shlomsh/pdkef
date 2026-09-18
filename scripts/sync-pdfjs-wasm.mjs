@@ -3,9 +3,12 @@
 // profiles through WASM modules it does not bundle a same-origin URL for by
 // default - with no `wasmUrl`, those images fail to decode and pdf.js drops
 // them from the page silently (see src/lib/pdfjsWasm.js). This script copies
-// the installed pdfjs-dist's wasm assets into public/pdfjs-dist-wasm/ so
+// the installed pdfjs-dist's wasm assets into public/<PDFJS_WASM_DIR>/ so
 // every `getDocument()` call can point `wasmUrl` at a real, same-origin
-// directory, the same treatment pdf.worker.min.mjs already gets.
+// directory, the same treatment pdf.worker.min.mjs already gets. The
+// directory name itself lives in src/lib/pdfjsWasm.js (its own URL is built
+// from the same constant); this script imports it rather than spelling it
+// twice, safe under plain Node since that module has no imports of its own.
 //
 // Runs from package.json's `postinstall`, so it's ready before `npm run dev`
 // too. Re-run manually (`npm run sync:pdfjs-wasm`) after changing the
@@ -13,11 +16,12 @@
 import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PDFJS_WASM_DIR } from '../src/lib/pdfjsWasm.js';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(scriptDir, '..');
 const sourceDir = join(repoRoot, 'node_modules', 'pdfjs-dist', 'wasm');
-const targetDir = join(repoRoot, 'public', 'pdfjs-dist-wasm');
+const targetDir = join(repoRoot, 'public', PDFJS_WASM_DIR);
 
 // Every filename pdf.worker.mjs concatenates onto `wasmUrl` (JBig2CCITTFaxImage,
 // JpxImage, the ICC qcms lookup, and their non-wasm JS fallbacks). Keep this in

@@ -1,9 +1,12 @@
 /**
  * Same-origin location of pdf.js's WASM codecs (JBIG2, OpenJPEG/JPX, the
  * qcms ICC color-profile lookup, QuickJS), synced from
- * `node_modules/pdfjs-dist/wasm/` into `public/pdfjs-dist-wasm/` by
+ * `node_modules/pdfjs-dist/wasm/` into `public/<PDFJS_WASM_DIR>/` by
  * `scripts/sync-pdfjs-wasm.mjs` (runs on `npm install`, see package.json's
- * `postinstall`).
+ * `postinstall`). The directory name has one home, `PDFJS_WASM_DIR` below:
+ * this module has no imports and touches no browser/Vite globals, so the
+ * script - plain Node at `postinstall` time, no bundler - imports it
+ * directly to build the same filesystem path this module builds as a URL.
  *
  * pdf.js 6.x moved CCITT fax and JBIG2 decoding off pure JS onto this WASM
  * module (`JBig2CCITTFaxImage`, `pdf.worker.mjs`). With no `wasmUrl`, a
@@ -17,4 +20,5 @@
  *
  * `pdfjsWasm.test.js` fails if any `getDocument(` call site omits it.
  */
-export const PDFJS_WASM_URL = '/pdfjs-dist-wasm/';
+export const PDFJS_WASM_DIR = 'pdfjs-dist-wasm';
+export const PDFJS_WASM_URL = `/${PDFJS_WASM_DIR}/`;
