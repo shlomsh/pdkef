@@ -135,9 +135,13 @@ export interface PlacedText {
 /** True when `element` is a text box sitting on `field`. */
 export function elementIsOnField(element: PlacedText, field: TypableField): boolean {
   if (element.type !== 'text' || element.pageIndex !== field.region.pageIndex) return false;
-  const { left, top, height } = field.region;
-  const onLeft = Math.abs(element.left - left) <= ON_FIELD_X_TOLERANCE;
-  const inBand = element.top >= top - ON_FIELD_ABOVE && element.top <= top + height;
+  const { region } = field;
+  const onLeft = Math.abs(element.left - region.left) <= ON_FIELD_X_TOLERANCE;
+  // A comb's `writable` is the printed cell around its teeth, and a box on it
+  // is centred in that cell (placeCombOnRegion), well above the teeth.
+  const top = Math.min(region.top, region.writable?.top ?? region.top);
+  const bottom = Math.max(region.top + region.height, region.writable ? region.writable.top + region.writable.height : 0);
+  const inBand = element.top >= top - ON_FIELD_ABOVE && element.top <= bottom;
   return onLeft && inBand;
 }
 

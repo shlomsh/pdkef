@@ -344,9 +344,19 @@ export function placeCombOnRegion(
   const baselinePercent = region.boxed
     ? region.top + region.height / 2 + em * emBoxCentreBelowBaselineEm(fontFamily)
     : region.top + region.height;
+  let top = baselinePercent - em * baselineDropEm(fontFamily);
+  // Open teeth inside a printed cell (`writable`, from fieldRegions.js): the
+  // digits sit where a cell's text sits, centred in the blank strip - the
+  // identity number on form 101 shares a row with the name cells and stood
+  // 5pt lower than them on the rule (live report). Never below the rule,
+  // though, when the strip is shorter than the box.
+  if (!region.boxed && region.writable) {
+    const strip = region.writable;
+    top = Math.min(top, strip.top + strip.height / 2 - (em * TEXT_BOX_LINE_HEIGHT_EM) / 2);
+  }
   return {
     left: region.left,
-    top: Math.max(0, baselinePercent - em * baselineDropEm(fontFamily)),
+    top: Math.max(0, top),
     width: region.width,
     combCells: cells,
     fontSize: size,
