@@ -273,8 +273,8 @@ export default function SignToolbar({
               the chrome - view density, full screen, Feedback - groups
               together next; Replace sits with the other finishing action;
               export (Share/Download) stays at the far edge. One kind of thing
-              per group, not one priority tier per group - see the >=920px
-              label-drop comment below for the tiers themselves. */}
+              per group; the two-anchor comment at the end of
+              SignToolbar.module.css says where labels show. */}
           {/* Same wrapping reasoning as the Shapes button below: ArmHint anchors to
               the dropdown div, not the button Popover clones. `locked` doubles
               as "nothing to teach yet" here - before a signature exists, this
