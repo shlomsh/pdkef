@@ -234,10 +234,6 @@ export const FONT_MANIFEST = Object.freeze([
 ]);
 
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));
-export const PRECACHED_FONT_FILES = FONT_MANIFEST
-  .filter((font) => font.precache === true)
-  .flatMap((font) => Object.values(font.faces));
-
 export const DEFAULT_FONT_FAMILY = 'Arimo';
 
 // Persisted drafts can still carry retired names for 14 days. Mapping them
@@ -259,10 +255,6 @@ export const FONT_BY_FAMILY = Object.freeze(Object.fromEntries(FONT_MANIFEST.map
  * "family === DEFAULT_FONT_FAMILY" a second time - a tool may not import
  * src/site-lib/ (docs/module-boundaries.md rule 1), so this lives here,
  * next to the manifest both call sites already import.
- *
- * Distinct from the `precache` flag FONT_MANIFEST entries above can carry
- * (PRECACHED_FONT_FILES) - no entry sets it today, and it is a different,
- * unused mechanism, not a second copy of this one.
  */
 export function isPrecachedFontFile(file) {
   return file === FONT_BY_FAMILY[DEFAULT_FONT_FAMILY].faces.normal;
