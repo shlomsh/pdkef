@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   baselineDropEm,
+  cellFontSize,
   cellRegionAt,
   checkboxRegionAt,
   combFontSize,
@@ -103,27 +104,81 @@ describe('cellRegionAt', () => {
   });
 });
 
+describe('cellFontSize', () => {
+  // The e-ticket "Status" column: a short row, 1.4% of an A4 page tall
+  // (~11.8pt) - narrow enough that even the 12pt default overflows it.
+  const shortCellPercent = 1.4;
+
+  it('keeps the remembered size when it fits the row', () => {
+    expect(cellFontSize(8, shortCellPercent, PAGE_HEIGHT)).toBe(8);
+  });
+
+  it('shrinks a size whose one-line box is taller than the row', () => {
+    // A box taller than the row it was placed on doesn't grow past a
+    // printed boundary the way minWidth does horizontally - it sits on top
+    // of the row below. ceiling = 11.78646pt / 1.29em (TEXT_BOX_LINE_HEIGHT_EM).
+    expect(cellFontSize(12, shortCellPercent, PAGE_HEIGHT)).toBeCloseTo(11.78646 / 1.29, 2);
+  });
+
+  it("never goes below the editor's own minimum", () => {
+    expect(cellFontSize(12, 0.1, PAGE_HEIGHT)).toBe(6);
+  });
+
+  it('returns the preferred size unchanged for a degenerate (zero-height) cell', () => {
+    expect(cellFontSize(12, 0, PAGE_HEIGHT)).toBe(12);
+  });
+});
+
 describe('placeTextOnCell', () => {
-  // The "Status" cell on an e-ticket, as the detector reports it, and a 12pt
-  // box's height on that page (~2% of it).
-  const cell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
-  const textHeight = 2;
+  // The "Status" cell on the e-ticket that shipped this bug: a 12pt box
+  // placed on it hung well past the row into "Confirmed" below.
+  const shortCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
+  // A cell tall enough that the preferred size already fits, so nothing here
+  // is a shrink - the placement math below is unaffected by cellFontSize.
+  const roomyCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 4 };
 
   it('puts the box on the cell\'s left edge, centred on its middle, spanning its width', () => {
-    // top: the cell's middle (28.7) less half the box's height, the same
+    // top: the cell's middle (30) less half the box's height, the same
     // re-centring a raw tap gets. `left` is the physical left edge whichever
     // way the text will read - a box with a span has no growing edge to
     // anchor - and not the cell's middle (43), which used to hang the box's
     // right half out over the next column.
-    expect(placeTextOnCell(cell, textHeight)).toEqual({ left: 30, top: 27.7, minWidth: 26 });
+    const placed = placeTextOnCell(roomyCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    expect(placed.left).toBe(30);
+    expect(placed.minWidth).toBe(26);
+    expect(placed.fontSize).toBe(12);
+    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2, 5);
   });
 
   it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {
-    expect(placeTextOnCell(cell, textHeight)).not.toHaveProperty('width');
+    expect(placeTextOnCell(roomyCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT })).not.toHaveProperty('width');
   });
 
   it('never lifts the box off the top of the page', () => {
-    expect(placeTextOnCell({ ...cell, top: 0.2 }, textHeight).top).toBe(0);
+    // A cell shorter than even the floored MIN_FONT_SIZE_PT's one-line box
+    // (6pt * 1.29em ~= 0.92% of the page): shrinking still isn't enough, so
+    // the box's own height, not the cell's, decides whether centring would
+    // go negative.
+    const tinyNearTop: FieldRegion = { pageIndex: 0, left: 30, top: 0.05, width: 26, height: 0.3 };
+    expect(placeTextOnCell(tinyNearTop, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT }).top).toBe(0);
+  });
+
+  it('shrinks the font to fit a short row instead of overflowing into the next one', () => {
+    // This is the actual bug: an unshrunk 12pt box in this 1.4%-tall cell is
+    // ~15.5pt of box in an ~11.8pt row - it visibly crosses into the next
+    // printed line. The returned fontSize must be small enough that the
+    // box's own one-line height (fontSize * 1.29em, in page percent) is no
+    // taller than the cell.
+    const placed = placeTextOnCell(shortCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    expect(placed.fontSize).toBeLessThan(12);
+    const boxHeightPercent = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
+    expect(boxHeightPercent).toBeLessThanOrEqual(shortCell.height + 1e-9);
+  });
+
+  it('re-centres on the shrunk box\'s own height, not the unshrunk one', () => {
+    const placed = placeTextOnCell(shortCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const shrunkTextHeight = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
+    expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - shrunkTextHeight / 2, 5);
   });
 });
 
