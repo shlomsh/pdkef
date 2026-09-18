@@ -1,12 +1,12 @@
 ---
 id: "QUAL-13"
 title: "Mint and paper reach: the closing panel, the tool page stage and the editor toolbar"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
 depends_on: ["QUAL-11"]
-legacy_state: "In progress 2026-09-18"
+legacy_state: "Done 2026-09-19"
 ---
 
 # QUAL-13 · Mint and paper reach

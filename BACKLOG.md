@@ -88,9 +88,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
+_None._
 
 ### Blocked
 
@@ -105,6 +103,7 @@ _None._
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
 | QUAL-10 | P1 | [QUAL-10](backlog/tasks/QUAL-10.md) · Saved-work restore must not shift Sign, Redact, or Merge |
 | QUAL-11 | P2 | [QUAL-11](backlog/tasks/QUAL-11.md) · Mint and paper: retheme the palette so green is the ground and warmth is the paper |
+| QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 
 ### Retired
 
