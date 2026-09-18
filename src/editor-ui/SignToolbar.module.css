@@ -219,6 +219,8 @@
    keyword rather than the physical one so a right-to-left UI reads correctly
    without a second rule. */
 .hint { max-width: 220px; padding: .5rem .7rem; background: var(--color-text); color: var(--color-surface); font-size: .74rem; font-weight: 400; line-height: 1.4; text-align: start; border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); pointer-events: none; }
+/* The button's name, on its own line above the action: the one thing an icon-only button cannot show itself. */
+.hint-title { display: block; font-weight: 600; margin-bottom: .15rem; }
 /* Below 920px every control is the same icon-only square, so they all carry identical content and
    any difference in rendered width is a bug rather than a design choice. The row
    mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`
