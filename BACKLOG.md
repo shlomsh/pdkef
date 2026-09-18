@@ -157,13 +157,13 @@ _None._
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
+| SEO-37 | P2 | [SEO-37](backlog/tasks/SEO-37.md) · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
-| SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 
 ### Blocked
 
@@ -171,7 +171,9 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 
 ### Retired
 
