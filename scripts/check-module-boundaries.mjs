@@ -53,6 +53,14 @@
 //      own routes (plus `/`) - a route derived statically from which top-level
 //      `src/pages/<slug>.astro` imports `<t>`'s `Pdf*Tool.tsx`. A spec that
 //      also drives another tool's page belongs under `e2e/` instead (DEBT-01).
+//   8. Nothing under `src/`, `public/` or `e2e/` may import from `scripts/`
+//      (ARCH-22): a script is dev-only real estate - CI checkers, build-time
+//      generators, research tooling - none of it ships, so app source
+//      depending on it would mean the shipped app depends on files a build
+//      never bundles. Like rule 6, this holds at zero violations with no
+//      allowlist, and deliberately covers test files too: the known
+//      violation today is `src/test/editorDependencyDirectionsExceptions.test.js`
+//      importing `staleExceptions()` from `check-editor-dependency-directions.mjs`.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge this scan does
 // not see (`src/layouts/HomePageLayout.astro:464` loads `../shell/homeWorkspace.ts`
@@ -60,7 +68,7 @@
 // dynamic `import()`, not markup attributes, and DEBT-10 deliberately left it
 // unparsed rather than teaching this file HTML.
 //
-// Anything not covered by these seven rules is not checked here (test
+// Anything not covered by these eight rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -349,8 +357,12 @@ function main() {
 
   const testViolations = testImportViolations();
   const specRouteIssues = toolSpecRouteViolations();
+  const scriptsViolations = scriptsImportViolations();
 
-  if (unallowed.length > 0 || stale.length > 0 || testViolations.length > 0 || specRouteIssues.length > 0) {
+  if (
+    unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
+    || specRouteIssues.length > 0 || scriptsViolations.length > 0
+  ) {
     console.error('Module boundary check failed:');
     if (unallowed.length > 0) {
       console.error('\nNew violations (not on the allowlist):');
@@ -370,6 +382,10 @@ function main() {
         console.error(`  ${v.file}: references '${v.route}' (owned by tool:${v.owner}) - move this spec under e2e/`);
       }
     }
+    if (scriptsViolations.length > 0) {
+      console.error('\nsrc/, public/ or e2e/ importing scripts/ (rule 8, no allowlist):');
+      for (const v of scriptsViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
+    }
     process.exitCode = 1;
     return;
   }
@@ -378,7 +394,8 @@ function main() {
   console.log(
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
     + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
-    + `${testFileCount} test files scanned for rule 6 and every tool e2e spec for rule 7, 0 violations.`,
+    + `${testFileCount} test files scanned for rule 6, every tool e2e spec for rule 7, `
+    + `and src/, public/, e2e/ scanned for rule 8, 0 violations.`,
   );
 }
 
@@ -498,6 +515,58 @@ export function toolSpecRouteViolations() {
     const source = fs.readFileSync(file, 'utf8');
     for (const v of specRouteViolation(rel, source, routeMap)) {
       violations.push({ file: rel, route: v.route, owner: v.owner });
+    }
+  }
+  return violations;
+}
+
+// --- rule 8: nothing under src/, public/ or e2e/ may import from scripts/ -----
+// ARCH-22: scripts/ is dev-only real estate; app source may never depend on
+// it. Same shape as rule 6 - no allowlist, holds at zero violations, and
+// deliberately scans test files too, since the known violation today is one
+// (src/test/editorDependencyDirectionsExceptions.test.js importing
+// staleExceptions() from check-editor-dependency-directions.mjs). Rules 1-7
+// only ever needed to walk src/ (buildEdges()'s SRC-only collectSourceFiles());
+// this pass walks public/ and e2e/ too, of its own accord, rather than
+// widening that shared walk - public/ has no ES imports today (public/sw.js
+// is a plain script) and e2e/ is Playwright specs that may import fixtures,
+// so either could gain a real edge into scripts/ the src/-only walk would miss.
+const RULE8_ROOTS = [SRC, path.join(ROOT, 'public'), path.join(ROOT, 'e2e')];
+
+export function scriptsImportViolation(toRelPath) {
+  if (!toRelPath.startsWith('scripts/')) return null;
+  return 'scripts/ is dev-only; nothing under src/, public/ or e2e/ may import from it';
+}
+
+// The file-walking wrapper main() calls: every file under src/, public/ and
+// e2e/ (test files included, unlike the default rules-1-5 walk), scanned the
+// same way buildEdges() scans src/ - resolved relative imports only, flattened
+// to one entry per (from, to) edge whose target lands under scripts/.
+export function scriptsImportViolations() {
+  const violations = [];
+  const seen = new Set();
+  for (const root of RULE8_ROOTS) {
+    if (!fs.existsSync(root)) continue;
+    const files = [
+      ...collectSourceFiles(root, [], { testFiles: false }),
+      ...collectSourceFiles(root, [], { testFiles: true }),
+    ];
+    for (const file of files) {
+      const from = relOf(file);
+      const source = fs.readFileSync(file, 'utf8');
+      for (const specifier of importSpecifiers(source)) {
+        if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
+        const resolved = resolveRelativeImport(file, specifier);
+        if (!resolved) continue;
+        const to = relOf(resolved);
+        if (to === from) continue;
+        const reason = scriptsImportViolation(to);
+        if (!reason) continue;
+        const key = edgeKey(from, to);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        violations.push({ from, to, reason });
+      }
     }
   }
   return violations;
