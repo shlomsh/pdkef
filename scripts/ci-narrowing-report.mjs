@@ -25,10 +25,14 @@
 // idea of run wall-clock (createdAt..updatedAt), the checks job's verdict
 // (narrowed to <projects>, or everything with affected-scope.mjs's own
 // reason string), the checks job's "Run tests" step duration, each e2e
-// shard's step duration and Playwright-reported test count, and whether
-// font-guards' Playwright step actually ran (its step is skipped, not the
-// job, when fonts=false - see ci.yml's font-guards job). A summary block
-// tallies verdict buckets and medians per bucket.
+// shard's step duration and Playwright-reported test count, the
+// `e2e-webkit` job's two Playwright steps (webkit, then the perf budgets)
+// the same way, whether font-guards' Playwright step actually ran (its step
+// is skipped, not the job, when fonts=false - see ci.yml's font-guards job)
+// and, when it did, each font-guards shard's step duration, plus the run's
+// longest job. A summary block tallies verdict buckets and medians per
+// bucket, then the per-job medians QUAL-06 and QUAL-09 set their targets
+// against.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -125,6 +129,13 @@ function findStep(job, namePattern) {
   return job?.steps?.find((s) => namePattern.test(s.name));
 }
 
+// Job wall, checkout through the last step - the statistic QUAL-06 and
+// QUAL-09 set their per-job targets in (not the Playwright step alone).
+function jobSeconds(job) {
+  if (!job || !job.startedAt || !job.completedAt) return null;
+  return (new Date(job.completedAt) - new Date(job.startedAt)) / 1000;
+}
+
 // affected-scope.mjs prints its reason to stderr as
 // `affected-scope: <reason>` (see the script's own header). It runs inside
 // each consuming job right after that job's own `npm ci`, so checks, every
@@ -165,6 +176,14 @@ for (const run of runs) {
   }
   const jobs = detail.jobs;
   const wallSeconds = (new Date(detail.updatedAt) - new Date(detail.createdAt)) / 1000;
+  // The run's own critical path: every job waits on `scope` (~10s) and then
+  // runs in parallel, so the longest job plus `scope` is what a push costs
+  // when the runners are not queueing behind other worktrees' pushes.
+  // createdAt..updatedAt (wallSeconds) includes that queueing.
+  const longestJob = jobs
+    .map((j) => ({ name: j.name, seconds: jobSeconds(j) }))
+    .filter((j) => j.seconds != null)
+    .sort((a, b) => b.seconds - a.seconds)[0] ?? null;
 
   const checksJob = jobs.find((j) => j.name === 'checks');
   let verdict = 'unknown';
@@ -200,14 +219,50 @@ for (const run of runs) {
       );
       count = playwrightCount(log);
     }
-    return { name: job.name, seconds, count };
+    return { name: job.name, seconds, count, jobSeconds: jobSeconds(job) };
   });
 
-  const fontJobs = jobs.filter((j) => /^font-guards \(\d+\)$/.test(j.name));
-  const fontsRan = fontJobs.some((job) => {
+  // QUAL-09's job: two Playwright steps, webkit then the perf budgets, one
+  // log. Their `N passed` lines are summed rather than "last match wins" so
+  // the count covers both steps.
+  const webkitJob = jobs.find((j) => j.name === 'e2e-webkit');
+  let webkit = null;
+  if (webkitJob) {
+    const webkitStep = findStep(webkitJob, /^Run Playwright e2e tests \(product webkit/);
+    const perfStep = findStep(webkitJob, /^Run Playwright e2e tests \(performance budgets/);
+    let count = null;
+    if (webkitStep && webkitStep.conclusion !== 'skipped') {
+      const log = cachedText(`job-${webkitJob.databaseId}-log`, () =>
+        gh(['api', `/repos/{owner}/{repo}/actions/jobs/${webkitJob.databaseId}/logs`])
+      );
+      const passed = [...log.matchAll(/(\d+) passed/g)].map((m) => Number(m[1]));
+      count = passed.length ? passed.reduce((a, b) => a + b, 0) : null;
+    }
+    webkit = {
+      webkitSeconds: stepDurationSeconds(webkitStep),
+      perfSeconds: stepDurationSeconds(perfStep),
+      count,
+      jobSeconds: jobSeconds(webkitJob),
+    };
+  }
+
+  // QUAL-06's shards. Step and job duration only (no log fetch): the
+  // ticket's target is the job's wall time, and the guard count is fixed by
+  // playwright.config.js's two hand-balanced projects, not by narrowing.
+  const fontJobs = jobs
+    .filter((j) => /^font-guards \(\d+\)$/.test(j.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const fontShards = fontJobs.map((job) => {
     const step = findStep(job, /^Run Playwright e2e tests \(font guards/);
-    return step && step.conclusion !== 'skipped';
+    const ran = Boolean(step) && step.conclusion !== 'skipped';
+    return {
+      name: job.name,
+      ran,
+      seconds: ran ? stepDurationSeconds(step) : null,
+      jobSeconds: ran ? jobSeconds(job) : null,
+    };
   });
+  const fontsRan = fontShards.some((shard) => shard.ran);
 
   rows.push({
     run: run.databaseId,
@@ -216,11 +271,14 @@ for (const run of runs) {
     createdAt: run.createdAt,
     conclusion: run.conclusion,
     wallSeconds,
+    longestJob,
     verdict,
     reason,
     checksTestSeconds,
     e2e: e2eInfo,
+    webkit,
     fontsRan,
+    fontShards,
     fontJobCount: fontJobs.length,
   });
 }
@@ -244,15 +302,23 @@ function fmt(n) {
 console.log(`# CI narrowing report: ${SINCE.slice(0, 8)} (${sinceDate}) .. HEAD on ${BRANCH}\n`);
 console.log(`${rows.length} completed ${WORKFLOW} runs, events: ${[...EVENTS].join(', ')}\n`);
 console.log(
-  '| run | sha | event | verdict | reason | wall(s) | checks-tests(s) | e2e(1) s/n | e2e(2) s/n | fonts ran |'
+  '| run | sha | event | verdict | reason | wall(s) | longest job | checks-tests(s) | e2e(1) s/n | e2e(2) s/n | webkit+perf s/n | fonts(1) s | fonts(2) s |'
 );
-console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
 for (const r of rows) {
   const e2e = [0, 1].map((i) => r.e2e[i] ? `${fmt(r.e2e[i].seconds)}/${r.e2e[i].count ?? '-'}` : '-');
+  const webkit = r.webkit
+    ? `${fmt(r.webkit.webkitSeconds)}+${fmt(r.webkit.perfSeconds)}/${r.webkit.count ?? '-'}`
+    : '-';
+  const fonts = [0, 1].map((i) =>
+    r.fontShards[i] ? (r.fontShards[i].ran ? fmt(r.fontShards[i].seconds) : 'skip') : '-'
+  );
   console.log(
     `| ${r.run} | ${r.sha} | ${r.event} | ${r.verdict} | ${r.reason.replace(/\|/g, '\\|')} | ${fmt(
       r.wallSeconds
-    )} | ${fmt(r.checksTestSeconds)} | ${e2e[0]} | ${e2e[1]} | ${r.fontsRan} |`
+    )} | ${r.longestJob ? `${r.longestJob.name} ${fmt(r.longestJob.seconds)}` : '-'} | ${fmt(
+      r.checksTestSeconds
+    )} | ${e2e[0]} | ${e2e[1]} | ${webkit} | ${fonts[0]} | ${fonts[1]} |`
   );
 }
 
@@ -275,6 +341,57 @@ console.log('\n### "everything" reasons\n');
 for (const [reason, n] of Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])) {
   console.log(`- ${n}x ${reason}`);
 }
+// QUAL-06 (font shards under 120s) and QUAL-09 (chromium shards under 100s,
+// webkit under 120s) each set their targets on five runs, in job time. Same
+// statistic here on every green run in the window: `everything` runs (the
+// full suite, what both tickets measured) and narrowed runs separately,
+// since a narrowed chromium shard runs a subset and is not comparable.
+function jobMedians(group) {
+  const pick = (get) => median(group.map(get));
+  return {
+    chromiumStep: [0, 1].map((i) => pick((r) => r.e2e[i]?.seconds)),
+    chromiumJob: [0, 1].map((i) => pick((r) => r.e2e[i]?.jobSeconds)),
+    webkitStep: pick((r) => r.webkit?.webkitSeconds),
+    perfStep: pick((r) => r.webkit?.perfSeconds),
+    webkitJob: pick((r) => r.webkit?.jobSeconds),
+    fontsStep: [0, 1].map((i) => pick((r) => r.fontShards[i]?.seconds)),
+    fontsJob: [0, 1].map((i) => pick((r) => r.fontShards[i]?.jobSeconds)),
+    fontsN: group.filter((r) => r.fontsRan).length,
+    longest: pick((r) => r.longestJob?.seconds),
+  };
+}
+console.log('\n### Per-job medians on green runs (QUAL-06 / QUAL-09 targets)\n');
+console.log(
+  'step = the Playwright step alone; job = checkout through the last step, the unit both tickets measured in.\n'
+);
+const green = rows.filter((r) => r.conclusion === 'success' && r.verdict !== 'docs_only');
+for (const [label, group] of [
+  ['everything (full suite)', green.filter((r) => r.verdict === 'everything')],
+  ['narrow', green.filter((r) => r.verdict === 'narrow')],
+]) {
+  const m = jobMedians(group);
+  console.log(
+    `- **${label}** (n=${group.length}, guards ran on ${m.fontsN}): ` +
+      `chromium shards step ${fmt(m.chromiumStep[0])}s / ${fmt(m.chromiumStep[1])}s, job ${fmt(
+        m.chromiumJob[0]
+      )}s / ${fmt(m.chromiumJob[1])}s; ` +
+      `webkit step ${fmt(m.webkitStep)}s + perf ${fmt(m.perfStep)}s, job ${fmt(m.webkitJob)}s; ` +
+      `font shards step ${fmt(m.fontsStep[0])}s / ${fmt(m.fontsStep[1])}s, job ${fmt(
+        m.fontsJob[0]
+      )}s / ${fmt(m.fontsJob[1])}s; longest job ${fmt(m.longest)}s`
+  );
+}
+const longestTally = {};
+for (const r of green) {
+  if (r.longestJob) longestTally[r.longestJob.name] = (longestTally[r.longestJob.name] || 0) + 1;
+}
+console.log(
+  `\nWhich job set the wall (green, non-docs runs): ${Object.entries(longestTally)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, n]) => `${name} ${n}x`)
+    .join(', ')}`
+);
+
 const fontsOnCount = rows.filter((r) => r.fontsRan).length;
 console.log(
   `\nfont-guards Playwright step actually ran: ${fontsOnCount}/${rows.length} (${(

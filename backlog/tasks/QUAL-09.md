@@ -62,3 +62,22 @@ once, in `e2e-webkit`, not sharded and not duplicated. Closed on that basis, sam
 closure: the design goal (no job pays for a browser it does not run; each project's tests execute
 exactly once) is verified in production; the specific second-precision targets move with suite growth
 and runner contention neither ticket controls.
+
+## Confirmed on a week of runs (2026-09-18)
+
+QUAL-08's `scripts/ci-narrowing-report.mjs` (see its Addendum) prints both chromium shards' and
+`e2e-webkit`'s step and job times for every `push` run on `main` since `9b4f944`. On the 30 green
+`everything` runs, the medians are: chromium shard 1 step 60s, job 120s; shard 2 step 68s, job
+128s; `e2e-webkit` step 42s webkit plus 15s perf, job 136s. Against the targets (chromium under
+100s, webkit under 120s) the same 45-60s fixed cost per job that QUAL-06's note names is the
+reason, not the split itself. "The run's wall no longer set by an `e2e` job" holds: a chromium
+shard was the longest job on 2 of 40 green non-docs runs and `e2e-webkit` on 6; `font-guards` set
+the other 32.
+
+One thing the week shows that five runs could not: chromium shard 2's step jumped from 55-65s to
+82-90s on 2026-09-17, between `acd70698` and `61d7f91a`, on a smaller test count (69 to 66) while
+shard 1 stayed at 55-63s. DEBT-13 deleted two spec files in that range, and Playwright's `--shard`
+assigns files by count in path order, so a heavy spec moved from shard 1 into shard 2. A
+count-based split drifts every time a spec file is added or removed; if the chromium shards matter
+again, balance them by measured time the way QUAL-06 balanced the font guards
+(`fonts-shard-1`/`fonts-shard-2` in `playwright.config.js`), not by `--shard`.

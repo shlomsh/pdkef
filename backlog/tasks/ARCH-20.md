@@ -88,4 +88,6 @@ site-only commits skip the other tools' unit and e2e work; about half of the pro
   far under the "worth an ARCH-21 split" bar; the biggest remaining `everything` driver is
   `scripts/` being unowned by any project (25% of `everything` runs), not a boundary ARCH-20 itself
   drew wrong. Full breakdown and the ARCH-21/DEBT-07 recommendations are in QUAL-08's own Result
-  section.
+  section. Re-checked on 60 runs later the same day (QUAL-08's Addendum): shares unchanged, and the
+  wall is set by a `font-guards` shard on 32 of 40 green runs, so narrowing to Sign/Redact (which
+  keeps the guards) saves about 10s of wall against `everything`; the non-editor tools save 50-60s.
