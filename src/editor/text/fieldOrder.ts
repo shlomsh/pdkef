@@ -98,11 +98,28 @@ export function orderTypableFields(
 
 /**
  * The element a placed text box has to be to count as "on" a field, in page
- * percent. Both placement paths leave the box's anchored edge on the field's
- * own edge (`placeCombOnRegion`, `cellAnchorPoint`), so horizontally this is
- * a tight match; vertically the box's top is lifted above an open comb's rule
- * by its baseline drop (about an em, ~1.5% of a page at 12pt), so the band
- * reaches that far above the field and to its bottom edge.
+ * percent. Both placement paths (`placeCombOnRegion`, `placeTextOnCell`)
+ * always leave the box's LEFT edge on the field's own left edge - a comb
+ * takes the run's span, a cell takes its span as `minWidth`, and combPlacement.ts's
+ * own docstring is explicit that neither kind has "a growing edge to anchor"
+ * any more, regardless of RTL/LTR - so horizontally this is a tight match
+ * against one edge only. Matching the field's *right* edge too would double
+ * as a false hit on whichever field sits immediately to its left: cells in
+ * the same row commonly butt up edge to edge, so one field's right edge is
+ * often another one's left edge, and a naive first-match would then silently
+ * report a box as sitting on its own left neighbour instead - see `closest`.
+ *
+ * Vertically, `ON_FIELD_ABOVE` gives every kind of field the same slack, even
+ * though only an open comb's own docstring reasoning (baseline measured up
+ * from the region's bottom edge) predicts it: a closed cell or a boxed comb
+ * centres instead, which *usually* keeps it within `[top, top + height]`, but
+ * not always - `placeCombOnRegion`'s boxed branch centres the *baseline*, not
+ * the box, and a font whose baseline sits well below its em-box centre (the
+ * common case) still pulls a placed box's top above `region.top` by a real,
+ * per-font-and-size amount. There is no fixed constant that is exactly right
+ * for every family and fit; being generous here and resolving the resulting
+ * overlap by closeness (below) is far more robust than trying to derive that
+ * amount from a field alone, which has no idea what font it was placed with.
  */
 const ON_FIELD_X_TOLERANCE = 0.6;
 const ON_FIELD_ABOVE = 2.5;
@@ -118,16 +135,71 @@ export interface PlacedText {
 /** True when `element` is a text box sitting on `field`. */
 export function elementIsOnField(element: PlacedText, field: TypableField): boolean {
   if (element.type !== 'text' || element.pageIndex !== field.region.pageIndex) return false;
-  const { left, top, width, height } = field.region;
+  const { left, top, height } = field.region;
   const onLeft = Math.abs(element.left - left) <= ON_FIELD_X_TOLERANCE;
-  const onRight = Math.abs(element.left - (left + width)) <= ON_FIELD_X_TOLERANCE;
   const inBand = element.top >= top - ON_FIELD_ABOVE && element.top <= top + height;
-  return (onLeft || onRight) && inBand;
+  return onLeft && inBand;
 }
 
-/** The first text element sitting on `field`, if any. */
-export function elementOnField<T extends PlacedText>(elements: T[], field: TypableField): T | null {
-  return elements.find((element) => elementIsOnField(element, field)) ?? null;
+/**
+ * The single closest of several equally-valid matches, by vertical distance.
+ *
+ * Two boxed fields that tile with no gap share one edge - a top-to-bottom
+ * column is the common case, but a two-column form like this one shares an
+ * edge in BOTH directions at once (`combined-heuristic-0000`'s right edge is
+ * `-0001`'s left, and `-0000`'s bottom is `-0004`'s top; the live-QA fixture,
+ * health-declaration-page1-geometry.pdf, has both). A box placed exactly on
+ * that shared point satisfies both fields' bands at once, by construction -
+ * no tolerance tweak removes the ambiguity, only which field wins it. The
+ * field whose own top is closer to the point is the one it was actually
+ * placed on: a box centred in field F (every current placement path centres
+ * or nearly centres, per `ON_FIELD_ABOVE`'s doc) lands close to F.top and far
+ * from any neighbour's.
+ */
+function closest<T>(candidates: T[], distance: (candidate: T) => number): T {
+  return candidates.reduce((nearest, candidate) => (
+    distance(candidate) < distance(nearest) ? candidate : nearest
+  ));
+}
+
+/**
+ * The index of the field `element` truly belongs to among every field in
+ * `order`, or null if it belongs to none - the single source both
+ * `fieldPosition` and `elementOnField` resolve an element's field from, so
+ * the two can never disagree about which one it is.
+ */
+function fieldIndexOf(order: TypableField[], element: PlacedText): number | null {
+  const matches = order
+    .map((_field, i) => i)
+    .filter((i) => elementIsOnField(element, order[i]));
+  return matches.length > 0
+    ? closest(matches, (i) => Math.abs(order[i].region.top - element.top))
+    : null;
+}
+
+/**
+ * The text element sitting on `field`, if any.
+ *
+ * Resolved against the WHOLE order (`fieldIndexOf`), not `field` in
+ * isolation: `ON_FIELD_ABOVE`'s generous, kind-agnostic slack means an
+ * existing box can technically satisfy a neighbouring field's band too, and
+ * checking `field` alone had no way to tell "this box is on some other field,
+ * merely close enough to graze this one's tolerance" from "this box really is
+ * on this field" - so a box one field away could be mistaken for "already
+ * placed here" and reopened instead of a new one being created where Next
+ * actually meant to go (live QA, MOBI-06: Next from the last cell in a row
+ * re-selected the first cell's own box instead of creating one on the row
+ * below). Going through `fieldIndexOf` first settles which field an element
+ * *actually* belongs to using every field as context, the same resolution
+ * `fieldPosition` already needs for its own `index`, before asking whether
+ * that happens to be this one.
+ */
+export function elementOnField<T extends PlacedText>(elements: T[], order: TypableField[], field: TypableField): T | null {
+  const targetIndex = order.indexOf(field);
+  const candidates = elements.filter((element) => fieldIndexOf(order, element) === targetIndex);
+  return candidates.length > 0
+    ? closest(candidates, (element) => Math.abs(element.top - field.region.top))
+    : null;
 }
 
 /**
@@ -149,7 +221,7 @@ export function fieldPosition(
   const last = order.length - 1;
   if (order.length === 0) return { index: null, next: null, previous: null };
   if (!element) return { index: null, next: 0, previous: last };
-  const index = order.findIndex((field) => elementIsOnField(element, field));
+  const index = fieldIndexOf(order, element) ?? -1;
   if (index >= 0) {
     return {
       index,
