@@ -1,47 +1,44 @@
 ---
 id: "QUAL-14"
-title: "Citron stroke on the Hebrew headings: carry h1Accent and headingStroke through the localized schemas"
+title: "Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading"
 status: "open"
 priority: "P3"
 epic: "site-quality"
 phase: "quick-win"
-depends_on: ["QUAL-13"]
+depends_on: ["QUAL-15"]
 legacy_state: "Open"
 ---
 
-# QUAL-14 · Citron stroke on the Hebrew headings
+# QUAL-14 · Citron stroke on the Hebrew pages
 
-*Filed 2026-09-18 from the QUAL-13 build.*
+*Filed 2026-09-18 from the QUAL-13 build, rewritten 2026-09-19 for QUAL-15.*
 
 ## Problem
 
-QUAL-13 strokes the promise phrase of every English heading in citron: the
-tool pages' `h1Accent` and the home closing panel's `headingStroke`. The
-Hebrew editions render the plain heading with no stroke, on purpose, because
-neither field can reach them yet:
+QUAL-15 strokes one shared phrase per locale in every tool subhead, the
+on-device words of the closer ("on your device" in English), and QUAL-13
+strokes "try" in the home page's closing heading. The Hebrew editions render
+plain:
 
-- `toolFields` in `src/content.config.ts` is a strict object without
-  `h1Accent`, and `TOOL_SOURCE_FIELDS` in `src/i18n/localizedTools.ts` does not
-  carry it, so a merged Hebrew tool keeps the English accent, which is not a
-  substring of the Hebrew `h1`, and `ToolHero` skips the stroke.
-- `homeClosing` in the same config is strict without `headingStroke`.
-
-Natural phrases exist: `בדפדפן` on Sign and Merge, `בחינם` on Compress, and
-the closing heading's own verb.
+- The Hebrew phrase is not set, and the three Hebrew tool subheads do not say
+  it the same way: compress ends "את המכשיר שלכם", merge "אצלכם במכשיר", sign
+  has no closer. One phrase cannot match all three until the closers agree.
+- `homeClosing` in `src/content.config.ts` is a strict object without
+  `headingStroke`, so the closing heading cannot name its stroked word.
 
 ## Scope
 
-- Add the optional fields to both schemas and to the source-field lists, then
-  set them in `src/content/localized-tools/he/*.yaml` and
-  `src/content/localized-home/he.yaml` where a natural phrase exists.
-- Adding to the source-field lists changes every Hebrew page's `sourceHash`;
-  bump them in the same change with a `reviewNotes` line saying no Hebrew text
-  changed.
-- Extend `src/data/tools.test.js` so a localized accent must also occur
-  exactly once in its own `h1`.
+- Agree one Hebrew closer wording with Shlomi (Hebrew copy is his
+  read-through), apply it to `src/content/localized-tools/he/*.yaml`, and set
+  the Hebrew accent phrase in `src/i18n/documentationMessages.ts` to the exact
+  words it uses, once per subhead.
+- Add the optional `headingStroke` to the `homeClosing` schema and set it in
+  `src/content/localized-home/he.yaml`.
+- Every `sourceHash` that changes gets a `reviewNotes` line.
 
 ## Acceptance
 
-- `/he/sign/` and `/he/merge/` show the stroke under the promise word, RTL
-  intact; `/he/` shows it under the closing heading's verb.
-- Build passes the translation freshness check without a re-review.
+- `/he/sign/`, `/he/merge/` and `/he/compress/` show the band under the
+  closer's on-device words, RTL intact.
+- `/he/` shows the stroke under the closing heading's verb.
+- Build passes the translation freshness check.
