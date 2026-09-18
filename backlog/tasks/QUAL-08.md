@@ -220,3 +220,155 @@ those six `everything` runs into narrow ones, and a push bundles commits (`a6a38
 which touched shared files, so CI correctly ran everything). Per-commit rates are an upper bound on
 per-push rates; the Result's 156-commit cross-check already said so for docs-only, and it holds for
 narrow too.
+
+## Addendum (2026-09-18): the fonts edge inflated the measurement
+
+Filed the same day ARCH-23 landed (from CI run 35380358167, commit `15396adf`, a tooltip-only Sign
+change that still paid the full 27-guard cost). Shlomi's question: the two passes above report
+`fonts=true` and `everything=true` as if every one of those runs legitimately needed what it ran.
+ARCH-23 found one concrete counterexample (the `tool-sign` implicit-dependency edge). This addendum
+checks the whole window, not just that one commit: how many of the `fonts=true` and `everything=true`
+runs actually touched a file that needed them.
+
+**Method.** `git diff --no-renames --name-only <prev-push-headSha> <this-push-headSha>` for every push
+in the window - `<prev-push-headSha>` is the previous push's own `headSha` in the same chronologically
+sorted run list `ci-narrowing-report.mjs` already fetches, which is exactly what `ci.yml`'s `scope`
+job resolves as `BASE` (`github.event.before` on a `push` event - see `.github/workflows/ci.yml`'s
+`Classify the change against its base` step), so this reconstructs the same diff CI narrowed against,
+not an approximation. Verified directly: the reconstructed diff for `a6a38399` includes `becb5e2f`'s
+files too, matching this ticket's own Cross-check note above that the two commits shipped in one push.
+Working script (not committed, per the ticket's instruction to keep a one-off in the scratchpad):
+`/private/tmp/claude-501/-Users-sh-work-pdkef/66b25542-5e58-4a7b-a7b2-3ce554488fdb/scratchpad/classify.mjs`,
+key logic:
+
+```js
+const base = i === 0 ? '9b4f944' : pushRuns[i - 1].headSha;
+const files = git(['diff', '--no-renames', '--name-only', base, run.headSha]);
+const rightful = files.some((f) => FONTS_AND_TEXT_MD_PATHS.some((g) => f.startsWith(g)));
+```
+
+**Rightfully-fonts rule.** A `fonts=true` run counts as rightful when its changed-file set intersects
+`.claude/rules/fonts-and-text.md`'s own `paths:` frontmatter (the maintained list of what feeds the
+font/text pipeline - `src/editor/text/**`, `public/fonts/**`, the guard/parity/language-acceptance
+specs under `e2e/sign/`, `THIRD_PARTY_LICENSES.md`, etc. - reused rather than a second hand-written
+list, the same principle ARCH-23's Scope already states for the Nx side of this fix). `wide()` sets
+`fonts: true` unconditionally for every `everything=true` verdict ("everything always means run the
+font guards too" - `scripts/affected-scope.mjs`'s own comment), so on an `everything` run fonts=true
+is not a separate decision to grade; it is entailed by whether `everything` itself was rightful, which
+is the second half of this addendum. Only a **narrow**-verdict run can show `fonts=true` from a real,
+gradable decision - and, since `editor`/`lib` are `CORE_PROJECTS` (any real change there already
+forces `everything`), the only way a *narrow* run affects the `fonts` project is the `tool-sign`
+implicit-dependency edge ARCH-23 found.
+
+**Window.** `9b4f944..HEAD`, `push` events: 62 runs (two more than this ticket's own 60-run addendum
+above, landed later the same day - one of them, `15396adf`, is the commit that filed ARCH-23). Same
+shares as before: 11 docs_only (18%), 15 narrow (24%), 36 everything (58%).
+
+**Narrow runs with `fonts=true`: 8 of 62 (13% of all runs, 53% of the 15 narrow runs) - all 8 are
+coarse.** Every single one, checked file-by-file against the rule above: `d144fd18`, `1dbce72a`,
+`025f1f78`, `6168e6c7`, `81162a01`, `23289b79`, `d42f7cc3`, `15396adf` (the filing commit itself).
+None touched a single fonts-and-text.md path - the changed files are toolbar/tooltip/arming-UI
+components (`SignToolbar.tsx`/`.module.css`, `ArmHint.tsx`, `RedactToolbar.tsx`, `ElementToolbar.tsx`,
+`ElementResizers.tsx`, `DraggableWrapper.tsx`, `FullscreenButton.tsx`), their tests, or unrelated
+backlog/doc files bundled into the same push. Median wall 169.5s (range 146-188s) - matching this
+ticket's own 170s finding for this population almost exactly, which is the point: **every** run in
+that 170s-median bucket paid the full 27-guard cost for zero incremental coverage, not "some of them,"
+because the edge that puts them there (`tool-sign`) has no file-level granularity at all. This is
+ARCH-23's exact scope, now measured across the whole window instead of one commit.
+
+**Everything runs (36 of 62): the `core` bucket splits about evenly, the `unowned` bucket's coarse
+share is already fixed.** Bucketed by `affected-scope.mjs`'s own reason string, then each run's actual
+files checked against whether the full run was plausibly needed:
+
+| everything reason | n | plausibly needed | coarse | median wall (plausible / coarse) |
+| --- | --- | --- | --- | --- |
+| `core project(s) affected` | 14 | 7 | 7 | 174s / 167s |
+| `unowned files` | 22 | 18 | 4 | 219s / 174.5s |
+| (all everything) | 36 | 25 | 11 | - |
+
+- **`core`, coarse (7 of 14):** `8edc224a`, `79c2238c`, `61d7f91a`, `ab7bbb29`, `a9909076`,
+  `5b0a220c`, `e0c16e19` - five of these are a localized-content YAML (`he/merge.yaml`,
+  `he.yaml`) or `src/i18n/toolMessages.ts`/`cardMessages.ts` reaching `editor` through the same
+  `site -> i18n -> editor` hub DEBT-07's "Investigated" section already names, and two are
+  `src/data/tools.js` (the tool registry) reaching `editor`/`shell` the same structural way. None of
+  the seven touch a text/font file; the actual PRs are Split-tool, Hebrew localization, or a tool-list
+  edit. This is DEBT-07's own question, not ARCH-23's - noted in DEBT-07's ticket, not fixed here.
+- **`core`, plausible (7 of 14):** `205b68b2` (`site-lib/gitLastModified.js`, genuinely rendered on
+  every content page), `2ac958fe` (`src/shell/ToolShell.tsx`, shared shell chrome), `ce29a85f`
+  (`src/shell/RecentFiles.tsx`, shared shell chrome), and four (`a848570c`, `a6a38399`, `fcae9d81`,
+  `097c8ed1`) that touch `src/editor/text/combPlacement.ts` directly - `src/editor/text/**` is itself
+  a fonts-and-text.md path, so these four are independently rightful for the fonts question too, not
+  just for `everything`.
+- **`unowned`, coarse (4 of 22):** `07fc20e9` (`scripts/affected-scope.test.mjs` alone - a test file
+  ORACLE_FILES deliberately excludes, unowned only because `scripts/` itself had no Nx project yet),
+  `63eaa268` and `4325853b` (`scripts/spike/mobi-10/**`, an unrelated OCR spike), `2f8c0bcb`
+  (`scripts/ci-narrowing-report.mjs`, this ticket's own new script). **All four are already fixed**:
+  ARCH-22 (commit `19dca856`, inside this same window) gave `scripts/` and `scripts/spike/mobi-10/`
+  real Nx ownership, so an identical diff today would no longer hit the "unowned files" rule for any
+  of them. This is exactly the "root-project trap" lever this ticket's Result section already flagged
+  as the highest-leverage remaining item - now measured (4/22, 18% of the `unowned` bucket) and
+  confirmed closed by ARCH-22 rather than still open.
+- **`unowned`, plausible (18 of 22):** `.github/workflows/ci.yml` itself (6 runs), `package.json`/
+  `package-lock.json` (3), `playwright.config.js`/`vitest.config.js`/`astro.config.mjs` (5),
+  `scripts/affected-scope.mjs`/`change-scope.mjs` before ARCH-22 gave them `ORACLE_FILES` treatment
+  explicitly (3), `middleware.ts`, `.gitignore`+`tsconfig.json`, `THIRD_PARTY_LICENSES.md` (which is
+  itself a fonts-and-text.md path, so rightful for fonts specifically, not just plausible for
+  everything).
+
+**Headline.** Of the 44 `fonts=true` runs in the window (36 everything + 8 narrow), 19 (43%) were
+coarse by this measurement, not 30-of-30 or "most" in the way the open question suspected - most
+`fonts=true` runs (25 of 44, 57%) were riding a genuinely wide `everything` run for a genuinely
+cross-cutting or self-referential change. But narrowing further: of those 19 coarse runs, 4 are
+already resolved by ARCH-22 (landed inside this same window), leaving **15 of 62 runs (24%) still
+live** - 8 that are ARCH-23's exact, already-scoped fix (100% coarse rate, zero counterexamples in
+this window) and 7 that are DEBT-07's exact, already-scoped question (50% coarse rate within the
+`core` bucket). Neither number was visible in this ticket's first two passes because both only asked
+"did fonts run" and "what was the median wall," never "did the changed files justify it."
+
+**What still holds from the Result and first Addendum above, and what changes:**
+
+- **ARCH-21 (split `site`): unaffected, still not worth doing.** This addendum did not re-measure
+  page-only narrows; nothing here bears on that number.
+- **"Narrowing to Sign or Redact does not move the wall" (first Addendum): correct as a wall-clock
+  statement, misleading as a priority signal.** 169.5s against 178s for `everything` is inside noise,
+  exactly as measured before - font-guards is the long pole in a parallel job graph either way, so
+  fixing the `tool-sign` edge does not shrink a run's wall-clock by much. But "does not move the wall"
+  was read as "therefore low-value" for ARCH-23; this addendum's 8-of-8 (100%) coarse rate says the
+  value is not in wall-clock, it is in CI compute: two font-guards shards at 2:29+2:38 each of these 8
+  times is roughly 40 runner-minutes spent in this single five-day window for zero incremental guard
+  coverage (ARCH-23's own Problem section already showed the 6 `/sign`-navigating guards don't
+  exercise the toolbar at all). Wall-clock was the wrong lens for this specific ticket's cost; compute
+  minutes were not measured by either of QUAL-08's first two passes and should have been.
+- **DEBT-07 ("worth finishing, ceiling small"): still holds, now with a number instead of an
+  inference.** 7 of 14 `core`-bucket everything runs (50%) are exactly the `site`/`i18n` -> `editor`
+  hub-reach pattern DEBT-07 already named as unresolved; median wall for that coarse half (167s) is
+  inside noise of the plausible half (174s), matching this ticket's own "the wall-clock case for
+  DEBT-07 is weaker than its architectural case" conclusion - not overturned, now with the actual
+  split behind it. See DEBT-07's own addendum for the number in context.
+- **"Is Nx worth it? Keep it, biggest lever is `unowned files`" (Result section): the specific lever
+  named is already gone.** This addendum confirms all four measured `unowned`-coarse cases predate
+  ARCH-22 and would not reproduce today. The Result section's own words already said as much
+  ("ARCH-22 has since given `scripts/` real ownership... which is the change that actually raises the
+  narrow rate" - DEBT-07 input, 2026-09-18) - this addendum is the first pass to actually check that
+  no *other* `unowned`-coarse pattern survived it, and none did in this window.
+- **Net new conclusion this addendum adds, not present in either pass above: ARCH-23's edge is not
+  "a case that mattered once" (its own Problem section's framing) - it is the only remaining source
+  of coarse `fonts=true` runs in this entire window, with a 100% measured coarse rate and zero
+  counterexamples.** See ARCH-23's own Problem section for the number carried over.
+
+**Correction after the owner's rule (2026-09-18, same day):** the 19-of-44 (43%) coarse figure above
+used "touches a `fonts-and-text.md` path" as the rightfulness test, which is generous - it counts an
+`editor`/`lib`/`tool-sign` change as rightful whenever *anything* under `src/editor/text/` moved, and
+it grades an `everything` run's `fonts=true` as automatically rightful once `everything` itself is
+rightful. The owner's actual rule ("no new font added or change in an existing one" - stated in full
+in ARCH-23) is narrower than that on both counts: it does not treat every core-project `everything`
+verdict as entitled to force the guards, and it does not treat the whole `src/editor/text/` directory
+as "font" (most of it is shaping/runtime code - `combPlacement.ts`, `dateFormat.ts`, `bidiRuns.js`,
+`hebrewComposition.js` - not the catalogue). Regrading the same 44 `fonts=true` runs against ARCH-23's
+narrower, owner-stated list: only 13 touch anything in the broad `src/editor/text/` reading, and only
+6 of those touch the actual catalogue/guard files this ticket now proposes gating on - so **31 of 44
+font-guard runs (70%) were unnecessary under the owner's rule, not the 19 (43%) this addendum
+reported a few hours earlier**, because a generic `everything` verdict was never a rightful reason for
+`fonts=true` on its own. See ARCH-23's "Owner's decision" section for the full breakdown and the
+proposed fix (a narrow file-glob in `scripts/affected-scope.mjs`, replacing `wide()`'s unconditional
+`fonts: true`).

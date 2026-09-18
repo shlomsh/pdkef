@@ -120,3 +120,29 @@ the editor-side verdicts contribute little wall time to it for the reason above.
 QUAL-08's Result says keep it; ARCH-22 has since given `scripts/` real ownership, which removes
 the largest `everything` reason (25% of those runs) and is the change that actually raises the
 narrow rate.
+
+## QUAL-08's fonts-edge addendum input (2026-09-18)
+
+QUAL-08's second addendum (filed alongside ARCH-23) checked every `everything`-verdict run's actual
+changed files in the 62-push window since `9b4f944`, not just whether `editor` was in the affected
+set. Of the 14 runs whose reason was `core project(s) affected` (naming `editor` alongside `site`/
+`shell`/sometimes `lib`), **7 (50%) touched no text/font file and no other genuinely repo-wide file**
+- five are exactly the `site`/`i18n` -> `editor` hub-reach this ticket's "Investigated" section
+already names (`61d7f91a`, `ab7bbb29`, `a9909076`, `5b0a220c` are Hebrew-localized content YAML or
+`src/i18n/{toolMessages,cardMessages}.ts`; `79c2238c` is a Sign-only change reaching `editor` through
+`editorModel.ts`/`messages.ts`), and two (`8edc224a`, `e0c16e19`) are `src/data/tools.js` - the site
+tool registry - reaching `editor`/`shell` the same structural way. The other 7 genuinely touch a
+shared file (`src/shell/ToolShell.tsx`, `src/shell/RecentFiles.tsx`, `src/site-lib/gitLastModified.js`)
+or `src/editor/text/combPlacement.ts` directly (itself a fonts-and-text.md path, so rightful
+independent of the `core`-bucket question). Median wall was 167s for the coarse half against 174s for
+the plausible half - inside noise, the same shape as this ticket's own six-run comparison above.
+
+This is a real, comparable coarse share (50%, same order of magnitude as ARCH-23's population) but it
+does not change this ticket's own conclusion: the wall-clock case stays weak (the 7s gap here is
+smaller than the six-run 10s gap already measured, both inside noise), and the fix for these five
+`i18n`-hub cases specifically is the `SignMessages` re-export move this ticket's Problem section
+already names as the actual cut - not a new decision. Filed here as the number this ticket's own
+"Investigated" section predicted but had not yet measured against real CI runs. Contrast with
+ARCH-23's own population (the `tool-sign` edge on `narrow`-verdict runs), which measured 100% coarse
+(8 of 8, zero counterexamples) rather than 50% - the reason ARCH-23 was raised to P1 and this ticket
+was not.

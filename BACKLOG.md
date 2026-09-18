@@ -309,6 +309,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
 
 ### In progress
