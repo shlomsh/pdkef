@@ -181,7 +181,7 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
       condensing keys off its own data attributes and OfflineProof renders
       after this wrapper closes. e2e/tool-layout.spec.js guards both. */}
   <div class="tool-stage flex flex-col">
-    <ToolHero icon={tool.icon} title={tool.h1} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
+    <ToolHero icon={tool.icon} title={tool.h1} h1Accent={tool.h1Accent} subhead={tool.subhead} slug={tool.slug} condensable={tool.condenseOnLoad !== false} phoneCondensed={tool.heroPhoneCondensed === true} />
 
     {/* The airplane-mode invitation (DEMO-04): the one idea in that ticket
         that isn't already said elsewhere on this page - the app bar's
@@ -246,6 +246,29 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
   </div>
 
   <style>
+    /* QUAL-13: carry the home hero's off-white-to-mint gradient onto every
+       tool page's stage, so the hero's ground reads as the site's ground
+       rather than a home-page-only flourish. Pixel stops, not viewport-
+       relative ones, because the fade has to finish around where the tool
+       card begins (`ToolShell`'s card, a sibling of the hero inside this
+       div) and then stay mint below it - so a document open in the card
+       below sits on mint the way the hero's own workspace demo does.
+       260px/480px were measured against the compact hero (a file already
+       open, or a saved-work restore) as well as the full empty-state hero,
+       at 1280 and 390 wide, on /sign/, /merge/ and /compress-image/: the
+       card starts as early as ~107px (Sign, compact hero, 1280) and as late
+       as ~485px (Sign, full empty-state hero, 390 - the tallest case, only a
+       few px past the 480 stop) into the stage, so 480 keeps the "stays
+       mint" stop within a few pixels of the card's top edge across all of
+       them rather than finishing early on the shorter states or late on the
+       tallest one. `background-color` is the fallback for the sliver above
+       the gradient's first stop and for any browser that cannot parse
+       `color-mix`. */
+    .tool-stage {
+      background-color: var(--color-primary-tint);
+      background-image: linear-gradient(180deg, var(--color-bg) 0, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 260px, var(--color-primary-tint) 480px);
+    }
+
     /* A tool normally flows at its own height: SEO-25 deliberately removed a
        viewport-tall wrapper because it left up to 460px of blank space below
        a short card, and the mobile layout must never vertically centre one.

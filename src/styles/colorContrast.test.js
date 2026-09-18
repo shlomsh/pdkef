@@ -85,4 +85,17 @@ describe('Mint and paper contrast contracts', () => {
     expect(contrast(home('--color-text'), background)).toBeGreaterThanOrEqual(4.5);
     expect(contrast(home('--color-muted'), background)).toBeGreaterThanOrEqual(4.5);
   });
+
+  // QUAL-13: the tool-page hero's citron stroke (ToolHero.astro) and the
+  // editor toolbar's --color-primary-soft hover fill (SignToolbar.module.css).
+  it.each(['--color-primary-text', '--color-citron-ink'])(
+    'keeps %s AA-readable on the citron stroke',
+    (foreground) => {
+      expect(contrast(root(foreground), root('--color-citron'))).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it('keeps body text AA-readable on the toolbar hover fill', () => {
+    expect(contrast(root('--color-text'), root('--color-primary-soft'))).toBeGreaterThanOrEqual(4.5);
+  });
 });

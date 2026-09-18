@@ -47,6 +47,12 @@ export const tools = [
     schemaName: 'PDkef - Sign PDF',
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
+    // QUAL-13: the promise phrase within `h1` that ToolHero strokes in
+    // citron, mirroring the home hero's h1Accent (src/data/homeContent.js) -
+    // except this one is not required to be trailing, since several tools'
+    // strongest promise sits before a colon rather than at the end. Must be
+    // an exact substring of `h1`, occurring exactly once.
+    h1Accent: 'in Your Browser',
     subhead:
       'Fill out and sign a PDF on your phone or computer without printing or scanning. Add text, check marks, and a signature to a school form, application, or WhatsApp attachment. Type in 20 languages and scripts, Hebrew, Arabic, Hindi, Bengali, Tamil and Thai among them, and tap a printed row of boxes to fill it one letter per box. Free, open source, and your document stays on your device.',
     ariaLabel: 'PDF sign tool',
@@ -327,6 +333,8 @@ export const tools = [
     schemaName: 'PDkef - Blur & Redact PDF',
     toolName: 'Blur & Redact PDF',
     h1: 'Blur PDF Online Free: Blackout & Redact Text',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Online Free',
     subhead:
       'Blur part of a PDF, black out private details, or delete selectable text and images. Choose a solid blackout for sensitive information. Marked pages flatten automatically when you download. Free, open source, and your file stays on your device.',
     ariaLabel: 'Blur & Redact PDF tool',
@@ -379,6 +387,8 @@ export const tools = [
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
     h1: 'Merge or Combine PDF Files Free: In Your Browser',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'In Your Browser',
     subhead:
       'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional.',
     ariaLabel: 'PDF merge tool',
@@ -421,6 +431,8 @@ export const tools = [
     schemaName: 'PDkef - PDF to Image',
     toolName: 'PDF to Image',
     h1: 'Convert PDF to Image Online Free',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Online Free',
     subhead:
       'Turn each PDF page into a high-quality JPG or PNG, with no watermark and nothing uploaded.',
     ariaLabel: 'PDF to Image tool',
@@ -465,6 +477,8 @@ export const tools = [
     schemaName: 'PDkef - Image to PDF',
     toolName: 'Image to PDF',
     h1: 'Image to PDF Online Free: Combine JPG & PNG',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Online Free',
     subhead:
       'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots.',
     ariaLabel: 'Image to PDF tool',
@@ -509,6 +523,8 @@ export const tools = [
     schemaName: 'PDkef - Split PDF',
     toolName: 'Split PDF',
     h1: 'Split PDF Online Free: Extract Pages in Your Browser',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'in Your Browser',
     subhead:
       'Extract a page range, pull out single pages, or break one PDF into several separate files.',
     ariaLabel: 'PDF split tool',
@@ -560,6 +576,8 @@ export const tools = [
     schemaName: 'PDkef - Compress PDF',
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Free',
     subhead:
       'Need a PDF under 100KB for an application or upload form? Choose a target size to shrink the file and check the result. Some files need a larger limit to stay readable. Private: your file never leaves your device.',
     ariaLabel: 'PDF compress tool',
@@ -609,6 +627,8 @@ export const tools = [
     schemaName: 'PDkef - Compress Image',
     toolName: 'Compress Image',
     h1: 'Compress Image to 100KB Free: Reduce Photo Size',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Free',
     subhead:
       'Need a photo under 100KB, or smaller, for a job portal or application form? Choose a target size and check the result. A very small target on a large photo may not be reachable. Private: your photo never leaves your device.',
     ariaLabel: 'Compress image tool',
@@ -655,6 +675,8 @@ export const tools = [
     schemaName: 'PDkef - Protect & Unlock PDF',
     toolName: 'Protect & Unlock PDF',
     h1: 'Unlock or Protect a PDF Free',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Free',
     subhead:
       'Add a password to protect a PDF, or remove one you already know - the tool detects which you need.',
     ariaLabel: 'PDF unlock tool',
@@ -696,6 +718,8 @@ export const tools = [
     schemaName: 'PDkef - Edit PDF Pages',
     toolName: 'Edit PDF',
     h1: 'Edit PDF Online Free: Rotate, Reorder, Remove Pages',
+    // QUAL-13: see the Sign entry's h1Accent comment above.
+    h1Accent: 'Online Free',
     subhead:
       'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF.',
     ariaLabel: 'Edit PDF pages tool',
