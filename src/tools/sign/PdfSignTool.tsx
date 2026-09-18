@@ -749,16 +749,21 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       const tag = document.activeElement?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
 
-      // Tab / Shift+Tab move field-to-field while typing - the desktop
-      // equivalent of the phone's Next/Previous control (MOBI-06). Gated on
-      // an open edit session, the same tier Escape's own first branch is, so
-      // it only ever pre-empts the browser's native tab order while a caret
-      // is actually live in a placed field - never while tabbing through the
-      // toolbar's own buttons, where editingElementId is null. Falling
-      // through without calling preventDefault when there is nowhere left to
-      // go (hasNext/hasPrevious false) leaves Tab free to leave the field the
+      // Tab / Shift+Tab move field-to-field - the desktop equivalent of the
+      // phone's Next/Previous control (MOBI-06). Gated on `activeElementId`,
+      // the same tier Backspace/Delete below are on rather than requiring an
+      // open edit session: a field a single click has only selected, not yet
+      // opened for typing, is exactly the state a plain Tab into the next
+      // control would otherwise leave with no visible effect, which read as
+      // "Tab does nothing" (this fires with the caret live in the field too,
+      // since `editingElementId` set implies `activeElementId` is the same
+      // id). With nothing selected at all it does not fire, same as Enter/
+      // Backspace, so it never pre-empts the browser's native tab order while
+      // tabbing through the toolbar's own buttons. Falling through without
+      // calling preventDefault when there is nowhere left to go
+      // (hasNext/hasPrevious false) leaves Tab free to leave the field the
       // ordinary way, same as reaching the end of any other web form.
-      if (e.key === 'Tab' && editingElementId) {
+      if (e.key === 'Tab' && activeElementId) {
         const goingForward = !e.shiftKey;
         if (goingForward ? fieldNavigation.hasNext : fieldNavigation.hasPrevious) {
           e.preventDefault();
