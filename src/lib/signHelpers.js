@@ -50,12 +50,27 @@ export function dominantTextDirection(strings) {
 }
 
 export function getEffectiveTextDirection(element) {
-  // `textDirection` is retained on elements for backwards-compatible draft
-  // data and the creation model, but it must not become an inherited language
-  // choice. A blank, punctuation-only, or digit-only field has no typed
-  // language to follow, so product policy makes it English/LTR even if an
-  // older saved element happens to carry `textDirection: 'rtl'`.
-  return detectTextDirection(element.text) || 'ltr';
+  // `textDirection` must not become an inherited language choice: a FREE box
+  // (no `width`, no `minWidth`) has its own growing edge to anchor, and
+  // showing that edge on the right because whatever was typed last happened
+  // to be Hebrew - before this field has any typed content of its own to
+  // justify it - was a real, reported bug. A blank, punctuation-only, or
+  // digit-only free box has no typed language to follow, so product policy
+  // makes it English/LTR even if an older saved element happens to carry
+  // `textDirection: 'rtl'`.
+  //
+  // A field-spanned box (a comb's `width`, a detected cell's `minWidth`) is
+  // different: it has no growing edge to anchor either way (combPlacement.ts),
+  // so there is no equivalent anchor-flip to guard against, and it is sitting
+  // on one specific spot on the printed page. useWorkspaceGestures.ts and
+  // useFieldNavigation.ts seed its `textDirection` from the FORM's own
+  // printed direction, not from whatever was used last - so before anything
+  // is typed, honouring that seed here is reading the page back to the
+  // person about to type into it, in their own language's alignment, rather
+  // than showing an English-page default on a Hebrew form.
+  return detectTextDirection(element.text)
+    || ((element.width || element.minWidth) && element.textDirection)
+    || 'ltr';
 }
 
 /**
