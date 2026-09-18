@@ -223,6 +223,11 @@ export interface SignMessages {
   addedTextBoxDescription: string;
   addedTextBoxCombAnnouncementTemplate: string;
   addedTextBoxAnnouncement: string;
+  /** useFieldNavigation.ts's Next/Previous move, when it lands on a field that
+   * already has a box rather than creating one - see addedTextBoxAnnouncement
+   * for the sibling case where the move creates a fresh box instead. */
+  movedToNextFieldAnnouncement: string;
+  movedToPreviousFieldAnnouncement: string;
   addedDateBoxDescription: string;
   addedDateBoxAnnouncement: string;
   addedSymbolDescription: string;
