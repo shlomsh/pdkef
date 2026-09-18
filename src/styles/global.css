@@ -73,29 +73,35 @@
    is the fix for the CSS duplication ratchet. */
 
 :root {
-  /* Palette - Sea Glass: A deeper, more distinctive theme based on teal and cool grays. */
-  --color-bg: #f4f9fa;
+  /* Palette - Mint and paper: a pale mint ground with deep teal ink, plus a
+     warm cream paper reserved for dropzones and the header's link chips. */
+  --color-bg: #d4f4ec;
   --color-surface: #ffffff;
-  --color-surface-sunken: #c4e1e6;
-  --color-text: #23404a;
-  --color-muted: #4a6570;
-  --color-muted-light: #a4ccd9;
-  --color-border: #d8e8ec;
-  --color-border-strong: #8dbcc7;
+  --color-surface-sunken: #a5e9dd;
+  --color-text: #0b4c4c;
+  --color-muted: #276460;
+  --color-muted-light: #8fdccf;
+  --color-border: #b9e6dc;
+  --color-border-strong: #6fbeb2;
+  /* Paper: the one warm surface. The place a file lands (dropzones) and the
+     header's link chips wear it; nothing else does. */
+  --color-paper: #fff0e4;
+  --color-paper-edge: #f0d8c4;
   /* Keep the surface accent and readable foreground separate. The original
      primary is already AA against white button labels, but misses AA when it
      is drawn as text on the page and tinted surfaces. */
-  --color-primary: #3e7c8d;
-  --color-primary-text: #397281;
-  --color-primary-hover: #397281;
-  --color-primary-active: #356d7d;
-  --color-primary-soft: #eef6f8;
-  --color-primary-tint: #e6f1f3;
-  --color-primary-ring: rgba(62, 124, 141, 0.35);
-  /* Hand-drawn callouts in the homepage demo use a slightly brighter Sea
-     Glass ink. It remains part of the same teal family rather than borrowing
-     the warm marker-red treatment from the early design sketch. */
-  --color-annotation: #147691;
+  --color-primary: #007979;
+  --color-primary-text: #006e6e;
+  --color-primary-hover: #006868;
+  --color-primary-active: #005a5a;
+  --color-primary-soft: #e8f7f4;
+  --color-primary-tint: #c3f0e6;
+  --color-primary-ring: rgba(0, 121, 121, 0.35);
+  /* Hand-drawn callouts in the homepage demo use a deeper teal ink, one step
+     below primary so it stays AA on the hero's fuller mint. It remains part of
+     the same teal family rather than borrowing the warm marker-red treatment
+     from the early design sketch. */
+  --color-annotation: #006868;
   --color-success: #5c7a3a;
   --color-success-hover: #4a632f;
   --color-success-soft: #ebffd8; /* Trust color for pill and privacy caption */
