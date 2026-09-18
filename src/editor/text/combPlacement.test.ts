@@ -180,6 +180,46 @@ describe('placeTextOnCell', () => {
     const shrunkTextHeight = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
     expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - shrunkTextHeight / 2, 5);
   });
+
+  describe('on a cell with a printed label in its corner', () => {
+    // Form 101's employer "מספר טלפון" cell, live: 25.6pt tall (157.0-182.6pt),
+    // the label's baseline 7.7pt down from the top rule, so the blank strip a
+    // person writes in is the 17.9pt under it. Centring on the whole cell put
+    // the typed number's top against the label (reported).
+    const labelled: FieldRegion = {
+      pageIndex: 0, left: 21.888, top: 18.648, width: 13.221, height: 3.041,
+      writable: { left: 21.888, top: 19.563, width: 13.221, height: 2.126 },
+    };
+
+    it('centres the box in the writable strip under the label, not in the whole cell', () => {
+      const placed = placeTextOnCell(labelled, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const textHeight = (12 * 1.29 / PAGE_HEIGHT) * 100;
+      const strip = labelled.writable!;
+      expect(placed.fontSize).toBe(12);
+      expect(placed.top).toBeCloseTo(strip.top + strip.height / 2 - textHeight / 2, 5);
+      // The box's top is below the label's baseline - the whole point.
+      expect(placed.top).toBeGreaterThan(strip.top);
+    });
+
+    it('sizes the font by the strip, not the cell, so a tall label leaves less room', () => {
+      // Same cell, but only 9pt of blank under the label: 12pt (a 15.5pt box)
+      // would cross the label; the strip caps it.
+      const cramped: FieldRegion = { ...labelled, writable: { ...labelled.writable!, height: 1.069 } };
+      const placed = placeTextOnCell(cramped, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      expect(placed.fontSize).toBeCloseTo(cellFontSize(12, 1.069, PAGE_HEIGHT), 5);
+      expect(placed.fontSize).toBeLessThan(12);
+    });
+
+    it('spans the strip beside a label, when that is where the blank is', () => {
+      const beside: FieldRegion = {
+        pageIndex: 0, left: 50, top: 40, width: 20, height: 1.6,
+        writable: { left: 50, top: 40, width: 14, height: 1.6 },
+      };
+      const placed = placeTextOnCell(beside, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      expect(placed.left).toBe(50);
+      expect(placed.minWidth).toBe(14);
+    });
+  });
 });
 
 describe('combFontSize', () => {
@@ -198,6 +238,27 @@ describe('combFontSize', () => {
   it("never goes below the editor's own minimum", () => {
     expect(combFontSize(12, 0.1, PAGE_WIDTH)).toBe(6);
   });
+
+  it('also fits the digits inside the run\'s ink height, which on form 101 is the tighter bound', () => {
+    // Identity teeth: 7.04pt tall on 11.34pt-wide cells. Width alone allows
+    // 18.9pt; a 12pt default's 8.6pt digits already stand taller than the
+    // teeth ("large", live report). The cap-height rule brings it to 9.78pt.
+    const size = combFontSize(12, cellPercent, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT);
+    expect(size).toBeCloseTo(7.0384 / 0.72, 1);
+    expect(size * 0.72).toBeLessThanOrEqual((IDENTITY_RUN.height / 100) * PAGE_HEIGHT + 1e-9);
+  });
+
+  it('leaves a size alone when the ink is tall enough for it', () => {
+    // A closed 10.9pt box (the health declaration): 12pt digits are 8.6pt, they fit.
+    expect(combFontSize(12, cellPercent, PAGE_WIDTH, 1.297, PAGE_HEIGHT)).toBe(12);
+  });
+
+  it('takes the stricter of the two bounds', () => {
+    // Wide, short teeth: height says 9.78pt, width would allow 18.9pt.
+    expect(combFontSize(24, cellPercent, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT)).toBeCloseTo(7.0384 / 0.72, 1);
+    // Narrow, tall boxes: width says 8.3pt, height would allow 15pt.
+    expect(combFontSize(24, 5 / 595.275 * 100, PAGE_WIDTH, 1.297, PAGE_HEIGHT)).toBeCloseTo(5 / 0.6, 1);
+  });
 });
 
 describe('placeCombOnRegion', () => {
@@ -210,6 +271,24 @@ describe('placeCombOnRegion', () => {
     expect(placement.left).toBe(IDENTITY_RUN.left);
     expect(placement.width).toBe(IDENTITY_RUN.width);
     expect(placement.combCells).toBe(9);
+  });
+
+  it('shrinks the font so the digits stand inside the teeth, and the box then barely crosses the rule', () => {
+    const placement = place();
+    expect(placement.fontSize).toBeCloseTo(combFontSize(12, IDENTITY_RUN.width / 9, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT), 5);
+    expect(placement.fontSize).toBeLessThan(12);
+    // On the health declaration's closed 10.8pt boxes, 12pt digits (8.6pt)
+    // are inside the 80% fill line - the default is untouched there.
+    expect(place({ ...IDENTITY_RUN, boxed: true, height: 1.283 }).fontSize).toBe(12);
+    // A closed box keeps a margin an open run does not: the same 7pt of ink
+    // sizes smaller when it is a box.
+    expect(place({ ...IDENTITY_RUN, boxed: true }).fontSize).toBeLessThan(place().fontSize);
+    // With the baseline on the rule, only the box's own descent + padding
+    // hangs below it - at 9.78pt that is ~2.9pt, down from 3.6pt at 12pt -
+    // so the box no longer reaches the label of the row beneath.
+    const rule = IDENTITY_RUN.top + IDENTITY_RUN.height;
+    const boxBottom = placement.top + (placement.fontSize * 1.29 / PAGE_HEIGHT) * 100;
+    expect(boxBottom - rule).toBeLessThan((3 / PAGE_HEIGHT) * 100);
   });
 
   it('puts the glyph baseline on the printed rule when the cells are open', () => {

@@ -67,6 +67,18 @@ export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for th
 // down to a 12px slit first, whatever is written in it.
 export const COMB_MIN_CELL_EM = 0.6;
 export const MAX_COMB_CELLS = 60;                       // Upper bound on the cell stepper
+// How tall a digit or capital stands above the baseline, as a fraction of the
+// font size - the cap height. ~0.72em for the text faces (Arimo is 0.716) and
+// close enough for the handwriting ones. Used to fit a comb's glyphs INSIDE
+// the printed teeth or boxes vertically: a 7pt-tall row of teeth wants ~9.7pt
+// digits, and a 12pt default towers over it (form 101's identity number, live
+// report) even though its cells are wide enough for 18pt.
+export const COMB_CAP_HEIGHT_EM = 0.72;
+// How much of a CLOSED comb box's height its digit may fill. Open teeth are
+// height guides - a digit standing exactly as tall as them, on the rule, is the
+// printed intent - but a digit filling a closed box wall to wall looks jammed,
+// so it gets the margin a hand would leave.
+export const COMB_BOX_FILL = 0.8;
 
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning
