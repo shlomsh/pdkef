@@ -1,12 +1,12 @@
 ---
 id: "QUAL-11"
 title: "Mint and paper: retheme the palette so green is the ground and warmth is the paper"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
 depends_on: []
-legacy_state: "In progress 2026-09-18"
+legacy_state: "Done 2026-09-18"
 ---
 
 # QUAL-11 · Mint and paper
