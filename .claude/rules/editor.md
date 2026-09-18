@@ -148,11 +148,17 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
   `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
   tried twice and drifted twice; do not bring them back.
-- Sign's own toolbar order leads with Sign, the tool the page is named for, then its vocabulary
-  (Text, Date, Symbols, Shapes, Whiteout), then Undo beside the work it undoes, then the chrome group
-  (view density, full screen, Feedback), then Replace with the other finishing action, then export at
-  the far edge - one kind of thing per group. Redact's own order is
-  unchanged: it already led with Blur, its named tool, since f48fcbd8.
+- Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
+  Date, Symbols, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
+  tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
+  first step), then Undo beside the work it undoes, then the chrome group (view density, full screen,
+  Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
+  thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
+  f48fcbd8.
+- The view-density segmented control's selected segment is a tint (`--color-primary-tint` fill,
+  `--color-primary-text`), not the solid `--color-primary` fill: that fill is what `.active` means on
+  a toolbar button (a tool armed for the next click), and a persistent view setting wearing it read as
+  a tool that was always on.
 
 ## pdf.js render direction
 

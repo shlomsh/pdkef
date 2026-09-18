@@ -102,7 +102,8 @@ for (const tool of tools) {
 // so the two anchors are checked on real rendered label widths: at 1440px
 // (the plateau) every label shows except Undo and Feedback, which are
 // icon-only at every width (`data-icon-only`); at 1200px everything is
-// icon-only. And Sign leads, the tool this page is named for.
+// icon-only. And the row reads in the order a form gets done: Text first,
+// Sign after the filling vocabulary (Text, Date, Symbols, Shapes, Whiteout).
 async function labelWidth(page, text) {
   return page.evaluate((label) => {
     const spans = [...document.querySelectorAll('[role="toolbar"] .label, [role="toolbar"] span')];
@@ -111,17 +112,17 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Sign leads, labels show at the desktop anchor except Undo and Feedback, and none show below 1300px', async ({ page }) => {
+test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except Undo and Feedback, and none show below 1300px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign', 'sign-desktop-one-line-order.pdf');
   await page.setViewportSize({ width: 1440, height: 1000 });
 
-  const firstButtonLabel = await page.evaluate(() => {
+  const leadingLabels = await page.evaluate(() => {
     const toolbar = document.querySelector('[role="toolbar"]');
-    return toolbar.children[0].querySelector('.label, span')?.textContent?.trim();
+    return [...toolbar.children].slice(0, 6).map((el) => el.querySelector('.label, span')?.textContent?.trim());
   });
-  expect(firstButtonLabel, 'the first toolbar control should be Sign').toBe('Sign');
+  expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign']);
 
   for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Replace', 'Share', 'Download']) {
     const width = await labelWidth(page, label);

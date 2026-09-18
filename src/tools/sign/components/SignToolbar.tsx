@@ -265,116 +265,18 @@ export default function SignToolbar({
     <>
       <ToolShell editor status={statusLine}>
         <div className={styles.toolbar} role="toolbar" aria-label={t.toolbarLabel} dir={t.dir} lang={t.lang}>
-          {/* SIGN-29 (2026-09-18) order: Sign leads because this is the page
-              it is named for (Redact's own order already leads with Blur,
-              its named tool, since f48fcbd8, and stays unchanged here); Text,
-              Date, Symbols, Shapes and Whiteout are this app's own vocabulary
-              and stay grouped together; Undo sits beside the work it undoes;
-              the chrome - view density, full screen, Feedback - groups
-              together next; Replace sits with the other finishing action;
-              export (Share/Download) stays at the far edge. One kind of thing
-              per group; the two-anchor comment at the end of
+          {/* Order (2026-09-18, revised the same day as SIGN-29): the row
+              reads in the order a form gets done. Text, Date, Symbols, Shapes
+              and Whiteout come first - you fill the fields, tick the boxes,
+              cover what is wrong - and Sign comes after them, the last thing
+              you do to a filled form, even though it is the tool the page is
+              named for (Redact's own order still leads with Blur, its named
+              tool, since f48fcbd8). Undo sits beside the work it undoes; the
+              chrome - view density, full screen, Feedback - groups together
+              next; Replace sits with the other finishing action; export
+              (Share/Download) stays at the far edge. One kind of thing per
+              group; the two-anchor comment at the end of
               SignToolbar.module.css says where labels show. */}
-          {/* Same wrapping reasoning as the Shapes button below: ArmHint anchors to
-              the dropdown div, not the button Popover clones. `locked` doubles
-              as "nothing to teach yet" here - before a signature exists, this
-              button's click opens the create dialog rather than arming
-              anything, and ArmHint's own `locked` branch already means "render
-              the trigger plain, no hover wiring" for exactly that case, so
-              there is no need for a second conditional path. */}
-          <ArmHint
-            tool="signature"
-            label={t.signButton}
-            action={TOOL_COPY.signature.action}
-            locked={!activeSignature || (selectedTool === 'signature' && toolLocked)}
-            autoShowTool={autoShowTool}
-            hintTemplate={t.armHint}
-          >
-            <div
-              className={styles.dropdown}
-              onMouseEnter={openSig}
-              onMouseLeave={scheduleCloseSig}
-              onDblClick={lockSignature}
-            >
-              <Popover
-                open={showSigDropdown}
-                onOpenChange={setShowSigDropdown}
-                placement="bottom-start"
-                trigger={
-                  <button
-                    type="button"
-                    className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
-                    onClick={handleSignatureBtnClick}
-                    // Only said here when there is nothing yet for ArmHint to
-                    // teach: once a signature exists, ArmHint's own bubble
-                    // (wrapping the div above) covers this button instead, and
-                    // showing both would duplicate the description.
-                    title={activeSignature ? undefined : t.selectSignatureTitle}
-                    aria-pressed={selectedTool === 'signature'}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
-                      <path d="M3 21h18" />
-                    </svg>
-                    <span className={styles.label}>{t.signButton}</span>
-                  </button>
-                }
-                content={
-                <div
-                  className={`${controlStyles.popover} ${controlStyles['signature-menu']}`}
-                  data-editor-signature-popover
-                  role="menu"
-                  onMouseEnter={openSig}
-                  onMouseLeave={scheduleCloseSig}
-                >
-                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
-                    {savedSignatures.map((sig) => (
-                      <div
-                        key={sig.id}
-                        className={controlStyles['dropdown-item']}
-                        data-editor-signature-item
-                        role="menuitem"
-                        onClick={() => handleSelectSavedSignature(sig)}
-                      >
-                        <img src={sig.dataUrl} alt={t.savedSignatureAlt} />
-                        <button
-                          type="button"
-                          className={controlStyles['dropdown-item-delete']}
-                          data-editor-signature-delete
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteSavedSignature(sig.id, e);
-                          }}
-                          title={t.deleteSignatureLabel}
-                          aria-label={t.deleteSignatureLabel}
-                        >
-                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                            <path d="M4 4l8 8M12 4l-8 8" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className={controlStyles['dropdown-add-button']}
-                    onClick={() => {
-                      setShowSigDropdown(false);
-                      setDialogOpen(true);
-                    }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    <span className={styles.label}>{t.newSignatureButton}</span>
-                  </button>
-                </div>
-              }
-            />
-            </div>
-          </ArmHint>
-
           <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
             <button
               type="button"
@@ -545,6 +447,106 @@ export default function SignToolbar({
               </svg>
               <span className={styles.label}>{t.whiteoutButton}</span>
             </button>
+          </ArmHint>
+
+          {/* Same wrapping reasoning as the Shapes button above: ArmHint anchors to
+              the dropdown div, not the button Popover clones. `locked` doubles
+              as "nothing to teach yet" here - before a signature exists, this
+              button's click opens the create dialog rather than arming
+              anything, and ArmHint's own `locked` branch already means "render
+              the trigger plain, no hover wiring" for exactly that case, so
+              there is no need for a second conditional path. */}
+          <ArmHint
+            tool="signature"
+            label={t.signButton}
+            action={TOOL_COPY.signature.action}
+            locked={!activeSignature || (selectedTool === 'signature' && toolLocked)}
+            autoShowTool={autoShowTool}
+            hintTemplate={t.armHint}
+          >
+            <div
+              className={styles.dropdown}
+              onMouseEnter={openSig}
+              onMouseLeave={scheduleCloseSig}
+              onDblClick={lockSignature}
+            >
+              <Popover
+                open={showSigDropdown}
+                onOpenChange={setShowSigDropdown}
+                placement="bottom-start"
+                trigger={
+                  <button
+                    type="button"
+                    className={`${styles.button}${selectedTool === 'signature' ? ` ${styles.active}` : ''}${selectedTool === 'signature' && toolLocked ? ` ${styles.locked}` : ''}`}
+                    onClick={handleSignatureBtnClick}
+                    // Only said here when there is nothing yet for ArmHint to
+                    // teach: once a signature exists, ArmHint's own bubble
+                    // (wrapping the div above) covers this button instead, and
+                    // showing both would duplicate the description.
+                    title={activeSignature ? undefined : t.selectSignatureTitle}
+                    aria-pressed={selectedTool === 'signature'}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
+                      <path d="M3 21h18" />
+                    </svg>
+                    <span className={styles.label}>{t.signButton}</span>
+                  </button>
+                }
+                content={
+                <div
+                  className={`${controlStyles.popover} ${controlStyles['signature-menu']}`}
+                  data-editor-signature-popover
+                  role="menu"
+                  onMouseEnter={openSig}
+                  onMouseLeave={scheduleCloseSig}
+                >
+                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
+                    {savedSignatures.map((sig) => (
+                      <div
+                        key={sig.id}
+                        className={controlStyles['dropdown-item']}
+                        data-editor-signature-item
+                        role="menuitem"
+                        onClick={() => handleSelectSavedSignature(sig)}
+                      >
+                        <img src={sig.dataUrl} alt={t.savedSignatureAlt} />
+                        <button
+                          type="button"
+                          className={controlStyles['dropdown-item-delete']}
+                          data-editor-signature-delete
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteSavedSignature(sig.id, e);
+                          }}
+                          title={t.deleteSignatureLabel}
+                          aria-label={t.deleteSignatureLabel}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M4 4l8 8M12 4l-8 8" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className={controlStyles['dropdown-add-button']}
+                    onClick={() => {
+                      setShowSigDropdown(false);
+                      setDialogOpen(true);
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span className={styles.label}>{t.newSignatureButton}</span>
+                  </button>
+                </div>
+              }
+            />
+            </div>
           </ArmHint>
 
           <button

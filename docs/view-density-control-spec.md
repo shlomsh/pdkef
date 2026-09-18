@@ -126,7 +126,7 @@ https://claude.ai/code/artifact/52f75436-2e97-4893-a0c3-7d1170b9e179
   `overflow: hidden`.
 - Segment dividers: `border-right: 1px solid var(--color-border)`, none on the last.
 - Inactive segment: transparent background, `color: var(--color-muted)`.
-- Active segment: `background: var(--color-primary)`, `color: var(--color-surface)`.
+- Active segment: `background: var(--color-primary-tint)`, `color: var(--color-primary-text)` (was the solid `--color-primary` fill until 2026-09-18; that fill means "armed tool" on the toolbar buttons beside it and made the setting look like a tool that was always on).
 - Icons 17x17, `stroke-width: 2` (2.2 for the fullscreen glyph), `fill="none"`,
   `stroke="currentColor"`.
 
