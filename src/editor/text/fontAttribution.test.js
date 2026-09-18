@@ -20,8 +20,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { HANDWRITING_FONTS, TEXT_FONTS } from './fonts.js';
-import { FONT_MANIFEST } from '../../../scripts/font-manifest.mjs';
-import { DISPLAY_ONLY_FONTS } from '../../../scripts/display-only-fonts.mjs';
+import { FONT_MANIFEST } from './fontManifest.js';
+import { licenseFor } from './fontLicenses.js';
+import { DISPLAY_ONLY_FONTS } from './displayOnlyFonts.js';
 
 const CATALOGUE = [...HANDWRITING_FONTS, ...TEXT_FONTS];
 
@@ -42,7 +43,7 @@ describe('font attribution surfaces', () => {
   // Non-vacuity: every assertion below is a set difference, so a parse that
   // silently returned nothing would make all of them pass.
   it('parses both surfaces, so the coverage assertions are not comparing empty lists', () => {
-    expect(astro).toContain("import { FONT_MANIFEST } from '../../scripts/font-manifest.mjs'");
+    expect(astro).toContain("import { FONT_MANIFEST } from '../editor/text/fontManifest.js'");
     expect(astro).toContain('FONT_MANIFEST.map');
     expect(FONT_MANIFEST).toHaveLength(CATALOGUE.length);
     expect(markdownHandwriting).not.toBeNull();
@@ -52,9 +53,10 @@ describe('font attribution surfaces', () => {
 
   it('gives every catalogue family complete license metadata used by /licenses/', () => {
     for (const font of FONT_MANIFEST) {
-      expect(font.license.version).toBeTruthy();
-      expect(font.license.url).toMatch(/^https:\/\//);
-      expect(font.license.copyright).toMatch(/Copyright|\(c\)|©/i);
+      const license = licenseFor(font.family);
+      expect(license.version).toBeTruthy();
+      expect(license.url).toMatch(/^https:\/\//);
+      expect(license.copyright).toMatch(/Copyright|\(c\)|©/i);
     }
   });
 
@@ -72,7 +74,7 @@ describe('font attribution surfaces', () => {
     // The check above is only as complete as the catalogue, so a font bundled
     // but never registered would be invisible to it. A display-only font
     // (never selectable in the editor) is a second, explicitly named
-    // category - scripts/display-only-fonts.mjs - not a blanket exception:
+    // category - src/editor/text/displayOnlyFonts.js - not a blanket exception:
     // every entry there must still name a real, currently-shipping catalogue
     // family (checked below), and a font in *neither* list still fails this
     // assertion.

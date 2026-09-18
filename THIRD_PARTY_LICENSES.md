@@ -1597,7 +1597,7 @@ Caveat-Bold.ttf built by `scripts/fonts/build-demo-font-subset.py` and used only
 caption, and `GveretLevinDemo-Regular.ttf`, a Hebrew-range subset of GveretLevin-Regular.ttf built
 by `scripts/fonts/build-hebrew-demo-font-subset.py` and used only by the Hebrew edition of that
 same caption. Both are the same upstream fonts under the same license above, not separately
-credited work; see `scripts/display-only-fonts.mjs` for the full accounting.
+credited work; see `src/editor/text/displayOnlyFonts.js` for the full accounting.
 
 ```
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

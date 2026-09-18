@@ -113,7 +113,7 @@
 
    This is a dedicated, separate file (CaveatDemo-Bold.ttf, ~136KB vs the
    editor's Caveat-Bold.ttf at ~303KB) - see scripts/fonts/build-demo-font-subset.py
-   and scripts/display-only-fonts.mjs. The editor's file must never be
+   and src/editor/text/displayOnlyFonts.js. The editor's file must never be
    touched: it is fontkit-subset per document on export and needs its full
    glyph set.
 
@@ -142,9 +142,9 @@
    as the English one; its letterforms carry enough ink on their own not to
    need it. Source: GveretLevinDemo-Regular.ttf, a Hebrew-range subset of the
    editor's own Hebrew handwriting fallback face (public/fonts/GveretLevin-
-   Regular.ttf, already credited via scripts/font-manifest.mjs), built by
+   Regular.ttf, already credited via src/editor/text/fontManifest.js), built by
    scripts/fonts/build-hebrew-demo-font-subset.py. See
-   scripts/display-only-fonts.mjs for the full accounting. */
+   src/editor/text/displayOnlyFonts.js for the full accounting. */
 @font-face {
   font-family: 'Gveret Levin Demo';
   font-style: normal;

@@ -1,4 +1,4 @@
-import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from './font-manifest.mjs';
+import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../src/editor/text/fontManifest.js';
 import { isLocalizedPath } from '../src/i18n/localePrefixes.js';
 
 /**
@@ -39,7 +39,7 @@ import { isLocalizedPath } from '../src/i18n/localePrefixes.js';
  *
  * The default family's normal face is the one exception, because it is what
  * the editor renders with before anyone chooses anything (`DEFAULT_FONT_FAMILY`
- * in font-manifest.mjs, currently Arimo). Without it, a visitor who opens
+ * in src/editor/text/fontManifest.js, currently Arimo). Without it, a visitor who opens
  * Sign for the very first time and goes offline before typing (or before
  * their typed text triggers a different font) has no embeddable font at
  * all: `signPdf`'s fetch fails, `loadCustomFont` returns null, and

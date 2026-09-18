@@ -41,10 +41,10 @@ import {
   FONT_COVERAGE_FILES,
   fontFileHasGlyph,
 } from './fontCoverageTable.js';
-import { DISPLAY_ONLY_FONTS } from '../../../scripts/display-only-fonts.mjs';
+import { DISPLAY_ONLY_FONTS } from './displayOnlyFonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');
-// Display-only fonts (scripts/display-only-fonts.mjs) are real files on disk
+// Display-only fonts (src/editor/text/displayOnlyFonts.js) are real files on disk
 // that scripts/generate-font-coverage.mjs deliberately excludes from this
 // table - they are never selectable in the Sign editor, so the coverage
 // resolver this table feeds has nothing to do with them. Excluded here too,

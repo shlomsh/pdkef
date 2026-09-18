@@ -24,8 +24,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync } from 'node:zlib';
 import fontkit from '@pdf-lib/fontkit';
-import { FONT_FILES } from './font-manifest.mjs';
-import { DISPLAY_ONLY_FONTS } from './display-only-fonts.mjs';
+import { FONT_FILES } from '../src/editor/text/fontManifest.js';
+import { DISPLAY_ONLY_FONTS } from '../src/editor/text/displayOnlyFonts.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
@@ -132,7 +132,7 @@ function chooseEncoding(covered) {
 
 function computeTable() {
   const files = [...FONT_FILES].sort();
-  // Display-only fonts (scripts/display-only-fonts.mjs) are real files on
+  // Display-only fonts (src/editor/text/displayOnlyFonts.js) are real files on
   // disk that are never registered in FONT_MANIFEST and never selectable in
   // the Sign editor - the coverage table below feeds the editor's coverage
   // resolver, so they have nothing to contribute to it and are excluded
