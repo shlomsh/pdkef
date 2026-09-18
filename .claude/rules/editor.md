@@ -126,8 +126,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 ## Main toolbar layout (`SignToolbar.module.css`, shared with Redact and `FullscreenButton`)
 
 - Every control is a 44x44 CSS px touch target (`--btn-min-size`; WCAG 2.5.5 AAA and Apple HIG).
-  Below 920px the row is icon-only with one explicit `flex-basis` of `--btn-min-size` per control; at
-  560px and below `flex-grow: 0` and each wrapped line is centred. Guard:
+  Below 920px the row has one explicit `flex-basis` of `--btn-min-size` per control and, once it
+  has to wrap, `flex-grow: 0` with each wrapped line centred. Guard:
   `e2e/tool-toolbars/toolbar-touch-targets.spec.js` (jsdom has no layout; it drives both `/sign` and
   `/redact`, so it lives under `e2e/`, not either tool's own `e2e/` folder).
 - Size from `.toolbar > *`, never `.toolbar .dropdown`: the row mixes `<button>`s and
@@ -141,8 +141,9 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1280px the row is
   one line with labels; the toolbar box plateaus at 1172px there, and Sign's twelve controls with
   Share fit it (~1138px) only because Undo and Feedback are `data-icon-only` at every width, so a
-  new labelled control has to be paid for by re-measuring in a real browser. From 560px to 1279px
-  every control is icon-only on one line. Below 560px the phone grid above. No label may ever
+  new labelled control has to be paid for by re-measuring in a real browser. Below 1280px every
+  control is icon-only on one line, until eleven 44px targets stop fitting (a ~660px window), and
+  from there down the phone grid above. No label may ever
   truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
   `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
   tried twice and drifted twice; do not bring them back.

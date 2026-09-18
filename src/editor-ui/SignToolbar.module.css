@@ -443,13 +443,14 @@
      e2e/tool-toolbars/toolbar-desktop-one-line.spec.js is what says the fallback
      is not firing today.
 
-   Between, 560px to 1279px: the same one line, every control icon-only with its
+   Between, up to 1279px: the same one line, every control icon-only with its
    tooltip, 44px targets, growing to share the row (twelve of them are 762px, so
    the row fits down to the 920px floor's 796px box and on down through the
-   tablet band, where the phone rules below take over the sizing).
+   tablet band, until eleven 44px targets no longer fit one line at roughly a
+   660px viewport).
 
-   iPhone, 560px and below: the centred, evenly split two-row icon grid in the
-   phone block above, unchanged.
+   iPhone, and any window narrower than that: the centred, evenly split two-row
+   icon grid in the phone block above, unchanged.
 
    This replaced three container-query label tiers keyed on `data-label-priority`,
    whose hand-measured thresholds went stale twice (E9's view control, then Date

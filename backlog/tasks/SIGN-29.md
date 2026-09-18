@@ -52,10 +52,11 @@ screen has no label on desktop (the view control replaces it) and Undo's label a
 Shlomi's call, after that: stop tuning thresholds. **Two anchors, desktop and iPhone, and a
 reasonable step between, for Sign and Redact alike.** From 1280px the row is one line with labels,
 and it fits the 1172px plateau (~1138px) because Undo and Feedback are icon-only at every width
-(`data-icon-only`; an arrow and a bug are conventions, neither is a tool). From 560px to 1279px every
-control is icon-only on one line with its tooltip. Below 560px the phone grid, unchanged. The three
+(`data-icon-only`; an arrow and a bug are conventions, neither is a tool). Below 1280px every control is
+icon-only on one line with its tooltip, until eleven 44px targets stop fitting at a ~660px window;
+narrower than that, the phone grid, whose even split now covers that whole band, unchanged in shape. The three
 container-query tiers and every `data-label-priority` attribute are gone; the e2e guard checks one
-line from 600px to 1600px and the label state at both anchors.
+line from 700px to 1600px and the label state at both anchors.
 
 Sign's own toolbar was also reordered to Sign, Text, Date, Symbols, Shapes, Whiteout, Undo,
 [view density / full screen], Feedback, Replace, Share, Download: the tool the page is named for
