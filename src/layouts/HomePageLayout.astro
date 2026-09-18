@@ -865,7 +865,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   .app-card[data-accent='primary'] .app-tile {
     background: var(--color-text);
     color: var(--color-surface);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 8px 18px -8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 8px 18px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
   }
 
   .app-card[data-accent='soft'] .app-tile {
@@ -890,7 +890,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     /* Hovered tiles go to ink, not primary: primary is the dock itself now. */
     background: var(--color-text);
     color: var(--color-surface);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 12px 20px -8px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 12px 20px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
   }
 
   .app-card:hover .app-tile :global(svg),
