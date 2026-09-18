@@ -4,6 +4,7 @@ import {
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
 } from '../../constants/signGeometry.js';
+import type { TextDirection } from '../model/editorModel.ts';
 import {
   FONT_VERTICAL_METRICS,
   baselineOffsetEmFromMetrics,
@@ -174,18 +175,36 @@ export function cellRegionAt(
 }
 
 /**
- * Where to centre a freshly placed text box on a detected free-text cell.
+ * Where to anchor a freshly placed text box on a detected free-text cell.
+ *
+ * `left` is the box's *anchored edge*, not its centre: the editor keeps a
+ * text box's `left` as the edge its text starts from and lets the box grow
+ * away from it (see DraggableWrapper's "anchored edge" note), so handing it
+ * the cell's middle put the box's left edge halfway across the cell and hung
+ * the rest out over the next column. The start edge depends on the direction
+ * the box is expected to be filled in: LTR text starts at the cell's left
+ * edge, RTL text at its right, and `direction` is the editor's own prediction
+ * for the next placement (the last manually toggled direction).
+ *
+ * `top` is the cell's middle; the caller subtracts half the box's height, the
+ * same re-centring a raw tap gets, so the vertical result is identical to a
+ * tap landing exactly on the cell's middle.
  *
  * Deliberately not a `placeCombOnRegion`-style placement: that sets `width`,
  * and `comb.js`'s `isComb` is derived from `width` alone (see its own
  * docstring), so giving an ordinary field an explicit width would silently
  * turn it into a one-character-per-cell comb the moment someone typed a
- * second letter. A free-text field just needs a better starting point than
- * the raw tap - the cell's own centre - and then grows exactly the way any
- * hand-placed text box does, RTL anchoring included.
+ * second letter. The box's own padding (`textBoxPaddingEm`) already keeps the
+ * glyphs off the printed rule, so no extra inset is applied.
  */
-export function cellCenterPoint(region: FieldRegion): { left: number; top: number } {
-  return { left: region.left + region.width / 2, top: region.top + region.height / 2 };
+export function cellAnchorPoint(
+  region: FieldRegion,
+  direction: TextDirection = 'ltr',
+): { left: number; top: number } {
+  return {
+    left: direction === 'rtl' ? region.left + region.width : region.left,
+    top: region.top + region.height / 2,
+  };
 }
 
 /**
