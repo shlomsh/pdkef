@@ -2,18 +2,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import {
+  PAGE_SIZE,
+  DOCUMENT_META,
+  PALETTE,
+  HEADER,
+  TRIP_NOTICE,
+  FIELDS,
+  CHECKBOXES,
+  SIGNATURE_SECTION,
+  FOOTER,
+} from '../src/tools/redact/practiceFormContent.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const output = path.resolve(here, '../public/images/redaction-guide/sample.pdf');
 
-const colors = {
-  ink: rgb(0.12, 0.25, 0.29),
-  muted: rgb(0.32, 0.45, 0.50),
-  teal: rgb(0.17, 0.48, 0.56),
-  rule: rgb(0.72, 0.81, 0.84),
-  soft: rgb(0.93, 0.97, 0.97),
-  field: rgb(0.98, 0.995, 0.995),
-};
+const colors = Object.fromEntries(
+  Object.entries(PALETTE).map(([key, [r, g, b]]) => [key, rgb(r, g, b)]),
+);
 
 function label(page, font, text, x, y) {
   page.drawText(text, { x, y, size: 10, font, color: colors.muted });
@@ -75,64 +81,69 @@ function addDigitComb(form, page, font, name, x, y, digits, cellWidth = 25, heig
 
 async function main() {
   const pdf = await PDFDocument.create();
-  pdf.setTitle('PDkef practice form - fictional field trip permission slip');
-  pdf.setAuthor('PDkef');
-  pdf.setSubject('A blank practice form for Sign & Fill');
-  pdf.setKeywords(['PDkef', 'practice', 'field trip', 'permission form']);
+  pdf.setTitle(DOCUMENT_META.title);
+  pdf.setAuthor(DOCUMENT_META.author);
+  pdf.setSubject(DOCUMENT_META.subject);
+  pdf.setKeywords(DOCUMENT_META.keywords);
 
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const page = pdf.addPage([680, 500]);
+  const page = pdf.addPage(PAGE_SIZE);
   const form = pdf.getForm();
 
   page.drawRectangle({ x: 0, y: 462, width: 680, height: 38, color: colors.teal });
-  page.drawText('PDkef / PRACTICE FORM', { x: 38, y: 478, size: 12, font: bold, color: rgb(1, 1, 1) });
+  page.drawText(HEADER.eyebrow, { x: 38, y: 478, size: 12, font: bold, color: colors.white });
 
-  page.drawText('Field Trip Permission Slip', { x: 38, y: 421, size: 25, font: bold, color: colors.ink });
-  page.drawText('A blank fictional form for trying text, checkmarks, and a signature.', {
+  page.drawText(HEADER.heading, { x: 38, y: 421, size: 25, font: bold, color: colors.ink });
+  page.drawText(HEADER.subheading, {
     x: 38, y: 400, size: 11, font, color: colors.muted,
   });
 
   page.drawRectangle({ x: 38, y: 351, width: 604, height: 34, color: colors.soft });
-  page.drawText('Room 12 is going to the Science Museum on Friday, May 14, from 8:00 AM to 3:30 PM.', {
+  page.drawText(TRIP_NOTICE, {
     x: 52, y: 365, size: 10.5, font, color: colors.ink,
   });
 
   const leftLabel = 38;
   const leftField = 176;
   const fieldWidth = 466;
-  label(page, font, "Student's Name", leftLabel, 326);
-  addTextField(form, page, font, 'student_name', leftField, 317, fieldWidth, 22);
 
-  label(page, font, 'Parent / Guardian', leftLabel, 296);
-  addTextField(form, page, font, 'parent_guardian', leftField, 287, fieldWidth, 22);
+  const [studentName, parentGuardian, emergencyContact, studentId, allergies] = FIELDS;
 
-  label(page, font, 'Emergency Contact', leftLabel, 266);
-  addTextField(form, page, font, 'emergency_contact', leftField, 257, fieldWidth, 22);
+  label(page, font, studentName.label, leftLabel, 326);
+  addTextField(form, page, font, studentName.name, leftField, 317, fieldWidth, 22);
 
-  label(page, font, 'Student ID (9 digits)', leftLabel, 236);
-  addDigitComb(form, page, font, 'student_id', leftField, 227, 9);
+  label(page, font, parentGuardian.label, leftLabel, 296);
+  addTextField(form, page, font, parentGuardian.name, leftField, 287, fieldWidth, 22);
 
-  label(page, font, 'Allergies / Medical Notes', leftLabel, 200);
-  addTextField(form, page, font, 'allergies_medical_notes', leftField, 181, fieldWidth, 34, { multiline: true });
+  label(page, font, emergencyContact.label, leftLabel, 266);
+  addTextField(form, page, font, emergencyContact.name, leftField, 257, fieldWidth, 22);
 
-  const permission = form.createCheckBox('permission_to_attend');
+  label(page, font, studentId.label, leftLabel, 236);
+  addDigitComb(form, page, font, studentId.name, leftField, 227, studentId.digits);
+
+  label(page, font, allergies.label, leftLabel, 200);
+  addTextField(form, page, font, allergies.name, leftField, 181, fieldWidth, 34, { multiline: true });
+
+  const [attendCheckbox, photoCheckbox] = CHECKBOXES;
+
+  const permission = form.createCheckBox(attendCheckbox.name);
   permission.addToPage(page, { x: 39, y: 151, width: 14, height: 14, borderColor: colors.teal, borderWidth: 0.8 });
-  page.drawText('My child has permission to attend this trip.', { x: 61, y: 154, size: 10.5, font, color: colors.ink });
+  page.drawText(attendCheckbox.text, { x: 61, y: 154, size: 10.5, font, color: colors.ink });
 
-  const photos = form.createCheckBox('photo_permission');
+  const photos = form.createCheckBox(photoCheckbox.name);
   photos.addToPage(page, { x: 39, y: 127, width: 14, height: 14, borderColor: colors.teal, borderWidth: 0.8 });
-  page.drawText('Photos may be taken during the trip.', { x: 61, y: 130, size: 10.5, font, color: colors.ink });
+  page.drawText(photoCheckbox.text, { x: 61, y: 130, size: 10.5, font, color: colors.ink });
 
-  page.drawText('Sign below to give permission.', { x: 38, y: 105, size: 10.5, font: bold, color: colors.ink });
-  label(page, font, 'Parent or Guardian signature', 38, 67);
-  addTextField(form, page, font, 'parent_guardian_signature', 38, 39, 378, 22);
-  label(page, font, 'Date', 440, 67);
-  addTextField(form, page, font, 'signature_date', 440, 39, 202, 22);
+  page.drawText(SIGNATURE_SECTION.prompt, { x: 38, y: 105, size: 10.5, font: bold, color: colors.ink });
+  label(page, font, SIGNATURE_SECTION.signature.label, 38, 67);
+  addTextField(form, page, font, SIGNATURE_SECTION.signature.name, 38, 39, 378, 22);
+  label(page, font, SIGNATURE_SECTION.date.label, 440, 67);
+  addTextField(form, page, font, SIGNATURE_SECTION.date.name, 440, 39, 202, 22);
 
   page.drawLine({ start: { x: 38, y: 28 }, end: { x: 642, y: 28 }, thickness: 0.6, color: colors.rule });
-  page.drawText('Fictional form. No real personal data.', { x: 38, y: 13, size: 8.5, font, color: colors.muted });
-  page.drawText('1 / 1', { x: 616, y: 13, size: 8.5, font, color: colors.muted });
+  page.drawText(FOOTER.disclaimer, { x: 38, y: 13, size: 8.5, font, color: colors.muted });
+  page.drawText(FOOTER.pageNumber, { x: 616, y: 13, size: 8.5, font, color: colors.muted });
 
   // Explicitly generate widget appearances while leaving every value blank.
   // This makes the form legible in PDF viewers that do not generate appearances themselves.
