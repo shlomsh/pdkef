@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // ARCH-20: the oracle. Given a change, says which Nx projects it affects and
 // translates that into what CI and the local scripts should actually run -
-// `vitest run <dirs>`, `playwright test <dirs>`, and whether the 27 font
-// screening guards apply. Nx itself stays the oracle, never the executor (see
+// `vitest run <dirs>`, `playwright test <dirs>`, whether the 25 font
+// screening guards apply, and whether the 2 export-pipeline guards apply
+// (ARCH-23 split the latter out of the former - see matchesFontsGlob's
+// comment for why `fonts` is now a file-glob decision, not an Nx-graph one).
+// Nx itself stays the oracle for everything else, never the executor (see
 // docs/nx-affected-ci.md): one `vitest run` and one `playwright test` per
 // shard, filtered by the paths this script prints, not 18 separate
 // `nx run <project>:test` invocations.
@@ -14,10 +17,10 @@
 // Usage:
 //   node scripts/affected-scope.mjs [--base <ref>] [--head <ref>]
 //     Prints KEY=value lines for $GITHUB_OUTPUT: affected, everything,
-//     unit_paths, e2e_paths, fonts. Without --head, this is "what would I
-//     push right now" (working tree against --base, or against the merge
-//     base with origin/main when --base is omitted). With --head, this is a
-//     fixed historical commit range (used by the histogram and the
+//     unit_paths, e2e_paths, fonts, export_guards. Without --head, this is
+//     "what would I push right now" (working tree against --base, or against
+//     the merge base with origin/main when --base is omitted). With --head,
+//     this is a fixed historical commit range (used by the histogram and the
 //     acceptance checks in ARCH-20's own verification).
 //
 //   node scripts/affected-scope.mjs --summary
@@ -25,7 +28,7 @@
 //     lines. In CI the KEY=value form also appends that block to the file
 //     $GITHUB_STEP_SUMMARY names, so one call per job feeds both.
 //
-//   node scripts/affected-scope.mjs --run unit|e2e-product|e2e-perf|fonts
+//   node scripts/affected-scope.mjs --run unit|e2e-product|e2e-perf|fonts|export-guards
 //     Resolves the same way, then actually runs the corresponding command,
 //     narrowed to the resolved paths (or the full, unnarrowed form when
 //     everything=true). Exits with that command's status.
@@ -34,7 +37,7 @@
 // widens, never narrows):
 //
 //   1. No resolvable base, an `nx` error, or an empty changed-file list ->
-//      everything=true, fonts=true.
+//      everything=true, fonts=true, export_guards=true.
 //   2. Any changed file that no Nx project owns (a root config file,
 //      patches/, package*.json, .github/, middleware.ts, anything outside a
 //      project root - DOCS_ONLY files excepted, since a docs-only change
@@ -60,9 +63,12 @@
 //      lists name no island files (no CSS side channel to a third tool), and
 //      the graph already answers precisely for it - `nx show projects
 //      --affected --files=src/editor-ui/ElementToolbar.tsx` names exactly
-//      editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e.
+//      editor-ui, tool-sign, tool-redact, cross-tool-tests, site-e2e.
 //      `editor`'s own fate (whether it can leave too) is DEBT-07, after
-//      DEBT-04.
+//      DEBT-04. ARCH-23: unlike everything else this rule forces, `fonts` is
+//      NOT automatically true here - it is matchesFontsGlob(files), the same
+//      as rule 5's narrow path, computed once and threaded through every
+//      wide() call and the narrow() return alike (see wide()'s own comment).
 //   5. Otherwise narrow: unit_paths is each affected tool-<name> project's
 //      src/tools/<name>/, plus the root of every other affected project that
 //      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
@@ -80,8 +86,13 @@
 //      arguments are substring filters against the whole discovered test
 //      list, and "e2e/" is a substring of every tool's own
 //      src/tools/<t>/e2e/*.spec.js path too, which would silently defeat the
-//      narrowing) when site-e2e is affected; fonts is whether the `fonts`
-//      project is affected.
+//      narrowing) when site-e2e is affected; fonts is matchesFontsGlob(files)
+//      (ARCH-23 - see that function's own comment for why this is a glob and
+//      not `affectedSet.has('fonts')`); export_guards is whether the
+//      `export-guards` project (e2e/export/, the two guards ARCH-23 split
+//      out of `fonts`) is affected, decided by Nx like any other project -
+//      its own implicitDependencies (font-assets, editor, lib, tool-sign)
+//      keep it coarse on purpose, since it is only two cheap specs.
 
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -108,6 +119,37 @@ export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib']);
 // scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
 // narrow like any other tooling file.
 export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs']);
+
+// ARCH-23 (2026-09-18, owner's decision on backlog/tasks/ARCH-23.md): the 27
+// font screening guards (now 25 - the export render guard and language
+// acceptance moved to their own `export-guards` project, see below) exist to
+// prove the shipped fonts comply, not to catch a Sign/Redact UI regression -
+// so per-push they should run only when a font asset, the catalogue, a guard
+// itself, or the toolchain around them changed, never merely because
+// `editor`/`lib`/`tool-sign` sit on the Nx dependency graph (that edge
+// produced zero rightful triggers across 8 measured narrow-verdict runs and
+// forced `fonts:true` on 25 of 44 historically-affected runs via `wide()`
+// alone - see the ticket's "Measured" sections). Nx's project graph cannot
+// express "this file inside src/editor/text/, not that one" (a directory is
+// one project), so this is a small, explicit, rarely-touched file-glob rule
+// instead of a second Nx project - matching the fallback design the ticket
+// itself measured and recommended. It is directory-wide for
+// src/editor/text/, not a named subset of catalogue files: the shaping code
+// living there (bidiRuns.js, combPlacement.ts, dateFormat.ts, ...) shares the
+// directory with the catalogue it guards, and Nx's directory-rooted model
+// cannot separate them without a real file move this ticket's saving does
+// not justify - so a shaping-code change still runs the guards too, on the
+// same "ambiguous scope never narrows" fail-open principle every other rule
+// here follows.
+const FONTS_DIRECTORY_GLOBS = ['public/fonts/', 'src/editor/text/', 'scripts/fonts/', 'e2e/sign/'];
+
+export function matchesFontsGlob(file) {
+  if (file === 'playwright.config.js') return true; // defines the fonts-shard split itself
+  if (file === 'src/styles/editorFonts.css') return true; // generated from the font manifest
+  if (/^scripts\/generate-font-/.test(file)) return true;
+  if (/^scripts\/check-font-/.test(file)) return true;
+  return FONTS_DIRECTORY_GLOBS.some((prefix) => file.startsWith(prefix));
+}
 
 function nx(args) {
   return execFileSync('npx', ['nx', ...args], {
@@ -184,10 +226,19 @@ export function siteE2eOwnPaths(children, roots) {
   return paths.sort();
 }
 
-// "everything" always means "run the font guards too" - a shared-core or
-// fail-open commit is exactly the kind that should not skip them.
-export function wide(affected, reason) {
-  return { everything: true, fonts: true, affected, unit_paths: '', e2e_paths: '', reason };
+// "everything" means "run the export guards too" unconditionally (they are
+// cheap, ~2 specs, and their own Nx project already treats editor/lib/
+// tool-sign as coarse whole-project dependencies on purpose - see
+// e2e/export/project.json). `fonts` (the 25 remaining, expensive guards) is
+// the one ARCH-23 narrows even on a wide() verdict: it defaults to true
+// (fail-open, matches every existing wide() call site: no usable base, an
+// unowned file, the CI oracle itself), but the CORE_PROJECTS call site below
+// passes the real glob-computed value instead, so a core-project change that
+// does not touch a font path stops paying for the guards - see
+// matchesFontsGlob's own comment for why this is a directory rule, not a
+// hand-kept list of catalogue files.
+export function wide(affected, reason, fonts = true) {
+  return { everything: true, fonts, export_guards: true, affected, unit_paths: '', e2e_paths: '', reason };
 }
 
 // The pure mapping: given the changed files, the projects Nx says are
@@ -209,7 +260,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   const affectedSet = new Set(affected);
   const wideCore = [...affectedSet].filter((p) => CORE_PROJECTS.has(p));
   if (wideCore.length > 0) {
-    return wide(affected, `core project(s) affected: ${wideCore.join(', ')}`);
+    // ARCH-23: unlike the other wide() reasons, a core-project change no
+    // longer force-runs the font guards unless the actual diff touches a
+    // font path - editor/lib being "core" is about correctness for every
+    // tool's behavior, not about fonts specifically.
+    return wide(affected, `core project(s) affected: ${wideCore.join(', ')}`, files.some(matchesFontsGlob));
   }
 
   const toolProjects = [...affectedSet].filter((p) => p.startsWith('tool-')).sort();
@@ -245,7 +300,15 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
 
   return {
     everything: false,
-    fonts: affectedSet.has('fonts'),
+    // ARCH-23: fonts is decided by the file-glob rule, never by whether Nx's
+    // `fonts` project shows up in `affected` - that project's own
+    // implicitDependencies no longer include editor/lib/tool-sign for
+    // exactly this reason (see e2e/sign/project.json). export_guards is a
+    // real Nx affected-check, same as any tool project: e2e/export/
+    // project.json's implicitDependencies (font-assets, editor, lib,
+    // tool-sign) are what make it true here.
+    fonts: files.some(matchesFontsGlob),
+    export_guards: affectedSet.has('export-guards'),
     affected,
     unit_paths: unitPaths.join(' '),
     e2e_paths: e2ePaths.join(' '),
@@ -292,6 +355,7 @@ function printOutputs(scope) {
   console.log(`unit_paths=${scope.unit_paths}`);
   console.log(`e2e_paths=${scope.e2e_paths}`);
   console.log(`fonts=${scope.fonts}`);
+  console.log(`export_guards=${scope.export_guards}`);
 }
 
 function summaryMarkdown(scope) {
@@ -303,6 +367,7 @@ function summaryMarkdown(scope) {
     `- **unit_paths**: ${scope.unit_paths || '(full suite)'}`,
     `- **e2e_paths**: ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
     `- **fonts**: ${scope.fonts}`,
+    `- **export_guards**: ${scope.export_guards}`,
     '',
   ].join('\n');
 }
@@ -342,6 +407,17 @@ function runFonts(scope) {
   return result.status ?? 1;
 }
 
+// ARCH-23: the export render guard and language acceptance, split out of
+// `fonts` into their own project - see e2e/export/project.json.
+function runExportGuards(scope) {
+  if (!scope.export_guards) {
+    console.error('affected-scope: export-guards project not affected; skipping the export guards.');
+    return 0;
+  }
+  const result = spawnSync('npx', ['playwright', 'test', '--project=export-guards'], { stdio: 'inherit', cwd: ROOT });
+  return result.status ?? 1;
+}
+
 function main(argv) {
   const baseIndex = argv.indexOf('--base');
   const headIndex = argv.indexOf('--head');
@@ -359,7 +435,8 @@ function main(argv) {
     if (runMode === 'e2e-product') return runE2eProduct(scope);
     if (runMode === 'e2e-perf') return runE2ePerf(scope);
     if (runMode === 'fonts') return runFonts(scope);
-    console.error(`affected-scope: unknown --run mode "${runMode}" (expected unit|e2e-product|e2e-perf|fonts)`);
+    if (runMode === 'export-guards') return runExportGuards(scope);
+    console.error(`affected-scope: unknown --run mode "${runMode}" (expected unit|e2e-product|e2e-perf|fonts|export-guards)`);
     return 1;
   }
 

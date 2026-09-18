@@ -32,13 +32,14 @@ Playwright is for what jsdom cannot prove; keep roughly one e2e per ten unit tes
 a real tab close/reopen surviving through real browser storage, real layout or line-wrapping, a real
 Fullscreen API element, drag-time pointer behaviour, a hydration/CSP flow - not by re-proving what a
 unit test already proves under jsdom (DEBT-13); the 1:10 figure is a smell to notice when a tool's e2e
-folder is growing, never a target to hit. `e2e/` itself now holds only the cross-tool specs and the font screening
-guards under `e2e/sign/`. A spec under `src/tools/<tool>/e2e/` may only visit that tool's own page;
-one that also visits another tool's page belongs under `e2e/` instead, enforced statically by rule 7
-in `docs/module-boundaries.md` (`npm run test:module-boundaries`). `export-render-guard.spec.js` runs the real `signPdf` in-browser and rasterises the
-PDF with pdf.js against per-case baselines: one rasteriser only (poppler vs Chromium noise measured at
-80-88%), and never "is there ink" as a pass condition, since `.notdef` often draws more ink than the
-glyph it replaced.
+folder is growing, never a target to hit. `e2e/` itself now holds only the cross-tool specs, the font
+screening guards under `e2e/sign/`, and the two export-pipeline guards under `e2e/export/` (ARCH-23).
+A spec under `src/tools/<tool>/e2e/` may only visit that tool's own page; one that also visits another
+tool's page belongs under `e2e/` instead, enforced statically by rule 7 in `docs/module-boundaries.md`
+(`npm run test:module-boundaries`). `export-render-guard.spec.js` (`e2e/export/`) runs the real
+`signPdf` in-browser and rasterises the PDF with pdf.js against per-case baselines: one rasteriser only
+(poppler vs Chromium noise measured at 80-88%), and never "is there ink" as a pass condition, since
+`.notdef` often draws more ink than the glyph it replaced.
 
 ## `src/test/cross-tool/`
 
@@ -64,7 +65,15 @@ touches more than one tool.
   four, so a change to any of them can affect every tool's behavior and nothing narrows anyway.
 - An affected `tool-<name>` project narrows unit and e2e paths to that tool's own
   `src/tools/<name>/` and `src/tools/<name>/e2e/`; `src/test/` always runs alongside a narrowed set.
-- The `fonts` Nx project (font assets, `editor`, `lib`, `tool-sign`) running the 27 font screening
-  guards is decided by whether `fonts` itself is affected, not by a hand-written file list.
+- The 25 font screening guards (`fonts` Playwright project, `e2e/sign/`) run per-push only when a
+  font-registry file, a guard spec/fixture, or the toolchain around them changed - a hand-written
+  file-glob rule in `affected-scope.mjs` (`matchesFontsGlob`, ARCH-23), not whether Nx's `fonts`
+  project is affected: that project's own `editor`/`lib`/`tool-sign` dependency edges produced only
+  false positives (a Sign toolbar or tooltip change ran all 27, formerly, for zero coverage benefit -
+  see `backlog/tasks/ARCH-23.md`). The two export-pipeline guards (the real `signPdf`, rasterised
+  against a baseline, and language acceptance) moved to their own `export-guards` project
+  (`e2e/export/`) in the same change: they keep a coarse whole-project Nx dependency on
+  `editor`/`lib`/`tool-sign`, which is correct for them (only two cheap specs, and they exercise the
+  export pipeline for real) and decided the normal way, by whether `export-guards` is affected.
 - Any changed file no Nx project owns (`scripts/`, root config, `package*.json`, and the like) widens
   to everything, fail-open: ambiguous scope always widens, never narrows.

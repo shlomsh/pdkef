@@ -14,35 +14,35 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     coverageIds: ['latin', 'latinExt'], families: ['Kalam', 'Mali', 'Sriracha', 'Arimo', 'Tinos', 'Cousine', 'Heebo', 'Alef', 'PT Sans', 'Noto Sans Bengali', 'Mukta Mahee', 'Noto Sans Tamil', 'Mukta'],
     sample: 'Zażółć café 2026', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/latin-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/latin-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['latin-arimo', 'latin-pacifico', 'latin-caveat', 'latin-great-vibes'] },
+    visual: { guards: ['e2e/sign/latin-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['latin-arimo', 'latin-pacifico', 'latin-caveat', 'latin-great-vibes'] },
   },
   {
     order: 2, status: 'shipped', id: 'chinese-simplified', languages: ['Chinese (Simplified)'],
     regions: ['Mainland China', 'Singapore'], coverageIds: [], families: ['Noto Sans SC'],
     sample: '你好 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'The accepted subset uses independent Han glyphs; advance parity is the shaping risk.' },
-    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['chinese-simplified-noto-sans-sc'] },
+    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['chinese-simplified-noto-sans-sc'] },
   },
   {
     order: 3, status: 'shipped', id: 'chinese-traditional', languages: ['Chinese (Traditional)'],
     regions: ['Taiwan', 'Hong Kong', 'Macao'], coverageIds: [], families: ['Noto Sans TC'],
     sample: '謝謝 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'The accepted subset uses independent Han glyphs; advance parity is the shaping risk.' },
-    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['chinese-traditional-noto-sans-tc'] },
+    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['chinese-traditional-noto-sans-tc'] },
   },
   {
     order: 4, status: 'shipped', id: 'devanagari', languages: ['Hindi', 'Marathi'],
     regions: ['India; Marathi includes ळ and ऱ'], coverageIds: ['devanagari', 'marathi'], families: ['Kalam', 'Mukta', 'Tillana'],
     sample: 'नमस्ते भारत २०२६', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/devanagari-shaping-guard.spec.js', 'e2e/sign/devanagari-mukta-shaping-guard.spec.js', 'e2e/sign/devanagari-tillana-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/devanagari-shaping-guard.spec.js', 'e2e/sign/devanagari-mukta-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js', 'e2e/sign/devanagari-tillana-shaping-guard.spec.js'], cases: ['devanagari-kalam', 'devanagari-tillana'] },
+    visual: { guards: ['e2e/sign/devanagari-shaping-guard.spec.js', 'e2e/sign/devanagari-mukta-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js', 'e2e/sign/devanagari-tillana-shaping-guard.spec.js'], cases: ['devanagari-kalam', 'devanagari-tillana'] },
   },
   {
     order: 5, status: 'shipped', id: 'arabic', languages: ['Arabic'],
     regions: ['Middle East', 'North Africa'], coverageIds: ['arabic'], families: ['Scheherazade New', 'Vazirmatn'],
     sample: 'مرحبا ٢٠٢٦', direction: 'rtl',
     shaping: { status: 'guarded', guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'], cases: ['arabic-scheherazade-new', 'arabic-vazirmatn'] },
+    visual: { guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'], cases: ['arabic-scheherazade-new', 'arabic-vazirmatn'] },
   },
   {
     order: 6, status: 'shipped', id: 'perso-arabic', languages: ['Dari', 'Farsi', 'Urdu', 'Pashto'],
@@ -50,14 +50,14 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     coverageIds: ['farsi', 'urdu', 'pashto'], families: ['Scheherazade New', 'Vazirmatn'],
     sample: 'پښتو ۲۰۲۶', direction: 'rtl',
     shaping: { status: 'guarded', guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'], cases: ['arabic-scheherazade-new', 'arabic-vazirmatn'] },
+    visual: { guards: ['e2e/sign/arabic-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js', 'e2e/sign/arabic-vazirmatn-shaping-guard.spec.js', 'e2e/sign/arabic-vazirmatn-font-parity.spec.js'], cases: ['arabic-scheherazade-new', 'arabic-vazirmatn'] },
   },
   {
     order: 7, status: 'shipped', id: 'bengali-assamese', languages: ['Bengali (Bangla)', 'Assamese'],
     regions: ['Bangladesh', 'India; Assamese includes ৰ and ৱ'], coverageIds: ['bengali', 'assamese'], families: ['Noto Sans Bengali', 'Hind Siliguri'],
     sample: 'নমস্কার ২০২৬', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/bengali-shaping-guard.spec.js', 'e2e/sign/bengali-hind-siliguri-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/bengali-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js', 'e2e/sign/bengali-hind-siliguri-shaping-guard.spec.js'], cases: ['bengali-noto-sans-bengali', 'bengali-hind-siliguri'] },
+    visual: { guards: ['e2e/sign/bengali-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js', 'e2e/sign/bengali-hind-siliguri-shaping-guard.spec.js'], cases: ['bengali-noto-sans-bengali', 'bengali-hind-siliguri'] },
   },
   {
     order: 8, status: 'shipped', id: 'cyrillic',
@@ -66,7 +66,7 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     coverageIds: ['cyrillicRussian', 'cyrillicUkrainian', 'cyrillicBelarusian', 'cyrillicBulgarian', 'cyrillicSerbian', 'cyrillicMacedonian', 'cyrillicKazakh'],
     families: ['PT Sans'], sample: 'Привіт 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'No joining or reordering feature is required for the accepted sample.' },
-    visual: { guards: ['e2e/sign/export-render-guard.spec.js'], cases: ['cyrillic-pt-sans'] },
+    visual: { guards: ['e2e/export/export-render-guard.spec.js'], cases: ['cyrillic-pt-sans'] },
   },
   {
     // FONT-08b: Neucha, the first Cyrillic handwriting face, as its own row
@@ -82,19 +82,19 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     coverageIds: ['cyrillicRussian', 'cyrillicUkrainian', 'cyrillicBelarusian', 'cyrillicBulgarian', 'cyrillicSerbian', 'cyrillicMacedonian'],
     families: ['Neucha', 'Amatic SC'], sample: 'Привіт 2026', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/cyrillic-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/cyrillic-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['cyrillic-neucha', 'cyrillic-amatic-sc'] },
+    visual: { guards: ['e2e/sign/cyrillic-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['cyrillic-neucha', 'cyrillic-amatic-sc'] },
   },
   {
     order: 10, status: 'shipped', id: 'japanese', languages: ['Japanese'], regions: ['Japan'],
     coverageIds: ['japanese'], families: ['Noto Sans JP'], sample: '佐藤さくら 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'Kana and accepted kanji use independent glyphs; advance parity is the shaping risk.' },
-    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['japanese-noto-sans-jp'] },
+    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['japanese-noto-sans-jp'] },
   },
   {
     order: 11, status: 'shipped', id: 'korean', languages: ['Korean'], regions: ['South Korea'],
     coverageIds: ['korean'], families: ['Noto Sans KR'], sample: '안녕하세요 2026', direction: 'ltr',
     shaping: { status: 'not-applicable', reason: 'Modern precomposed Hangul syllables use independent glyphs; advance parity is the shaping risk.' },
-    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['korean-noto-sans-kr'] },
+    visual: { guards: ['e2e/sign/cjk-advance-parity-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['korean-noto-sans-kr'] },
   },
   {
     order: 12, status: 'shipped', id: 'vietnamese', languages: ['Vietnamese'], regions: ['Vietnam'],
@@ -111,19 +111,19 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     // (1.024px on "Sarah Levi", test.fixme, same debt class as Caveat's own
     // known-red Latin case under SIGN-20) - see backlog/tasks/FONT-08.md.
     shaping: { status: 'guarded', guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['thai-mali', 'thai-sriracha'] },
+    visual: { guards: ['e2e/sign/thai-font-parity.spec.js', 'e2e/sign/thai-sriracha-font-parity.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['thai-mali', 'thai-sriracha'] },
   },
   {
     order: 14, status: 'shipped', id: 'telugu', languages: ['Telugu'], regions: ['India'],
     coverageIds: ['telugu'], families: ['Anek Telugu', 'Suranna'], sample: 'తెలుగు ౨౦౨౬', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/telugu-shaping-guard.spec.js', 'e2e/sign/telugu-suranna-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/telugu-shaping-guard.spec.js', 'e2e/sign/telugu-suranna-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['telugu-suranna'] },
+    visual: { guards: ['e2e/sign/telugu-shaping-guard.spec.js', 'e2e/sign/telugu-suranna-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['telugu-suranna'] },
   },
   {
     order: 15, status: 'shipped', id: 'tamil', languages: ['Tamil'], regions: ['India', 'Sri Lanka'],
     coverageIds: ['tamil'], families: ['Noto Sans Tamil', 'Tiro Tamil'], sample: 'வணக்கம் ௨௦௨௬', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/tamil-shaping-guard.spec.js', 'e2e/sign/tamil-tiro-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/tamil-shaping-guard.spec.js', 'e2e/sign/tamil-tiro-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['tamil-tiro-tamil'] },
+    visual: { guards: ['e2e/sign/tamil-shaping-guard.spec.js', 'e2e/sign/tamil-tiro-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['tamil-tiro-tamil'] },
   },
   {
     order: 16, status: 'shipped', id: 'punjabi', languages: ['Punjabi (Gurmukhi)'], regions: ['India'],
@@ -135,7 +135,7 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     order: 17, status: 'shipped', id: 'malayalam', languages: ['Malayalam'], regions: ['India'],
     coverageIds: ['malayalam'], families: ['Anek Malayalam', 'Gayathri'], sample: 'നമസ്കാരം ൨൦൨൬', direction: 'ltr',
     shaping: { status: 'guarded', guards: ['e2e/sign/malayalam-shaping-guard.spec.js', 'e2e/sign/malayalam-gayathri-shaping-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/malayalam-shaping-guard.spec.js', 'e2e/sign/export-render-guard.spec.js', 'e2e/sign/malayalam-gayathri-shaping-guard.spec.js'], cases: ['malayalam-anek-malayalam', 'malayalam-gayathri'] },
+    visual: { guards: ['e2e/sign/malayalam-shaping-guard.spec.js', 'e2e/export/export-render-guard.spec.js', 'e2e/sign/malayalam-gayathri-shaping-guard.spec.js'], cases: ['malayalam-anek-malayalam', 'malayalam-gayathri'] },
   },
   {
     order: 18, status: 'shipped', id: 'greek', languages: ['Greek'], regions: ['Greece', 'Cyprus'],
@@ -146,14 +146,14 @@ export const LANGUAGE_ACCEPTANCE_MATRIX = [
     // greek-font-parity.spec.js are the guards that actually proved fontkit
     // and the browser agree on it.
     shaping: { status: 'guarded', guards: ['e2e/sign/greek-shaping-guard.spec.js', 'e2e/sign/greek-font-parity.spec.js'] },
-    visual: { guards: ['e2e/sign/greek-shaping-guard.spec.js', 'e2e/sign/greek-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['greek-tinos', 'greek-mynerve-handwriting'] },
+    visual: { guards: ['e2e/sign/greek-shaping-guard.spec.js', 'e2e/sign/greek-font-parity.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['greek-tinos', 'greek-mynerve-handwriting'] },
   },
   {
     order: 19, status: 'shipped', id: 'hebrew', languages: ['Hebrew'], regions: ['Israel'],
     coverageIds: ['hebrew'], families: ['Arimo', 'Tinos', 'Cousine', 'Assistant', 'Heebo', 'Alef', 'Gveret Levin', 'Amatic SC'],
     sample: 'שלום 2026', direction: 'rtl',
     shaping: { status: 'guarded', guards: ['e2e/sign/hebrew-font-parity.spec.js', 'e2e/sign/hebrew-composition-guard.spec.js'] },
-    visual: { guards: ['e2e/sign/hebrew-font-parity.spec.js', 'e2e/sign/export-render-guard.spec.js'], cases: ['hebrew-arimo', 'hebrew-heebo', 'substituted-hebrew-handwriting', 'hebrew-nikud-amatic-sc'] },
+    visual: { guards: ['e2e/sign/hebrew-font-parity.spec.js', 'e2e/export/export-render-guard.spec.js'], cases: ['hebrew-arimo', 'hebrew-heebo', 'substituted-hebrew-handwriting', 'hebrew-nikud-amatic-sc'] },
   },
   {
     order: 20, status: 'planned', id: 'indic-next', languages: ['Gujarati', 'Kannada', 'Odia'],

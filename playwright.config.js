@@ -27,35 +27,55 @@ const IGNORE_NESTED_CLAUDE_WORKTREES = new RegExp(
 // it, so every project that sets one spreads BASE_IGNORE first.
 const BASE_IGNORE = ['**/node_modules/**', '**/dist/**', IGNORE_NESTED_CLAUDE_WORKTREES];
 
-// The font screening guards: per-script shaping guards, font parity suites,
-// the export render guard, the Hebrew composition guard and language
-// acceptance. Each esbuilds fontkit in its beforeAll and pixel-diffs a whole
-// corpus, and together they were 55% of the suite's time while guarding
-// fonts and shaping code that change in about one commit in ten. They live
-// in their own `fonts` project so CI can run them only when those inputs
-// change (see ci.yml's paths step) and `npm run test:e2e:fonts` runs them on
-// demand; `npm run test:e2e` still runs everything.
+// The font screening guards: per-script shaping guards, font parity suites
+// and the Hebrew composition guard. Each esbuilds fontkit in its beforeAll
+// and pixel-diffs a whole corpus, and together they were 55% of the suite's
+// time while guarding fonts and shaping code that change in about one commit
+// in ten. They live in their own `fonts` project so CI can run them only
+// when those inputs change (see affected-scope.mjs's font-registry glob) and
+// `npm run test:e2e:fonts` runs them on demand; `npm run test:e2e` still
+// runs everything.
+//
+// ARCH-23 (2026-09-18): the export render guard and language acceptance
+// moved out to their own `export-guards` project/EXPORT_GUARDS below - they
+// exercise the export pipeline (the real `signPdf`), not the font catalogue,
+// and unlike the 25 guards here they still need to run on an ordinary Sign
+// or Redact change (see EXPORT_GUARDS' comment).
 const FONT_GUARDS = [
   '**/sign/*-guard.spec.js',
   '**/sign/*-parity.spec.js',
-  '**/sign/language-acceptance.spec.js',
+];
+
+// The two export-pipeline guards (ARCH-23): export-render-guard.spec.js
+// rasterises the real `signPdf` output against a runner-pinned baseline;
+// language-acceptance.spec.js runs the same bundle over every shipped
+// language/face combination. Both esbuild the real export path
+// (src/editor/adapters/pdf/sign.js, src/tools/sign/languageAcceptance.js),
+// so - unlike `fonts` above - their own Nx project (e2e/export/project.json)
+// keeps a coarse, whole-project implicitDependencies edge to editor/lib/
+// tool-sign: a Sign toolbar or tooltip change still runs these two (cheap,
+// well under a minute combined), it just no longer runs the other 25.
+const EXPORT_GUARDS = [
+  '**/export/export-render-guard.spec.js',
+  '**/export/language-acceptance.spec.js',
 ];
 
 // CI splits the guards in two (QUAL-06), because `--shard` divides by test
 // COUNT and the guards differ 30x in size: gurmukhi-tiro-shaping-guard alone
 // is 36.1s, a Latin guard 1s. A count-based `--shard=1/2` measured 64% of the
 // guard time in shard 1 against 36% in shard 2, over the ticket's 60%
-// threshold, so the split is by hand instead. This is the seven heaviest
-// specs by measured time (gurmukhi-tiro-shaping-guard 36.1s,
-// malayalam-shaping-guard 26.1s, malayalam-gayathri-shaping-guard 25.0s,
-// telugu-suranna-shaping-guard 24.6s, bengali-shaping-guard 23.7s,
-// arabic-shaping-guard 22.3s, export-render-guard 17.7s: 175.5s), leaving the
-// other 20 files at 173s. `fonts-shard-2` below is the COMPLEMENT of this
-// list over FONT_GUARDS, not a second hand-picked list, so a new guard spec
-// always lands in shard 2 even if nobody touches this file, and a mislisted
-// or renamed entry here only unbalances the two shards, never drops a spec
-// from either. Keep the export render guard in shard 1: its manual baseline
-// recapture step in ci.yml only runs there.
+// threshold, so the split is by hand instead. This is the six heaviest specs
+// by measured time (gurmukhi-tiro-shaping-guard 36.1s, malayalam-shaping-guard
+// 26.1s, malayalam-gayathri-shaping-guard 25.0s, telugu-suranna-shaping-guard
+// 24.6s, bengali-shaping-guard 23.7s, arabic-shaping-guard 22.3s: 157.8s),
+// leaving the other 19 files at 173s. `fonts-shard-2` below is the COMPLEMENT
+// of this list over FONT_GUARDS, not a second hand-picked list, so a new
+// guard spec always lands in shard 2 even if nobody touches this file, and a
+// mislisted or renamed entry here only unbalances the two shards, never drops
+// a spec from either. ARCH-23 (2026-09-18) moved export-render-guard.spec.js
+// (was 17.7s, the seventh heaviest, and shard 1's anchor for the baseline
+// recapture step) out to its own `export-guards` project - its manual
+// baseline recapture step in ci.yml now runs there instead.
 const FONT_GUARDS_SHARD_1 = [
   '**/sign/gurmukhi-tiro-shaping-guard.spec.js',
   '**/sign/malayalam-shaping-guard.spec.js',
@@ -63,7 +83,6 @@ const FONT_GUARDS_SHARD_1 = [
   '**/sign/telugu-suranna-shaping-guard.spec.js',
   '**/sign/bengali-shaping-guard.spec.js',
   '**/sign/arabic-shaping-guard.spec.js',
-  '**/sign/export-render-guard.spec.js',
 ];
 
 // The specs that assert a wall-clock budget (Download ready under 1.6s,
@@ -138,7 +157,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: [...BASE_IGNORE, ...FONT_GUARDS, ...PERF_BUDGETS],
+      testIgnore: [...BASE_IGNORE, ...FONT_GUARDS, ...EXPORT_GUARDS, ...PERF_BUDGETS],
       use: { ...devices['Desktop Chrome'] },
     },
     {
@@ -163,6 +182,15 @@ export default defineConfig({
       name: 'fonts-shard-2',
       testMatch: FONT_GUARDS,
       testIgnore: [...BASE_IGNORE, ...FONT_GUARDS_SHARD_1],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // ARCH-23: the two export-pipeline guards, split out of `fonts` into
+    // their own project so they can be gated by their own (coarser, and
+    // that's fine at only two specs) affected-scope verdict instead of
+    // dragging all 27 (now 25) font guards along with them.
+    {
+      name: 'export-guards',
+      testMatch: EXPORT_GUARDS,
       use: { ...devices['Desktop Chrome'] },
     },
     {

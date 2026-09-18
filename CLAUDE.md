@@ -38,7 +38,7 @@ npm run check:fast        # the iteration loop: source guards, unit tests for wh
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
 npm run test:e2e          # build + product e2e + font guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
 npm run test:e2e:product  # the product specs against the current dist/ (~45s on 4 workers), unconditionally
-npm run test:e2e:fonts    # the 27 font screening guards, unconditionally; CI narrows them the same way
+npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI narrows them the same way
 ```
 
 - **Iterate with `check:fast`; run the whole `ci.yml` chain once before a push**, not after every edit

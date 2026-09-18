@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { LANGUAGE_ACCEPTANCE_MATRIX } from '../../tools/sign/languageAcceptance.js';
 import { FONT_MANIFEST } from '../../editor/text/fontManifest.js';
 import { LANGUAGE_COVERAGE } from '../../editor/text/fontCoverageReport.js';
-import { EXPORT_RENDER_CORPUS } from '../../../e2e/sign/fixtures/exportRenderCorpus.js';
+import { EXPORT_RENDER_CORPUS } from '../../../e2e/export/fixtures/exportRenderCorpus.js';
 import { covers } from '../../editor/text/fonts.js';
 
 const fontByFamily = new Map(FONT_MANIFEST.map((font) => [font.family, font]));

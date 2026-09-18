@@ -6,7 +6,7 @@ import {
   findPdfWorkerUrl,
   removeSignBundle,
 } from './fixtures/exportRenderHarness.js';
-import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
+import { useTemporaryBundle } from '../sign/fixtures/temporaryBundle.js';
 
 const BUNDLE_FILENAME = '__e2e-language-acceptance-bundle.js';
 const fontByFamily = new Map(FONT_MANIFEST.map((font) => [font.family, font]));
