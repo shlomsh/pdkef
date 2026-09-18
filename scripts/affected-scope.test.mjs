@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob } from './affected-scope.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,
@@ -22,6 +22,9 @@ const ROOTS = new Map([
   ['tool-edit-pages', 'src/tools/edit-pages'],
   ['site-e2e', 'e2e'],
   ['fonts', 'e2e/sign'],
+  // ARCH-23: the export render guard and language acceptance moved to their
+  // own project, sibling of `fonts` inside `site-e2e`'s own root.
+  ['export-guards', 'e2e/export'],
   ['font-assets', 'public/fonts'],
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
@@ -92,7 +95,10 @@ describe('ownerOf', () => {
     ['src/i18n/toolMessages.ts', 'i18n'],
     ['public/fonts/Kalam-Regular.ttf', 'font-assets'],
     ['e2e/sign/hebrew-composition-guard.spec.js', 'fonts'],
-    ['e2e/sign/fixtures/exportRenderBaseline.json', 'fonts'],
+    // ARCH-23: the export render guard's baseline moved to e2e/export/,
+    // its own project now, no longer inside `fonts`.
+    ['e2e/export/fixtures/exportRenderBaseline.json', 'export-guards'],
+    ['e2e/export/language-acceptance.spec.js', 'export-guards'],
     ['e2e/home/handoff.spec.js', 'site-e2e'],
     ['e2e/csp-smoke.spec.js', 'site-e2e'],
     // ARCH-22: a flat scripts/ file is owned by `tooling`; the three
@@ -134,6 +140,8 @@ describe('siteE2eOwnPaths', () => {
     { name: 'content', isDirectory: true },
     { name: 'csp-smoke.spec.js', isDirectory: false },
     { name: 'demo', isDirectory: true },
+    // ARCH-23: e2e/export/, the export-guards project, sibling of e2e/sign/.
+    { name: 'export', isDirectory: true },
     { name: 'home', isDirectory: true },
     { name: 'localized', isDirectory: true },
     { name: 'offline', isDirectory: true },
@@ -143,10 +151,11 @@ describe('siteE2eOwnPaths', () => {
     { name: 'tool-output-paths.spec.js', isDirectory: false },
   ];
 
-  it('excludes project.json and any child carved out into its own project (fonts at e2e/sign)', () => {
+  it('excludes project.json and any child carved out into its own project (fonts at e2e/sign, export-guards at e2e/export)', () => {
     const paths = siteE2eOwnPaths(E2E_CHILDREN, ROOTS);
     expect(paths).not.toContain('e2e/project.json');
     expect(paths).not.toContain('e2e/sign/');
+    expect(paths).not.toContain('e2e/export/');
     expect(paths).toEqual([
       'e2e/card-reveal.spec.js',
       'e2e/content/',
@@ -238,7 +247,12 @@ describe('deriveScope', () => {
     expect(scope.e2e_paths).toBe('');
   });
 
-  it('widens to everything when any core project is affected', () => {
+  // ARCH-23: a core-project verdict no longer force-runs the font guards -
+  // src/lib/format.js does not touch a font-registry path, so fonts is now
+  // false here even though everything else still widens. export_guards stays
+  // true regardless (its own project treats editor/lib as coarse
+  // dependencies on purpose - see e2e/export/project.json).
+  it('widens to everything when any core project is affected, but no longer force-runs the font guards for an unrelated file (ARCH-23)', () => {
     for (const core of CORE_PROJECTS) {
       const scope = deriveScope({
         files: ['src/lib/format.js'],
@@ -246,8 +260,89 @@ describe('deriveScope', () => {
         roots: ROOTS,
       });
       expect(scope.everything).toBe(true);
-      expect(scope.fonts).toBe(true);
+      expect(scope.fonts).toBe(false);
+      expect(scope.export_guards).toBe(true);
     }
+  });
+
+  // The directory rule: src/editor/text/ shares one Nx-project directory
+  // with the shaping/runtime code (bidiRuns.js, combPlacement.ts,
+  // dateFormat.ts, ...), which is not itself the font catalogue - but Nx
+  // gives a project ownership of a directory, not a named subset of files
+  // inside it, so matchesFontsGlob treats the whole directory as a fonts
+  // input rather than trying to name only the catalogue files.
+  it('a change inside src/editor/text/ still forces fonts=true even when it is shaping code, not the catalogue (directory rule, ARCH-23)', () => {
+    const scope = deriveScope({
+      files: ['src/editor/text/combPlacement.ts'],
+      affected: ['editor', 'tool-sign', 'tool-redact'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true); // editor is a core project
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('a src/lib/ change outside the font-registry glob gives everything=true but fonts=false (ARCH-23)', () => {
+    const scope = deriveScope({
+      files: ['src/lib/drafts/draftStore.js'],
+      affected: ['lib', 'tool-sign'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(false);
+  });
+
+  it('a font asset change gives fonts=true', () => {
+    const scope = deriveScope({
+      files: ['public/fonts/NewFont-Regular.ttf'],
+      affected: ['font-assets'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('a new guard spec under e2e/sign/ gives fonts=true regardless of its exact filename', () => {
+    const scope = deriveScope({
+      files: ['e2e/sign/foo-shaping-guard.spec.js'],
+      affected: ['fonts'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(false);
+    expect(scope.fonts).toBe(true);
+  });
+
+  it('a package-lock.json change still gives fonts=true unconditionally (unowned-file wide() reason, unchanged by ARCH-23)', () => {
+    const scope = deriveScope({
+      files: ['package-lock.json'],
+      affected: [],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toMatch(/unowned/);
+    expect(scope.fonts).toBe(true);
+  });
+
+  // export_guards, unlike fonts, is a real Nx-affected verdict - its own
+  // project's implicitDependencies (font-assets, editor, lib, tool-sign)
+  // decide it, the same as any tool-<name> project.
+  it('a change to the real export pipeline marks export-guards affected, decided by Nx like a tool project', () => {
+    const scope = deriveScope({
+      files: ['src/editor/adapters/pdf/sign.js'],
+      affected: ['editor', 'export-guards', 'tool-sign', 'tool-redact'],
+      roots: ROOTS,
+    });
+    expect(scope.everything).toBe(true); // editor is core
+    expect(scope.export_guards).toBe(true);
+  });
+
+  it('export_guards is false for a tool-only change with no implicit-dependency edge to it', () => {
+    const scope = deriveScope({
+      files: ['src/tools/compress/PdfCompressTool.tsx'],
+      affected: ['tool-compress', 'site-e2e'],
+      roots: ROOTS,
+      siteE2ePaths: ['e2e/home/'],
+    });
+    expect(scope.export_guards).toBe(false);
   });
 
   it('widens to everything when a changed file has no project owner', () => {
@@ -326,7 +421,14 @@ describe('deriveScope', () => {
     expect(scope.e2e_paths).toBe('');
   });
 
-  it('fonts=true and a narrowed tool can both be true at once', () => {
+  // ARCH-23: Nx's `fonts` project still shows up in `affected` here (a real
+  // graph fact - PdfSignTool.tsx sits inside tool-sign, which some fonts
+  // guard used to declare as an implicit dependency), but the CI decision no
+  // longer reads affectedSet.has('fonts') at all - this file does not touch
+  // a font-registry path, so fonts is false. This is exactly the bug the
+  // ticket fixes: a tool-sign change should not run the font guards on its
+  // own.
+  it('a tool-sign change no longer forces fonts=true just because Nx lists fonts as affected (ARCH-23)', () => {
     const scope = deriveScope({
       files: ['src/tools/sign/PdfSignTool.tsx'],
       affected: ['tool-sign', 'fonts'],
@@ -334,25 +436,31 @@ describe('deriveScope', () => {
       toolE2eExists: () => true,
     });
     expect(scope.everything).toBe(false);
-    expect(scope.fonts).toBe(true);
+    expect(scope.fonts).toBe(false);
     expect(scope.unit_paths).toBe('src/tools/sign/ src/test/');
   });
 
   // DEBT-06: editor-ui left CORE_PROJECTS, so an editor-ui-only change now
   // narrows instead of widening - the affected set nx actually reports for
   // src/editor-ui/ElementToolbar.tsx (measured, see the ticket and the
-  // header comment's rule 3).
-  it('narrows an editor-ui-only change to Sign, Redact, editor-ui\'s own root, and src/test/, fonts=true', () => {
+  // header comment's rule 3). ARCH-23 (2026-09-18, the commit that filed the
+  // ticket, 15396adf: "Tool tooltip leads with the button's name") changed
+  // this test's expectation: fonts is now false for an editor-ui/tool-sign
+  // change (it does not touch a font-registry path), while export_guards is
+  // true (tool-sign is still export-guards' own, deliberately coarse,
+  // implicit dependency).
+  it('a 15396adf-shaped change (editor-ui + a tool-sign test file) narrows to Sign, Redact, editor-ui\'s own root, and src/test/; fonts=false, export_guards=true', () => {
     const scope = deriveScope({
-      files: ['src/editor-ui/ElementToolbar.tsx'],
-      affected: ['editor-ui', 'tool-sign', 'tool-redact', 'fonts', 'cross-tool-tests', 'site-e2e'],
+      files: ['src/editor-ui/ArmHint.tsx', 'src/tools/sign/components/SignToolbar.test.tsx'],
+      affected: ['editor-ui', 'tool-sign', 'tool-redact', 'export-guards', 'cross-tool-tests', 'site-e2e'],
       roots: ROOTS,
       toolE2eExists: () => true,
       siteE2ePaths: ['e2e/home/'],
     });
     expect(scope.everything).toBe(false);
     expect(scope.unit_paths).toBe('src/editor-ui/ src/tools/redact/ src/tools/sign/ src/test/');
-    expect(scope.fonts).toBe(true);
+    expect(scope.fonts).toBe(false);
+    expect(scope.export_guards).toBe(true);
     expect(scope.e2e_paths).toContain('src/tools/sign/e2e/');
     expect(scope.e2e_paths).toContain('src/tools/redact/e2e/');
   });
@@ -473,13 +581,25 @@ describe('deriveScope', () => {
 });
 
 describe('wide', () => {
-  it('always sets fonts=true alongside everything=true', () => {
+  // ARCH-23: fonts defaults to true (every existing wide() call site except
+  // deriveScope's core-project rule relies on this fail-open default), but a
+  // caller may now override it with the glob-computed value - the
+  // core-project rule does exactly that. export_guards has no override: it
+  // is always true on a wide() verdict (see wide()'s own comment for why
+  // that is fine at only two cheap specs).
+  it('defaults fonts to true, but a caller may override it', () => {
     const scope = wide(['site'], 'test reason');
     expect(scope.everything).toBe(true);
     expect(scope.fonts).toBe(true);
+    expect(scope.export_guards).toBe(true);
     expect(scope.unit_paths).toBe('');
     expect(scope.e2e_paths).toBe('');
     expect(scope.reason).toBe('test reason');
+
+    const overridden = wide(['site'], 'test reason', false);
+    expect(overridden.everything).toBe(true);
+    expect(overridden.fonts).toBe(false);
+    expect(overridden.export_guards).toBe(true);
   });
 
   it('accepts an empty affected list, e.g. for a fail-open reason with nothing yet known', () => {
@@ -487,5 +607,35 @@ describe('wide', () => {
     expect(scope.affected).toEqual([]);
     expect(scope.everything).toBe(true);
     expect(scope.fonts).toBe(true);
+    expect(scope.export_guards).toBe(true);
+  });
+});
+
+describe('matchesFontsGlob', () => {
+  it.each([
+    'public/fonts/NewFont-Regular.ttf',
+    'src/editor/text/fonts.js',
+    'src/editor/text/combPlacement.ts', // directory rule, not a named list
+    'src/styles/editorFonts.css',
+    'scripts/fonts/build-cjk-subset.py',
+    'scripts/generate-font-manifest.mjs',
+    'scripts/check-font-glyf-alignment.js',
+    'e2e/sign/hebrew-composition-guard.spec.js',
+    'e2e/sign/fixtures/latinNameCorpus.js',
+    'playwright.config.js',
+  ])('%s matches', (file) => {
+    expect(matchesFontsGlob(file)).toBe(true);
+  });
+
+  it.each([
+    'src/lib/format.js',
+    'src/editor/model/editorModel.ts',
+    'src/editor-ui/ElementToolbar.tsx',
+    'src/tools/sign/PdfSignTool.tsx',
+    'e2e/export/export-render-guard.spec.js',
+    'package.json',
+    'package-lock.json',
+  ])('%s does not match', (file) => {
+    expect(matchesFontsGlob(file)).toBe(false);
   });
 });
