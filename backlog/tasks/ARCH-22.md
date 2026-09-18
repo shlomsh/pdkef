@@ -1,6 +1,6 @@
 ---
 id: "ARCH-22"
-title: "Give scripts/ real Nx ownership, folder by folder, so touching it stops forcing every test to run"
+title: "App source lives under src/; scripts/ depends on src/, never the other way around"
 status: "in_progress"
 priority: "P2"
 epic: "module-boundaries"
@@ -56,28 +56,60 @@ Three concerns are the exception and already live in their own subfolder today, 
 - `scripts/fixtures/editor-dependency-directions/` (fixture trees for the editor boundary checker)
 - `scripts/fonts/` (the three Python font-subsetting scripts; not npm-scripted, hand-run only)
 
-## Plan
+## The rule (Shlomi, 2026-09-18)
 
-**Tier 1 (this pass): the three already-nested folders above.** Each gets its own narrow leaf
-`project.json` - `projectType: library`, `sourceRoot` at the subfolder, a `scope:tooling` tag, no
-`test` target needed (nothing in this repo runs `nx run <project>:test`; CI always calls
-`vitest run <paths>` directly per `docs/nx-affected-ci.md`, so ownership alone is what `ownerOf()`
-needs). None of the three touch `package.json` or `ci.yml`, so they are safe to build in parallel.
-Each is verified by confirming `nx show projects --affected --files=<a file in it>` narrows to just
-that project (plus `editor` for the spike, which is expected), and that `npm run check:fast` still
-passes.
+**App source lives in its component under `src/`. `scripts/` may depend on `src/`, never the other
+way around.** A script is not a component, not a class, not a function: it is dev-only real estate.
+Anything in `scripts/` that turns out to be product runtime (a source of truth the shipped code is
+generated from, or logic the shipped code duplicates) is misplaced and moves into the component that
+owns it. What is left in `scripts/` is misc tooling that depends on `src/` and invokes nothing but
+its own test when touched.
 
-**Tier 2 (follow-up, split into its own ticket once Tier 1 lands): the flat-file groups.** Backlog
-tooling, SEO tooling, CSS/build-output guards, the font `.mjs` generators, deploy correctness,
-licensing/governance, and the module-boundary checkers themselves each need a real move into a new
-`scripts/<concern>/` subfolder plus every reference to the old path updated in the same commit
-(`package.json`, `ci.yml`, any script-to-script relative import). This is real refactor risk - ARCH-20's
-own history records a first attempt at a narrow project quietly widening everything anyway over one
-overlooked import - so it should land one concern-group at a time, each its own commit, not as one
-large mechanical pass. `scripts/affected-scope.mjs` and `scripts/change-scope.mjs` (the CI oracle
-itself) are deliberately **not** given a project in either tier - they should keep forcing `everything`
-via the existing unowned-file rule, on the same "do not trust a narrowed run to validate the thing
-that decided to narrow" reasoning `CORE_PROJECTS` already applies to `editor`.
+### Reverse dependencies today (all the same shape: `src/` generated from `scripts/` data)
+
+- **Fonts.** `scripts/font-manifest.mjs`, `display-only-fonts.mjs`, `font-languages.mjs`,
+  `language-acceptance.mjs` are the source of truth; `generate-font-manifest.mjs` writes
+  `src/editor/text/fontManifest.js` and `src/styles/editorFonts.css`, `generate-font-coverage.mjs`
+  writes `src/editor/text/fontCoverageTable.js`. The data moves into `src/editor/text/` (the font
+  component, `fonts.js` is already its mandated entry point); the generators import it from there.
+  The coverage table stays generated (it is derived from the TTF binaries), but from a manifest that
+  lives in `src/`. Nine-step font invariant [fonts-and-text] applies; screen/export parity must not
+  move.
+- **Service-worker precache.** `shouldPrecache()` lives in `scripts/precacheFilter.mjs` and is
+  hand-copied inside `public/sw.js`, with `precacheFilter.test.mjs` existing only to catch drift
+  between the two copies. One policy module under `src/` (site-lib, it is build-only), which
+  `generate-precache-manifest.mjs` imports and injects into `sw.js` at build time the same way it
+  already substitutes `__BUILD_ID__`. The parity test then goes away. [csp-scripts-pwa] invariants
+  (no `skipWaiting()`, best-effort precache except `/`, self-uninstall on a 404 manifest) unchanged.
+- **License allowlist.** The permissive-license allowlist is policy inside
+  `scripts/runtime-license-inventory.mjs`; `src/data/runtimeLicenseInventory.js` is generated from it.
+  The allowlist moves to `src/data/`; the script imports it.
+- **A direct import.** `src/test/editorDependencyDirectionsExceptions.test.js` imports
+  `staleExceptions()` from `scripts/check-editor-dependency-directions.mjs`. The test moves next to
+  the script as `scripts/check-editor-dependency-directions.test.mjs` (vitest already collects
+  `scripts/**/*.test.mjs`).
+- `scripts/sync-pdfjs-wasm.mjs` and `src/lib/pdfjsWasm.js` both know the `public/pdfjs-dist-wasm/`
+  path. The constant lives in `src/lib/pdfjsWasm.js`; the script imports it.
+
+The full list is established by the check below running red first, plus an audit of every
+`writeFileSync` target under `src/` from a `scripts/` generator (the import check cannot see a
+generated-from edge).
+
+### Enforcement
+
+Rule 8 in `scripts/check-module-boundaries.mjs` and `docs/module-boundaries.md`: **nothing under
+`src/`, `public/` or `e2e/` may import from `scripts/`.** Zero allowlist, like rule 6. It lands red,
+listing today's violations, and goes green as each move above lands.
+
+### Done so far (Tier 1, 2026-09-18)
+
+`scripts/spike/mobi-10/`, `scripts/fixtures/editor-dependency-directions/` and `scripts/fonts/` each
+got a narrow `project.json` (`scope:tooling`, no target). Verified with `affected-scope.mjs
+--base HEAD~3 --head HEAD`: `everything: false`, `fonts: false`, unit run narrowed to `src/test/`.
+These three are dev-only and stay that way; the rest of the flat `scripts/` files get the same
+labelling only after the runtime pieces above have left.
+
+`scripts/migrate-todo-to-backlog.mjs` (one-off from ARCH-12, referenced by nothing) is deleted.
 
 ## Measured ceiling
 
@@ -92,7 +124,10 @@ font-coverage script ran the whole suite), not a large wall-clock rescue on its 
 
 ## Acceptance
 
-- Tier 1's three `project.json` files exist, `nx show projects --affected` narrows correctly for a
-  sample file in each, and `npm run check:fast` is green.
-- A follow-up ticket exists for Tier 2's file moves before this one closes, so the remaining work is
-  not left half-done under this ticket's status.
+- Rule 8 exists in `check-module-boundaries.mjs` and `docs/module-boundaries.md` and is green with an
+  empty allowlist.
+- The font data, precache policy and license allowlist live under `src/` in their component; the
+  generators in `scripts/` import them. `fontCoverageReport.test.js`, the font guards and
+  `test:csp` stay green; `precacheFilter.test.mjs`'s parity half is gone because there is one copy.
+- Every remaining `scripts/` file is owned by a `scope:tooling` project (or is the CI oracle, which
+  stays deliberately unowned), and `affected-scope.mjs` narrows for a change to any of them.
