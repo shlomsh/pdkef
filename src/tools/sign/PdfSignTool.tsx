@@ -23,6 +23,7 @@ import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../../constan
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
+import useFieldNavigation from './useFieldNavigation.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
@@ -603,6 +604,26 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // document PdfWorkspace already renders pages from, for the page's text.
   const formRegions = useFormFieldRegions(sourceBytes, numPages, pdfDocument);
 
+  // Next/Previous across those same fields (MOBI-06). Built once here, not in
+  // PdfWorkspace/SignToolbar, so the desktop Tab shortcut below and the
+  // toolbar's own Next/Previous control read the exact same hasNext/hasPrevious
+  // and dispatch through the exact same goToNext/goToPrevious - a control that
+  // says a move is possible and a keypress that then no-ops would be a worse
+  // bug than the one this avoids.
+  const fieldNavigation = useFieldNavigation({
+    elements,
+    activeElementId,
+    dispatch,
+    formRegions,
+    pageSizes,
+    logAction,
+    setAnnouncement,
+    initialColor: lastColor,
+    initialFont: lastFont,
+    initialFontSize: lastFontSize,
+    messages: t,
+  });
+
   // Setup draft persistence hook
   const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
     tool: 'sign',
@@ -728,6 +749,24 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       const tag = document.activeElement?.tagName;
       const isInput = tag === 'INPUT' || tag === 'TEXTAREA';
 
+      // Tab / Shift+Tab move field-to-field while typing - the desktop
+      // equivalent of the phone's Next/Previous control (MOBI-06). Gated on
+      // an open edit session, the same tier Escape's own first branch is, so
+      // it only ever pre-empts the browser's native tab order while a caret
+      // is actually live in a placed field - never while tabbing through the
+      // toolbar's own buttons, where editingElementId is null. Falling
+      // through without calling preventDefault when there is nowhere left to
+      // go (hasNext/hasPrevious false) leaves Tab free to leave the field the
+      // ordinary way, same as reaching the end of any other web form.
+      if (e.key === 'Tab' && editingElementId) {
+        const goingForward = !e.shiftKey;
+        if (goingForward ? fieldNavigation.hasNext : fieldNavigation.hasPrevious) {
+          e.preventDefault();
+          if (goingForward) fieldNavigation.goToNext(); else fieldNavigation.goToPrevious();
+          return;
+        }
+      }
+
       // Enter opens an edit session on a selected text box - the keyboard's
       // equivalent of double-clicking it, so text stays reachable without a
       // pointer.
@@ -750,7 +789,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeElementId, editingElementId, elements]);
+    // fieldNavigation is a plain object rebuilt every render (like
+    // useWorkspaceGestures's handlers), so listing it here re-subscribes on
+    // every render rather than risking a stale hasNext/hasPrevious closure -
+    // cheap next to what a Tab press silently doing the wrong thing would cost.
+  }, [activeElementId, editingElementId, elements, fieldNavigation]);
 
   // Handle element copy and paste actions
   useEffect(() => {
@@ -1005,6 +1048,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
               canSharePdf={canSharePdf}
               shareReady={shareReady}
               errorDetail={errorDetail}
+              fieldNavigation={fieldNavigation}
               messages={t}
             />
           </SavedSignaturesContext.Provider>

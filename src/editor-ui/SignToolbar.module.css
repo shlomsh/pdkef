@@ -206,6 +206,32 @@
 .status-hint > * { grid-area: 1 / 1; }
 .status-hint-shown { visibility: visible; }
 .status-hint-spare { visibility: hidden; }
+/* Next/Previous across the document's own detected fields (MOBI-06;
+   EditorToolStatus.tsx's `fieldNav` prop) - the type-Next-type control lives
+   here, in the row that already flexes and wraps, rather than as an eleventh
+   permanent button on `.toolbar`, whose 44px-per-item math a few hundred
+   lines down is already tuned for exactly ten items and would need
+   re-deriving in full for an eleventh.
+
+   Full --btn-min-size touch targets, not the smaller WCAG-2.5.5 exception
+   `.status-action` above takes for itself: that switch is inline in a
+   sentence, which is the case the exception is for, but these two buttons are
+   the primary way to move through a form on a phone, not incidental to a
+   sentence beside them, so they hold the same floor the tool buttons do.
+   `flex: none` keeps them their own fixed size regardless of how much the
+   idle tip or armed sentence next to them wraps. */
+.field-nav { display: flex; align-items: center; gap: .3rem; flex: none; }
+.field-nav-button { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; flex: none; padding: 0; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out); }
+.field-nav-button:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-primary); }
+.field-nav-button:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
+.field-nav-button:disabled { opacity: .4; cursor: not-allowed; }
+/* The UI's own reading direction, not the PDF page's (fieldOrder.ts's own
+   docstring: a Hebrew form on an English UI still reads right to left and an
+   English one on a Hebrew UI still reads left to right) - these arrows are
+   chrome, read by whoever is operating the app in their own language, so a
+   Hebrew UI mirrors them the way its own pagination would, regardless of
+   which way the document underneath happens to read. */
+.help[dir="rtl"] .field-nav-button svg { transform: scaleX(-1); }
 /* The tool button's one hover tooltip - what it does, plus the double-click
    shortcut - replacing its native `title` outright rather than sitting beside
    it (see ArmHint.jsx). Visual styling only: show/hide, the hover delay and

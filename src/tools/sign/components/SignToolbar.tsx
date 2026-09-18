@@ -14,6 +14,7 @@ import { englishShellMessages, englishSignMessages, formatMessage, type SignMess
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
+import type { FieldNavigation } from '../useFieldNavigation.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
@@ -32,6 +33,18 @@ const isShapeTool = (tool: SignToolType | null): tool is ShapeTool => (
 const SIGN_TOOL_TYPES: readonly SignToolType[] = ['text', 'date', 'symbol', 'signature', 'whiteout', 'ellipse', 'rectangle', 'line'];
 const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES as readonly string[]).includes(tool);
 
+// What this file's own tests (and any other caller that has no fields to
+// navigate) fall back to, same reasoning as PdfWorkspace.tsx's own copy of
+// this constant: a fixed "nothing to do here" value rather than an optional
+// prop every read site has to guard.
+const NOOP_FIELD_NAVIGATION: FieldNavigation = {
+  hasFields: false,
+  hasNext: false,
+  hasPrevious: false,
+  goToNext: () => {},
+  goToPrevious: () => {},
+};
+
 export default function SignToolbar({
   setAnnouncement,
   setDialogOpen,
@@ -48,6 +61,7 @@ export default function SignToolbar({
   exportBlocked = false,
   exportIssueCount = 0,
   onReviewExportIssues = () => {},
+  fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
 }: {
   setAnnouncement: (msg: string) => void;
@@ -68,6 +82,10 @@ export default function SignToolbar({
   exportBlocked?: boolean;
   exportIssueCount?: number;
   onReviewExportIssues?: () => void;
+  /** Next/Previous across the document's own detected fields (MOBI-06);
+   * PdfWorkspace.tsx passes the one PdfSignTool.tsx built, so its Tab shortcut
+   * and this toolbar's control read the same hasNext/hasPrevious. */
+  fieldNavigation?: FieldNavigation;
   /** LOC-09 stage 1: the always-visible toolbar row's own catalogue - see
    * src/i18n/toolMessages.ts's SignMessages. Optional and English-default so
    * every existing caller (this file's own tests included) is unaffected;
@@ -239,6 +257,18 @@ export default function SignToolbar({
     setShowSigDropdown(false);
   };
 
+  // Present for the whole document once it has any detected field, never
+  // toggled by the moment-to-moment selection (see FieldNavigation.hasFields
+  // and EditorToolStatus.tsx's `fieldNav` prop doc for why).
+  const fieldNav = fieldNavigation.hasFields ? {
+    hasNext: fieldNavigation.hasNext,
+    hasPrevious: fieldNavigation.hasPrevious,
+    onNext: fieldNavigation.goToNext,
+    onPrevious: fieldNavigation.goToPrevious,
+    nextLabel: t.nextFieldLabel,
+    previousLabel: t.previousFieldLabel,
+  } : null;
+
   // The hint line, handed to the shell so it rides in the file row instead of
   // taking a line of its own directly above the document. EditorToolStatus owns
   // the shape of it, and the Keep adding / Stop chip that is the only exit from
@@ -250,6 +280,7 @@ export default function SignToolbar({
       onToggleKeepOn={() => selectedTool && (toolLocked ? unlockTool(selectedTool) : lockTool(selectedTool))}
       idle={`${t.tipIdle}${hasTextElement ? ` ${t.tipEditText}` : ''}`}
       reserveCopies={Object.values(TOOL_COPY)}
+      fieldNav={fieldNav}
       keepOnLabel={t.keepOn}
       keepOnShort={t.keepOnShort}
       keepOnTitleOn={t.keepOnTitleOn}
