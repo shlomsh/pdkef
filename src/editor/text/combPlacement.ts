@@ -214,15 +214,12 @@ export function combFontSize(
   const cellPoints = (cellWidthPercent / 100) * pageWidthPoints;
   if (!(cellPoints > 0)) return preferredSize;
   let ceiling = cellPoints / COMB_MIN_CELL_EM;
-  // The height a digit may stand is the other bound, and on a form like 101
-  // it is the tighter one by far: teeth 7pt tall on cells 11pt wide. Width
-  // alone let a 12pt default (8.6pt digits) tower over them - "large", and
-  // with the box's own descent hanging under the rule into the label of the
-  // row below (live report). A digit is COMB_CAP_HEIGHT_EM tall, so the
-  // largest size whose digits still stand inside that height is it over
-  // that. The caller decides what the height is - the teeth themselves for
-  // an open run, a closed box less its margin - and a run with no measured
-  // height keeps the width answer alone.
+  // A closed box also bounds how tall a digit may stand: the largest size
+  // whose cap height (COMB_CAP_HEIGHT_EM) fits the height the caller passes.
+  // The caller passes nothing for an open run - its teeth are dividers
+  // hanging from the rule, not the field's height (form 101: 4-7pt ticks in
+  // a 23pt field), and sizing to them made the identity number smaller than
+  // the name cells beside it, which are the same height (live report).
   const heightPoints = (cellHeightPercent / 100) * pageHeightPoints;
   if (heightPoints > 0) ceiling = Math.min(ceiling, heightPoints / COMB_CAP_HEIGHT_EM);
   return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
@@ -335,9 +332,9 @@ export function placeCombOnRegion(
   },
 ): CombPlacement {
   const cells = Math.max(1, Math.min(MAX_COMB_CELLS, Math.round(region.cells)));
-  // Open teeth are height guides and a digit stands exactly as tall as them;
-  // a closed box keeps the margin a hand would leave (COMB_BOX_FILL).
-  const digitHeight = region.boxed ? region.height * COMB_BOX_FILL : region.height;
+  // Only a closed box has a height to fit; open teeth are dividers, and the
+  // digits on them keep the size every other field on the form gets.
+  const digitHeight = region.boxed ? region.height * COMB_BOX_FILL : 0;
   const size = combFontSize(fontSize, region.width / cells, pageWidthPoints, digitHeight, pageHeightPoints);
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   // A closed cell is a box and text belongs in the middle of it; an open one is
