@@ -33,7 +33,9 @@ reviewNotes: >-
   page renders changed; hash recomputed once on the merged tree. 09-19:
   English h1 dropped "in Your Browser" (SEO-36); Hebrew unchanged, pending
   Shlomi's review; sourceHash refreshed mechanically.
-sourceHash: 'fnv1a64:f00ce1ccee6716de'
+  09-19 later: English subhead cut to three sentences; Hebrew unchanged,
+  pending review; hash refreshed mechanically.
+sourceHash: 'fnv1a64:adbb59588c247c41'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי
