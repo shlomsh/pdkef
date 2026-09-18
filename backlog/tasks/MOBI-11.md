@@ -69,7 +69,7 @@ state, no accept/reject step; the detected region just makes the existing one-sh
 the right place. Free-text cells now get the same treatment: while the text or date tool is
 armed, a solid-bordered hint shows over every detected cell (`FormFieldHints`, new `cell` kind),
 and a tap anywhere near one centres the placed text box on the cell instead of the raw tap point
-(`combPlacement.ts`'s new `cellRegionAt`/`cellCenterPoint`). Deliberately narrower than a comb
+(`combPlacement.ts`'s new `cellRegionAt`/`cellAnchorPoint`). Deliberately narrower than a comb
 snap: it only ever moves `left`/`top`, never sets `width` - `comb.js`'s `isComb` is derived from
 `width` alone, so giving an ordinary field an explicit width would silently turn it into a
 one-character-per-cell comb the moment someone typed a second letter. A "propose, then review and

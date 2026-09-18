@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   baselineDropEm,
-  cellCenterPoint,
+  cellAnchorPoint,
   cellRegionAt,
   checkboxRegionAt,
   combFontSize,
@@ -103,10 +103,31 @@ describe('cellRegionAt', () => {
   });
 });
 
-describe('cellCenterPoint', () => {
-  it('returns the middle of the region, not the raw tap', () => {
-    const region: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
-    expect(cellCenterPoint(region)).toEqual({ left: 43, top: 28.7 });
+describe('cellAnchorPoint', () => {
+  // The "Status" cell on an e-ticket, as the detector reports it.
+  const cell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
+
+  it('anchors LTR text on the cell\'s left edge, vertically on its middle', () => {
+    // `left` is the box's anchored edge, not its centre: the middle of the
+    // cell (43) is where the old placement put the box's left edge, hanging
+    // the rest of the box out over the next column.
+    expect(cellAnchorPoint(cell, 'ltr')).toEqual({ left: 30, top: 28.7 });
+  });
+
+  it('anchors RTL text on the cell\'s right edge, so Hebrew grows into the cell', () => {
+    // An RTL box's `left` is its right edge (DraggableWrapper anchors it via
+    // CSS `right`), so the cell's right edge is where the first letter goes.
+    expect(cellAnchorPoint(cell, 'rtl')).toEqual({ left: 56, top: 28.7 });
+  });
+
+  it('defaults to the LTR edge when no direction has been predicted yet', () => {
+    expect(cellAnchorPoint(cell)).toEqual(cellAnchorPoint(cell, 'ltr'));
+  });
+
+  it('never returns the cell\'s middle as the anchored edge', () => {
+    const middle = cell.left + cell.width / 2;
+    expect(cellAnchorPoint(cell, 'ltr').left).not.toBe(middle);
+    expect(cellAnchorPoint(cell, 'rtl').left).not.toBe(middle);
   });
 });
 
