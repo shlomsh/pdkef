@@ -82,3 +82,10 @@ site-only commits skip the other tools' unit and e2e work; about half of the pro
   [QUAL-08](QUAL-08.md), because it requires post-landing history rather than more ARCH-20
   implementation. The other follow-ups are independently tracked: [ARCH-21](ARCH-21.md) owns the
   possible `site` split, and DEBT-12 closed the import-scanner gap.
+- [QUAL-08](QUAL-08.md) (closed 2026-09-18): on 55 real `push` CI runs since `9b4f944`, 18%
+  docs-only, 24% narrow (22% to a tool, 2% page-only), 58% everything - close to the
+  `nx-affected-histogram.mjs` oracle run on the same 156-commit window (26%/22%/51%). Page-only is
+  far under the "worth an ARCH-21 split" bar; the biggest remaining `everything` driver is
+  `scripts/` being unowned by any project (25% of `everything` runs), not a boundary ARCH-20 itself
+  drew wrong. Full breakdown and the ARCH-21/DEBT-07 recommendations are in QUAL-08's own Result
+  section.
