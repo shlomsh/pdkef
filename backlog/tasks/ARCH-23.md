@@ -1,7 +1,7 @@
 ---
 id: "ARCH-23"
 title: "Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
