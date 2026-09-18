@@ -19,11 +19,11 @@ import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
 import {
-  cellAnchorPoint,
   cellRegionAt,
   checkboxRegionAt,
   combRegionAt,
   placeCombOnRegion,
+  placeTextOnCell,
   type FieldRegion,
 } from '../../editor/text/combPlacement.ts';
 import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
@@ -266,7 +266,6 @@ export default function useWorkspaceGestures({
     const cellRegion = snapsToFields && !combRegion
       ? cellRegionAt(formRegions.cells, point, pageIndex)
       : null;
-    const cellAnchor = cellRegion ? cellAnchorPoint(cellRegion, initialDirection ?? 'ltr') : null;
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
@@ -307,13 +306,10 @@ export default function useWorkspaceGestures({
         pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
         pageHeightPoints,
       })
-      // A free-text cell only moves the box's anchored edge to the cell's
-      // start edge (left for LTR, right for RTL), never sets `width` - see
-      // cellAnchorPoint's own docstring for why. Re-centring by the same
-      // textHeight/2 the raw tap would have used keeps the vertical result
-      // identical to a tap landing exactly on the cell's middle.
-      : cellAnchor
-        ? { left: cellAnchor.left, top: Math.max(0, cellAnchor.top - textHeight / 2) }
+      // A free-text cell gives the box the cell's span as `minWidth`, never
+      // `width` - see placeTextOnCell's own docstring for why.
+      : cellRegion
+        ? placeTextOnCell(cellRegion, textHeight)
         : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
           pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
           pageHeightPoints,

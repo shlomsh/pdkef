@@ -195,6 +195,49 @@ describe('sign.js signPdf', () => {
     expect(xStart).toBeLessThan(expectedRightEdge);
   });
 
+  it('bakes RTL text in a box on a form cell so its right edge lands at the cell\'s right edge, not at `left`', async () => {
+    // A box placed on a detected free-text cell (MOBI-11) carries the cell's
+    // span as `minWidth` and is left-anchored like a comb: on screen its text
+    // is right-aligned inside the cell (DraggableWrapper's min-width plus
+    // TextNode's text-align), so the export's pen has to end at
+    // left + minWidth, where a free RTL box's would end at `left`.
+    const file = getFixtureFile();
+    const pdfWidth = 200;
+    const element = {
+      id: 'el-rtl-cell',
+      type: 'text',
+      pageIndex: 0,
+      left: 20,
+      top: 10,
+      minWidth: 50,
+      text: 'שלום',
+      fontFamily: 'Heebo',
+      fontSize: 20,
+      color: '#000000'
+    };
+
+    const blob = await signPdf(file, [element]);
+    const items = await getTextItems(blob);
+    const item = items.find((i) => i.dir === 'rtl');
+    expect(item).toBeDefined();
+
+    const rightEdge = item.transform[4] + item.width;
+    expect(rightEdge).toBeCloseTo(percentToPoints(element.left + element.minWidth, pdfWidth), 0);
+    expect(item.transform[4]).toBeGreaterThan(percentToPoints(element.left, pdfWidth));
+  });
+
+  it('bakes LTR text in a box on a form cell starting at `left`, the cell\'s left edge', async () => {
+    const file = getFixtureFile();
+    const element = {
+      id: 'el-ltr-cell', type: 'text', pageIndex: 0, left: 10, top: 10, minWidth: 50,
+      text: 'Hello', fontSize: 20, color: '#000000'
+    };
+    const blob = await signPdf(file, [element]);
+    const items = await getTextItems(blob);
+    const item = items.find((i) => i.str.includes('Hello'));
+    expect(item.transform[4]).toBeCloseTo(percentToPoints(element.left, 200), 0);
+  });
+
   it('bakes LTR text starting at the stored `left` percent (unaffected by the RTL fix)', async () => {
     const file = getFixtureFile();
     const pdfWidth = 200;

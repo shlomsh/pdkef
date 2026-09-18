@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
-import { getEffectiveTextDirection } from '../../lib/signHelpers.js';
+import { textAnchorsRightEdge } from '../../lib/signHelpers.js';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
@@ -119,14 +119,17 @@ export default function useDraggableElement({
       const rawDxPercent = pageRect.width ? (dx / pageRect.width) * 100 : 0;
       const rawDyPercent = pageRect.height ? (dy / pageRect.height) * 100 : 0;
 
-      const minDxPercent =
-        element.type === 'text' && getEffectiveTextDirection(element) === 'rtl'
-          ? widthPercent - dragStartPos.current.left
-          : -dragStartPos.current.left;
-      const maxDxPercent =
-        element.type === 'text' && getEffectiveTextDirection(element) === 'rtl'
-          ? 100 - dragStartPos.current.left
-          : 100 - widthPercent - dragStartPos.current.left;
+      // `left` is the right edge of a free RTL box and the left edge of
+      // everything else, a comb or a form-cell box included (signHelpers'
+      // textAnchorsRightEdge), so the clamp asks the same question the
+      // wrapper's CSS does.
+      const anchorsRight = textAnchorsRightEdge(element);
+      const minDxPercent = anchorsRight
+        ? widthPercent - dragStartPos.current.left
+        : -dragStartPos.current.left;
+      const maxDxPercent = anchorsRight
+        ? 100 - dragStartPos.current.left
+        : 100 - widthPercent - dragStartPos.current.left;
       const minDyPercent = -dragStartPos.current.top;
       const maxDyPercent = 100 - heightPercent - dragStartPos.current.top;
       const clampedDxPercent = Math.max(minDxPercent, Math.min(maxDxPercent, rawDxPercent));
@@ -166,10 +169,7 @@ export default function useDraggableElement({
         let newLeft = dragStartPos.current.left + dxPercent;
         let newTop = dragStartPos.current.top + dyPercent;
 
-        if (
-          element.type === 'text' &&
-          getEffectiveTextDirection(element) === 'rtl'
-        ) {
+        if (textAnchorsRightEdge(element)) {
           newLeft = Math.max(widthPercent, Math.min(100, newLeft));
         } else {
           newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));

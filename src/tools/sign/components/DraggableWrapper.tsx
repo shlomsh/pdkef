@@ -3,7 +3,7 @@ import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react
 import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, textAnchorsRightEdge } from '../../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
@@ -171,14 +171,15 @@ export default function DraggableWrapper<T extends EditorElement>({
   // Registry view flags (E7.6) drive className/style/interactivity instead of
   // comparing element.type directly — see the ViewFlags contract in
   // src/editor/registry/types.ts.
-  // A text box with an explicit width has a *fixed span*, so there is no
-  // growing edge to anchor: a comb placed over a printed field must stay on
-  // that field whatever gets typed into it, and flipping to right-anchoring
-  // the moment a Hebrew character appears would slide it a whole field-width
-  // sideways off the boxes it was sized to. Reading order still follows the
-  // text - comb.js mirrors the cell centres for RTL inside the fixed span.
-  const hasFixedSpan = !!(view.allowsExplicitWidth && (element as { width?: number }).width);
-  const isRtlText = !!view.usesRtlAnchoring && textDirection === 'rtl' && !hasFixedSpan;
+  // A text box with a span fixed by the paper - a comb (`width`) or a box on
+  // a detected form cell (`minWidth`) - has no growing edge to anchor: it
+  // must stay on that field whatever gets typed into it, and flipping to
+  // right-anchoring the moment a Hebrew character appears would slide it a
+  // whole field-width sideways off the boxes it was sized to. Reading order
+  // still follows the text - comb.js mirrors the cell centres for RTL inside
+  // the fixed span, and a cell box aligns its text right. signHelpers'
+  // textAnchorsRightEdge is the one answer to "which edge is `left`".
+  const isRtlText = !!view.usesRtlAnchoring && textAnchorsRightEdge(element);
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
   const isSymbol = !!view.isSymbol;
@@ -195,6 +196,9 @@ export default function DraggableWrapper<T extends EditorElement>({
     // explicit width (comb text): the span is the whole point there, and the
     // height stays intrinsic either way.
     width: element.width && (!view.usesIntrinsicSize || view.allowsExplicitWidth) ? `${element.width}%` : 'auto',
+    // A box on a detected form cell is at least the cell's span wide and
+    // still intrinsically sized past it (editorModel.ts, `minWidth`).
+    ...('minWidth' in element && element.minWidth ? { minWidth: `${element.minWidth}%` } : {}),
     height: 'height' in element && element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
     ...(isRtlText
       ? { right: `${100 - element.left}%` }

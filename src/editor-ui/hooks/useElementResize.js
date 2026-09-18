@@ -188,7 +188,7 @@ export default function useElementResize({
         // "snaps to an arbitrary width" bug this measurement exists to avoid.
         const measuredStartWidth = textStartSizePercent ? textStartSizePercent.width : startWidth;
         // A span handle produces a fixed-span box, which anchors on its left
-        // edge in both directions (see DraggableWrapper's hasFixedSpan). An RTL
+        // edge in both directions (see signHelpers' textAnchorsRightEdge). An RTL
         // box that has no width yet is still storing its *right* edge in
         // `left`, so convert once, here, rather than letting the box jump a
         // width sideways the frame it becomes a comb.

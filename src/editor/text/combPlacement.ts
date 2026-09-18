@@ -4,7 +4,6 @@ import {
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
 } from '../../constants/signGeometry.js';
-import type { TextDirection } from '../model/editorModel.ts';
 import {
   FONT_VERTICAL_METRICS,
   baselineOffsetEmFromMetrics,
@@ -175,35 +174,33 @@ export function cellRegionAt(
 }
 
 /**
- * Where to anchor a freshly placed text box on a detected free-text cell.
+ * Where a freshly placed text box sits on a detected free-text cell.
  *
- * `left` is the box's *anchored edge*, not its centre: the editor keeps a
- * text box's `left` as the edge its text starts from and lets the box grow
- * away from it (see DraggableWrapper's "anchored edge" note), so handing it
- * the cell's middle put the box's left edge halfway across the cell and hung
- * the rest out over the next column. The start edge depends on the direction
- * the box is expected to be filled in: LTR text starts at the cell's left
- * edge, RTL text at its right, and `direction` is the editor's own prediction
- * for the next placement (the last manually toggled direction).
+ * The box takes the cell's whole span as `minWidth` - never `width`, which
+ * is what makes a box a comb (`comb.js`'s `isComb` is derived from `width`
+ * alone, see its docstring), so a name typed into it would have snapped one
+ * letter per imaginary cell the moment a second letter arrived. With a
+ * minimum width instead, the box fills the cell edge to edge, lays its text
+ * out as plain text aligned to the reading direction's start edge (the
+ * editor's `dir`/`text-align`, the exporter's pen), and grows past the cell
+ * only if more is typed than fits - the same way a free box grows.
  *
- * `top` is the cell's middle; the caller subtracts half the box's height, the
- * same re-centring a raw tap gets, so the vertical result is identical to a
- * tap landing exactly on the cell's middle.
- *
- * Deliberately not a `placeCombOnRegion`-style placement: that sets `width`,
- * and `comb.js`'s `isComb` is derived from `width` alone (see its own
- * docstring), so giving an ordinary field an explicit width would silently
- * turn it into a one-character-per-cell comb the moment someone typed a
- * second letter. The box's own padding (`textBoxPaddingEm`) already keeps the
+ * `left` is the cell's left edge whichever way the text reads: a box with a
+ * span has no growing edge to anchor (see signHelpers' `textAnchorsRightEdge`),
+ * so unlike a free RTL box its `left` is always the physical left. `top` is
+ * the cell's middle less half the box's own height, the same re-centring a
+ * raw tap gets, so the vertical result is identical to a tap landing exactly
+ * on the cell's middle. The box's own padding (`textBoxPaddingEm`) keeps the
  * glyphs off the printed rule, so no extra inset is applied.
  */
-export function cellAnchorPoint(
+export function placeTextOnCell(
   region: FieldRegion,
-  direction: TextDirection = 'ltr',
-): { left: number; top: number } {
+  textHeight: number,
+): { left: number; top: number; minWidth: number } {
   return {
-    left: direction === 'rtl' ? region.left + region.width : region.left,
-    top: region.top + region.height / 2,
+    left: region.left,
+    top: Math.max(0, region.top + region.height / 2 - textHeight / 2),
+    minWidth: region.width,
   };
 }
 

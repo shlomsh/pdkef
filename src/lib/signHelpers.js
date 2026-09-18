@@ -35,6 +35,22 @@ export function getEffectiveTextDirection(element) {
   return detectTextDirection(element.text) || 'ltr';
 }
 
+/**
+ * True when a text element's `left` is its *right* edge: RTL text with no
+ * fixed span. A free RTL box anchors its right edge on `left` and grows
+ * leftward as it is typed (DraggableWrapper's `right: 100 - left`); a comb
+ * (`width`) or a box on a detected form cell (`minWidth`) has a span fixed
+ * by the paper, so it stays left-anchored and its text merely aligns right
+ * inside it. Every place that has to know which physical edge `left` is -
+ * the wrapper's CSS, the drag clamps, the exporter's pen - asks this.
+ */
+export function textAnchorsRightEdge(element) {
+  return element?.type === 'text'
+    && !element.width
+    && !element.minWidth
+    && getEffectiveTextDirection(element) === 'rtl';
+}
+
 export function hexToRgbFractions(hex, fallback = '#000000') {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || fallback);
   const r = result ? parseInt(result[1], 16) / 255 : 0;
