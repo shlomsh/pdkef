@@ -290,6 +290,24 @@ describe('placeCombOnRegion', () => {
     );
   });
 
+  it('centres the digits in the cell drawn around open teeth, where the neighbouring cells\' text sits', () => {
+    // The identity comb's 23pt cell on form 101, its label in the top corner
+    // leaving a 14pt strip above the rule. A 12pt box (15.5pt) centred there
+    // puts the baseline ~3pt above the rule, like the name cells beside it.
+    const inCell: CombRegion = { ...IDENTITY_RUN, writable: { left: 73.597, top: 26.4, width: 17.152, height: 1.69 } };
+    const placement = place(inCell);
+    const strip = inCell.writable!;
+    const boxHeight = (placement.fontSize * 1.29 / PAGE_HEIGHT) * 100;
+    expect(placement.top + boxHeight / 2).toBeCloseTo(strip.top + strip.height / 2, 3);
+    expect(placement.top).toBeLessThan(place().top);
+    expect(placement.fontSize).toBe(12);
+  });
+
+  it('never sinks the digits below the rule when the cell\'s strip is shorter than the box', () => {
+    const shallow: CombRegion = { ...IDENTITY_RUN, writable: { left: 73.597, top: 27.3, width: 17.152, height: 0.8 } };
+    expect(place(shallow).top).toBeCloseTo(place().top, 6);
+  });
+
   it('puts the glyph baseline on the printed rule when the cells are open', () => {
     // The run's teeth hang upward from the rule, so in top-left-origin
     // percentages the rule is the run's *bottom* edge. Lifting the box by its

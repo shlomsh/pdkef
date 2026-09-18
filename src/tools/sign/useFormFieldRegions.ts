@@ -94,12 +94,14 @@ export default function useFormFieldRegions(
           { detectPageRegions, toPagePercentBox },
           { collectPageInk, pageCropBox },
           { detectCellCandidates },
+          { reconcileFields },
           { createPageGeometry },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
           import('../../editor/adapters/pdf/formGrid.js'),
           import('../../editor/adapters/pdf/pageInk.js'),
           import('../../editor/adapters/pdf/formCells.js'),
+          import('../../editor/adapters/pdf/fieldRegions.js'),
           import('../../editor/geometry/coords.ts'),
         ]);
         const document = await PDFDocument.load(bytes.slice(0), {
@@ -111,7 +113,6 @@ export default function useFormFieldRegions(
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
           const pdfLibPage = document.getPage(pageIndex);
           const page = detectPageRegions(pdfLibPage, pageIndex);
-          found.combs.push(...page.combs);
           found.checkboxes.push(...page.checkboxes);
 
           // Own geometry/ink walk, independent of detectPageRegions' internal
@@ -128,13 +129,16 @@ export default function useFormFieldRegions(
           const textItems = await pageTextRuns(pdfjsPage, geometry, toPagePercentBox);
           if (!current) return;
           found.pageDirections[pageIndex] = dominantTextDirection(textItems.map((item) => item.str));
-          const baseline = [...page.combs, ...page.checkboxes];
-          const cells = detectCellCandidates(ink, geometry, pageIndex, baseline, textItems)
-            // Signature cells aren't wired into a snap yet - signature
-            // placement is a different creation mode (a saved-signature
-            // dialog, not a point tap) and stays out of this first pass.
-            .filter((cell) => cell.kind !== 'signature');
-          found.cells.push(...cells);
+          const { combs, cells } = reconcileFields({
+            combs: page.combs,
+            checkboxes: page.checkboxes,
+            cells: detectCellCandidates(ink, geometry, pageIndex, textItems),
+          });
+          found.combs.push(...combs);
+          // Signature cells aren't wired into a snap yet - signature
+          // placement is a different creation mode (a saved-signature
+          // dialog, not a point tap) and stays out of this first pass.
+          found.cells.push(...cells.filter((cell) => cell.kind !== 'signature'));
         }
         if (current) setRegions(found);
       } catch {

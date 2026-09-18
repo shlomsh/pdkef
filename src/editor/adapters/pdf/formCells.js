@@ -11,9 +11,9 @@ import { toPagePercentBox } from './formGrid.js';
  * over this module). See `scripts/spike/mobi-10/report-cells.md` for the measured recall on the
  * two spike forms and the seven documented failure classes still open.
  *
- * Deliberately NOT re-detecting combs or checkboxes: `baselineCandidates` (from `formGrid.js`'s
- * `detectRegions`/`detectPageRegions`) already gets those at 100% precision on the spike forms,
- * and this module skips any cell that overlaps one.
+ * Deliberately NOT re-detecting combs or checkboxes: `formGrid.js` already gets those at 100%
+ * precision on the spike forms. This module reports every closed cell it finds, including one
+ * drawn around a comb; `fieldRegions.js` reconciles the two detectors' answers.
  *
  * ## The idea
  *
@@ -74,9 +74,6 @@ const MIN_BLANK_HEIGHT = 8;
 const FULL_TEXT_COVERAGE = 0.4;
 /** How far above a cell to look for a column header, in points. */
 const HEADER_SEARCH_HEIGHT = 220;
-/** A candidate is dropped if it overlaps a baseline comb/checkbox this much. */
-const BASELINE_IOU = 0.3;
-const BASELINE_CONTAINMENT = 0.6;
 
 // ---------------------------------------------------------------------------
 // Ink normalization - the same folding formGrid.js does (rect sides publish as vertical
@@ -295,31 +292,44 @@ function classifyKind(ownText, label) {
   return 'text';
 }
 
-// ---------------------------------------------------------------------------
-// Baseline overlap (skip anything the comb/checkbox detector already claims), in page-percent.
-// ---------------------------------------------------------------------------
+/**
+ * The blank part of a cell a person can write in, in points: the whole cell
+ * when it is empty, the strip under a label in its top corner, the strip
+ * beside a label that only hugs its right wall, or null when no clean strip
+ * of a usable size is left (a caption centred in a decorative cell, a cell
+ * too small to write in). Never an L shape: a right-aligned answer belongs
+ * against the cell's own right wall, not the label's left.
+ *
+ * Returns `cell` itself when the whole cell is writable, so a caller can tell
+ * "no label" from "a strip".
+ */
+function writableArea(cell, ownText) {
+  let area = cell;
+  if (ownText.length > 0) {
+    const textLeft = Math.min(...ownText.map((t) => t.x0));
+    // A pdf.js item's box starts at its baseline, so this is the label's baseline.
+    const textBottom = Math.min(...ownText.map((t) => t.y0));
+    const rightHug = Math.max(...ownText.map((t) => t.x1)) >= cell.left + cell.width * 0.5;
+    const topHug = textBottom >= cell.bottom + cell.height * 0.5;
+    if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) area = { ...cell, top: textBottom };
+    else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) area = { ...cell, right: textLeft };
+    else return null;
+  }
+  const width = area.right - area.left;
+  const height = area.top - area.bottom;
+  return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? area : null;
+}
 
-function overlapsBaseline(bounds, baseline) {
-  const ax2 = bounds.left + bounds.width;
-  const ay2 = bounds.top + bounds.height;
-  const area = bounds.width * bounds.height;
-  return baseline.some((b) => {
-    const bx2 = b.left + b.width;
-    const by2 = b.top + b.height;
-    const ix1 = Math.max(bounds.left, b.left);
-    const iy1 = Math.max(bounds.top, b.top);
-    const ix2 = Math.min(ax2, bx2);
-    const iy2 = Math.min(ay2, by2);
-    const iw = Math.max(0, ix2 - ix1);
-    const ih = Math.max(0, iy2 - iy1);
-    const inter = iw * ih;
-    if (inter <= 0) return false;
-    const bArea = b.width * b.height;
-    const union = area + bArea - inter;
-    const iou = union > 0 ? inter / union : 0;
-    const containment = Math.min(area, bArea) > 0 ? inter / Math.min(area, bArea) : 0;
-    return iou >= BASELINE_IOU || containment >= BASELINE_CONTAINMENT;
-  });
+/**
+ * Honest and below the comb detector's 0.8: rewarded for fully closed
+ * geometry and a label; a date/signature matched a keyword, not just geometry.
+ */
+function confidenceOf(resolved, kind) {
+  let confidence = 0.45;
+  if (resolved.closure >= 0.95) confidence += 0.1;
+  if (resolved.label) confidence += 0.1;
+  if (kind !== 'text') confidence += 0.05;
+  return Math.min(confidence, 0.7);
 }
 
 /**
@@ -335,17 +345,14 @@ function overlapsBaseline(bounds, baseline) {
  * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
  * @param {import('../../geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
- * @param {FieldCandidate[]} baselineCandidates already-detected comb/checkbox regions to skip
  * @param {PageTextRun[]} textItems page text, page-percent bounds
  */
-export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidates, textItems) {
+export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const textItemsPoints = textItems.map((item) => textItemToPoints(item, geometry));
   const closedCells = buildClosedCells(ink);
 
-  // First pass: geometry + text classification, kept even when the cell will later turn out
-  // to duplicate a baseline region, so the column-repeat count (table-cell vs text) is
-  // computed over the same population a person would see, not one already thinned by the
-  // baseline-overlap filter.
+  // First pass: geometry + text classification; the column-repeat count
+  // (table-cell vs text) below needs the whole population.
   const resolved = [];
   for (const cell of closedCells) {
     const ownText = textInsideCell(cell, textItemsPoints);
@@ -362,40 +369,8 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
     // form - treat its cell as already covered by that checkbox, not a fresh text field.
     if (GLYPH_NOISE_RE.test(ownStr)) continue;
 
-    // Blank remainder: cell minus the union of its own text, required to actually hug the
-    // right edge or the top edge (RTL forms put a short label at one of those two) rather
-    // than merely computed from area coverage - a caption centered in a wide decorative cell
-    // can have low area coverage without leaving any real fillable strip next to it.
-    let blankWidth = cell.width;
-    let blankHeight = cell.height;
-    // The blank remainder itself, in points: where a box placed on this cell
-    // goes (FieldRegion.writable in combPlacement.ts). The whole cell until a
-    // hugging label carves a strip off it.
-    let writable = { left: cell.left, right: cell.right, bottom: cell.bottom, top: cell.top };
-    if (ownText.length > 0) {
-      const textLeft = Math.min(...ownText.map((t) => t.x0));
-      const textRight = Math.max(...ownText.map((t) => t.x1));
-      const textBottom = Math.min(...ownText.map((t) => t.y0));
-      const rightHug = textRight >= cell.left + cell.width * 0.5;
-      const topHug = textBottom >= cell.bottom + cell.height * 0.5;
-      const rightHugBlank = rightHug ? textLeft - cell.left : -Infinity;
-      const topHugBlank = topHug ? textBottom - cell.bottom : -Infinity;
-      if (rightHugBlank < MIN_BLANK_WIDTH && topHugBlank < MIN_BLANK_HEIGHT) continue; // no clean hug
-      blankWidth = rightHugBlank >= MIN_BLANK_WIDTH ? rightHugBlank : cell.width;
-      blankHeight = topHugBlank >= MIN_BLANK_HEIGHT ? topHugBlank : cell.height;
-      // A label in the top corner (the common shape on these forms: "שם" small
-      // in the top-right of a 25pt-tall cell) leaves the full width UNDER it
-      // as the writing strip - `textBottom` is the label's baseline, since a
-      // pdf.js item's box starts at its baseline origin. Only a label that
-      // hugs the right edge without also sitting in the top half (a short
-      // cell, one line tall) leaves the strip BESIDE it instead. Never both:
-      // the inner corner of that L would drop the box's right edge to the
-      // label's left, off the cell's own right wall a right-aligned answer
-      // is meant to sit against.
-      if (topHugBlank >= MIN_BLANK_HEIGHT) writable = { ...writable, top: textBottom };
-      else if (rightHugBlank >= MIN_BLANK_WIDTH) writable = { ...writable, right: textLeft };
-    }
-    if (blankWidth < MIN_BLANK_WIDTH || blankHeight < MIN_BLANK_HEIGHT) continue;
+    const writable = writableArea(cell, ownText);
+    if (!writable) continue;
 
     const header = headerAbove(cell, textItemsPoints);
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();
@@ -404,8 +379,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
     const bounds = toPagePercentBox(geometry, {
       x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
     });
-    const isWholeCell = writable.top === cell.top && writable.right === cell.right;
-    const writableBounds = isWholeCell ? undefined : toPagePercentBox(geometry, {
+    const writableBounds = writable === cell ? undefined : toPagePercentBox(geometry, {
       x0: writable.left, y0: writable.bottom, x1: writable.right, y1: writable.top,
     });
     resolved.push({
@@ -426,17 +400,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
   const candidates = [];
   let index = 0;
   for (const r of resolved) {
-    if (overlapsBaseline(r.bounds, baselineCandidates)) continue;
     const kind = r.kind === 'text' && columnCounts.get(columnKey(r.cell)) >= 3 ? 'table-cell' : r.kind;
-
-    // Confidence: honest and below the baseline detector's 0.8. Rewarded for fully closed
-    // geometry and a resolved, keyword-matched label; penalized for a classification that
-    // fell back to the coverage heuristic with no label.
-    let confidence = 0.45;
-    if (r.closure >= 0.95) confidence += 0.1;
-    if (r.label) confidence += 0.1;
-    if (kind !== 'text') confidence += 0.05; // date/signature matched a keyword, not just geometry
-    confidence = Math.min(confidence, 0.7);
 
     candidates.push({
       id: `combined-heuristic-${String(index).padStart(4, '0')}`,
@@ -446,7 +410,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
       kind,
       label: r.label || undefined,
       required: 'unknown',
-      confidence,
+      confidence: confidenceOf(r, kind),
       source: 'combined-heuristic',
       notes: `closure=${r.closure.toFixed(2)} coverage=${r.coverage.toFixed(2)} ownText=${r.ownTextCount}`,
     });
@@ -462,14 +426,13 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex
- * @param {FieldCandidate[]} baselineCandidates already-detected comb/checkbox regions to skip
  * @param {PageTextRun[]} textItems page text, page-percent bounds
  */
-export function detectPageCellCandidates(page, pageIndex, baselineCandidates, textItems) {
+export function detectPageCellCandidates(page, pageIndex, textItems) {
   const geometry = createPageGeometry({
     cropBox: pageCropBox(page),
     rotation: page.getRotation().angle,
   });
   const ink = collectPageInk(page);
-  return detectCellCandidates(ink, geometry, pageIndex, baselineCandidates, textItems);
+  return detectCellCandidates(ink, geometry, pageIndex, textItems);
 }

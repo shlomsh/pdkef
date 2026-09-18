@@ -121,6 +121,15 @@ describe('elementIsOnField', () => {
     expect(elementIsOnField(text(70, 28.05), lower)).toBe(true);
   });
 
+  it('counts a box centred in the cell around a comb\'s teeth as on that comb', () => {
+    // Open teeth 27.3-28.14 in a 23pt cell (25.3-28.1): placeCombOnRegion
+    // centres the box in the cell, ~1% above the teeth - and a taller cell
+    // would put it further still, past a fixed slack.
+    const inCell: TypableField = { kind: 'comb', region: { ...rowOneRight, writable: { left: 70, top: 22, width: 15, height: 6.1 } } };
+    expect(elementIsOnField(text(70, 23.5), inCell)).toBe(true);
+    expect(elementIsOnField(text(70, 23.5), field)).toBe(false);
+  });
+
   it('rejects a box beside, below, on another page, or of another type', () => {
     expect(elementIsOnField(text(60, 27), field)).toBe(false);
     expect(elementIsOnField(text(70, 29), field)).toBe(false);

@@ -26,6 +26,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { detectPageCellCandidates } from '../../../src/editor/adapters/pdf/formCells.js';
+import { reconcileFields } from '../../../src/editor/adapters/pdf/fieldRegions.js';
 
 function parseArgs(argv) {
   const args = { page: 1 };
@@ -68,10 +69,17 @@ async function main() {
   }
   const page = pdfDoc.getPage(pageIndex);
 
-  const baseline = readJson(args.baseline).map((c) => ({ ...toPercent(c.bounds) }));
+  const baseline = readJson(args.baseline).map((c) => ({ ...toPercent(c.bounds), kind: c.kind, boxed: c.notes === 'boxed cells' }));
   const textItems = readJson(args.text).map((t) => ({ str: t.str, ...toPercent(t.bounds) }));
 
-  const candidates = detectPageCellCandidates(page, pageIndex, baseline, textItems).map((c) => {
+  // The same reconciliation the live hook does: a cell a comb or checkbox already claims is
+  // not a candidate of its own (an open comb keeps it as its writable strip instead).
+  const { cells } = reconcileFields({
+    combs: baseline.filter((c) => c.kind === 'comb'),
+    checkboxes: baseline.filter((c) => c.kind !== 'comb'),
+    cells: detectPageCellCandidates(page, pageIndex, textItems),
+  });
+  const candidates = cells.map((c) => {
     const { left, top, width, height, ...rest } = c;
     return { ...rest, bounds: toFraction({ left, top, width, height }) };
   });

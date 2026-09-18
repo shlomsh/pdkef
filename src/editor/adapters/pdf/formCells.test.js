@@ -32,7 +32,7 @@ describe('detectCellCandidates', () => {
   it('finds two blank cells in a two-column row and classifies them text', () => {
     // Row from y=60 to y=80 (height 20pt, within range), three verticals -> two cells.
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
-    const [a, b] = detectCellCandidates(ink, geometry, 0, [], []);
+    const [a, b] = detectCellCandidates(ink, geometry, 0, []);
     expect(a.kind).toBe('text');
     expect(b.kind).toBe('text');
     expect(a.label).toBeUndefined();
@@ -44,7 +44,7 @@ describe('detectCellCandidates', () => {
   it('drops a row bounded only by its own two outer walls (no interior division)', () => {
     // An instructional panel: one bordered paragraph, no internal rule.
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
-    expect(detectCellCandidates(ink, geometry, 0, [], [])).toEqual([]);
+    expect(detectCellCandidates(ink, geometry, 0, [])).toEqual([]);
   });
 
   it('ignores a row band outside the writable height range', () => {
@@ -58,7 +58,7 @@ describe('detectCellCandidates', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 40, 100] });
     // Header sits directly above the second cell (percent left 40..100 -> percent top < 20).
     const header = text('שם משפחה', { left: 40, top: 10, width: 30 });
-    const [, cell] = detectCellCandidates(ink, geometry, 0, [], [header]);
+    const [, cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.label).toBe('שם משפחה');
     expect(cell.kind).toBe('text');
   });
@@ -66,7 +66,7 @@ describe('detectCellCandidates', () => {
   it('classifies a header containing תאריך as a date cell', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     const header = text('תאריך לידה', { left: 0, top: 10, width: 50 });
-    const [cell] = detectCellCandidates(ink, geometry, 0, [], [header]);
+    const [cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.kind).toBe('date');
   });
 
@@ -74,7 +74,7 @@ describe('detectCellCandidates', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     // חתימת (construct state, "signature-of-") does not contain the literal string חתימה.
     const header = text('חתימת העובד', { left: 0, top: 10, width: 50 });
-    const [cell] = detectCellCandidates(ink, geometry, 0, [], [header]);
+    const [cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.kind).toBe('signature');
   });
 
@@ -83,7 +83,7 @@ describe('detectCellCandidates', () => {
     // land inside that percent range, hugging the visual top edge (percent top close to 20).
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     const ownText = text('/  /', { left: 5, top: 21, width: 8, height: 2 });
-    const [cell] = detectCellCandidates(ink, geometry, 0, [], [ownText]);
+    const [cell] = detectCellCandidates(ink, geometry, 0, [ownText]);
     expect(cell.kind).toBe('date');
   });
 
@@ -91,7 +91,7 @@ describe('detectCellCandidates', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     // ~76% of the first (left 0..50) cell's area; the second cell stays genuinely blank.
     const paragraph = text('א', { left: 1, top: 21, width: 45, height: 17 });
-    const candidates = detectCellCandidates(ink, geometry, 0, [], [paragraph]);
+    const candidates = detectCellCandidates(ink, geometry, 0, [paragraph]);
     expect(candidates).toHaveLength(1);
     expect(candidates[0].left).toBeCloseTo(50, 5); // only the untouched second cell survives
   });
@@ -102,7 +102,7 @@ describe('detectCellCandidates', () => {
       rowBand({ top: 78, bottom: 70, columns: [0, 50, 100] }),
       rowBand({ top: 66, bottom: 58, columns: [0, 50, 100] }),
     );
-    const kinds = detectCellCandidates(ink, geometry, 0, [], []).map((c) => c.kind);
+    const kinds = detectCellCandidates(ink, geometry, 0, []).map((c) => c.kind);
     expect(kinds).toHaveLength(6);
     expect(kinds.every((k) => k === 'table-cell')).toBe(true);
   });
@@ -112,24 +112,15 @@ describe('detectCellCandidates', () => {
       rowBand({ top: 90, bottom: 82, columns: [0, 50, 100] }),
       rowBand({ top: 78, bottom: 70, columns: [0, 50, 100] }),
     );
-    const kinds = detectCellCandidates(ink, geometry, 0, [], []).map((c) => c.kind);
+    const kinds = detectCellCandidates(ink, geometry, 0, []).map((c) => c.kind);
     expect(kinds).toHaveLength(4);
     expect(kinds.every((k) => k === 'text')).toBe(true);
-  });
-
-  it('skips a cell that overlaps an already-detected baseline comb or checkbox', () => {
-    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
-    // The first cell (percent left 0..50, top 20, height 20) is claimed by the baseline.
-    const baseline = [{ left: 0, top: 20, width: 50, height: 20 }];
-    const remaining = detectCellCandidates(ink, geometry, 0, baseline, []);
-    expect(remaining).toHaveLength(1);
-    expect(remaining[0].left).toBeCloseTo(50, 5);
   });
 
   it('assigns a lower confidence than the baseline detector\'s 0.8, capped at 0.7', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     const header = text('תאריך לידה', { left: 0, top: 10, width: 50 });
-    const [cell] = detectCellCandidates(ink, geometry, 0, [], [header]);
+    const [cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.confidence).toBeLessThan(0.8);
     expect(cell.confidence).toBeLessThanOrEqual(0.7);
   });
@@ -143,7 +134,7 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
 
   it('reports no writable strip for a wholly blank cell - the whole cell is it', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
-    const [cell] = detectCellCandidates(ink, geometry, 0, [], []);
+    const [cell] = detectCellCandidates(ink, geometry, 0, []);
     expect(cell.writable).toBeUndefined();
   });
 
@@ -153,7 +144,7 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
     // 13pt above the cell floor (60), in the cell's top half and hugging its
     // right wall too.
     const label = text('שם', { left: 70, top: 21, width: 10, height: 6 });
-    const [, cell] = detectCellCandidates(ink, geometry, 0, [], [label]);
+    const [, cell] = detectCellCandidates(ink, geometry, 0, [label]);
     expect(cell.label).toBe('שם');
     // The cell itself is unchanged - it is still what a tap targets.
     expect(cell.top).toBeCloseTo(20, 5);
@@ -171,7 +162,7 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
     // there is no room under it, but 35pt of blank to its left.
     const ink = rowBand({ top: 72, bottom: 60, columns: [0, 50, 100] });
     const label = text('שם', { left: 85, top: 29, width: 12, height: 6 });
-    const [, cell] = detectCellCandidates(ink, geometry, 0, [], [label]);
+    const [, cell] = detectCellCandidates(ink, geometry, 0, [label]);
     expect(cell.label).toBe('שם');
     expect(cell.writable.left).toBeCloseTo(50, 5);
     expect(cell.writable.top).toBeCloseTo(28, 5);
@@ -182,7 +173,7 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
   it('reports no writable strip when the label is a header above the cell, not inside it', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 40, 100] });
     const header = text('שם משפחה', { left: 40, top: 10, width: 30 });
-    const [, cell] = detectCellCandidates(ink, geometry, 0, [], [header]);
+    const [, cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.label).toBe('שם משפחה');
     expect(cell.writable).toBeUndefined();
   });
