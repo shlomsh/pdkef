@@ -1,7 +1,7 @@
 ---
 id: "MOBI-06"
 title: "Field-to-field navigation so filling a form never needs aiming"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"

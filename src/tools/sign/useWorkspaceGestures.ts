@@ -22,9 +22,9 @@ import {
   cellRegionAt,
   checkboxRegionAt,
   combRegionAt,
-  placeCombOnRegion,
-  placeTextOnCell,
+  placeTextOnField,
   type FieldRegion,
+  type TypableField,
 } from '../../editor/text/combPlacement.ts';
 import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../../editor/registry/symbolMarks.ts';
@@ -171,7 +171,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
-  formRegions = { combs: [], checkboxes: [], cells: [] },
+  formRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] },
   elements = [],
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this
@@ -266,6 +266,9 @@ export default function useWorkspaceGestures({
     const cellRegion = snapsToFields && !combRegion
       ? cellRegionAt(formRegions.cells, point, pageIndex)
       : null;
+    const field: TypableField | null = combRegion
+      ? { kind: 'comb', region: combRegion }
+      : cellRegion ? { kind: 'cell', region: cellRegion } : null;
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
@@ -299,22 +302,24 @@ export default function useWorkspaceGestures({
     if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
 
     e.stopPropagation();
-    const snapped = combRegion
-      ? placeCombOnRegion(combRegion, {
+    // A comb takes the run's span and cell count; a free-text cell gives the
+    // box the cell's span as `minWidth`, never `width`, with its font size
+    // cellFontSize's answer rather than whatever was last used - see
+    // placeTextOnCell's own docstring for why. placeTextOnField is the one
+    // owner of both, shared with the Next/Previous field move
+    // (useFieldNavigation) - neither kind needs `direction` any more, since
+    // neither has an anchored edge left to flip (see its own docstring).
+    const snapped = field
+      ? placeTextOnField(field, {
         fontSize: initialFontSize,
         fontFamily: initialFont,
         pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
         pageHeightPoints,
       })
-      // A free-text cell gives the box the cell's span as `minWidth`, never
-      // `width`, and its font size cellFontSize's answer rather than
-      // whatever was last used - see placeTextOnCell's own docstring for why.
-      : cellRegion
-        ? placeTextOnCell(cellRegion, { fontSize: initialFontSize, pageHeightPoints })
-        : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
-          pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
-          pageHeightPoints,
-        }));
+      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
+        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+        pageHeightPoints,
+      }));
     const placed = snapped ? { ...newEl, ...snapped } : newEl;
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });

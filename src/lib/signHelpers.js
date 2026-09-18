@@ -26,6 +26,29 @@ export function detectTextDirection(text) {
   return null;
 }
 
+/**
+ * The direction a whole page of printed text reads in, from every text run
+ * pdf.js reports on it: 'rtl' when more of its letters are Hebrew/Arabic than
+ * anything else, 'ltr' otherwise. Counts letters rather than runs because a
+ * Hebrew form still carries plenty of Latin - a URL, "Email", a form number -
+ * and each of those is a run of its own. Digits and punctuation vote for
+ * nobody, the same as in detectTextDirection. This is the document's own
+ * direction, so it can differ from the UI locale: a Hebrew form opened on the
+ * English edition still reads right to left.
+ */
+export function dominantTextDirection(strings) {
+  let rtl = 0;
+  let ltr = 0;
+  for (const value of strings) {
+    for (const char of value || '') {
+      if (!STRONG_DIRECTION_CHAR.test(char)) continue;
+      if (RTL_CHAR.test(char)) rtl += 1;
+      else ltr += 1;
+    }
+  }
+  return rtl > ltr ? 'rtl' : 'ltr';
+}
+
 export function getEffectiveTextDirection(element) {
   // `textDirection` is retained on elements for backwards-compatible draft
   // data and the creation model, but it must not become an inherited language

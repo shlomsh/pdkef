@@ -2,6 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import type { CombRegion, FieldRegion } from '../../editor/text/combPlacement.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
+import type { TextDirection } from '../../editor/model/editorModel.ts';
+import { dominantTextDirection } from '../../lib/signHelpers.js';
 
 /** A page-percent `{left, top, width, height}` box - what `toPagePercentBox`
  * actually returns, which is `FieldRegion` minus `pageIndex` (the caller's to
@@ -37,9 +39,16 @@ export interface FormFieldRegions {
   combs: CombRegion[];
   checkboxes: FieldRegion[];
   cells: FieldRegion[];
+  /**
+   * The direction each page's printed text reads in, by page index - what
+   * MOBI-06's field-to-field order walks a row by. It comes from the page's
+   * own text runs (`dominantTextDirection`), not from the UI locale, because
+   * the form decides which of its fields comes first, not the site's language.
+   */
+  pageDirections: TextDirection[];
 }
 
-const NONE: FormFieldRegions = { combs: [], checkboxes: [], cells: [] };
+const NONE: FormFieldRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] };
 
 /** pdf.js text items, converted through the one page-coordinate transform
  * (`toPagePercentBox`) into `formCells.js`'s page-percent `PageTextRun` shape.
@@ -98,7 +107,7 @@ export default function useFormFieldRegions(
           updateMetadata: false,
         });
         if (!current) return;
-        const found: FormFieldRegions = { combs: [], checkboxes: [], cells: [] };
+        const found: FormFieldRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] };
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
           const pdfLibPage = document.getPage(pageIndex);
           const page = detectPageRegions(pdfLibPage, pageIndex);
@@ -118,6 +127,7 @@ export default function useFormFieldRegions(
           if (!current) return;
           const textItems = await pageTextRuns(pdfjsPage, geometry, toPagePercentBox);
           if (!current) return;
+          found.pageDirections[pageIndex] = dominantTextDirection(textItems.map((item) => item.str));
           const baseline = [...page.combs, ...page.checkboxes];
           const cells = detectCellCandidates(ink, geometry, pageIndex, baseline, textItems)
             // Signature cells aren't wired into a snap yet - signature
