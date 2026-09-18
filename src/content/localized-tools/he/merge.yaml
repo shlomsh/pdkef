@@ -13,14 +13,15 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-17'
 reviewNotes: >-
-  2026-09-11: rendered page approved for publish. 09-12: English title and h1
-  gained combine (SEO-35), Hebrew unchanged, re-approved. 09-13:
-  MERGE-05/09/12/13 rewrote the English subhead, steps 2-3 and added a drafts
-  FAQ; Hebrew step 3 and that FAQ answer are AI drafts, still pending Shlomi's
-  review. 2026-09-17: איחוד becomes the lead word everywhere (title, h1, tool
-  name, headings, body verbs) on Shlomi's native read that מיזוג is not how
-  Israelis say merge; מיזוג stays as the synonym in title, h1 and description.
-sourceHash: 'fnv1a64:0201a3330d66a29c'
+  2026-09-11: approved for publish. 09-12: English gained combine (SEO-35),
+  Hebrew unchanged, re-approved. 09-13: English subhead, steps 2-3 and a
+  drafts FAQ rewritten (MERGE-05/09/12/13); Hebrew step 3 and that FAQ answer
+  are AI drafts pending Shlomi's review. 09-17: איחוד leads everywhere on
+  Shlomi's native read, מיזוג stays as the synonym. 09-19: English h1 dropped
+  "In Your Browser", subhead gained the shared closer, description and upload
+  FAQ reworded (SEO-36); Hebrew unchanged, pending review; sourceHash
+  refreshed mechanically.
+sourceHash: 'fnv1a64:abda68c5ad0424be'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו

@@ -31,7 +31,7 @@
 export const homeContent = {
   title: 'Free PDF Tools Online - Run on Your Device, No Upload | PDkef',
   description:
-    'Free PDF tools that run in your browser: merge, split, compress, sign, blur, and convert files. Nothing is uploaded, so your PDFs never leave your device. No account, no watermark, open source.',
+    'Free PDF tools that run on your device: merge, split, compress, sign, blur, and convert. Nothing is uploaded. No account, no watermark, open source.',
   h1: 'Free PDF tools that run on your device',
   h1Accent: 'on your device',
   subhead: 'Merge, split, compress, sign, blur and convert. Ten PDF tools, no signup, no install, nothing leaves your device.',
@@ -60,7 +60,7 @@ export const homeContent = {
     paragraph2: 'So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. Then I wanted to share them.',
     paragraph3: 'Everything runs in your browser. That keeps your files private and the tools inexpensive enough to stay free.',
     pills: [
-      { title: 'Free Forever', subtitle: 'No limits, no catch' },
+      { title: 'Free', subtitle: 'No caps, no watermark, no catch' },
       { title: 'Private', subtitle: 'Files never leave your device' },
       { title: 'Open Source', subtitle: 'Audit the code yourself' },
     ],
@@ -108,7 +108,7 @@ export const homeContent = {
     ],
   },
   privacyOpenSource: {
-    kicker: 'Transparent & Secure',
+    kicker: 'Private and open',
     heading: 'Private by design. Open to inspect.',
     privacyHeading: 'Privacy',
     privacyBody: 'Merge, sign, redact, and more in your browser. Your PDFs stay on your device, with no uploads or processing server.',

@@ -187,6 +187,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |
 | SEO-26 | P3 | [SEO-26](backlog/tasks/SEO-26.md) · Say what PDkef does not do, and why, on a page that already exists |
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
+| SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 
 
 ## New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)

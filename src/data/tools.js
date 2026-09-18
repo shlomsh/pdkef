@@ -46,13 +46,13 @@ export const tools = [
       'Sign a PDF on iPhone, Android, or your computer for free. Add text, check marks, and a signature to forms, including WhatsApp attachments. No signup or upload.',
     schemaName: 'PDkef - Sign PDF',
     toolName: 'Sign & Fill PDF',
-    h1: 'Sign PDF Free: Fill & Sign Forms in Your Browser',
+    h1: 'Sign PDF Online Free: Fill & Sign Forms',
     // QUAL-13: the promise phrase within `h1` that ToolHero strokes in
     // citron, mirroring the home hero's h1Accent (src/data/homeContent.js) -
     // except this one is not required to be trailing, since several tools'
     // strongest promise sits before a colon rather than at the end. Must be
     // an exact substring of `h1`, occurring exactly once.
-    h1Accent: 'in Your Browser',
+    h1Accent: 'Online Free',
     subhead:
       'Fill out and sign a PDF on your phone or computer without printing or scanning. Add text, check marks, and a signature to a school form, application, or WhatsApp attachment. Type in 20 languages and scripts, Hebrew, Arabic, Hindi, Bengali, Tamil and Thai among them, and tap a printed row of boxes to fill it one letter per box. Free, open source, and your document stays on your device.',
     ariaLabel: 'PDF sign tool',
@@ -383,14 +383,14 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Merge or Combine PDF Files Online Free - No Upload | PDkef',
     seoDescription:
-      'Merge PDF files online for free, with no file limit. Drag, reorder, and combine PDFs in your browser instantly. No upload, no signup, no watermark.',
+      'Merge PDF files online for free, with no file limit. Drag, reorder, and combine PDFs on your device. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Merge PDF',
     toolName: 'Merge PDF',
-    h1: 'Merge or Combine PDF Files Free: In Your Browser',
+    h1: 'Merge or Combine PDF Files Online Free',
     // QUAL-13: see the Sign entry's h1Accent comment above.
-    h1Accent: 'In Your Browser',
+    h1Accent: 'Online Free',
     subhead:
-      'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional.',
+      'Combine PDFs into one file and see every page before you download. Reorder, rotate or skip pages by drag-and-drop; page numbers are optional. Free, open source, and your files stay on your device.',
     ariaLabel: 'PDF merge tool',
     aboutHeading: 'How to merge PDF files online for free',
     aboutLead:
@@ -408,7 +408,7 @@ export const tools = [
     ],
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your merged PDF.' },
-      { question: 'Are my files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
+      { question: 'Are my files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your PDF files never leave it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'Does PDkef work on mobile?', answer: 'Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.' },
       { question: 'Is there a file size or page limit?', answer: "No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally." },
       { question: 'Can I combine scanned receipts or reports into one PDF?', answer: 'Yes - this is one of the most common uses. Add each scanned page or report PDF, reorder them, and merge into a single file for an expense report, portfolio, or ebook.' },
@@ -427,14 +427,14 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Convert PDF to Image Online Free - No Watermark | PDkef',
     seoDescription:
-      'Convert PDF pages to high-quality JPG or PNG images online for free, with no watermark. Secure, fast, and 100% private in-browser conversion.',
+      'Convert PDF pages to JPG or PNG online for free, with no watermark. Nothing is uploaded: the conversion runs on your device.',
     schemaName: 'PDkef - PDF to Image',
     toolName: 'PDF to Image',
     h1: 'Convert PDF to Image Online Free',
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Online Free',
     subhead:
-      'Turn each PDF page into a high-quality JPG or PNG, with no watermark and nothing uploaded.',
+      'Turn each PDF page into a JPG or PNG at the resolution you pick, with no watermark. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF to Image tool',
     aboutHeading: 'How to convert PDF to JPG or PNG online for free',
     aboutLead:
@@ -453,7 +453,7 @@ export const tools = [
     faq: [
       { question: 'Is PDkef really free?', answer: 'Yes. PDkef is completely free, with no limits, no signup, and no watermark on your converted images.' },
       { question: 'Does PDkef add a watermark to converted images?', answer: 'No. JPG and PNG exports here have no watermark and no forced resolution downgrade. Because the conversion runs on your device, there is no server cost to recoup by limiting quality.' },
-      { question: 'Are my files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your PDF files are never sent over the network - they stay on your device the entire time.' },
+      { question: 'Are my files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your PDF never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'What is the difference between PNG and JPG?', answer: 'PNG keeps a transparent background and is lossless, which is best for text-heavy or graphic pages. JPG uses a white background and smaller file sizes, which works well for photos and scans.' },
       { question: 'What happens with a multi-page PDF?', answer: 'By default each page is converted to its own image file. "Download all" saves them one at a time rather than as a single zip file, since this tool has no zip library bundled - your browser may ask to allow multiple downloads the first time. You can also choose "Single combined image" to stack every page into one tall image instead.' },
       { question: 'Can I turn a scanned worksheet or slide deck into images?', answer: 'Yes. Upload the PDF, choose JPG or PNG, and each page - a scanned worksheet, presentation slide, or contract page - becomes its own image file ready to share or embed.' },
@@ -473,14 +473,14 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Image to PDF Online Free - Combine JPG/PNG into One PDF | PDkef',
     seoDescription:
-      'Combine multiple JPG or PNG images into a single PDF online for free. Reorder pages and download instantly. No upload, no signup, no watermark.',
+      'Combine JPG or PNG images into one PDF online for free. Reorder pages, then download. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Image to PDF',
     toolName: 'Image to PDF',
     h1: 'Image to PDF Online Free: Combine JPG & PNG',
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Online Free',
     subhead:
-      'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots.',
+      'Combine JPG or PNG images into a single PDF in any order - scanned pages, photographed slides, or screenshots. Free, open source, and your images stay on your device.',
     ariaLabel: 'Image to PDF tool',
     aboutHeading: 'How to combine images into a PDF online for free',
     aboutLead:
@@ -498,7 +498,7 @@ export const tools = [
     ],
     faq: [
       { question: 'Is the image to PDF tool really free?', answer: 'Yes. Like all tools on PDkef, this is completely free with no limits, no signup, and no watermark on the resulting PDF.' },
-      { question: 'Are my images uploaded to a server?', answer: 'No. PDkef runs 100% on your device. Your images are processed locally in your browser and are never uploaded to any server.' },
+      { question: 'Are my images uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your images never leave it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'What image formats are supported?', answer: 'JPG and PNG. Each image becomes its own page in the final PDF, in the order you arrange them.' },
       { question: 'Will my images be resized or compressed?', answer: 'No. Each image is embedded into its PDF page at full, original quality and at its native dimensions - no recompression or downscaling.' },
       { question: 'Can I combine scanned documents or school presentations into one PDF?', answer: 'Yes. This is exactly the use case it was built for - add as many image pages as you like (scanned pages, photographed slides, screenshots), reorder them, and download a single combined PDF.' },
@@ -522,11 +522,11 @@ export const tools = [
       'Split a PDF file online for free. Extract specific pages or separate into multiple documents in your browser. No upload, no signup, no watermark.',
     schemaName: 'PDkef - Split PDF',
     toolName: 'Split PDF',
-    h1: 'Split PDF Online Free: Extract Pages in Your Browser',
+    h1: 'Split PDF Online Free: Extract Pages',
     // QUAL-13: see the Sign entry's h1Accent comment above.
-    h1Accent: 'in Your Browser',
+    h1Accent: 'Online Free',
     subhead:
-      'Extract a page range, pull out single pages, or break one PDF into several separate files.',
+      'Extract a page range, pull out single pages, or break one PDF into several separate files. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF split tool',
     aboutHeading: 'How to split PDF files online for free',
     aboutLead:
@@ -541,11 +541,11 @@ export const tools = [
       { title: 'Upload your PDF', text: 'Select the PDF file you want to split or drag-and-drop it into the tool.' },
       { title: 'Choose split mode', text: 'Extract your pages into a single combined PDF, or split each page into a separate PDF.' },
       { title: 'Select pages', text: 'Click the page thumbnails or type page numbers and ranges (e.g., 1-3, 5, 8-).' },
-      { title: 'Split and download', text: 'Click the Split PDF button and download your generated files instantly.' },
+      { title: 'Split and download', text: 'Click Split PDF and download the files.' },
     ],
     faq: [
       { question: 'Is the PDF split tool completely free to use?', answer: 'Yes. Like all tools on PDkef, the Split PDF tool is completely free with no limits, no signup required, and no watermarks added.' },
-      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs 100% on your device (client-side). Your files are processed locally in your browser and are never uploaded to any server, guaranteeing total privacy.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your files never leave it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'How do page ranges work?', answer: 'You can enter specific pages separated by commas (e.g., 1, 3, 5), closed ranges (e.g., 2-4), or open-ended ranges like "5-" (from page 5 to the end of the document).' },
       { question: 'What is the difference between "One PDF" and "One PDF per page"?', answer: 'One PDF keeps the pages you picked together, in order, as a single new file. One PDF per page saves each picked page as its own file, one download per page. The preview shows which you have: one frame around the pages, or a frame around each page. Switch between them any time before you download.' },
       { question: 'Is there a limit on file size or number of pages?', answer: "There is no artificial limit. The tool can handle any file size and page count, constrained only by your device's system memory." },
@@ -579,7 +579,7 @@ export const tools = [
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Free',
     subhead:
-      'Need a PDF under 100KB for an application or upload form? Choose a target size to shrink the file and check the result. Some files need a larger limit to stay readable. Private: your file never leaves your device.',
+      'Need a PDF under 100KB for an application or upload form? Choose a target size to shrink the file and check the result. Some files need a larger limit to stay readable. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
@@ -598,7 +598,7 @@ export const tools = [
     faq: [
       { question: 'Can I compress a PDF to 100KB for free?', answer: 'Yes, you can set 100KB as the target for free. Choose Target Size, select the 100 KB shortcut, and compress. The tool tries to get at or below the limit, not exactly 100KB. A long or detailed PDF may not fit; check the actual output size and readability before uploading it elsewhere.' },
       { question: 'How does the target size compression work?', answer: 'If the file is already under the target, it is kept unchanged. Otherwise, the tool converts pages to images and searches image quality and resolution settings within a time limit. If it cannot reach the target, it returns the smallest result found and tells you the target was missed. Everything happens in your browser.' },
-      { question: 'Is the PDF compression secure?', answer: 'Yes. Compression is 100% client-side and runs entirely in your browser. Your files - and any sensitive content like tax records, scanned IDs, or contracts - are never uploaded to any server.' },
+      { question: 'Is my PDF uploaded anywhere?', answer: 'No. Nothing is uploaded. Compression runs on your device, in your browser, and your file, whether it is a tax record, a scanned ID, or a contract, never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'What is the difference between the compression levels?', answer: 'Extreme uses lower image resolution and quality for smaller files. Recommended balances size and readability. High Quality keeps more detail. The reduction depends on the source PDF; a file that is already compact may not get smaller. Target Size searches for settings that approach your chosen limit.' },
       { question: 'Does compressing a PDF affect text search or copying?', answer: 'When PDkef compresses a file, it turns pages into images. The output loses selectable text and embedded links, so keep the original if you need search or screen-reader text access. The exception is Target Size when the original is already under the limit: it is returned unchanged.' },
       { question: 'Is there a limit on the file size I can compress?', answer: "No artificial limit - no daily task cap, no watermark, no paywall. Most online compressors impose limits because server processing costs them money. This tool runs entirely on your device, so the only constraint is your device's available memory." },
@@ -630,7 +630,7 @@ export const tools = [
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Free',
     subhead:
-      'Need a photo under 100KB, or smaller, for a job portal or application form? Choose a target size and check the result. A very small target on a large photo may not be reachable. Private: your photo never leaves your device.',
+      'Need a photo under 100KB, or smaller, for a job portal or application form? Choose a target size and check the result. A very small target on a large photo may not be reachable. Free, open source, and your photo stays on your device.',
     ariaLabel: 'Compress image tool',
     aboutHeading: 'How to compress an image online for free',
     aboutLead:
@@ -653,7 +653,7 @@ export const tools = [
       { question: 'Will compressing a screenshot or scan of text look blurry?', answer: 'It can. JPEG compression is built for photos, and a small target size can leave visible artefacts around sharp edges like text or fine lines, more so on a screenshot or scanned document than on an ordinary photo. If the result looks too rough to read, try a larger target.' },
       { question: 'Does compressing remove information from my photo?', answer: 'Yes. Re-encoding to JPEG drops EXIF metadata, including the location a phone camera often records, along with the camera model and timestamp. That is a side effect of redrawing the pixels rather than a deliberate scrub, so do not rely on it as one, but the compressed copy carries none of it. If you need to keep that metadata, do not run the photo through this tool.' },
       { question: 'Is this built for job applications and portals that cap photo size?', answer: "Yes, exactly that. Many application portals cap a photo at 20 to 50KB and a document at 100 to 200KB, checked separately, so one \"under 100KB\" result does not necessarily clear the photo limit. Set your own target here, including one below 100KB, to match whatever the portal actually asks for." },
-      { question: 'Is my photo uploaded anywhere?', answer: 'No. Compression is 100% client-side and runs entirely in your browser. Your photo, including a scanned ID, passport photo, or signature image, never leaves your device.' },
+      { question: 'Is my photo uploaded anywhere?', answer: 'No. Nothing is uploaded. Compression runs on your device, in your browser, and your photo, including a scanned ID, passport photo, or signature image, never leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: "What's the difference between this and Compress PDF?", answer: 'This tool takes a JPG or PNG image and shrinks it to a target size. Compress PDF does the same for a PDF document. Use whichever matches what you actually have; if a form needs both a smaller document and a smaller photo, use both tools.' },
     ],
   },
@@ -671,14 +671,14 @@ export const tools = [
     sitemapChangefreq: 'weekly',
     seoTitle: 'Unlock or Protect a PDF Free - Add or Remove Password | PDkef',
     seoDescription:
-      'Add a password to protect a PDF, or remove one you already know, free and online. 100% private - runs entirely in your browser, nothing uploaded.',
+      'Add a password to protect a PDF, or remove one you already know, free and online. Nothing is uploaded: the file and its password stay on your device.',
     schemaName: 'PDkef - Protect & Unlock PDF',
     toolName: 'Protect & Unlock PDF',
     h1: 'Unlock or Protect a PDF Free',
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Free',
     subhead:
-      'Add a password to protect a PDF, or remove one you already know - the tool detects which you need.',
+      'Add a password to protect a PDF, or remove one you already know - the tool detects which you need. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF unlock tool',
     aboutHeading: 'How to unlock or password-protect a PDF online for free',
     aboutLead:
@@ -695,7 +695,7 @@ export const tools = [
       { title: 'Save and download', text: 'Click the button and save a copy with the password added or removed.' },
     ],
     faq: [
-      { question: 'Is protecting or unlocking a PDF here secure?', answer: 'Yes. The password and the file are processed 100% client-side, entirely in your browser, whether you are adding or removing protection. Nothing is uploaded to any server.' },
+      { question: 'Is my PDF or its password uploaded anywhere?', answer: 'No. Nothing is uploaded. The password and the file are processed on your device, in your browser, whether you are adding or removing protection, and neither leaves it. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'How do I add a password to a PDF?', answer: 'Upload a PDF that is not already encrypted and the tool switches to protect mode automatically. Set the password you want, click Protect PDF, and download a copy that requires that password to open.' },
       { question: 'Do I need to know the PDF password to unlock it?', answer: 'Yes. To remove a password you must already know it - this tool does not crack, guess, or recover unknown passwords. To add a password, you choose it yourself.' },
       { question: 'What if I enter the wrong password?', answer: 'You will see an error and can try again. No file data is sent anywhere when this happens, so there is no risk in retrying.' },
@@ -714,14 +714,14 @@ export const tools = [
     sitemapChangefreq: 'monthly',
     seoTitle: 'Edit PDF Online Free - Rotate, Reorder, Remove Pages | PDkef',
     seoDescription:
-      'Edit your PDF for free in your browser: remove unwanted pages, rotate pages, reorder pages by drag & drop, and add page numbers. 100% private - your file never leaves your device.',
+      'Edit a PDF online for free: remove, rotate and reorder pages by drag and drop, and add page numbers. Nothing is uploaded, your file stays on your device.',
     schemaName: 'PDkef - Edit PDF Pages',
     toolName: 'Edit PDF',
     h1: 'Edit PDF Online Free: Rotate, Reorder, Remove Pages',
     // QUAL-13: see the Sign entry's h1Accent comment above.
     h1Accent: 'Online Free',
     subhead:
-      'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF.',
+      'Remove pages, rotate them, reorder by drag-and-drop, and add page numbers to any PDF. Free, open source, and your file stays on your device.',
     ariaLabel: 'Edit PDF pages tool',
     aboutHeading: 'How to edit a PDF online for free',
     aboutLead:
@@ -735,10 +735,10 @@ export const tools = [
     steps: [
       { title: 'Open your PDF', text: 'Click Choose file or drag and drop any PDF into the tool. Your file stays on your device, nothing is uploaded.' },
       { title: 'Make your edits', text: 'Click a thumbnail to mark a page for removal (it turns red), use the rotate buttons to turn a page 90 degrees at a time, drag the six-dot grip handle to reorder, or tick "Add page numbers" to stamp sequential numbers at the bottom of each page.' },
-      { title: 'Apply and download', text: 'Click Apply Changes. The new PDF is built instantly in your browser and downloaded to your device.' },
+      { title: 'Apply and download', text: 'Click Apply Changes. The new PDF is built on your device and downloaded.' },
     ],
     faq: [
-      { question: 'Are my PDF files uploaded to a server?', answer: 'No. PDkef runs entirely in your browser. Your file is never uploaded, never sent over the network, and never stored anywhere outside your own device. Every operation - page removal, rotation, reordering, and numbering - happens locally using JavaScript.' },
+      { question: 'Are my PDF files uploaded to a server?', answer: 'No. Nothing is uploaded. The tool runs on your device, in your browser, and your file never leaves it. Every operation, page removal, rotation, reordering, and numbering, happens there. There is no processing server. For offline use, install PDkef and let its required assets load while connected.' },
       { question: 'How do I remove pages from a PDF?', answer: 'Load your PDF, then click any page thumbnail to mark it for removal (it turns red with an x). Click again to keep it. Once you have selected the pages you want to delete, click Apply Changes to generate the new PDF.' },
       { question: 'How do I rotate pages in a PDF?', answer: 'Use the rotate-left and rotate-right buttons below each page thumbnail. Each click rotates that page by 90 degrees. The live preview updates immediately so you can see the result before applying.' },
       { question: 'How do I reorder pages in a PDF?', answer: 'Grab the six-dot handle at the top of any page card and drag it to a new position. The grid updates in real time. The final order you see is exactly the order in the exported PDF.' },

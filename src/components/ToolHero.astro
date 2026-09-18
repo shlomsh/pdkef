@@ -100,8 +100,8 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      stroke with a rotated `::before` behind the text (HomePageLayout.astro's
      `.hero-header h1 span`/`::before`), which only works for a single,
      `nowrap` phrase. An accent here can be a translated or longer phrase
-     that wraps at a narrow width ("in Your Browser" on /merge/ at 390px
-     wraps at the largest phone hero size), so the stroke is a background
+     that wraps at a narrow width (a three-word accent did on /merge/ at
+     390px, the largest phone hero size), so the stroke is a background
      band drawn behind the text instead: `box-decoration-break: clone` makes
      it restart on each wrapped fragment rather than stretching across the
      gap between lines the way a single `::before` would. */

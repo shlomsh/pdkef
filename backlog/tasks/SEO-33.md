@@ -85,3 +85,7 @@ seo/css/weight suites were left to the lead running them once for the whole work
 per the acceptance section above.
 
 *2026-09-12:* deployed; indexing requested for `/compress/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.
+
+## Addendum 2026-09-19: same change as the SEO-05 addendum
+
+See SEO-05's 2026-09-19 addendum: subhead closer and one FAQ reworded on `/compress/` by SEO-36; the reduce/shrink/resize vocabulary is untouched.

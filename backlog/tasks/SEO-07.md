@@ -164,3 +164,7 @@ Single `<h1>` preserved; the languages card renders above the FAQ in the body.
 The deep positioning review is SEO-12 and the language landing page is SEO-18, both unchanged by this.
 Also untouched, and worth stating: **language support still has no measured search demand.** SEO-18
 should treat that as its first open question rather than assuming this ticket established it.
+
+## Addendum 2026-09-19: a second variable in the 10-08 CTR read
+
+SEO-36 changed the `/sign/` h1 from "Sign PDF Free: Fill & Sign Forms in Your Browser" to "Sign PDF Online Free: Fill & Sign Forms" (title untouched). Shlomi accepted the extra variable. If Google rewrites the SERP title from the h1, the CTR reading carries both changes.

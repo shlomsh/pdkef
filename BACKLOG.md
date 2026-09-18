@@ -163,6 +163,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+| SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 
 ### Blocked
 
