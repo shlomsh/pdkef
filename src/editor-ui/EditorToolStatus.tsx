@@ -54,6 +54,11 @@ import { formatMessage } from '../i18n/toolMessages';
  *   than in place of this component: a chip mounted instead of the stack was a row of its own
  *   height, so the toolbar under it moved when the chip appeared and again, 5s later with no
  *   input to excuse it, when the chip went.
+ * @param {object|null} [props.fieldNav] - Sign's Next/Previous across detected fields
+ *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
+ *   beside whichever row the stack is showing, present for as long as the document has any
+ *   detected field, so the control's own mount state never changes underfoot - only its two
+ *   buttons' `disabled` does, as the person reaches either end of the order.
  */
 export default function EditorToolStatus({
   copy,
@@ -76,6 +81,7 @@ export default function EditorToolStatus({
   keepOnTitleOff = 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
   hintEsc = 'or press Esc to stop entirely',
   hintDoubleClick = 'or double-click {button}',
+  fieldNav = null,
   lang = 'en',
   dir = 'ltr',
 }: {
@@ -91,6 +97,21 @@ export default function EditorToolStatus({
   keepOnTitleOff?: string;
   hintEsc?: string;
   hintDoubleClick?: string;
+  /** MOBI-06: Next/Previous across the document's own detected fields - Sign's
+   * only caller, so Redact gets its current behaviour by leaving this null.
+   * Present (non-null) for the whole session once the document has any
+   * detected field at all, same as the "Keep on" switch is always in the DOM
+   * either way - only the two buttons' own `disabled` moves as the person
+   * reaches either end of the order, so the control itself never mounts or
+   * unmounts under a finger that is about to tap it again. */
+  fieldNav?: {
+    hasNext: boolean;
+    hasPrevious: boolean;
+    onNext: () => void;
+    onPrevious: () => void;
+    nextLabel: string;
+    previousLabel: string;
+  } | null;
   lang?: string;
   dir?: 'ltr' | 'rtl';
 }) {
@@ -182,7 +203,7 @@ export default function EditorToolStatus({
     // share a single fixed-height row, and that attribute is what swaps the
     // filename out for the armed row. It is an attribute rather than a class
     // because the two live in different CSS modules.
-    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override ? '' : undefined}>
+    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override || fieldNav ? '' : undefined}>
       {/* Everything this toolbar could ever show lives here at once - the idle
           tip, whichever tool is actually armed, and a hidden copy of every other
           tool's row - stacked in one grid cell (`.help-stack`/`.help-row` in
@@ -214,6 +235,41 @@ export default function EditorToolStatus({
           </div>
         ))}
       </div>
+      {/* Outside the stack on purpose: the stack's job is picking one of
+          several mutually-exclusive rows and reserving room for the tallest,
+          and this is neither - it is a fixed-size control that sits beside
+          whichever row the stack is showing, present for the whole document
+          (see the prop doc above) rather than swapped per tool. Sitting here,
+          after the stack, means it never counts toward the stack's own
+          reserved-row bookkeeping and is never duplicated into a reservation. */}
+      {fieldNav && (
+        <div className={styles['field-nav']}>
+          <button
+            type="button"
+            className={styles['field-nav-button']}
+            onClick={fieldNav.onPrevious}
+            disabled={!fieldNav.hasPrevious}
+            aria-label={fieldNav.previousLabel}
+            title={fieldNav.previousLabel}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className={styles['field-nav-button']}
+            onClick={fieldNav.onNext}
+            disabled={!fieldNav.hasNext}
+            aria-label={fieldNav.nextLabel}
+            title={fieldNav.nextLabel}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

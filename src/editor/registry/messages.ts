@@ -56,6 +56,10 @@ export interface SignMessages {
   hintEsc: string;
   hintDoubleClick: string;
   armHint: string;
+  /** EditorToolStatus's Next/Previous field control (MOBI-06) - aria-label and
+   * title, an icon button with no visible text of its own. */
+  nextFieldLabel: string;
+  previousFieldLabel: string;
   /** Not yet wired into SignToolbar.tsx's setAnnouncement() calls - see this
    * catalogue's header comment. */
   toolActive: string;

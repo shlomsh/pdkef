@@ -1115,4 +1115,62 @@ describe('SignToolbar Component', () => {
     const tip = query(container, `.${styles['help-shown']}`);
     expect(tip.textContent).toBe(hebrewSignMessages.tipIdle);
   });
+
+  // MOBI-06: the toolbar owns none of the field-navigation logic itself - it
+  // only has to read `fieldNavigation` and hand EditorToolStatus the right
+  // shape, in English by default and the given catalogue otherwise.
+  describe('fieldNavigation', () => {
+    const noFields = { hasFields: false, hasNext: false, hasPrevious: false, goToNext: () => {}, goToPrevious: () => {} };
+
+    it('renders no field-nav control when the document has none (the default)', () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<SignToolProvider><SignToolbar /></SignToolProvider>, container);
+      });
+      expect(container.querySelector(`.${styles['field-nav']}`)).toBeNull();
+    });
+
+    it('renders it once the document has fields, disabling each button by its own hasNext/hasPrevious', () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      const goToNext = vi.fn();
+      const goToPrevious = vi.fn();
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar fieldNavigation={{ hasFields: true, hasNext: true, hasPrevious: false, goToNext, goToPrevious }} />
+          </SignToolProvider>,
+          container,
+        );
+      });
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      expect(previous.disabled).toBe(true);
+      expect(next.disabled).toBe(false);
+      expect(previous.getAttribute('aria-label')).toBe('Previous field');
+      expect(next.getAttribute('aria-label')).toBe('Next field');
+      next.click();
+      expect(goToNext).toHaveBeenCalledTimes(1);
+      expect(goToPrevious).not.toHaveBeenCalled();
+    });
+
+    it('reads its labels from the given message catalogue, same as every other string here', () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              fieldNavigation={{ ...noFields, hasFields: true, hasNext: true, hasPrevious: true }}
+              messages={hebrewSignMessages}
+            />
+          </SignToolProvider>,
+          container,
+        );
+      });
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      expect(previous.getAttribute('aria-label')).toBe(hebrewSignMessages.previousFieldLabel);
+      expect(next.getAttribute('aria-label')).toBe(hebrewSignMessages.nextFieldLabel);
+    });
+  });
 });

@@ -95,4 +95,49 @@ describe('EditorToolStatus', () => {
     expect(toggle.querySelector(`.${styles['keep-long']}`)!.textContent).toBe('Keep Blackout on');
     expect(toggle.querySelector(`.${styles['keep-short']}`)!.textContent).toBe('Keep on');
   });
+
+  // MOBI-06: Sign's Next/Previous across detected fields. A separate control
+  // from the stack above - it is not one of the rows the "keeps every
+  // reservation" test counts, so it must never appear in `rows()`.
+  describe('fieldNav', () => {
+    const fieldNav = { hasNext: true, hasPrevious: false, onNext: vi.fn(), onPrevious: vi.fn(), nextLabel: 'Next field', previousLabel: 'Previous field' };
+
+    it('renders nothing when the caller passes none - Redact is unaffected', () => {
+      const host = mount();
+      expect(host.querySelector(`.${styles['field-nav']}`)).toBeNull();
+    });
+
+    it('is present and active even while idle, unlike the armed-row stack', () => {
+      const host = mount({ fieldNav });
+      expect(host.querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+      expect(host.hasAttribute('data-status-active')).toBe(true);
+      // Not one of the stack's own rows.
+      expect(rows()).toHaveLength(1 + TOOLS.length);
+    });
+
+    it("disables each button by its own hasNext/hasPrevious, independently of the other", () => {
+      const host = mount({ fieldNav });
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      expect(previous.disabled).toBe(true);
+      expect(next.disabled).toBe(false);
+    });
+
+    it('calls onNext/onPrevious and exposes the given labels for a11y', () => {
+      const onNext = vi.fn();
+      const onPrevious = vi.fn();
+      const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, onNext, onPrevious } });
+      const [previous, next] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      expect(previous.getAttribute('aria-label')).toBe('Previous field');
+      expect(next.getAttribute('aria-label')).toBe('Next field');
+      next.click();
+      previous.click();
+      expect(onNext).toHaveBeenCalledTimes(1);
+      expect(onPrevious).toHaveBeenCalledTimes(1);
+    });
+
+    it('coexists with an armed tool and with the override, never replacing either', () => {
+      expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+      expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+    });
+  });
 });

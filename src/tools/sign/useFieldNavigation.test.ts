@@ -51,7 +51,8 @@ function addedElement(dispatch: ReturnType<typeof vi.fn>): EditorElement {
 
 describe('useFieldNavigation – nothing detected', () => {
   it('has nowhere to go and dispatches nothing', () => {
-    const { hasNext, hasPrevious, goToNext, goToPrevious, dispatch } = makeHook();
+    const { hasFields, hasNext, hasPrevious, goToNext, goToPrevious, dispatch } = makeHook();
+    expect(hasFields).toBe(false);
     expect(hasNext).toBe(false);
     expect(hasPrevious).toBe(false);
     goToNext();
@@ -62,6 +63,21 @@ describe('useFieldNavigation – nothing detected', () => {
 
 describe('useFieldNavigation – creating a box on an empty field', () => {
   const formRegions: FormFieldRegions = { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+
+  it('reports hasFields whenever the document has any, regardless of the current position', () => {
+    expect(makeHook({ formRegions }).hasFields).toBe(true);
+    // Session-durable: still true once standing on the only reachable field,
+    // where hasNext/hasPrevious themselves may be false - the toolbar control
+    // must not unmount there, only grey its buttons out. Reuses rowRight
+    // (order[0]) as the sole detected field, so being "on" it means being at
+    // both ends of the order at once.
+    const solo: FormFieldRegions = { combs: [rowRight], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+    const onlyField: TextElement = { id: 'e', type: 'text', pageIndex: 0, left: 70, top: 19.5, text: '' };
+    const nav = makeHook({ formRegions: solo, elements: [onlyField], activeElementId: 'e' });
+    expect(nav.hasFields).toBe(true);
+    expect(nav.hasNext).toBe(false);
+    expect(nav.hasPrevious).toBe(false);
+  });
 
   it('Next with nothing selected creates a box on the first field in reading order (RTL: rightmost)', () => {
     const { goToNext, dispatch, logAction, setAnnouncement } = makeHook({ formRegions });

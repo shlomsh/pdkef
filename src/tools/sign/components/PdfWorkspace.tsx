@@ -19,6 +19,7 @@ import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../useFormFieldRegions.ts';
+import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
 import { detectTextDirection } from '../../../lib/signHelpers.js';
@@ -39,6 +40,19 @@ import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
 });
+
+// PdfSignTool.tsx builds the real one (it owns the state useFieldNavigation
+// needs); this is only what a caller that never detected any fields - or a
+// unit test that mounts PdfWorkspace on its own - falls back to, so
+// SignToolbar always has something to read rather than an optional prop it
+// has to guard everywhere.
+const NOOP_FIELD_NAVIGATION: FieldNavigation = {
+  hasFields: false,
+  hasNext: false,
+  hasPrevious: false,
+  goToNext: () => {},
+  goToPrevious: () => {},
+};
 
 // Sign's own map of the seven node components it draws, built once at module
 // load. Redact never builds this map with anything - its whiteout/blackout/
@@ -78,6 +92,7 @@ export default function PdfWorkspace({
   canSharePdf = false,
   shareReady = false,
   errorDetail = null,
+  fieldNavigation = NOOP_FIELD_NAVIGATION,
   messages,
 }: {
   status: string;
@@ -110,6 +125,10 @@ export default function PdfWorkspace({
   shareReady?: boolean;
   /** Overrides the default error copy below with a specific, nameable reason. */
   errorDetail?: string | null;
+  /** Next/Previous across detected fields (MOBI-06); PdfSignTool.tsx builds the
+   * real one so its own Tab shortcut and this toolbar's control share one
+   * hasNext/hasPrevious and one goToNext/goToPrevious. */
+  fieldNavigation?: FieldNavigation;
   /** LOC-09 stage 1: the toolbar row's own catalogue, passed straight through
    * from PdfSignTool.tsx to SignToolbar.tsx - see src/i18n/toolMessages.ts's
    * SignMessages. Optional and English-default so PdfWorkspace.test.tsx (which
@@ -316,6 +335,7 @@ export default function PdfWorkspace({
             exportBlocked={exportReadiness.blocked}
             exportIssueCount={exportReadiness.blockingFieldCount}
             onReviewExportIssues={reviewExportIssues}
+            fieldNavigation={fieldNavigation}
             messages={messages}
           />
 

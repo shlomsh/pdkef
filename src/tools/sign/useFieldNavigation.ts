@@ -59,7 +59,14 @@ export interface FieldNavigationOptions {
 }
 
 export interface FieldNavigation {
-  /** Whether Next/Previous has anywhere to go - the UI control's disabled state. */
+  /** Whether the document has any detected field at all - whether the toolbar
+   * shows a Next/Previous control in the first place. Session-durable (it
+   * only depends on `formRegions`, not on the current selection), so the
+   * control never mounts or unmounts as the person moves between fields -
+   * only `hasNext`/`hasPrevious` do that. */
+  hasFields: boolean;
+  /** Whether Next/Previous has anywhere to go right now - the two buttons'
+   * own disabled state. */
   hasNext: boolean;
   hasPrevious: boolean;
   goToNext: () => void;
@@ -133,7 +140,7 @@ export default function useFieldNavigation({
   /** Opens `field`: selects the box already sitting on it, or creates one. */
   const goTo = (field: TypableField, announcement: string) => {
     const textElements = elements.filter((element): element is TextElement => element.type === 'text');
-    const existing = elementOnField(textElements, field);
+    const existing = elementOnField(textElements, order, field);
     if (existing) {
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: existing.id });
       dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: existing.id });
@@ -188,6 +195,7 @@ export default function useFieldNavigation({
   };
 
   return {
+    hasFields: order.length > 0,
     hasNext: position.next !== null,
     hasPrevious: position.previous !== null,
     goToNext: () => {
