@@ -239,10 +239,9 @@ describe('combFontSize', () => {
     expect(combFontSize(12, 0.1, PAGE_WIDTH)).toBe(6);
   });
 
-  it('also fits the digits inside the run\'s ink height, which on form 101 is the tighter bound', () => {
-    // Identity teeth: 7.04pt tall on 11.34pt-wide cells. Width alone allows
-    // 18.9pt; a 12pt default's 8.6pt digits already stand taller than the
-    // teeth ("large", live report). The cap-height rule brings it to 9.78pt.
+  it('also fits the digits inside a height, when the caller has one to give', () => {
+    // 7.04pt of height on 11.34pt-wide cells: width alone allows 18.9pt, a
+    // 12pt default's 8.6pt digits are too tall, the cap-height rule says 9.78pt.
     const size = combFontSize(12, cellPercent, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT);
     expect(size).toBeCloseTo(7.0384 / 0.72, 1);
     expect(size * 0.72).toBeLessThanOrEqual((IDENTITY_RUN.height / 100) * PAGE_HEIGHT + 1e-9);
@@ -273,22 +272,22 @@ describe('placeCombOnRegion', () => {
     expect(placement.combCells).toBe(9);
   });
 
-  it('shrinks the font so the digits stand inside the teeth, and the box then barely crosses the rule', () => {
-    const placement = place();
-    expect(placement.fontSize).toBeCloseTo(combFontSize(12, IDENTITY_RUN.width / 9, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT), 5);
-    expect(placement.fontSize).toBeLessThan(12);
-    // On the health declaration's closed 10.8pt boxes, 12pt digits (8.6pt)
-    // are inside the 80% fill line - the default is untouched there.
+  it('keeps the form-wide size on open teeth - they divide the field, they do not bound its height', () => {
+    // Form 101's identity comb: 4-7pt ticks hanging from the rule of a 23pt
+    // field, the same height as the name cells beside it. Sizing digits to
+    // the ticks made this one field smaller than its neighbours (live
+    // report); the ticks only say how wide a cell is.
+    expect(place().fontSize).toBe(12);
+  });
+
+  it('fits the digits inside a closed box, with the margin a hand would leave', () => {
+    // The health declaration's closed 10.8pt boxes: 12pt digits (8.6pt) are
+    // inside the 80% fill line, so the default is untouched there...
     expect(place({ ...IDENTITY_RUN, boxed: true, height: 1.283 }).fontSize).toBe(12);
-    // A closed box keeps a margin an open run does not: the same 7pt of ink
-    // sizes smaller when it is a box.
-    expect(place({ ...IDENTITY_RUN, boxed: true }).fontSize).toBeLessThan(place().fontSize);
-    // With the baseline on the rule, only the box's own descent + padding
-    // hangs below it - at 9.78pt that is ~2.9pt, down from 3.6pt at 12pt -
-    // so the box no longer reaches the label of the row beneath.
-    const rule = IDENTITY_RUN.top + IDENTITY_RUN.height;
-    const boxBottom = placement.top + (placement.fontSize * 1.29 / PAGE_HEIGHT) * 100;
-    expect(boxBottom - rule).toBeLessThan((3 / PAGE_HEIGHT) * 100);
+    // ...and a box only as tall as the identity ticks would shrink them.
+    expect(place({ ...IDENTITY_RUN, boxed: true }).fontSize).toBeCloseTo(
+      combFontSize(12, IDENTITY_RUN.width / 9, PAGE_WIDTH, IDENTITY_RUN.height * 0.8, PAGE_HEIGHT), 5,
+    );
   });
 
   it('puts the glyph baseline on the printed rule when the cells are open', () => {
