@@ -97,7 +97,7 @@
 .highlight:hover { color: var(--color-surface); background: var(--color-highlight); }
 .label { display: inline; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* The Shapes trigger's menu chevron, a sibling of the label rather than inside it, so
-   it stays visible where the label is hidden (the 1279px block). */
+   it stays visible where the label is hidden (the 1299px block). */
 .chevron { flex-shrink: 0; margin-inline-start: -2px; }
 .help { margin: 0; color: var(--color-muted); font-size: .83rem; display: flex; align-items: center; }
 /* The idle tip and every tool's armed row (icon+sentence+pill+hint) are all
@@ -427,13 +427,14 @@
 /* Two anchors, desktop and iPhone, and one honest step between (Shlomi, 2026-09-18,
    after two rounds of drifting label thresholds).
 
-   Desktop, 1280px and up: one line, labels on. `main` caps the toolbar's box at
+   Desktop, 1300px and up: one line, labels on. `main` caps the toolbar's box at
    1172px from a ~1280px viewport up (ToolPageLayout.astro's `!max-w-[1280px]`), so
-   the labelled row has to fit 1172px. Measured 2026-09-18 with the Date tool and
-   Share present, Sign's twelve controls labelled are 1240px; with Undo and
-   Feedback icon-only (`data-icon-only`, an arrow and a bug are conventions and
-   neither is a tool) they are ~1138px, 34px inside the plateau. Redact is narrower
-   at every share state. Two rules keep this honest:
+   the labelled row has to fit 1172px, and less where a classic scrollbar bites.
+   Measured 2026-09-18 with the Date tool and Share present, Sign's twelve controls
+   labelled are ~1240px in SF; with Undo and Feedback icon-only (`data-icon-only`,
+   an arrow and a bug are conventions and neither is a tool) and the tighter
+   spacing at the end of this file they are ~1050px in SF and ~1120px in a wide
+   face. Redact is narrower at every share state. Two rules keep this honest:
 
    - **Nothing shrinks.** `flex-shrink: 0`. Under `flex: 1 1 auto` every button could
      shrink past its label and `.label`'s ellipsis quietly took up the slack: at
@@ -445,7 +446,7 @@
      e2e/tool-toolbars/toolbar-desktop-one-line.spec.js is what says the fallback
      is not firing today.
 
-   Between, up to 1279px: the same one line, every control icon-only with its
+   Between, up to 1299px: the same one line, every control icon-only with its
    tooltip, 44px targets, growing to share the row (twelve of them are 762px, so
    the row fits down to the 920px floor's 796px box and on down through the
    tablet band, until eleven 44px targets no longer fit one line at roughly a
@@ -457,9 +458,20 @@
    This replaced three container-query label tiers keyed on `data-label-priority`,
    whose hand-measured thresholds went stale twice (E9's view control, then Date
    and Share) and each time stranded Download on a full-width second row. */
-@media (max-width: 1279px) {
+@media (max-width: 1299px) {
   .toolbar .button { gap: 0; }
   .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+}
+
+/* Where the labels show, the row is set a little tighter than the icon rows: 6px
+   gaps and .5rem horizontal padding. CI caught the labelled row wrapping at a
+   1280px window on Linux, where the system-font stack lands on a wide face
+   (DejaVu, Verdana's width class: ~1177px for the twelve controls against SF's
+   ~1110px) and a classic 15px scrollbar takes the box down to ~1141px. The
+   tighter spacing recovers ~60px and the 1300px floor keeps the box at ~1160px
+   or more even with a scrollbar, so a wide font still has ~40px to spare. */
+@media (min-width: 1300px) {
+  .toolbar { --toolbar-gap: .375rem; --btn-padding: .6rem .5rem; }
 }
 
 @media (min-width: 920px) {

@@ -3,7 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 /* SIGN-29 (Shlomi, 2026-09-18): the Download button wrapped onto a full-width
    second row on a normal laptop, because the labelled row outgrew hand-measured
-   label-drop thresholds. The toolbar now has two anchors, desktop (1280px and
+   label-drop thresholds. The toolbar now has two anchors, desktop (1300px and
    up, labels on) and iPhone (the phone grid), with one icon-only line between;
    see SignToolbar.module.css's closing comment. jsdom cannot see rendered rects,
    so this needs a real browser: every visible direct child sharing one `top`
@@ -62,8 +62,8 @@ async function readToolbarLine(page) {
 // From where eleven 44px icons first fit one line (~532px box, ~660px
 // viewport; narrower is the phone grid, covered by toolbar-phone-row.spec.js),
 // the 920px floor, the laptop band the bug lived in, both
-// sides of the 1280px label breakpoint, and the plateau beyond it.
-const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1279, 1280, 1440, 1600];
+// sides of the 1300px label breakpoint, and the plateau beyond it.
+const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 
 // Generous: Download is a real button among eleven or twelve others, never
 // the whole row. 40% is well above its labelled width at every measured
@@ -111,7 +111,7 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Sign leads, labels show at the desktop anchor except Undo and Feedback, and none show below 1280px', async ({ page }) => {
+test('Sign leads, labels show at the desktop anchor except Undo and Feedback, and none show below 1300px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign', 'sign-desktop-one-line-order.pdf');
@@ -137,6 +137,6 @@ test('Sign leads, labels show at the desktop anchor except Undo and Feedback, an
   await page.setViewportSize({ width: 1200, height: 1000 });
   for (const label of ['Sign', 'Whiteout', 'Replace', 'Download']) {
     const width = await labelWidth(page, label);
-    expect(width, `${label} is icon-only below 1280px`).toBeLessThanOrEqual(2);
+    expect(width, `${label} is icon-only below 1300px`).toBeLessThanOrEqual(2);
   }
 });

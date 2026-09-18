@@ -50,9 +50,9 @@ first tier so Feedback and Replace would keep their words; measured, it bought n
 screen has no label on desktop (the view control replaces it) and Undo's label alone is ~36px.
 
 Shlomi's call, after that: stop tuning thresholds. **Two anchors, desktop and iPhone, and a
-reasonable step between, for Sign and Redact alike.** From 1280px the row is one line with labels,
+reasonable step between, for Sign and Redact alike.** From 1300px the row is one line with labels,
 and it fits the 1172px plateau (~1138px) because Undo and Feedback are icon-only at every width
-(`data-icon-only`; an arrow and a bug are conventions, neither is a tool). Below 1280px every control is
+(`data-icon-only`; an arrow and a bug are conventions, neither is a tool). Below 1300px every control is
 icon-only on one line with its tooltip, until eleven 44px targets stop fitting at a ~660px window;
 narrower than that, the phone grid, whose even split now covers that whole band, unchanged in shape. The three
 container-query tiers and every `data-label-priority` attribute are gone; the e2e guard checks one
@@ -64,3 +64,12 @@ leads (the same reasoning f48fcbd8 already applied to Redact's Blur), Undo sits 
 undoes, the chrome (view, full screen, Feedback) groups together, Replace sits with the other
 finishing action, and export stays at the far edge. Redact's own order is unchanged. See
 `.claude/rules/editor.md`'s "Main toolbar layout" section for the standing rule.
+
+## CI follow-up 2026-09-18
+
+The first push wrapped at a 1280px window on the Linux runner: the system-font stack lands on a
+wide face there (DejaVu, Verdana's width class, ~1177px for the twelve labelled controls against
+SF's ~1110px) and a classic 15px scrollbar takes the box to ~1141px. Fix: 6px gaps and .5rem
+horizontal padding where labels show (~60px back) and the labelled floor moved to 1300px, so a
+wide font still has ~40px to spare with a scrollbar. Lesson for the rule: measure with a wide font
+too, not only SF.

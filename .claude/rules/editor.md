@@ -138,10 +138,11 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose two pixel thresholds
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
   or `--toolbar-padding` change. Flex, not grid: grid packs a partial last row into the leading columns.
-- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1280px the row is
-  one line with labels; the toolbar box plateaus at 1172px there, and Sign's twelve controls with
-  Share fit it (~1138px) only because Undo and Feedback are `data-icon-only` at every width, so a
-  new labelled control has to be paid for by re-measuring in a real browser. Below 1280px every
+- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
+  one line with labels, set 6px apart; the toolbar box plateaus at 1172px (less with a classic
+  scrollbar), and Sign's twelve controls with Share fit it (~1050px in SF, ~1120px in a wide Linux
+  face) only because Undo and Feedback are `data-icon-only` at every width, so a new labelled
+  control has to be paid for by re-measuring in a real browser, wide font included. Below 1300px every
   control is icon-only on one line, until eleven 44px targets stop fitting (a ~660px window), and
   from there down the phone grid above. No label may ever
   truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
