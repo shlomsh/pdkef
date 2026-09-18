@@ -180,28 +180,34 @@ Playwright step alone):
 | `e2e-webkit` | 42s + 15s perf | 136s | under 120s (QUAL-09) | 110-147s |
 
 The fixed cost in front of every Playwright step (checkout, `npm ci`, affected-scope, build, browser
-cache restore plus `install-deps`) is 45-60s per job, so none of the three jobs can meet its target
-while its step alone is over 60s. The two imbalances are the cheap levers, not a third shard:
+cache restore plus `install-deps`) is about 54s per chromium or font job and 79s for `e2e-webkit`
+(webkit's browser install is the slow one, QUAL-09's own finding), so none of the three jobs can
+meet its target while its step alone is over 45-60s. The two imbalances are the cheap levers, not a third shard:
 
 - Font shard 2's step runs about 20s longer than shard 1's (106s against 87s), so
   `playwright.config.js`'s hand-balanced `fonts-shard-1`/`fonts-shard-2` split has drifted since
   QUAL-06 measured it; moving one mid-sized guard across would cut the wall by roughly 10s on every
-  run where the guards execute (34 of 60).
-- Chromium shard 2's step jumped from 55-65s to 82-90s on 2026-09-17 between `acd70698` and
-  `61d7f91a`, on a *smaller* test count (69 to 66). DEBT-13 deleted two spec files in that range and
-  Playwright's `--shard` assigns files by count in path order, so a heavy spec (Sign's, by the
-  timing) moved from shard 1 to shard 2. A count-based split will keep drifting like this whenever a
-  spec file is added or removed; a `--shard` that balances by measured time (the way QUAL-06 did
-  for the font guards) is the same fix as the row above.
+  run where the guards execute (43 of 60; the report counts the unsharded pre-QUAL-06 job too).
+- Chromium shard 2's step went from 55s to 82-90s on 2026-09-17 in two stages, while shard 1
+  stayed at 55-63s. First QUAL-10 landed three saved-work-restore acceptance specs (129 to 139
+  tests; shard 2 at 64-65s on the two failed runs `acd70698`/`63eaa268` that carried them). Then
+  DEBT-13 deleted one spec (`unlock-reset-confirmation.spec.js`) and folded another's assertions,
+  and Playwright's count-based `--shard` reassigned the split from 70/69 to 72/66: shard 2's step
+  went to 70s on `e0c16e19` and 82-90s from `61d7f91a` on, on a *smaller* count. That second step is
+  consistent with a heavy spec landing in shard 2 on the reshuffle (inferred from timing, not
+  bisected; no spec file changed between `e0c16e19` and `61d7f91a`). Either way a count-based split
+  drifts whenever a spec file is added or removed; a `--shard` that balances by measured time (the
+  way QUAL-06 did for the font guards) is the same fix as the row above.
 
 **Narrowing to Sign or Redact does not move the wall.** `tool-sign` is an implicit dependency of
 `fonts`, so every Sign or Redact narrow run also runs the full font-guard suite (guards ran on 6 of
 the 10 green narrow runs, all of them Sign/Redact). Median wall for those six runs: 170s, against
-180s for the 30 green `everything` runs. The green narrow runs that skipped the guards (Merge, the
+180s for the 30 green `everything` runs, a difference inside run-to-run noise (the six span 146s
+to 188s, and shard 1 alone varies 45-63s on the same 68 tests). The green narrow runs that skipped the guards (Merge, the
 one page-only run) sit at 120-132s, plus one queued outlier at 541s. That is the number DEBT-07
 should read: flipping `editor` out of `CORE_PROJECTS` turns an editor-only push from a 180s
-`everything` run into a ~170s Sign/Redact narrow run, about 10s, because `font-guards` sets the
-wall either way. The unit-test step still drops 3x (61s to 22-30s), which is the developer-facing
+`everything` run into a ~170s Sign/Redact narrow run, about 10s and within noise, because
+`font-guards` sets the wall either way. The unit-test step still drops 3x (61s to 22-30s), which is the developer-facing
 win locally, not the CI wall.
 
 **Cross-check on the last 40 commits** (`node scripts/nx-affected-histogram.mjs --count 40`, on

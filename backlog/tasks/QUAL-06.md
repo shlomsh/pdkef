@@ -79,17 +79,17 @@ per-tool gating (ARC-20 already narrows `fonts` on/off, not which guards within 
 ## Confirmed on a week of runs (2026-09-18)
 
 QUAL-08's `scripts/ci-narrowing-report.mjs` (see its Addendum) now prints both shards' step and
-job times for every `push` run on `main` since `9b4f944`. On the 21 green `everything` runs where
-the guards executed, the medians are: shard 1 step 87s, job 139s; shard 2 step 106s, job 154s. The
+job times for every `push` run on `main` since `9b4f944`. The guards ran on all 30 green
+`everything` runs; on the 21 of them after this ticket's split (9 predate it), the medians are: shard 1 step 87s, job 139s; shard 2 step 106s, job 154s. The
 job numbers match the three-run first measurement above (137-180s) and confirm the target of 120s
 per shard is not met, for a structural reason rather than a noisy one: the fixed cost ahead of the
 guard step (checkout, `npm ci`, affected-scope, build, browser cache restore and `install-deps`)
-is 45-60s per shard, so a shard can only get under 120s with a guard step under about 65s.
+is about 54s per shard, so a shard can only get under 120s with a guard step under about 65s.
 
 The other acceptance line, "the run's wall no longer set by this job", is also not met: a
-`font-guards` shard was the longest job on 32 of the 40 green non-docs runs in the window (shard 2
-on 16 of them). The lever is the 20s gap between the two shards' steps, which means the
+`font-guards` job was the longest on 32 of the 40 green non-docs runs in the window: shard 2 on 16,
+shard 1 on 8, and the unsharded job on the 8 runs before this ticket split it. The lever is the 20s gap between the two shards' steps, which means the
 hand-balanced split in `playwright.config.js` has drifted since it was measured; moving one guard
-from shard 2 to shard 1 is worth about 10s of wall on every run where the guards execute (34 of
+from shard 2 to shard 1 is worth about 10s of wall on every run where the guards execute (43 of
 60), and is the next thing to do before considering a third shard. Status stays `done`; that
 rebalance is a small follow-up rather than a reopening.
