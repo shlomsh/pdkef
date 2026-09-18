@@ -86,14 +86,16 @@
 /* Export preflight can deliberately block Download and Share. Their branded
    variants set their own fills, so a generic button disabled rule would be too
    weak here and leave a disabled primary action looking clickable. */
-.button:disabled, .download:disabled, .share:disabled { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); box-shadow: none; cursor: not-allowed; opacity: .7; }
-.button:disabled:hover, .download:disabled:hover, .share:disabled:hover { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); }
-/* A plain disabled button (Undo with nothing to undo, most of the time) keeps
-   the row's own surface and just fades: the sunken fill above is a tinted
-   block, and on a button that is disabled by default it read as the loudest
-   thing in the row rather than the quietest. Download and Share keep the
-   sunken fill - they are the branded ones the comment above is about. */
-.button:disabled:not(.download):not(.share), .button:disabled:not(.download):not(.share):hover { background: var(--color-surface); opacity: .45; }
+.download:disabled, .share:disabled { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); box-shadow: none; cursor: not-allowed; opacity: .7; }
+.download:disabled:hover, .share:disabled:hover { color: var(--color-muted); background: var(--color-surface-sunken); border-color: var(--color-border); }
+/* A plain disabled button (Undo with nothing to undo, which is most of the
+   time) looks exactly like its neighbours at rest: it just does not respond
+   to hover or press. It used to wear the sunken fill above, and on a button
+   that is disabled by default that tinted block was the loudest thing in the
+   row rather than the quietest. */
+.button:disabled:not(.download):not(.share) { cursor: not-allowed; }
+.button:disabled:not(.download):not(.share):hover { color: var(--color-text); background: var(--color-surface); border-color: var(--color-border); }
+.button:disabled:not(.download):not(.share):active { transform: none; }
 /* The row's standout treatment. Named for the job it does, not for the colour
    it happens to be: the control wearing it is not reporting success, it is the
    one the eye should find first among nine identical squares, and a retheme
