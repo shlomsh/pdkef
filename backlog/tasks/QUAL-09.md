@@ -69,15 +69,18 @@ QUAL-08's `scripts/ci-narrowing-report.mjs` (see its Addendum) prints both chrom
 `e2e-webkit`'s step and job times for every `push` run on `main` since `9b4f944`. On the 30 green
 `everything` runs, the medians are: chromium shard 1 step 60s, job 120s; shard 2 step 68s, job
 128s; `e2e-webkit` step 42s webkit plus 15s perf, job 136s. Against the targets (chromium under
-100s, webkit under 120s) the same 45-60s fixed cost per job that QUAL-06's note names is the
-reason, not the split itself. "The run's wall no longer set by an `e2e` job" holds: a chromium
+100s, webkit under 120s) the fixed cost per job is the reason, not the split itself: 54s ahead
+of each chromium step, and 79s ahead of `e2e-webkit`'s (136s job minus 57s of steps), the webkit
+browser install being the slow part, as this ticket found when it moved webkit to its own job. "The run's wall no longer set by an `e2e` job" holds: a chromium
 shard was the longest job on 2 of 40 green non-docs runs and `e2e-webkit` on 6; `font-guards` set
 the other 32.
 
-One thing the week shows that five runs could not: chromium shard 2's step jumped from 55-65s to
-82-90s on 2026-09-17, between `acd70698` and `61d7f91a`, on a smaller test count (69 to 66) while
-shard 1 stayed at 55-63s. DEBT-13 deleted two spec files in that range, and Playwright's `--shard`
-assigns files by count in path order, so a heavy spec moved from shard 1 into shard 2. A
-count-based split drifts every time a spec file is added or removed; if the chromium shards matter
+One thing the week shows that five runs could not: chromium shard 2's step went from 55s to
+82-90s on 2026-09-17 in two stages while shard 1 stayed at 55-63s. QUAL-10's three
+saved-work-restore acceptance specs took it to 64-65s (129 to 139 tests); then DEBT-13 deleted one
+spec (`unlock-reset-confirmation.spec.js`) and folded another's assertions, Playwright's
+count-based `--shard` reassigned the split from 70/69 to 72/66, and the step settled at 82-90s on a
+smaller count from `61d7f91a` on. The second stage is consistent with a heavy spec landing in
+shard 2 on the reshuffle; inferred from timing, not bisected. A count-based split drifts every time a spec file is added or removed; if the chromium shards matter
 again, balance them by measured time the way QUAL-06 balanced the font guards
 (`fonts-shard-1`/`fonts-shard-2` in `playwright.config.js`), not by `--shard`.

@@ -114,7 +114,7 @@ runs since `9b4f944`, `font-guards` sets the wall on 32 of the 40 green non-docs
 the full guard suite. Median wall for those six green runs is 170s against 180s for the green
 `everything` runs; the narrow runs that skip the guards (Merge, page-only) sit at 120-132s.
 Flipping `editor` out of `CORE_PROJECTS` therefore buys about 10s of CI wall on an editor-only
-push, and a 3x smaller `checks` unit-test step (61s to 22-30s), which is the local `check:fast`
+push, a gap inside run-to-run noise (those six runs span 146-188s), and a 3x smaller `checks` unit-test step (61s to 22-30s), which is the local `check:fast`
 win rather than a CI one. The narrow share is 22% of runs, above the review's 18% estimate, but
 the editor-side verdicts contribute little wall time to it for the reason above. Nx itself:
 QUAL-08's Result says keep it; ARCH-22 has since given `scripts/` real ownership, which removes

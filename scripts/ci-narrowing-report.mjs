@@ -249,14 +249,20 @@ for (const run of runs) {
   // QUAL-06's shards. Step and job duration only (no log fetch): the
   // ticket's target is the job's wall time, and the guard count is fixed by
   // playwright.config.js's two hand-balanced projects, not by narrowing.
+  // Before QUAL-06 (2026-09-14) the job was unsharded and named plain
+  // `font-guards`; a skipped-by-condition matrix job also reports under the
+  // bare name, with its step skipped. Both shapes count for "did the guards
+  // run" (fontsRan); only the `(n)` shards feed the per-shard medians, since
+  // a whole-suite time is not comparable to a shard's.
   const fontJobs = jobs
-    .filter((j) => /^font-guards \(\d+\)$/.test(j.name))
+    .filter((j) => /^font-guards( \(\d+\))?$/.test(j.name))
     .sort((a, b) => a.name.localeCompare(b.name));
   const fontShards = fontJobs.map((job) => {
     const step = findStep(job, /^Run Playwright e2e tests \(font guards/);
     const ran = Boolean(step) && step.conclusion !== 'skipped';
     return {
       name: job.name,
+      unsharded: !/\(\d+\)$/.test(job.name),
       ran,
       seconds: ran ? stepDurationSeconds(step) : null,
       jobSeconds: ran ? jobSeconds(job) : null,
@@ -311,7 +317,11 @@ for (const r of rows) {
     ? `${fmt(r.webkit.webkitSeconds)}+${fmt(r.webkit.perfSeconds)}/${r.webkit.count ?? '-'}`
     : '-';
   const fonts = [0, 1].map((i) =>
-    r.fontShards[i] ? (r.fontShards[i].ran ? fmt(r.fontShards[i].seconds) : 'skip') : '-'
+    r.fontShards[i]
+      ? r.fontShards[i].ran
+        ? `${fmt(r.fontShards[i].seconds)}${r.fontShards[i].unsharded ? ' (unsharded)' : ''}`
+        : 'skip'
+      : '-'
   );
   console.log(
     `| ${r.run} | ${r.sha} | ${r.event} | ${r.verdict} | ${r.reason.replace(/\|/g, '\\|')} | ${fmt(
@@ -346,6 +356,7 @@ for (const [reason, n] of Object.entries(reasonCounts).sort((a, b) => b[1] - a[1
 // statistic here on every green run in the window: `everything` runs (the
 // full suite, what both tickets measured) and narrowed runs separately,
 // since a narrowed chromium shard runs a subset and is not comparable.
+const shardOnly = (r) => r.fontShards.filter((s) => !s.unsharded);
 function jobMedians(group) {
   const pick = (get) => median(group.map(get));
   return {
@@ -354,9 +365,10 @@ function jobMedians(group) {
     webkitStep: pick((r) => r.webkit?.webkitSeconds),
     perfStep: pick((r) => r.webkit?.perfSeconds),
     webkitJob: pick((r) => r.webkit?.jobSeconds),
-    fontsStep: [0, 1].map((i) => pick((r) => r.fontShards[i]?.seconds)),
-    fontsJob: [0, 1].map((i) => pick((r) => r.fontShards[i]?.jobSeconds)),
+    fontsStep: [0, 1].map((i) => pick((r) => shardOnly(r)[i]?.seconds)),
+    fontsJob: [0, 1].map((i) => pick((r) => shardOnly(r)[i]?.jobSeconds)),
     fontsN: group.filter((r) => r.fontsRan).length,
+    fontsShardedN: group.filter((r) => shardOnly(r).some((s) => s.ran)).length,
     longest: pick((r) => r.longestJob?.seconds),
   };
 }
@@ -371,7 +383,7 @@ for (const [label, group] of [
 ]) {
   const m = jobMedians(group);
   console.log(
-    `- **${label}** (n=${group.length}, guards ran on ${m.fontsN}): ` +
+    `- **${label}** (n=${group.length}, guards ran on ${m.fontsN}, sharded on ${m.fontsShardedN}): ` +
       `chromium shards step ${fmt(m.chromiumStep[0])}s / ${fmt(m.chromiumStep[1])}s, job ${fmt(
         m.chromiumJob[0]
       )}s / ${fmt(m.chromiumJob[1])}s; ` +
