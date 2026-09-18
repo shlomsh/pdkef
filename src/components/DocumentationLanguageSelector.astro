@@ -27,8 +27,18 @@ interface Props {
   currentLocale?: string;
   label?: string;
   direction?: 'up' | 'down';
+  /** QUAL-13: 'inverse' is the closed trigger's look on the footer's teal
+   * band. The popover panel itself is unaffected, it keeps its light surface
+   * everywhere. */
+  tone?: 'default' | 'inverse';
 }
-const { variants = [], currentLocale = 'en', label = 'Language', direction = 'down' } = Astro.props;
+const {
+  variants = [],
+  currentLocale = 'en',
+  label = 'Language',
+  direction = 'down',
+  tone = 'default',
+} = Astro.props;
 const available = variants
   .filter((variant) => (variant.path ?? variant.href) && (variant.locale ?? variant.lang))
   .map((variant) => {
@@ -44,7 +54,7 @@ const current = available.find((variant) => variant.current) ?? available[0];
 ---
 
 {available.length > 1 && current && (
-  <details class="lang-menu relative inline-block text-[0.86rem]" data-direction={direction} data-lang-menu>
+  <details class="lang-menu relative inline-block text-[0.86rem]" data-direction={direction} data-tone={tone} data-lang-menu>
     <summary class="lang-menu-summary inline-flex cursor-pointer items-center gap-[0.5rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.4rem] font-semibold text-[var(--color-text)]" aria-label={label}>
       <LanguageFlag locale={current.locale} />
       <span lang={current.locale}>{current.name}</span>
@@ -97,6 +107,21 @@ const current = available.find((variant) => variant.current) ?? available[0];
   .lang-menu-summary { list-style: none; }
   .lang-menu-summary::-webkit-details-marker { display: none; }
   .lang-menu-summary:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
+  /* QUAL-13: the footer's teal band recolours only the closed trigger. The
+     popover panel below keeps its light surface and normal text colours. */
+  .lang-menu[data-tone='inverse'] .lang-menu-summary {
+    background: transparent;
+    border-color: color-mix(in srgb, var(--color-surface) 40%, transparent);
+    color: var(--color-surface);
+  }
+  .lang-menu[data-tone='inverse'] .lang-menu-summary .lang-menu-chevron { color: var(--color-surface); }
+  .lang-menu[data-tone='inverse'] .lang-menu-summary:hover {
+    background: color-mix(in srgb, var(--color-surface) 12%, transparent);
+  }
+  .lang-menu[data-tone='inverse'] .lang-menu-summary:focus-visible {
+    border-color: var(--color-surface);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-surface) 55%, transparent);
+  }
   .lang-menu[open] .lang-menu-chevron { transform: rotate(180deg); }
   .lang-menu-list { inset-inline-start: 0; box-shadow: var(--shadow-lg); }
   .lang-menu[data-direction='down'] .lang-menu-list { top: calc(100% + .35rem); }
