@@ -325,7 +325,7 @@ function overlapsBaseline(bounds, baseline) {
 /**
  * @typedef {{left: number, top: number, width: number, height: number}} PercentBox
  * @typedef {PercentBox & {str: string}} PageTextRun
- * @typedef {PercentBox & {kind: string}} FieldCandidate
+ * @typedef {PercentBox & {kind: string, writable?: PercentBox}} FieldCandidate
  */
 
 /**
@@ -368,6 +368,10 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
     // can have low area coverage without leaving any real fillable strip next to it.
     let blankWidth = cell.width;
     let blankHeight = cell.height;
+    // The blank remainder itself, in points: where a box placed on this cell
+    // goes (FieldRegion.writable in combPlacement.ts). The whole cell until a
+    // hugging label carves a strip off it.
+    let writable = { left: cell.left, right: cell.right, bottom: cell.bottom, top: cell.top };
     if (ownText.length > 0) {
       const textLeft = Math.min(...ownText.map((t) => t.x0));
       const textRight = Math.max(...ownText.map((t) => t.x1));
@@ -379,6 +383,17 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
       if (rightHugBlank < MIN_BLANK_WIDTH && topHugBlank < MIN_BLANK_HEIGHT) continue; // no clean hug
       blankWidth = rightHugBlank >= MIN_BLANK_WIDTH ? rightHugBlank : cell.width;
       blankHeight = topHugBlank >= MIN_BLANK_HEIGHT ? topHugBlank : cell.height;
+      // A label in the top corner (the common shape on these forms: "שם" small
+      // in the top-right of a 25pt-tall cell) leaves the full width UNDER it
+      // as the writing strip - `textBottom` is the label's baseline, since a
+      // pdf.js item's box starts at its baseline origin. Only a label that
+      // hugs the right edge without also sitting in the top half (a short
+      // cell, one line tall) leaves the strip BESIDE it instead. Never both:
+      // the inner corner of that L would drop the box's right edge to the
+      // label's left, off the cell's own right wall a right-aligned answer
+      // is meant to sit against.
+      if (topHugBlank >= MIN_BLANK_HEIGHT) writable = { ...writable, top: textBottom };
+      else if (rightHugBlank >= MIN_BLANK_WIDTH) writable = { ...writable, right: textLeft };
     }
     if (blankWidth < MIN_BLANK_WIDTH || blankHeight < MIN_BLANK_HEIGHT) continue;
 
@@ -389,8 +404,12 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
     const bounds = toPagePercentBox(geometry, {
       x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
     });
+    const isWholeCell = writable.top === cell.top && writable.right === cell.right;
+    const writableBounds = isWholeCell ? undefined : toPagePercentBox(geometry, {
+      x0: writable.left, y0: writable.bottom, x1: writable.right, y1: writable.top,
+    });
     resolved.push({
-      bounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
+      bounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
     });
   }
 
@@ -423,6 +442,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, baselineCandidate
       id: `combined-heuristic-${String(index).padStart(4, '0')}`,
       pageIndex,
       ...r.bounds,
+      ...(r.writableBounds ? { writable: r.writableBounds } : {}),
       kind,
       label: r.label || undefined,
       required: 'unknown',

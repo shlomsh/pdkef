@@ -1,4 +1,6 @@
 import {
+  COMB_BOX_FILL,
+  COMB_CAP_HEIGHT_EM,
   COMB_MIN_CELL_EM,
   HELVETICA_BASELINE_OFFSET_EM,
   MAX_COMB_CELLS,
@@ -25,13 +27,27 @@ import {
  * derived from `width` exactly as before.
  */
 
-/** Any detected printed field, in the editor's top-left-origin page percentages. */
-export interface FieldRegion {
-  pageIndex: number;
+/** A rectangle in the editor's top-left-origin page percentages. */
+export interface PercentBox {
   left: number;
   top: number;
   width: number;
   height: number;
+}
+
+/** Any detected printed field, in the editor's top-left-origin page percentages. */
+export interface FieldRegion extends PercentBox {
+  pageIndex: number;
+  /**
+   * The part of the field a person actually writes in, when that is not the
+   * whole of it: a detected cell (`formCells.js`) often carries its own
+   * printed label in a top or right corner - "שם", "מספר טלפון" - and the
+   * blank remainder below or beside that label is where the answer goes.
+   * The field itself stays the whole cell (what a tap targets, what the hint
+   * outlines, what the fill order groups into a row); this is only where a
+   * box placed on it sits. Absent when the whole field is blank.
+   */
+  writable?: PercentBox;
 }
 
 /** A detected comb run: a ruled strip divided into `cells` equal boxes. */
@@ -192,10 +208,23 @@ export function combFontSize(
   preferredSize: number,
   cellWidthPercent: number,
   pageWidthPoints: number,
+  cellHeightPercent = 0,
+  pageHeightPoints = 0,
 ): number {
   const cellPoints = (cellWidthPercent / 100) * pageWidthPoints;
   if (!(cellPoints > 0)) return preferredSize;
-  const ceiling = cellPoints / COMB_MIN_CELL_EM;
+  let ceiling = cellPoints / COMB_MIN_CELL_EM;
+  // The height a digit may stand is the other bound, and on a form like 101
+  // it is the tighter one by far: teeth 7pt tall on cells 11pt wide. Width
+  // alone let a 12pt default (8.6pt digits) tower over them - "large", and
+  // with the box's own descent hanging under the rule into the label of the
+  // row below (live report). A digit is COMB_CAP_HEIGHT_EM tall, so the
+  // largest size whose digits still stand inside that height is it over
+  // that. The caller decides what the height is - the teeth themselves for
+  // an open run, a closed box less its margin - and a run with no measured
+  // height keeps the width answer alone.
+  const heightPoints = (cellHeightPercent / 100) * pageHeightPoints;
+  if (heightPoints > 0) ceiling = Math.min(ceiling, heightPoints / COMB_CAP_HEIGHT_EM);
   return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
 }
 
@@ -253,18 +282,27 @@ export function cellFontSize(
  * tap landing exactly on the cell's middle. The box's own padding
  * (`textBoxPaddingEm`) keeps the glyphs off the printed rule, so no extra
  * inset is applied.
+ *
+ * All of "the cell" above means its `writable` part when the detector found
+ * a printed label hugging one of its edges - the blank strip under "שם", not
+ * the whole box "שם" is printed in - and the whole cell otherwise.
  */
 export function placeTextOnCell(
   region: FieldRegion,
   { fontSize, pageHeightPoints }: { fontSize: number; pageHeightPoints: number },
 ): { left: number; top: number; minWidth: number; fontSize: number } {
-  const size = cellFontSize(fontSize, region.height, pageHeightPoints);
+  // The blank part of the cell, not the cell: a labelled cell's answer goes
+  // under (or beside) its printed label, and centring on the whole cell put
+  // the top of the typed text against the label's baseline (live report,
+  // form 101's employer row). See FieldRegion.writable.
+  const area = region.writable ?? region;
+  const size = cellFontSize(fontSize, area.height, pageHeightPoints);
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   const textHeight = em * TEXT_BOX_LINE_HEIGHT_EM;
   return {
-    left: region.left,
-    top: Math.max(0, region.top + region.height / 2 - textHeight / 2),
-    minWidth: region.width,
+    left: area.left,
+    top: Math.max(0, area.top + area.height / 2 - textHeight / 2),
+    minWidth: area.width,
     fontSize: size,
   };
 }
@@ -297,7 +335,10 @@ export function placeCombOnRegion(
   },
 ): CombPlacement {
   const cells = Math.max(1, Math.min(MAX_COMB_CELLS, Math.round(region.cells)));
-  const size = combFontSize(fontSize, region.width / cells, pageWidthPoints);
+  // Open teeth are height guides and a digit stands exactly as tall as them;
+  // a closed box keeps the margin a hand would leave (COMB_BOX_FILL).
+  const digitHeight = region.boxed ? region.height * COMB_BOX_FILL : region.height;
+  const size = combFontSize(fontSize, region.width / cells, pageWidthPoints, digitHeight, pageHeightPoints);
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   // A closed cell is a box and text belongs in the middle of it; an open one is
   // a row of teeth hanging from the line you write on, and text belongs on that
