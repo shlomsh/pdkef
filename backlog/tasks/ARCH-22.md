@@ -65,35 +65,54 @@ generated from, or logic the shipped code duplicates) is misplaced and moves int
 owns it. What is left in `scripts/` is misc tooling that depends on `src/` and invokes nothing but
 its own test when touched.
 
-### Reverse dependencies today (all the same shape: `src/` generated from `scripts/` data)
+### Reverse dependencies today (audited 2026-09-18, every write and import under scripts/ read)
 
-- **Fonts.** `scripts/font-manifest.mjs`, `display-only-fonts.mjs`, `font-languages.mjs`,
-  `language-acceptance.mjs` are the source of truth; `generate-font-manifest.mjs` writes
-  `src/editor/text/fontManifest.js` and `src/styles/editorFonts.css`, `generate-font-coverage.mjs`
-  writes `src/editor/text/fontCoverageTable.js`. The data moves into `src/editor/text/` (the font
-  component, `fonts.js` is already its mandated entry point); the generators import it from there.
-  The coverage table stays generated (it is derived from the TTF binaries), but from a manifest that
-  lives in `src/`. Nine-step font invariant [fonts-and-text] applies; screen/export parity must not
-  move.
-- **Service-worker precache.** `shouldPrecache()` lives in `scripts/precacheFilter.mjs` and is
-  hand-copied inside `public/sw.js`, with `precacheFilter.test.mjs` existing only to catch drift
-  between the two copies. One policy module under `src/` (site-lib, it is build-only), which
-  `generate-precache-manifest.mjs` imports and injects into `sw.js` at build time the same way it
-  already substitutes `__BUILD_ID__`. The parity test then goes away. [csp-scripts-pwa] invariants
-  (no `skipWaiting()`, best-effort precache except `/`, self-uninstall on a 404 manifest) unchanged.
-- **License allowlist.** The permissive-license allowlist is policy inside
-  `scripts/runtime-license-inventory.mjs`; `src/data/runtimeLicenseInventory.js` is generated from it.
-  The allowlist moves to `src/data/`; the script imports it.
-- **A direct import.** `src/test/editorDependencyDirectionsExceptions.test.js` imports
-  `staleExceptions()` from `scripts/check-editor-dependency-directions.mjs`. The test moves next to
-  the script as `scripts/check-editor-dependency-directions.test.mjs` (vitest already collects
-  `scripts/**/*.test.mjs`).
-- `scripts/sync-pdfjs-wasm.mjs` and `src/lib/pdfjsWasm.js` both know the `public/pdfjs-dist-wasm/`
-  path. The constant lives in `src/lib/pdfjsWasm.js`; the script imports it.
+Rule 8 (below) runs red on 14 import edges, and the audit found the generated-from edges the import
+check cannot see. Grouped by the component that should own each:
 
-The full list is established by the check below running red first, plus an audit of every
-`writeFileSync` target under `src/` from a `scripts/` generator (the import check cannot see a
-generated-from edge).
+- **Fonts (the big one).** `scripts/font-manifest.mjs` (38 families, `DEFAULT_FONT_FAMILY`,
+  `RETIRED_FONTS`), `display-only-fonts.mjs`, `font-languages.mjs` (515 lines of per-language
+  alphabets), `language-acceptance.mjs` (Sign's rollout contract) are the source of truth;
+  `generate-font-manifest.mjs` writes `src/editor/text/fontManifest.js` and `src/styles/editorFonts.css`
+  (with its own `FACE_CSS` weight/style policy), `generate-font-coverage.mjs` writes
+  `src/editor/text/fontCoverageTable.js` **including the runtime lookup functions** (`fontFileHasGlyph`
+  and friends, authored in a template literal at lines 246-310 - runtime code living in a script),
+  `generate-font-coverage-report.mjs` writes `fontCoverageReport.js`. Direct imports: a shipped page
+  (`src/pages/licenses.astro`), a shipped stylesheet's `@source` (`src/styles/licensesPage.css`, which
+  rule 8 does not see), three editor tests, the cross-tool acceptance test, two e2e specs, and
+  `scripts/precacheFilter.mjs`.
+  Decision: the data is hand-written under `src/editor/text/` and nothing in `src/` is generated from
+  `scripts/` any more. The runtime manifest and the per-family license side-table are two modules
+  (license text must not enter the editor bundle; a unit test keeps their family keys identical); the
+  lookup functions become a hand-written module and the coverage table becomes data only; alphabets and
+  `DISPLAY_ONLY_FONTS` move alongside; the acceptance matrix moves to `src/tools/sign/` (it is Sign's
+  contract). The generators stay in `scripts/`, import from `src/`, and still produce `editorFonts.css`,
+  `fontCoverageTable.js` (data), `fontCoverageReport.js`, the `THIRD_PARTY_LICENSES.md` section and
+  `docs/language-font-acceptance-matrix.md` - all generated *from* `src/`, the allowed direction. The
+  nine-step font unit of work in `.claude/rules/fonts-and-text.md` is rewritten to match (step 3 was
+  already stale: it never named the manifest script).
+- **Redact's sample form.** `scripts/generate-practice-form.mjs` authors the entire content of the
+  shipped `public/images/redaction-guide/sample.pdf` (copy, field names, palette) that
+  `src/shell/FileDropzone.tsx` fetches at runtime. The content moves to `src/tools/redact/` as data;
+  the generator imports it.
+- **License policy.** `src/data/runtimeLicenseInventory.js` is generated from the reviewed browser
+  closure (`RUNTIME_ROOT_PACKAGES`, `BUILD_ONLY_CLOSURES`, `RUNTIME_PACKAGE_NAMES`,
+  `LICENSE_URL_OVERRIDES`) inside `scripts/runtime-license-inventory.mjs`; `APPROVED_RUNTIME_LICENSES`
+  only gates the verify step. All of that policy moves to `src/data/runtimeLicensePolicy.js`; the
+  script imports it and keeps the node_modules walk.
+- **Precache.** Corrected: `shouldPrecache()` is not duplicated in `public/sw.js` (the worker consumes
+  the manifest JSON). The edge is `precacheFilter.mjs` importing the font manifest, which the font
+  move resolves. The "default face needs no offline pack because it is precached" policy is stated
+  twice (`precacheFilter.mjs` and `src/tools/sign/fontOfflinePacks.js`); the precache policy moves to
+  `src/site-lib/precachePolicy.js` and `fontOfflinePacks.js` derives from it.
+- **The checkers' own tests.** `src/test/editorDependencyDirectionsExceptions.test.js`,
+  `moduleBoundariesImportScan.test.js`, `moduleBoundariesRules.test.js` import the scripts they test.
+  They move next to them as `scripts/*.test.mjs`.
+- **pdf.js wasm path.** `scripts/sync-pdfjs-wasm.mjs` and `src/lib/pdfjsWasm.js` both spell
+  `pdfjs-dist-wasm`. The directory name is exported from `src/lib/pdfjsWasm.js`; the script imports it.
+- Left as is, recorded: the glyph-set policy inside `scripts/fonts/*.py` (which characters each
+  CJK/demo subset ships) is product-defining but produces committed binaries by hand; not a
+  generated-source edge. Revisit if a subset is ever rebuilt in CI.
 
 ### Enforcement
 
