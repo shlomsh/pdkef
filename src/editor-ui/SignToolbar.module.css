@@ -446,45 +446,63 @@
 
    The figures below are measured on the toolbar's own content box, 2026-09-18, with
    the Date tool and Share both present - Sign's widest real case, twelve children.
-   Sign's twelve labelled controls come to ~1224px, which is already past the
+   Sign's twelve labelled controls come to ~1240px, which is already past the
    1172px plateau: Share pushed the fully-labelled row past the widest this card can
    ever draw, so the first label tier below is never actually idle at today's
-   plateau - it stays engaged at every desktop width this card renders. The
-   container query is kept anyway (at 1280px, a little above the 1224px figure,
-   the same "fires a little above its own figure" margin as the tier below it) so
-   the row still measures itself honestly if the plateau ever moves outward, rather
-   than hard-coding a state that happens to hold today. Dropping the three utility
-   labels (Undo, Full screen, Replace, plus Feedback, all data-label-priority="1")
-   takes the worst case to ~1047px, comfortably inside the 1172px plateau. Dropping
-   the tool-vocabulary labels too (Text, Symbols, Shapes, Whiteout, Sign, all
-   data-label-priority="2") takes it to ~736px, comfortably inside the 796px floor -
-   two tiers are still enough, no third was needed. The second query fires at
-   1100px, 53px above the 1047px figure. Without Share, Sign's own figures are
-   smaller throughout (~1131px / ~954px / ~643px) and Redact's smaller again
-   (~916px / ~812px / ~593px with Share, less again without) - both stay
-   comfortably inside these two thresholds, so one shared pair of numbers, sized to
-   Sign's worst case, still covers every real toolbar in this file the same way the
-   stale ~1100/~910/~620 figures used to.
+   plateau - it stays engaged at every desktop width this card renders. Dropping
+   Undo and Full screen (data-label-priority="1") only takes the worst case to
+   ~1204px, still past the 1172px plateau on its own - splitting the old single
+   utility tier in two (Shlomi, 2026-09-18: icons everyone already knows go first,
+   the next-step convenience and finishing-action labels hold on a little longer)
+   means the first tier alone is no longer enough to fit the plateau, same as
+   before the split it wasn't idle either. Also dropping Feedback and Replace
+   (data-label-priority="2") takes it to ~1071px, comfortably inside the 1172px
+   plateau - so tiers 1 and 2 both stay engaged at every desktop width this card
+   renders, exactly the way the old single first tier did, and between them cover
+   the same ground. Dropping the tool-vocabulary labels too (Text, Date, Symbols,
+   Shapes, Whiteout, Sign, all data-label-priority="3") takes it to ~762px,
+   comfortably inside the 796px floor - three tiers, one more than the two this
+   file used before Date and Share pushed the fully-labelled row past the plateau
+   a second time.
+   Container queries fire "a little above their own figure" (~50px margin): tier 1
+   at 1290px (above the ~1240px all-labelled figure), tier 2 at 1255px (above the
+   ~1204px tier-1-hidden figure) and tier 3 at 1120px (above the ~1071px
+   tier-1+2-hidden figure). Tiers 1 and 2's thresholds sit above the 1172px
+   plateau, so in practice both fire at every real desktop width; tier 3's
+   threshold sits below the plateau, so it only engages as the box narrows toward
+   the 920px floor - the one tier that still reacts to the box's own width rather
+   than firing unconditionally. Without Share, Sign's own figures are smaller
+   throughout and Redact's smaller again - both tools stay comfortably inside
+   these three thresholds, so one shared set of numbers, sized to Sign's worst
+   case, covers every real toolbar in this file.
 
-   Priority order is "which icon carries its own meaning": Undo, Full screen and
-   Replace are conventions a user already knows (and Replace is a once-per-session
-   action), so their labels go first. Text, Symbols, Shapes, Whiteout and Sign are
-   this app's own vocabulary - a first-time visitor has no idea the eraser glyph means
-   whiteout - so they hold their labels longest, and Download/Share never lose theirs.
-   Read the priorities that way round before renumbering anything: this used to be the
-   reverse, on the theory that repeatedly-used tools get learned by icon, which is only
-   true of the second document a person signs here, not the first. */
+   Priority order is "which icon carries its own meaning, grouped with what else
+   drops at the same time": Undo and Full screen are conventions a user already
+   knows, so they go first. Feedback and Replace are a next-step convenience and a
+   once-per-session finishing action rather than app vocabulary, so they hold
+   their labels one tier longer. Text, Date, Symbols, Shapes, Whiteout and Sign
+   are this app's own vocabulary - a first-time visitor has no idea the eraser
+   glyph means whiteout - so they hold their labels longest, and Download/Share
+   never lose theirs. Read the priorities that way round before renumbering
+   anything: this used to be the reverse, on the theory that repeatedly-used tools
+   get learned by icon, which is only true of the second document a person signs
+   here, not the first. */
 @media (min-width: 920px) {
   .toolbar { flex-wrap: wrap; }
   .toolbar > * { flex-shrink: 0; }
 
-  @container toolbar (max-width: 1280px) {
+  @container toolbar (max-width: 1290px) {
     .toolbar .button[data-label-priority="1"] { gap: 0; }
     .toolbar .button[data-label-priority="1"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }
 
-  @container toolbar (max-width: 1100px) {
+  @container toolbar (max-width: 1255px) {
     .toolbar .button[data-label-priority="2"] { gap: 0; }
     .toolbar .button[data-label-priority="2"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+  }
+
+  @container toolbar (max-width: 1120px) {
+    .toolbar .button[data-label-priority="3"] { gap: 0; }
+    .toolbar .button[data-label-priority="3"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }
 }

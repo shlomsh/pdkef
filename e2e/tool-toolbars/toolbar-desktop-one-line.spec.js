@@ -102,3 +102,56 @@ for (const tool of tools) {
     }
   });
 }
+
+// SIGN-29 (Shlomi, 2026-09-18): the label-drop tiers split in two (Undo/Full
+// screen first, Feedback/Replace one tier later) and the toolbar reordered to
+// lead with Sign. jsdom cannot see which labels are actually clipped to the
+// 1x1 visually-hidden box a container query applies, so this checks the real
+// rendered width of each label span at a real laptop width.
+//
+// 1440px sits inside the plateau (SignToolbar.module.css's >=920px comment:
+// ~1172-1196px measured content-box ceiling, depending on fixture). Measured
+// there (2026-09-18): dropping only Undo/Full screen still leaves Sign+Share
+// past the plateau (~1204px against it), so tier 2 (Feedback, Replace) is
+// ALSO always engaged at this width, the same way the old single first tier
+// was - splitting one always-engaged tier into two still-always-engaged tiers
+// does not, by itself, buy back a state where Feedback/Replace are labelled
+// at a normal laptop width. Only the tool vocabulary (tier 3) reacts to the
+// box actually narrowing, toward the 920px floor. This asserts the real,
+// measured state - not the read as originally scoped, where tier 2 would
+// hold its label at the plateau - see SIGN-29.md's 2026-09-18 decision note.
+async function labelWidth(page, text) {
+  return page.evaluate((label) => {
+    const spans = [...document.querySelectorAll('[role="toolbar"] .label, [role="toolbar"] span')];
+    const span = spans.find((el) => el.textContent?.trim() === label);
+    return span ? span.getBoundingClientRect().width : null;
+  }, text);
+}
+
+test('Sign leads the toolbar, and both split tiers are icon-only at 1440px (plateau)', async ({ page }) => {
+  await stubSharePresent(page);
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await openTool(page, '/sign', 'sign-desktop-one-line-order.pdf');
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  const firstButtonLabel = await page.evaluate(() => {
+    const toolbar = document.querySelector('[role="toolbar"]');
+    const first = toolbar.children[0];
+    return first.querySelector('.label, span')?.textContent?.trim();
+  });
+  expect(firstButtonLabel, 'the first toolbar control should be Sign, the tool this page is named for').toBe('Sign');
+
+  const undoWidth = await labelWidth(page, 'Undo');
+  const feedbackWidth = await labelWidth(page, 'Feedback');
+  const replaceWidth = await labelWidth(page, 'Replace');
+  const whiteoutWidth = await labelWidth(page, 'Whiteout');
+
+  expect(undoWidth, 'Undo is tier 1 and should be icon-only (clipped to ~1px) at 1440px').not.toBeNull();
+  expect(undoWidth).toBeLessThanOrEqual(2);
+  expect(feedbackWidth, 'Feedback is tier 2 and, at this width, is also icon-only: the plateau is narrower than Sign+Share with only tier 1 dropped').not.toBeNull();
+  expect(feedbackWidth).toBeLessThanOrEqual(2);
+  expect(replaceWidth, 'Replace is tier 2 and, at this width, is also icon-only for the same reason').not.toBeNull();
+  expect(replaceWidth).toBeLessThanOrEqual(2);
+  expect(whiteoutWidth, 'Whiteout is tier 3 (app vocabulary) and keeps its label at the plateau').not.toBeNull();
+  expect(whiteoutWidth).toBeGreaterThan(5);
+});

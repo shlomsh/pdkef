@@ -170,7 +170,7 @@ export default function RedactToolbar({
             className={toolClass('blur')}
             onClick={armTool('blur')}
             aria-pressed={activeStyle === 'blur'}
-            data-label-priority="2"
+            data-label-priority="3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="4" y1="5" x2="15" y2="5" />
@@ -187,7 +187,7 @@ export default function RedactToolbar({
             className={toolClass('blackout')}
             onClick={armTool('blackout')}
             aria-pressed={activeStyle === 'blackout'}
-            data-label-priority="2"
+            data-label-priority="3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <line x1="4" y1="5" x2="15" y2="5" />
@@ -204,7 +204,7 @@ export default function RedactToolbar({
             className={toolClass('whiteout')}
             onClick={armTool('whiteout')}
             aria-pressed={activeStyle === 'whiteout'}
-            data-label-priority="2"
+            data-label-priority="3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -221,7 +221,7 @@ export default function RedactToolbar({
             className={toolClass('delete')}
             onClick={armTool('delete')}
             aria-pressed={activeStyle === 'delete'}
-            data-label-priority="2"
+            data-label-priority="3"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6" />
@@ -256,7 +256,7 @@ export default function RedactToolbar({
           onClick={requestReplace}
           title={FILE_ACTIONS.replace.title}
           aria-label={FILE_ACTIONS.replace.label}
-          data-label-priority="1"
+          data-label-priority="2"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d={FILE_ACTIONS.replace.icon} />
@@ -286,10 +286,11 @@ export default function RedactToolbar({
             visible once a redacted export actually exists, so it never
             competes with the existing controls in the toolbars measured by
             e2e/tool-toolbars/toolbar-touch-targets.spec.js (that spec never
-            exports a file). data-label-priority="1" groups it with Undo/
-            Replace: a next-step convenience, not app vocabulary or the
-            primary export action, so its label is the first to go under
-            width pressure. */}
+            exports a file). data-label-priority="2" groups it with Replace
+            (SIGN-29): a next-step convenience and a finishing action, not app
+            vocabulary or the primary export action, so its label goes with
+            Replace's under width pressure, after Undo/Full screen but before
+            the tool vocabulary. */}
         {handoffReady && (
           <button
             type="button"
@@ -297,7 +298,7 @@ export default function RedactToolbar({
             onClick={onCompressHandoff}
             disabled={handoffBusy}
             title="Hand the redacted PDF to Compress"
-            data-label-priority="1"
+            data-label-priority="2"
           >
             <Shrink size={18} aria-hidden="true" />
             <span className={styles.label}>Compress it</span>

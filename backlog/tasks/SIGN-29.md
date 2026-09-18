@@ -40,3 +40,29 @@ and Download becomes a banner. The comment predicted exactly this drift.
 - The label-priority thresholds in `SignToolbar.module.css` are measured, not inherited, and the
   comment says where each figure came from.
 - `check:fast` and the full `ci.yml` chain green.
+
+## Decision 2026-09-18
+
+Shlomi picked from three options for the label-drop thresholds this ticket landed with a day
+earlier (ship every priority-1 label icon-only everywhere Share exists, split priority 1 into two
+tiers, or tighten spacing instead): **split the tier**. Undo and Full screen (icons everyone
+already knows) drop first; Feedback and Replace (a next-step convenience and a once-per-session
+finishing action, not app vocabulary) drop next; the tool vocabulary (Text, Date, Symbols, Shapes,
+Whiteout, Sign) drops last; Download/Share never drop.
+
+Measured consequence, not fudged past: Sign+Share's fully-labelled row (~1240px) is already past
+the toolbar box's own plateau (~1172-1196px), and dropping only tier 1 (Undo/Full screen) still
+leaves it past the plateau (~1204px) - so tier 1 and tier 2 both stay permanently engaged at every
+real desktop width, the same way the old single first tier did before the split. Only tier 3 (the
+vocabulary) actually reacts to the box narrowing, toward the 920px floor. In practice this means
+Feedback and Replace are icon-only at a normal laptop width today, same as Undo - the split changes
+the *order* labels come off in as the box narrows further, not whether Feedback/Replace are
+labelled at today's plateau. `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` asserts this
+measured state rather than the originally-scoped one.
+
+Sign's own toolbar was also reordered to Sign, Text, Date, Symbols, Shapes, Whiteout, Undo,
+[view density / full screen], Feedback, Replace, Share, Download: the tool the page is named for
+leads (the same reasoning f48fcbd8 already applied to Redact's Blur), Undo sits beside the work it
+undoes, the chrome (view, full screen, Feedback) groups together, Replace sits with the other
+finishing action, and export stays at the far edge. Redact's own order is unchanged. See
+`.claude/rules/editor.md`'s "Main toolbar layout" section for the standing rule.
