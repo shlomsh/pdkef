@@ -67,6 +67,15 @@ export interface DocumentationShellMessages {
   homepageAriaLabel: string;
   toolDockAriaLabel: string;
   installGuidesAriaLabel: string;
+  /** QUAL-15: the shared closer phrase ("on your device" in English) that
+   * ToolHero.astro strokes in citron inside a tool page's subhead, when the
+   * subhead contains it exactly once (see ToolHero's subheadAccent prop).
+   * Optional, unlike every other field here: he/id have no reviewed closer
+   * phrase yet (QUAL-14 sets Hebrew's once the Hebrew closers agree), and a
+   * locale with none renders its subheads with no stroke rather than
+   * erroring - the same "missing accent, unchanged render" contract
+   * QUAL-13's h1Accent used. */
+  heroAccent?: string;
 }
 
 export type AppBarMessages = Pick<DocumentationShellMessages, 'homeAriaLabel' | 'homepageAriaLabel' | 'onDevice'>;
@@ -118,6 +127,7 @@ const englishMessages = {
   homepageAriaLabel: 'PDkef homepage',
   toolDockAriaLabel: 'PDF tools',
   installGuidesAriaLabel: 'Device installation guides',
+  heroAccent: 'on your device',
 } satisfies DocumentationShellMessages;
 
 const hebrewMessages = {
@@ -213,12 +223,18 @@ export const documentationShellMessages: Partial<Record<DocumentationLocaleId, D
   id: indonesianMessages,
 };
 
+// QUAL-15: the one field on DocumentationShellMessages that is genuinely
+// optional per locale (see its doc comment) - excluded here so a locale that
+// has not set it yet (he, id) still passes the "every other field is
+// required before publish" check below.
+const OPTIONAL_SHELL_MESSAGE_KEYS: ReadonlyArray<keyof DocumentationShellMessages> = ['heroAccent'];
+
 export function assertDocumentationShellMessages(
   locale: DocumentationLocaleId,
   messages: Partial<DocumentationShellMessages> | undefined,
 ): asserts messages is DocumentationShellMessages {
   const missing = (Object.keys(englishMessages) as Array<keyof DocumentationShellMessages>)
-    .filter((key) => !messages?.[key]?.trim());
+    .filter((key) => !OPTIONAL_SHELL_MESSAGE_KEYS.includes(key) && !messages?.[key]?.trim());
   if (missing.length > 0) {
     throw new Error(
       `Documentation shell messages for ${locale} are required before a page can publish. Missing: ${missing.join(', ')}.`,

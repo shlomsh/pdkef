@@ -40,8 +40,11 @@ button fill, where it read as too bold (QUAL-13). The home dock is `--color-prim
 top.
 
 Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`), in pixel
-stops tuned so the fade finishes by where the tool card begins and stays mint below it, and strokes its
-`h1Accent` phrase (`src/data/tools.js`) in citron the same way the home hero strokes its own (QUAL-13).
+stops tuned so the fade finishes by where the tool card begins and stays mint below it. The citron stroke
+sits in the subhead, never the h1: it marks the locale's `heroAccent` phrase ("on your device" in
+English, `documentationMessages.ts`) inside `ToolHero.astro`'s subhead when it occurs there, because a
+highlighter on "Free" reads as a price sticker and the H1's own query words are not the thing to point
+at (QUAL-15, superseding QUAL-13's h1 stroke).
 
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
