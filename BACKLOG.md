@@ -309,7 +309,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · Give scripts/ real Nx ownership, folder by folder, so touching it stops forcing every test to run |
 
 ### Blocked
 
