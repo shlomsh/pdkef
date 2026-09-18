@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
-import { shouldPrecache } from './precacheFilter.mjs';
+import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
 
 const distDir = path.join(process.cwd(), 'dist');
 const manifestName = 'precache-manifest.json';
