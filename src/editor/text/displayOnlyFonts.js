@@ -2,9 +2,9 @@
  * Display-only bundled fonts: TTFs in `public/fonts/` that exist purely for
  * marketing/demo chrome - never selectable in the Sign editor's font picker,
  * never passed to `signPdf`/fontkit - so they are deliberately kept out of
- * `scripts/font-manifest.mjs`. That manifest drives the editor's runtime
- * catalogue, its generated `@font-face` CSS, and the export path; none of
- * that applies to a font a document can never actually use.
+ * `src/editor/text/fontManifest.js`. That manifest drives the editor's
+ * runtime catalogue, its generated `@font-face` CSS, and the export path;
+ * none of that applies to a font a document can never actually use.
  *
  * `src/editor/text/fontAttribution.test.js`'s "every TTF on disk has a catalogue
  * entry" check only knows about `FONT_MANIFEST` by default, so without this

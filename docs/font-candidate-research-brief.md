@@ -84,8 +84,8 @@ Pacifico, Sacramento.
 
 `TEXT_FONTS`: Arimo, Tinos, Cousine, Assistant, Heebo, Alef, PT Sans, Scheherazade New, Noto Sans JP,
 Noto Sans SC, Noto Sans TC, Noto Sans KR, Noto Sans Bengali, Mukta Mahee, Anek Telugu, Noto Sans Tamil,
-Mukta, IBM Plex Sans Thai, Anek Malayalam. (Source of truth: `src/editor/text/fontManifest.js`, generated
-from `scripts/font-manifest.mjs`; this list was last synced 2026-09-12.)
+Mukta, IBM Plex Sans Thai, Anek Malayalam. (Source of truth: `src/editor/text/fontManifest.js`;
+this list was last synced 2026-09-12.)
 
 Retired, mapped to a replacement in `RETIRED_FONTS`: Playpen Sans Hebrew (to Gveret Levin), Almarai (to
 Scheherazade New).

@@ -44,7 +44,7 @@ describe('Sign Languages card: "supported" claims match the generated coverage r
     // FONT-08: Amatic SC joined Gveret Levin as Hebrew's second handwriting
     // face, screened via H8 (src/editor/registry/hebrewMarkPlacement.test.js)
     // before its acceptance.hebrewMarkPlacement flag was set - see
-    // scripts/font-manifest.mjs.
+    // src/editor/text/fontManifest.js.
     expect(handwriting.map((f) => f.family)).toEqual(['Gveret Levin', 'Amatic SC']);
     const note = supportedNote('Hebrew');
     expect(note).toContain('Six text fonts');
