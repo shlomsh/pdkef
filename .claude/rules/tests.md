@@ -5,6 +5,7 @@ paths:
   - "playwright.config.js"
   - "scripts/affected-scope.mjs"
   - "scripts/change-scope.mjs"
+  - "scripts/*.test.mjs"
   - "docs/nx-affected-ci.md"
 ---
 
