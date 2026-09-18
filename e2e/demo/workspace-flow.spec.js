@@ -49,6 +49,29 @@ async function currentIndexRow(page, tool) {
   }, tool);
 }
 
+// Opening a file stamps the shared entry's savedAt twice in quick succession:
+// cacheRecentFile runs once immediately with no preview yet (PdfRedactTool.tsx's
+// and PdfSignTool.tsx's `onDocument`), then again once the page-1 thumbnail
+// finishes rendering, this time carrying `preview` (useDraftPersistence.js's
+// preview effect). Both calls independently take `Date.now()`
+// (draftStore.js's cacheRecentFile) and each does its own async content hash
+// plus IndexedDB round trip, so they are not guaranteed to commit in call
+// order - the no-preview write can land after the with-preview one and bump
+// savedAt again without changing fileName or preview, since upsertIndexEntry
+// keeps whichever preview is already present but always takes the incoming
+// savedAt. Poll until two reads agree before treating the entry as settled,
+// rather than snapshotting savedAt while a write may still be in flight.
+async function stableSavedAt(page, tool) {
+  let previous;
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const current = (await currentIndexRow(page, tool))?.savedAt;
+    if (current !== undefined && current === previous) return current;
+    previous = current;
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  throw new Error(`savedAt for '${tool}' never settled`);
+}
+
 test('complete stories, information, session handoff, and real bundled sample entry', async ({ page }) => {
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -128,7 +151,7 @@ test('the same source PDF is deduplicated to its latest tool and opens from the 
   }
   // The index row's savedAt is what the tile's "just now" reads; the home page
   // only reads it, so it must come back unchanged.
-  const savedAt = (await currentIndexRow(page, 'sign')).savedAt;
+  const savedAt = await stableSavedAt(page, 'sign');
   await page.goto('/');
   const icons = page.locator('.workspace-launcher li button[aria-label^="Open recent PDF"]');
   // Both editor visits use the same sample bytes. The recent-files cache is
