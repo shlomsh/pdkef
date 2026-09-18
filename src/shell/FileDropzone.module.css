@@ -67,7 +67,16 @@
   cursor: pointer;
   text-align: center;
 }
-.sample { border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text); }
+.sample {
+  border: 1.5px solid var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-text);
+  /* The flagship dock tile's ring and ink shadow
+     (HomePageLayout.astro's .app-card[data-accent='primary'] .app-tile), so
+     the resting tile blends into the mint ground instead of showing a grey
+     seam against it. */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 8px 18px -8px color-mix(in srgb, var(--color-text) 40%, transparent);
+}
 .sample:hover, .sample:focus-visible { border-color: var(--color-primary); background: var(--color-primary-tint); }
 .sample strong { font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
 .sample span { font-size: 0.76rem; font-weight: 400; color: var(--color-muted); }

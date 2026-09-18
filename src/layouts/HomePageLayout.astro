@@ -94,6 +94,21 @@ const { title, description, faqKicker, faq, founderStory, draftPersistence, offl
 // split can never render text that disagrees with home.h1.
 const h1Prefix = home.h1.slice(0, home.h1.length - home.h1Accent.length);
 
+// closing.headingStroke is optional (only the English source carries it
+// today - see src/data/homeContent.js): when it names a word that occurs
+// exactly once in closing.heading, the heading splits around it so the
+// citron stroke (the same span/::before pair the H1 uses) can underline just
+// that word. textContent stays byte-identical to closing.heading either way,
+// so e2e/demo/workspace-flow.spec.js's exact-text assertion is untouched.
+const closingHeadingStroke = closing.headingStroke;
+const closingHeadingStrokeIndex = closingHeadingStroke ? closing.heading.indexOf(closingHeadingStroke) : -1;
+const closingHeadingStrokeIsUnique =
+  closingHeadingStrokeIndex !== -1 && closing.heading.indexOf(closingHeadingStroke, closingHeadingStrokeIndex + 1) === -1;
+const closingHeadingBefore = closingHeadingStrokeIsUnique ? closing.heading.slice(0, closingHeadingStrokeIndex) : closing.heading;
+const closingHeadingAfter = closingHeadingStrokeIsUnique
+  ? closing.heading.slice(closingHeadingStrokeIndex + closingHeadingStroke!.length)
+  : '';
+
 const dropzoneMessages = getFileDropzoneMessages(locale as any);
 const recentFilesMessages = getRecentFilesMessages(locale as any);
 
@@ -448,7 +463,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
 
     <FeatureCard id="try-workspace" density="flow" class="try-workspace relative isolate overflow-hidden" aria-labelledby="try-heading" data-working-area>
       <CardDecor sketch="waves" icon={PenLine} iconPos="br" iconSize={300} parallax />
-      <h2 id="try-heading">{closing.heading}</h2>
+      <h2 id="try-heading">{closingHeadingStrokeIsUnique ? <>{closingHeadingBefore}<span>{closingHeadingStroke}</span>{closingHeadingAfter}</> : closing.heading}</h2>
       {/* No explanatory paragraph. The two things you can do here are a file
           and a dropzone, and both are now drawn rather than described, so a
           sentence saying "use your own PDF, or open the bundled practice
@@ -498,8 +513,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     --color-text: #0b4c4c;
     --color-muted: #276460;
     --home-workspace: #c3f0e6;
-    --home-citron: #efffa6;
-    --home-citron-ink: #4f6c2d;
+    --home-citron: var(--color-citron);
+    --home-citron-ink: var(--color-citron-ink);
   }
   .home-hero {
     color: var(--color-text);
@@ -591,12 +606,14 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      1.6rem size (see the max-width: 1023px override below) that phrase is
      well under a 320px line - nowrap can only push it onto its own line as a
      whole, never force horizontal overflow. */
-  .hero-header h1 span { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
-  .hero-header h1 span::before {
+  .hero-header h1 span,
+  .try-workspace h2 span { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .hero-header h1 span::before,
+  .try-workspace h2 span::before {
     content: '';
     position: absolute;
     inset: 58% -0.08em 0.04em;
-    background: var(--home-citron);
+    background: var(--color-citron);
     border-radius: 0.3em 0.14em 0.26em 0.12em;
     rotate: -0.6deg;
     z-index: -1;
@@ -670,7 +687,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     padding: var(--space-section-block) 2.5rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    background: var(--color-surface);
+    background-color: var(--color-bg);
+    background-image: linear-gradient(180deg, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 60%, var(--color-primary-tint)) 45%, var(--color-primary-tint) 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
