@@ -311,7 +311,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · Give scripts/ real Nx ownership, folder by folder, so touching it stops forcing every test to run |
+| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
 
 ### Blocked
 
