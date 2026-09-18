@@ -1,0 +1,7 @@
+{
+  "name": "sign-spike-mobi10",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "scripts/spike/mobi-10",
+  "tags": ["scope:tooling"]
+}
