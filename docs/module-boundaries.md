@@ -74,13 +74,23 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
    counts. A spec that genuinely needs another tool's page - `toolbar-touch-targets.spec.js` driving
    both `/sign` and `/redact`, `merge-handoff.spec.js` ending on `/compress/` - belongs under `e2e/`
    instead of a tool's own `e2e/` folder (DEBT-01).
+8. **Nothing under `src/`, `public/` or `e2e/` may import from `scripts/`** (ARCH-22). A script is
+   dev-only real estate: CI checkers, build-time generators, content research tooling, none of it
+   ships. App source depending on it would mean the shipped app depends on files a build never
+   bundles, and a script could be deleted or rewritten without a single product test noticing. Like
+   rule 6, this holds at zero violations with no allowlist, and deliberately covers test files too -
+   the known violation today is `src/test/editorDependencyDirectionsExceptions.test.js`, which
+   imports `staleExceptions()` from `scripts/check-editor-dependency-directions.mjs`. Rules 1-7 only
+   ever needed to walk `src/`; rule 8's own pass (`scriptsImportViolations()`) also walks `public/`
+   and `e2e/`, since either could gain a real edge into `scripts/` that a `src/`-only walk would miss.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these seven rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these eight rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
 never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,
 `specRouteViolation()`) rather than an edge in the same import graph, since it scans spec text for
-route mentions instead of import specifiers.
+route mentions instead of import specifiers; rule 8 is likewise separate (`scriptsImportViolations()`,
+`scriptsImportViolation()`), since it walks `public/` and `e2e/` in addition to `src/`.
 
 **DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
 `src/i18n/toolMessages.ts` - an `editor -> site-i18n` edge none of the seven rules above actually
