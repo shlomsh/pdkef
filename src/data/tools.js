@@ -48,7 +48,7 @@ export const tools = [
     toolName: 'Sign & Fill PDF',
     h1: 'Sign PDF Online Free: Fill & Sign Forms',
     subhead:
-      'Fill out and sign a PDF on your phone or computer without printing or scanning. Add text, check marks, and a signature to a school form, application, or WhatsApp attachment. Type in 20 languages and scripts, Hebrew, Arabic, Hindi, Bengali, Tamil and Thai among them, and tap a printed row of boxes to fill it one letter per box. Free, open source, and your document stays on your device.',
+      'Fill out and sign a PDF on your phone or computer, no printing or scanning. Add text, check marks, and a signature in 20 languages and scripts, Hebrew, Arabic, Hindi and Thai among them, or fill a printed row of boxes one letter per box. Free, open source, and your document stays on your device.',
     ariaLabel: 'PDF sign tool',
     aboutHeading: 'How to fill and sign PDF files',
     aboutLead:
