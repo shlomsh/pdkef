@@ -33,8 +33,15 @@ the ground of every page read as one colour), `--color-surface #ffffff`, `--colo
 buttons, focus rings and borders, with `--color-primary-text #006e6e` as the readable foreground form
 for links and `currentColor` controls (never the surface token as text); `--color-success #5c7a3a`
 (hover `#4a632f`, soft `#ebffd8`), `--color-danger #b84c58` (soft `#fcf1f3`), both retuned for the teal
-base. The home dock is `--color-primary` with `--color-surface` labels: the first screen's bottom edge in
-the same ink as the On-device chip at its top.
+base. `--color-citron #efffa6` (ink `--color-citron-ink #4f6c2d`) is the palette's one warm accent: a
+stroke under a heading's lead phrase and the Redact tile's fill, never a ground and never a toolbar
+button fill, where it read as too bold (QUAL-13). The home dock is `--color-primary` with
+`--color-surface` labels: the first screen's bottom edge in the same ink as the On-device chip at its
+top.
+
+Every tool page carries the home hero's gradient on `.tool-stage` (`ToolPageLayout.astro`), in pixel
+stops tuned so the fade finishes by where the tool card begins and stays mint below it, and strokes its
+`h1Accent` phrase (`src/data/tools.js`) in citron the same way the home hero strokes its own (QUAL-13).
 
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update

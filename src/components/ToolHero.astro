@@ -15,8 +15,29 @@ interface Props {
    * block below for why this is a separate gate from `condensable`. Defaults
    * to false so every tool but merge renders exactly as before. */
   phoneCondensed?: boolean;
+  /** QUAL-13: the promise phrase within `title` that gets the hero's citron
+   * stroke (see src/data/tools.js's h1Accent comment). Unlike the home
+   * hero's h1Accent (src/data/homeContent.js), this one is not required to
+   * be a trailing substring - several tools' strongest promise sits before
+   * a colon. Rendered only when it is an exact, single occurrence inside
+   * `title`; a missing, mismatched, or repeated value falls back to the
+   * plain title rather than risking a wrong split - this is also what a
+   * localized edition with no h1Accent field gets today, so a Hebrew page
+   * renders correctly with no stroke rather than erroring. */
+  h1Accent?: string;
 }
-const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false } = Astro.props;
+const { icon: Icon, title, subhead, slug, condensable, phoneCondensed = false, h1Accent } = Astro.props;
+
+// Split `title` around `h1Accent` for the citron-stroke span below. Checking
+// for a second occurrence (not just the first) is what keeps this safe for a
+// short, generic accent like "Free" that could in principle appear twice -
+// rendering unchanged is always safer than guessing which occurrence was
+// meant. titleBefore + h1Accent + titleAfter reassembles to exactly `title`,
+// so the <h1>'s textContent stays byte for byte what SEO tests expect.
+const accentIndex = h1Accent ? title.indexOf(h1Accent) : -1;
+const hasAccent = accentIndex !== -1 && title.indexOf(h1Accent!, accentIndex + 1) === -1;
+const titleBefore = hasAccent ? title.slice(0, accentIndex) : title;
+const titleAfter = hasAccent ? title.slice(accentIndex + h1Accent!.length) : '';
 
 // The three gradient/text-color pairs used to be three separate arbitrary-value
 // Tailwind class strings (`bg-[linear-gradient(...)]` plus a `text-[var(...)]`
@@ -48,7 +69,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>
       <Icon class="h-[55%] w-[55%]" size={28} strokeWidth={1.5} />
     </div>
-    <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{title}</h1>
+    <h1 class="mt-0 mb-0 text-start text-[length:var(--hero-title)] leading-[1.1]">{hasAccent ? <>{titleBefore}<span>{h1Accent}</span>{titleAfter}</> : title}</h1>
   </div>
   <p data-hero-sub class="type-lead mx-auto max-w-[44rem] min-[1024px]:col-span-2 min-[1024px]:row-start-2 min-[1024px]:mx-0 min-[1024px]:ms-[var(--hero-indent)] min-[1024px]:mt-2 min-[1024px]:text-start">
     {subhead.split(/(?<=\. )/).map((sentence) => <span data-hero-sentence>{sentence}</span>)}
@@ -72,6 +93,26 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   .tool-hero-icon[data-tone='redact'] {
     background-image: linear-gradient(150deg, var(--color-surface), var(--color-success-soft));
     color: var(--color-success);
+  }
+
+  /* QUAL-13: the tool hero's own citron stroke - see ToolHero's h1Accent prop
+     above for how the phrase is chosen and split. The home hero draws its
+     stroke with a rotated `::before` behind the text (HomePageLayout.astro's
+     `.hero-header h1 span`/`::before`), which only works for a single,
+     `nowrap` phrase. An accent here can be a translated or longer phrase
+     that wraps at a narrow width ("in Your Browser" on /merge/ at 390px
+     wraps at the largest phone hero size), so the stroke is a background
+     band drawn behind the text instead: `box-decoration-break: clone` makes
+     it restart on each wrapped fragment rather than stretching across the
+     gap between lines the way a single `::before` would. */
+  .tool-hero h1 span {
+    color: var(--color-primary-text);
+    background-image: linear-gradient(var(--color-citron), var(--color-citron));
+    background-size: 100% 0.42em;
+    background-position: 0 92%;
+    background-repeat: no-repeat;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
 
   /* MERGE-06: a phone-only fold-away, separate from the condensable gates
