@@ -128,3 +128,7 @@ scheduler behaviour. The 10-08 read should treat `/unlock/` as the only clean co
 The staleness script now flags five pages stale by one to five days (post-crawl edits from the MEM-03,
 MERGE and Split commits of 09-13 to 09-15). That is edit-faster-than-crawl churn on pages Google now
 visits every few days, not the two-month starvation this ticket is about; none of them is resubmitted.
+
+## Addendum 2026-09-19: the clean control is gone
+
+SEO-36 edited `/unlock/` (description, subhead, FAQ) on 2026-09-19, on Shlomi's call that the page receives no traffic. No indexing request was made, so its crawl date still tells whether Google visits unrequested, but a content change is now on the page; read the 10-08 crawl date with that in mind.

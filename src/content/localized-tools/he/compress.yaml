@@ -18,7 +18,8 @@ reviewNotes: >-
   English gained reduce/shrink/resize vocabulary and two FAQ entries
   (SEO-33); Hebrew wording unchanged; re-reviewed and approved by Shlomi on
   the deployed site the same day.
-sourceHash: 'fnv1a64:0fc2eb8105152ecb'
+  2026-09-19: the English subhead closer was aligned to the shared one and the upload FAQ reworded without intensifiers (SEO-36); Hebrew wording unchanged, pending Shlomi's review; sourceHash refreshed mechanically.
+sourceHash: 'fnv1a64:4d14c04ff51ee56a'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
   כווצו קובץ PDF ל-100KB בחינם, ישירות בדפדפן. גם דחיסת PDF וגם הקטנת קובץ

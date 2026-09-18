@@ -91,11 +91,11 @@ reviewedAt: '2026-09-17'
 reviewNotes: >-
   Hebrew copy drafted by Claude Sonnet 5 per
   docs/home-page-localization-plan.md section 7, read through by Shlomi on the
-  rendered page. 2026-09-12 (SEO-34): English title, description, subhead and
-  faq retargeted to "pdf tools"; re-approved by Shlomi on the deployed site.
-  2026-09-15 (MEM-03): draftPersistence paragraph/availability re-translated,
-  not yet re-reviewed. 2026-09-17: subhead now mirrors the English (order,
-  המרה, עשרה כלי PDF) and says איחוד, the merge synonym LOC-03 found ranking;
-  wording chosen by Shlomi. 2026-09-18: hash bumped, English-only
-  headingStroke field; Hebrew unchanged.
-sourceHash: 'fnv1a64:f81eac172c5e4d06'
+  rendered page. 09-12 (SEO-34): English retargeted to "pdf tools";
+  re-approved on the deployed site. 09-15 (MEM-03): draftPersistence
+  re-translated, not yet re-reviewed. 09-17: subhead mirrors the English and
+  says איחוד; wording chosen by Shlomi. 09-18: hash bumped for the
+  English-only headingStroke field. 09-19 (SEO-36): English description,
+  founder pill and privacy kicker reworded; Hebrew unchanged, pending review;
+  hash refreshed mechanically.
+sourceHash: 'fnv1a64:4dcb8e973cace7dd'

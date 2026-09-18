@@ -74,3 +74,7 @@ Shipped and indexing requested; nothing left to build. The remaining work is rea
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+## Addendum 2026-09-19: h1 shortened, extract words kept
+
+SEO-36 changed the `/split/` h1 to "Split PDF Online Free: Extract Pages" (dropped "in Your Browser"), added the shared subhead closer and reworded the upload FAQ answer. The extract vocabulary this ticket reads on is unchanged.

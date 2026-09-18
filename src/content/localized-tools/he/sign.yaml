@@ -26,15 +26,14 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11: reviewed the rendered page (desktop and mobile, RTL,
-  editor-stays-English notice) and approved wording, terminology and
-  typography for publish. 2026-09-12: re-approved on the rendered preview
-  after the eleven FONT-08 font landings and the Turkish/Vietnamese copy
-  fix. The English edits were confined to languages-card notes (not hashed)
-  and to FAQ answers outside this page's translated subset (Hindi/Marathi,
-  Vietnamese, Bengali, Turkish, Cyrillic/Thai); nothing this page renders
-  changed. Hash recomputed once on the merged tree, not per font.
-sourceHash: 'fnv1a64:90788668f9271e4b'
+  2026-09-11: rendered page (desktop, mobile, RTL, editor-stays-English
+  notice) approved for publish. 09-12: re-approved after the FONT-08 font
+  landings and the Turkish/Vietnamese copy fix; the English edits were in
+  unhashed languages-card notes and untranslated FAQ answers, nothing this
+  page renders changed; hash recomputed once on the merged tree. 09-19:
+  English h1 dropped "in Your Browser" (SEO-36); Hebrew unchanged, pending
+  Shlomi's review; sourceHash refreshed mechanically.
+sourceHash: 'fnv1a64:f00ce1ccee6716de'
 seoTitle: 'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'
 seoDescription: >-
   חתמו על PDF באייפון, אנדרואיד או במחשב בחינם. הוסיפו טקסט, סימוני וי

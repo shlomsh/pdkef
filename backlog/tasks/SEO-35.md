@@ -79,3 +79,7 @@ carries both senses), and `reviewNotes` records that pending Shlomi's review. No
 made, per the acceptance section above.
 
 *2026-09-12:* deployed; no indexing request, per the SEO-28 control. `/he/merge/` re-reviewed and approved by Shlomi on the deployed site.
+
+## Addendum 2026-09-19: one more change on merge, not an expansion
+
+SEO-36 changed the `/merge/` h1 to "Merge or Combine PDF Files Online Free" (dropped "In Your Browser", title untouched, combine kept), added the shared subhead closer, and reworded the description and upload FAQ answer. No new content, no indexing request.
