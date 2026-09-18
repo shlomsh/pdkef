@@ -25,12 +25,19 @@
 //              file's own comment above protects against. Widening on it is
 //              cheap and correct; skipping the test that reads it is not.
 //
-// `fonts` (whether the 27 font screening guards must run) used to live here
+// `fonts` (whether the 25 font screening guards must run) used to live here
 // as a hand-kept list of glob patterns (`FONT_GUARD_INPUTS`). ARCH-20 retired
-// that list: `scripts/affected-scope.mjs`'s `fonts` project - a real Nx
-// project graph over `public/fonts/`, `src/editor/`, `src/lib/` and
-// `tool-sign`, not a second hand-maintained regex table - answers that
-// question now, for both CI and `npm run test:e2e`.
+// that list in favour of asking Nx whether `scripts/affected-scope.mjs`'s
+// `fonts` project (`public/fonts/`, `src/editor/`, `src/lib/`, `tool-sign`)
+// was affected; ARCH-23 (2026-09-18) found that whole-project edge ran all
+// the guards on any Sign/Redact UI change for zero coverage benefit, so
+// `affected-scope.mjs` now decides `fonts` with its own small file-glob
+// (`matchesFontsGlob`) instead of the Nx-affected verdict - see that
+// function's own comment. The two guards that exercise the real export
+// pipeline moved to a separate `export-guards` project, which still keeps a
+// coarse Nx dependency on `editor`/`lib`/`tool-sign` on purpose. Either way,
+// this file never decided `fonts` itself; it only supplies the base
+// resolution and changed-file list both scripts share.
 //
 // Fails open: when the base cannot be resolved (first push of a branch, a
 // force-push, no origin/main locally), nothing is docs-only.

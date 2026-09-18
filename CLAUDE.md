@@ -36,7 +36,7 @@ npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
 npm run check:fast        # the iteration loop: source guards, unit tests for what changed, typecheck (~20s)
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
-npm run test:e2e          # build + product e2e + font guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
+npm run test:e2e          # build + product e2e + font guards + export guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
 npm run test:e2e:product  # the product specs against the current dist/ (~45s on 4 workers), unconditionally
 npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI narrows them the same way
 ```
