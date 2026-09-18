@@ -116,6 +116,16 @@ export interface TextElement extends ElementBase {
    */
   combCells?: number;
   /**
+   * A printed field's span, for a box placed on a detected free-text cell
+   * (MOBI-11): the box is at least this wide, so it fills the cell from edge
+   * to edge and its text aligns inside it - left for LTR, right for RTL -
+   * the way a value written into a form's box does. Deliberately not `width`,
+   * which is what makes a box a comb; this box lays its text out as plain
+   * text and grows past the span if more is typed than fits, exactly as a
+   * free box grows. Absent on a box placed by hand.
+   */
+  minWidth?: number;
+  /**
    * Set only on a box created by the 'date' tool: which of `dateFormat.ts`'s
    * `DateFormatId`s `text` was last rendered in, kept as a plain string here
    * (this model has no dependency on `editor/text/`) so a format switch

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   baselineDropEm,
-  cellAnchorPoint,
   cellRegionAt,
   checkboxRegionAt,
   combFontSize,
   combRegionAt,
   placeCombOnRegion,
+  placeTextOnCell,
   type CombRegion,
   type FieldRegion,
 } from './combPlacement.ts';
@@ -103,31 +103,27 @@ describe('cellRegionAt', () => {
   });
 });
 
-describe('cellAnchorPoint', () => {
-  // The "Status" cell on an e-ticket, as the detector reports it.
+describe('placeTextOnCell', () => {
+  // The "Status" cell on an e-ticket, as the detector reports it, and a 12pt
+  // box's height on that page (~2% of it).
   const cell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
+  const textHeight = 2;
 
-  it('anchors LTR text on the cell\'s left edge, vertically on its middle', () => {
-    // `left` is the box's anchored edge, not its centre: the middle of the
-    // cell (43) is where the old placement put the box's left edge, hanging
-    // the rest of the box out over the next column.
-    expect(cellAnchorPoint(cell, 'ltr')).toEqual({ left: 30, top: 28.7 });
+  it('puts the box on the cell\'s left edge, centred on its middle, spanning its width', () => {
+    // top: the cell's middle (28.7) less half the box's height, the same
+    // re-centring a raw tap gets. `left` is the physical left edge whichever
+    // way the text will read - a box with a span has no growing edge to
+    // anchor - and not the cell's middle (43), which used to hang the box's
+    // right half out over the next column.
+    expect(placeTextOnCell(cell, textHeight)).toEqual({ left: 30, top: 27.7, minWidth: 26 });
   });
 
-  it('anchors RTL text on the cell\'s right edge, so Hebrew grows into the cell', () => {
-    // An RTL box's `left` is its right edge (DraggableWrapper anchors it via
-    // CSS `right`), so the cell's right edge is where the first letter goes.
-    expect(cellAnchorPoint(cell, 'rtl')).toEqual({ left: 56, top: 28.7 });
+  it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {
+    expect(placeTextOnCell(cell, textHeight)).not.toHaveProperty('width');
   });
 
-  it('defaults to the LTR edge when no direction has been predicted yet', () => {
-    expect(cellAnchorPoint(cell)).toEqual(cellAnchorPoint(cell, 'ltr'));
-  });
-
-  it('never returns the cell\'s middle as the anchored edge', () => {
-    const middle = cell.left + cell.width / 2;
-    expect(cellAnchorPoint(cell, 'ltr').left).not.toBe(middle);
-    expect(cellAnchorPoint(cell, 'rtl').left).not.toBe(middle);
+  it('never lifts the box off the top of the page', () => {
+    expect(placeTextOnCell({ ...cell, top: 0.2 }, textHeight).top).toBe(0);
   });
 });
 

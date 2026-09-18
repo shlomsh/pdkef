@@ -302,7 +302,7 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
 });
 
 // ---------------------------------------------------------------------------
-// MOBI-11 — free-text cells: snap the tap to the cell's start edge, never `width`
+// MOBI-11 — free-text cells: snap the tap to the cell's span (minWidth), never `width`
 // ---------------------------------------------------------------------------
 
 describe('useWorkspaceGestures – detected free-text cell snapping', () => {
@@ -312,26 +312,26 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
   // distinguishable from the box merely landing near the tap.
   const nameCell = { pageIndex: 0, left: 44, top: 44, width: 20, height: 20 };
 
-  it('anchors a new LTR text box on the cell\'s left edge instead of the raw tap point', () => {
+  it('puts a new text box on the cell\'s left edge, spanning the cell, instead of at the raw tap point', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
       formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const added = firstAddElement(dispatch);
-    // `left` is the box's anchored (start) edge, so it goes on the cell's
-    // left edge - not its middle (54), which used to hang the box's right
-    // half out over the next column.
+    // `left` is the box's left edge, so it goes on the cell's left edge - not
+    // its middle (54), which used to hang the box's right half out over the
+    // next column - and the cell's span becomes the box's minimum width, so
+    // its right end lands on the cell's right edge too.
     expect(added.left).toBeCloseTo(nameCell.left, 5);
+    expect(added.minWidth).toBeCloseTo(nameCell.width, 5);
     // top is the cell's vertical centre, minus half the box's own natural
     // height (the same textHeight/2 a raw tap at that point would use).
     expect(added.top).toBeGreaterThan(nameCell.top);
     expect(added.top).toBeLessThan(nameCell.top + nameCell.height);
   });
 
-  it('anchors on the cell\'s right edge when the predicted direction is RTL', () => {
-    // An RTL box's `left` is its right edge (DraggableWrapper anchors it via
-    // CSS `right`), so Hebrew typed into it grows leftward into the cell.
+  it('places the box the same way whatever direction is predicted - the span has no anchored edge', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
       initialDirection: 'rtl',
@@ -339,7 +339,8 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const added = firstAddElement(dispatch);
-    expect(added.left).toBeCloseTo(nameCell.left + nameCell.width, 5);
+    expect(added.left).toBeCloseTo(nameCell.left, 5);
+    expect(added.minWidth).toBeCloseTo(nameCell.width, 5);
     expect(added.textDirection).toBe('rtl');
   });
 
@@ -574,7 +575,7 @@ describe('useWorkspaceGestures – date tool', () => {
     expect(added.text).toBe(formatDate(todayIso, 'locale')); // still prefilled
   });
 
-  it('anchors on a detected free-text cell the same way the text tool does', () => {
+  it('fills a detected free-text cell the same way the text tool does', () => {
     const dateCell = { pageIndex: 0, left: 44, top: 44, width: 20, height: 20 };
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'date',
@@ -582,7 +583,8 @@ describe('useWorkspaceGestures – date tool', () => {
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const added = firstAddElement(dispatch);
-    expect(added.left).toBeCloseTo(dateCell.left, 5); // the cell's start edge, not its middle
+    expect(added.left).toBeCloseTo(dateCell.left, 5); // the cell's left edge, not its middle
+    expect(added.minWidth).toBeCloseTo(dateCell.width, 5);
     expect(added.width).toBeUndefined(); // never a comb
     expect(added.text).toBe(formatDate(todayIso, 'locale'));
   });

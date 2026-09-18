@@ -146,6 +146,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         data-editor-text-display
         data-text-part="display"
         data-comb={comb ? 'on' : undefined}
+        data-span={!comb && element.minWidth ? 'field' : undefined}
         style={{ fontSize: `${textFontSize}px`, '--text-pad-em': `${textPaddingEm}em` }}
         onDblClick={onBeginEdit}
       >

@@ -104,7 +104,7 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   if (isComb(element)) {
     const widthPoints = ((element.width || 0) / 100) * pdfWidth;
     const cellCount = combCellCount(element);
-    // A comb's span is fixed (see DraggableWrapper's hasFixedSpan), so its
+    // A comb's span is fixed (see signHelpers' textAnchorsRightEdge), so its
     // left edge is `element.left` whichever way the text reads; only the cell
     // order mirrors, which combCellCenterFraction owns.
     const boxLeft = pdfX;
@@ -124,9 +124,8 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   }
 
   const paragraphDirection: BidiDirection = isRtl ? 'rtl' : 'ltr';
-  textValue.split(/\r?\n/).forEach((rawLine, lineIndex) => {
+  const measured = textValue.split(/\r?\n/).map((rawLine) => {
     const line = normalizeTabsForBidi(rawLine);
-    const y = baselineAdjustedY - lineIndex * lineHeight;
     // Each bidi run is shaped whole, spaces included. The editor's textarea is
     // DOM layout, and Blink shapes a DOM text run in one HarfBuzz call, so a
     // kern pair that spans a space (Arimo's `space + A/T/V/Y` and their Greek
@@ -143,16 +142,32 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
     const runWidths = runs.map((run) => shapedWidth(resolvedFont, run.text, fontSizeInPoints, run.direction));
     if (runWidths.some((runWidth) => runWidth === null)) {
       const fallbackLine = stripInvisibleFormatting(line);
-      const width = resolvedFont.widthOfTextAtSize(fallbackLine, fontSizeInPoints);
-      page.drawText(fallbackLine, { x: isRtl ? pdfX - width : pdfX, y, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
-      return;
+      return { fallbackLine, lineWidth: resolvedFont.widthOfTextAtSize(fallbackLine, fontSizeInPoints), runs, runWidths: [] as number[] };
     }
     const lineWidth = (runWidths as number[]).reduce((sum, runWidth) => sum + runWidth, 0);
-    let pen = isRtl ? pdfX - lineWidth : pdfX;
+    return { fallbackLine: null, lineWidth, runs, runWidths: runWidths as number[] };
+  });
+
+  // Where an RTL line's right end sits. A free RTL box anchors its right edge
+  // on `left` (DraggableWrapper's `right: 100 - left`), so the line ends at
+  // pdfX. A box on a detected form cell (`minWidth`, editorModel.ts) is
+  // left-anchored like a comb and at least the cell wide, growing past it
+  // only when a line outgrows it - so its right end is the wider of the two,
+  // exactly as the wrapper's `min-width` resolves on screen.
+  const widestLine = Math.max(0, ...measured.map((line) => line.lineWidth));
+  const spanPoints = element.minWidth ? (element.minWidth / 100) * pdfWidth : 0;
+  const rtlRightEdge = element.minWidth ? pdfX + Math.max(spanPoints, widestLine) : pdfX;
+
+  measured.forEach(({ fallbackLine, lineWidth, runs, runWidths }, lineIndex) => {
+    const y = baselineAdjustedY - lineIndex * lineHeight;
+    if (fallbackLine !== null) {
+      page.drawText(fallbackLine, { x: isRtl ? rtlRightEdge - lineWidth : pdfX, y, size: fontSizeInPoints, font: resolvedFont, color: rgb(r, g, b) });
+      return;
+    }
+    let pen = isRtl ? rtlRightEdge - lineWidth : pdfX;
     runs.forEach((run, runIndex) => {
-      const runWidth = runWidths[runIndex] as number;
       drawShapedRun(page, { text: run.text, pdfFont: resolvedFont, size: fontSizeInPoints, x: pen, y, color: rgb(r, g, b), direction: run.direction });
-      pen += runWidth;
+      pen += runWidths[runIndex];
     });
   });
 }
