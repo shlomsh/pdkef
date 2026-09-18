@@ -118,6 +118,12 @@
   --color-highlight: #5c7a3a;
   --color-highlight-hover: #4a632f;
   --color-highlight-soft: #ebffd8;
+  /* Citron: the palette's one warm accent, a stroke under a heading's lead
+     phrase and the Redact tile's fill. It is an accent, never a ground and
+     never a button fill in a toolbar row, where it read as too bold. The home
+     page's --home-citron aliases these two. */
+  --color-citron: #efffa6;
+  --color-citron-ink: #4f6c2d;
   --color-surface-soft: rgba(0, 0, 0, 0.02);
 
   /* MERGE-18: per-file tag colour, cycled across up to six files at once
