@@ -1,7 +1,7 @@
 ---
 id: "SEO-36"
 title: "One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "english-base"
 phase: "near-term"
@@ -139,8 +139,8 @@ re-read of the four Hebrew pages is pending.** Two Hebrew strings now diverge fr
 and are his call: `/he/merge/`'s h1 still says ישירות בדפדפן, and the Hebrew upload FAQ answers still
 lead with "רץ כולו בדפדפן".
 
-**Not done, still open here:** the airplane-mode line on the other eight tool pages, and a never-say
-guard in CI. No indexing request: the three never-crawled pages already spent theirs, the rest are
+**Follow-ups split to [SEO-37](SEO-37.md):** the airplane-mode line on the other eight tool pages,
+and a never-say guard in CI. No indexing request: the three never-crawled pages already spent theirs, the rest are
 under a read (addenda dated 2026-09-19 on SEO-05, 07, 09, 28, 33, 35).
 
 Checks: the full `ci.yml` chain through `test:weight` green on the worktree (3025 unit tests, 42 pages
@@ -160,3 +160,10 @@ misread: it reported merge's subhead without the closer; the closer is there. On
 deliberate choice: eight pages now share a byte-identical upload answer, which the skill's content
 guidance flags as a thin-content marker; the per-page nouns and examples are the variation, and the
 identical sentence is the point, one fact said one way.
+
+## Outcome
+
+Landed on `main` at `4927ca97` on 2026-09-19, Vercel auto-deploy. Ten tool pages and the hero say
+the privacy claim one way each; no intensifier or never-say phrase remains in `tools.js` or
+`homeContent.js`. Open elsewhere: Shlomi's re-read of the four Hebrew pages (LOC-03's domain), the
+2026-10-08 reads that now carry this change as a variable, and SEO-37 for the proof line and the guard.
