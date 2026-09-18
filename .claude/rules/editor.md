@@ -142,9 +142,20 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   line stacks above it; sharing the line once cost 256px and ellipsised every label on a 1512px
   MacBook Pro) and nothing in the row may shrink: a button shows its whole label, drops to the icon at
   a container threshold, or the row wraps. Ellipsis is always a bug and hides itself (the row still
-  measures as fitting). `data-label-priority` drops Undo/Full screen/Replace first, this app's own
-  vocabulary (Text, Symbols, Shapes, Whiteout, Sign) last, Download/Share never; do not renumber it
-  on the "learned by icon" argument.
+  measures as fitting). `data-label-priority` drops in three tiers: Undo/Full screen first (icons
+  everyone already knows), Feedback/Replace next (a next-step convenience and a once-per-session
+  finishing action, not app vocabulary), this app's own vocabulary (Text, Date, Symbols, Shapes,
+  Whiteout, Sign) last, Download/Share never; do not renumber it on the "learned by icon" argument.
+  The tiers' thresholds are measured, not guessed (SIGN-29, 2026-09-18): Sign fully labelled is wider
+  than the toolbar box's own plateau whenever Share exists, so tier 1 is always engaged, and dropping
+  tier 1 alone still doesn't fit the plateau, so tier 2 stays engaged there too - only tier 3 (the
+  vocabulary) reacts to the box actually narrowing, toward the 920px floor. Re-measure in a real
+  browser before trusting a stale figure here.
+- Sign's own toolbar order leads with Sign, the tool the page is named for, then its vocabulary
+  (Text, Date, Symbols, Shapes, Whiteout), then Undo beside the work it undoes, then the chrome group
+  (view density, full screen, Feedback), then Replace with the other finishing action, then export at
+  the far edge - one kind of thing per group, not one priority tier per group. Redact's own order is
+  unchanged: it already led with Blur, its named tool, since f48fcbd8.
 
 ## pdf.js render direction
 

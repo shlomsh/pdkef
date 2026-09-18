@@ -265,185 +265,19 @@ export default function SignToolbar({
     <>
       <ToolShell editor status={statusLine}>
         <div className={styles.toolbar} role="toolbar" aria-label={t.toolbarLabel} dir={t.dir} lang={t.lang}>
-          <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
-            <button
-              type="button"
-              className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
-              onClick={armTool('text')}
-              aria-pressed={selectedTool === 'text'}
-              data-label-priority="2"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="4 7 4 4 20 4 20 7" />
-                <line x1="9" y1="20" x2="15" y2="20" />
-                <line x1="12" y1="4" x2="12" y2="20" />
-              </svg>
-              <span className={styles.label}>{t.textButton}</span>
-            </button>
-          </ArmHint>
-
-          <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
-            <button
-              type="button"
-              className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
-              onClick={armTool('date')}
-              aria-pressed={selectedTool === 'date'}
-              data-label-priority="2"
-              // Optional at the same extreme-narrow band as Feedback
-              // (SignToolbar.module.css's [data-optional-control] rule),
-              // unlike a real document-editing tool this pattern is normally
-              // never applied to: unlike Feedback, hiding this loses only the
-              // dedicated shortcut, not the capability - today's date is still
-              // one tap away via the Text tool's own insert-date control
-              // (ElementToolbar.tsx), which never leaves the toolbar. See that
-              // CSS rule's comment for why hiding a document-editing control
-              // is normally off the table.
-              data-optional-control="date"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span className={styles.label}>{t.dateButton}</span>
-            </button>
-          </ArmHint>
-
-          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
-            <button
-              type="button"
-              className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
-              onClick={armTool('symbol')}
-              aria-pressed={selectedTool === 'symbol'}
-              data-label-priority="2"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <span className={styles.label}>{t.symbolsButton}</span>
-            </button>
-          </ArmHint>
-
-          {/* placement="bottom-start". A dropdown drops down - and it is the
-              only surface here that does, which is what lets it coexist with
-              ArmHint's tooltip rather than take turns with it: the tooltip
-              opens upward, this opens downward, so both can be on screen at
-              once and neither has to be suppressed. (Suppressing was tried,
-              and it silently cost these two buttons their tooltip altogether,
-              because the menu opens on the very hover the tooltip waits on.)
-
-              Start-aligned, not centered. Centering was the old behaviour, on
-              the argument that these buttons stretch to fill the row (`.toolbar
-              > * { flex: 1 1 auto }`) while their icon and label stay centered
-              inside, so start-aligning anchored the menu to an empty left edge
-              rather than to visible content. That held while the menu was the
-              narrower of the two, and stopped holding once the menu grew wider
-              than the button: centering a wider box on a narrower one makes it
-              overhang on both sides and line up with nothing. A shared edge is
-              legible at any relative width; a shared centre is not. */}
-          {/* ArmHint wraps this outer div, not the button Popover clones below:
-              Popover already clones that button to attach its own Floating UI
-              reference (for the Shapes menu itself), and a second, independent
-              clone-and-ref from ArmHint needs a DOM node of its own to attach
-              to - the div is already position:relative and already sized to
-              match the button exactly (`.toolbar .dropdown > .button { width:
-              100% }`), so anchoring here costs nothing visually. */}
-          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
-            <div
-              className={styles.dropdown}
-              onMouseEnter={openShapes}
-              onMouseLeave={scheduleCloseShapes}
-              onDblClick={lockShape}
-            >
-              <Popover
-                open={showShapesDropdown}
-                onOpenChange={setShowShapesDropdown}
-                placement="bottom-start"
-                trigger={
-                  <button
-                    type="button"
-                    className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
-                    aria-pressed={isShapeTool(selectedTool)}
-                    data-label-priority="2"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 3l4 7H8z" />
-                      <circle cx="7" cy="17" r="4" />
-                      <rect x="13" y="13" width="8" height="8" rx="1" />
-                    </svg>
-                    <span className={`${styles.label} ${styles['shapes-label']}`}>
-                      {t.shapesButton}
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </span>
-                  </button>
-                }
-                content={
-                <div 
-                  className={`${controlStyles.popover} ${controlStyles['shapes-menu']}`}
-                  role="menu"
-                  onMouseEnter={openShapes}
-                  onMouseLeave={scheduleCloseShapes}
-                >
-                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('ellipse')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <ellipse cx="12" cy="12" rx="10" ry="7" />
-                      </svg>
-                      {t.ellipseLabel}
-                    </button>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('rectangle')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <rect x="3" y="6" width="18" height="12" rx="2" />
-                      </svg>
-                      {t.rectangleLabel}
-                    </button>
-                    <button
-                      type="button"
-                      className={controlStyles['menu-item']}
-                      onClick={() => chooseShape('line')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                        <line x1="4" y1="20" x2="20" y2="4" />
-                      </svg>
-                      {t.lineLabel}
-                    </button>
-                  </div>
-                </div>
-              }
-            />
-            </div>
-          </ArmHint>
-
-          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
-            <button
-              type="button"
-              className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
-              onClick={armTool('whiteout')}
-              data-label-priority="2"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                <path d="M22 21H7" />
-                <path d="m13.3 4 5.3 5.3" />
-              </svg>
-              <span className={styles.label}>{t.whiteoutButton}</span>
-            </button>
-          </ArmHint>
-
-          {/* Same wrapping reasoning as Shapes above: ArmHint anchors to the
-              dropdown div, not the button Popover clones. `locked` doubles as
-              "nothing to teach yet" here - before a signature exists, this
+          {/* SIGN-29 (2026-09-18) order: Sign leads because this is the page
+              it is named for (Redact's own order already leads with Blur,
+              its named tool, since f48fcbd8, and stays unchanged here); Text,
+              Date, Symbols, Shapes and Whiteout are this app's own vocabulary
+              and stay grouped together; Undo sits beside the work it undoes;
+              the chrome - view density, full screen, Feedback - groups
+              together next; Replace sits with the other finishing action;
+              export (Share/Download) stays at the far edge. One kind of thing
+              per group, not one priority tier per group - see the >=920px
+              label-drop comment below for the tiers themselves. */}
+          {/* Same wrapping reasoning as the Shapes button below: ArmHint anchors to
+              the dropdown div, not the button Popover clones. `locked` doubles
+              as "nothing to teach yet" here - before a signature exists, this
               button's click opens the create dialog rather than arming
               anything, and ArmHint's own `locked` branch already means "render
               the trigger plain, no hover wiring" for exactly that case, so
@@ -477,7 +311,7 @@ export default function SignToolbar({
                     // showing both would duplicate the description.
                     title={activeSignature ? undefined : t.selectSignatureTitle}
                     aria-pressed={selectedTool === 'signature'}
-                    data-label-priority="2"
+                    data-label-priority="3"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
@@ -542,6 +376,182 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
+          <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('text')}
+              aria-pressed={selectedTool === 'text'}
+              data-label-priority="3"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" y1="20" x2="15" y2="20" />
+                <line x1="12" y1="4" x2="12" y2="20" />
+              </svg>
+              <span className={styles.label}>{t.textButton}</span>
+            </button>
+          </ArmHint>
+
+          <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('date')}
+              aria-pressed={selectedTool === 'date'}
+              data-label-priority="3"
+              // Optional at the same extreme-narrow band as Feedback
+              // (SignToolbar.module.css's [data-optional-control] rule),
+              // unlike a real document-editing tool this pattern is normally
+              // never applied to: unlike Feedback, hiding this loses only the
+              // dedicated shortcut, not the capability - today's date is still
+              // one tap away via the Text tool's own insert-date control
+              // (ElementToolbar.tsx), which never leaves the toolbar. See that
+              // CSS rule's comment for why hiding a document-editing control
+              // is normally off the table.
+              data-optional-control="date"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span className={styles.label}>{t.dateButton}</span>
+            </button>
+          </ArmHint>
+
+          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('symbol')}
+              aria-pressed={selectedTool === 'symbol'}
+              data-label-priority="3"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span className={styles.label}>{t.symbolsButton}</span>
+            </button>
+          </ArmHint>
+
+          {/* placement="bottom-start". A dropdown drops down - and it is the
+              only surface here that does, which is what lets it coexist with
+              ArmHint's tooltip rather than take turns with it: the tooltip
+              opens upward, this opens downward, so both can be on screen at
+              once and neither has to be suppressed. (Suppressing was tried,
+              and it silently cost these two buttons their tooltip altogether,
+              because the menu opens on the very hover the tooltip waits on.)
+
+              Start-aligned, not centered. Centering was the old behaviour, on
+              the argument that these buttons stretch to fill the row (`.toolbar
+              > * { flex: 1 1 auto }`) while their icon and label stay centered
+              inside, so start-aligning anchored the menu to an empty left edge
+              rather than to visible content. That held while the menu was the
+              narrower of the two, and stopped holding once the menu grew wider
+              than the button: centering a wider box on a narrower one makes it
+              overhang on both sides and line up with nothing. A shared edge is
+              legible at any relative width; a shared centre is not. */}
+          {/* ArmHint wraps this outer div, not the button Popover clones below:
+              Popover already clones that button to attach its own Floating UI
+              reference (for the Shapes menu itself), and a second, independent
+              clone-and-ref from ArmHint needs a DOM node of its own to attach
+              to - the div is already position:relative and already sized to
+              match the button exactly (`.toolbar .dropdown > .button { width:
+              100% }`), so anchoring here costs nothing visually. */}
+          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <div
+              className={styles.dropdown}
+              onMouseEnter={openShapes}
+              onMouseLeave={scheduleCloseShapes}
+              onDblClick={lockShape}
+            >
+              <Popover
+                open={showShapesDropdown}
+                onOpenChange={setShowShapesDropdown}
+                placement="bottom-start"
+                trigger={
+                  <button
+                    type="button"
+                    className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                    aria-pressed={isShapeTool(selectedTool)}
+                    data-label-priority="3"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 3l4 7H8z" />
+                      <circle cx="7" cy="17" r="4" />
+                      <rect x="13" y="13" width="8" height="8" rx="1" />
+                    </svg>
+                    <span className={`${styles.label} ${styles['shapes-label']}`}>
+                      {t.shapesButton}
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </button>
+                }
+                content={
+                <div 
+                  className={`${controlStyles.popover} ${controlStyles['shapes-menu']}`}
+                  role="menu"
+                  onMouseEnter={openShapes}
+                  onMouseLeave={scheduleCloseShapes}
+                >
+                  <div className={`${controlStyles['dropdown-list']} ${controlStyles.clean}`}>
+                    <button
+                      type="button"
+                      className={controlStyles['menu-item']}
+                      onClick={() => chooseShape('ellipse')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <ellipse cx="12" cy="12" rx="10" ry="7" />
+                      </svg>
+                      {t.ellipseLabel}
+                    </button>
+                    <button
+                      type="button"
+                      className={controlStyles['menu-item']}
+                      onClick={() => chooseShape('rectangle')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="6" width="18" height="12" rx="2" />
+                      </svg>
+                      {t.rectangleLabel}
+                    </button>
+                    <button
+                      type="button"
+                      className={controlStyles['menu-item']}
+                      onClick={() => chooseShape('line')}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="4" y1="20" x2="20" y2="4" />
+                      </svg>
+                      {t.lineLabel}
+                    </button>
+                  </div>
+                </div>
+              }
+            />
+            </div>
+          </ArmHint>
+
+          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+            <button
+              type="button"
+              className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
+              onClick={armTool('whiteout')}
+              data-label-priority="3"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+                <path d="M22 21H7" />
+                <path d="m13.3 4 5.3 5.3" />
+              </svg>
+              <span className={styles.label}>{t.whiteoutButton}</span>
+            </button>
+          </ArmHint>
+
           <button
             type="button"
             className={styles.button}
@@ -557,17 +567,6 @@ export default function SignToolbar({
             <span className={styles.label}>{t.undoButton}</span>
           </button>
 
-          {/* Editing actions, including Undo, stay together on the left.
-              Contextual controls follow, with Download at the far edge. */}
-          <SignFeedbackButton
-            className={styles.button}
-            labelClassName={styles.label}
-            label={t.feedbackButton}
-            title={t.feedbackTitle}
-            lang={t.lang}
-            dir={t.dir}
-          />
-
           <ViewControl
             isFullscreen={isFullscreen}
             toggleFullscreen={toggleFullscreen}
@@ -580,20 +579,34 @@ export default function SignToolbar({
             }}
           />
 
+          {/* View density/full screen and Feedback are the chrome group, one
+              kind of thing (about the workspace, not the document) beside each
+              other. */}
+          <SignFeedbackButton
+            className={styles.button}
+            labelClassName={styles.label}
+            label={t.feedbackButton}
+            title={t.feedbackTitle}
+            lang={t.lang}
+            dir={t.dir}
+          />
+
           {/* The united file action, in the exact slot Start over used to hold.
               Both meant "I want a different file"; this one says it once and
               actually gets you there. BasePdfTool decides whether swapping the
               file needs confirming - see requestReplace. The label/title text
               reads from the shell's own catalogue (fix from LOC-09 stage 1's
               inventory), the same way ToolShell.tsx's own FileActions() does -
-              only the icon stays FILE_ACTIONS.replace's, since that is not text. */}
+              only the icon stays FILE_ACTIONS.replace's, since that is not text.
+              Sits with export as the other finishing action, one step before
+              Share/Download at the far edge. */}
           <button
             type="button"
             className={`${styles.button} ${styles.highlight}`}
             onClick={requestReplace}
             title={shellMessages.replaceTitle}
             aria-label={shellMessages.replaceLabel}
-            data-label-priority="1"
+            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />

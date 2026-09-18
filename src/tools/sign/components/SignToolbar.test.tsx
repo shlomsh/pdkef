@@ -94,11 +94,18 @@ describe('SignToolbar Component', () => {
     const buttons = container.querySelectorAll<HTMLButtonElement>(`.${styles.button}`);
     expect(buttons.length).toBeGreaterThan(0);
 
+    // SIGN-29 (2026-09-18): Sign leads (it is the tool this page is named
+    // for), then the vocabulary, then Undo beside the work it undoes, then
+    // the chrome group (view density's Full screen fallback here, Feedback
+    // next - see SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 8)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Feedback']);
+    expect(labels.slice(0, 9)).toEqual(['Sign', 'Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Undo', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
-    const textBtn = required(Array.from(buttons).find(b => b.textContent.includes('Text') || b.querySelector('svg')), 'Text button');
+    // Exact-label match, not "contains Text or has an svg": every button here
+    // has an svg, and Sign leading the row (SIGN-29) means the loose form
+    // below used to only work by the coincidence of Text being first.
+    const textBtn = findExactButton(container, 'Text');
     expect(textBtn).not.toBeUndefined();
 
     await act(async () => {
