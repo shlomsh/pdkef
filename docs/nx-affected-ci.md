@@ -133,10 +133,26 @@ never `nx affected -t test`/`-t e2e`.
 `arch-20-prep` found that a project rooted at the repo root itself (`sourceRoot: "."`) gets outgoing
 edges from `@nx/js`'s import inference but zero incoming ones - `site` must live at `src/project.json`
 (`sourceRoot: "src"`), not at the repo root, or nothing can ever depend on it in Nx's own graph. This
-branch keeps `@nx/js` for its import inference (see below), so the placement matters here too: `site`'s `project.json` lives at `src/project.json`, not
-the repo root, so root-level files with no other home (`scripts/`, `docs/`, `backlog/`, `middleware.ts`,
-config files) are claimed by no project - which is exactly what `scripts/affected-scope.mjs`'s "unowned
-file -> everything" rule is built to handle, not a gap to close.
+branch keeps `@nx/js` for its import inference (see below), so the placement matters here too: `site`'s
+`project.json` lives at `src/project.json`, not the repo root.
+
+The trap only ever applied to a project rooted at the repo root itself, never to an ordinary subfolder
+missing a `project.json` - and `scripts/` was the second kind, not the first. When this was first
+written, `scripts/` had no `project.json` at all, so every file under it fell through to
+`scripts/affected-scope.mjs`'s rule 2, "no owner -> everything." That was real: 25% of a measured
+CI window ran everything for touching a `scripts/` file that did nothing runtime could reach, purely
+because nothing claimed the directory. ARCH-22 closed it: `scripts/project.json` (`tooling`) gives the
+directory a normal subfolder project like any other, so a flat `scripts/` file now narrows the same way
+an `editor-ui`-only change does, through rule 5's `unit_paths`. The three subfolders that already had
+their own `project.json` (`scripts/spike/mobi-10/`, `scripts/fixtures/editor-dependency-directions/`,
+`scripts/fonts/`) still win by longest-prefix match, unchanged.
+
+One deliberate exception remains, by design rather than by gap: `scripts/affected-scope.mjs` and
+`scripts/change-scope.mjs` themselves are the CI oracle, so rule 3 forces `everything=true` on any
+change to either file regardless of `tooling` owning them - the same reasoning `CORE_PROJECTS` gives
+for `editor`, never trust a narrowed run to validate the code that decided to narrow it. Their own
+tests (`affected-scope.test.mjs`, `change-scope.test.mjs`) are not part of that list and narrow like
+any other tooling file.
 
 ## `@nx/js` stays, for import inference; the cross-tool tests move to `src/test/cross-tool/`
 

@@ -36,12 +36,22 @@
 //   1. No resolvable base, an `nx` error, or an empty changed-file list ->
 //      everything=true, fonts=true.
 //   2. Any changed file that no Nx project owns (a root config file,
-//      scripts/, patches/, package*.json, .github/, middleware.ts, anything
-//      outside a project root - DOCS_ONLY files excepted, since a docs-only
-//      change never reaches this script's jobs in CI) -> everything=true.
-//      "Owned" is asked of Nx itself (each project's own `root`), never a
-//      second hand-written path list.
-//   3. Any affected project in {site, shell, editor, lib} -> everything=true.
+//      patches/, package*.json, .github/, middleware.ts, anything outside a
+//      project root - DOCS_ONLY files excepted, since a docs-only change
+//      never reaches this script's jobs in CI) -> everything=true. "Owned" is
+//      asked of Nx itself (each project's own `root`), never a second
+//      hand-written path list. ARCH-22 gave `scripts/` itself a project
+//      (`tooling`), so a `scripts/` file is no longer unowned by this rule -
+//      see rule 3 for why the oracle files inside it still force everything.
+//   3. Any changed file is the CI oracle itself (ORACLE_FILES: this script or
+//      change-scope.mjs) -> everything=true. Do not trust a narrowed run to
+//      validate the code that decided to narrow it - the same reasoning
+//      CORE_PROJECTS gives for editor. This is checked separately from
+//      ownership because `tooling` (rule 2) would otherwise let an oracle
+//      change narrow to just `scripts/`. Their own tests
+//      (affected-scope.test.mjs, change-scope.test.mjs) are NOT oracle files
+//      - a test-only change may still narrow.
+//   4. Any affected project in {site, shell, editor, lib} -> everything=true.
 //      Every tool depends on all four, so nothing narrows anyway - this
 //      keeps the mapping trivially correct instead of trying to reason about
 //      which tools a shared-core change could plausibly spare. `editor-ui`
@@ -53,24 +63,25 @@
 //      editor-ui, tool-sign, tool-redact, fonts, cross-tool-tests, site-e2e.
 //      `editor`'s own fate (whether it can leave too) is DEBT-07, after
 //      DEBT-04.
-//   4. Otherwise narrow: unit_paths is each affected tool-<name> project's
+//   5. Otherwise narrow: unit_paths is each affected tool-<name> project's
 //      src/tools/<name>/, plus the root of every other affected project that
 //      is not a tool and not in CORE_PROJECTS (so a narrowed `editor-ui`
-//      change still runs editor-ui's own unit tests, with no hand-written
-//      second list - see the `roots` map in deriveScope), plus src/test/
-//      (its own Nx project is `site-test`; several of its guard tests walk
-//      all of src and must run on any source change, so this is
-//      unconditional, not gated on `site-test` itself being affected).
-//      All of that is sorted alphabetically together, with src/test/ pinned
-//      last regardless (both orders are equally arbitrary; this is just the
-//      one the test pins). e2e_paths is each affected tool's
-//      src/tools/<name>/e2e/ (only the tools that have one) plus site-e2e's
-//      own direct children (e2e/home/, e2e/demo/, ... - never the bare
-//      "e2e/" string: Playwright's CLI path arguments are substring filters
-//      against the whole discovered test list, and "e2e/" is a substring of
-//      every tool's own src/tools/<t>/e2e/*.spec.js path too, which would
-//      silently defeat the narrowing) when site-e2e is affected; fonts is
-//      whether the `fonts` project is affected.
+//      change still runs editor-ui's own unit tests, and a narrowed
+//      `tooling` change runs `scripts/`, with no hand-written second list -
+//      see the `roots` map in deriveScope), plus src/test/ (its own Nx
+//      project is `site-test`; several of its guard tests walk all of src
+//      and must run on any source change, so this is unconditional, not
+//      gated on `site-test` itself being affected). All of that is sorted
+//      alphabetically together, with src/test/ pinned last regardless (both
+//      orders are equally arbitrary; this is just the one the test pins).
+//      e2e_paths is each affected tool's src/tools/<name>/e2e/ (only the
+//      tools that have one) plus site-e2e's own direct children (e2e/home/,
+//      e2e/demo/, ... - never the bare "e2e/" string: Playwright's CLI path
+//      arguments are substring filters against the whole discovered test
+//      list, and "e2e/" is a substring of every tool's own
+//      src/tools/<t>/e2e/*.spec.js path too, which would silently defeat the
+//      narrowing) when site-e2e is affected; fonts is whether the `fonts`
+//      project is affected.
 
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -89,6 +100,14 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 // blanket treatment. `editor` stays for now - DEBT-07 decides its fate,
 // after DEBT-04.
 export const CORE_PROJECTS = new Set(['site', 'shell', 'editor', 'lib']);
+
+// The CI oracle itself. `tooling` (ARCH-22) gives scripts/ a project, so
+// without this a change to the file deciding what to narrow could narrow
+// itself - rule 3 in the header comment forces everything for these two
+// regardless of ownership. Their own tests are deliberately not listed here:
+// scripts/affected-scope.test.mjs and scripts/change-scope.test.mjs may
+// narrow like any other tooling file.
+export const ORACLE_FILES = new Set(['scripts/affected-scope.mjs', 'scripts/change-scope.mjs']);
 
 function nx(args) {
   return execFileSync('npx', ['nx', ...args], {
@@ -182,6 +201,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     return wide(affected, `unowned files: ${unowned.join(', ')}`);
   }
 
+  const oracleFiles = files.filter((f) => ORACLE_FILES.has(f));
+  if (oracleFiles.length > 0) {
+    return wide(affected, `CI oracle changed: ${oracleFiles.join(', ')}`);
+  }
+
   const affectedSet = new Set(affected);
   const wideCore = [...affectedSet].filter((p) => CORE_PROJECTS.has(p));
   if (wideCore.length > 0) {
@@ -192,18 +216,21 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   const toolPaths = toolProjects.map((p) => `src/tools/${toolNameOf(p)}/`);
 
   // Any other affected project (not a tool, not core) whose own root sits
-  // under src/ gets its own root added too, straight from the injected
-  // `roots` map - never a hand-written list - so e.g. an editor-ui-only
-  // change still runs editor-ui's own unit tests (DEBT-06). A root already
-  // covered by the always-present src/test/ below is skipped, not
-  // duplicated: both `cross-tool-tests` (root `src/test/cross-tool`, caught
-  // by the `startsWith` check) and `site-test` itself (root the literal
-  // `src/test`, which `startsWith('src/test/')` does not match - no trailing
-  // slash - so it needs its own equality check, DEBT-04 second pass).
+  // under src/, or is `scripts` or a folder under it (ARCH-22's `tooling`
+  // and its three pre-existing subfolder projects), gets its own root added
+  // too, straight from the injected `roots` map - never a hand-written list
+  // - so e.g. an editor-ui-only change still runs
+  // editor-ui's own unit tests (DEBT-06) and a tooling-only change runs
+  // `scripts/`. A root already covered by the always-present src/test/ below
+  // is skipped, not duplicated: both `cross-tool-tests` (root
+  // `src/test/cross-tool`, caught by the `startsWith` check) and `site-test`
+  // itself (root the literal `src/test`, which `startsWith('src/test/')`
+  // does not match - no trailing slash - so it needs its own equality check,
+  // DEBT-04 second pass).
   const extraPaths = [...affectedSet]
     .filter((p) => !p.startsWith('tool-') && !CORE_PROJECTS.has(p))
     .map((p) => roots.get(p))
-    .filter((root) => root && root.startsWith('src/') && root !== 'src/test' && !root.startsWith('src/test/'))
+    .filter((root) => root && (root.startsWith('src/') || root === 'scripts' || root.startsWith('scripts/')) && root !== 'src/test' && !root.startsWith('src/test/'))
     .map((root) => `${root}/`);
 
   // Sorted together, alphabetically; src/test/ is pinned last regardless of

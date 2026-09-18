@@ -35,6 +35,17 @@ describe('docs-only changes', () => {
     expect(isDocsOnly(file)).toBe(false);
   });
 
+  // ARCH-22: THIRD_PARTY_LICENSES.md is root-level and generated, so it looks
+  // like a candidate for DOCS_ONLY - checked and left out on purpose (see the
+  // header comment): it is never the sole changed file in a real push (its
+  // generators always touch a source file too), and the one case where it
+  // would be - a hand edit no generator produced - is exactly the drift
+  // fontAttribution.test.js exists to catch. Pinned here so a future change
+  // doesn't add it back without re-reading that reasoning.
+  it('THIRD_PARTY_LICENSES.md stays out of DOCS_ONLY on purpose (ARCH-22)', () => {
+    expect(isDocsOnly('THIRD_PARTY_LICENSES.md')).toBe(false);
+  });
+
   it('is docs-only only when every file is docs, and never for an empty change', () => {
     expect(classify(['backlog/tasks/A.md', 'TODO.md']).docs_only).toBe(true);
     expect(classify(['backlog/tasks/A.md', 'src/tools/merge/merge.js']).docs_only).toBe(false);
