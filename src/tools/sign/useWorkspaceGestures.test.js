@@ -353,6 +353,27 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(firstAddElement(dispatch).width).toBeUndefined();
   });
 
+  it('shrinks the font on a short cell instead of overflowing into the row below (the e-ticket "Status" column)', () => {
+    // 1% of the 792pt fallback page height (~7.92pt) - short enough that even
+    // the 12pt default overflows it, let alone a remembered 24pt from a
+    // previous, taller field.
+    // Positioned to actually cover the raw tap point (500, 500 = 50%/50%),
+    // unlike nameCell's generous 20%-tall box above.
+    const statusCell = { pageIndex: 0, left: 44, top: 49.5, width: 12, height: 1 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      initialFontSize: 24,
+      formRegions: { combs: [], checkboxes: [], cells: [statusCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const added = firstAddElement(dispatch);
+    expect(added.fontSize).toBeLessThan(24);
+    // The box's own one-line height, in the same page-percent units as the
+    // cell, must fit inside the row it was placed on.
+    const boxHeightPercent = (added.fontSize * 1.29 / 792) * 100;
+    expect(boxHeightPercent).toBeLessThanOrEqual(statusCell.height + 1e-9);
+  });
+
   it('leaves an unsnapped text box exactly where tapped when no cell is under it', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);

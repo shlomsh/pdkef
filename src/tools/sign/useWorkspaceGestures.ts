@@ -307,9 +307,10 @@ export default function useWorkspaceGestures({
         pageHeightPoints,
       })
       // A free-text cell gives the box the cell's span as `minWidth`, never
-      // `width` - see placeTextOnCell's own docstring for why.
+      // `width`, and its font size cellFontSize's answer rather than
+      // whatever was last used - see placeTextOnCell's own docstring for why.
       : cellRegion
-        ? placeTextOnCell(cellRegion, textHeight)
+        ? placeTextOnCell(cellRegion, { fontSize: initialFontSize, pageHeightPoints })
         : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
           pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
           pageHeightPoints,

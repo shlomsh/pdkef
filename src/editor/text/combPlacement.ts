@@ -3,6 +3,7 @@ import {
   HELVETICA_BASELINE_OFFSET_EM,
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
+  TEXT_BOX_LINE_HEIGHT_EM,
 } from '../../constants/signGeometry.js';
 import {
   FONT_VERTICAL_METRICS,
@@ -174,37 +175,6 @@ export function cellRegionAt(
 }
 
 /**
- * Where a freshly placed text box sits on a detected free-text cell.
- *
- * The box takes the cell's whole span as `minWidth` - never `width`, which
- * is what makes a box a comb (`comb.js`'s `isComb` is derived from `width`
- * alone, see its docstring), so a name typed into it would have snapped one
- * letter per imaginary cell the moment a second letter arrived. With a
- * minimum width instead, the box fills the cell edge to edge, lays its text
- * out as plain text aligned to the reading direction's start edge (the
- * editor's `dir`/`text-align`, the exporter's pen), and grows past the cell
- * only if more is typed than fits - the same way a free box grows.
- *
- * `left` is the cell's left edge whichever way the text reads: a box with a
- * span has no growing edge to anchor (see signHelpers' `textAnchorsRightEdge`),
- * so unlike a free RTL box its `left` is always the physical left. `top` is
- * the cell's middle less half the box's own height, the same re-centring a
- * raw tap gets, so the vertical result is identical to a tap landing exactly
- * on the cell's middle. The box's own padding (`textBoxPaddingEm`) keeps the
- * glyphs off the printed rule, so no extra inset is applied.
- */
-export function placeTextOnCell(
-  region: FieldRegion,
-  textHeight: number,
-): { left: number; top: number; minWidth: number } {
-  return {
-    left: region.left,
-    top: Math.max(0, region.top + region.height / 2 - textHeight / 2),
-    minWidth: region.width,
-  };
-}
-
-/**
  * The largest font size whose characters still fit the printed cell.
  *
  * A comb whose cells are narrower than the characters in them has stopped
@@ -222,6 +192,76 @@ export function combFontSize(
   if (!(cellPoints > 0)) return preferredSize;
   const ceiling = cellPoints / COMB_MIN_CELL_EM;
   return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
+}
+
+/**
+ * The largest font size whose one-line box still fits the printed cell's
+ * height.
+ *
+ * A free-text cell's `minWidth` (see `placeTextOnCell`) only ever grows the
+ * box past the cell horizontally, the same way a hand-placed box grows - the
+ * printed columns either side of it are somebody else's field, but there is
+ * no printed rule stopping the box from widening into blank margin. Its
+ * *height* has no such give: the row above and the row below are both real
+ * fields too, so a box taller than the row it was placed on doesn't grow
+ * past a boundary, it visibly sits on top of the next one. Someone whose
+ * last text box was 24pt should not get a 24pt box in an 8pt-tall column.
+ *
+ * `TEXT_BOX_LINE_HEIGHT_EM` is the same one-line-box-height figure a raw
+ * (unsnapped) tap already centres itself by, so a cell taller than that at
+ * the preferred size changes nothing - this only ever shrinks, never grows,
+ * a box past what a plain click would have given it.
+ */
+export function cellFontSize(
+  preferredSize: number,
+  cellHeightPercent: number,
+  pageHeightPoints: number,
+): number {
+  const cellPoints = (cellHeightPercent / 100) * pageHeightPoints;
+  if (!(cellPoints > 0)) return preferredSize;
+  const ceiling = cellPoints / TEXT_BOX_LINE_HEIGHT_EM;
+  return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
+}
+
+/**
+ * Where a freshly placed text box sits on a detected free-text cell.
+ *
+ * The box takes the cell's whole span as `minWidth` - never `width`, which
+ * is what makes a box a comb (`comb.js`'s `isComb` is derived from `width`
+ * alone, see its docstring), so a name typed into it would have snapped one
+ * letter per imaginary cell the moment a second letter arrived. With a
+ * minimum width instead, the box fills the cell edge to edge, lays its text
+ * out as plain text aligned to the reading direction's start edge (the
+ * editor's `dir`/`text-align`, the exporter's pen), and grows past the cell
+ * only if more is typed than fits - the same way a free box grows.
+ *
+ * The font size is `cellFontSize`'s answer, not whatever was last used: a
+ * short row (an e-ticket's "Status" column, one line of ~9pt) given a
+ * remembered 24pt box would render past its own row into the one below it,
+ * same defect class `combFontSize` already guards a comb's cells against.
+ *
+ * `left` is the cell's left edge whichever way the text reads: a box with a
+ * span has no growing edge to anchor (see signHelpers' `textAnchorsRightEdge`),
+ * so unlike a free RTL box its `left` is always the physical left. `top` is
+ * the cell's middle less half the (possibly shrunk) box's own height, the
+ * same re-centring a raw tap gets, so the vertical result is identical to a
+ * tap landing exactly on the cell's middle. The box's own padding
+ * (`textBoxPaddingEm`) keeps the glyphs off the printed rule, so no extra
+ * inset is applied.
+ */
+export function placeTextOnCell(
+  region: FieldRegion,
+  { fontSize, pageHeightPoints }: { fontSize: number; pageHeightPoints: number },
+): { left: number; top: number; minWidth: number; fontSize: number } {
+  const size = cellFontSize(fontSize, region.height, pageHeightPoints);
+  const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
+  const textHeight = em * TEXT_BOX_LINE_HEIGHT_EM;
+  return {
+    left: region.left,
+    top: Math.max(0, region.top + region.height / 2 - textHeight / 2),
+    minWidth: region.width,
+    fontSize: size,
+  };
 }
 
 /**
