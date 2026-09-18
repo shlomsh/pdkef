@@ -492,10 +492,9 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     /* Homepage expression of Mint and Paper: the hero's field is the fuller
        mint (--home-workspace), deeper teal ink for text, and the same citron
        highlighter the rest of the tour uses. Global tool-page tokens remain
-       unchanged. The hero gradient below starts from the header's pale mint -
-       a 26% --color-surface mix of --home-workspace resolves to #d3f4ec, one
-       step off --color-bg's #d4f4ec, so the header and hero meet without a
-       visible edge - and deepens toward the dock. */
+       unchanged. The hero gradient below starts from --color-bg, the header's
+       own off-white, so the header and hero meet without a visible edge, and
+       deepens into the mint toward the dock. */
     --color-text: #0b4c4c;
     --color-muted: #276460;
     --home-workspace: #c3f0e6;
@@ -510,7 +509,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
        screen and repeating nothing keeps it from stretching across the
        whole tour; the flat color underneath is what the rest of the tour
        already shows, so the seam at 100svh is invisible. */
-    background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 26%, var(--home-workspace)), var(--home-workspace));
+    background-image: linear-gradient(180deg, var(--color-bg) 0%, color-mix(in srgb, var(--color-bg) 60%, var(--home-workspace)) 45%, var(--home-workspace) 100%);
     background-size: 100% 100svh;
     background-repeat: no-repeat;
     background-color: var(--home-workspace);
@@ -716,10 +715,11 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   @media (max-width: 767px) {
     .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
   }
-  /* The literal #c4e1e6 was a palette-invariant violation (CLAUDE.md: colors
-     come from :root tokens, never literals); the sunken surface token is the
-     same idea already named for this job. */
-  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: var(--color-surface-sunken); border-top: 1px solid var(--color-border-strong); }
+  /* The dock is the first screen's bottom edge in the same ink as the
+     On-device chip at its top: deep teal, white labels, light tiles. (It used
+     to carry a literal #c4e1e6, a palette-invariant violation; CLAUDE.md says
+     colours come from :root tokens, never literals.) */
+  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: var(--color-primary); border-top: 1px solid var(--color-primary-active); }
   /* The in-flow dock scrolls sideways only at widths where it genuinely does
      not fit, and that condition is what brings the tool tooltips back.
 
@@ -744,7 +744,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
-  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-text); }
+  .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-surface); }
   @media (max-width: 1023px) {
     /* Mobile pins only the demo (.home-frame below), once the first screen
        has scrolled past - not the whole hero, which is why .home-hero drops
@@ -860,9 +860,12 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
 
   /* Accented tiles carry their own gradient; hover overrides both, which is why
      these rules come first and the state rules after. */
+  /* The flagship on a deep teal dock: ink, with a thin white ring so it
+     reads as the one lifted tile rather than a hole in the bar. */
   .app-card[data-accent='primary'] .app-tile {
-    background: linear-gradient(150deg, var(--color-primary-hover), var(--color-primary));
+    background: var(--color-text);
     color: var(--color-surface);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 8px 18px -8px rgba(0, 0, 0, 0.4);
   }
 
   .app-card[data-accent='soft'] .app-tile {
@@ -884,9 +887,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     translate: 0 -3px;
     rotate: 1deg;
     scale: 1.04;
-    background: var(--color-primary);
+    /* Hovered tiles go to ink, not primary: primary is the dock itself now. */
+    background: var(--color-text);
     color: var(--color-surface);
-    box-shadow: 0 12px 20px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-surface) 55%, transparent), 0 12px 20px -8px rgba(0, 0, 0, 0.4);
   }
 
   .app-card:hover .app-tile :global(svg),

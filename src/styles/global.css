@@ -73,15 +73,17 @@
    is the fix for the CSS duplication ratchet. */
 
 :root {
-  /* Palette - Mint and paper: a pale mint ground with deep teal ink, plus a
-     warm cream paper reserved for dropzones and the header's link chips. */
-  --color-bg: #d4f4ec;
+  /* Palette - Mint and paper: a warm off-white ground (a hint of the paper),
+     mint where the work happens, deep teal ink, and cream paper reserved for
+     dropzones and the header's link chips. Mint as the ground of every page
+     read as one colour; the off-white is what makes green a colour on it. */
+  --color-bg: #faf7f1;
   --color-surface: #ffffff;
   --color-surface-sunken: #a5e9dd;
   --color-text: #0b4c4c;
   --color-muted: #276460;
   --color-muted-light: #8fdccf;
-  --color-border: #b9e6dc;
+  --color-border: #dfe6e2;
   --color-border-strong: #6fbeb2;
   /* Paper: the one warm surface. The place a file lands (dropzones) and the
      header's link chips wear it; nothing else does. */
@@ -94,7 +96,7 @@
   --color-primary-text: #006e6e;
   --color-primary-hover: #006868;
   --color-primary-active: #005a5a;
-  --color-primary-soft: #e8f7f4;
+  --color-primary-soft: #eef6f3;
   --color-primary-tint: #c3f0e6;
   --color-primary-ring: rgba(0, 121, 121, 0.35);
   /* Hand-drawn callouts in the homepage demo use a deeper teal ink, one step

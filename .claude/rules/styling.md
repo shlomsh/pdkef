@@ -24,15 +24,17 @@ CI ratchets measure.
 ## Theme / color palette
 
 All color is CSS custom properties in `global.css`'s `:root`; never a hex/rgba literal in a component
-or stylesheet. Current palette ("Mint and paper"): `--color-bg #d4f4ec`, `--color-surface #ffffff`,
-`--color-surface-sunken #a5e9dd`; `--color-text #0b4c4c`, `--color-muted #276460`,
+or stylesheet. Current palette ("Mint and paper"): `--color-bg #faf7f1` (a warm off-white; mint as
+the ground of every page read as one colour), `--color-surface #ffffff`, `--color-surface-sunken
+#a5e9dd` (mint, where the work happens); `--color-text #0b4c4c`, `--color-muted #276460`,
 `--color-muted-light #8fdccf` (decorative only, never readable text); `--color-paper #fff0e4` (edge
 `#f0d8c4`), the one warm surface, reserved for dropzones and the header's link chips, nothing else;
-`--color-primary #007979` (hover `#006868`, active `#005a5a`, soft `#e8f7f4`, tint `#c3f0e6`) for
+`--color-primary #007979` (hover `#006868`, active `#005a5a`, soft `#eef6f3`, tint `#c3f0e6`) for
 buttons, focus rings and borders, with `--color-primary-text #006e6e` as the readable foreground form
 for links and `currentColor` controls (never the surface token as text); `--color-success #5c7a3a`
 (hover `#4a632f`, soft `#ebffd8`), `--color-danger #b84c58` (soft `#fcf1f3`), both retuned for the teal
-base.
+base. The home dock is `--color-primary` with `--color-surface` labels: the first screen's bottom edge in
+the same ink as the On-device chip at its top.
 
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
