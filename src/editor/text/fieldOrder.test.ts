@@ -89,8 +89,36 @@ describe('elementIsOnField', () => {
     expect(elementIsOnField(text(70, 26.1), field)).toBe(true);
   });
 
-  it('matches an RTL cell box anchored on the field\'s right edge', () => {
-    expect(elementIsOnField(text(85, 27), field)).toBe(true);
+  it('rejects a box merely sitting at the field\'s right edge - every placement anchors left now, so this is only ever a coincidence', () => {
+    expect(elementIsOnField(text(85, 27), field)).toBe(false);
+  });
+
+  it('does not also claim its left-hand neighbour\'s box when two fields sit edge to edge, sharing one boundary', () => {
+    // leftNeighbour's right edge (55 + 15 = 70) lands exactly on rowOneRight's
+    // own left edge - the false hit this test guards against (MOBI-06 field
+    // navigation, live QA on health-declaration-page1-geometry.pdf: two
+    // adjacent form cells did exactly this).
+    const leftNeighbour: TypableField = { kind: 'comb', region: comb(0, 55, 27.3) };
+    expect(elementIsOnField(text(70, 26.1), leftNeighbour)).toBe(false);
+  });
+
+  it('a box placed just below a field it does not belong to can still satisfy that field in isolation - see elementOnField below', () => {
+    // upper's bottom edge (27.3 + 0.84 = 28.14) is lower's own top. A box a
+    // little above lower's own top (28.05, e.g. a boxed comb whose baseline
+    // centring lands slightly above region.top - see ON_FIELD_ABOVE's own
+    // doc) still falls inside upper's band too: the allowance only ever
+    // extends a field's LOWER bound upward past its own top, never its upper
+    // bound past top + height, but upper's fixed upper bound (28.14) still
+    // reaches past lower's own top (28.12... here 28.14) into lower's
+    // territory. elementIsOnField alone cannot tell these apart - it looks at
+    // one field at a time - which is exactly why fieldPosition/elementOnField
+    // resolve through the whole order instead of trusting a single field's
+    // own verdict (MOBI-06 live QA: Next from the last field in a row looped
+    // back into that row instead of reaching the row below, before that fix).
+    const upper: TypableField = { kind: 'comb', region: { ...comb(0, 70, 27.3), boxed: true } };
+    const lower: TypableField = { kind: 'comb', region: { ...comb(0, 70, 28.14), boxed: true } };
+    expect(elementIsOnField(text(70, 28.05), upper)).toBe(true);
+    expect(elementIsOnField(text(70, 28.05), lower)).toBe(true);
   });
 
   it('rejects a box beside, below, on another page, or of another type', () => {
@@ -99,11 +127,32 @@ describe('elementIsOnField', () => {
     expect(elementIsOnField(text(70, 27, 1), field)).toBe(false);
     expect(elementIsOnField(text(70, 27, 0, 'signature'), field)).toBe(false);
   });
+});
 
-  it('elementOnField returns the first matching element or null', () => {
+describe('elementOnField', () => {
+  const field: TypableField = { kind: 'comb', region: rowOneRight };
+  const text = (left: number, top: number, pageIndex = 0, type = 'text') => ({ id: 'x', type, pageIndex, left, top });
+
+  it('returns the element sitting on the field, or null', () => {
     const on = text(70, 26.5);
-    expect(elementOnField([text(5, 5), on], field)).toBe(on);
-    expect(elementOnField([text(5, 5)], field)).toBeNull();
+    expect(elementOnField([text(5, 5), on], [field], field)).toBe(on);
+    expect(elementOnField([text(5, 5)], [field], field)).toBeNull();
+  });
+
+  it('does not return a box that really belongs to the field above it, even though it technically satisfies this one too', () => {
+    // Same no-gap pair as the elementIsOnField test above: `onLower` is
+    // centred on `lower`, not `upper`, but its own top still falls inside
+    // `upper`'s generously-toleranced band. Checking `upper` alone (the old
+    // elementOnField(elements, field) signature) found it anyway and
+    // reopened it instead of creating a new box on `upper` - resolving
+    // through the whole order, the way fieldPosition already had to, is what
+    // fixes it (MOBI-06 live QA, health-declaration-page1-geometry.pdf).
+    const upper: TypableField = { kind: 'comb', region: { ...comb(0, 70, 27.3), boxed: true } };
+    const lower: TypableField = { kind: 'comb', region: { ...comb(0, 70, 28.14), boxed: true } };
+    const order = [upper, lower];
+    const onLower = text(70, 28.05);
+    expect(elementOnField([onLower], order, upper)).toBeNull();
+    expect(elementOnField([onLower], order, lower)).toBe(onLower);
   });
 });
 
@@ -137,5 +186,30 @@ describe('fieldPosition', () => {
 
   it('has nowhere to go with no fields at all', () => {
     expect(fieldPosition([], null)).toEqual({ index: null, next: null, previous: null });
+  });
+});
+
+describe('fieldPosition – adjacent rows in the same column, no gap between them', () => {
+  // A tiled grid with a row pitch (0.84) under the old, unconditional
+  // ON_FIELD_ABOVE (2.5): two boxed comb rows, same left, stacked with no gap
+  // - row1's bottom edge is exactly row2's top. Reproduces the live-QA bug
+  // (health-declaration-page1-geometry.pdf) where Next from the last field of
+  // a row landed back in that same row instead of reaching the row below.
+  const row1 = { ...comb(0, 6, 27.28), boxed: true };
+  const row2 = { ...comb(0, 6, 28.12), boxed: true }; // 27.28 + 0.84
+  const order = orderTypableFields([row1, row2], [], ltr);
+
+  it('resolves an element centred on the lower field to that field, not the one above it', () => {
+    // Centred within row2's own box (placeCombOnRegion's boxed branch keeps a
+    // placed box within [top, top+height]), not merely at its top edge.
+    const onRow2 = { id: 'a', type: 'text', pageIndex: 0, left: 6, top: 28.4 };
+    expect(fieldPosition(order, onRow2)).toEqual({ index: 1, next: null, previous: 0 });
+  });
+
+  it('so Next from the last field of row1 reaches row2, and does not loop back to row1', () => {
+    const onRow1 = { id: 'a', type: 'text', pageIndex: 0, left: 6, top: 27.6 };
+    const { next } = fieldPosition(order, onRow1);
+    expect(next).toBe(1);
+    expect(order[next!].region).toBe(row2);
   });
 });
