@@ -421,11 +421,17 @@
 @media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } }
 
 /* Desktop (>=920px, above the fully-collapsed phone breakpoint). `main` caps out at
-   a fixed max-width (see global.css), so the toolbar's real available width plateaus
-   once the window gets wide enough, it does NOT keep growing with the viewport. A
-   single "labelled vs icon-only" viewport breakpoint can't account for that, so each
-   button drops its own label as the toolbar's own box - not the viewport - runs out
-   of room. Two rules make that honest, and both are load-bearing:
+   a fixed max-width (see global.css, and ToolPageLayout.astro's own tighter
+   `!max-w-[1280px]` override on the tool pages that own this toolbar), so the
+   toolbar's real available width plateaus once the window gets wide enough - it
+   does NOT keep growing with the viewport. Measured on the toolbar's own content
+   box (2026-09-18): the plateau is 1172px, reached at any viewport from about
+   1280px up, and the 920px floor's own content box is 796px - neither of these
+   two numbers is a container-query threshold, they are the ceiling and floor the
+   thresholds below have to fit inside. A single "labelled vs icon-only" viewport
+   breakpoint can't account for a width that stops growing, so each button drops
+   its own label as the toolbar's own box - not the viewport - runs out of room.
+   Two rules make that honest, and both are load-bearing:
 
    - **Nothing shrinks.** `flex-shrink: 0` is the whole fix for the bug this block
      shipped with. Under `flex: 1 1 auto` every button could shrink past its label's
@@ -438,14 +444,27 @@
      breaks onto a second line with every label intact instead of turning to ellipses.
      A wrapped line is a design that got tight; an ellipsised one is a defect.
 
-   The figures, all measured on the toolbar's box: Sign's ten labelled controls come to
-   ~1100px, dropping the three utility labels takes that to ~910px, and dropping the
-   tool labels as well to ~620px - comfortably inside the ~870px the row has at the
-   920px floor. Each query fires a little above its own figure so a label collapses
-   before the row would have to wrap. Redact's nine-to-ten controls (see the recount
-   note above the --controls-per-row rules) are still narrower than Sign's throughout
-   - one fewer control at every share state - so it simply keeps its labels longer on
-   the same numbers.
+   The figures below are measured on the toolbar's own content box, 2026-09-18, with
+   the Date tool and Share both present - Sign's widest real case, twelve children.
+   Sign's twelve labelled controls come to ~1224px, which is already past the
+   1172px plateau: Share pushed the fully-labelled row past the widest this card can
+   ever draw, so the first label tier below is never actually idle at today's
+   plateau - it stays engaged at every desktop width this card renders. The
+   container query is kept anyway (at 1280px, a little above the 1224px figure,
+   the same "fires a little above its own figure" margin as the tier below it) so
+   the row still measures itself honestly if the plateau ever moves outward, rather
+   than hard-coding a state that happens to hold today. Dropping the three utility
+   labels (Undo, Full screen, Replace, plus Feedback, all data-label-priority="1")
+   takes the worst case to ~1047px, comfortably inside the 1172px plateau. Dropping
+   the tool-vocabulary labels too (Text, Symbols, Shapes, Whiteout, Sign, all
+   data-label-priority="2") takes it to ~736px, comfortably inside the 796px floor -
+   two tiers are still enough, no third was needed. The second query fires at
+   1100px, 53px above the 1047px figure. Without Share, Sign's own figures are
+   smaller throughout (~1131px / ~954px / ~643px) and Redact's smaller again
+   (~916px / ~812px / ~593px with Share, less again without) - both stay
+   comfortably inside these two thresholds, so one shared pair of numbers, sized to
+   Sign's worst case, still covers every real toolbar in this file the same way the
+   stale ~1100/~910/~620 figures used to.
 
    Priority order is "which icon carries its own meaning": Undo, Full screen and
    Replace are conventions a user already knows (and Replace is a once-per-session
@@ -459,12 +478,12 @@
   .toolbar { flex-wrap: wrap; }
   .toolbar > * { flex-shrink: 0; }
 
-  @container toolbar (max-width: 1160px) {
+  @container toolbar (max-width: 1280px) {
     .toolbar .button[data-label-priority="1"] { gap: 0; }
     .toolbar .button[data-label-priority="1"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }
 
-  @container toolbar (max-width: 960px) {
+  @container toolbar (max-width: 1100px) {
     .toolbar .button[data-label-priority="2"] { gap: 0; }
     .toolbar .button[data-label-priority="2"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
   }

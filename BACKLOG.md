@@ -12,9 +12,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
+_None._
 
 ### Blocked
 
@@ -50,6 +48,7 @@ _None._
 | SIGN-25 | P1 | [SIGN-25](backlog/tasks/SIGN-25.md) · Reconcile and enforce shipped dependency licenses |
 | SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 | SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
+| SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
 
 ### Retired
 

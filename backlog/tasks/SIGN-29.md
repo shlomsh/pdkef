@@ -1,12 +1,12 @@
 ---
 id: "SIGN-29"
 title: "Desktop toolbar wraps Download onto a full-width second row since the Date tool"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-18"
 ---
 
 # SIGN-29 · Desktop toolbar wraps Download onto a full-width second row since the Date tool
