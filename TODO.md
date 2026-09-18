@@ -284,6 +284,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
+| DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |
 
 
 ## One memory space: every opened file keeps its work, no drafts (2026-09-15)
