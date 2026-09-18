@@ -208,6 +208,9 @@ describe('SignToolbar Component', () => {
       const describedBy = required(textBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
       const hint = required(document.getElementById(describedBy), 'Text tool hint');
+      // The name leads: below 920px the button is icon-only and this is the
+      // only place it is spelled out.
+      expect(hint.textContent.startsWith('Text')).toBe(true);
       expect(hint.textContent).toContain('Click on a page to place a text box');
       expect(hint.textContent).toContain('Double-click to keep Text on');
     });

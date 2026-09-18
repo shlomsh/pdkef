@@ -33,9 +33,12 @@ export const HOVER_OPEN_DELAY_MS = 1000;
 const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
 
 /**
- * The one hover tooltip an armable tool button gets - what it does, and the
- * double-click shortcut to keep it on - replacing the button's native `title`
- * entirely rather than living alongside it. The two used to be separate: the
+ * The one hover tooltip an armable tool button gets - the button's name first,
+ * then what it does, then the double-click shortcut to keep it on - replacing
+ * the button's native `title` entirely rather than living alongside it. The
+ * name leads because below 920px every button is an icon-only square: the
+ * tooltip is the only place its name appears, and someone hovering an
+ * unfamiliar icon wants "Symbols" before they want how to place one. The two used to be separate: the
  * browser's own `title` bubble carried the action line, this carried the
  * shortcut, and because neither knows about the other, hovering could show
  * both at once, stacked, one delayed relative to the other.
@@ -171,6 +174,7 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, hin
             style={{ ...floatingStyles, zIndex: 9999 }}
             {...getFloatingProps()}
           >
+            <strong className={styles['hint-title']}>{label}</strong>
             {action}
             <br />
             {formatMessage(hintTemplate, { label })}
