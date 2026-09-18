@@ -86,7 +86,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-11 | P2 | [QUAL-11](backlog/tasks/QUAL-11.md) · Mint and paper: retheme the palette so green is the ground and warmth is the paper |
 
 ### Blocked
 
