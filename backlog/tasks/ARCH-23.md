@@ -1,7 +1,7 @@
 ---
 id: "ARCH-23"
 title: "Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -126,7 +126,17 @@ ticket only changes the *per-push* gate.
 
 ## Scope (rewritten to the owner's rule)
 
-**The per-push rule.** `fonts=true` on a push iff the diff touches:
+**Corrected to what actually landed (2026-09-19 close-out).** The paragraphs below are this ticket's
+original proposal - a named list of catalogue files inside `src/editor/text/`. What shipped in
+`matchesFontsGlob` (`scripts/affected-scope.mjs`, commit `663ab88e`) is a **directory-wide** rule for
+`src/editor/text/` instead: the whole directory counts as a fonts input, catalogue and shaping/runtime
+code alike, not just the named files below. The "Mechanism" section further down already argued this
+both ways and the implementation took the broader, simpler option; see the Outcome section at the
+bottom of this ticket for the verified reasoning. The named list is kept here as the historical record
+of what was proposed, not as a description of the shipped behavior.
+
+**The per-push rule, as proposed (superseded by the directory rule above for `src/editor/text/`).**
+`fonts=true` on a push iff the diff touches:
 
 - `public/fonts/**` (the font assets themselves);
 - the font registry/catalogue/coverage files in `src/editor/text/` - named explicitly, not the whole
@@ -140,26 +150,37 @@ ticket only changes the *per-push* gate.
 - `scripts/fonts/**`, `scripts/generate-font-*`, `scripts/check-font-*` (the generators and checkers
   that produce/validate the files above);
 - the guard specs and fixtures themselves: `e2e/sign/*-guard.spec.js`, `e2e/sign/*-parity.spec.js`,
-  `e2e/sign/language-acceptance.spec.js`, `e2e/sign/fixtures/**` (a guard change must run itself to
-  prove it works, regardless of what else changed);
+  `e2e/sign/fixtures/**` (a guard change must run itself to prove it works, regardless of what else
+  changed) - **as shipped, `language-acceptance.spec.js` is no longer one of these**: it moved to
+  `e2e/export/` and the separate `export-guards` project (see below), because it exercises the export
+  pipeline, not the font catalogue;
 - `playwright.config.js` (defines the `fonts-shard-1`/`fonts-shard-2` split the guards run under);
+- **as shipped**, `src/styles/editorFonts.css` also matches `matchesFontsGlob` directly (it is
+  generated from the font manifest) - this ticket's original proposal listed it under "not a trigger"
+  below, which was wrong even against the named-list design; the directory rule makes it moot anyway
+  since it is an explicit `matchesFontsGlob` case regardless of the `src/editor/text/` rule;
 - the `everything` triggers that are genuinely about the runner or the toolchain, which must keep
   forcing `fonts=true` even though nothing "font" was literally touched: `package.json`,
   `package-lock.json` (a dependency bump can change fontkit/pdf-lib's behaviour), `.github/workflows/ci.yml`,
   and `ORACLE_FILES` (`scripts/affected-scope.mjs`, `scripts/change-scope.mjs` - a change to the oracle
-  itself is never trusted to narrow its own diff correctly).
+  itself is never trusted to narrow its own diff correctly). **As shipped**, none of these four go
+  through `matchesFontsGlob` at all - they are unowned by any Nx project (or, for the oracle files, hit
+  the dedicated oracle rule), so they hit `deriveScope`'s fail-open `wide()` path, whose default
+  `fonts: true` covers them without needing to be named in the glob.
 
 **Explicitly NOT a trigger any more:** `editor`, `lib`, `tool-sign`, `editor-ui` as whole projects, and
 therefore every file this ticket's original Scope proposed keeping as Sign-side triggers -
 `signExportReadiness*`, `FontPickerMenu*`, `SignatureDialog*`, `FontSupportNotice*`,
-`ExportReadinessNotice*`, `components/nodes/**`, `editorFonts.css`, `languageAcceptance*` (the Sign
-component, not the script), `src/editor/registry/text*`, `src/editor/adapters/pdf/**` - none of these
-add or change a font, they render or consume the catalogue. Also not a trigger: the shaping/runtime
-files that share `src/editor/text/`'s directory with the catalogue but are not the catalogue -
-`bidiRuns.js`, `comb.js`, `combPlacement.ts`, `dateFormat.ts`, `hebrewComposition.js`,
-`liveFontCoverage.js`, `textCoverage.js`, `textFontSupport.js`, `textMetrics.ts`, `textTransforms.js`.
-Nor a bare `everything` verdict whose only reason is a core project (`site`/`shell`/`editor`/`lib`)
-touching something unrelated to fonts, or a generically "unowned" file that is not itself one of the
+`ExportReadinessNotice*`, `components/nodes/**`, `languageAcceptance*` (the Sign component, not the
+script), `src/editor/registry/text*`, `src/editor/adapters/pdf/**` - none of these add or change a
+font, they render or consume the catalogue. **As shipped**, `bidiRuns.js`, `comb.js`,
+`combPlacement.ts`, `dateFormat.ts`, `hebrewComposition.js`, `liveFontCoverage.js`, `textCoverage.js`,
+`textFontSupport.js`, `textMetrics.ts` and `textTransforms.js` - the shaping/runtime files this
+ticket's original proposal meant to exclude here as "not the catalogue" - **are** a trigger after all:
+they live inside `src/editor/text/`, and the directory rule that shipped does not distinguish them from
+the catalogue (see the corrected Scope note above and the Outcome section's reasoning for why). Nor a
+bare `everything` verdict whose only reason is a core project (`site`/`shell`/`editor`/`lib`) touching
+something unrelated to fonts, or a generically "unowned" file that is not itself one of the
 oracle/config/lockfile paths above.
 
 **Mechanism: (a), a file-glob rule inside `scripts/affected-scope.mjs`. Recommended over (b) (carving
@@ -248,10 +269,16 @@ a different, smaller bucket (the `core project(s) affected` `everything` runs DE
   `src/editor-ui/SignToolbar.module.css`, `src/tools/sign/components/SignToolbar.test.tsx`) makes
   `node scripts/affected-scope.mjs` print `fonts=false`, while `unit_paths`/`e2e_paths` still narrow
   to `tool-sign`/`tool-redact` exactly as today.
-- A change to only `src/lib/**` or `src/editor/**` outside the named font-registry files (e.g.
-  `src/editor/text/combPlacement.ts`, `src/lib/drafts/draftStore.js`) prints `fonts=false`;
-  `everything` may still be `true` for the unit/e2e scope if `editor`/`lib` are core projects for
-  other reasons, but `fonts` is decided independently of that.
+- A change to `src/lib/**` outside a font path (e.g. `src/lib/drafts/draftStore.js`) prints
+  `fonts=false`; `everything` may still be `true` for the unit/e2e scope if `lib` is a core project for
+  other reasons, but `fonts` is decided independently of that. **Corrected against what shipped:** this
+  bullet originally also named `src/editor/text/combPlacement.ts` as an example that should print
+  `fonts=false`, on the "named font-registry files, not the whole directory" premise the Scope section
+  above proposed. That premise did not ship - `matchesFontsGlob` treats all of `src/editor/text/` as a
+  fonts input, so `combPlacement.ts` (shaping code, not the catalogue) actually prints `fonts=true`,
+  verified live in this ticket's close-out (see Outcome) and pinned by
+  `scripts/affected-scope.test.mjs`'s "directory rule, ARCH-23" test. Only a `src/editor/**` change
+  *outside* `src/editor/text/` (e.g. `src/editor/model/editorModel.ts`) prints `fonts=false`.
 - A change to `public/fonts/**`, `src/editor/text/fonts.js`, a guard spec under `e2e/sign/`,
   `playwright.config.js`, or `package-lock.json` still prints `fonts=true`.
 - A `schedule` or `workflow_dispatch` run still prints `fonts=true` unconditionally (unchanged
@@ -265,3 +292,96 @@ a different, smaller bucket (the `core project(s) affected` `everything` runs DE
   src/editor, src/lib, tool-sign") and `docs/nx-affected-ci.md`'s `fonts` row and its
   `implicitDependencies` paragraph are updated to state the owner's rule and the new glob, in the same
   change as the code.
+
+## Outcome (2026-09-19 close-out)
+
+**Shipped exactly as `663ab88e`'s commit message describes**, not as this ticket's original Scope
+proposed: `matchesFontsGlob` in `scripts/affected-scope.mjs` is a directory-wide rule for
+`src/editor/text/` (plus `public/fonts/`, `scripts/fonts/`, `e2e/sign/`, a handful of exact-file and
+prefix cases - `playwright.config.js`, `src/styles/editorFonts.css`, `scripts/generate-font-*`,
+`scripts/check-font-*`), not the named twelve-ish-file catalogue list this ticket's Scope section
+proposed. The Scope and Acceptance sections above are corrected in place (2026-09-19) to say so; this
+section is the evidence for why the directory rule was the right call and that the built mechanism
+matches the owner's rule.
+
+**Why a directory-wide glob rather than a named list, or a nested `editor-text` Nx project (verified,
+not re-argued):** `src/editor/registry/textPdf.ts` - itself outside `src/editor/text/`, so it would
+stay owned by the `editor` project under any nested-project split - imports directly from
+`../text/fonts.js` (`import { resolveTypography } from '../text/fonts.js'`). That import is a real
+edge Nx's own inference already walks (see `docs/nx-affected-ci.md`'s "`@nx/js` stays, for import
+inference" section - this is exactly the kind of relative import that graph reads). So nesting a new
+project at `src/editor/text/` (the same shape `fonts` already uses inside `site-e2e`, `e2e/sign/`)
+would not remove `editor` from being marked affected by a change anywhere inside that nested project:
+`editor` would still depend on it through `registry/textPdf.ts`, and Nx affected-set computation
+includes a changed project's dependents. Confirmed live on the current tree:
+
+```
+$ NX_DAEMON=false npx nx show projects --affected --files=src/editor/text/fonts.js --json
+["editor","sign-spike-mobi10","cross-tool-tests","tool-redact","tooling","site-e2e","tool-sign",
+ "export-guards","editor-ui","seo-content-guards","fonts","i18n","tool-compress","tool-merge","shell",
+ "tool-image-to-pdf","tool-edit-pages","tool-security","tool-to-image","tool-split","site"]
+```
+
+Every project in the repo shows up, because `editor` is already reachable from (and reaches) nearly
+everything through the pre-existing `i18n <-> editor` edge `docs/nx-affected-ci.md`'s DEBT-07 section
+documents (`i18n` depends on `editor` for `SignMessages`, and every tool depends on `i18n`). This
+doesn't by itself prove a narrower `editor-text` project would fail to isolate `fonts.js` from
+`combPlacement.ts` inside a *narrowed* (non-`everything`) run - `editor` being core already forces
+`everything=true` for any file in `src/editor/` today, catalogue or shaping alike, so this measurement
+cannot isolate the marginal effect of a nested project from the pre-existing `editor` core-project
+effect. What it does verify is the narrower, structural claim the Mechanism section makes: **a real
+import edge from outside the candidate nested directory already exists**, so a nested project would
+not be a leaf with no dependents the way `e2e/sign/`'s `fonts` project is - it would immediately gain
+`editor` back as a dependent, on top of Nx's directory-rooted ownership already being unable to
+separate the catalogue files from the shaping files sharing the same directory. Both problems the
+Mechanism section raised are real on the current tree, not hypothetical; the file-glob rule sidesteps
+both by never asking the Nx graph this question at all.
+
+**Verified against the seven cases this close-out was asked to check** (real throwaway commits on a
+scratch branch off this ticket's own branch, each reset before the next; scratch branch deleted
+afterward - not synthetic `deriveScope()` inputs, though the same seven shapes are also pinned there):
+
+| Change | `everything` | `fonts` | `export_guards` |
+| --- | --- | --- | --- |
+| `src/editor-ui/ArmHint.tsx` + `src/tools/sign/components/SignToolbar.test.tsx` (15396adf-shaped) | false | **false** | **true** |
+| `src/editor/text/combPlacement.ts` | true (editor core) | **true** (directory rule) | true |
+| `src/lib/drafts/draftStore.js` | true (lib core) | **false** | **true** |
+| `public/fonts/<new>.ttf` | false | **true** | true |
+| `e2e/sign/arabic-shaping-guard.spec.js` (stand-in for a new guard spec) | false | **true** | true |
+| `package-lock.json` | true (unowned) | **true** | **true** |
+| `src/editor/adapters/pdf/sign.js` | true (editor core) | false | **true** |
+
+All seven match this ticket's Acceptance criteria and the owner's rule exactly - no counterexample.
+Case (i) is also `scripts/affected-scope.test.mjs`'s "a 15396adf-shaped change..." test; cases (ii),
+(iii), (iv), (v), (vi) and (vii) are each pinned by name in that file's `deriveScope`/`matchesFontsGlob`
+describe blocks too (see the file for the exact test names), so this table is corroborating evidence
+from the real tree, not the only proof.
+
+**Guards still green after the split, on this checkout (2026-09-19):**
+
+- `npm run build` - succeeded, 41 pages.
+- `npx playwright test --project=fonts-shard-1` - **7 passed** (20.3s).
+- `npx playwright test --project=fonts-shard-2` - **126 passed, 2 skipped** (26.9s; the 2 skips are the
+  pre-existing, documented ones - the exported-PDF baseline guard skips off-CI by design, and the
+  Latin/Caveat kerning guard is `test.skip`ped as a known red per `fonts-and-text.md`'s screening
+  section - neither is new).
+- 7 + 126 = 133 test instances across 25 spec files, matching `FONT_GUARDS_SHARD_1`'s six named specs
+  plus `fonts-shard-2`'s complement of nineteen.
+- `npm run test:e2e:product` (chromium + webkit + perf) - **169 + 5 passed**, 0 failed.
+- Whole `ci.yml` chain run locally in order: `check:backlog`, `check:guidance`, `test` (162 files/3043
+  tests), `typecheck` (0 errors), `test:editor-dependency-directions`, `test:module-boundaries`,
+  `test:gesture-golden-rule`, `check-class-resolution`, `test:fonts`, `test:licenses`,
+  `test:dependency-governance`, `build`, `test:csp`, `test:seo`, `test:redirects`, `test:css`,
+  `test:weight` - all passed, no fixes needed beyond the two stale-comment corrections below.
+
+**Review corrections made during close-out**, beyond the Scope/Acceptance text fixed above:
+
+- `CLAUDE.md`'s `test:e2e` command comment said "build + product e2e + font guards", missing that the
+  same script now also runs `export-guards`.
+- `scripts/change-scope.mjs`'s header comment still described `fonts` as decided by asking Nx whether
+  its `fonts` project was affected (the pre-ARCH-23, ARCH-20-era mechanism) and said "27" guards; it
+  now describes `matchesFontsGlob` and the `export-guards` split.
+
+No other drift found: `playwright.config.js`'s shard lists, `ci.yml`'s `font-guards`/`export-guards`
+jobs, `docs/nx-affected-ci.md`'s ARCH-23 section, and `.claude/rules/fonts-and-text.md`/`tests.md`
+already matched the shipped mechanism.
