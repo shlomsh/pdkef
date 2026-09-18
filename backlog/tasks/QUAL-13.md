@@ -43,6 +43,13 @@ white and carry hover and highlight choices from before the retheme:
 - Editor toolbar: hover fill moves from `--color-surface-sunken` to
   `--color-primary-soft`. Armed fill, the lime Replace treatment and the ink
   tooltip stay. A citron Replace was tried and rejected as too bold.
+- The stroke marks the promise, not the tool name: each tool carries an
+  `h1Accent` ("in Your Browser", "Online Free", "Free"), the home page's own
+  convention, instead of a colon split.
+- Footer: the dock's deep teal band with white text and a citron heart, and
+  the language selector folded into the credit line instead of taking a line
+  of its own above it. The selector gets an inverse tone for the band; its
+  above-the-hero use on guides is unchanged.
 
 ## Out of scope
 
