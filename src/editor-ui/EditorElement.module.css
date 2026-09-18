@@ -17,7 +17,14 @@
    would win a click aimed at the element above it. */
 .element::after { content: ''; position: absolute; inset: -4px; z-index: -1; }
 .element.active::after { inset: -10px; }
-.actions { position: absolute; top: -44px; left: 0; display: flex; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
+/* `flex-wrap` + the `max-width` Floating UI's size() sets in DraggableWrapper:
+   on a phone the text toolbar is wider than the page, and a bar that cannot
+   wrap spills past the viewport and gives the whole document horizontal
+   scroll (nothing above it clips overflow-x). `width: max-content` is what
+   makes the cap the only thing that wraps it: the bar's containing block is
+   the element it belongs to, a few dozen px wide for a short text box, and
+   shrink-to-fit against that folded the bar into a one-button column. */
+.actions { position: absolute; top: -44px; left: 0; display: flex; flex-wrap: wrap; width: max-content; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the

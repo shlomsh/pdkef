@@ -31,6 +31,10 @@ type FloatingCall = {
   flipFallbackPlacements: unknown;
   hasFlip: boolean;
   hasShift: boolean;
+  /** Middleware names in the order they were handed over. */
+  middlewareNames: string[];
+  /** size()'s options, as passed (a state => options function here). */
+  sizeOptions: unknown;
 };
 
 function toEditorElement(element: TestElement): TextElement | WhiteoutElement {
@@ -124,6 +128,11 @@ vi.mock('@floating-ui/react', async () => {
         flipFallbackPlacements: fallbackPlacements,
         hasFlip: !!flipMw,
         hasShift: middlewares.some((middleware) => middleware.name === 'shift'),
+        middlewareNames: middlewares.map((middleware) => middleware.name),
+        sizeOptions: (() => {
+          const sizeMw = middlewares.find((middleware) => middleware.name === 'size');
+          return Array.isArray(sizeMw?.options) ? sizeMw.options[0] : sizeMw?.options;
+        })(),
       });
       return actual.useFloating(config);
     },
@@ -272,6 +281,32 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       // shift() is what keeps the toolbar from clipping off the left/right
       // page edges while preserving the top-start/top-end placement.
       expect(firstCall.hasShift).toBe(true);
+    });
+
+    it('caps the toolbar to the width shift() leaves it, so it wraps instead of spilling off a phone-width page', () => {
+      // shift() can only slide the bar inside the page; on a phone the text
+      // toolbar is wider than the page, and the spill gave the whole document
+      // horizontal scroll. size() must run AFTER shift() so `availableWidth`
+      // is measured from the shifted position (before it, an element near the
+      // right page edge would report only the sliver to its right).
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
+      mountInPageWrapper(element, { isActive: true });
+
+      const names = useFloatingCalls[0].middlewareNames;
+      expect(names.indexOf('size')).toBeGreaterThan(names.indexOf('shift'));
+    });
+
+    it('applies the available width as the toolbar\'s max-width', () => {
+      // Drive size()'s `apply` the way Floating UI would, with the floating
+      // element the component registered, and check what it writes.
+      const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12 };
+      mountInPageWrapper(element, { isActive: true });
+      const actions = container.querySelector('[data-editor-actions]') as HTMLElement;
+      const sizeOptions = useFloatingCalls[0].sizeOptions as (state: unknown) => { apply: (state: unknown) => void };
+      expect(typeof sizeOptions).toBe('function');
+      const options = sizeOptions({ elements: { reference: actions.parentElement } });
+      options.apply({ availableWidth: 321, elements: { floating: actions } });
+      expect(actions.style.maxWidth).toBe('321px');
     });
 
   });

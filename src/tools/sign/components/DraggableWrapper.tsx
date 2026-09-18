@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'preact/hooks';
-import { useFloating, offset, shift, autoUpdate } from '@floating-ui/react';
+import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react';
 import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
@@ -118,17 +118,36 @@ export default function DraggableWrapper<T extends EditorElement>({
   // for RTL text, 'top-start' otherwise), not by page-clamp math in this
   // component. That preserves the fundamental anchor: LTR toolbars begin at
   // the element's left edge, RTL toolbars end at its right edge.
+  //
+  // `shift()` can only slide the toolbar inside the page, never shrink it. A
+  // text toolbar's dozen controls are wider than a phone-width page, and since
+  // nothing up to <html> clips overflow-x (`.tool-card` must not, for its
+  // sticky action row), the spill past the page edge became real document
+  // horizontal scroll: the whole app could be dragged sideways on a phone,
+  // even before anything was selected, because the bar is always rendered
+  // (only its opacity follows selection). `size()` runs after `shift()` so it
+  // measures the room from the shifted position, and caps the bar's width to
+  // it; `.actions` wraps onto a second row (`flex-wrap`) rather than spilling.
   const getFloatingBoundary = (reference: Element | null) =>
     reference?.closest?.(`.${workspaceStyles['page-wrapper']}`) || 'clippingAncestors';
+  const floatingBoundary = ({ elements }: { elements: { reference: unknown } }) =>
+    getFloatingBoundary(elements.reference instanceof Element ? elements.reference : null);
   const { refs, floatingStyles } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(TOOLBAR_FLOATING_OFFSET),
-      shift(({ elements }) => ({
-        boundary: getFloatingBoundary(elements.reference instanceof Element ? elements.reference : null),
+      shift((state) => ({
+        boundary: floatingBoundary(state),
         padding: TOOLBAR_FLOATING_OFFSET,
-      }))
+      })),
+      size((state) => ({
+        boundary: floatingBoundary(state),
+        padding: TOOLBAR_FLOATING_OFFSET,
+        apply({ availableWidth, elements }) {
+          elements.floating.style.maxWidth = `${Math.max(0, availableWidth)}px`;
+        },
+      })),
     ]
   });
 

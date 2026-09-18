@@ -309,4 +309,26 @@ test.describe('Sign editor touch gesture guardrail', () => {
 
     expect(prevented).toBe(true);
   });
+
+  test('a selected text box never gives the page horizontal scroll on a phone', async ({ page }) => {
+    // The text toolbar has more controls than a phone-width page can hold on
+    // one row. It used to spill past the viewport and, with nothing clipping
+    // overflow-x, the whole app could be dragged sideways. Now it wraps.
+    await openSignTool(page);
+    const textBox = await addText(page, 'Hello', 0.6, 0.5);
+    const { toolbarBox } = await elementAndToolbarBoxes(textBox);
+    const viewport = page.viewportSize();
+    expect(toolbarBox.x).toBeGreaterThanOrEqual(0);
+    expect(toolbarBox.x + toolbarBox.width).toBeLessThanOrEqual(viewport.width);
+    // Still a bar of a row or two, not a one-button column: an absolutely
+    // positioned flex container that wraps sizes against its containing
+    // block, the text box itself, unless its width is `max-content`.
+    expect(toolbarBox.width).toBeGreaterThan(toolbarBox.height * 2);
+
+    const overflow = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth);
+  });
 });
