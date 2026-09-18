@@ -12,7 +12,18 @@
 //              on main are board updates; they need check:backlog and
 //              check:guidance and nothing that builds or opens a browser.
 //              THIRD_PARTY_LICENSES.md is not in this class: a unit test reads
-//              it against the licenses page.
+//              it against the licenses page. DOCS_ONLY is a deliberate list of
+//              exact root files, not a `*.md` pattern - ARCH-22 checked
+//              whether THIRD_PARTY_LICENSES.md belonged in it (it is
+//              generated, root-level, and unowned by any Nx project, so it
+//              forces `scripts/affected-scope.mjs`'s "everything" rule
+//              whenever it's the only non-source file in a push) and left it
+//              out on purpose: it is never the *only* changed file in a real
+//              push (its two generators always change a source file alongside
+//              it), and the one case where it would be the sole change - a
+//              hand edit no generator produced - is exactly the drift this
+//              file's own comment above protects against. Widening on it is
+//              cheap and correct; skipping the test that reads it is not.
 //
 // `fonts` (whether the 27 font screening guards must run) used to live here
 // as a hand-kept list of glob patterns (`FONT_GUARD_INPUTS`). ARCH-20 retired

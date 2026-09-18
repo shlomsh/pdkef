@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, wide } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide } from './affected-scope.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,
@@ -26,6 +26,12 @@ const ROOTS = new Map([
   ['cross-tool-tests', 'src/test/cross-tool'],
   ['site-test', 'src/test'],
   ['i18n', 'src/i18n'],
+  // ARCH-22: scripts/ is a project of its own now (`tooling`), with three
+  // pre-existing subfolders that still win by longest-prefix match.
+  ['tooling', 'scripts'],
+  ['sign-spike-mobi10', 'scripts/spike/mobi-10'],
+  ['editor-dependency-directions-fixtures', 'scripts/fixtures/editor-dependency-directions'],
+  ['tooling-font-subsetters', 'scripts/fonts'],
 ]);
 
 describe('ownerOf', () => {
@@ -43,9 +49,12 @@ describe('ownerOf', () => {
   });
 
   it('returns null for a file no project root contains', () => {
-    expect(ownerOf('scripts/change-scope.mjs', ROOTS)).toBeNull();
+    // ARCH-22: scripts/ is owned by `tooling` now, so a scripts/ file is no
+    // longer an example of "no project owner" - see the `tooling` describe
+    // block below for its ownership and the oracle-file exception.
     expect(ownerOf('docs/module-boundaries.md', ROOTS)).toBeNull();
     expect(ownerOf('middleware.ts', ROOTS)).toBeNull();
+    expect(ownerOf('package.json', ROOTS)).toBeNull();
   });
 
   it('matches a file whose path equals the root exactly, not just a prefix', () => {
@@ -86,16 +95,23 @@ describe('ownerOf', () => {
     ['e2e/sign/fixtures/exportRenderBaseline.json', 'fonts'],
     ['e2e/home/handoff.spec.js', 'site-e2e'],
     ['e2e/csp-smoke.spec.js', 'site-e2e'],
+    // ARCH-22: a flat scripts/ file is owned by `tooling`; the three
+    // pre-existing subfolders still win by longest-prefix match.
+    ['scripts/nx-affected-histogram.mjs', 'tooling'],
+    ['scripts/affected-scope.mjs', 'tooling'],
+    ['scripts/spike/mobi-10/cells.mjs', 'sign-spike-mobi10'],
+    ['scripts/fixtures/editor-dependency-directions/valid/a.ts', 'editor-dependency-directions-fixtures'],
+    ['scripts/fonts/build-demo-font-subset.py', 'tooling-font-subsetters'],
   ])('%s is owned by %s', (file, project) => {
     expect(ownerOf(file, ROOTS)).toBe(project);
   });
 
   it.each([
-    'scripts/nx-affected-histogram.mjs',
     'backlog/tasks/ARCH-20.md',
     '.github/workflows/ci.yml',
     'vitest.config.js',
     'middleware.ts',
+    'package.json',
   ])('%s has no project owner', (file) => {
     expect(ownerOf(file, ROOTS)).toBeNull();
   });
@@ -236,7 +252,7 @@ describe('deriveScope', () => {
 
   it('widens to everything when a changed file has no project owner', () => {
     const scope = deriveScope({
-      files: ['scripts/check-module-boundaries.mjs', 'src/tools/merge/PdfMergeTool.tsx'],
+      files: ['package.json', 'src/tools/merge/PdfMergeTool.tsx'],
       affected: ['tool-merge'],
       roots: ROOTS,
     });
@@ -376,6 +392,83 @@ describe('deriveScope', () => {
     });
     expect(scope.everything).toBe(true);
     expect(scope.reason).toMatch(new RegExp(core));
+  });
+
+  // ARCH-22: scripts/ is a real, owned project (`tooling`) now, so a change
+  // to a flat scripts/ file narrows the same way an editor-ui-only change
+  // does - see the `tooling` root added to ROOTS above.
+  describe('the tooling project (ARCH-22)', () => {
+    it('(a) a change to a flat scripts/ file narrows: no fonts, unit_paths has scripts/ and src/test/, e2e_paths empty', () => {
+      const scope = deriveScope({
+        files: ['scripts/backlog-data.mjs'],
+        affected: ['tooling'],
+        roots: ROOTS,
+      });
+      expect(scope.everything).toBe(false);
+      expect(scope.fonts).toBe(false);
+      expect(scope.unit_paths).toBe('scripts/ src/test/');
+      expect(scope.e2e_paths).toBe('');
+    });
+
+    it('(b) a change to affected-scope.mjs itself always widens, with the CI-oracle reason', () => {
+      const scope = deriveScope({
+        files: ['scripts/affected-scope.mjs'],
+        affected: ['tooling'],
+        roots: ROOTS,
+      });
+      expect(scope.everything).toBe(true);
+      expect(scope.fonts).toBe(true);
+      expect(scope.reason).toMatch(/CI oracle changed/);
+      expect(scope.reason).toMatch(/scripts\/affected-scope\.mjs/);
+    });
+
+    it('a change to change-scope.mjs itself also widens with the CI-oracle reason', () => {
+      const scope = deriveScope({
+        files: ['scripts/change-scope.mjs'],
+        affected: ['tooling'],
+        roots: ROOTS,
+      });
+      expect(scope.everything).toBe(true);
+      expect(scope.reason).toMatch(/CI oracle changed/);
+    });
+
+    it('(c) a change to affected-scope.test.mjs alone is not widened by the oracle rule - it may narrow', () => {
+      const scope = deriveScope({
+        files: ['scripts/affected-scope.test.mjs'],
+        affected: ['tooling'],
+        roots: ROOTS,
+      });
+      expect(scope.everything).toBe(false);
+      expect(scope.reason).not.toMatch(/CI oracle/);
+      expect(scope.unit_paths).toBe('scripts/ src/test/');
+    });
+
+    it('(d) a spike file still resolves to sign-spike-mobi10 by longest-prefix match, not tooling', () => {
+      expect(ownerOf('scripts/spike/mobi-10/cells.mjs', ROOTS)).toBe('sign-spike-mobi10');
+      const scope = deriveScope({
+        files: ['scripts/spike/mobi-10/cells.mjs'],
+        affected: ['sign-spike-mobi10'],
+        roots: ROOTS,
+      });
+      expect(scope.everything).toBe(false);
+      expect(scope.unit_paths).toBe('scripts/spike/mobi-10/ src/test/');
+    });
+
+    it('a tooling change does not itself force fonts=true (nx affected walks dependents, and nothing depends on tooling)', () => {
+      const scope = deriveScope({
+        files: ['scripts/backlog-epics.mjs'],
+        affected: ['tooling'],
+        roots: ROOTS,
+      });
+      expect(scope.fonts).toBe(false);
+    });
+
+    it('the oracle rule fires even when the file also happens to be the only changed file (no affected projects besides tooling)', () => {
+      expect(ORACLE_FILES.has('scripts/affected-scope.mjs')).toBe(true);
+      expect(ORACLE_FILES.has('scripts/change-scope.mjs')).toBe(true);
+      expect(ORACLE_FILES.has('scripts/affected-scope.test.mjs')).toBe(false);
+      expect(ORACLE_FILES.has('scripts/change-scope.test.mjs')).toBe(false);
+    });
   });
 });
 
