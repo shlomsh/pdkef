@@ -104,3 +104,19 @@ This ticket's own decision - whether to actually flip `CORE_PROJECTS` to drop `e
 would still only narrow `lib`/`site-test` out, not reach the seven-project target), and whether Nx
 itself is worth keeping at all - still waits on QUAL-08's separate CI-narrowing-value measurement,
 untouched here. Status stays `open`.
+
+## QUAL-08 input (2026-09-18)
+
+QUAL-08 closed with the recommendation to finish the `SignMessages` cut on architectural grounds,
+and its Addendum puts a number on the wall-clock side of this ticket's decision: on the 60 `push`
+runs since `9b4f944`, `font-guards` sets the wall on 32 of the 40 green non-docs runs, and
+`tool-sign` is an implicit dependency of `fonts`, so every Sign/Redact narrow run still executes
+the full guard suite. Median wall for those six green runs is 170s against 180s for the green
+`everything` runs; the narrow runs that skip the guards (Merge, page-only) sit at 120-132s.
+Flipping `editor` out of `CORE_PROJECTS` therefore buys about 10s of CI wall on an editor-only
+push, and a 3x smaller `checks` unit-test step (61s to 22-30s), which is the local `check:fast`
+win rather than a CI one. The narrow share is 22% of runs, above the review's 18% estimate, but
+the editor-side verdicts contribute little wall time to it for the reason above. Nx itself:
+QUAL-08's Result says keep it; ARCH-22 has since given `scripts/` real ownership, which removes
+the largest `everything` reason (25% of those runs) and is the change that actually raises the
+narrow rate.

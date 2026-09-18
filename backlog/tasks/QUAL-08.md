@@ -155,3 +155,62 @@ recommendation this ticket makes a call on.
 
 Data and script: `scripts/ci-narrowing-report.mjs --since 9b4f944 --events push`. Raw cache not
 committed (gitignored, regenerate with the same command).
+
+## Addendum: the per-job columns and who sets the wall (2026-09-18, later the same day)
+
+The Result above answered the bucket question. This pass (the scheduled re-measurement this ticket's
+Scope asked for) adds the columns the Scope named but the first run of the script did not print:
+`e2e-webkit`'s two Playwright steps, both `font-guards` shards' step and job times, and the run's
+longest job. `scripts/ci-narrowing-report.mjs` prints them now, plus a per-job median block for
+QUAL-06 / QUAL-09. Same window, five more `push` runs (60), same shares: 11 docs-only (18%), 13
+narrow (22%), 36 everything (60%); medians 12s / 154s / 178s.
+
+**Who sets the wall.** On the 40 green non-docs runs, the longest job was a `font-guards` shard 32
+times (shard 2 on 16, shard 1 on 8, the pre-QUAL-06 single job on 8), `e2e-webkit` 6 times, a
+chromium `e2e` shard twice. Per-job medians on the 30 green `everything` runs, in job time
+(checkout through the last step, the unit QUAL-06 and QUAL-09 measured in) and step time (the
+Playwright step alone):
+
+| job | step median | job median | ticket target | first measurement (2026-09-14) |
+| --- | --- | --- | --- | --- |
+| `font-guards (1)` | 87s | 139s | under 120s (QUAL-06) | 137-154s |
+| `font-guards (2)` | 106s | 154s | under 120s (QUAL-06) | 142-180s |
+| `e2e (1)` chromium | 60s | 120s | under 100s (QUAL-09) | 96-142s |
+| `e2e (2)` chromium | 68s | 128s | under 100s (QUAL-09) | 77-121s |
+| `e2e-webkit` | 42s + 15s perf | 136s | under 120s (QUAL-09) | 110-147s |
+
+The fixed cost in front of every Playwright step (checkout, `npm ci`, affected-scope, build, browser
+cache restore plus `install-deps`) is 45-60s per job, so none of the three jobs can meet its target
+while its step alone is over 60s. The two imbalances are the cheap levers, not a third shard:
+
+- Font shard 2's step runs about 20s longer than shard 1's (106s against 87s), so
+  `playwright.config.js`'s hand-balanced `fonts-shard-1`/`fonts-shard-2` split has drifted since
+  QUAL-06 measured it; moving one mid-sized guard across would cut the wall by roughly 10s on every
+  run where the guards execute (34 of 60).
+- Chromium shard 2's step jumped from 55-65s to 82-90s on 2026-09-17 between `acd70698` and
+  `61d7f91a`, on a *smaller* test count (69 to 66). DEBT-13 deleted two spec files in that range and
+  Playwright's `--shard` assigns files by count in path order, so a heavy spec (Sign's, by the
+  timing) moved from shard 1 to shard 2. A count-based split will keep drifting like this whenever a
+  spec file is added or removed; a `--shard` that balances by measured time (the way QUAL-06 did
+  for the font guards) is the same fix as the row above.
+
+**Narrowing to Sign or Redact does not move the wall.** `tool-sign` is an implicit dependency of
+`fonts`, so every Sign or Redact narrow run also runs the full font-guard suite (guards ran on 6 of
+the 10 green narrow runs, all of them Sign/Redact). Median wall for those six runs: 170s, against
+180s for the 30 green `everything` runs. The green narrow runs that skipped the guards (Merge, the
+one page-only run) sit at 120-132s, plus one queued outlier at 541s. That is the number DEBT-07
+should read: flipping `editor` out of `CORE_PROJECTS` turns an editor-only push from a 180s
+`everything` run into a ~170s Sign/Redact narrow run, about 10s, because `font-guards` sets the
+wall either way. The unit-test step still drops 3x (61s to 22-30s), which is the developer-facing
+win locally, not the CI wall.
+
+**Cross-check on the last 40 commits** (`node scripts/nx-affected-histogram.mjs --count 40`, on
+`HEAD` = `19dca856`, after ARCH-22 gave `scripts/` its `tooling` projects this evening): 10
+docs_only (25%), 17 narrow (43%), 13 everything (33%). The 13 `push` runs that carried those 40
+commits were 2 / 5 / 6. Two things explain the gap, both already named above: the oracle runs on
+today's graph, where ARCH-22's ownership turns the `unowned files: scripts/...` verdicts of two of
+those six `everything` runs into narrow ones, and a push bundles commits (`a6a38399`, a one-file
+`editor-ui` CSS change the oracle narrows to Sign/Redact, shipped in the same push as `becb5e2f`,
+which touched shared files, so CI correctly ran everything). Per-commit rates are an upper bound on
+per-push rates; the Result's 156-commit cross-check already said so for docs-only, and it holds for
+narrow too.
