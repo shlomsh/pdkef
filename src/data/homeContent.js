@@ -119,6 +119,12 @@ export const homeContent = {
   },
   closing: {
     heading: 'Give it a try.',
+    // The word HomePageLayout.astro underlines with the same citron stroke
+    // the H1 uses (QUAL-13), must occur exactly once in `heading` above.
+    // Not a home.h1Accent-style trailing-substring field: strictObject in
+    // content.config.ts's homeClosing schema does not carry this key, so a
+    // localized closing heading omits it rather than adding one there.
+    headingStroke: 'try',
     backLink: 'Back to your workspace ↑',
   },
 };

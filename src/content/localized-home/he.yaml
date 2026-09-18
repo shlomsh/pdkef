@@ -96,5 +96,6 @@ reviewNotes: >-
   2026-09-15 (MEM-03): draftPersistence paragraph/availability re-translated,
   not yet re-reviewed. 2026-09-17: subhead now mirrors the English (order,
   המרה, עשרה כלי PDF) and says איחוד, the merge synonym LOC-03 found ranking;
-  wording chosen by Shlomi.
-sourceHash: 'fnv1a64:589f978553f6aaf5'
+  wording chosen by Shlomi. 2026-09-18: hash bumped, English-only
+  headingStroke field; Hebrew unchanged.
+sourceHash: 'fnv1a64:f81eac172c5e4d06'
