@@ -39,6 +39,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 | SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
 | SIGN-28 | P2 | [SIGN-28](backlog/tasks/SIGN-28.md) · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top |
+| SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
 
 
 ## Editor module boundaries (architecture)
