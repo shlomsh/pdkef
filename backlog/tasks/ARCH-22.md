@@ -1,14 +1,14 @@
 ---
 id: "ARCH-22"
 title: "App source lives under src/; scripts/ depends on src/, never the other way around"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
 depends_on: ["ARCH-20", "QUAL-08"]
 ---
 
-# ARCH-22 · scripts/ is unowned, so touching any of it runs everything
+# ARCH-22 · App source lives under src/; scripts/ depends on src/, never the other way around
 
 *Filed 2026-09-18*, from QUAL-08's measurement: of 55 real CI runs, 25% ran everything because they
 touched a file under `scripts/` that no Nx project's root covers. `ownerOf()` in
@@ -150,3 +150,36 @@ font-coverage script ran the whole suite), not a large wall-clock rescue on its 
   `test:csp` stay green; `precacheFilter.test.mjs`'s parity half is gone because there is one copy.
 - Every remaining `scripts/` file is owned by a `scope:tooling` project (or is the CI oracle, which
   stays deliberately unowned), and `affected-scope.mjs` narrows for a change to any of them.
+
+## Result (closed 2026-09-18, branch `arch-22-scripts-ownership`, 18 commits)
+
+- **Rule 8 exists and is green with no allowlist.** It landed red on 14 edges, one of them a shipped
+  page (`src/pages/licenses.astro` importing the font manifest) and one a shipped stylesheet's
+  `@source`, and went to zero as each move below landed.
+- **Every runtime piece left `scripts/`**, each move proving its generated output unchanged:
+  - Fonts: `src/editor/text/fontManifest.js` (hand-written now, with `FACE_CSS` and
+    `isPrecachedFontFile`), `fontLicenses.js` (side-table, key sets tested identical, never in the
+    editor bundle), `displayOnlyFonts.js`, `languageAlphabets.js`, `fontCoverageLookup.js` (the
+    lookup code that used to be authored inside the generator's template string);
+    `fontCoverageTable.js` is data only; `src/tools/sign/languageAcceptance.js` is Sign's contract.
+    The four generators import from `src/`. Sign page weight moved by -96 bytes.
+  - `src/site-lib/precachePolicy.js` (what the worker downloads eagerly); `fontOfflinePacks.js`
+    derives "the default family needs no pack" from the manifest instead of restating it.
+  - `src/data/runtimeLicensePolicy.js` (reviewed browser closure, overrides, allowlist).
+  - `src/tools/redact/practiceFormContent.js` (every word and field of the shipped sample form).
+  - `PDFJS_WASM_DIR` in `src/lib/pdfjsWasm.js`, imported by the postinstall sync.
+  - The three checker tests moved next to their scripts as `scripts/*.test.mjs`.
+- **What remains in `scripts/` is one dev-only `tooling` Nx project** (plus the three nested ones),
+  depending on `editor`, `lib`, `i18n`, `site`, `tool-sign`, `tool-redact`, depended on by nothing. A
+  tooling-only change now resolves to `everything=false, fonts=false, unit_paths=scripts/ src/test/`
+  (proved on `13adcbe6`). The one deliberate exception: a change to `scripts/affected-scope.mjs` or
+  `scripts/change-scope.mjs` (the oracle itself) still forces a full run, by a named rule with tests.
+- Deleted: the ARCH-12 migration one-off, the manifest's unused per-family `precache` flag.
+- Full `ci.yml` chain green locally on the final commit: 3011 unit tests, build, CSP, SEO, redirects,
+  CSS, weight, 27 font guards. One webkit Merge reload spec
+  (`merge-direction-a.spec.js`, "a reload from the bottom of the page") timed out once in the full
+  product run and passed 18/18 re-run in isolation; the branch does not touch Merge. Recorded here,
+  not fixed here.
+- Still forces a full run, correctly: root config in `nx.json`'s `sharedGlobals`, `.github/`, a hand
+  edit to `THIRD_PARTY_LICENSES.md` alone (deliberately not docs-only, `change-scope.mjs` explains).
+
