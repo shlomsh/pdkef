@@ -478,12 +478,13 @@ export default function SignToolbar({
                       <circle cx="7" cy="17" r="4" />
                       <rect x="13" y="13" width="8" height="8" rx="1" />
                     </svg>
-                    <span className={`${styles.label} ${styles['shapes-label']}`}>
-                      {t.shapesButton}
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </span>
+                    <span className={styles.label}>{t.shapesButton}</span>
+                    {/* The chevron sits outside the label so it survives the
+                        icon-only band (SignToolbar.module.css's 1279px block
+                        hides every .label): a menu still has to look like one. */}
+                    <svg className={styles.chevron} width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
                   </button>
                 }
                 content={
