@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
   collectSourceFiles, importSpecifiers,
-} from '../../scripts/check-module-boundaries.mjs';
+} from './check-module-boundaries.mjs';
 
 // Straight from node_modules, past Vite: typescript.js is a 9 MB CommonJS
 // bundle with a source-map comment pointing at a file npm does not ship, and
@@ -25,7 +25,7 @@ const ts = createRequire(import.meta.url)('typescript');
 // future edit to IMPORT_PATTERN cannot quietly drop one of them without a
 // matching file in src/ happening to exist at the time.
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'src');
 
 const isRelative = (s) => s.startsWith('.') || s.startsWith('/');

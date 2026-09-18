@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_ROOT = path.resolve(__dirname, '..');
 // The file walk and import-specifier regex are check-module-boundaries.mjs's
-// (AST-diffed against every source file by src/test/moduleBoundariesImportScan.test.js;
+// (AST-diffed against every source file by scripts/check-module-boundaries.import-scan.test.mjs;
 // this guard has no scanner test of its own). Only that scanner sees .astro
 // frontmatter and dynamic/type-only `import(...)` the old copy here deliberately
 // skipped, so DEBT-12 diffed this guard's resolved edges before and after the
@@ -150,7 +150,7 @@ function isException(from, target, specifier) {
 // about - not only the ones that would otherwise violate a rule, since a
 // `package`-scoped exception (e.g. the `preact` entries) never reaches a
 // layer check for a bare specifier with no target. Exported so
-// src/test/editorDependencyDirectionsExceptions.test.js can drive it with a
+// scripts/check-editor-dependency-directions.test.mjs can drive it with a
 // small literal fixture instead of walking the real tree.
 export function staleExceptions(edges, exceptions) {
   return exceptions.filter((exception) => !edges.some((edge) => exceptionMatches(exception, edge)));
