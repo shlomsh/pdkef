@@ -61,7 +61,7 @@ export default function PdfWorkspace({
   workspaceRef,
   numPages,
   pageSizes,
-  formRegions = { combs: [], checkboxes: [], cells: [] },
+  formRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] },
   pdfDocument,
   pageWrapperRefs,
   setTempPlacement,

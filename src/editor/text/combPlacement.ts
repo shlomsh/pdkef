@@ -73,6 +73,11 @@ function emBoxCentreBelowBaselineEm(fontFamily: string): number {
   return (metrics.ascent - metrics.descent) / 2;
 }
 
+/** A field a text box can be typed into, tagged with the detector it came from. */
+export type TypableField =
+  | { kind: 'comb'; region: CombRegion }
+  | { kind: 'cell'; region: FieldRegion };
+
 export interface CombPlacement {
   left: number;
   top: number;
@@ -308,4 +313,31 @@ export function placeCombOnRegion(
     combCells: cells,
     fontSize: size,
   };
+}
+
+/**
+ * The geometry a text box takes to sit on a detected field, whichever kind it
+ * is - the one place a tap on a field (useWorkspaceGestures) and a Next/
+ * Previous move onto one (the coming useFieldNavigation) both get it from, so
+ * the two can never drift apart. A comb takes the run's span, cell count and
+ * combFontSize's answer; a cell takes placeTextOnCell's answer (its left
+ * edge, vertical middle re-centred on the box's own possibly-shrunk height,
+ * and cellFontSize's answer) - neither kind needs a `direction` any more:
+ * a comb's span is fixed by the paper (no anchored edge to flip) and a cell
+ * box is left-anchored with a minimum width for the same reason (see
+ * signHelpers' `textAnchorsRightEdge`), so which edge the text reads toward
+ * is purely a rendering/export question, never a placement one.
+ */
+export function placeTextOnField(
+  field: TypableField,
+  { fontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
+    fontSize: number;
+    fontFamily: string;
+    pageWidthPoints: number;
+    pageHeightPoints: number;
+  },
+): CombPlacement | { left: number; top: number; minWidth: number; fontSize: number } {
+  return field.kind === 'comb'
+    ? placeCombOnRegion(field.region, { fontSize, fontFamily, pageWidthPoints, pageHeightPoints })
+    : placeTextOnCell(field.region, { fontSize, pageHeightPoints });
 }
