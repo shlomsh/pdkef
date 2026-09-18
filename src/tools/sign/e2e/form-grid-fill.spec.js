@@ -28,6 +28,10 @@ const HEALTH_FIXTURE = path.resolve(
 // page percentages. Nine cells at an 11.34pt pitch; the fixture test in
 // formGrid.fixtures.test.js is what pins these numbers to the detector.
 const IDENTITY_RUN = { left: 73.597, top: 27.277, width: 17.152, cells: 9 };
+// The family-name cell on the same printed row, left of the identity comb:
+// the comb's teeth hang off the bottom rule of a cell exactly this tall
+// (25.32-28.09), which fieldRegions.js hands the comb as its writable strip.
+const NAME_CELL = { left: 52.73, top: 25.32, width: 20.87, height: 2.77 };
 
 async function openWithFixture(page) {
   await page.goto('/sign');
@@ -120,6 +124,7 @@ async function measure(page) {
       cells,
       left: ((rect.left - frame.left) / frame.width) * 100,
       right: ((rect.right - frame.left) / frame.width) * 100,
+      centreY: ((rect.top + rect.height / 2 - frame.top) / frame.height) * 100,
     };
   });
 }
@@ -186,6 +191,26 @@ test.describe('tapping a printed comb run', () => {
     // typed belongs in the rightmost cell (comb.js owns that).
     expect(hebrew.cells[0].char).toBe('א');
     expect(hebrew.cells[0].center).toBeGreaterThan(hebrew.cells[8].center);
+  });
+
+  test('sits at the same height as the name cell beside it, not down on its own rule', async ({ page }) => {
+    // The teeth are dividers on the bottom rule of a cell as tall as the name
+    // cell next to it; the digits belong where that cell's text goes. On the
+    // rule they sat 5pt lower than the row's other answers (live report).
+    await openWithFixture(page);
+    await tapRun(page, IDENTITY_RUN);
+    await page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]').fill('038243085');
+    const digits = await measure(page);
+
+    await armText(page);
+    await tapRun(page, { ...NAME_CELL, top: NAME_CELL.top + NAME_CELL.height / 2 - 0.4 });
+    await page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]').fill('שמש');
+    const name = await measure(page);
+
+    expect(Math.abs(digits.centreY - name.centreY)).toBeLessThan(0.15);
+    // Centred in the cell means the box's middle is above the teeth; a box
+    // standing on the rule has its middle inside them.
+    expect(digits.centreY).toBeLessThan(IDENTITY_RUN.top);
   });
 
   test('undo removes the placed comb in one step', async ({ page }) => {
