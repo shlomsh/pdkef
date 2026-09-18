@@ -22,7 +22,7 @@
   border: 1.5px dashed var(--color-border-strong);
   border-radius: var(--radius);
   text-align: center;
-  background: var(--color-surface-sunken);
+  background: var(--color-paper);
   transition: border-color 0.25s var(--ease-out), background-color 0.25s var(--ease-out),
     transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
@@ -44,7 +44,7 @@
 
 .dropzone:hover {
   border-color: var(--color-primary);
-  background: var(--color-primary-tint);
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-paper));
 }
 
 /* #app top-aligns instead of centering at this breakpoint (ToolPageLayout.astro).

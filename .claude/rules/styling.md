@@ -24,18 +24,21 @@ CI ratchets measure.
 ## Theme / color palette
 
 All color is CSS custom properties in `global.css`'s `:root`; never a hex/rgba literal in a component
-or stylesheet. Current palette ("Sea Glass"): `--color-bg #f4f9fa`, `--color-surface #ffffff`,
-`--color-surface-sunken #c4e1e6`; `--color-text #23404a`, `--color-muted #4a6570`,
-`--color-muted-light #a4ccd9` (decorative only, never readable text); `--color-primary #3e7c8d`
-(hover `#397281`, active `#356d7d`, soft `#eef6f8`, tint `#e6f1f3`) for buttons, focus rings and
-borders, with `--color-primary-text #397281` as the readable foreground form for links and
-`currentColor` controls (never the surface token as text); `--color-success #5c7a3a` (hover `#4a632f`,
-soft `#ebffd8`), `--color-danger #b84c58` (soft `#fcf1f3`), both retuned for the teal base.
+or stylesheet. Current palette ("Mint and paper"): `--color-bg #d4f4ec`, `--color-surface #ffffff`,
+`--color-surface-sunken #a5e9dd`; `--color-text #0b4c4c`, `--color-muted #276460`,
+`--color-muted-light #8fdccf` (decorative only, never readable text); `--color-paper #fff0e4` (edge
+`#f0d8c4`), the one warm surface, reserved for dropzones and the header's link chips, nothing else;
+`--color-primary #007979` (hover `#006868`, active `#005a5a`, soft `#e8f7f4`, tint `#c3f0e6`) for
+buttons, focus rings and borders, with `--color-primary-text #006e6e` as the readable foreground form
+for links and `currentColor` controls (never the surface token as text); `--color-success #5c7a3a`
+(hover `#4a632f`, soft `#ebffd8`), `--color-danger #b84c58` (soft `#fcf1f3`), both retuned for the teal
+base.
 
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
-`theme-color` in `BaseLayout.astro` and `theme_color`/`background_color` in
-`public/manifest.webmanifest`, which are not CSS. A color-only change needs only a dev-server check.
+`theme-color` in `BaseLayout.astro`, `theme_color`/`background_color` in
+`public/manifest.webmanifest`, and the inline `<style>` colors in `public/sitemap.xsl`, none of which
+are CSS. A color-only change needs only a dev-server check.
 
 ## The styling boundary (scoped hybrid, landed 2026-07)
 

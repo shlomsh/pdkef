@@ -19,7 +19,7 @@
 <title>Sitemap - pdkef.com</title>
 <meta name="robots" content="noindex"/>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f9fa; color: #23404a; margin: 0; padding: 2rem; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #d4f4ec; color: #0b4c4c; margin: 0; padding: 2rem; }
   h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
   p.count { color: #4a6570; margin: 0 0 1.5rem; }
   table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(35, 64, 74, 0.1); }

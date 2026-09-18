@@ -489,11 +489,16 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      leave together without independently painted fixed layers creating a seam. */
   .home-hero,
   .home-tour {
-    /* Homepage expression of Sea Glass: clearer aqua, deeper ink, and one
-       lively citron accent. Global tool-page tokens remain unchanged. */
-    --color-text: #163847;
-    --color-muted: #4a6980;
-    --home-workspace: #e4f5f7;
+    /* Homepage expression of Mint and Paper: the hero's field is the fuller
+       mint (--home-workspace), deeper teal ink for text, and the same citron
+       highlighter the rest of the tour uses. Global tool-page tokens remain
+       unchanged. The hero gradient below starts from the header's pale mint -
+       a 26% --color-surface mix of --home-workspace resolves to #d3f4ec, one
+       step off --color-bg's #d4f4ec, so the header and hero meet without a
+       visible edge - and deepens toward the dock. */
+    --color-text: #0b4c4c;
+    --color-muted: #276460;
+    --home-workspace: #c3f0e6;
     --home-citron: #efffa6;
     --home-citron-ink: #4f6c2d;
   }
@@ -578,7 +583,25 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      bare rule's implicit layer, so specificity is what settles it. */
   header.hero-header.hero-header { max-width: none; padding: 20px 24px 16px; margin: 0; text-align: center; }
   .hero-header h1 { color: var(--color-text); font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.035em; }
-  .hero-header h1 span { color: var(--color-primary-text); }
+  /* Same stroke the demo caption draws behind "sign" (HeroDemo.module.css's
+     .caption-marker), so the headline says the privacy line in the product's
+     own hand. `isolation: isolate` gives the span its own stacking context so
+     `z-index: -1` on the ::before sits behind the letters but above the hero
+     background instead of behind the whole header. white-space: nowrap is
+     kept: "on your device" is three short words, and even at the mobile
+     1.6rem size (see the max-width: 1023px override below) that phrase is
+     well under a 320px line - nowrap can only push it onto its own line as a
+     whole, never force horizontal overflow. */
+  .hero-header h1 span { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .hero-header h1 span::before {
+    content: '';
+    position: absolute;
+    inset: 58% -0.08em 0.04em;
+    background: var(--home-citron);
+    border-radius: 0.3em 0.14em 0.26em 0.12em;
+    rotate: -0.6deg;
+    z-index: -1;
+  }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
   /* One canonical DOM tree: .home-hero (header, scene, dock) sits inside
@@ -589,7 +612,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     position: relative;
     width: 100vw;
     margin-inline: calc(50% - 50vw);
-    background: var(--home-workspace, #e4f5f7);
+    background: var(--home-workspace, #c3f0e6);
   }
   /* 1116svh. The original extra room buys the dwell on the finished first
      story; the added 176svh pauses the second story on its initial inbox,
@@ -693,7 +716,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   @media (max-width: 767px) {
     .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
   }
-  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: #c4e1e6; border-top: 1px solid var(--color-border-strong); }
+  /* The literal #c4e1e6 was a palette-invariant violation (CLAUDE.md: colors
+     come from :root tokens, never literals); the sunken surface token is the
+     same idea already named for this job. */
+  .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: var(--color-surface-sunken); border-top: 1px solid var(--color-border-strong); }
   /* The in-flow dock scrolls sideways only at widths where it genuinely does
      not fit, and that condition is what brings the tool tooltips back.
 
@@ -824,7 +850,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
 
   .app-tile {
     border-radius: 18px;
-    background: linear-gradient(150deg, var(--color-muted-light), var(--color-border-strong));
+    /* Light on the mint dock: plain tiles read as paper cutouts, not more mint. */
+    background: linear-gradient(150deg, var(--color-surface), var(--color-primary-soft));
     color: var(--color-text);
     box-shadow: 0 8px 18px -8px var(--color-primary-ring), inset 0 1px 0 rgba(255, 255, 255, 0.5);
     transition: translate 0.4s var(--ease-spring), rotate 0.4s var(--ease-spring), scale 0.4s var(--ease-spring),

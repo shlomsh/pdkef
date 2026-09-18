@@ -50,7 +50,8 @@ const isRtl = localeRecord.dir === 'rtl';
 const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--color-text)] no-underline';
 ---
 
-<div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-surface)_86%,transparent)] backdrop-blur-[10px] backdrop-saturate-[1.2]">
+<!-- Solid pale mint at rest and when stuck: the hero starts from the same value, so the first screen has no edge, and over white sections it is a thin mint band. -->
+<div data-home-bar={isHome || undefined} class="sticky top-0 z-20 border-b-[0.5px] border-[var(--color-border)] bg-[var(--color-bg)]">
   <div class="mx-auto flex h-14 max-w-[1280px] items-center gap-[0.85rem] px-6 max-[560px]:gap-[0.55rem] max-[560px]:px-4 min-[1024px]:px-8">
     <a href={homeHref} class={brandClasses} aria-label={isHome ? (labels.homepageAriaLabel ?? 'PDkef homepage') : (labels.homeAriaLabel ?? 'PDkef home, all tools')}>
       {!isHome && (
@@ -75,7 +76,7 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
       </span>
     )}
 
-    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-success-soft)_38%,var(--color-primary-tint))] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-muted)] min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:gap-0 max-[560px]:p-[0.4rem] max-[560px]:text-[0px]">
+    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-primary)] bg-[var(--color-primary)] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-surface)] min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:gap-0 max-[560px]:p-[0.4rem] max-[560px]:text-[0px]">
       <svg class="max-[560px]:size-4" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
         <path d="M9 12.5l2 2 4-4.5" />

@@ -37,6 +37,7 @@ describe('Sea Glass contrast contracts', () => {
     '--color-bg',
     '--color-primary-soft',
     '--color-primary-tint',
+    '--color-paper',
   ])(
     'keeps primary text AA-readable on %s',
     (background) => {
@@ -57,6 +58,7 @@ describe('Sea Glass contrast contracts', () => {
     '--color-surface-sunken',
     '--color-primary-soft',
     '--color-primary-tint',
+    '--color-paper',
   ])('keeps the solid focus ring at non-text contrast on %s', (background) => {
     expect(contrast(root('--color-primary'), root(background))).toBeGreaterThanOrEqual(3);
     expect(globalCss).toMatch(/--shadow-focus:\s*[^;]*var\(--color-primary\)/);
@@ -68,6 +70,7 @@ describe('Sea Glass contrast contracts', () => {
     '--color-surface-sunken',
     '--color-primary-soft',
     '--color-primary-tint',
+    '--color-paper',
   ])(
     'keeps muted body text AA-readable on %s',
     (background) => {
