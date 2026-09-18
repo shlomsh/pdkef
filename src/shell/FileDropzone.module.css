@@ -30,7 +30,9 @@
   right: 7px;
   width: 17px;
   height: 17px;
-  background: var(--home-citron, var(--color-highlight-soft));
+  /* The tile's own dashed edge colour: the fold reads as that edge turned
+     over. Citron alone barely showed against the paper at 17px. */
+  background: var(--color-border-strong);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   pointer-events: none;
 }
