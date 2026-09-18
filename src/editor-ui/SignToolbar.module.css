@@ -209,7 +209,7 @@
    keyword rather than the physical one so a right-to-left UI reads correctly
    without a second rule. */
 .hint { max-width: 220px; padding: .5rem .7rem; background: var(--color-text); color: var(--color-surface); font-size: .74rem; font-weight: 400; line-height: 1.4; text-align: start; border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); pointer-events: none; }
-/* Below 920px every control is icon-only, so they all carry identical content and
+/* Below 920px every control is the same icon-only square, so they all carry identical content and
    any difference in rendered width is a bug rather than a design choice. The row
    mixes two kinds of item though - bare `<button>`s and the `<div class=dropdown>`
    wrappers around the Shapes/Sign popovers - and under the old `flex: 1 1 0` a
@@ -220,13 +220,15 @@
    class of problem: the bases are equal, the growth is equal, so the widths are
    equal whatever the markup underneath. Basing them on --btn-min-size means the
    touch floor is the starting point rather than an afterthought. */
-@media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .35rem; --toolbar-padding: .35rem; --btn-padding: .35rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .button { gap: 0; } .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
+@media (max-width: 919px) { .toolbar { flex-wrap: wrap; justify-content: center; align-items: stretch; --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } .toolbar > * { flex: 1 1 var(--btn-min-size); } .toolbar .dropdown { display: flex; } .desktop-download { display: none; } .share { color: var(--color-surface); background: var(--color-primary); border-color: var(--color-primary); } }
 
-/* Phone widths: tighter spacing, and the only regime where the toolbar can wrap.
-   Ten visible 44px targets plus gaps need ~496px of line and a 360px phone
-   offers ~265px, so the break is unavoidable well inside this breakpoint. */
-@media (max-width: 560px) {
-  .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; }
+/* Below 920px, the only regime where the toolbar wraps. Eleven visible 44px
+   targets plus gaps need ~532px of line and a 360px phone offers ~265px, so the
+   break is unavoidable on a phone; a 600px window used to wrap 9+2 as well, so
+   the even split covers the whole band, not just 560px and under (SIGN-29). The
+   spacing the thresholds below are computed from is set once, in the 919px block
+   above. */
+@media (max-width: 919px) {
   /* Controls keep growing to fill the line (inherited from the rule above) right
      up until the line genuinely cannot hold them all, and only then switch to the
      capped, centred two-row layout. Asking "is the toolbar narrower than one full
@@ -420,89 +422,47 @@
    behaviour above and only takes the compact spacing. */
 @media (max-height: 500px) and (pointer: coarse) { .toolbar { --toolbar-gap: .3rem; --toolbar-padding: .4rem; --btn-padding: .5rem; } }
 
-/* Desktop (>=920px, above the fully-collapsed phone breakpoint). `main` caps out at
-   a fixed max-width (see global.css, and ToolPageLayout.astro's own tighter
-   `!max-w-[1280px]` override on the tool pages that own this toolbar), so the
-   toolbar's real available width plateaus once the window gets wide enough - it
-   does NOT keep growing with the viewport. Measured on the toolbar's own content
-   box (2026-09-18): the plateau is 1172px, reached at any viewport from about
-   1280px up, and the 920px floor's own content box is 796px - neither of these
-   two numbers is a container-query threshold, they are the ceiling and floor the
-   thresholds below have to fit inside. A single "labelled vs icon-only" viewport
-   breakpoint can't account for a width that stops growing, so each button drops
-   its own label as the toolbar's own box - not the viewport - runs out of room.
-   Two rules make that honest, and both are load-bearing:
+/* Two anchors, desktop and iPhone, and one honest step between (Shlomi, 2026-09-18,
+   after two rounds of drifting label thresholds).
 
-   - **Nothing shrinks.** `flex-shrink: 0` is the whole fix for the bug this block
-     shipped with. Under `flex: 1 1 auto` every button could shrink past its label's
-     content width, and `.label`'s ellipsis quietly took up the slack: at 1352px, the
-     widest a laptop ever draws this card, all ten controls read "Te...", "Symb...",
-     "Whiteo...", "Downlo..." at once. Worse, it hid itself - the row still measured
-     as fitting, so no width-based rule below could tell anything was wrong.
-   - **Wrapping is the fallback, never truncation.** If the figures below ever drift
-     (a longer label, a wider system font, a zoom level, one more control), the row
-     breaks onto a second line with every label intact instead of turning to ellipses.
-     A wrapped line is a design that got tight; an ellipsised one is a defect.
+   Desktop, 1280px and up: one line, labels on. `main` caps the toolbar's box at
+   1172px from a ~1280px viewport up (ToolPageLayout.astro's `!max-w-[1280px]`), so
+   the labelled row has to fit 1172px. Measured 2026-09-18 with the Date tool and
+   Share present, Sign's twelve controls labelled are 1240px; with Undo and
+   Feedback icon-only (`data-icon-only`, an arrow and a bug are conventions and
+   neither is a tool) they are ~1138px, 34px inside the plateau. Redact is narrower
+   at every share state. Two rules keep this honest:
 
-   The figures below are measured on the toolbar's own content box, 2026-09-18, with
-   the Date tool and Share both present - Sign's widest real case, twelve children.
-   Sign's twelve labelled controls come to ~1240px, which is already past the
-   1172px plateau: Share pushed the fully-labelled row past the widest this card can
-   ever draw, so the first label tier below is never actually idle at today's
-   plateau - it stays engaged at every desktop width this card renders. Dropping
-   Undo and Full screen (data-label-priority="1") only takes the worst case to
-   ~1204px, still past the 1172px plateau on its own - splitting the old single
-   utility tier in two (Shlomi, 2026-09-18: icons everyone already knows go first,
-   the next-step convenience and finishing-action labels hold on a little longer)
-   means the first tier alone is no longer enough to fit the plateau, same as
-   before the split it wasn't idle either. Also dropping Feedback and Replace
-   (data-label-priority="2") takes it to ~1071px, comfortably inside the 1172px
-   plateau - so tiers 1 and 2 both stay engaged at every desktop width this card
-   renders, exactly the way the old single first tier did, and between them cover
-   the same ground. Dropping the tool-vocabulary labels too (Text, Date, Symbols,
-   Shapes, Whiteout, Sign, all data-label-priority="3") takes it to ~762px,
-   comfortably inside the 796px floor - three tiers, one more than the two this
-   file used before Date and Share pushed the fully-labelled row past the plateau
-   a second time.
-   Container queries fire "a little above their own figure" (~50px margin): tier 1
-   at 1290px (above the ~1240px all-labelled figure), tier 2 at 1255px (above the
-   ~1204px tier-1-hidden figure) and tier 3 at 1120px (above the ~1071px
-   tier-1+2-hidden figure). Tiers 1 and 2's thresholds sit above the 1172px
-   plateau, so in practice both fire at every real desktop width; tier 3's
-   threshold sits below the plateau, so it only engages as the box narrows toward
-   the 920px floor - the one tier that still reacts to the box's own width rather
-   than firing unconditionally. Without Share, Sign's own figures are smaller
-   throughout and Redact's smaller again - both tools stay comfortably inside
-   these three thresholds, so one shared set of numbers, sized to Sign's worst
-   case, covers every real toolbar in this file.
+   - **Nothing shrinks.** `flex-shrink: 0`. Under `flex: 1 1 auto` every button could
+     shrink past its label and `.label`'s ellipsis quietly took up the slack: at
+     1352px all ten controls once read "Te...", "Symb...", "Whiteo..." at once, and
+     the row still measured as fitting, so nothing could tell.
+   - **Wrapping is the fallback, never truncation.** If a label or the control set
+     grows, the row breaks onto a second line with every label intact. A wrapped
+     line is a design that got tight; an ellipsised one is a defect. The e2e guard
+     e2e/tool-toolbars/toolbar-desktop-one-line.spec.js is what says the fallback
+     is not firing today.
 
-   Priority order is "which icon carries its own meaning, grouped with what else
-   drops at the same time": Undo and Full screen are conventions a user already
-   knows, so they go first. Feedback and Replace are a next-step convenience and a
-   once-per-session finishing action rather than app vocabulary, so they hold
-   their labels one tier longer. Text, Date, Symbols, Shapes, Whiteout and Sign
-   are this app's own vocabulary - a first-time visitor has no idea the eraser
-   glyph means whiteout - so they hold their labels longest, and Download/Share
-   never lose theirs. Read the priorities that way round before renumbering
-   anything: this used to be the reverse, on the theory that repeatedly-used tools
-   get learned by icon, which is only true of the second document a person signs
-   here, not the first. */
+   Between, 560px to 1279px: the same one line, every control icon-only with its
+   tooltip, 44px targets, growing to share the row (twelve of them are 762px, so
+   the row fits down to the 920px floor's 796px box and on down through the
+   tablet band, where the phone rules below take over the sizing).
+
+   iPhone, 560px and below: the centred, evenly split two-row icon grid in the
+   phone block above, unchanged.
+
+   This replaced three container-query label tiers keyed on `data-label-priority`,
+   whose hand-measured thresholds went stale twice (E9's view control, then Date
+   and Share) and each time stranded Download on a full-width second row. */
+@media (max-width: 1279px) {
+  .toolbar .button { gap: 0; }
+  .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
+}
+
 @media (min-width: 920px) {
   .toolbar { flex-wrap: wrap; }
   .toolbar > * { flex-shrink: 0; }
-
-  @container toolbar (max-width: 1290px) {
-    .toolbar .button[data-label-priority="1"] { gap: 0; }
-    .toolbar .button[data-label-priority="1"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-  }
-
-  @container toolbar (max-width: 1255px) {
-    .toolbar .button[data-label-priority="2"] { gap: 0; }
-    .toolbar .button[data-label-priority="2"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-  }
-
-  @container toolbar (max-width: 1120px) {
-    .toolbar .button[data-label-priority="3"] { gap: 0; }
-    .toolbar .button[data-label-priority="3"] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
-  }
 }
+
+.toolbar .button[data-icon-only] { gap: 0; }
+.toolbar .button[data-icon-only] .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }

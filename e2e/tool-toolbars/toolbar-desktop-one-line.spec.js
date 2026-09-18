@@ -2,19 +2,14 @@ import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 /* SIGN-29 (Shlomi, 2026-09-18): the Download button wrapped onto a full-width
-   second row on a normal laptop. Cause: the toolbar's fully-labelled row
-   (twelve controls once Share is present) outgrew the label-drop thresholds
-   in SignToolbar.module.css's >=920px block, so between roughly 1160px and
-   the card's own ~1172px content-box ceiling the row overflowed, wrapped,
-   and `.toolbar > * { flex: 1 1 auto }` grew the stranded Download to fill
-   the line alone. jsdom cannot see rendered rects or a real container query
-   resolving against the toolbar's own box, so this needs a real browser:
-   every visible direct child sharing one `top` at a spread of real desktop
-   widths, and Download never ballooning even if a future control tips the
-   row over again. Share is stubbed present throughout - the wider, real
-   twelve-control case the bug was found in - since a false-negative here
-   (only ever testing the easier ten/eleven-control case) is worse than a
-   slower spec. */
+   second row on a normal laptop, because the labelled row outgrew hand-measured
+   label-drop thresholds. The toolbar now has two anchors, desktop (1280px and
+   up, labels on) and iPhone (the phone grid), with one icon-only line between;
+   see SignToolbar.module.css's closing comment. jsdom cannot see rendered rects,
+   so this needs a real browser: every visible direct child sharing one `top`
+   at a spread of real widths, and Download never ballooning even if a future
+   control tips the row over again. Share is stubbed present throughout - the
+   wider, real twelve-control case the bug was found in. */
 
 async function makePdfBuffer() {
   const doc = await PDFDocument.create();
@@ -64,11 +59,11 @@ async function readToolbarLine(page) {
   });
 }
 
-// The 920px floor itself, plus enough real laptop-class widths to cover the
-// band the bug lived in (roughly 1160-1300px) and the plateau beyond it
-// where the toolbar's own box stops growing (see SignToolbar.module.css's
-// >=920px comment, measured ceiling ~1172px content box).
-const WIDTHS = [920, 1000, 1100, 1200, 1300, 1440, 1600];
+// From where eleven 44px icons first fit one line (~532px box, ~660px
+// viewport; narrower is the phone grid, covered by toolbar-phone-row.spec.js),
+// the 920px floor, the laptop band the bug lived in, both
+// sides of the 1280px label breakpoint, and the plateau beyond it.
+const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1279, 1280, 1440, 1600];
 
 // Generous: Download is a real button among eleven or twelve others, never
 // the whole row. 40% is well above its labelled width at every measured
@@ -82,7 +77,7 @@ const tools = [
 ];
 
 for (const tool of tools) {
-  test(`${tool.name} toolbar stays one line with Share present, 920px and up`, async ({ page }) => {
+  test(`${tool.name} toolbar stays one line with Share present, 700px and up`, async ({ page }) => {
     await stubSharePresent(page);
     await page.setViewportSize({ width: 1600, height: 1000 });
     await openTool(page, tool.path, tool.fixture);
@@ -103,23 +98,11 @@ for (const tool of tools) {
   });
 }
 
-// SIGN-29 (Shlomi, 2026-09-18): the label-drop tiers split in two (Undo/Full
-// screen first, Feedback/Replace one tier later) and the toolbar reordered to
-// lead with Sign. jsdom cannot see which labels are actually clipped to the
-// 1x1 visually-hidden box a container query applies, so this checks the real
-// rendered width of each label span at a real laptop width.
-//
-// 1440px sits inside the plateau (SignToolbar.module.css's >=920px comment:
-// ~1172-1196px measured content-box ceiling, depending on fixture). Measured
-// there (2026-09-18): dropping only Undo/Full screen still leaves Sign+Share
-// past the plateau (~1204px against it), so tier 2 (Feedback, Replace) is
-// ALSO always engaged at this width, the same way the old single first tier
-// was - splitting one always-engaged tier into two still-always-engaged tiers
-// does not, by itself, buy back a state where Feedback/Replace are labelled
-// at a normal laptop width. Only the tool vocabulary (tier 3) reacts to the
-// box actually narrowing, toward the 920px floor. This asserts the real,
-// measured state - not the read as originally scoped, where tier 2 would
-// hold its label at the plateau - see SIGN-29.md's 2026-09-18 decision note.
+// jsdom cannot see which labels are clipped to the 1x1 visually-hidden box,
+// so the two anchors are checked on real rendered label widths: at 1440px
+// (the plateau) every label shows except Undo and Feedback, which are
+// icon-only at every width (`data-icon-only`); at 1200px everything is
+// icon-only. And Sign leads, the tool this page is named for.
 async function labelWidth(page, text) {
   return page.evaluate((label) => {
     const spans = [...document.querySelectorAll('[role="toolbar"] .label, [role="toolbar"] span')];
@@ -128,7 +111,7 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Sign leads the toolbar, and both split tiers are icon-only at 1440px (plateau)', async ({ page }) => {
+test('Sign leads, labels show at the desktop anchor except Undo and Feedback, and none show below 1280px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign', 'sign-desktop-one-line-order.pdf');
@@ -136,22 +119,24 @@ test('Sign leads the toolbar, and both split tiers are icon-only at 1440px (plat
 
   const firstButtonLabel = await page.evaluate(() => {
     const toolbar = document.querySelector('[role="toolbar"]');
-    const first = toolbar.children[0];
-    return first.querySelector('.label, span')?.textContent?.trim();
+    return toolbar.children[0].querySelector('.label, span')?.textContent?.trim();
   });
-  expect(firstButtonLabel, 'the first toolbar control should be Sign, the tool this page is named for').toBe('Sign');
+  expect(firstButtonLabel, 'the first toolbar control should be Sign').toBe('Sign');
 
-  const undoWidth = await labelWidth(page, 'Undo');
-  const feedbackWidth = await labelWidth(page, 'Feedback');
-  const replaceWidth = await labelWidth(page, 'Replace');
-  const whiteoutWidth = await labelWidth(page, 'Whiteout');
+  for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Replace', 'Share', 'Download']) {
+    const width = await labelWidth(page, label);
+    expect(width, `${label} label should exist`).not.toBeNull();
+    expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);
+  }
+  for (const label of ['Undo', 'Feedback']) {
+    const width = await labelWidth(page, label);
+    expect(width, `${label} label should exist for screen readers`).not.toBeNull();
+    expect(width, `${label} is icon-only at every width`).toBeLessThanOrEqual(2);
+  }
 
-  expect(undoWidth, 'Undo is tier 1 and should be icon-only (clipped to ~1px) at 1440px').not.toBeNull();
-  expect(undoWidth).toBeLessThanOrEqual(2);
-  expect(feedbackWidth, 'Feedback is tier 2 and, at this width, is also icon-only: the plateau is narrower than Sign+Share with only tier 1 dropped').not.toBeNull();
-  expect(feedbackWidth).toBeLessThanOrEqual(2);
-  expect(replaceWidth, 'Replace is tier 2 and, at this width, is also icon-only for the same reason').not.toBeNull();
-  expect(replaceWidth).toBeLessThanOrEqual(2);
-  expect(whiteoutWidth, 'Whiteout is tier 3 (app vocabulary) and keeps its label at the plateau').not.toBeNull();
-  expect(whiteoutWidth).toBeGreaterThan(5);
+  await page.setViewportSize({ width: 1200, height: 1000 });
+  for (const label of ['Sign', 'Whiteout', 'Replace', 'Download']) {
+    const width = await labelWidth(page, label);
+    expect(width, `${label} is icon-only below 1280px`).toBeLessThanOrEqual(2);
+  }
 });

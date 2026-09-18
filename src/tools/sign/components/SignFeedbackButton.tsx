@@ -53,7 +53,7 @@ export default function SignFeedbackButton({
       rel="noopener noreferrer"
       aria-label={title}
       title={title}
-      data-label-priority="2"
+      data-icon-only
       data-optional-control="feedback"
       dir={dir}
       lang={lang}

@@ -138,23 +138,18 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose two pixel thresholds
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
   or `--toolbar-padding` change. Flex, not grid: grid packs a partial last row into the leading columns.
-- Above 920px no label may ever truncate. The toolbar takes a full row of its own (the file identity
-  line stacks above it; sharing the line once cost 256px and ellipsised every label on a 1512px
-  MacBook Pro) and nothing in the row may shrink: a button shows its whole label, drops to the icon at
-  a container threshold, or the row wraps. Ellipsis is always a bug and hides itself (the row still
-  measures as fitting). `data-label-priority` drops in three tiers: Undo/Full screen first (icons
-  everyone already knows), Feedback/Replace next (a next-step convenience and a once-per-session
-  finishing action, not app vocabulary), this app's own vocabulary (Text, Date, Symbols, Shapes,
-  Whiteout, Sign) last, Download/Share never; do not renumber it on the "learned by icon" argument.
-  The tiers' thresholds are measured, not guessed (SIGN-29, 2026-09-18): Sign fully labelled is wider
-  than the toolbar box's own plateau whenever Share exists, so tier 1 is always engaged, and dropping
-  tier 1 alone still doesn't fit the plateau, so tier 2 stays engaged there too - only tier 3 (the
-  vocabulary) reacts to the box actually narrowing, toward the 920px floor. Re-measure in a real
-  browser before trusting a stale figure here.
+- Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1280px the row is
+  one line with labels; the toolbar box plateaus at 1172px there, and Sign's twelve controls with
+  Share fit it (~1138px) only because Undo and Feedback are `data-icon-only` at every width, so a
+  new labelled control has to be paid for by re-measuring in a real browser. From 560px to 1279px
+  every control is icon-only on one line. Below 560px the phone grid above. No label may ever
+  truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
+  `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
+  tried twice and drifted twice; do not bring them back.
 - Sign's own toolbar order leads with Sign, the tool the page is named for, then its vocabulary
   (Text, Date, Symbols, Shapes, Whiteout), then Undo beside the work it undoes, then the chrome group
   (view density, full screen, Feedback), then Replace with the other finishing action, then export at
-  the far edge - one kind of thing per group, not one priority tier per group. Redact's own order is
+  the far edge - one kind of thing per group. Redact's own order is
   unchanged: it already led with Blur, its named tool, since f48fcbd8.
 
 ## pdf.js render direction

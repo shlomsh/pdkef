@@ -311,7 +311,6 @@ export default function SignToolbar({
                     // showing both would duplicate the description.
                     title={activeSignature ? undefined : t.selectSignatureTitle}
                     aria-pressed={selectedTool === 'signature'}
-                    data-label-priority="3"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M2 15c2 0 2.5-9 4.5-9s1 11 3 11 2.5-9 4.5-9 1.5 7 3 7c1 0 1.7-1 2.5-2" />
@@ -382,7 +381,6 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('text')}
               aria-pressed={selectedTool === 'text'}
-              data-label-priority="3"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="4 7 4 4 20 4 20 7" />
@@ -399,7 +397,6 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('date')}
               aria-pressed={selectedTool === 'date'}
-              data-label-priority="3"
               // Optional at the same extreme-narrow band as Feedback
               // (SignToolbar.module.css's [data-optional-control] rule),
               // unlike a real document-editing tool this pattern is normally
@@ -427,7 +424,6 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('symbol')}
               aria-pressed={selectedTool === 'symbol'}
-              data-label-priority="3"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="20 6 9 17 4 12" />
@@ -476,7 +472,6 @@ export default function SignToolbar({
                     type="button"
                     className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
                     aria-pressed={isShapeTool(selectedTool)}
-                    data-label-priority="3"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M12 3l4 7H8z" />
@@ -541,7 +536,6 @@ export default function SignToolbar({
               type="button"
               className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('whiteout')}
-              data-label-priority="3"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -558,7 +552,7 @@ export default function SignToolbar({
             onClick={() => setUndoModalOpen(true)}
             title={t.undoTitle}
             disabled={actionHistory.length === 0}
-            data-label-priority="1"
+            data-icon-only
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 7v6h6" />
@@ -606,7 +600,6 @@ export default function SignToolbar({
             onClick={requestReplace}
             title={shellMessages.replaceTitle}
             aria-label={shellMessages.replaceLabel}
-            data-label-priority="2"
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <path d={FILE_ACTIONS.replace.icon} />

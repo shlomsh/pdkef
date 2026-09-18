@@ -43,22 +43,19 @@ and Download becomes a banner. The comment predicted exactly this drift.
 
 ## Decision 2026-09-18
 
-Shlomi picked from three options for the label-drop thresholds this ticket landed with a day
-earlier (ship every priority-1 label icon-only everywhere Share exists, split priority 1 into two
-tiers, or tighten spacing instead): **split the tier**. Undo and Full screen (icons everyone
-already knows) drop first; Feedback and Replace (a next-step convenience and a once-per-session
-finishing action, not app vocabulary) drop next; the tool vocabulary (Text, Date, Symbols, Shapes,
-Whiteout, Sign) drops last; Download/Share never drop.
+Three rounds. The first re-measured the two label-drop tiers; that fixed the wrap but made Undo,
+Full screen, Feedback and Replace icon-only at every laptop width whenever Share exists, because Sign
+fully labelled (~1240px) is wider than the toolbar box ever gets (1172px). The second split the
+first tier so Feedback and Replace would keep their words; measured, it bought nothing, since Full
+screen has no label on desktop (the view control replaces it) and Undo's label alone is ~36px.
 
-Measured consequence, not fudged past: Sign+Share's fully-labelled row (~1240px) is already past
-the toolbar box's own plateau (~1172-1196px), and dropping only tier 1 (Undo/Full screen) still
-leaves it past the plateau (~1204px) - so tier 1 and tier 2 both stay permanently engaged at every
-real desktop width, the same way the old single first tier did before the split. Only tier 3 (the
-vocabulary) actually reacts to the box narrowing, toward the 920px floor. In practice this means
-Feedback and Replace are icon-only at a normal laptop width today, same as Undo - the split changes
-the *order* labels come off in as the box narrows further, not whether Feedback/Replace are
-labelled at today's plateau. `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` asserts this
-measured state rather than the originally-scoped one.
+Shlomi's call, after that: stop tuning thresholds. **Two anchors, desktop and iPhone, and a
+reasonable step between, for Sign and Redact alike.** From 1280px the row is one line with labels,
+and it fits the 1172px plateau (~1138px) because Undo and Feedback are icon-only at every width
+(`data-icon-only`; an arrow and a bug are conventions, neither is a tool). From 560px to 1279px every
+control is icon-only on one line with its tooltip. Below 560px the phone grid, unchanged. The three
+container-query tiers and every `data-label-priority` attribute are gone; the e2e guard checks one
+line from 600px to 1600px and the label state at both anchors.
 
 Sign's own toolbar was also reordered to Sign, Text, Date, Symbols, Shapes, Whiteout, Undo,
 [view density / full screen], Feedback, Replace, Share, Download: the tool the page is named for
