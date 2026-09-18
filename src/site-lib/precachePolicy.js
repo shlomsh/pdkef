@@ -1,7 +1,17 @@
-import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../src/editor/text/fontManifest.js';
-import { isLocalizedPath } from '../src/i18n/localePrefixes.js';
+import { DEFAULT_FONT_FAMILY, FONT_MANIFEST } from '../editor/text/fontManifest.js';
+import { isLocalizedPath } from '../i18n/localePrefixes.js';
 
 /**
+ * ARCH-22: this is product behaviour, not build tooling - it decides what
+ * the service worker downloads eagerly at install versus caches only on
+ * first use, i.e. what works offline after exactly one visit. It lives here
+ * under src/site-lib/ rather than in scripts/ for that reason
+ * (docs/module-boundaries.md). Its consumers: scripts/generate-precache-manifest.mjs
+ * imports shouldPrecache() and runs it, after `astro build`, over every file
+ * in dist/, to render the result into dist/precache-manifest.json.
+ * public/sw.js never imports this module - it is registered as a classic
+ * script and only ever reads that generated JSON at install time.
+ *
  * Which built assets the service worker downloads before anyone asks for
  * them. Everything omitted here still enters the runtime cache on first use.
  *

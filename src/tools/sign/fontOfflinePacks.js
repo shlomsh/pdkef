@@ -1,4 +1,4 @@
-import { DEFAULT_FONT_FAMILY, FONT_BY_FAMILY } from '../../editor/text/fontManifest.js';
+import { FONT_BY_FAMILY, isPrecachedFontFile } from '../../editor/text/fontManifest.js';
 
 export const FONT_PACK_MESSAGE = Object.freeze({
   status: 'pdkef:font-pack-status',
@@ -13,7 +13,7 @@ export const FONT_PACK_MESSAGE = Object.freeze({
  */
 export function fontPackDescriptor(family) {
   const font = FONT_BY_FAMILY[family];
-  if (!font || family === DEFAULT_FONT_FAMILY) return null;
+  if (!font || isPrecachedFontFile(font.faces.normal)) return null;
   return {
     family,
     urls: [...new Set(Object.values(font.faces).map((file) => `/fonts/${file}`))],

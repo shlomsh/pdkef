@@ -250,6 +250,25 @@ export const RETIRED_FONTS = {
 export const FONT_BY_FAMILY = Object.freeze(Object.fromEntries(FONT_MANIFEST.map((font) => [font.family, font])));
 
 /**
+ * ARCH-22: the one bundled font file the service worker precaches
+ * unconditionally, independent of any pack a visitor chooses - today, the
+ * default family's normal face (see src/site-lib/precachePolicy.js for why:
+ * a first-ever offline Sign session needs at least one embeddable font).
+ * `src/tools/sign/fontOfflinePacks.js` reads the same predicate to know the
+ * default family needs no separate offline pack, rather than restating
+ * "family === DEFAULT_FONT_FAMILY" a second time - a tool may not import
+ * src/site-lib/ (docs/module-boundaries.md rule 1), so this lives here,
+ * next to the manifest both call sites already import.
+ *
+ * Distinct from the `precache` flag FONT_MANIFEST entries above can carry
+ * (PRECACHED_FONT_FILES) - no entry sets it today, and it is a different,
+ * unused mechanism, not a second copy of this one.
+ */
+export function isPrecachedFontFile(file) {
+  return file === FONT_BY_FAMILY[DEFAULT_FONT_FAMILY].faces.normal;
+}
+
+/**
  * `@font-face` weight/style for each face key. Policy about faces, not about
  * generation, so it moved here (out of scripts/generate-font-manifest.mjs)
  * alongside the manifest it describes; the generator imports it to emit
