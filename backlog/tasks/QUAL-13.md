@@ -53,8 +53,9 @@ white and carry hover and highlight choices from before the retheme:
 
 ## Out of scope
 
-- Any behavioural change. Same markup semantics, same tests, colour and
-  gradient only.
+- Any behavioural change. Every control keeps what it does and every heading
+  keeps its text byte for byte; the only markup changes are the footer row
+  order and a span around the stroked phrase.
 - The hero itself and the dock, settled in QUAL-11.
 
 ## Acceptance
