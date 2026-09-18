@@ -1,12 +1,12 @@
 ---
 id: "MOBI-09"
 title: "Give iOS its own entry path, stated in the product"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-18"
 ---
 
 # MOBI-09 · Give iOS its own entry path, stated in the product
@@ -143,3 +143,36 @@ landscape, WebKit and Chromium. In every case the dropzone is 168px, `scrollHeig
 against a `clientHeight` of the same, and the hint's two lines end 37px above the box's bottom edge
 (`/he/sign/`, whose hint wraps to three lines under `dir="rtl"`, ends 28px above). Nothing overflows;
 `align-content: center` packs the three rows into about 93px and centres them. No change needed.
+
+## Real-device walk, closed 2026-09-18
+
+Walked end to end on Shlomi's own iPhone against production (pdkef.com), the check this ticket's
+acceptance line was left open for: shared a PDF (`get-106.pdf`) to Files from the iOS share sheet,
+confirmed it landed as the top item in Recents (17:48, 59 KB), opened `/sign/`, tapped Choose file, and
+confirmed the OS document picker opened on Recents with that same file first. It loaded cleanly into
+the Sign editor.
+
+**Actual tap count: 5**, not the 4 estimated when this ticket was written. The gap is the share sheet
+itself - "Save to Files" is not always a top-level icon and can cost an extra tap to reach (e.g. behind
+"More"), which the original estimate didn't account for. The route is still short and undocumented
+elsewhere, which was the actual gap this ticket closes.
+
+**Re-examined the Shortcut decision against the real number and it holds.** Even at 5 taps rather than
+4, a Shortcut only removes the one app-switch step (to roughly 3-4), and that saving is smaller than
+the cost of a first-time visitor having to discover, install, and trust an iCloud-link Shortcut before
+it ever pays off - the same trade-off the original 2026-09-11 reasoning already weighed. No change.
+
+**One real path exists that's shorter, but it's iPad-only and out of scope: iPadOS Split View lets a
+PDF be dragged straight out of Mail or Files onto Safari's dropzone**, skipping both "Save to Files"
+and "Choose file". It needs Split View already set up, only works from apps that support drag-export,
+and the product has no way to prompt for it - not worth documenting or building around, just noted here
+so it isn't rediscovered as if new.
+
+**One real gap found during the walk, split off rather than reopening this ticket's scope:** Sign's
+draft persistence (`src/lib/drafts/draftStore.js`, [tools-and-shell.md](../../.claude/rules/tools-and-shell.md))
+auto-restores the last file on mount, so a *returning* iOS visitor with an existing Sign draft never
+sees the empty state - and never sees this ticket's hint - because "Replace file" goes through a
+confirm dialog straight to the OS picker instead. This ticket's acceptance was scoped to the empty
+state specifically, which is satisfied and verified above; whether the Files-route reminder should also
+reach returning users via the Replace-file flow is a separate product question, not filed as its own
+ticket yet.
