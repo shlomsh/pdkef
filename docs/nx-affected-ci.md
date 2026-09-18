@@ -36,14 +36,24 @@ the repo root, `.nx/` gitignored:
 | `tool-image-to-pdf` | `src/tools/image-to-pdf` | `scope:tool`, `tool:image-to-pdf` | ✓ | - |
 | `font-assets` | `public/fonts` | `scope:font-assets` | ✓ (`test:fonts`) | - |
 | `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | `scope:fonts` | - | ✓ |
+| `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | `scope:export-guards` | - | ✓ |
 | `site-e2e` | `e2e` | `scope:site` | - | ✓ |
 | `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | `scope:tests` | ✓ | - |
 | `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
 | `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | `scope:tests` | ✓ | - |
 
-`fonts`' `implicitDependencies`: `font-assets`, `editor`, `lib`, `tool-sign` - the export pipeline the
-27 font screening guards actually exercise. `site-e2e`'s `implicitDependencies`: `site`, `shell`, and
-every `tool-*` project - Playwright specs have no import edges Nx can infer on their own.
+`fonts`' `implicitDependencies` **as this record originally landed**: `font-assets`, `editor`, `lib`,
+`tool-sign` - the export pipeline the 27 font screening guards actually exercised at the time. **ARCH-23
+(2026-09-18) superseded this**, after that `tool-sign` edge was measured causing a Sign toolbar/tooltip
+change to run all 27 guards for zero coverage benefit (see "ARCH-23" below): `fonts`' own
+`implicitDependencies` is now just `font-assets`, and the 25 shaping/parity guards remaining in it are
+gated per-push by a file-glob in `scripts/affected-scope.mjs` (`matchesFontsGlob`), not by whether Nx
+says `fonts` is affected. The two guards that actually drove the real export pipeline (the export
+render guard, language acceptance) moved out to their own `export-guards` project
+(`e2e/export/project.json`), which *does* keep `editor`, `lib` and `tool-sign` as coarse
+`implicitDependencies` - see "ARCH-23" below for why that split is the right shape.
+`site-e2e`'s `implicitDependencies`: `site`, `shell`, and every `tool-*` project - Playwright specs have
+no import edges Nx can infer on their own.
 
 **`site-test` (DEBT-04, second pass):** before this project existed, `src/test/` had no Nx project of
 its own, so `@nx/js`'s inference fell back to attributing it to `site` (root project, `sourceRoot:
@@ -337,3 +347,79 @@ plugin here infers, and `site` is one of the four core projects every tool depen
 - **A week of real CI runs** to replace this measurement with production numbers, per the ticket's own
   acceptance bar - this record's numbers are all from a single local checkout, not `ci.yml` in
   production. Left to whoever owns the ticket's Notes section next.
+
+## ARCH-23 (2026-09-18): `fonts` narrowed to a file-glob; export guards split into their own project
+
+Filed from CI run 35380358167: a commit touching only `src/editor-ui/ArmHint.tsx`,
+`src/editor-ui/SignToolbar.module.css` and `src/tools/sign/components/SignToolbar.test.tsx` (a
+tooltip's markup, its CSS, a unit test) ran all 27 font guards, because `fonts`
+(`e2e/sign/project.json`) declared `editor`, `lib` and `tool-sign` as whole-project
+`implicitDependencies` - Nx's directory-rooted model has no way to say "only the six specs that
+navigate to `/sign`, not the other twenty-one" short of a real file move. `backlog/tasks/ARCH-23.md`
+measured this edge across a 62-push window: **0 of 8** narrow-verdict `fonts=true` triggers in that
+window were rightful, and the edge alone accounted for 25 of 44 historically-affected runs once
+`wide()`'s own unconditional `fonts: true` is factored out.
+
+**The owner's decision (Shlomi, 2026-09-18):** the font guards prove the shipped fonts comply; if no
+font changed, they don't need to run per-push - a nightly cron (already shipped, `ci.yml`'s
+`schedule:`, self-skipping via `nightly_unchanged`) is the backstop for any other code change during
+the day.
+
+**Two separate fixes landed together, because the 27 guards split into two different questions:**
+
+1. **25 shaping/font-parity guards genuinely only need the font catalogue and the browser** (per-script
+   guards, font parity suites, the Hebrew composition guard). `scripts/affected-scope.mjs` gained
+   `matchesFontsGlob(file)`, a small, explicit, directory-scoped rule (`public/fonts/`,
+   `src/editor/text/` as a whole directory, `src/styles/editorFonts.css`, `scripts/fonts/`,
+   `scripts/generate-font-*`, `scripts/check-font-*`, `e2e/sign/`'s guard specs and fixtures,
+   `playwright.config.js`), evaluated once per `deriveScope()` call and threaded into both the
+   `CORE_PROJECTS` `wide()` call and the narrow-path return - replacing `affectedSet.has('fonts')`
+   entirely. `fonts`' own `implicitDependencies` shrank to `['font-assets']`: it no longer needs
+   `editor`/`lib`/`tool-sign` at all, because the CI decision no longer reads Nx's affected-set for this
+   project. Every other `wide()` reason (an unowned file, the CI oracle, no resolvable base) keeps
+   forcing `fonts: true` unconditionally, unchanged - only the core-project rule (rule 4) stopped being
+   an automatic yes.
+
+   **Design choice: (a), a file-glob, not a new `editor-text` Nx project.** Both were considered (a
+   carved-out `editor-text` project rooted at `src/editor/text/` would give the same graph-based answer
+   `tool-<name>` projects get). The glob wins on one measured fact: `src/editor/text/` mixes the
+   catalogue (`fonts.js`, `fontManifest.js`, ...) with shaping/runtime code that shares the same
+   directory (`bidiRuns.js`, `combPlacement.ts`, `dateFormat.ts`, `hebrewComposition.js`,
+   `liveFontCoverage.js`, `textCoverage.js`, `textFontSupport.js`, `textMetrics.ts`,
+   `textTransforms.js`) - a real Nx project is directory-rooted, so carving one out would need an actual
+   file move (a bigger change than this ticket's saving justifies) or would still have to be
+   directory-wide, which is exactly what the glob already is. `matchesFontsGlob` is deliberately a
+   *directory* rule for `src/editor/text/` (not a named subset of catalogue files only), for the same
+   reason: a shaping-code change there still runs the guards, on the same "ambiguous scope never
+   narrows" principle every other rule in this file follows. Verified on the real tree:
+
+   ```
+   src/editor-ui/ArmHint.tsx + src/tools/sign/components/SignToolbar.test.tsx (15396adf-shaped)
+                                             -> fonts=false, export_guards=true
+   src/editor/text/combPlacement.ts         -> everything=true (editor is core), fonts=true (directory rule)
+   src/lib/drafts/draftStore.js             -> everything=true (lib is core), fonts=false
+   public/fonts/NewFont-Regular.ttf         -> fonts=true
+   e2e/sign/some-new-shaping-guard.spec.js  -> fonts=true
+   package-lock.json                        -> everything=true (unowned), fonts=true (unchanged, fail-open)
+   ```
+
+2. **The two guards that actually run the export pipeline** (`export-render-guard.spec.js`, which
+   rasterises the real `signPdf` output against a runner-pinned baseline, and
+   `language-acceptance.spec.js`, the same bundle over every shipped language/face combination) moved
+   to a new top-level `e2e/export/` directory and a new `export-guards` Nx/Playwright project
+   (`e2e/export/project.json`). Unlike `fonts`, this project *keeps* `editor`, `lib`, `tool-sign` and
+   `font-assets` as coarse, whole-project `implicitDependencies` - deliberately, because these two specs
+   really do exercise `src/editor/adapters/pdf/sign.js` and `src/tools/sign/languageAcceptance.js`, and
+   at only two specs (well under a minute combined) the coarse edge costs nothing like the 27-guard
+   version did. `export_guards` in `affected-scope.mjs`'s output is decided the normal way - Nx's
+   affected-set, `affectedSet.has('export-guards')` - the same as any `tool-*` project, not a glob.
+   `temporaryBundle.js` (the shared esbuild-and-serve fixture) stayed in `e2e/sign/fixtures/` rather
+   than moving, because a `fonts` guard (`cjk-advance-parity-guard.spec.js`) and `shapingGuardHarness.js`
+   still import it; the two moved specs import it across the directory boundary
+   (`../sign/fixtures/temporaryBundle.js`) instead of duplicating it.
+
+`playwright.config.js` gained an `EXPORT_GUARDS` glob and an `export-guards` project alongside `fonts`;
+`ci.yml` gained an `export-guards` job (gated by `affected-scope`'s `export_guards` output the same way
+`e2e` is gated by its own paths) and the exported-PDF baseline recapture step moved into it (the
+`fonts-shard-1`/`fonts-shard-2` split no longer carries it - shard 1 dropped from seven named specs to
+six, 175.5s to 157.8s, since the export render guard's 17.7s left with it).

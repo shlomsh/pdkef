@@ -19,8 +19,8 @@ paths:
   - "scripts/*language-acceptance*"
   - "e2e/sign/*-guard.spec.js"
   - "e2e/sign/*-parity.spec.js"
-  - "e2e/sign/language-acceptance.spec.js"
   - "e2e/sign/fixtures/**"
+  - "e2e/export/**"
   - "THIRD_PARTY_LICENSES.md"
   - "src/pages/licenses.astro"
   - "docs/hebrew-text-shaping-export.md"
@@ -42,23 +42,44 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
 
 ## Standing rules
 
-- **The font guards are the `fonts` Nx project and run only when their inputs change.** The 27 specs
-  matched by `FONT_GUARDS` in `playwright.config.js` (per-script shaping guards, font parity, the
-  export render guard, Hebrew composition, language acceptance) were 55% of the whole e2e suite while
-  guarding code that changes in roughly one commit in three. `fonts` (`e2e/sign/project.json`) declares
-  its own inputs as four `implicitDependencies`: `font-assets` (`public/fonts`), `editor`, `lib`, and
-  `tool-sign` - six of the 27 specs navigate to `/sign` themselves (the font-parity and Hebrew-
-  composition guards, which drive the real editor rather than only fixtures), which is why
-  `src/tools/sign/` is an input now, unlike before ARCH-20. `scripts/affected-scope.mjs` asks Nx
-  whether `fonts` is affected rather than keeping a second, hand-written input list
-  (`docs/nx-affected-ci.md` has the mechanics); `ci.yml`'s `scope` job and the local `test:e2e` script
-  both ask it, and a nightly schedule and every manual dispatch run the guards regardless. `ci.yml`'s
-  `font-guards` job runs the guards as two time-balanced shards (QUAL-06): `fonts-shard-1` in
-  `playwright.config.js` is the seven heaviest specs listed by hand, `fonts-shard-2` is the rest by
-  complement, so a new guard spec runs (in shard 2) until someone rebalances the list. A new guard
-  needs a name the globs match, and a new input a guard reads from outside today's four goes into
-  `fonts`'s `implicitDependencies` in `e2e/sign/project.json`. `npm run test:e2e:fonts` runs them
-  unconditionally after a build.
+- **The font guards are the `fonts` Playwright project and run only when a font-registry input
+  changes** (ARCH-23, 2026-09-18 - superseding the ARCH-20 mechanism below it used to use). The 25
+  per-script shaping and font-parity specs matched by `FONT_GUARDS` in `playwright.config.js` were 55%
+  of the whole e2e suite while guarding code that changes in roughly one commit in three, and their old
+  gate - `e2e/sign/project.json` declaring `editor`, `lib` and `tool-sign` as whole-project
+  `implicitDependencies` - ran all of them on any Sign/Redact toolbar or tooltip change with zero
+  measured coverage benefit (`backlog/tasks/ARCH-23.md`'s "Measured" sections: 0 of 8 narrow-verdict
+  triggers in a 62-push window were rightful). `scripts/affected-scope.mjs` now decides `fonts` with a
+  small, explicit file-glob (`matchesFontsGlob`): `public/fonts/**` (font assets), `src/editor/text/**`
+  (the whole directory - the catalogue and its shaping/runtime code share one Nx-project directory, so
+  this is deliberately a directory rule, not a named subset), `src/styles/editorFonts.css`,
+  `scripts/fonts/**`, `scripts/generate-font-*`, `scripts/check-font-*`, the guard specs and fixtures
+  under `e2e/sign/`, and `playwright.config.js` (defines the shard split) - plus every existing
+  fail-open trigger (an unowned file, the CI oracle itself, no resolvable base) that already forced
+  `everything=true` for unrelated reasons and keeps forcing `fonts=true` too, unconditionally, the way
+  it always has. What no longer forces it: `editor`/`lib` being core projects for some other reason
+  (e.g. a `src/lib/drafts/draftStore.js` change), or `tool-sign`/`editor-ui` being affected for a
+  UI-only reason. `docs/nx-affected-ci.md` has the mechanics and the measurement behind choosing a glob
+  over a second Nx project. `ci.yml`'s `font-guards` job runs the guards as two time-balanced shards
+  (QUAL-06): `fonts-shard-1` in `playwright.config.js` is the six heaviest specs listed by hand,
+  `fonts-shard-2` is the rest by complement, so a new guard spec runs (in shard 2) until someone
+  rebalances the list. A new guard needs a name the globs match, and a new input a guard reads from
+  outside today's list goes into `matchesFontsGlob` in `scripts/affected-scope.mjs` **and** this file's
+  own `paths:` frontmatter (two separate lists, kept separate on purpose - see ARCH-23's ticket for
+  why). `npm run test:e2e:fonts` runs the 25 guards unconditionally after a build; a nightly schedule
+  and every manual dispatch still run them regardless of the glob.
+
+- **The export render guard and language acceptance are their own `export-guards` project**
+  (`e2e/export/`, ARCH-23), not part of `fonts` above. Both esbuild the real export path
+  (`src/editor/adapters/pdf/sign.js`, `src/tools/sign/languageAcceptance.js`) rather than only fixtures,
+  so - unlike `fonts` - their Nx project (`e2e/export/project.json`) keeps a coarse, whole-project
+  `implicitDependencies` edge to `font-assets`, `editor`, `lib` and `tool-sign` on purpose: a Sign
+  toolbar or tooltip change still runs these two (cheap, well under a minute combined, decided the
+  normal Nx-affected way), it just no longer drags the other 25 guards along with it.
+  `npm run test:e2e:export-guards` runs them unconditionally after a build. `temporaryBundle.js`
+  (the shared esbuild-and-serve harness) stays in `e2e/sign/fixtures/` rather than moving with them,
+  because `cjk-advance-parity-guard.spec.js` (a `fonts` guard) and `shapingGuardHarness.js` also import
+  it; the two `e2e/export/` specs import it across the directory boundary instead of duplicating it.
 - **Resolve every family through `src/editor/text/fonts.js`** (`resolveFontFamily(family, text)`),
   from `TextNode`, `SignatureDialog` and `src/editor/registry/text.ts` alike. The browser substitutes a
   system font per missing glyph; a PDF embeds one font per run and draws an empty rectangle. Latin-only

@@ -31,7 +31,7 @@ import {
   baselineFormatMatches, buildSignBundle, captureSignaturesInPage, findPdfWorkerUrl,
   judgeCases, readBaseline, removeSignBundle, writeBaseline,
 } from './fixtures/exportRenderHarness.js';
-import { useTemporaryBundle } from './fixtures/temporaryBundle.js';
+import { useTemporaryBundle } from '../sign/fixtures/temporaryBundle.js';
 
 const BUNDLE_FILENAME = '__e2e-export-render-bundle.js';
 const BASELINE_PATH = join(fileURLToPath(new URL('./fixtures/', import.meta.url)), 'exportRenderBaseline.json');

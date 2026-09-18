@@ -166,7 +166,7 @@
  *
  * ## Regenerating the baseline
  *
- *     UPDATE_EXPORT_RENDER_BASELINE=1 npx playwright test e2e/sign/export-render-guard
+ *     UPDATE_EXPORT_RENDER_BASELINE=1 npx playwright test e2e/export/export-render-guard
  *
  * **Only on `BASELINE_PLATFORM` (see below), never on whatever machine is
  * handy.** Running that command on macOS rewrites every signature with macOS

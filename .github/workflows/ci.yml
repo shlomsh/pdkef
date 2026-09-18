@@ -43,7 +43,7 @@ on:
 # 21 webkit tests and the perf budgets run once there, so the two chromium
 # shards install and run chromium only.
 #
-# ARCH-20 (2026-09-14): `checks`, each `e2e` shard and each `font-guards` shard narrow
+# ARCH-20 (2026-09-14): `checks`, each `e2e` shard, each `font-guards` shard and `export-guards` narrow
 # their own unit/e2e work to what a real Nx project graph (one project per
 # src/shell, src/editor, src/editor-ui, src/lib, src/tools/<tool>/, the site,
 # public/fonts and the e2e trees - see nx.json and the project.json files)
@@ -435,7 +435,7 @@ jobs:
   #
   # This job stays dependency-free (no `npm ci`) on purpose - see the
   # workflow header comment. It resolves BASE once and outputs it as `base`
-  # so `checks`, each `e2e` shard, each `font-guards` shard and `e2e-webkit`
+  # so `checks`, each `e2e` shard, each `font-guards` shard, `export-guards` and `e2e-webkit`
   # can each run their own `scripts/affected-scope.mjs` (which needs
   # `node_modules` for `nx`, hence cannot live here) against the same diff.
   scope:
@@ -497,25 +497,36 @@ jobs:
       if: steps.classify.outputs.docs_only == 'true'
       run: npm run check:guidance
 
-  # The 27 font screening guards (the `fonts` Playwright project): shaping
-  # guards per script, font parity, the export render guard, Hebrew
-  # composition, language acceptance. This job now starts on every non-docs
-  # run (same fail-open `if:` as `checks`/`build`/`e2e`) and computes its own
-  # `fonts` boolean right after `npm ci`, via scripts/affected-scope.mjs's
-  # `fonts` Nx project (public/fonts, src/editor, src/lib, tool-sign; the
-  # steps gate on `!= 'false'` so a missing output runs them, fail-open) -
-  # ARCH-20 retired the hand-kept `FONT_GUARD_INPUTS` list this used to read
-  # from the `scope` job. Every step after that reads costs one runner ~20s
-  # in parallel with `checks`/`e2e` and no wall time when fonts is not
-  # affected; on the nightly schedule and a manual dispatch (no `scope` job,
-  # no base - the baseline recapture needs this) affected-scope.mjs's own
-  # fail-open rule makes fonts=true, so those still run.
+  # The 25 font screening guards (the `fonts` Playwright project): shaping
+  # guards per script, font parity, Hebrew composition. This job now starts on
+  # every non-docs run (same fail-open `if:` as `checks`/`build`/`e2e`) and
+  # computes its own `fonts` boolean right after `npm ci`, via
+  # scripts/affected-scope.mjs's `matchesFontsGlob` file-glob rule (ARCH-23,
+  # 2026-09-18: public/fonts, src/editor/text, editorFonts.css, scripts/fonts,
+  # the guard specs/fixtures under e2e/sign, playwright.config.js; the steps
+  # gate on `!= 'false'` so a missing output runs them, fail-open) - ARCH-20
+  # first retired the hand-kept `FONT_GUARD_INPUTS` list this used to read
+  # from the `scope` job in favour of asking Nx whether `fonts` was affected;
+  # ARCH-23 then found that Nx edge (`fonts` declaring `editor`/`lib`/
+  # `tool-sign` as whole-project dependencies) ran all 27 guards on a Sign
+  # toolbar/tooltip change with zero measured coverage benefit, so the
+  # per-push decision is a glob again - see backlog/tasks/ARCH-23.md and
+  # docs/nx-affected-ci.md's "ARCH-23" section. Every step after that reads
+  # costs one runner ~20s in parallel with `checks`/`e2e` and no wall time
+  # when fonts is not affected; on the nightly schedule and a manual dispatch
+  # (no `scope` job, no base) affected-scope.mjs's own fail-open rule makes
+  # fonts=true, so those still run. The two guards that exercise the real
+  # export pipeline (the export render guard, language acceptance) are the
+  # `export-guards` job below, not part of this one any more.
   #
   # QUAL-06 (2026-09-14): matrixed into two shards balanced by measured time
   # in playwright.config.js (`fonts-shard-1`/`fonts-shard-2`), because on
   # every run where the guards ran this job was the long pole (144-251s
   # against 135-180s for the `e2e` shards). Both shards compute the same
-  # `fonts` verdict from affected-scope.mjs and skip together.
+  # `fonts` verdict from affected-scope.mjs and skip together. The exported-PDF
+  # baseline recapture step used to live here (shard 1 only, since the export
+  # render guard was its heaviest named spec) - ARCH-23 moved both to the
+  # `export-guards` job below, alongside the guard that owns the baseline.
   font-guards:
     runs-on: ubuntu-latest
     needs: scope
@@ -574,27 +585,104 @@ jobs:
       if: steps.affected.outputs.fonts != 'false'
       run: npx playwright test --project=fonts-shard-${{ matrix.shard }}
 
+    - name: Upload Playwright artifacts
+      if: failure()
+      uses: actions/upload-artifact@v5
+      with:
+        name: playwright-artifacts-fonts-shard-${{ matrix.shard }}
+        path: |
+          playwright-report/
+          test-results/
+        if-no-files-found: ignore
+
+  # ARCH-23 (2026-09-18): the two guards that actually exercise the export
+  # pipeline - export-render-guard.spec.js (rasterises the real `signPdf`
+  # output against a runner-pinned baseline) and language-acceptance.spec.js
+  # (the same bundle over every shipped language/face combination) - split out
+  # of `font-guards` above into their own project (`export-guards`,
+  # e2e/export/). Unlike `fonts`, this project's Nx implicitDependencies stay
+  # coarse on purpose (editor, lib, tool-sign, font-assets - see
+  # e2e/export/project.json), so `export_guards` is a normal Nx-affected
+  # verdict from scripts/affected-scope.mjs, not a glob: a Sign toolbar or
+  # tooltip change still runs these two (cheap, well under a minute combined),
+  # it just no longer drags the other 25 font guards with it. No matrix - two
+  # specs do not need sharding.
+  export-guards:
+    runs-on: ubuntu-latest
+    needs: scope
+    if: always() && needs.scope.outputs.nightly_unchanged != 'true' && (needs.scope.result != 'success' || needs.scope.outputs.docs_only != 'true')
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Use Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: '22.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Resolve affected scope
+      id: affected
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: |
+        if [ -n "$BASE" ]; then git fetch --no-tags --depth=1 origin "$BASE" || true; fi
+        node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
+
+    - name: Build
+      if: steps.affected.outputs.export_guards != 'false'
+      run: npm run build
+
+    - name: Resolve Playwright version
+      id: playwright
+      if: steps.affected.outputs.export_guards != 'false'
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      id: playwright-cache
+      if: steps.affected.outputs.export_guards != 'false'
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+
+    - name: Install Playwright browsers
+      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit != 'true'
+      run: npx playwright install --with-deps chromium
+
+    - name: Install Playwright system dependencies
+      if: steps.affected.outputs.export_guards != 'false' && steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps chromium
+
+    - name: Run Playwright e2e tests (export guards)
+      if: steps.affected.outputs.export_guards != 'false'
+      run: npx playwright test --project=export-guards
+
     # Prints the recaptured baseline rather than committing it. Review the
     # decoded file before it lands: a baseline change is a change to what users
-    # receive.
+    # receive. Moved here from `font-guards` (ARCH-23) alongside the guard
+    # that owns the baseline; no shard to gate on any more.
     - name: Recapture exported-PDF render baseline (manual runs only)
       # always(), because a step's `if` otherwise still implies success() and
       # the e2e step above is exactly the one expected to be red when a
       # baseline needs recapturing.
-      if: ${{ always() && inputs.update-export-render-baseline && matrix.shard == 1 }}
+      if: ${{ always() && inputs.update-export-render-baseline }}
       env:
         UPDATE_EXPORT_RENDER_BASELINE: '1'
       run: |
-        npx playwright test e2e/sign/export-render-guard --reporter=list || true
+        npx playwright test e2e/export/export-render-guard --reporter=list || true
         echo "BASELINE_GZ_B64_START"
-        gzip -9 -c e2e/sign/fixtures/exportRenderBaseline.json | base64 -w 3000
+        gzip -9 -c e2e/export/fixtures/exportRenderBaseline.json | base64 -w 3000
         echo "BASELINE_GZ_B64_END"
 
     - name: Upload Playwright artifacts
       if: failure()
       uses: actions/upload-artifact@v5
       with:
-        name: playwright-artifacts-fonts-shard-${{ matrix.shard }}
+        name: playwright-artifacts-export-guards
         path: |
           playwright-report/
           test-results/

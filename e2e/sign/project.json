@@ -4,7 +4,7 @@
   "projectType": "application",
   "sourceRoot": "e2e/sign",
   "tags": ["scope:fonts"],
-  "implicitDependencies": ["font-assets", "editor", "lib", "tool-sign"],
+  "implicitDependencies": ["font-assets"],
   "targets": {
     "e2e": {
       "executor": "nx:run-commands",
