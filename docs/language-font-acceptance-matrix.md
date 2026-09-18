@@ -1,6 +1,6 @@
 # Sign language and font acceptance matrix
 
-Generated from [`scripts/language-acceptance.mjs`](../scripts/language-acceptance.mjs). Do not edit this table directly.
+Generated from [`src/tools/sign/languageAcceptance.js`](../src/tools/sign/languageAcceptance.js). Do not edit this table directly.
 
 A shipped row means its real alphabet coverage is checked against bundled font bytes; its named Chrome guard covers shaping or records why shaping is not applicable; its sample is exercised through every real supported face for visible ink and searchable PDF text; direction and native digits are part of that sample. Export-render baseline cases add artifact-level visual coverage where listed. Typed signatures remain raster images and are outside the searchable-text claim.
 

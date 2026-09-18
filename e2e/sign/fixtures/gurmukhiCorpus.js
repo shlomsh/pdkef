@@ -52,7 +52,7 @@
  * 1. `baseConsonants` - the 33 letters Unicode assigns in the U+0A15-U+0A39
  *    range (four codepoints in that range - U+0A29, U+0A31, U+0A34, U+0A37 -
  *    are unassigned, the same shape of gap DEVANAGARI_CONSONANTS documents
- *    in scripts/font-languages.mjs for the mirrored Devanagari block).
+ *    in src/editor/text/languageAlphabets.js for the mirrored Devanagari block).
  * 2. `nuktaConsonants` - five precomposed nukta letters for Perso-Arabic/
  *    English loan sounds (ਖ਼ ਗ਼ ਜ਼ ਫ਼) plus ੜ RRA, which - unlike Bengali's
  *    equivalent loan sounds, written as base+nukta sequences with no
@@ -83,7 +83,7 @@
  *
  * Adak bindi (ਁ U+0A01), udaat (ੑ U+0A51), yakash (ੵ U+0A75) and the
  * abbreviation sign (੶ U+0A76) are deliberately excluded, mirroring
- * HEBREW_NIQUD's exclusion of meteg/rafe in scripts/font-languages.mjs: all
+ * HEBREW_NIQUD's exclusion of meteg/rafe in src/editor/text/languageAlphabets.js: all
  * four are historical, Sikh-scripture-specific, or otherwise not part of
  * ordinary modern Punjabi writing (a name, an address, a filled-in form).
  */

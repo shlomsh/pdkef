@@ -39,8 +39,8 @@ import {
   FONT_COVERAGE,
   FONT_COVERAGE_BITMAPS,
   FONT_COVERAGE_FILES,
-  fontFileHasGlyph,
 } from './fontCoverageTable.js';
+import { fontFileHasGlyph } from './fontCoverageLookup.js';
 import { DISPLAY_ONLY_FONTS } from './displayOnlyFonts.js';
 
 const FONT_DIR = join(process.cwd(), 'public', 'fonts');

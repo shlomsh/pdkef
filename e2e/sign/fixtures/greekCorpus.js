@@ -31,7 +31,7 @@
  *    assume) that becomes visible as a case under test instead of silently
  *    being asked to double as calibration ink for something it isn't.
  * 2. `diacriticCases` - every tonos (oxia) and dialytika letter the modern
- *    monotonic alphabet uses (see scripts/font-languages.mjs's `GREEK`
+ *    monotonic alphabet uses (see src/editor/text/languageAlphabets.js's `GREEK`
  *    definition, the same set the coverage report is judged against):
  *    ά έ ή ί ό ύ ώ / ΆΈΉΊΌΎΏ (tonos) and ϊ ϋ / ΐ ΰ (dialytika, including the
  *    two precomposed tonos+dialytika vowels). A handwriting face that

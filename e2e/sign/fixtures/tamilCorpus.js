@@ -46,7 +46,7 @@
  * deliberately excluded as historical, specialist, or religious-symbol
  * usage, not part of ordinary modern Tamil form-filling text - mirroring
  * DEVANAGARI_VOWELS' and BENGALI_VOWELS' exclusion of vocalic-L in
- * scripts/font-languages.mjs. ஃ (aytham, U+0B83) IS included below as a
+ * src/editor/text/languageAlphabets.js. ஃ (aytham, U+0B83) IS included below as a
  * base letter - traditionally Tamil's 13th vowel ("uyir ezhuthu"), not a
  * rare mark, and it appears in ordinary loanword transliteration (ஃபோன்
  * "phone").

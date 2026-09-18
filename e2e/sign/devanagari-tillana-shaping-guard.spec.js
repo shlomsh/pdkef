@@ -30,7 +30,7 @@ import { createShapingGuardTest } from './fixtures/shapingGuardHarness.js';
  * files were committed (`npm run test:fonts` is the standing guard).
  * Fontkit crash screen: 0/185 throws on the full Devanagari corpus, both
  * weights. Coverage: full against the real Hindi/Marathi character set this
- * catalogue is judged against (scripts/font-languages.mjs's `devanagari`/
+ * catalogue is judged against (src/editor/text/languageAlphabets.js's `devanagari`/
  * `marathi` entries, 71/71 codepoints - independent vowels, the 35 standard
  * consonants, matras, anusvara/visarga/candrabindu/OM/virama and digits),
  * plus full Latin ASCII and digits, both weights. Available OpenType

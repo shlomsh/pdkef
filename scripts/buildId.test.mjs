@@ -22,7 +22,7 @@ describe('computeBuildId', () => {
   it('changes when a file\'s content changes at the same relative path', () => {
     // This is the case a URL-list-only hash cannot see: fonts (and every other
     // public/ asset) are copied verbatim, so their path is identical build to
-    // build even when scripts/font-languages.mjs or a font fix changes their
+    // build even when src/editor/text/languageAlphabets.js or a font fix changes their
     // bytes - see buildId.mjs's module doc.
     const before = computeBuildId(files());
     const after = computeBuildId(files({ [FONT_PATH]: Buffer.from('font-bytes-v2') }));

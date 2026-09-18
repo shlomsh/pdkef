@@ -156,12 +156,12 @@ describe('covers is not vacuous', () => {
   //    synthetic pangram.
   //  - Vietnamese: Cảm ơn ("thank you") - carries both a stacked-diacritic
   //    vowel (ả, Latin Extended Additional) and the bare ơ (Latin Extended-A),
-  //    the two codepoint groups scripts/font-languages.mjs defines Vietnamese
-  //    coverage from, so a font with only plain Latin accents cannot fake a
-  //    pass on this probe.
+  //    the two codepoint groups src/editor/text/languageAlphabets.js defines
+  //    Vietnamese coverage from, so a font with only plain Latin accents
+  //    cannot fake a pass on this probe.
   //  - Urdu: نہیں ("no") - a common word built from ہ (heh goal) and ں (noon
   //    ghunna), two of the seven letters Urdu needs that Arabic itself has no
-  //    glyph for at all (see URDU_EXTRA_LETTERS in font-languages.mjs). Using
+  //    glyph for at all (see URDU_EXTRA_LETTERS in languageAlphabets.js). Using
   //    plain Arabic-only text here would only re-probe the Arabic row above,
   //    not the thing that makes the Urdu claim a separate, checkable fact.
   const PROBES = {
