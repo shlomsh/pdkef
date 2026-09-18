@@ -21,14 +21,14 @@
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #faf7f1; color: #0b4c4c; margin: 0; padding: 2rem; }
   h1 { font-size: 1.25rem; margin: 0 0 0.25rem; }
-  p.count { color: #4a6570; margin: 0 0 1.5rem; }
-  table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(35, 64, 74, 0.1); }
-  th { text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #4a6570; background: #eef6f8; padding: 0.6rem 0.9rem; }
-  td { padding: 0.6rem 0.9rem; border-top: 1px solid #e6f1f3; vertical-align: top; font-size: 0.9rem; }
-  a { color: #397281; }
-  .alternates { margin-top: 0.25rem; font-size: 0.8rem; color: #4a6570; }
+  p.count { color: #276460; margin: 0 0 1.5rem; }
+  table { width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(11, 76, 76, 0.1); }
+  th { text-align: left; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; color: #276460; background: #eef6f3; padding: 0.6rem 0.9rem; }
+  td { padding: 0.6rem 0.9rem; border-top: 1px solid #c3f0e6; vertical-align: top; font-size: 0.9rem; }
+  a { color: #006e6e; }
+  .alternates { margin-top: 0.25rem; font-size: 0.8rem; color: #276460; }
   .alternates a { margin-right: 0.6rem; }
-  .meta-col { white-space: nowrap; color: #4a6570; }
+  .meta-col { white-space: nowrap; color: #276460; }
 </style>
 </head>
 <body>

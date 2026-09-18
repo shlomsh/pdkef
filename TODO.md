@@ -118,6 +118,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-10 | P1 | [QUAL-10](backlog/tasks/QUAL-10.md) · Saved-work restore must not shift Sign, Redact, or Merge |
 | QUAL-11 | P2 | [QUAL-11](backlog/tasks/QUAL-11.md) · Mint and paper: retheme the palette so green is the ground and warmth is the paper |
+| QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 
 
 ## Search acquisition: competitive keyword gaps

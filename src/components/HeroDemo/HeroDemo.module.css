@@ -1507,11 +1507,12 @@
      the way the LTR edition's `.caption` override is), plus `--color-muted`
      in place of the inherited `--color-annotation`, so the ink itself is
      lighter and the size stays legible rather than a shrunken afterthought.
-     `--color-muted` is scoped to `--home-workspace` #4a6980 inside
-     `.home-hero`/`.home-tour` (HomePageLayout.astro), not the global
-     #4a6570; contrast against `--home-workspace` (#e4f5f7) is ~5.16:1,
-     asserted >= 4.5 by the "refreshed homepage foregrounds" case in
-     src/styles/colorContrast.test.js. */
+     `--color-muted` is scoped inside `.home-hero`/`.home-tour`
+     (HomePageLayout.astro) to #276460, which currently coincides with the
+     global #276460 - the scoped declaration stays so the hero can diverge
+     again later. Contrast against `--home-workspace` (#c3f0e6) is 5.5:1
+     (computed), asserted >= 4.5 by the "refreshed homepage foregrounds" case
+     in src/styles/colorContrast.test.js. */
   .caption-hebrew {
     font-family: 'Gveret Levin Demo', 'Times New Roman', serif;
     font-weight: 400;

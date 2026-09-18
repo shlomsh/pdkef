@@ -31,7 +31,7 @@ function contrast(foreground, background) {
 const root = (name) => token(globalCss, name);
 const home = (name) => token(homePage, name);
 
-describe('Sea Glass contrast contracts', () => {
+describe('Mint and paper contrast contracts', () => {
   it.each([
     '--color-surface',
     '--color-bg',
