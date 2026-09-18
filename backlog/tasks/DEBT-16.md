@@ -1,7 +1,7 @@
 ---
 id: "DEBT-16"
 title: "Flaky CLS assertion in tool-layout.spec.js's stale-restore test"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "architecture-debt"
 phase: "near-term"
@@ -96,3 +96,13 @@ here costs a rerun and, worse, can mask a genuine failure landing in the same pu
   restore (do not weaken it into a no-op).
 - No other occurrence of this failure on `main` in the next ~2 weeks of pushes, or, if it recurs, the
   fix is revisited with the new data point.
+
+## Outcome (2026-09-19)
+
+Fixed on `main` with the per-source option. The observer now classifies every `layout-shift`
+source by whether it sits inside `.tool-hero`; anything outside the hero must contribute exactly 0,
+and the hero's own remeasurement gets a 0.01 allowance. Measured: the only shifting node is the
+citron accent `<span>` QUAL-13 added to the `<h1>` (619px wide to 706px at the 1.75rem to 2rem
+font-size step), 0.0009 locally and 0.0014 on the ubuntu runner; the tool card resizes during the
+same transition but is unpainted, so it contributes no CLS, which is the invariant the test is for.
+`--repeat-each=10` green locally; the CI run on this commit is the runner proof.
