@@ -463,6 +463,12 @@
   padding: 0 0.1rem;
   font-size: 0.78rem;
   color: var(--color-muted);
+  /* One row even at the narrowest iPhone width (375px) - the copy is kept
+     short enough to fit, and this is the safety net for a locale whose
+     translation runs longer than English/Hebrew do. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (hover: none) and (max-width: 1023px) {
