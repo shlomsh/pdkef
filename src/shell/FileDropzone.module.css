@@ -137,3 +137,18 @@
   height: 34px;
 }
 .launcher > .error { grid-column: 1 / -1; }
+
+/* Landscape phone (see the matching block in RecentFiles.module.css): the
+   picker keeps its full-width row and its touch target, and gives back the
+   vertical padding the screen no longer has. After the unconditional
+   `.launcher > .tile` rule above on purpose - a media query adds no
+   specificity, so an earlier block would lose to it. */
+@media (max-height: 560px) {
+  .launcher { gap: 10px 8px; }
+  .launcher > .tile { min-height: 52px; padding: 7px 16px; }
+}
+/* The recents row goes to six columns at this size (RecentFiles.module.css),
+   so the 440px cap that suits three columns would squeeze them. */
+@media (max-height: 560px) and (min-width: 700px) {
+  .launcher { max-width: none; }
+}
