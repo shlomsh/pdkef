@@ -19,24 +19,24 @@
  * `.home-header .home-trust .trust-chip` overrides that out-specified an
  * older, slightly different copy in AppBar.astro, which is exactly how the
  * two headers drifted apart. Under 1024px the labels shrink; under 721px each
- * chip is a 2rem icon square whose aria-label carries the name (the offline
- * chip excepted - see below), and the wrapper goes fixed-width so the bar's
- * breadcrumb is what gives way.
+ * chip is the same 2rem icon square whose aria-label carries the name, and
+ * the wrapper goes fixed-width so the bar's breadcrumb is what gives way.
  *
  * `offlineHref` turns the offline chip into a link (home points it at its
  * own install section, `#offline-app`, and homeWorkspace.ts scrolls there);
  * a page with no such target renders the same chip as a plain badge.
  *
  * The offline chip carries a hand-drawn crossed-out Wi-Fi mark rather than
- * lucide's `WifiOff`, and is wider than the other two because of it. The
- * icon it used to carry is the iOS and macOS status-bar glyph, pixel for
- * pixel, so under 720px - where the label is hidden and only the icon is
- * left - it landed in the visual slot where the system reports signal, and
- * read as "you have no reception" rather than "this needs none". A struck
- * wordmark is a claim about a technology, the way "gluten free" is; a struck
- * status glyph can only ever report a state. Drawn as strokes rather than
- * set in a face, so it needs no web font and takes `currentColor` with the
- * chip's hover and focus states.
+ * lucide's `WifiOff`. It is the one element here with letters to resolve, so
+ * it is the chip the shared 2rem phone-width box costs something: see the
+ * note on that box below. The icon it used to carry is the iOS and macOS
+ * status-bar glyph, pixel for pixel, so under 720px - where the label is
+ * hidden and only the icon is left - it landed in the visual slot where the
+ * system reports signal, and read as "you have no reception" rather than
+ * "this needs none". A struck wordmark is a claim about a technology, the way
+ * "gluten free" is; a struck status glyph can only ever report a state.
+ * Drawn as strokes rather than set in a face, so it needs no web font and
+ * takes `currentColor` with the chip's hover and focus states.
  */
 import { Code2 } from 'lucide-preact';
 
@@ -62,7 +62,7 @@ const offlineAttrs = offlineHref ? { href: offlineHref, 'data-offline-link': tru
       "Open source" pill uses), and a courtroom icon beside the word
       "licence" read as a legal condition rather than a gift. */}
   <a class="trust-chip" href="/licenses/" aria-label={labels.openSource}><Code2 class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.openSource}</span></a>
-  <OfflineChip class="trust-chip trust-chip-offline" {...offlineAttrs} aria-label={labels.worksOffline}>
+  <OfflineChip class="trust-chip" {...offlineAttrs} aria-label={labels.worksOffline}>
     <svg class="trust-chip-mark" viewBox="0 0 100 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M47 3.2 C73 1.6 95.4 6.4 96.8 30 C97.7 54.6 74.6 61.9 48 61 C23.4 60.3 3.7 56.1 2.6 33 C1.5 9.4 23 4.3 47 3.2 Z" />
       <path d="M55 9.6 C75.4 8.1 91.2 10.6 91.8 22.2 C92.7 35.2 91.5 45.2 89.3 50.7 C87.3 55.9 72.8 54.7 59.4 54.5 L45.2 61.7 L52.3 50.5 C50.3 39.4 50.7 21.4 51.8 14.1 C52.2 10.9 53.1 9.8 55 9.6 Z" />
@@ -153,29 +153,33 @@ const offlineAttrs = offlineHref ? { href: offlineHref, 'data-offline-link': tru
       flex: none;
       gap: 0.25rem;
     }
+    /* One 2rem square for every chip, the app bar's on-device badge included
+       (AppBar.astro matches it): a row of identical circles rather than three
+       circles and one ellipse. The offline chip's mark wants more room than
+       this - it is the one element here with letters to resolve, and at 22px
+       wide they are near the limit of what resolves at all - but the row
+       being uniform is what the bar is judged on, and 2rem is the widest box
+       the three lucide icons can justify. It also buys back breadcrumb:
+       measured on /merge/ at 360px, 57.7px of tool name against the old
+       mixed row's 42.1px. */
     .trust-chip {
       width: 2rem;
       min-height: 2rem;
       justify-content: center;
       gap: 0;
-      padding: 0.4rem;
+      padding: 0.25rem;
     }
     /* The aria-labels keep each chip's accessible name while its visual text
        yields to the icon at phone widths. */
     .trust-chip span {
       display: none;
     }
-    /* This is the width the whole change costs: ~14px more than a square
-       chip, and only here, where the mark is all that is left of the claim.
-       Tighter padding buys the mark the height its letters need inside the
-       same 2rem row as its neighbours. */
-    .trust-chip.trust-chip-offline {
-      width: 3.05rem;
-      padding: 0.25rem;
-    }
+    /* The mark fills the 2rem square's content box (32 - 2x0.25rem - 2x1px);
+       height follows from its own 100:64 box. The 0.25rem padding is what
+       keeps it at 22px rather than the 0.4rem the labelled chips carry. */
     .trust-chip-mark {
-      width: 34px;
-      height: 22px;
+      width: 22px;
+      height: 14px;
     }
   }
 </style>
