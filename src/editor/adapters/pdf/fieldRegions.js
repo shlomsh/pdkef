@@ -33,6 +33,33 @@ function overlap(a, b) {
  *   its enclosing cell's blank strip as `writable`; the cells nothing else
  *   already claims.
  */
+/**
+ * Folds a page's native `/Tx` widget regions (`detectWidgetRegions`) into what
+ * the ink detectors reconciled, keeping whichever source found a field first.
+ *
+ * The two sources are not alternatives, because a form can be both at once.
+ * Our own practice form paints nine guide boxes for its student-ID comb into
+ * the page stream *and* lays a live comb widget over them, so the same field
+ * arrives twice and only one of the two may reach the editor - a second hint
+ * on the same strip is a second tap target for one box. Everything the ink
+ * walk did not find, though, is a field a live form is simply telling us
+ * about, and that is the whole of what this adds.
+ *
+ * Ink wins the ties: it is the source whose numbers the fixtures pin, and on
+ * a flat-plus-widget hybrid its box is the one actually printed on the page.
+ *
+ * @param {{combs: Array, checkboxes: Array, cells: Array}} reconciled
+ * @param {{combs: Array, cells: Array}} widgets
+ * @returns {{combs: Array, cells: Array}}
+ */
+export function withWidgetFields(reconciled, widgets) {
+  const { combs, checkboxes, cells } = reconciled;
+  const unclaimed = (region, found) => !found.some((other) => overlap(region, other));
+  const allCombs = [...combs, ...widgets.combs.filter((comb) => unclaimed(comb, [...combs, ...checkboxes]))];
+  const taken = [...allCombs, ...checkboxes, ...cells];
+  return { combs: allCombs, cells: [...cells, ...widgets.cells.filter((cell) => unclaimed(cell, taken))] };
+}
+
 export function reconcileFields({ combs, checkboxes, cells }) {
   const claimed = new Set();
   const reconciledCombs = combs.map((comb) => {

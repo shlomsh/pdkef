@@ -92,8 +92,45 @@ cell still carries whatever label `formCells.js`'s own header/own-text lookup fo
 in the UI surfaces it yet - the hint layer stays purely visual, `aria-hidden`, matching the
 existing comb/checkbox hints exactly.
 
+**Step 3, done 2026-09-19 (`pdfObjects.js`, `formGrid.js`, `fieldRegions.js`,
+`useFormFieldRegions.ts`, `formWidgets.test.js`):** the detector was blind to its own demo form.
+Opening the bundled practice form in Sign - the file the home page offers on a first visit, and
+the one the hero demo tells the story of - surfaced 3 of its 9 fields: the student-ID comb and
+the two checkboxes. The six free-text fields (student name, parent/guardian, emergency contact,
+allergies, signature line, date) showed no hint at all.
+
+Cause, not a threshold to loosen: every source feeding the detector reads the page's own content
+stream, and the practice form is a *live AcroForm*, not a flat one. `scripts/generate-practice-
+form.mjs` builds each field with `form.createTextField(...).addToPage(...)`, so pdf-lib paints
+that box inside the widget's `/AP /N` appearance stream - a separate object graph the page stream
+never invokes. `collectPageInk`'s docstring already scopes out even Form XObjects reached by `Do`;
+an annotation appearance is further out still. The ink walk was right to find nothing: at those
+coordinates the page really does draw nothing. The three fields that did work each worked by
+accident - the generator also paints nine guide boxes for the comb straight into the page stream,
+and `collectCheckboxWidgets` was already reading `/Btn` rects off `/Annots`.
+
+So the fix is the `/Tx` counterpart of the `/Btn` reader that already existed:
+`collectTextFieldWidgets` (`pdfObjects.js`) walks `/Annots` for text-field widgets and returns
+each `/Rect`, skipping hidden, no-view and read-only ones; `detectWidgetRegions` (`formGrid.js`)
+puts them in page percentages, a comb widget (comb flag plus `/MaxLen`) becoming a `boxed` comb of
+that many cells; `withWidgetFields` (`fieldRegions.js`) folds them into what the ink pass
+reconciled, ink winning every overlap. Both halves were needed: `/FT`, `/Ff`, `/T` and `/MaxLen`
+all sit on the parent field dict on a pdf-lib-generated form, so reading the widget alone finds
+nothing, and the comb arrives from both sources at once and must be reported once.
+
+The practice form now reports all 9 (1 comb, 6 cells, 2 checkboxes), pinned by
+`formWidgets.test.js` against the shipped asset itself. The two scored spike forms are unchanged -
+neither carries a widget, so `detectWidgetRegions` returns nothing on both (verified) and the
+recall/precision table in `docs/mobi-10-field-map-spike.md` still stands as measured. This also
+reaches any form filled once in another app and passed on, which is the same shape.
+
 Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
-wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition.
+wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
+things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision
+labels (the idea harvested below) and are read by nothing yet, since no UI surfaces a label; and
+`classifyKind` in `formCells.js` still recognises only Hebrew signature/date roots, so on a Latin
+form a signature line arrives as an ordinary text cell - which is what the practice form wants
+today, but is a guess, not a decision.
 
 ## Ideas harvested from the parallel spike branch (deleted 2026-09-17)
 

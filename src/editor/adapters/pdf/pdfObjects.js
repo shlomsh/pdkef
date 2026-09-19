@@ -457,17 +457,92 @@ export function hasFillableAcroForm(pdfDoc) {
   return (acroForm.getFields()?.length ?? 0) > 0;
 }
 
-/** True when a widget inherits the PDF button field type from itself or a parent. */
-function isButtonWidget(context, widget) {
+/**
+ * A field entry as the widget sees it: its own, or the nearest ancestor's.
+ *
+ * Field attributes are inheritable, and a writer is free to put them anywhere
+ * on the chain. `@cantoo/pdf-lib` writes a widget as a child of its field
+ * dict rather than merging the two, so on a form it generated `/FT`, `/Ff`,
+ * `/T` and `/MaxLen` all sit on the parent and the widget dict carries only
+ * `/Rect`, `/F` and `/AP` - reading the widget alone finds nothing at all.
+ */
+function inheritedEntry(context, widget, key) {
   let field = widget;
   const seen = new Set();
   while (field instanceof PDFDict && !seen.has(field)) {
     seen.add(field);
-    const type = context.lookup(field.get(PDFName.of('FT')))?.asString?.();
-    if (type === '/Btn') return true;
+    const entry = context.lookup(field.get(PDFName.of(key)));
+    if (entry !== undefined) return entry;
     field = context.lookup(field.get(PDFName.of('Parent')));
   }
-  return false;
+  return undefined;
+}
+
+/** True when a widget inherits the PDF button field type from itself or a parent. */
+function isButtonWidget(context, widget) {
+  return inheritedEntry(context, widget, 'FT')?.asString?.() === '/Btn';
+}
+
+/** Annotation `/F` flags that mean "do not show this on the page". */
+const ANNOTATION_HIDDEN = 0b10;
+const ANNOTATION_NO_VIEW = 0b100000;
+/** `/Ff` field flags: read-only (bit 1) and comb (bit 25). */
+const FIELD_READ_ONLY = 1;
+const FIELD_COMB = 1 << 24;
+
+/** Every `/Widget` annotation on the page, in annotation order. */
+function pageWidgets(page) {
+  const context = page.doc.context;
+  const annotations = context.lookup(page.node.get(PDFName.of('Annots')));
+  if (!(annotations instanceof PDFArray)) return [];
+  const widgets = [];
+  for (let index = 0; index < annotations.size(); index += 1) {
+    const widget = context.lookup(annotations.get(index));
+    if (!(widget instanceof PDFDict)) continue;
+    if (context.lookup(widget.get(PDFName.of('Subtype')))?.asString?.() !== '/Widget') continue;
+    widgets.push(widget);
+  }
+  return widgets;
+}
+
+/**
+ * Collects native PDF text-field widgets from the page annotation tree.
+ *
+ * The ink detectors (`pageInk.js` and everything built on it) read the page's
+ * own content stream, which is the only place a *flat* form can put its
+ * boxes. A form that still carries live `/Tx` widgets draws each box inside
+ * that widget's appearance stream instead, so the page stream is empty where
+ * the fields are and the ink detectors correctly find nothing - the box a
+ * person can see is simply not on the page. `/Rect` is where it is, exactly,
+ * with none of the heuristics: the same reason `collectCheckboxWidgets`
+ * exists for `/Btn`.
+ *
+ * Hidden, no-view and read-only widgets are skipped: none of the three is a
+ * place anyone can write, so offering one as a snap target would aim a tap at
+ * a field that is not there.
+ *
+ * `combCells` is the `/MaxLen` of a widget whose comb flag is set - a run of
+ * that many equal boxes, which is what a comb region means everywhere else.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {Array<{x: number, y: number, width: number, height: number, combCells?: number}>}
+ */
+export function collectTextFieldWidgets(page) {
+  const context = page.doc.context;
+  const fields = [];
+  for (const widget of pageWidgets(page)) {
+    if (inheritedEntry(context, widget, 'FT')?.asString?.() !== '/Tx') continue;
+    const flags = context.lookup(widget.get(PDFName.of('F')))?.asNumber?.() ?? 0;
+    if (flags & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) continue;
+    const fieldFlags = inheritedEntry(context, widget, 'Ff')?.asNumber?.() ?? 0;
+    if (fieldFlags & FIELD_READ_ONLY) continue;
+    const rect = context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.();
+    if (!(rect?.width > 0) || !(rect?.height > 0)) continue;
+    const maxLen = inheritedEntry(context, widget, 'MaxLen')?.asNumber?.();
+    const combCells = fieldFlags & FIELD_COMB && maxLen > 1 ? maxLen : undefined;
+    fields.push({ ...rect, ...(combCells ? { combCells } : {}) });
+  }
+  return fields;
 }
 
 /**
@@ -482,15 +557,9 @@ function isButtonWidget(context, widget) {
  */
 export function collectCheckboxWidgets(page) {
   const context = page.doc.context;
-  const annotations = context.lookup(page.node.get(PDFName.of('Annots')));
-  if (!(annotations instanceof PDFArray)) return [];
-
   const boxes = [];
-  for (let index = 0; index < annotations.size(); index += 1) {
-    const widget = context.lookup(annotations.get(index));
-    if (!(widget instanceof PDFDict)) continue;
-    const subtype = context.lookup(widget.get(PDFName.of('Subtype')))?.asString?.();
-    if (subtype !== '/Widget' || !isButtonWidget(context, widget)) continue;
+  for (const widget of pageWidgets(page)) {
+    if (!isButtonWidget(context, widget)) continue;
     const rect = context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.();
     if (rect?.width > 0 && rect?.height > 0) boxes.push(rect);
   }
