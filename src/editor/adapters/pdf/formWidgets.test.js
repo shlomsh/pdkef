@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { PDFDocument, PDFName, degrees } from '@cantoo/pdf-lib';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { detectPageRegions, detectWidgetRegions } from './formGrid.js';
 import { collectTextFieldWidgets } from './pdfObjects.js';
 import { reconcileFields, withWidgetFields } from './fieldRegions.js';
@@ -72,7 +72,9 @@ describe('the practice form, end to end', () => {
 describe('collectTextFieldWidgets', () => {
   let doc;
   let page;
-  beforeAll(async () => {
+  // Reloaded per test, not once: two of these mutate the document, and a test
+  // that inherits another's mutation is not proving its own claim.
+  beforeEach(async () => {
     doc = await PDFDocument.load(fs.readFileSync(SAMPLE), { ignoreEncryption: true });
     page = doc.getPage(0);
   });
@@ -96,10 +98,45 @@ describe('collectTextFieldWidgets', () => {
   });
 
   it('skips a read-only widget - nobody can write in one', () => {
+    // On `/Ff`, which is inherited: the flag is set on the parent field dict,
+    // where a pdf-lib-generated form keeps it, not on the widget.
     const widget = doc.context.lookup(page.node.Annots().get(1));
     const parent = doc.context.lookup(widget.get(PDFName.of('Parent')));
     parent.set(PDFName.of('Ff'), doc.context.obj(1));
-    expect(collectTextFieldWidgets(page)).toHaveLength(5);
+    expect(collectTextFieldWidgets(page)).toHaveLength(6);
+  });
+});
+
+describe('the widget path under rotation and a shifted crop box', () => {
+  /** The practice form's widgets, as page percentages, after `mutate(page)`. */
+  async function regionsAfter(mutate) {
+    const doc = await PDFDocument.load(fs.readFileSync(SAMPLE), { ignoreEncryption: true });
+    const page = doc.getPage(0);
+    mutate(page);
+    return detectWidgetRegions(page, 0);
+  }
+
+  it('turns the page percentages with the page', async () => {
+    // The practice form is 680x500 landscape and unrotated, so nothing else
+    // here exercises the transform `detectPageRegions` shares with this path.
+    const upright = await regionsAfter(() => {});
+    const turned = await regionsAfter((page) => page.setRotation(degrees(90)));
+    const [first] = upright.cells;
+    const [rotated] = turned.cells;
+    // A 90-degree turn swaps which axis each edge runs along, so a field that
+    // was wide and short comes back tall and narrow.
+    expect(rotated.width).toBeCloseTo(first.height, 1);
+    expect(rotated.height).toBeCloseTo(first.width, 1);
+    expect(turned.cells).toHaveLength(upright.cells.length);
+  });
+
+  it('measures a widget from the crop box, not the media box', async () => {
+    // `/Rect` is in user space; a crop box that does not start at the origin
+    // moves where the same rectangle falls as a percentage of what is shown.
+    const cropped = await regionsAfter((page) => page.setCropBox(40, 0, 640, 500));
+    const plain = await regionsAfter(() => {});
+    expect(cropped.cells[0].left).toBeLessThan(plain.cells[0].left);
+    expect(cropped.cells[0].width).toBeGreaterThan(plain.cells[0].width);
   });
 });
 
@@ -123,6 +160,25 @@ describe('withWidgetFields', () => {
     const ink = { combs: [], checkboxes: [box(10, 10, 3, 3)], cells: [] };
     const widgets = { combs: [], cells: [box(10, 10, 3, 3)] };
     expect(withWidgetFields(ink, widgets).cells).toEqual([]);
+  });
+
+  it('lets an added comb claim the cell the ink pass called plain text', () => {
+    // The weakest thing either side reports is a cell, so a widget saying
+    // "nine boxes" beats an ink pass that only found "a closed box here".
+    // Leaving both put a text box and a nine-cell comb on one rectangle.
+    const ink = { combs: [], checkboxes: [], cells: [{ ...box(10, 10), kind: 'text' }] };
+    const widgets = { combs: [{ ...box(10, 10), cells: 9, boxed: true }], cells: [] };
+    const { combs, cells } = withWidgetFields(ink, widgets);
+    expect(combs).toHaveLength(1);
+    expect(cells).toEqual([]);
+  });
+
+  it('leaves an ink cell alone when the added comb is somewhere else', () => {
+    const ink = { combs: [], checkboxes: [], cells: [{ ...box(10, 10), kind: 'text' }] };
+    const widgets = { combs: [{ ...box(10, 40), cells: 9, boxed: true }], cells: [] };
+    const { combs, cells } = withWidgetFields(ink, widgets);
+    expect(combs).toHaveLength(1);
+    expect(cells).toEqual(ink.cells);
   });
 
   it('does not offer a cell over a comb it just added either', () => {

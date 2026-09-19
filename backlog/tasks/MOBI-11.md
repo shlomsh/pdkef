@@ -118,6 +118,18 @@ reconciled, ink winning every overlap. Both halves were needed: `/FT`, `/Ff`, `/
 all sit on the parent field dict on a pdf-lib-generated form, so reading the widget alone finds
 nothing, and the comb arrives from both sources at once and must be reported once.
 
+Review (fresh subagent, zero shared context) found one real bug in the first cut: a widget comb
+overlapping a region the ink pass had reported as a plain cell was added without the cell being
+removed, leaving two snap targets on one rectangle. It never fired on the practice form - the ink
+comb detector classifies that field as a comb too, so the comb-vs-comb branch caught it - but it
+is reachable on any form whose teeth the ink heuristics miss while `detectCellCandidates` still
+finds the box. Fixed by applying `reconcileFields`'s own precedence rather than the blanket "ink
+wins" the first cut claimed: between equals ink wins, but **a comb beats a cell whichever source
+found it**, because a cell is the weakest thing either side reports. Regression test included, and
+verified to fail without the fix. The same review also added rotation and shifted-crop-box
+coverage for the widget path (the practice form is unrotated at the origin, so nothing else
+exercised that transform) and isolated two mutation tests behind a per-test reload.
+
 The practice form now reports all 9 (1 comb, 6 cells, 2 checkboxes), pinned by
 `formWidgets.test.js` against the shipped asset itself. The two scored spike forms are unchanged -
 neither carries a widget, so `detectWidgetRegions` returns nothing on both (verified) and the
