@@ -52,6 +52,32 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   `ScrollDriver.tsx` are fractions of. `ScrollDriver` finds the live pin by asking which
   `[data-demo-pin]` computes to `sticky` and pairs it with its `[data-demo-track]`; never re-test the
   breakpoint in JS. Re-resolve on resize, or a stale pin reads an unpinned element's `top`.
+- **The pin's breakpoint and the layout's breakpoint are one number: 1024px.** The mobile grid is
+  `max-width: 1023px`, `homeWorkspace.ts`'s `mobile` matchMedia is `max-width: 1023px` - and the mobile
+  pin rules sat in a `max-width: 767px` block for months. In between (a phone in landscape, every tablet
+  in portrait) the layout was mobile with no pin under it: `.home-hero` had dropped out of `sticky`,
+  `.home-frame` had not entered it, `ScrollDriver` found no `[data-demo-pin]` computing to `sticky`, and
+  the unpinned frame kept `height: 100%` of the 1216svh demo row - so `HeroDemo`'s size container made
+  `.phone`'s `100cqh` resolve against 4,742px and painted a phone taller than four screens across the
+  hero. Anything gated on "is this the mobile layout" belongs at 1023/1024; only genuinely
+  phone-width things (the dock's `4.5`-card `flex-basis`, the launcher's single-column padding) go at 767.
+- **The first screen may grow; it may never be squeezed.** `.home-hero` is `min-height:
+  calc(100svh + 1216svh)` with `min-content` header and dock rows and `1fr` for the launcher, not a hard
+  `height`. Six recents in three columns is taller than the launcher's share of a short screen (579px of
+  content in a 208px row on a landscape iPhone), and a fixed height has nowhere to put that: the dock -
+  a scroll container at these widths, so its automatic minimum size is *zero* - was cut from 111px to
+  34px and the overflow painted through it into the demo. `min-content` on both edge rows is what makes
+  growth land on the launcher and leaves a screen where everything fits unchanged to the pixel
+  (verified at 393x852, 360x640 and 820x1180, CLS 0). `e2e/home/scrollable-hero.spec.js` has always
+  asserted this ("deliberately allowed to grow for short screens and text zoom").
+- **Landscape is a height problem, so its media queries are height-keyed.** `max-height: 560px` blocks
+  in `HomePageLayout.astro`, `RecentFiles.module.css`, `FileDropzone.module.css` and
+  `HeroDemo.module.css` compact the headline, the recents tiles, the picker and the dock's tiles; paired
+  with `min-width: 700px` they also put the recents on one row and set the demo's caption *beside* the
+  document instead of above it, which is the only reason the permission slip fits. Rotating an iPhone
+  leaves ~390px of height and ~850px of width: spend the width the screen gained on the height it lost.
+  These blocks go **last** in their sheet - every rule re-states one from a `max-width` block at the same
+  specificity, and a media query adds none, so source order is all that decides it.
 - **The launcher's row is viewport-derived, not content-derived.** It is a `1fr` row inside a
   viewport-height box at both breakpoints, so `FileDropzone` arriving cannot change the row. Content
   inside the row can still move (see the recents note below).

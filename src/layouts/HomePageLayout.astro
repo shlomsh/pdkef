@@ -758,7 +758,17 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   }
 
   @media (max-width: 959.98px) {
-    .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
+    /* min-height, and specifically min-content, because `overflow-y: hidden`
+       makes the dock a scroll container, and a scroll container's automatic
+       minimum size is zero. The dock sits in an `auto` grid row inside a hero
+       of fixed `100svh + 1216svh`, so with a zero floor that row shrank to
+       whatever the launcher left over and the dock silently clipped its own
+       tiles and labels: 31px of a 100px row on a 844x390 landscape iPhone.
+       min-content restores the content height as the row's floor, so a first
+       screen that genuinely does not fit grows past 100svh and scrolls - which
+       is what e2e/home/scrollable-hero.spec.js already asserts is intended -
+       rather than cutting the dock in half. */
+    .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; min-height: min-content; }
     /* A hidden tooltip still counts toward scrollable overflow, so the last
        card's 200px tooltip left 46px of empty dock past the end of the row. */
     .app-tooltip { display: none; }
@@ -838,10 +848,30 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
        by the 1216svh row that .home-frame travels through. */
     .home-hero {
       position: static;
-      height: calc(100svh + 1216svh);
+      /* min-height, not height, and min-content for the header and dock rows.
+         The first screen must be *at least* 100svh and the demo track exactly
+         1216svh, but the three rows above it also have a floor of their own:
+         the recents grid is six documents in three columns, which is taller
+         than the launcher's share of a short screen (579px of content in a
+         208px row on a 844x390 landscape iPhone). With a fixed height those
+         rows could only be squeezed, so the overflow painted straight through
+         the dock and into the demo below - the rotated-phone screenshot.
+         Keeping the height indefinite lets the first screen grow instead,
+         which is what this layout already intended ("deliberately allowed to
+         grow for short screens and text zoom", e2e/home/scrollable-hero.spec.js).
+
+         min-content on the header and dock rows is what keeps that growth
+         honest in both directions: neither may be squeezed (the dock is a
+         scroll container at these widths, so its automatic minimum size is
+         zero and it was being cut from 111px to 34px), and neither may absorb
+         the spare height that belongs to the launcher, so on a screen where
+         everything fits the launcher row is still the one that stretches and
+         the layout is unchanged to the pixel. */
+      height: auto;
+      min-height: calc(100svh + 1216svh);
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr auto 1216svh;
+      grid-template-rows: min-content 1fr min-content 1216svh;
       grid-template-areas: "header" "launcher" "dock" "demo";
     }
     .home-header :global([data-home-bar] > div) { min-height: 56px; padding-block: 6px; gap: 6px; }
@@ -870,6 +900,22 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
        every phone width. The cap keeps the tiles from floating in oversized
        cards once a wider screen has room to spare. */
     .app-card { flex-basis: min(calc((100% - 48px) / 4.5), 96px); }
+  }
+  /* The mobile pin and its page frame, at the same 1023px boundary the mobile
+     *layout* above already uses - and the same one homeWorkspace.ts's `mobile`
+     media query and ScrollDriver's pin lookup assume.
+
+     These rules used to stop at 767px while the layout they belong to ran to
+     1023px, so every width in between (a phone in landscape - 844x390 on an
+     iPhone 15 - and every tablet in portrait) got the mobile grid with no pin
+     under it: .home-hero drops out of `sticky` at 1023px and .home-frame only
+     entered it at 767px, so nothing matched ScrollDriver's "which
+     [data-demo-pin] computes to sticky" lookup and the demo never pinned.
+     Worse, an unpinned .home-frame keeps `height: 100%` of the 1216svh demo
+     row: HeroDemo's .root is a size container, so `.phone`'s
+     `calc(100cqh - 32px)` resolved against 4,742px and drew a phone taller
+     than four screens across the hero. That is the rotate-to-landscape bug. */
+  @media (max-width: 1023px) {
     .demo-track {
       align-self: stretch;
       /* Keeps the pinned demo off the screen edges; the desktop layout gets
@@ -1144,6 +1190,34 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         }
       }
     }
+  }
+
+  /* Landscape phone. Rotating an iPhone leaves ~390px of height and ~850px of
+     width, and the first screen's three rows were sized for the other
+     orientation: a 1.6rem headline, a launcher floored at 13rem and a dock of
+     52px tiles come to roughly 580px before a single recent document is
+     shown. The grid above now grows rather than overlapping, so none of this
+     is a correctness fix - it is what keeps that growth to a short scroll
+     instead of a second screen. Height-keyed, not orientation-keyed: a short
+     window has the same problem for the same reason.
+
+     Last in the sheet deliberately. Every declaration here re-states one that
+     an earlier block (or an unconditional rule further down, as .app-tile's
+     own base rule is) sets at the same specificity, and a media query adds
+     none, so source order is what decides it. */
+  @media (max-height: 560px) {
+    header.hero-header.hero-header { padding: 8px 16px 6px; }
+    .hero-header h1 { font-size: 1.2rem; }
+    .hero-header p { font-size: 0.78rem; }
+    /* The 13rem floor exists to stop first paint from moving the dock while
+       the launcher settles; here the launcher's own content is taller than
+       the floor anyway, so the floor only costs height. */
+    .home-workspace { min-height: 0; padding: 10px 16px; }
+    .home-dock { gap: 14px; padding: 6px 16px; }
+    /* The tile shrinks, the card does not: .app-card stays well over the 44px
+       touch target with its label. */
+    .app-tile { width: 40px; height: 40px; border-radius: 14px; }
+    .app-label { font-size: 0.72rem; }
   }
 
   @keyframes pulse {
