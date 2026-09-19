@@ -105,6 +105,7 @@ _None._
 | QUAL-11 | P2 | [QUAL-11](backlog/tasks/QUAL-11.md) · Mint and paper: retheme the palette so green is the ground and warmth is the paper |
 | QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
+| QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
 
 ### Retired
 
