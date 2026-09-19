@@ -3,7 +3,11 @@
 // geometry. On tool pages the brand link doubles as a back-to-home link and
 // reveals a back arrow on hover; the optional breadcrumb next to it is a nav
 // label, NOT the page <h1>. Right side carries a quiet "on-device" privacy
-// badge. Pure inline SVG, no script, so it adds no CSP surface. Uses a logo
+// badge, which collapses to the same 2rem icon square the trust chips use at
+// phone widths (TrustChips.astro owns that box and explains the number): it
+// sits in their row, so it is one of them, and it used to render 30.8px
+// square beside their 32px - close enough to look like a mistake, far enough
+// to be one. Pure inline SVG, no script, so it adds no CSP surface. Uses a logo
 // square + wordmark for the brand pill.
 //
 // The logo goes through astro:assets rather than a public/ path. It used to be
@@ -76,7 +80,7 @@ const brandClasses = 'group inline-flex items-center gap-[0.55rem] text-[var(--c
       </span>
     )}
 
-    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-primary)] bg-[var(--color-primary)] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-surface)] min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:gap-0 max-[560px]:p-[0.4rem] max-[560px]:text-[0px]">
+    <span data-on-device class="ms-auto inline-flex shrink-0 items-center gap-[0.35rem] rounded-[var(--radius-pill)] border border-[var(--color-primary)] bg-[var(--color-primary)] px-[0.7rem] py-[0.3rem] text-[0.75rem] font-semibold text-[var(--color-surface)] min-[561px]:max-[1023px]:gap-1 min-[561px]:max-[1023px]:text-[0.7rem] max-[560px]:size-8 max-[560px]:justify-center max-[560px]:gap-0 max-[560px]:p-0 max-[560px]:text-[0px]">
       <svg class="max-[560px]:size-4" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" />
         <path d="M9 12.5l2 2 4-4.5" />
