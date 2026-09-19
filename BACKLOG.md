@@ -85,6 +85,7 @@ _None._
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
+| QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
 
 ### In progress
 
