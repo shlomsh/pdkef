@@ -158,6 +158,36 @@ flag one bit fails 4, accepting `/MaxLen` 1 as a run fails 1, forgetting the `MA
 fails 1. Behaviour is unchanged - the practice form still reports 1 comb, 6 cells, 2 checkboxes,
 in the detector and in a browser.
 
+**Step 3c, done 2026-09-19 (`src/editor/adapters/pdf/corpus/`, new Nx project `form-corpus`):**
+the detector now has a corpus - one row per form element, each built into a real PDF and run
+through the whole pipeline, so adding an element is a row rather than a test body and the elements
+already there keep proving themselves while the detector is refactored. 65 tests over 27 elements
+in five groups: live AcroForm widgets (text, comb, multiline, required, read-only, hidden,
+no-view, checkbox, radio, push button, dropdown, signature), printed ink (comb teeth, boxed combs,
+painted squares, ruled rows, panels, clipping paths), hybrids where both sources describe one
+field, page geometry (rotation, a crop box off the origin, page indices across two pages), and the
+known gaps. A third of the rows pin things that must *not* be detected, which is what catches a
+change making the detector greedier. `README.md` in the package holds the paradigm.
+
+Specs, not committed `.pdf` files: a binary fixture is opaque in review and has to be regenerated
+by hand when the vocabulary grows. The three real documents (our practice form and the two scored
+flat forms) run alongside, and the corpus asserts directly that both flat forms carry no widget -
+which is what lets this ticket's recall/precision table stand unchanged.
+
+Writing it found three things. **A push button was reported as a checkbox** (`/Btn` covers push
+buttons, and `collectCheckboxWidgets` filtered on `/FT` alone), so the Symbol tool offered a
+checkmark over a Submit or Print control - fixed by excluding `/Ff` bit 17. Two were in the corpus
+itself and are worth recording because both would have been silent: a default field name derived
+from the rectangle collides across pages, which is the most natural multi-page case there is; and
+an "every region is inside the page" guard was wrong, because pdf-lib insets a bordered field by
+half its border width, so a field can legitimately poke past a crop box - the guard now asserts a
+region *intersects* the page, which is the real invariant.
+
+Two limits are pinned as `known gap` rows rather than left to be rediscovered: a checkbox square
+stroked as a path is never a checkbox candidate (`findCheckboxes` reads `ink.rects`, and pdf-lib
+never emits `re` - this is the miss behind "none of the drawn squares" on form 101), and a real
+`/Sig` field is invisible because signature placement is a different creation mode.
+
 Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
 wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
 things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision
