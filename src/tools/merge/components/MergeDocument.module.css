@@ -450,6 +450,33 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Coarse-pointer-only hint, same width cutoff as `.chip-bar` above it: the
+   chip row and the page grid both reorder on press-and-hold with no grip
+   icon of their own (unlike the desktop rail's handle) to say so. Gated to
+   below 1024px too, not just `hover: none`, because the text names "files"
+   specifically - once `.chip-bar` gives way to the desktop rail at 1024px
+   the rail's own visible grip already answers this, and a touch monitor at
+   that width would otherwise see a hint about a file row that is not there. */
+.touch-drag-hint {
+  display: none;
+  margin: 0;
+  padding: 0 0.1rem;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  /* One row even at the narrowest iPhone width (375px) - the copy is kept
+     short enough to fit, and this is the safety net for a locale whose
+     translation runs longer than English/Hebrew do. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: none) and (max-width: 1023px) {
+  .touch-drag-hint {
+    display: block;
+  }
+}
+
 /* On a phone "<name>.pdf · 18 pages" only just fits at 375px; while
    thumbnails arrive the " · 14 rendered" figure pushed it into an ellipsis.
    The dashed placeholders already show what is still rendering there, so the
