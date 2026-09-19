@@ -1313,6 +1313,17 @@ export default function PdfMergeTool({
             </div>
           </div>
 
+          {/* Coarse pointer only (CSS-gated, MergeDocument.module.css): the
+              chip row and the page grid below both drag on press-and-hold
+              (SortableJS's delayOnTouchOnly), with no grip icon standing in
+              for the gesture the way the desktop rail's handle does, so
+              nothing tells a phone that dragging works at all. Gated on
+              having something worth reordering, same threshold as the
+              desktop rail's own Sort control. */}
+          {(entries.length > 1 || outputCount > 1) && (
+            <p class={docStyles['touch-drag-hint']}>{t.touchDragHint}</p>
+          )}
+
           <div class={docStyles.main}>
             <div class={docStyles.document} ref={documentRef}>
               <div class={docStyles['doc-header']}>
