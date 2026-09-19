@@ -100,11 +100,12 @@ export default function useFormFieldRegions(
       try {
         const [
           { PDFDocument },
-          { detectPageRegions, detectWidgetRegions, toPagePercentBox },
+          { detectPageRegions, toPagePercentBox },
           { collectPageInk, pageCropBox },
           { detectCellCandidates },
           { reconcileFields, withWidgetFields },
           { createPageGeometry },
+          { detectWidgetRegions },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
           import('../../editor/adapters/pdf/formGrid.js'),
@@ -112,6 +113,7 @@ export default function useFormFieldRegions(
           import('../../editor/adapters/pdf/formCells.js'),
           import('../../editor/adapters/pdf/fieldRegions.js'),
           import('../../editor/geometry/coords.ts'),
+          import('../../editor/adapters/pdf/formWidgets.js'),
         ]);
         const document = await PDFDocument.load(bytes.slice(0), {
           ignoreEncryption: true,

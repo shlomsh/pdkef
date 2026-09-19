@@ -136,6 +136,28 @@ neither carries a widget, so `detectWidgetRegions` returns nothing on both (veri
 recall/precision table in `docs/mobi-10-field-map-spike.md` still stands as measured. This also
 reaches any form filled once in another app and passed on, which is the same shape.
 
+**Step 3b, done 2026-09-19 (`formWidgets.js` is new; `pdfObjects.js`, `formGrid.js`,
+`useFormFieldRegions.ts`):** the widget path is now a pure core with a thin pdf-lib reader around
+it, in one module of its own. `fillableTextField(entry)` is the whole of the flag arithmetic and
+`widgetRegions(fields, geometry, pageIndex)` is the whole of the classification and transform;
+neither touches a PDF object, so every edge case is a plain object in a test rather than a PDF
+someone has to build. `pdfObjects.js` keeps only the reading (`widgetEntries` pulls the five
+values a widget states about itself; `pageWidgets` and `inheritedEntry` are now exported and
+shared with the `/Btn` collector) and decides nothing.
+
+`detectWidgetRegions` moved out of `formGrid.js` with the rest, which is what keeps the import
+graph acyclic: `toPagePercentBox` lives in `formGrid.js` rather than in `coords.ts` where a pure
+coordinate transform belongs, so anything importing it cannot also be imported by it. That
+inversion is pre-existing and was left alone here; moving `toPagePercentBox` to `coords.ts` (two
+real consumers, `formCells.js` and the Sign hook) would let the widget module stand free of the
+ink detector entirely, and is worth doing on its own.
+
+47 unit tests, of which 31 are on the pure halves. Each guard was mutation-checked rather than
+assumed: dropping the read-only check fails 3, dropping hidden/no-view fails 4, moving the comb
+flag one bit fails 4, accepting `/MaxLen` 1 as a run fails 1, forgetting the `MAX_COMB_CELLS` cap
+fails 1. Behaviour is unchanged - the practice form still reports 1 comb, 6 cells, 2 checkboxes,
+in the detector and in a browser.
+
 Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
 wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
 things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision
