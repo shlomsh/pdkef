@@ -112,6 +112,12 @@ export interface MergeMessages {
   /* MERGE-08 / MERGE-09: the page strip and its per-page controls. */
   pagesHeading: string;
   stripHint: string;
+  /** Visible (not sr-only, unlike reorderHint/stripHint above) touch hint:
+   * both the phone chip row and the page grid drag on press-and-hold with no
+   * grip icon of their own to show it, so mobile has nothing telling anyone
+   * dragging works at all. Shown only under a coarse pointer (see
+   * `.touch-drag-hint` in MergeDocument.module.css). */
+  touchDragHint: string;
   fileTag: string;
   pageItemLabel: string;
   skippedState: string;
@@ -227,6 +233,7 @@ const englishMergeMessages: MergeMessages = {
   resetOrder: 'Reset order',
   pagesHeading: 'Pages',
   stripHint: 'Drag a page to reorder, or focus a page and press the left or right arrow keys to move it, R to rotate it, Delete to skip it.',
+  touchDragHint: 'Press and hold to drag files or pages into a new order.',
   fileTag: 'File {number}',
   pageItemLabel: 'Page {number} of {total}, from {file}{state}',
   skippedState: ', skipped',
@@ -337,6 +344,7 @@ const hebrewMergeMessages: MergeMessages = {
   resetOrder: 'איפוס הסדר',
   pagesHeading: 'עמודים',
   stripHint: 'גררו עמוד כדי לסדר מחדש, או התמקדו בעמוד ולחצו על חץ שמאלה או ימינה כדי להזיז אותו, R כדי לסובב, Delete כדי לדלג עליו.',
+  touchDragHint: 'לחצו והחזיקו כדי לגרור קובץ או עמוד למקום חדש.',
   fileTag: 'קובץ {number}',
   pageItemLabel: 'עמוד {number} מתוך {total}, מתוך {file}{state}',
   skippedState: ', מדולג',
