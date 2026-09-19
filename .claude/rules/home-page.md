@@ -70,6 +70,15 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   growth land on the launcher and leaves a screen where everything fits unchanged to the pixel
   (verified at 393x852, 360x640 and 820x1180, CLS 0). `e2e/home/scrollable-hero.spec.js` has always
   asserted this ("deliberately allowed to grow for short screens and text zoom").
+- **The desktop hero is the one thing that may not grow, so its launcher cell scrolls instead**
+  (QUAL-16). It is the pinned element and `ScrollDriver.tsx`'s fractions are taken against its exact
+  100svh, so growing it silently re-paces both stories. Under `min-width: 1024px and max-height: 560px`
+  the launcher is `align-self: stretch; min-height: 0; overflow-y: auto` - stretch is half the fix, since
+  a centred box overflows *both* ends (six recents painted up behind the headline as well as down
+  through the dock). Guard: `e2e/home/scrollable-hero.spec.js`'s `short desktop window` describe, which
+  samples `elementFromPoint` rather than rects - `getBoundingClientRect` ignores clipping, so it cannot
+  tell "scrolled out of view inside the cell" from "painted over the dock" - and carries a checked
+  sabotage control.
 - **Landscape is a height problem, so its media queries are height-keyed.** `max-height: 560px` blocks
   in `HomePageLayout.astro`, `RecentFiles.module.css`, `FileDropzone.module.css` and
   `HeroDemo.module.css` compact the headline, the recents tiles, the picker and the dock's tiles; paired
@@ -78,9 +87,12 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   leaves ~390px of height and ~850px of width: spend the width the screen gained on the height it lost.
   These blocks go **last** in their sheet - every rule re-states one from a `max-width` block at the same
   specificity, and a media query adds none, so source order is all that decides it.
-- **The launcher's row is viewport-derived, not content-derived.** It is a `1fr` row inside a
-  viewport-height box at both breakpoints, so `FileDropzone` arriving cannot change the row. Content
-  inside the row can still move (see the recents note below).
+- **The launcher's row is viewport-derived wherever the viewport can hold it.** It is the `1fr` row at
+  both breakpoints, so `FileDropzone` arriving cannot change it and content inside it can still move
+  (see the recents note below). It is *not* a floor: on a screen too short for its content the two
+  bullets above take over - below 1024px the row takes its content's height and the first screen grows,
+  at 1024px and up the cell scrolls. Read this as "the row never shrinks to its content", not "the row
+  is always exactly one viewport's share".
 - **`--home-nav-height` is measured at runtime.** `AppBar.astro` is `h-14` plus a `border-b-[0.5px]`
   hairline, so it is 56.5px, not 56px, and `.home-header`'s `padding-top` and the card stack's sticky
   band derive from it. The CSS default `calc(3.5rem + 0.5px)` is exact in real browsers (CLS 0); the

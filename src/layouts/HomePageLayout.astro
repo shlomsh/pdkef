@@ -1220,6 +1220,29 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     .app-label { font-size: 0.72rem; }
   }
 
+  /* Short desktop window (QUAL-16). Below 1024px a first screen that does not
+     fit grows and the page scrolls; the desktop hero cannot do that - it is
+     the pinned element, and SIGN_END / CROSSFADE_START / CROSSFADE_END in
+     ScrollDriver.tsx are fractions of its exact 100svh, so growing it would
+     silently re-pace both stories. The launcher's own cell absorbs it instead:
+     stretch rather than centre (a centred box overflows both ends, which is
+     how six recents used to paint up behind the headline as well as down
+     through the dock), and scroll inside the cell. Only the launcher moves -
+     the header, the dock and the demo beside it keep their positions, and the
+     hero is still exactly 100svh.
+
+     `min-width: 1024px` is load-bearing: below it the compaction above plus a
+     growing hero already fit this, and a nested scroller there would trap the
+     launcher in a short box instead of letting the page grow. */
+  @media (min-width: 1024px) and (max-height: 560px) {
+    .workspace-launcher {
+      align-self: stretch;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior-block: contain;
+    }
+  }
+
   @keyframes pulse {
     0% {
       transform: scale(0.95);
