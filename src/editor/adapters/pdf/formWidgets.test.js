@@ -3,9 +3,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument, PDFName, degrees } from '@cantoo/pdf-lib';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { detectPageRegions, detectWidgetRegions } from './formGrid.js';
-import { collectTextFieldWidgets } from './pdfObjects.js';
+import { detectPageRegions } from './formGrid.js';
+import {
+  collectTextFieldWidgets,
+  detectWidgetRegions,
+  fillableTextField,
+  widgetRegions,
+} from './formWidgets.js';
 import { reconcileFields, withWidgetFields } from './fieldRegions.js';
+import { createPageGeometry } from '../../geometry/coords.ts';
+import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 
 /**
  * The shipped practice form, against the whole field detector.
@@ -39,6 +46,144 @@ function detectPage(page, pageIndex = 0) {
     checkboxes: ink.checkboxes,
   };
 }
+
+/**
+ * The decisions, as plain objects.
+ *
+ * `fillableTextField` and `widgetRegions` are pure by design (see the module
+ * docstring): every edge case below is a value, not a PDF somebody had to
+ * build, which is the point of the seam. The pdf-lib halves are covered
+ * against the real shipped form further down.
+ */
+describe('fillableTextField', () => {
+  const rect = { x: 10, y: 20, width: 100, height: 12 };
+  const field = (over = {}) => ({ fieldType: '/Tx', rect, ...over });
+
+  it('takes a plain text field and reports its rectangle unchanged', () => {
+    expect(fillableTextField(field())).toEqual({ x: 10, y: 20, width: 100, height: 12 });
+  });
+
+  it.each([
+    ['a button', '/Btn'],
+    ['a signature', '/Sig'],
+    ['a choice', '/Ch'],
+    ['a widget whose field type is nowhere on its chain', undefined],
+  ])('refuses %s', (_name, fieldType) => {
+    expect(fillableTextField(field({ fieldType }))).toBeNull();
+  });
+
+  it.each([
+    ['hidden', 0b10],
+    ['no-view', 0b100000],
+    ['hidden and printable at once', 0b110],
+  ])('refuses a %s widget - it is not on the page to tap', (_name, annotationFlags) => {
+    expect(fillableTextField(field({ annotationFlags }))).toBeNull();
+  });
+
+  it.each([
+    ['print', 0b100],
+    ['no-zoom and no-rotate', 0b11000],
+  ])('still takes a widget flagged %s, which says nothing about visibility', (_name, annotationFlags) => {
+    expect(fillableTextField(field({ annotationFlags }))).not.toBeNull();
+  });
+
+  it('refuses a read-only field - nobody can write in one', () => {
+    expect(fillableTextField(field({ fieldFlags: 1 }))).toBeNull();
+  });
+
+  it('refuses a read-only field that is also a comb', () => {
+    expect(fillableTextField(field({ fieldFlags: 1 | (1 << 24), maxLen: 9 }))).toBeNull();
+  });
+
+  it.each([
+    ['required', 1 << 1],
+    ['multiline', 1 << 12],
+    ['a password', 1 << 13],
+  ])('takes a %s field, none of which blocks writing', (_name, fieldFlags) => {
+    expect(fillableTextField(field({ fieldFlags }))).not.toBeNull();
+  });
+
+  it('reads a comb run from the comb flag and /MaxLen together', () => {
+    const comb = fillableTextField(field({ fieldFlags: 1 << 24, maxLen: 9 }));
+    expect(comb.combCells).toBe(9);
+  });
+
+  it.each([
+    ['the comb flag without a /MaxLen', { fieldFlags: 1 << 24 }],
+    ['a /MaxLen of 1, which is one box and not a run', { fieldFlags: 1 << 24, maxLen: 1 }],
+    ['a /MaxLen without the comb flag', { maxLen: 9 }],
+    ['the multiline flag, one bit below comb, on its own', { fieldFlags: 1 << 23, maxLen: 9 }],
+  ])('is an ordinary field given %s', (_name, over) => {
+    expect(fillableTextField(field(over))).not.toHaveProperty('combCells');
+  });
+
+  it.each([
+    ['no rectangle at all', undefined],
+    ['zero width', { x: 10, y: 20, width: 0, height: 12 }],
+    ['zero height', { x: 10, y: 20, width: 100, height: 0 }],
+  ])('refuses %s - there is nothing to tap', (_name, badRect) => {
+    expect(fillableTextField(field({ rect: badRect }))).toBeNull();
+  });
+
+  it('does not mutate what it was handed', () => {
+    const entry = field({ fieldFlags: 1 << 24, maxLen: 9 });
+    const before = structuredClone(entry);
+    fillableTextField(entry);
+    expect(entry).toEqual(before);
+  });
+});
+
+describe('widgetRegions', () => {
+  // A 200x100 page at the origin, upright: one percent is two points across
+  // and one point down, so the arithmetic below is readable by eye.
+  const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 200, height: 100 }, rotation: 0 });
+  const at = (x, y, width, height, over = {}) => ({ x, y, width, height, ...over });
+
+  it('turns a rectangle into page percentages, measuring top down', () => {
+    // y=80 is 20pt from the top of a 100pt page, and the box is 10pt tall.
+    const { cells } = widgetRegions([at(20, 80, 100, 10)], geometry, 0);
+    expect(cells[0]).toEqual({ kind: 'text', pageIndex: 0, left: 10, top: 10, width: 50, height: 10 });
+  });
+
+  it('sorts a comb widget from an ordinary one and marks it boxed', () => {
+    const { combs, cells } = widgetRegions(
+      [at(20, 80, 100, 10, { combCells: 9 }), at(20, 40, 100, 10)],
+      geometry,
+      0,
+    );
+    expect(combs).toHaveLength(1);
+    expect(combs[0]).toMatchObject({ kind: 'comb', cells: 9, boxed: true });
+    expect(cells).toHaveLength(1);
+  });
+
+  it('keeps a run longer than the editor can draw, as an ordinary field', () => {
+    // Still a real field worth offering; it just cannot be offered as a comb.
+    const { combs, cells } = widgetRegions([at(20, 80, 100, 10, { combCells: MAX_COMB_CELLS + 1 })], geometry, 0);
+    expect(combs).toEqual([]);
+    expect(cells).toHaveLength(1);
+  });
+
+  it('keeps a run of exactly the maximum as a comb', () => {
+    const { combs } = widgetRegions([at(20, 80, 100, 10, { combCells: MAX_COMB_CELLS })], geometry, 0);
+    expect(combs).toHaveLength(1);
+  });
+
+  it('stamps the page index it was given on everything it returns', () => {
+    const { combs, cells } = widgetRegions([at(20, 80, 100, 10, { combCells: 9 }), at(20, 40, 100, 10)], geometry, 7);
+    expect([...combs, ...cells].every((region) => region.pageIndex === 7)).toBe(true);
+  });
+
+  it('returns two empty lists for a page with no widgets', () => {
+    expect(widgetRegions([], geometry, 0)).toEqual({ combs: [], cells: [] });
+  });
+
+  it('is deterministic and does not mutate its input', () => {
+    const fields = [at(20, 80, 100, 10, { combCells: 9 }), at(20, 40, 100, 10)];
+    const before = structuredClone(fields);
+    expect(widgetRegions(fields, geometry, 0)).toEqual(widgetRegions(fields, geometry, 0));
+    expect(fields).toEqual(before);
+  });
+});
 
 describe('the practice form, end to end', () => {
   let page;

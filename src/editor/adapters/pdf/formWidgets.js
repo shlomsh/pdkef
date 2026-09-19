@@ -1,0 +1,158 @@
+import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { createPageGeometry } from '../../geometry/coords.ts';
+import { toPagePercentBox } from './formGrid.js';
+import { pageCropBox } from './pageInk.js';
+import { pageWidgets, widgetEntries } from './pdfObjects.js';
+
+/**
+ * The fields a form states outright, from its own `/Tx` widget annotations.
+ *
+ * Everything else under `adapters/pdf/` infers a field from ink, because the
+ * forms people are usually sent are flat: no `/AcroForm`, the boxes drawn in
+ * the page's own content stream, which is what `pageInk.js` reads. A form
+ * that is still fillable does not need inferring. Each widget's `/Rect` *is*
+ * the field, to the point, and the ink detectors cannot see it at all - its
+ * border is painted inside the widget's `/AP /N` appearance stream, a
+ * separate object graph the page stream never invokes (`pageInk.js`'s
+ * docstring scopes out even Form XObjects reached by `Do`; an annotation
+ * appearance is one step further out). Our own practice form is exactly this
+ * shape, and so is any form filled once in another app and passed on.
+ *
+ * The module is in two halves, and the seam is deliberate:
+ *
+ * - **The decisions are pure functions over plain numbers.** `fillableTextField`
+ *   is the whole of the flag arithmetic; `widgetRegions` is the whole of the
+ *   classification and the transform. Neither touches a PDF object, so every
+ *   edge case is a plain object in a unit test rather than a PDF someone has
+ *   to build. This is where the bugs would be, so this is what is testable.
+ * - **The pdf-lib half only reads.** `collectTextFieldWidgets` pulls five
+ *   values off each widget and hands them over; `detectWidgetRegions` composes
+ *   the two. Neither decides anything.
+ */
+
+/** Annotation `/F` flags that mean "do not show this on the page" (PDF 32000-1 table 165). */
+const ANNOTATION_HIDDEN = 0b10;
+const ANNOTATION_NO_VIEW = 0b100000;
+/** `/Ff` field flags: read-only is bit 1, comb is bit 25 (PDF 32000-1 tables 221, 228). */
+const FIELD_READ_ONLY = 1;
+const FIELD_COMB = 1 << 24;
+
+/**
+ * What one widget annotation says about itself, as plain values.
+ *
+ * `fieldType`, `fieldFlags` and `maxLen` are *inheritable* field attributes
+ * and may come from an ancestor rather than the widget (see `widgetEntries`);
+ * `annotationFlags` and `rect` are the widget's own and are never inherited.
+ *
+ * @typedef {object} WidgetEntry
+ * @property {string} [fieldType] `/FT`, as pdf-lib renders a name: `'/Tx'`.
+ * @property {number} [annotationFlags] `/F`.
+ * @property {number} [fieldFlags] `/Ff`.
+ * @property {number} [maxLen] `/MaxLen`.
+ * @property {{x: number, y: number, width: number, height: number}} [rect] `/Rect`, normalized.
+ */
+
+/** A writable text field, in PDF user space. `combCells` marks a comb run. */
+/**
+ * @typedef {object} TextFieldWidget
+ * @property {number} x
+ * @property {number} y
+ * @property {number} width
+ * @property {number} height
+ * @property {number} [combCells]
+ */
+
+/**
+ * Decides whether one widget is a text field somebody can write in - pure.
+ *
+ * Hidden, no-view and read-only are each skipped because none of the three is
+ * a place anyone can write, so offering one as a snap target would aim a tap
+ * at a field that is not there. A degenerate `/Rect` is skipped for the same
+ * reason; pdf-lib's `asRectangle` already normalizes a rectangle written
+ * corner-swapped, so a zero here means zero, not a sign error.
+ *
+ * `combCells` is the `/MaxLen` of a widget whose comb flag is set: a run of
+ * that many equal boxes, which is what a comb region means everywhere else.
+ * `/MaxLen` 1 is a single box, not a run, and the flag without a `/MaxLen` is
+ * meaningless - the spec makes the two inseparable - so both fall through to
+ * an ordinary field rather than a comb of nothing.
+ *
+ * @param {WidgetEntry} entry
+ * @returns {TextFieldWidget | null} null when the widget is not one to offer.
+ */
+export function fillableTextField(entry) {
+  if (entry.fieldType !== '/Tx') return null;
+  if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
+  const fieldFlags = entry.fieldFlags ?? 0;
+  if (fieldFlags & FIELD_READ_ONLY) return null;
+  const { rect } = entry;
+  if (!(rect?.width > 0) || !(rect?.height > 0)) return null;
+  const isComb = Boolean(fieldFlags & FIELD_COMB) && entry.maxLen > 1;
+  const { x, y, width, height } = rect;
+  return isComb ? { x, y, width, height, combCells: entry.maxLen } : { x, y, width, height };
+}
+
+/**
+ * Turns text-field widgets into editor regions - pure.
+ *
+ * A comb widget becomes a `boxed` comb: its cells are the widget's own equal
+ * divisions of `/Rect`, not teeth guessed off a printed rule, so there is no
+ * enclosing cell for `reconcileFields` to go looking for. A run longer than
+ * the editor can draw (`MAX_COMB_CELLS`) is kept as an ordinary field rather
+ * than dropped - the field is still real and still worth offering, it just
+ * cannot be offered as a comb.
+ *
+ * The geometry is the caller's, and is the same `PageGeometry` the ink
+ * detectors use, so page rotation and a cropped page are handled by the one
+ * transform rather than by a second copy of it here. `/Rect` is in default
+ * user space, the same space the ink walk reports in once it has composed the
+ * CTM, so both sources arrive comparable.
+ *
+ * @param {TextFieldWidget[]} fields
+ * @param {import('../../geometry/coords.ts').PageGeometry} geometry
+ * @param {number} pageIndex
+ * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ */
+export function widgetRegions(fields, geometry, pageIndex = 0) {
+  const combs = [];
+  const cells = [];
+  for (const field of fields) {
+    const box = toPagePercentBox(geometry, {
+      x0: field.x, y0: field.y, x1: field.x + field.width, y1: field.y + field.height,
+    });
+    if (field.combCells && field.combCells <= MAX_COMB_CELLS) {
+      combs.push({ kind: 'comb', pageIndex, cells: field.combCells, boxed: true, ...box });
+    } else {
+      cells.push({ kind: 'text', pageIndex, ...box });
+    }
+  }
+  return { combs, cells };
+}
+
+/**
+ * Reads the page's text-field widgets. On-device and read-only: the
+ * annotation tree is walked, never modified.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {TextFieldWidget[]} in PDF user space
+ */
+export function collectTextFieldWidgets(page) {
+  return pageWidgets(page)
+    .map((widget) => fillableTextField(widgetEntries(page.doc.context, widget)))
+    .filter((field) => field !== null);
+}
+
+/**
+ * The page's text-field widgets as editor regions.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {number} pageIndex
+ * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ */
+export function detectWidgetRegions(page, pageIndex = 0) {
+  const geometry = createPageGeometry({
+    cropBox: pageCropBox(page),
+    rotation: page.getRotation().angle,
+  });
+  return widgetRegions(collectTextFieldWidgets(page), geometry, pageIndex);
+}

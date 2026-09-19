@@ -1,7 +1,7 @@
 import { createPageGeometry, pdfPointToPagePercent } from '../../geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { collectCheckboxGlyphs, collectCheckboxWidgets, collectTextFieldWidgets } from './pdfObjects.js';
+import { collectCheckboxGlyphs, collectCheckboxWidgets } from './pdfObjects.js';
 
 /**
  * Recovers fillable geometry from a flat form's own vector content.
@@ -383,44 +383,4 @@ export function detectPageRegions(page, pageIndex = 0) {
     ...collectCheckboxGlyphs(page),
     ...collectCheckboxWidgets(page),
   ]);
-}
-
-/**
- * The fields a page states outright, from its own `/Tx` widgets.
- *
- * Everything else in this module infers a field from ink, because the forms
- * people are usually sent are flat. A form that is still fillable does not
- * need inferring: each widget's `/Rect` is the field, to the point, and the
- * ink detectors cannot see it at all - the box is painted inside the widget's
- * appearance stream, which is not the page's content stream (`pageInk.js`'s
- * docstring says why it walks only that). Our own practice form is exactly
- * this shape, and so is any form filled once in another app and passed on.
- *
- * A comb widget (`/Ff` comb flag plus `/MaxLen`) becomes a `boxed` comb: its
- * cells are the widget's own equal divisions of `/Rect`, not teeth guessed
- * off a rule, so there is no enclosing cell for `reconcileFields` to go
- * looking for.
- *
- * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @param {number} pageIndex
- * @returns {{combs: Array, cells: Array}} in the editor's page percentages
- */
-export function detectWidgetRegions(page, pageIndex = 0) {
-  const geometry = createPageGeometry({
-    cropBox: pageCropBox(page),
-    rotation: page.getRotation().angle,
-  });
-  const combs = [];
-  const cells = [];
-  for (const field of collectTextFieldWidgets(page)) {
-    const box = toPagePercentBox(geometry, {
-      x0: field.x, y0: field.y, x1: field.x + field.width, y1: field.y + field.height,
-    });
-    if (field.combCells && field.combCells <= MAX_COMB_CELLS) {
-      combs.push({ kind: 'comb', pageIndex, cells: field.combCells, boxed: true, ...box });
-    } else {
-      cells.push({ kind: 'text', pageIndex, ...box });
-    }
-  }
-  return { combs, cells };
 }
