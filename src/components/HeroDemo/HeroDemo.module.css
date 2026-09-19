@@ -1573,3 +1573,34 @@
 }
 
 .screen { line-height: 1.4; }
+
+/* A phone held in landscape: the mobile stage's one column stacks a two-line
+   headline at --type-section-size on top of the document, which on a ~390px
+   viewport is 45% of the frame - the permission slip was cut off mid-field,
+   two rows in. Short *and* wide has the width to set the caption beside the
+   document instead, the same relationship the desktop stage uses, which gives
+   the document the frame's full height.
+
+   Bounded above at 1023px so this only ever reshapes the mobile stage; the
+   desktop block above keeps its own four-row layout and its phone bezel. Last
+   in the sheet because every rule here re-states one from the `max-width:
+   1023px` block at the same specificity, and a media query adds none. */
+@media (min-width: 700px) and (max-width: 1023px) and (max-height: 560px) {
+  .stage {
+    grid-template-columns: minmax(170px, 32%) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'caption phone';
+    align-items: center;
+    gap: 0 20px;
+    padding: 0;
+  }
+  .caption {
+    font-size: 1.45rem;
+    line-height: 1.1;
+    margin: 0;
+    padding-inline: 0;
+    /* start, not left: the Hebrew edition mirrors with the grid. */
+    text-align: start;
+  }
+  .phone { height: 100%; }
+}
