@@ -561,7 +561,7 @@ export const tools = [
     toolName: 'Compress PDF',
     h1: 'Compress PDF to 100KB Free: Reduce File Size',
     subhead:
-      'Need a PDF under 100KB for an application or upload form? Choose a target size to shrink the file and check the result. Some files need a larger limit to stay readable. Free, open source, and your file stays on your device.',
+      'Shrink a PDF to a size limit like 100KB, for application portals and upload forms that cap the file. Pick the target and check the result; some files need a larger limit to stay readable. Free, open source, and your file stays on your device.',
     ariaLabel: 'PDF compress tool',
     aboutHeading: 'How to compress a PDF online for free',
     aboutLead:
@@ -610,7 +610,7 @@ export const tools = [
     toolName: 'Compress Image',
     h1: 'Compress Image to 100KB Free: Reduce Photo Size',
     subhead:
-      'Need a photo under 100KB, or smaller, for a job portal or application form? Choose a target size and check the result. A very small target on a large photo may not be reachable. Free, open source, and your photo stays on your device.',
+      'Shrink a JPG or PNG photo to a size limit like 100KB, or 20KB for portals that cap the photo separately. Pick the target and check the result; a very small target on a large photo may not be reachable. Free, open source, and your photo stays on your device.',
     ariaLabel: 'Compress image tool',
     aboutHeading: 'How to compress an image online for free',
     aboutLead:

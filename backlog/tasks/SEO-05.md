@@ -199,3 +199,11 @@ being re-weighed, which is SEO-03's lever, not this ticket's.
 ## Addendum 2026-09-19: compress FAQ and subhead closer changed
 
 SEO-36 swapped the `/compress/` subhead's "Private: your file never leaves your device." for the shared closer and reworded the "Is the PDF compression secure?" FAQ into "Is my PDF uploaded anywhere?" without intensifiers. Title, h1, description and the honest-miss line are untouched; the 10-08 position read is unaffected by design.
+
+## Addendum 2026-09-19, later: the subhead no longer opens with a question
+
+Shlomi read "Need a PDF under 100KB for an application or upload form?" as marketing slop. The
+subhead now states the job and the problem ("Shrink a PDF to a size limit like 100KB, for application
+portals and upload forms that cap the file."), keeps the honest-miss caveat as a clause of the second
+sentence, and ends on the shared closer. Same on `/compress-image/`. Words of the compress cluster
+(100KB, shrink, target) all kept; title, h1 and description untouched.
