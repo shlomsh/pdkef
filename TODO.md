@@ -122,6 +122,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
+| QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
 
 
 ## Search acquisition: competitive keyword gaps
