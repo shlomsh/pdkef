@@ -759,7 +759,54 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
 
   @media (max-width: 959.98px) {
     .home-dock { overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
+    /* A hidden tooltip still counts toward scrollable overflow, so the last
+       card's 200px tooltip left 46px of empty dock past the end of the row. */
+    .app-tooltip { display: none; }
   }
+  /* Where the dock scrolls, its edges say so: a strip of the dock's own teal
+     fades the cut card at each end, and the strip dissolves as that end of
+     the row arrives, so nothing is dimmed once there is nothing more to see.
+     The strips are sticky flex items with a negative margin, so they take no
+     space in the row, and the dock's own inline scroll drives their opacity:
+     no observer, no JS. Gated on scroll-driven animations because a strip
+     that never dissolves would dim the last tool at the end of the row. */
+  @supports (animation-timeline: scroll()) {
+    @media (max-width: 959.98px) {
+      .home-dock { scroll-timeline: --home-dock inline; }
+      .home-dock::before,
+      .home-dock::after {
+        content: '';
+        position: sticky;
+        flex: 0 0 40px;
+        align-self: stretch;
+        z-index: 1;
+        pointer-events: none;
+        animation: linear both;
+        animation-timeline: --home-dock;
+      }
+      /* Sticky insets measure from the dock's content edge, 16px in from the
+         screen, so the strips reach out by the dock's own inline padding to
+         sit flush with the visible edge. */
+      .home-dock::before {
+        inset-inline-start: -16px;
+        margin-inline-end: calc(-40px - 12px);
+        background: linear-gradient(to right, var(--color-primary), transparent);
+        animation-name: home-dock-edge-in;
+        animation-range: 0 40px;
+      }
+      .home-dock::after {
+        inset-inline-end: -16px;
+        margin-inline-start: calc(-40px - 12px);
+        background: linear-gradient(to left, var(--color-primary), transparent);
+        animation-name: home-dock-edge-out;
+        animation-range: calc(100% - 40px) 100%;
+      }
+      :global(html[dir='rtl']) .home-dock::before { background: linear-gradient(to left, var(--color-primary), transparent); }
+      :global(html[dir='rtl']) .home-dock::after { background: linear-gradient(to right, var(--color-primary), transparent); }
+    }
+  }
+  @keyframes home-dock-edge-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes home-dock-edge-out { from { opacity: 1; } to { opacity: 0; } }
   .app-card { position: relative; display: flex; flex: 0 0 80px; flex-direction: column; align-items: center; gap: 6px; color: inherit; text-decoration: none; }
   .app-tile { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; }
   .app-label { font-size: 0.8rem; font-weight: 600; line-height: 1.25; text-align: center; color: var(--color-surface); }
@@ -794,6 +841,15 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     .home-dock { gap: 12px; padding: 10px 16px; justify-content: flex-start; }
     .app-card { flex-basis: 72px; }
     .app-tile { width: 52px; height: 52px; }
+  }
+  @media (max-width: 767px) {
+    /* iOS draws no scrollbar, so the only sign that the dock holds more than
+       the first screen is a card cut by the edge. At 72px the fifth card ends
+       flush with a 440px viewport and the row reads as a closed set of five;
+       sizing cards to four and a half per row leaves half a card showing at
+       every phone width. The cap keeps the tiles from floating in oversized
+       cards once a wider screen has room to spare. */
+    .app-card { flex-basis: min(calc((100% - 48px) / 4.5), 96px); }
     .demo-track {
       align-self: stretch;
       /* Keeps the pinned demo off the screen edges; the desktop layout gets
