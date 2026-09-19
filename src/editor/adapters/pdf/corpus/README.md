@@ -43,7 +43,7 @@ the failure message should tell you whether the change was wrong or the expectat
 
 | Group | What it covers |
 | --- | --- |
-| `live form` | AcroForm widgets: text, comb, multiline, required, read-only, hidden, no-view, checkbox, radio, push button, dropdown, signature |
+| `live form` | AcroForm widgets: text, comb, multiline, required, read-only, hidden, no-view, checkbox, radio, push button, dropdown, signature - and every visibility flag against *both* field kinds, not just text |
 | `printed` | ink in the page's own content stream: comb teeth, boxed combs, painted squares, ruled rows, panels, clipping paths |
 | `hybrid` | both sources describing one field, which is what a real fillable form is |
 | `page geometry` | rotation, a crop box away from the origin, and page indices across a multi-page document |
@@ -74,6 +74,17 @@ only thing `findCheckboxes` reads. That is why `paintedRect` exists as a separat
 raw operators. Real producers do both, which is why `pageInk.js` normalizes both, so a corpus that
 could only express one half would leave a detector uncovered. Our own practice form is pdf-lib's
 output and has exactly the path-drawn shape.
+
+## One row per flag, per field kind
+
+The `live form` group looks repetitive on purpose: hidden, no-view, read-only and print each get a
+row for a text field *and* a row for a checkbox. That is not padding. The visibility rules were
+written for `/Tx` and `/Btn` went on being read straight off `/Annots` with none of them, so a hidden
+checkbox stayed a mark target long after a hidden text field stopped being one - a gap no amount of
+text-field coverage could have shown. Both kinds now answer through one function
+(`visibleWritableRect`), and the paired rows are what keeps them answering the same way.
+
+When you add a field kind, add its rows for every flag, even where you are sure of the answer.
 
 ## Known gaps
 

@@ -188,6 +188,26 @@ stroked as a path is never a checkbox candidate (`findCheckboxes` reads `ink.rec
 never emits `re` - this is the miss behind "none of the drawn squares" on form 101), and a real
 `/Sig` field is invisible because signature placement is a different creation mode.
 
+**Step 3d, done 2026-09-19 (`formWidgets.js`, `pdfObjects.js`, `formGrid.js`, `coords.ts`,
+`formCells.js`, corpus):** the visibility rules only ever applied to half the widgets. Shlomi caught
+that the checkboxes were never mentioned: `fillableTextField` skipped hidden, no-view and read-only
+`/Tx` widgets, while `collectCheckboxWidgets` read `/Btn` rects straight off `/Annots` with none of
+those checks - so a hidden checkbox, a no-view checkbox, a read-only checkbox and every option of a
+hidden radio group all stayed mark targets. Verified before fixing; the corpus had a row for each
+flag on a text field and none on a checkbox, which is exactly why it did not catch it.
+
+Both kinds now answer through one pure function, `visibleWritableRect`, with `fillableTextField`
+and the new `markableButtonField` adding only what is specific to their own field type (comb runs;
+excluding push buttons). Paired corpus rows for every flag against both kinds keep them in step, and
+the README says to add the full set when a field kind is added.
+
+This needed the layering fix Step 3b had flagged: `collectCheckboxWidgets` had to move next to the
+decision it now shares, but `formGrid.js` consumes it, so `formWidgets.js` could not keep importing
+`toPagePercentBox` from `formGrid.js`. `toPagePercentBox` moved to `coords.ts`, beside the
+`pdfPointToPagePercent` it wraps and where a pure coordinate transform belongs (two consumers
+updated: `formCells.js` and the Sign hook). The import graph is acyclic without the widget module
+having to own things that are not its own.
+
 Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
 wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
 things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision

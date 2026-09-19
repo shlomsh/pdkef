@@ -1,6 +1,5 @@
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
-import { createPageGeometry } from '../../geometry/coords.ts';
-import { toPagePercentBox } from './formGrid.js';
+import { createPageGeometry, toPagePercentBox } from '../../geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
 import { pageWidgets, widgetEntries } from './pdfObjects.js';
 
@@ -62,6 +61,58 @@ const FIELD_COMB = 1 << 24;
  * @property {number} [combCells]
  */
 
+/** `/Ff` bit 17: a push button, which holds no value and cannot be ticked. */
+const FIELD_PUSH_BUTTON = 1 << 16;
+
+/**
+ * The part of the decision that has nothing to do with what kind of field it
+ * is: can a person see this, and can they put anything in it - pure.
+ *
+ * Hidden, no-view and read-only are each skipped because none of the three is
+ * a place anyone can write, so offering one as a target would aim a tap at a
+ * field that is not there. A degenerate `/Rect` is skipped for the same
+ * reason; pdf-lib's `asRectangle` already normalizes a rectangle written
+ * corner-swapped, so a zero here means zero, not a sign error.
+ *
+ * Shared by both field kinds on purpose. It was written for `/Tx` first and
+ * `/Btn` went on being read straight off `/Annots` with none of these checks,
+ * so a hidden checkbox stayed a mark target - the two paths now answer the
+ * visibility question in one place, and a corpus row pins each flag for each
+ * kind.
+ *
+ * @param {WidgetEntry} entry
+ * @returns {{x: number, y: number, width: number, height: number} | null}
+ */
+export function visibleWritableRect(entry) {
+  if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
+  if ((entry.fieldFlags ?? 0) & FIELD_READ_ONLY) return null;
+  const { rect } = entry;
+  if (!(rect?.width > 0) || !(rect?.height > 0)) return null;
+  const { x, y, width, height } = rect;
+  return { x, y, width, height };
+}
+
+/**
+ * Decides whether one widget is a checkbox or radio worth marking - pure.
+ *
+ * `/Btn` covers push buttons too, and those are not mark targets: a push
+ * button has no on state to toggle, so a checkmark over a Submit or Print
+ * control aims a tap at something that cannot hold it.
+ *
+ * Radio options are not grouped here. Each option is its own widget with its
+ * own `/Rect`, and each is separately markable, which is what the editor
+ * needs; grouping a row of them into one question is a review-surface idea
+ * (MOBI-11), not a geometry one.
+ *
+ * @param {WidgetEntry} entry
+ * @returns {{x: number, y: number, width: number, height: number} | null}
+ */
+export function markableButtonField(entry) {
+  if (entry.fieldType !== '/Btn') return null;
+  if ((entry.fieldFlags ?? 0) & FIELD_PUSH_BUTTON) return null;
+  return visibleWritableRect(entry);
+}
+
 /**
  * Decides whether one widget is a text field somebody can write in - pure.
  *
@@ -82,14 +133,10 @@ const FIELD_COMB = 1 << 24;
  */
 export function fillableTextField(entry) {
   if (entry.fieldType !== '/Tx') return null;
-  if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
-  const fieldFlags = entry.fieldFlags ?? 0;
-  if (fieldFlags & FIELD_READ_ONLY) return null;
-  const { rect } = entry;
-  if (!(rect?.width > 0) || !(rect?.height > 0)) return null;
-  const isComb = Boolean(fieldFlags & FIELD_COMB) && entry.maxLen > 1;
-  const { x, y, width, height } = rect;
-  return isComb ? { x, y, width, height, combCells: entry.maxLen } : { x, y, width, height };
+  const rect = visibleWritableRect(entry);
+  if (!rect) return null;
+  const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && entry.maxLen > 1;
+  return isComb ? { ...rect, combCells: entry.maxLen } : rect;
 }
 
 /**
@@ -137,8 +184,27 @@ export function widgetRegions(fields, geometry, pageIndex = 0) {
  * @returns {TextFieldWidget[]} in PDF user space
  */
 export function collectTextFieldWidgets(page) {
+  return collectWidgets(page, fillableTextField);
+}
+
+/**
+ * Reads the page's checkbox and radio widgets, as `formGrid.js`'s checkbox
+ * detector takes them: plain PDF user-space rectangles.
+ *
+ * This lived in `pdfObjects.js` and skipped none of the visibility checks
+ * above, which is the whole reason it moved here.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @returns {Array<{x: number, y: number, width: number, height: number}>}
+ */
+export function collectCheckboxWidgets(page) {
+  return collectWidgets(page, markableButtonField);
+}
+
+/** Every widget on the page that `decide` accepts. */
+function collectWidgets(page, decide) {
   return pageWidgets(page)
-    .map((widget) => fillableTextField(widgetEntries(page.doc.context, widget)))
+    .map((widget) => decide(widgetEntries(page.doc.context, widget)))
     .filter((field) => field !== null);
 }
 

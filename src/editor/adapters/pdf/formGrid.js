@@ -1,7 +1,8 @@
-import { createPageGeometry, pdfPointToPagePercent } from '../../geometry/coords.ts';
+import { createPageGeometry, toPagePercentBox } from '../../geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { collectCheckboxGlyphs, collectCheckboxWidgets } from './pdfObjects.js';
+import { collectCheckboxGlyphs } from './pdfObjects.js';
+import { collectCheckboxWidgets } from './formWidgets.js';
 
 /**
  * Recovers fillable geometry from a flat form's own vector content.
@@ -316,23 +317,6 @@ function uniqueCheckboxes(boxes) {
     (other) => Math.abs(other.x - box.x) <= DUPLICATE_TOLERANCE
       && Math.abs(other.y - box.y) <= DUPLICATE_TOLERANCE,
   ));
-}
-
-/**
- * A PDF-space box as the top-left-origin percentages the editor model stores.
- *
- * Both corners go through `pdfPointToPagePercent`, so a rotated page or a
- * translated crop box comes out right without this module knowing how.
- */
-export function toPagePercentBox(geometry, { x0, y0, x1, y1 }) {
-  const a = pdfPointToPagePercent({ x: x0, y: y0 }, geometry);
-  const b = pdfPointToPagePercent({ x: x1, y: y1 }, geometry);
-  return {
-    left: Math.min(a.x, b.x),
-    top: Math.min(a.y, b.y),
-    width: Math.abs(b.x - a.x),
-    height: Math.abs(b.y - a.y),
-  };
 }
 
 /**

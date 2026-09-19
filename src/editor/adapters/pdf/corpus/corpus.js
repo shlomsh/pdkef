@@ -104,6 +104,36 @@ const LIVE_FORM = [
     expect: { ...none, checkboxes: 2 },
   },
   {
+    name: 'a hidden checkbox',
+    why: 'the visibility rules are not only for text fields - a checkbox nobody can see is not a mark target',
+    doc: { widgets: [{ widget: 'checkbox', ...SQUARE, flag: 'hidden' }] },
+    expect: none,
+  },
+  {
+    name: 'a no-view checkbox',
+    why: 'the other invisibility flag, on the other field kind',
+    doc: { widgets: [{ widget: 'checkbox', ...SQUARE, flag: 'noView' }] },
+    expect: none,
+  },
+  {
+    name: 'a read-only checkbox',
+    why: 'nobody can tick one, same as nobody can type in a read-only text field',
+    doc: { widgets: [{ widget: 'checkbox', ...SQUARE, readOnly: true }] },
+    expect: none,
+  },
+  {
+    name: 'a hidden radio group',
+    why: 'every option of a hidden group goes, not just the first',
+    doc: { widgets: [{ widget: 'radio', options: [SQUARE, { ...SQUARE, x: 80 }], flag: 'hidden' }] },
+    expect: none,
+  },
+  {
+    name: 'a print-flagged checkbox',
+    why: 'the companion row: printable is not invisible, and the checkbox must survive',
+    doc: { widgets: [{ widget: 'checkbox', ...SQUARE, flag: 'print' }] },
+    expect: { ...none, checkboxes: 1 },
+  },
+  {
     name: 'a push button',
     why: 'also /Btn, but it holds no value and cannot be ticked - a mark on Submit is nonsense',
     doc: { widgets: [{ widget: 'pushButton', x: 40, y: 200, width: 90, height: 24 }] },

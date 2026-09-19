@@ -8,6 +8,7 @@ import {
   collectTextFieldWidgets,
   detectWidgetRegions,
   fillableTextField,
+  markableButtonField,
   widgetRegions,
 } from './formWidgets.js';
 import { reconcileFields, withWidgetFields } from './fieldRegions.js';
@@ -129,6 +130,49 @@ describe('fillableTextField', () => {
     const entry = field({ fieldFlags: 1 << 24, maxLen: 9 });
     const before = structuredClone(entry);
     fillableTextField(entry);
+    expect(entry).toEqual(before);
+  });
+});
+
+describe('markableButtonField', () => {
+  const rect = { x: 10, y: 20, width: 12, height: 12 };
+  const button = (over = {}) => ({ fieldType: '/Btn', rect, ...over });
+
+  it('takes a checkbox and reports its rectangle unchanged', () => {
+    expect(markableButtonField(button())).toEqual({ x: 10, y: 20, width: 12, height: 12 });
+  });
+
+  it.each([
+    ['a text field', '/Tx'],
+    ['a choice', '/Ch'],
+    ['a widget with no field type on its chain', undefined],
+  ])('refuses %s', (_name, fieldType) => {
+    expect(markableButtonField(button({ fieldType }))).toBeNull();
+  });
+
+  it('refuses a push button - it has no on state to toggle', () => {
+    expect(markableButtonField(button({ fieldFlags: 1 << 16 }))).toBeNull();
+  });
+
+  it.each([
+    ['hidden', { annotationFlags: 0b10 }],
+    ['no-view', { annotationFlags: 0b100000 }],
+    ['read-only', { fieldFlags: 1 }],
+    ['zero-sized', { rect: { x: 10, y: 20, width: 0, height: 12 } }],
+  ])('applies the shared gate: refuses a %s button', (_name, over) => {
+    expect(markableButtonField(button(over))).toBeNull();
+  });
+
+  it('takes a radio option, which is an ordinary /Btn widget', () => {
+    // Radio flag (bit 16) set: each option is its own widget and its own
+    // mark target, so nothing here groups them.
+    expect(markableButtonField(button({ fieldFlags: 1 << 15 }))).not.toBeNull();
+  });
+
+  it('does not mutate what it was handed', () => {
+    const entry = button({ fieldFlags: 1 << 15 });
+    const before = structuredClone(entry);
+    markableButtonField(entry);
     expect(entry).toEqual(before);
   });
 });

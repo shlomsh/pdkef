@@ -47,7 +47,7 @@ const ANNOTATION_FLAGS = { hidden: 0b10, print: 0b100, noView: 0b100000 };
  * @property {number} [comb] `/MaxLen` with the comb flag set: a run of N boxes.
  * @property {boolean} [multiline]
  * @property {boolean} [required]
- * @property {boolean} [readOnly]
+ * @property {boolean} [readOnly] text fields and checkboxes alike.
  * @property {'hidden'|'print'|'noView'} [flag] set on the widget's own `/F`.
  * @property {Array<{x: number, y: number, width: number, height: number}>} [options]
  *   radio only: one rectangle per option.
@@ -86,8 +86,12 @@ function addWidget(form, page, spec, id) {
   switch (spec.widget) {
     case 'text':
       return addTextWidget(form, page, spec, id);
-    case 'checkbox':
-      return form.createCheckBox(spec.name ?? `check_${id}`).addToPage(page, pick(spec));
+    case 'checkbox': {
+      const field = form.createCheckBox(spec.name ?? `check_${id}`);
+      field.addToPage(page, pick(spec));
+      if (spec.readOnly) field.enableReadOnly();
+      return field;
+    }
     case 'radio': {
       const group = form.createRadioGroup(spec.name ?? `radio_${id}`);
       spec.options.forEach((option, index) => group.addOptionToPage(`option_${index}`, page, pick(option)));
