@@ -58,10 +58,18 @@ document.querySelector('[data-workspace-return]')?.addEventListener('click', eve
 // cards pin over each other; repeat clicks consequently nudged the page farther
 // through the stack. Navigate to the card's fixed document offset instead, so
 // this control is idempotent after the first click.
+//
+// That offset must come from getBoundingClientRect() + scrollY, not
+// offsetTop: offsetTop is relative to the nearest positioned ancestor, not
+// the document, and #home-information (an ancestor of #offline-app) is
+// `position: relative`. Reading offsetTop directly used to land the scroll a
+// few hundred pixels into the page - inside the hero's own scroll-driven
+// demo track - instead of at the card, because #home-information itself
+// starts far down the document.
 offlineLink?.addEventListener('click', event => {
   if (!offlineSection) return;
   event.preventDefault();
-  const targetTop = Math.max(0, offlineSection.offsetTop - 16);
+  const targetTop = Math.max(0, offlineSection.getBoundingClientRect().top + window.scrollY - 16);
   if (Math.abs(window.scrollY - targetTop) > 1) {
     window.scrollTo({ top: targetTop, behavior: 'auto' });
   }

@@ -19,20 +19,37 @@
  * `.home-header .home-trust .trust-chip` overrides that out-specified an
  * older, slightly different copy in AppBar.astro, which is exactly how the
  * two headers drifted apart. Under 1024px the labels shrink; under 721px each
- * chip is a 2rem icon square whose aria-label carries the name, and the
- * wrapper goes fixed-width so the bar's breadcrumb is what gives way.
+ * chip is a 2rem icon square whose aria-label carries the name (the offline
+ * chip excepted - see below), and the wrapper goes fixed-width so the bar's
+ * breadcrumb is what gives way.
  *
  * `offlineHref` turns the offline chip into a link (home points it at its
  * own install section, `#offline-app`, and homeWorkspace.ts scrolls there);
  * a page with no such target renders the same chip as a plain badge.
+ *
+ * The offline chip carries a hand-drawn crossed-out Wi-Fi mark rather than
+ * lucide's `WifiOff`, and is wider than the other two because of it. The
+ * icon it used to carry is the iOS and macOS status-bar glyph, pixel for
+ * pixel, so under 720px - where the label is hidden and only the icon is
+ * left - it landed in the visual slot where the system reports signal, and
+ * read as "you have no reception" rather than "this needs none". A struck
+ * wordmark is a claim about a technology, the way "gluten free" is; a struck
+ * status glyph can only ever report a state. Drawn as strokes rather than
+ * set in a face, so it needs no web font and takes `currentColor` with the
+ * chip's hover and focus states.
  */
-import { Code2, WifiOff } from 'lucide-preact';
+import { Code2 } from 'lucide-preact';
 
 interface Props {
   labels: { starOnGithub: string; openSource: string; worksOffline: string };
   offlineHref?: string;
 }
 const { labels, offlineHref } = Astro.props;
+
+// One element, one copy of the mark: the link and badge forms differ only in
+// tag and in the two attributes below.
+const OfflineChip = offlineHref ? 'a' : 'span';
+const offlineAttrs = offlineHref ? { href: offlineHref, 'data-offline-link': true } : { role: 'img' as const };
 ---
 
 <div class="trust-chips">
@@ -45,11 +62,20 @@ const { labels, offlineHref } = Astro.props;
       "Open source" pill uses), and a courtroom icon beside the word
       "licence" read as a legal condition rather than a gift. */}
   <a class="trust-chip" href="/licenses/" aria-label={labels.openSource}><Code2 class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.openSource}</span></a>
-  {offlineHref ? (
-    <a class="trust-chip" data-offline-link href={offlineHref} aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></a>
-  ) : (
-    <span class="trust-chip" role="img" aria-label={labels.worksOffline}><WifiOff class="trust-chip-icon" size={14} strokeWidth={1.9} aria-hidden="true" /><span>{labels.worksOffline}</span></span>
-  )}
+  <OfflineChip class="trust-chip trust-chip-offline" {...offlineAttrs} aria-label={labels.worksOffline}>
+    <svg class="trust-chip-mark" viewBox="0 0 100 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M47 3.2 C73 1.6 95.4 6.4 96.8 30 C97.7 54.6 74.6 61.9 48 61 C23.4 60.3 3.7 56.1 2.6 33 C1.5 9.4 23 4.3 47 3.2 Z" />
+      <path d="M55 9.6 C75.4 8.1 91.2 10.6 91.8 22.2 C92.7 35.2 91.5 45.2 89.3 50.7 C87.3 55.9 72.8 54.7 59.4 54.5 L45.2 61.7 L52.3 50.5 C50.3 39.4 50.7 21.4 51.8 14.1 C52.2 10.9 53.1 9.8 55 9.6 Z" />
+      <path d="M9 20.5 L14.5 43 L20 28 L25.5 43 L31 20" stroke-width="4.6" />
+      <path d="M38 28.5 L37.5 43" stroke-width="4.6" />
+      <path d="M61 43 L61.5 20 L74 19 M61 30.5 L70.5 30" stroke-width="4.6" />
+      <path d="M81.5 28.5 L81 43" stroke-width="4.6" />
+      <circle cx="38.5" cy="21.6" r="2.5" fill="currentColor" stroke="none" />
+      <circle cx="82" cy="21.6" r="2.5" fill="currentColor" stroke="none" />
+      <path d="M5 59 Q48 34 95 6.5" stroke-width="4.8" />
+    </svg>
+    <span>{labels.worksOffline}</span>
+  </OfflineChip>
 </div>
 
 <style>
@@ -99,6 +125,16 @@ const { labels, offlineHref } = Astro.props;
     display: block;
   }
 
+  /* Taller than the 14px lucide icons beside it: the mark is a wordmark in a
+     shape, so it has letters to resolve where they have none. Its 100:64 box
+     is what makes this chip wider than the other two. */
+  .trust-chip-mark {
+    flex: none;
+    width: 25px;
+    height: 16px;
+    display: block;
+  }
+
   @media (max-width: 1023px) {
     .trust-chips {
       justify-content: center;
@@ -128,6 +164,18 @@ const { labels, offlineHref } = Astro.props;
        yields to the icon at phone widths. */
     .trust-chip span {
       display: none;
+    }
+    /* This is the width the whole change costs: ~14px more than a square
+       chip, and only here, where the mark is all that is left of the claim.
+       Tighter padding buys the mark the height its letters need inside the
+       same 2rem row as its neighbours. */
+    .trust-chip.trust-chip-offline {
+      width: 3.05rem;
+      padding: 0.25rem;
+    }
+    .trust-chip-mark {
+      width: 34px;
+      height: 22px;
     }
   }
 </style>
