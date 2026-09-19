@@ -478,23 +478,6 @@ export function inheritedEntry(context, widget, key) {
   return undefined;
 }
 
-/** `/Ff` bit 17: a push button, which holds no value and cannot be ticked. */
-const FIELD_PUSH_BUTTON = 1 << 16;
-
-/**
- * True when a widget is a checkbox or radio - a `/Btn` field with a value.
- *
- * `/Btn` also covers push buttons, and those are not mark targets: a push
- * button has no on state to toggle, so offering a checkmark over a Submit or
- * Print control aims a tap at something that cannot hold it. The corpus
- * (`corpus/`) is what caught this; nothing in the two flat evidence forms has
- * a push button.
- */
-function isButtonWidget(context, widget) {
-  if (inheritedEntry(context, widget, 'FT')?.asString?.() !== '/Btn') return false;
-  const fieldFlags = inheritedEntry(context, widget, 'Ff')?.asNumber?.() ?? 0;
-  return !(fieldFlags & FIELD_PUSH_BUTTON);
-}
 
 /** Every `/Widget` annotation on the page, in annotation order. */
 export function pageWidgets(page) {
@@ -513,7 +496,7 @@ export function pageWidgets(page) {
 
 /**
  * The five entries a widget states about itself, as plain values, for
- * `formWidgets.js`'s `fillableTextField` to decide on.
+ * `formWidgets.js` to decide on.
  *
  * `/FT`, `/Ff` and `/MaxLen` are inheritable and go through `inheritedEntry`;
  * `/F` and `/Rect` are the widget's own and are read straight off it. This
@@ -532,27 +515,6 @@ export function widgetEntries(context, widget) {
     maxLen: inheritedEntry(context, widget, 'MaxLen')?.asNumber?.(),
     rect: context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.(),
   };
-}
-
-/**
- * Collects native PDF button widgets from the page annotation tree.
- *
- * Checkboxes are `/Btn` fields. The same field type also covers radio buttons;
- * a symbol mark is a useful placement target for either, and their exact
- * printed rectangle comes from the annotation rather than a visual heuristic.
- *
- * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @returns {Array<{x: number, y: number, width: number, height: number}>}
- */
-export function collectCheckboxWidgets(page) {
-  const context = page.doc.context;
-  const boxes = [];
-  for (const widget of pageWidgets(page)) {
-    if (!isButtonWidget(context, widget)) continue;
-    const rect = context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.();
-    if (rect?.width > 0 && rect?.height > 0) boxes.push(rect);
-  }
-  return boxes;
 }
 
 /**
