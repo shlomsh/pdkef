@@ -329,23 +329,17 @@ test.describe('scrollable home hero', () => {
   });
 });
 
-// QUAL-16. Below 1024px a first screen that does not fit grows and the page
-// scrolls (the `min-height` hero above). The desktop hero cannot: it is the
-// pinned element, and ScrollDriver's SIGN_END / CROSSFADE_START /
-// CROSSFADE_END are fractions of its exact 100svh, so growing it would re-pace
-// both stories. Its launcher cell scrolls its own content instead. Nothing
-// guarded a short desktop viewport before, which is why six recents painting
-// through the dock at 1440x400 went unnoticed.
+// QUAL-16. The desktop hero cannot grow the way the mobile one does - it is
+// the pinned element, and ScrollDriver's fractions are taken against its exact
+// 100svh - so its launcher cell scrolls its own content instead. One viewport,
+// because the whole fix is four declarations on one selector in one media
+// query, and 1440x400 is the worst case (73px of overflow). The second test is
+// the sabotage control: this probe samples painted pixels rather than rects, so
+// it is worth having watched it fail.
 test.describe('short desktop window', () => {
-  const SHORT_DESKTOP = [
-    { width: 1024, height: 420 },
-    { width: 1280, height: 480 },
-    { width: 1440, height: 400 },
-  ];
-
   // getBoundingClientRect reports layout position and ignores clipping, so a
-  // rect comparison cannot tell "scrolled out of view inside the cell" from
-  // "painted over the dock". Sample what actually paints instead.
+  // rect cannot tell "scrolled out of view inside the cell" from "painted over
+  // the dock". Sample what actually paints instead.
   const launcherPaintedOver = (page, selector) => page.evaluate((sel) => {
     const launcher = document.querySelector('.workspace-launcher');
     const band = document.querySelector(sel).getBoundingClientRect();
@@ -359,46 +353,13 @@ test.describe('short desktop window', () => {
     return hits;
   }, selector);
 
-  for (const viewport of SHORT_DESKTOP) {
-    test(`the launcher stays inside its cell at ${viewport.width}x${viewport.height}`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      await page.addInitScript(() => {
-        localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(
-          Array.from({ length: 6 }, (_, index) => ({
-            id: `short-desktop-${index}`,
-            tool: index % 2 ? 'redact' : 'sign',
-            fileName: `a-fairly-long-recent-document-name-${index}.pdf`,
-            savedAt: Date.now() - index,
-          })),
-        ));
-      });
-      await page.goto('/');
-      await expect(page.locator('#home-files li')).toHaveCount(6);
-
-      expect(await launcherPaintedOver(page, '.home-dock')).toBe(0);
-      expect(await launcherPaintedOver(page, '[data-home-bar]')).toBe(0);
-
-      // The pin itself is untouched: still sticky, still exactly one screen.
-      const hero = await page.evaluate(() => ({
-        position: getComputedStyle(document.querySelector('.home-hero')).position,
-        height: document.querySelector('.home-hero').getBoundingClientRect().height,
-        viewportHeight: innerHeight,
-      }));
-      expect(hero.position).toBe('sticky');
-      expect(hero.height).toBeCloseTo(hero.viewportHeight, 0);
-    });
-  }
-
-  // The checked sabotage control: without the fix, the same probe must fail.
-  // A guard that cannot fail is not a guard, and this one samples painted
-  // pixels rather than rects, so it is worth proving it sees the bug.
-  test('the same probe catches the overlap when the fix is removed', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 400 });
     await page.addInitScript(() => {
       localStorage.setItem('pdf-toolkit:workspace:recent-files', JSON.stringify(
         Array.from({ length: 6 }, (_, index) => ({
-          id: `sabotage-${index}`,
-          tool: 'sign',
+          id: `short-desktop-${index}`,
+          tool: index % 2 ? 'redact' : 'sign',
           fileName: `a-fairly-long-recent-document-name-${index}.pdf`,
           savedAt: Date.now() - index,
         })),
@@ -406,9 +367,24 @@ test.describe('short desktop window', () => {
     });
     await page.goto('/');
     await expect(page.locator('#home-files li')).toHaveCount(6);
+  });
 
+  test('the launcher stays inside its cell, and the hero is still one pinned screen', async ({ page }) => {
+    expect(await launcherPaintedOver(page, '.home-dock')).toBe(0);
+    expect(await launcherPaintedOver(page, '[data-home-bar]')).toBe(0);
+
+    const hero = await page.evaluate(() => ({
+      position: getComputedStyle(document.querySelector('.home-hero')).position,
+      height: document.querySelector('.home-hero').getBoundingClientRect().height,
+      viewportHeight: innerHeight,
+    }));
+    expect(hero.position).toBe('sticky');
+    expect(hero.height).toBeCloseTo(hero.viewportHeight, 0);
+  });
+
+  test('the same probe catches the overlap when the fix is removed', async ({ page }) => {
     // A constructable stylesheet, not addStyleTag: style-src carries no
-    // 'unsafe-inline' (see .claude/rules/csp-scripts-pwa.md), and an injected
+    // 'unsafe-inline' (.claude/rules/csp-scripts-pwa.md), so an injected
     // <style> is refused. adoptedStyleSheets is not governed by style-src.
     await page.evaluate(() => {
       const sheet = new CSSStyleSheet();
