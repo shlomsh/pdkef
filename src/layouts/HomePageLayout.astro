@@ -781,7 +781,27 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         align-self: stretch;
         z-index: 1;
         pointer-events: none;
-        animation: linear both;
+        /* The resting state is "no strip", and the animation is the only
+           thing that ever shows one. A scroll timeline whose scroller does
+           not overflow is inactive, and an inactive timeline leaves the
+           element's own opacity standing - so a dock wide enough to hold all
+           ten tools (any width from ~880px up to this block's 960px ceiling)
+           used to dim its first and last card with nothing to scroll to in
+           either direction. Declaring 0 here also means any future failure
+           to resolve the timeline degrades to no strips rather than to two
+           permanent ones. */
+        opacity: 0;
+        /* Longhands only, never the `animation` shorthand. Lightning CSS
+           merges a shorthand with the `animation-timeline` longhand beside
+           it and emits `animation: none`, which drops both the timeline and
+           the fill mode: the strips then never animate and sit at their
+           default opacity 1 forever, dimming the first card at scroll 0 and
+           the last one at the end. It only happens in a minified build, so
+           `astro dev` shows the effect working the whole time. Verify this
+           block against `dist/`, not the dev server. */
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
         animation-timeline: --home-dock;
       }
       /* Sticky insets measure from the dock's content edge, 16px in from the
