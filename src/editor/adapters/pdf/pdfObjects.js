@@ -478,9 +478,22 @@ export function inheritedEntry(context, widget, key) {
   return undefined;
 }
 
-/** True when a widget inherits the PDF button field type from itself or a parent. */
+/** `/Ff` bit 17: a push button, which holds no value and cannot be ticked. */
+const FIELD_PUSH_BUTTON = 1 << 16;
+
+/**
+ * True when a widget is a checkbox or radio - a `/Btn` field with a value.
+ *
+ * `/Btn` also covers push buttons, and those are not mark targets: a push
+ * button has no on state to toggle, so offering a checkmark over a Submit or
+ * Print control aims a tap at something that cannot hold it. The corpus
+ * (`corpus/`) is what caught this; nothing in the two flat evidence forms has
+ * a push button.
+ */
 function isButtonWidget(context, widget) {
-  return inheritedEntry(context, widget, 'FT')?.asString?.() === '/Btn';
+  if (inheritedEntry(context, widget, 'FT')?.asString?.() !== '/Btn') return false;
+  const fieldFlags = inheritedEntry(context, widget, 'Ff')?.asNumber?.() ?? 0;
+  return !(fieldFlags & FIELD_PUSH_BUTTON);
 }
 
 /** Every `/Widget` annotation on the page, in annotation order. */

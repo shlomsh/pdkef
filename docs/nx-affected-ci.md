@@ -39,6 +39,7 @@ the repo root, `.nx/` gitignored:
 | `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | `scope:export-guards` | - | ✓ |
 | `site-e2e` | `e2e` | `scope:site` | - | ✓ |
 | `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | `scope:tests` | ✓ | - |
+| `form-corpus` | `src/editor/adapters/pdf/corpus` (nested inside `editor`'s root, same shape as `cross-tool-tests` inside `site-test`) | `scope:tests` | ✓ | - |
 | `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
 | `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | `scope:tests` | ✓ | - |
 
