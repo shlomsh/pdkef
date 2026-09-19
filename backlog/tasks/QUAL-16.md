@@ -51,14 +51,22 @@ their positions.
 The `min-width: 1024px` bound is load-bearing: below it the hero grows instead, and a nested scroller
 there would trap the launcher in a short box rather than let the page grow.
 
-Guarded by `e2e/home/scrollable-hero.spec.js`'s new `short desktop window` describe: 1024x420, 1280x480
-and 1440x400 with six recents, asserting that nothing belonging to the launcher paints inside the dock's
-or the app bar's band, and that the hero is still sticky at exactly one screen. Because
+Guarded by `e2e/home/scrollable-hero.spec.js`'s new `short desktop window` describe: two tests at
+1440x400 with six recents. The first asserts that nothing belonging to the launcher paints inside the
+dock's or the app bar's band, and that the hero is still sticky at exactly one screen. Because
 `getBoundingClientRect` reports layout position and ignores clipping, it cannot tell "scrolled out of
 view inside the cell" from "painted over the dock" - so the probe samples `elementFromPoint` across each
-band instead. A fourth case is the checked sabotage control: it re-centres the cell and restores
+band instead. The second is the checked sabotage control: it re-centres the cell and restores
 `overflow-y: visible` through a constructable stylesheet (an injected `<style>` is refused - `style-src`
 carries no `unsafe-inline`) and asserts the same probe then reports a nonzero count, so the guard is
-proven able to fail. Measured before the fix: 71 painted-over sample points at 1440x400, 40 at 1024x420;
-zero at both after. The launcher scrolls internally by 18-73px at these sizes and by 0 at 1440x900,
+proven able to fail.
+
+**One viewport, not the sweep the acceptance above asked for.** The fix is four declarations on one
+selector inside one media query, so 1024x420 and 1280x480 exercised exactly what 1440x400 does; 1440x400
+is the worst of the three (73px of overflow against 56px and 3px), and a short desktop window is a rare
+enough shape that four e2e cases were over the ~1-per-10-unit-tests budget in CLAUDE.md for it. All
+three were measured by hand during the fix (71 painted-over sample points at 1440x400 and 40 at
+1024x420 before, zero at all three after); only 1440x400 is kept running.
+
+Measured elsewhere: the launcher scrolls internally by 18-73px at these sizes and by 0 at 1440x900,
 1600x1000 and every mobile viewport.
