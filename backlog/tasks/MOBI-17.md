@@ -87,11 +87,13 @@ Measured on it, same viewport and build:
 So on the document we ship to demonstrate the tool, tapping any field produces a floating toolbar
 taller than the screen it floats over.
 
-**The trap to avoid:** the page size and the field sizes are ours, so the demo can be made to
-behave by enlarging its type or squaring up its page. That would hide the problem exactly where it
-is most visible and leave every real form as it is. Worth doing on its own merits - a 680 pt page
-is an odd choice that costs 10% of scale against a portrait one - but it is not this ticket's fix
-and must not be mistaken for it.
+**Corrected, same day.** The first version of this note called reshaping the practice form a trap.
+Shlomi's ruling is the opposite, and right: the practice form is *ours, therefore predictable*, and
+it should be a common form that "should look good under normal circumstances and should be a base
+benchmark." Making it easier than common would hide this; making it common turns it into the
+yardstick. That is MOBI-18, and this ticket's acceptance is measured on that form once it is a
+common A4 page - where the default 12 pt field still computes to about 7.2 CSS px and iOS still
+zooms 2.2x, so the re-layout makes the benchmark honest without making it pass.
 
 ## What to do about it
 
@@ -122,7 +124,8 @@ it takes pinch away from everyone. The meta deliberately omits both today.
 
 ## Acceptance
 
-Tapping a detected field on a phone does not change the apparent size of the editor's own chrome.
+Measured on the practice form (MOBI-18), then on form 101 as the hard case. Tapping a detected
+field on a phone does not change the apparent size of the editor's own chrome.
 Whatever zoom the page ends up at, the floating toolbar holds the same physical size and the same
 number of rows. Recorded with the measured numbers above, so a regression is visible as a table
 row that no longer matches.
