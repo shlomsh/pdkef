@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 // Installs a global `indexedDB` (and IDBFactory/IDBKeyRange/...) for jsdom,
 // which implements everything else this file needs but not IndexedDB itself.
@@ -9,7 +9,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import {
   MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
-  attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, loadDraft, loadRecentFile,
+  attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
   readCurrentEntryId, readDraftMeta, readRecentFiles, saveDraft, setCurrentEntry, clearCurrentEntry,
   sourceIdForBytes, sourceIdForFiles, subscribeToDraftChanges,
 } from './draftStore.js';
@@ -764,7 +764,9 @@ describe('legacy per-tool draft migration', () => {
    the person is told nothing - reported from an installed iOS home-screen app
    where "Draft saved" had appeared and the work was gone on reopening.
    The request must be best-effort in the strictest sense: a browser with no
-   Storage API, or one that throws on it, must still save. */
+   Storage API, or one that throws on it, must still save. It fires on the
+   first successful saveDraft, never on a plain open, so a visitor who only
+   ever reads never triggers a permission request for nothing. */
 describe('storage persistence request', () => {
   const bytes = () => new TextEncoder().encode('%PDF-1.4 persistence').buffer;
 
@@ -773,7 +775,7 @@ describe('storage persistence request', () => {
     localStorage.clear();
   });
 
-  it('asks the browser to keep this origin, and only asks once', async () => {
+  it('asks the browser to keep this origin on the first successful save, and only asks once', async () => {
     const persist = vi.fn(() => Promise.resolve(true));
     vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
 
@@ -782,6 +784,24 @@ describe('storage persistence request', () => {
     await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
     await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
 
+    expect(persist).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('does not ask on a plain read-only open - loadDraft, cacheRecentFile - only ever on saveDraft', async () => {
+    const persist = vi.fn(() => Promise.resolve(true));
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
+
+    vi.resetModules();
+    const mod = await import('./draftStore.js');
+    // A visitor who opens a file (cacheRecentFile, exactly what merely
+    // loading a PDF does) and reads it back, but never saves any work,
+    // must never trigger the request - openDb runs for both of these too.
+    await mod.cacheRecentFile('sign', { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: bytes() });
+    await mod.loadDraft('sign');
+    expect(persist).not.toHaveBeenCalled();
+
+    await mod.saveDraft('sign', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
     expect(persist).toHaveBeenCalledTimes(1);
     vi.unstubAllGlobals();
   });
@@ -813,5 +833,45 @@ describe('storage persistence request', () => {
 
     expect(saved).toBe(true);
     vi.unstubAllGlobals();
+  });
+});
+
+// isStoragePersisted reports whether storage is actually guaranteed to
+// survive eviction, defensively: an absent API, a throw, or a rejection must
+// all read as 'unknown' rather than crash or count as an answer either way -
+// the unpersisted-warning line (useDraftPersistence.js) must never fire just
+// because a browser cannot tell us.
+describe('isStoragePersisted', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves the browser\'s own true/false answer', async () => {
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persisted: () => Promise.resolve(true) } });
+    expect(await isStoragePersisted()).toBe(true);
+
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persisted: () => Promise.resolve(false) } });
+    expect(await isStoragePersisted()).toBe(false);
+  });
+
+  it('resolves \'unknown\' when there is no Storage API at all', async () => {
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
+    expect(await isStoragePersisted()).toBe('unknown');
+  });
+
+  it('resolves \'unknown\' when persisted() throws', async () => {
+    vi.stubGlobal('navigator', {
+      ...globalThis.navigator,
+      storage: { persisted: () => { throw new Error('denied'); } },
+    });
+    expect(await isStoragePersisted()).toBe('unknown');
+  });
+
+  it('resolves \'unknown\' when persisted() rejects', async () => {
+    vi.stubGlobal('navigator', {
+      ...globalThis.navigator,
+      storage: { persisted: () => Promise.reject(new Error('denied')) },
+    });
+    expect(await isStoragePersisted()).toBe('unknown');
   });
 });

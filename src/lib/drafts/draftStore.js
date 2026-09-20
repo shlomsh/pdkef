@@ -615,13 +615,21 @@ function hasIndexedDB() {
 // work was gone on reopening anyway, because saving and *keeping* are two
 // different promises and we had only ever made the first.
 //
+// Fires on the first successful `saveDraft`, not on every `openDb` (this used
+// to live there). Two reasons: `openDb` also runs for a plain read -
+// `loadDraft`, `cacheRecentFile`, the legacy migration - so a visitor who
+// never saves anything would trigger a permission request for nothing; and on
+// a browser that does show a prompt for this, it now appears immediately
+// after the app has just said it saved something, which is the one moment
+// this is self-explanatory rather than random.
+//
 // Deliberately fire-and-forget, and deliberately not awaited by any caller:
 // a save must never wait on a permission prompt, and a browser that refuses
 // (or has no Storage API at all) must lose nothing but the guarantee. Runs
-// once per module lifetime, on the first database open, so it costs nothing
-// on a visit that never saves. Note Safari decides this by its own heuristics
-// rather than by asking, so a `false` here is normal and not an error worth
-// reporting - it means the same best-effort storage we already had.
+// once per module lifetime, so it costs nothing beyond the first successful
+// save. Note Safari decides this by its own heuristics rather than by asking,
+// so a `false` here is normal and not an error worth reporting - it means the
+// same best-effort storage we already had.
 let persistenceRequested = false;
 function requestStoragePersistence() {
   if (persistenceRequested) return;
@@ -634,8 +642,27 @@ function requestStoragePersistence() {
   }
 }
 
+/**
+ * Whether this origin's storage is actually guaranteed to survive eviction,
+ * to the extent the browser will say - defensively, so an absent Storage
+ * API, a throw, or a rejected promise all resolve to the string `'unknown'`
+ * rather than crashing or reading as either answer. `'unknown'` must never be
+ * treated as "not persisted": a browser that cannot tell us is not evidence
+ * of anything, and useDraftPersistence.js's warning gate only ever acts on a
+ * definite `false`.
+ *
+ * @returns {Promise<boolean|'unknown'>}
+ */
+export async function isStoragePersisted() {
+  try {
+    const result = await navigator?.storage?.persisted?.();
+    return typeof result === 'boolean' ? result : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 function openDb() {
-  requestStoragePersistence();
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
@@ -773,6 +800,9 @@ export async function saveDraft(tool, record) {
     console.error('draftStore.saveDraft failed:', e);
     return false;
   }
+  // First real save, this module lifetime: exactly the moment to ask the
+  // browser to keep this origin (see requestStoragePersistence's comment).
+  requestStoragePersistence();
   const kept = upsertIndexEntry({
     id,
     tool,

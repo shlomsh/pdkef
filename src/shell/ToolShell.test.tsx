@@ -56,4 +56,34 @@ describe('ToolShell editor variant', () => {
     mount(false);
     expect(container.querySelector(`.${styles.icon}`)).not.toBeNull();
   });
+
+  // SIGN-06 follow-up: the unpersisted-storage line is a quiet line, never a
+  // banner or a modal (docs/ux-design-guidelines.md §11) - same chip family
+  // as 'saved'/'pending', not the danger styling 'error'/'conflict' use, and
+  // it must never carry role="alert" the way those do.
+  it('renders the unpersisted-storage line with the pending (quiet) styling, not the danger styling', () => {
+    const file = new File(['%PDF-1.4'], 'form.pdf', { type: 'application/pdf' });
+    act(() => {
+      render(
+        <ToolShellContext.Provider
+          value={{
+            requestReplace: vi.fn(),
+            requestClear: vi.fn(),
+            fileLabel: 'form.pdf',
+            file,
+            draftSaveState: 'unpersisted',
+          }}
+        >
+          <ToolShell />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+
+    const chip = container.querySelector(`.${styles.pending}`);
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toBe('Draft saved, but this browser might not keep it - download to be safe');
+    expect(container.querySelector(`.${styles.error}`)).toBeNull();
+    expect(chip!.getAttribute('role')).toBeNull();
+  });
 });

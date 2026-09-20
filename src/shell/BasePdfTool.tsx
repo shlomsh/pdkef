@@ -45,7 +45,7 @@ interface BasePdfToolProps {
    * `multiple` tool (dropped below regardless - Merge has its own
    * thumbnails), gets today's icon unchanged. */
   file?: File | null;
-  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict' | 'unpersisted';
   onClearAll?: () => void;
   clearSummary?: string;
   ownsShell?: boolean;
