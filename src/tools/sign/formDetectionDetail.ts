@@ -106,6 +106,28 @@ const CODE_SNIPPET = /^[\w$.()[\]]{1,60}$/;
 const FILE_SHAPED = /^[\w.-]+\.(?:pdf|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|txt|csv|json|xml|zip)$/i;
 
 /**
+ * The top frame of the stack, as `chunk.hash.js:line:column`.
+ *
+ * This is worth more than the message and leaks less. A message is built out of
+ * whatever the thrower was holding, so it needs the whole guard above; a frame
+ * is a position in our own built output and can contain nothing else. It is also
+ * what actually answers the question - WebKit's `undefined is not a function`
+ * says a method is missing but not which, and the frame says exactly where to
+ * look. Matched strictly: a built asset filename and two numbers, nothing else,
+ * and any frame that is not that shape is dropped rather than trimmed.
+ */
+const STACK_FRAME = /([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
+
+function topFrame(error: Error): string {
+  const stack = typeof error.stack === 'string' ? error.stack : '';
+  for (const line of stack.split('\n')) {
+    const hit = STACK_FRAME.exec(line);
+    if (hit) return `${hit[1]}:${hit[2]}:${hit[3]}`;
+  }
+  return '';
+}
+
+/**
  * `error.name`, or the constructor's name when the error never set one -
  * `pdf-lib` subclasses `Error` without assigning `name`, so they all arrive as
  * "Error" and the constructor is the only thing that says which one it was.
@@ -144,5 +166,7 @@ export function describeFormDetectionFailure(error: unknown): string {
     .join(' ')
     .trim()
     .slice(0, MAX_MESSAGE);
-  return message ? `${name}: ${message}` : name;
+  const line = message ? `${name}: ${message}` : name;
+  const frame = topFrame(error);
+  return frame ? `${line} [${frame}]` : line;
 }

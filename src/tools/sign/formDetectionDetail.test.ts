@@ -133,4 +133,23 @@ describe('describeFormDetectionFailure', () => {
     const line = describeFormDetectionFailure(new TypeError("undefined is not a function (near 'Full Name field')"));
     expect(line).not.toContain('Full Name');
   });
+
+  // WebKit's `near '...'` snippet is raw source text, spaces and braces and all,
+  // so the quoted-run guard will always redact it and the message alone cannot
+  // say which call failed. The frame can, and it is a position in our own built
+  // output rather than anything the thrower was holding.
+  it('reports the top stack frame, which is what actually names the failing call', () => {
+    const error = new TypeError("undefined is not a function (near '...')");
+    error.stack = '@https://pdkef.com/_astro/formCells.DVroxVTl.js:4:11827\n@https://pdkef.com/_astro/PdfSignTool.js:1:2';
+    expect(describeFormDetectionFailure(error)).toContain('[formCells.DVroxVTl.js:4:11827]');
+  });
+
+  it('takes nothing from a stack frame that is not a built asset', () => {
+    const error = new TypeError('boom');
+    error.stack = 'at /home/someone/private tax return.pdf:1:1';
+    const line = describeFormDetectionFailure(error);
+    expect(line).not.toContain('tax');
+    expect(line).not.toContain('.pdf');
+    expect(line).toBe('TypeError: boom');
+  });
 });
