@@ -592,7 +592,11 @@ describe('PdfSignTool UI flow', () => {
     expect(elements.length).toBe(0);
   });
 
-  it('applies text annotations to num-1.pdf and exports a valid signed PDF', async () => {
+  // This one keeps the real pdf.js because it reads the exported text back, and
+  // that import is the whole cost: ~3s under load on a 4-core host, and it died
+  // at 5.3-5.6s with three suites running at once (measured 2026-09-20). The
+  // budget is for the import, not for anything the tool does.
+  it('applies text annotations to num-1.pdf and exports a valid signed PDF', { timeout: 20_000 }, async () => {
     // Stub URL methods
     let savedBlob: Blob | null = null;
     const originalCreateObjectURL = window.URL.createObjectURL;
@@ -735,11 +739,14 @@ describe('PdfSignTool UI flow', () => {
       expect(sharedFile).toBeInstanceOf(File);
       expect(sharedFile.name).toBe('signed_num-1.pdf');
 
-      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      const loadingTask = getDocument({ data: new Uint8Array(await sharedFile.arrayBuffer()) });
-      const pdf = await loadingTask.promise;
-      expect(pdf.numPages).toBe(1);
-      await loadingTask.destroy();
+      // pdf-lib, not pdf.js, for a page count: importing the real pdf.js legacy
+      // build inside jsdom costs seconds under CPU contention and tipped the
+      // Redact twin of this test over Vitest's 5s default (see the same note in
+      // PdfRedactTool.test.tsx). The export test above keeps pdf.js because it
+      // reads the text back; this one only asks whether the bytes are a PDF.
+      const { PDFDocument } = await import('@cantoo/pdf-lib');
+      const shared = await PDFDocument.load(await sharedFile.arrayBuffer());
+      expect(shared.getPageCount()).toBe(1);
     } finally {
       if (originalShare === undefined) Reflect.deleteProperty(navigator, 'share');
       else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
