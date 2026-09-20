@@ -60,7 +60,18 @@ describe.each(FORMS)('$name', (form) => {
   });
 
   it('is at least as precise as it used to be', () => {
-    const { precision } = scored.get(form.name);
+    const { precision, candidates } = scored.get(form.name);
+    // A `null` baseline precision records that this form yields no candidates
+    // at all, which today only the scanned form does: its page carries no
+    // vector ink, so there is nothing to be precise about. Pin the zero
+    // exactly rather than skipping the row. A change that starts finding
+    // something on a scan is the best news this corpus could report, and it
+    // should fail here and be re-recorded, not pass unnoticed - which is the
+    // same rule as a number going up, applied to a number coming off zero.
+    if (form.precision === null) {
+      expect(candidates, `${form.name} now yields candidates where it recorded none - re-record the baseline`).toBe(0);
+      return;
+    }
     expect(precision, `precision fell below the recorded baseline for ${form.name}`)
       .toBeGreaterThanOrEqual(form.precision - SLACK);
   });
@@ -77,10 +88,12 @@ describe.each(FORMS)('$name', (form) => {
 
   it('scores a form that really has targets in it', () => {
     // Non-vacuity: an empty or unreadable truth file would make every
-    // assertion above pass by having nothing to compare.
-    const { targets, candidates } = scored.get(form.name);
+    // assertion above pass by having nothing to compare. Targets are the half
+    // that must always be there; candidates are a measurement, and zero of
+    // them is a legitimate one, so that half is asserted by the recorded
+    // precision above rather than here.
+    const { targets } = scored.get(form.name);
     expect(targets).toBeGreaterThan(5);
-    expect(candidates).toBeGreaterThan(0);
   });
 });
 
@@ -96,7 +109,9 @@ describe('the scored corpus as a whole', () => {
   it('records a baseline for every form it scores, and scores every form it records', () => {
     for (const form of FORMS) {
       expect(typeof form.recall, `${form.name} has no recorded recall`).toBe('number');
-      expect(typeof form.precision, `${form.name} has no recorded precision`).toBe('number');
+      // `null` is a recorded precision: it says "no candidates". Undefined is not.
+      expect(form.precision === null || typeof form.precision === 'number',
+        `${form.name} has no recorded precision`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.pdf)), `${form.name}: ${form.pdf} is missing`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.truth)), `${form.name}: ${form.truth} is missing`).toBe(true);
     }
