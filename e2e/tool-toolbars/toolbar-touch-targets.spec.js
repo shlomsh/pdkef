@@ -90,7 +90,7 @@ const tools = [
   // window gives 587.2px, so the band that used to be one line is now a
   // balanced 7+6 (it left toolbar-desktop-one-line.spec.js's widths for this
   // list on 2026-09-20, when Undo, Redo and History became three controls).
-  // 320 is the other end: History stands down at 344px of toolbar and Feedback
+  // 320 is the other end: Feedback stands down at 344px of toolbar and History
   // at 239px, so the counts this walks are 13, 12 and 11 - never ten, which is
   // the one count that cannot be balanced at the 44px floor.
   { name: 'Sign', path: '/sign', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 700] },

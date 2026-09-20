@@ -72,7 +72,7 @@ async function readToolbarLine(page) {
 // 700px case moved there rather than being dropped.
 const WIDTHS = [920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 
-// Generous: Download is a real button among eleven or twelve others, never
+// Generous: Download is a real button among ten to thirteen others, never
 // the whole row. 40% is well above its labelled width at every measured
 // case (worst measured was ~19% of the toolbar at 920px) and well below the
 // ~100% a wrapped, stranded control reached before this fix.

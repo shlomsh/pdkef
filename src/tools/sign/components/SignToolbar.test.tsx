@@ -40,6 +40,7 @@ const defaultToolbarProps: ComponentProps<typeof ProductionSignToolbar> = {
   actionHistory: [],
   onUndo: () => {},
   onRedo: () => {},
+  canRedo: false,
   toggleFullscreen: () => {},
   isFullscreen: false,
   onSavePdf: () => {},
@@ -174,6 +175,28 @@ describe('SignToolbar Component', () => {
     for (const label of ['Undo', 'Redo', 'History']) {
       expect(findExactButton(container, label).disabled, `${label} should be disabled`).toBe(true);
     }
+  });
+
+  // Undo your way back to the start and `actionHistory` is empty while the
+  // dialog behind History is at its fullest - every step sitting above the NOW
+  // divider, waiting to be redone. Disabling History on the applied list alone
+  // shut the only door to that list.
+  it('keeps History reachable once everything has been undone', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar actionHistory={[]} canRedo />
+        </SignToolProvider>,
+        container,
+      );
+    });
+
+    expect(findExactButton(container, 'History').disabled).toBe(false);
+    expect(findExactButton(container, 'Undo').disabled).toBe(true);
+    expect(findExactButton(container, 'Redo').disabled).toBe(false);
   });
 
   // Every tool arms for one placement; double-clicking its button keeps it on.
