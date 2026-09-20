@@ -99,3 +99,28 @@ installed in this environment, so it could only have been written blind.
 
 **Still open on this ticket:** the acceptance clause about scrolling the target clear of the
 on-screen keyboard at a real phone viewport, which wants a browser test rather than jsdom.
+
+## When the control shows, 2026-09-20
+
+Shipped present for the whole document once anything was detected, on the reasoning that a
+navigation control which came and went as you moved between fields would be worse than one that
+simply stayed. That reasoning still holds and is unchanged; what it missed is the state before any
+of it starts. Shlomi, on the live /sign/ once the iOS text-extraction fix let a phone detect fields
+at all - the first time anyone had seen this control at rest: "those buttons appeared even without
+the context of an armed text element."
+
+So the gate is now `hasFields && fillingFields`, where filling means the Text or Date tool is armed,
+or a text box is selected. The second half is not optional: tools are one-shot and disarm on the
+placement that opens the first field, so a gate on the armed tool alone would take Next away at the
+exact moment `type, Next, type` begins. A selected text box is the same context by another name and
+is what the person holds for the whole loop.
+
+Within one such spell nothing blinks - `hasFields` still depends only on `formRegions`, and the new
+half only on a tool or a selection that a field move does not disturb - so the original reasoning is
+preserved where it applied. It also lines the control up with the field hints, which already show
+for `text` and `date` only (`PdfWorkspace.tsx`): before this, the hints and the arrows disagreed
+about when a document's fields were worth mentioning.
+
+Knock-on worth knowing: `fieldNav` feeds `data-status-active`, and below 559px that hides the
+filename in favour of the status line (`ToolShell.module.css`). That now happens only while somebody
+is filling fields, rather than for the whole life of any detected document.

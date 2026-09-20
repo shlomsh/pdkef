@@ -1122,55 +1122,96 @@ describe('SignToolbar Component', () => {
   // MOBI-06: the toolbar owns none of the field-navigation logic itself - it
   // only has to read `fieldNavigation` and hand EditorToolStatus the right
   // shape, in English by default and the given catalogue otherwise.
+  // MOBI-06: the toolbar owns none of the field-navigation logic itself - it
+  // only has to read `fieldNavigation`, decide whether this is a moment for
+  // it at all, and hand EditorToolStatus the right shape, in English by
+  // default and the given catalogue otherwise.
   describe('fieldNavigation', () => {
     const noFields = { hasFields: false, hasNext: false, hasPrevious: false, direction: 'ltr' as const, goToNext: () => {}, goToPrevious: () => {} };
+    const someFields = { ...noFields, hasFields: true, hasNext: true, hasPrevious: true };
 
-    it('renders no field-nav control when the document has none (the default)', () => {
+    /**
+     * Mounts the toolbar and then puts it into whatever filling context the
+     * test needs, the way the app gets there: `tool` arms one, `activeText`
+     * stands for the box a placement leaves selected once the one-shot tool
+     * has disarmed itself.
+     */
+    const mountNav = (
+      props: Partial<ComponentProps<typeof ProductionSignToolbar>> = {},
+      context: { tool?: 'text' | 'date' | 'symbol'; activeText?: boolean } = {},
+    ) => {
       container = document.createElement('div');
       document.body.appendChild(container);
-      act(() => {
-        render(<SignToolProvider><SignToolbar /></SignToolProvider>, container);
-      });
-      expect(container.querySelector(`.${styles['field-nav']}`)).toBeNull();
-    });
-
-    it('renders it once the document has fields, disabling each button by its own hasNext/hasPrevious', () => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      const goToNext = vi.fn();
-      const goToPrevious = vi.fn();
+      let dispatch: (action: any) => void = () => {};
+      const Capture = () => {
+        dispatch = useSignTool().dispatch;
+        return null;
+      };
       act(() => {
         render(
           <SignToolProvider>
-            <SignToolbar fieldNavigation={{ hasFields: true, hasNext: true, hasPrevious: false, direction: 'ltr', goToNext, goToPrevious }} />
+            <SignToolbar {...props} />
+            <Capture />
           </SignToolProvider>,
           container,
         );
       });
+      if (context.tool) act(() => { dispatch({ type: 'SET_TOOL', payload: context.tool }); });
+      if (context.activeText) {
+        act(() => {
+          dispatch({ type: 'ADD_ELEMENT', payload: { id: 'typed', type: 'text', pageIndex: 0, left: 10, top: 10, text: '' } });
+          dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'typed' });
+        });
+      }
+      return container.querySelector(`.${styles['field-nav']}`);
+    };
+
+    it('renders no field-nav control when the document has none (the default)', () => {
+      expect(mountNav({}, { tool: 'text' })).toBeNull();
+    });
+
+    // The complaint that prompted the gate: on a form full of detected fields,
+    // with nothing armed and nothing selected, two arrows sat there for a job
+    // that had not been started.
+    it('stays away while the document is merely open, however many fields it has', () => {
+      expect(mountNav({ fieldNavigation: someFields })).toBeNull();
+    });
+
+    it('arrives with Text and with Date, and not with a tool that types nothing', () => {
+      expect(mountNav({ fieldNavigation: someFields }, { tool: 'text' })).not.toBeNull();
+      expect(mountNav({ fieldNavigation: someFields }, { tool: 'date' })).not.toBeNull();
+      expect(mountNav({ fieldNavigation: someFields }, { tool: 'symbol' })).toBeNull();
+    });
+
+    // Tools are one-shot: the placement that opens the first field disarms the
+    // tool that made it. If the control left with the tool, "type, Next, type"
+    // would lose its Next on the very first field.
+    it('stays for the box a disarmed tool left selected, which is the whole type-Next-type loop', () => {
+      expect(mountNav({ fieldNavigation: someFields }, { activeText: true })).not.toBeNull();
+    });
+
+    it('disables each button by its own hasNext/hasPrevious', () => {
+      mountNav({ fieldNavigation: { ...someFields, hasPrevious: false } }, { tool: 'text' });
       const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
       expect(previous.disabled).toBe(true);
       expect(next.disabled).toBe(false);
       expect(previous.getAttribute('aria-label')).toBe('Previous field');
       expect(next.getAttribute('aria-label')).toBe('Next field');
+    });
+
+    it('calls the handlers it was given', () => {
+      const goToNext = vi.fn();
+      const goToPrevious = vi.fn();
+      mountNav({ fieldNavigation: { ...someFields, goToNext, goToPrevious } }, { tool: 'text' });
+      const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
       next.click();
+      previous.click();
       expect(goToNext).toHaveBeenCalledTimes(1);
-      expect(goToPrevious).not.toHaveBeenCalled();
+      expect(goToPrevious).toHaveBeenCalledTimes(1);
     });
 
     it('reads its labels from the given message catalogue, same as every other string here', () => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(
-          <SignToolProvider>
-            <SignToolbar
-              fieldNavigation={{ ...noFields, hasFields: true, hasNext: true, hasPrevious: true }}
-              messages={hebrewSignMessages}
-            />
-          </SignToolProvider>,
-          container,
-        );
-      });
+      mountNav({ fieldNavigation: someFields, messages: hebrewSignMessages }, { tool: 'text' });
       const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
       expect(previous.getAttribute('aria-label')).toBe(hebrewSignMessages.previousFieldLabel);
       expect(next.getAttribute('aria-label')).toBe(hebrewSignMessages.nextFieldLabel);
@@ -1180,20 +1221,8 @@ describe('SignToolbar Component', () => {
     // Hebrew catalogue those two disagree for an LTR form, which is the pair
     // that shipped broken the other way round (MOBI-06, 2026-09-20).
     it('passes the document direction through while the labels stay the locale\'s', () => {
-      container = document.createElement('div');
-      document.body.appendChild(container);
-      act(() => {
-        render(
-          <SignToolProvider>
-            <SignToolbar
-              fieldNavigation={{ ...noFields, hasFields: true, hasNext: true, hasPrevious: true, direction: 'ltr' }}
-              messages={hebrewSignMessages}
-            />
-          </SignToolProvider>,
-          container,
-        );
-      });
-      expect(container.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('ltr');
+      const nav = mountNav({ fieldNavigation: { ...someFields, direction: 'ltr' }, messages: hebrewSignMessages }, { tool: 'text' });
+      expect(nav!.getAttribute('dir')).toBe('ltr');
       expect(container.querySelector(`.${styles.help}`)!.getAttribute('dir')).toBe('rtl');
     });
   });

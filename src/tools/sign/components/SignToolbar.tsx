@@ -284,10 +284,29 @@ export default function SignToolbar({
     setShowSigDropdown(false);
   };
 
-  // Present for the whole document once it has any detected field, never
-  // toggled by the moment-to-moment selection (see FieldNavigation.hasFields
-  // and EditorToolStatus.tsx's `fieldNav` prop doc for why).
-  const fieldNav = fieldNavigation.hasFields ? {
+  // The chevrons keep typing's company: they exist to move between fields you
+  // are filling, so standing over an idle document they were two controls for
+  // a job nobody had started (Shlomi, 2026-09-20, on the live /sign/ - the
+  // first iPhone where detection worked at all, so the first time anyone saw
+  // them at rest). They arrive with Text or Date and leave with them.
+  //
+  // `selectedTool` alone will not do. A tool is one-shot and disarms on the
+  // placement that opens the very first field (useWorkspaceGestures.ts's four
+  // DISARM_TOOL sites), so gating on it alone would take the control away at
+  // exactly the moment "tap a field, type, Next, type" begins. A selected text
+  // box is the same context under another name, and it is what the person is
+  // holding for the whole of that loop.
+  //
+  // Within that context the control still never blinks: `hasFields` and this
+  // gate both hold steady across a move, and only `disabled` changes as either
+  // end of the order is reached (FieldNavigation.hasFields, and the `fieldNav`
+  // prop doc in EditorToolStatus.tsx).
+  const activeElement = state.activeElementId
+    ? state.elements.find((element) => element.id === state.activeElementId) ?? null
+    : null;
+  const fillingFields = selectedTool === 'text' || selectedTool === 'date' || activeElement?.type === 'text';
+
+  const fieldNav = fieldNavigation.hasFields && fillingFields ? {
     hasNext: fieldNavigation.hasNext,
     hasPrevious: fieldNavigation.hasPrevious,
     onNext: fieldNavigation.goToNext,
