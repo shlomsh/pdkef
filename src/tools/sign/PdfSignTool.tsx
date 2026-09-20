@@ -1131,6 +1131,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         open={undoModalOpen}
         onClose={() => setUndoModalOpen(false)}
         actionHistory={actionHistory}
+        redoHistory={redoHistory}
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}

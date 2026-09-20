@@ -133,6 +133,15 @@ export interface SignMessages {
    * accessible name says what it would bring back rather than leaving that to
    * a tooltip. */
   redoDescriptionTemplate: string;
+  /** UndoHistoryModal.tsx's timeline: the visible, non-color marker on every
+   * row above the "you are here" divider (the undone/redoable steps), read by
+   * itself in the DOM so a screen reader states it without depending on the
+   * row's muted color or a strikethrough alone. */
+  undoneLabel: string;
+  /** The one word on the history dialog's divider. Everything below it has
+   * happened; everything above it has been taken back. Without it the rule
+   * is just a rule and the reader has to infer which side is which. */
+  historyNowLabel: string;
   /** Shared between EditorPageHeader.tsx, UndoHistoryModal.tsx's per-action
    * page line, and PdfWorkspace.tsx's clearPage announcement/title. */
   pageLabel: string;

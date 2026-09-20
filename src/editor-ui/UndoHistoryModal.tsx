@@ -4,11 +4,19 @@ import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/t
 import dialogStyles from '../shell/Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
-// Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
-// actions (see actionHistory.ts) as a checklist so several can be reverted at
-// once, alongside the single-step undo and redo shortcuts
-// (src/lib/history/useHistoryShortcuts.js). Its footer also carries Redo,
-// which has no toolbar control of its own (UNDO-03).
+// Shared change-history dialog for the Sign and Redact tools. It renders one
+// timeline, newest at the top throughout, with a "you are here" divider: the
+// undone steps (historyStack.ts's `future`) above it, muted and un-checkable
+// since a step already undone cannot be selectively reverted; the applied
+// steps (`past`) below it, exactly as before, with their checkboxes for
+// selective revert. Undo moves the divider down and greys a row out; Redo
+// moves it up and brings one back. Nothing ever disappears from the list, so
+// both the toolbar's Undo and Redo controls always have something visible to
+// point at - the bug this replaced was a checklist that dropped a row the
+// moment it was undone, leaving Redo's enabled state pointing at nothing on
+// screen. See actionHistory.ts and historyStack.ts for the two arrays this
+// reads, and src/lib/history/useHistoryShortcuts.js for the keyboard
+// shortcuts this dialog is not the only way to reach undo/redo any more.
 //
 // Self-manages its own dialog ref and showModal()/close() lifecycle (rather
 // than the caller owning the ref) so it's a drop-in for either tool. Uses
@@ -20,6 +28,7 @@ export default function UndoHistoryModal({
   open,
   onClose,
   actionHistory,
+  redoHistory = [],
   undoSelection,
   setUndoSelection,
   onRevertSelected,
@@ -31,6 +40,14 @@ export default function UndoHistoryModal({
   open: boolean;
   onClose: () => void;
   actionHistory: ActionHistoryEntry[];
+  /** historyStack.ts's `future`, newest-undone-first - the steps Redo would
+   * bring back, one tap at a time starting from index 0. Optional and
+   * empty-default so a caller that has not wired it stays on the old,
+   * undo-only list rather than crashing. Rendered reversed (oldest-undone
+   * first) above the "you are here" divider so the list still reads
+   * newest-at-top throughout and `redoHistory[0]` - the entry Redo acts on
+   * next - sits immediately above the divider. */
+  redoHistory?: ActionHistoryEntry[];
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;
@@ -80,8 +97,43 @@ export default function UndoHistoryModal({
 
       <div className={`${dialogStyles.body} ${dialogStyles['body-list']}`}>
         <div className={styles['undo-history-list']}>
+          {/* Newest-first throughout, oldest-undone-first here so
+              redoHistory[0] - what Redo acts on next - lands right above the
+              divider. No checkbox: a step already undone cannot be
+              selectively reverted, there is nothing left to check. */}
+          {[...redoHistory].reverse().map((action) => {
+            const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return (
+              <div key={action.id} className={`${styles['undo-history-item']} ${styles['undo-history-item--undone']}`}>
+                <span className={styles['undo-history-undone-icon']} aria-hidden="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7v6h6" />
+                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                  </svg>
+                </span>
+                <div className={styles['undo-history-details']}>
+                  <span className={styles['undo-history-desc']}>{action.description}</span>
+                  <span className={styles['undo-history-time']}>{time}</span>
+                  {/* Real text, not a colour or an ::before - carries the
+                      "undone" state on its own for a screen reader, and for a
+                      sighted person who cannot rely on the muted tint alone.
+                      Grouped with the timestamp rather than the description,
+                      which it used to push onto a third line at phone width. */}
+                  <span className={styles['undo-history-badge']}>{t.undoneLabel}</span>
+                  <span className={styles['undo-history-page']}>{formatMessage(t.pageLabel, { number: action.pageIndex + 1 })}</span>
+                </div>
+              </div>
+            );
+          })}
+
+          {redoHistory.length > 0 && (
+            <div className={styles['undo-history-divider']} role="separator">
+              <span className={styles['undo-history-now']}>{t.historyNowLabel}</span>
+            </div>
+          )}
+
           {actionHistory.map((action) => {
-            const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const time = new Date(action.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const isSelected = undoSelection.has(action.id);
             return (
               <label key={action.id} className={styles['undo-history-item']}>
