@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveHandoff, setCurrentEntry, readRecentFiles, loadRecentFile } from '../lib/drafts/draftStore.js';
+import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
@@ -82,44 +82,34 @@ export default function FileDropzone({
     setError('');
     await handOff(file);
   };
-  const openRecent = async (recent: RecentFileItem) => {
-    if (busy || !recent.cacheId) return;
+  // Opening a recent tile is a pointer move and a navigation, nothing more.
+  // The entry already holds the bytes and the work; the tool restores itself
+  // from the pointer on the next page load, which is what Merge has always
+  // done and is now what every tool does.
+  //
+  // It must stay synchronous. Reading the entry first, to learn which tool it
+  // belongs to, meant awaiting a record that carries the whole PDF out of
+  // IndexedDB for a single string - and on a phone, with a large scan, that
+  // read can be slow enough (or block outright) to leave the tile stuck on
+  // "Opening..." with nothing happening (reported 2026-09-20). `recent.tool`
+  // is already on the index row this tile was rendered from: it is the label
+  // printed under the thumbnail, so if it were wrong the tile would be
+  // visibly wrong too.
+  //
+  // It must not hand the file off either. A hand-off means "a file the person
+  // just dropped", so useEditorDraftPersistence's beforeRestore opens it with
+  // empty elements and an empty history and returns true, short-circuiting the
+  // branch that loads the saved work. That rule is right for a dropped file,
+  // which really is newer than anything the pointer names. A recent tile is
+  // the opposite case, and opening your own saved document through the
+  // brand-new-file door is what discarded it (also 2026-09-20).
+  const openRecent = (recent: RecentFileItem) => {
+    if (busy || !recent.cacheId || !recent.tool) return;
     setBusy(true);
-    // A Merge entry holds a file set and a page plan, not one PDF a
-    // single-file hand-off can carry (saveHandoff's contract), so it can't go
-    // through handOff the way every other tool's recent file does. Point the
-    // tool at this entry directly; it restores itself from the pointer.
-    if (recent.tool === 'merge') {
-      setCurrentEntry('merge', recent.cacheId);
-      window.location.href = toolHref('merge');
-      return;
-    }
-    try {
-      const cached: any = await loadRecentFile(recent.cacheId);
-      if (!cached?.fileBytes) throw new Error('missing-recent');
-      const target = cached.tool || recent.tool;
-      // Point the tool at this entry and let it restore itself, exactly as
-      // Merge does above. Every tool takes this path now, not only Merge.
-      //
-      // It used to hand the file off instead, and that silently threw the
-      // work away: a hand-off means "a file the person just dropped", so
-      // useEditorDraftPersistence's beforeRestore opens it with
-      // `{ elements: [], actionHistory: [] }` and returns true, which
-      // short-circuits the onRestore branch that would have loaded the saved
-      // elements. That rule is right for a dropped file - it is strictly
-      // newer than anything the pointer names - but a recent tile is the
-      // opposite case: the entry is the work, and the bytes are already in
-      // the store. Opening one's own saved document through the "brand new
-      // file" door is what lost it (reported 2026-09-20: reopening a redacted
-      // document from the home page thumbnail showed no boxes at all, while
-      // the entry still held every one of them).
-      setCurrentEntry(target, recent.cacheId);
-      window.location.href = toolHref(target);
-    } catch {
-      setError(messages.recentFileUnavailable);
-      setBusy(false);
-    }
+    setCurrentEntry(recent.tool, recent.cacheId);
+    window.location.href = toolHref(recent.tool);
   };
+
   useEffect(() => {
     const ownArea = container.current?.closest<HTMLElement>('[data-working-area]');
     // The whole first screen is a drop target, not just the picker tile. This

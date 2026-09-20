@@ -166,6 +166,30 @@ describe('FileDropzone', () => {
       expect(container.querySelector('dialog')).toBeNull();
       expect(setCurrentEntry).toHaveBeenCalledWith('sign', 'sha256:active');
       expect(saveHandoff).not.toHaveBeenCalled();
+      // And it never reads the entry, which is the difference between a tile
+      // that opens and one that hangs: the record carries the whole PDF, and
+      // awaiting it on a phone left the tile stuck on "Opening..." with
+      // nothing happening (reported 2026-09-20, shipped by the fix above).
+      // `recent.tool` is already on the index row the tile was rendered from.
+      expect(loadRecentFile).not.toHaveBeenCalled();
+    });
+
+    it('opens without waiting on the store, so a slow or blocked read cannot strand the tile', async () => {
+      readRecentFiles.mockReturnValue([{
+        id: 'sha256:slow', tool: 'redact', fileName: 'scan.pdf', savedAt: Date.now(),
+      }]);
+      // A store that never answers. If opening a tile awaited it at all, the
+      // pointer below would never be set and the dropzone would sit busy.
+      loadRecentFile.mockReturnValue(new Promise(() => {}));
+      mount();
+      await act(async () => { await Promise.resolve(); });
+
+      await act(async () => {
+        container.querySelector('button[aria-label^="Open recent PDF"]').click();
+      });
+
+      expect(setCurrentEntry).toHaveBeenCalledWith('redact', 'sha256:slow');
+      expect(loadRecentFile).not.toHaveBeenCalled();
     });
 
     // MEM-01 folded Merge's entry into the same recency index every other
