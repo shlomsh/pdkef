@@ -269,11 +269,15 @@ describe('PdfRedactTool UI flow', () => {
       const sharedFile = required(share.mock.calls[0]?.[0]?.files?.[0], 'shared PDF file');
       expect(sharedFile.name).toBe('redacted_num-1.pdf');
 
-      const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-      const loadingTask = getDocument({ data: new Uint8Array(await sharedFile.arrayBuffer()) });
-      const pdf = await loadingTask.promise;
-      expect(pdf.numPages).toBe(1);
-      await loadingTask.destroy();
+      // pdf-lib, not pdf.js, to prove the shared bytes are a one-page PDF: the
+      // real pdf.js legacy build is 3.4MB to import and evaluate plus a fake
+      // worker to spin up, all inside jsdom. Measured 2026-09-20: ~300ms with a
+      // core to itself, 5.2-5.5s when a saturated 4-core host runs ~32 forks,
+      // which is past Vitest's 5s default and was this file's one flake. The
+      // Delete tool's still-valid-PDF test below already checks the same way.
+      const { PDFDocument } = await import('@cantoo/pdf-lib');
+      const shared = await PDFDocument.load(await sharedFile.arrayBuffer());
+      expect(shared.getPageCount()).toBe(1);
     } finally {
       if (originalShare === undefined) Reflect.deleteProperty(navigator, 'share');
       else Object.defineProperty(navigator, 'share', { configurable: true, value: originalShare });
