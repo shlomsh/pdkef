@@ -606,7 +606,36 @@ function hasIndexedDB() {
   }
 }
 
+// Ask the browser to stop treating this origin's storage as disposable.
+//
+// Without this, everything here is "best-effort": the browser may evict the
+// whole database whenever it likes, and the person is never told. That is not
+// theoretical. It was reported from an installed iOS home-screen app where the
+// "Draft saved" line had appeared - the write had genuinely succeeded, and the
+// work was gone on reopening anyway, because saving and *keeping* are two
+// different promises and we had only ever made the first.
+//
+// Deliberately fire-and-forget, and deliberately not awaited by any caller:
+// a save must never wait on a permission prompt, and a browser that refuses
+// (or has no Storage API at all) must lose nothing but the guarantee. Runs
+// once per module lifetime, on the first database open, so it costs nothing
+// on a visit that never saves. Note Safari decides this by its own heuristics
+// rather than by asking, so a `false` here is normal and not an error worth
+// reporting - it means the same best-effort storage we already had.
+let persistenceRequested = false;
+function requestStoragePersistence() {
+  if (persistenceRequested) return;
+  persistenceRequested = true;
+  try {
+    navigator?.storage?.persist?.().catch(() => {});
+  } catch {
+    // No Storage API, or a browser that throws on it. Nothing to do: the
+    // tools keep working on best-effort storage exactly as before.
+  }
+}
+
 function openDb() {
+  requestStoragePersistence();
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
