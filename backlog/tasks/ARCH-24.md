@@ -80,6 +80,30 @@ shrinks to that entry point, and a new source inherits the protection instead of
 An OCR source in particular is the case to watch, since a wasm or worker payload dwarfs anything
 here.
 
+## The coupling already cost us one silent outage
+
+Moving `toPagePercentBox` from `formGrid.js` to `coords.ts` left the hook still destructuring it
+from `formGrid.js`. It was `undefined`, the first text run threw, and the hook's deliberately silent
+`catch` reported "no fields" - **for every document, not just the demo form**. The build passed,
+`astro check` passed, and all 3,264 unit tests passed, the corpus included, because the corpus calls
+the detector modules directly and never goes through the hook. It was found by opening the demo form
+in a browser, which is the only thing that exercises the assembly.
+
+Three things hid it and all three are structural, not careless:
+
+1. The import is dynamic and the modules are `.js`, so TypeScript cannot see a destructured name
+   that does not exist.
+2. Detection failing is silent by design, so a total failure looks exactly like a PDF with no
+   detectable fields.
+3. Nothing else uses this wiring. Unit tests test the functions, the corpus tests the capability;
+   only a browser tests the assembly.
+
+`useFormFieldRegions.wiring.test.ts` now checks every destructured name against the module's real
+exports (sabotage-checked by reintroducing the bug). That is a patch on the symptom. **The cause is
+this ticket**: the assembly exists at all, and is spelled out in a tool as untyped dynamic imports.
+One entry point makes it a typed function call, and the failure mode disappears rather than being
+guarded.
+
 ## Acceptance
 
 - [ ] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
