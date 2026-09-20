@@ -888,6 +888,9 @@ export default function PdfRedactTool() {
             elementsCount={elements.length}
             actionHistory={actionHistory}
             setUndoModalOpen={setUndoModalOpen}
+            onUndo={undoLast}
+            onRedo={redoLast}
+            canRedo={redoHistory.length > 0}
             exporting={status === 'redacting'}
             undoAction={undoAction}
             onUndoAction={runUndoChip}
