@@ -51,6 +51,15 @@ export const epics = [
   // reason) and that Edit Pages, the one destructive tool, has no undo at all.
   { key: 'undo-and-redo', label: 'Undo and redo', heading: 'Undo and redo across the tools (2026-09-20)' },
   { key: 'one-memory-space', label: 'One memory space', heading: 'One memory space: every opened file keeps its work, no drafts (2026-09-15)' },
+  // Opened 2026-09-20 out of MOBI-10/11, which had grown past the epic holding
+  // them: reading a flat form well enough to ask a person what it wants is its
+  // own programme, not a step in the mobile round trip. The spike record
+  // (docs/mobi-10-field-map-spike.md) is the evidence base - the on-device
+  // geometry path, what a vision model can and cannot do, and the 90/90/85 gate
+  // that separates a reviewable field map from a form that fills itself.
+  // MOBI-11 moved here; MOBI-10 stays where it was decided, per the 2026-09-12
+  // re-filing convention above.
+  { key: 'form-understanding', label: 'Form understanding', heading: 'Form understanding: read what a form asks, ask the person, fill it back (2026-09-20)' },
 ];
 
 export const statuses = [

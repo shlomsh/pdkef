@@ -1,6 +1,5 @@
-import { createPageGeometry, pagePercentToPdfPoint } from '../../geometry/coords.ts';
+import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { toPagePercentBox } from '../../geometry/coords.ts';
 
 /**
  * Closed table/box cells from vector ink (`pageInk.js`) that `formGrid.js`'s comb/checkbox
@@ -67,6 +66,22 @@ const MIN_ROW_HEIGHT = 6;
 const MAX_ROW_HEIGHT = 45;
 /** A column narrower than this is a rule gap, not a cell anyone could write in. */
 const MIN_CELL_WIDTH = 15;
+
+/**
+ * A ruled cell narrower than `MIN_CELL_WIDTH` is a tick target rather than a
+ * place to write a word - form 101 rules its children table as 13 rows of
+ * 6.3pt and 8.1pt columns a person ticks, and a width floor written for
+ * free-text cells cannot see any of them (MOBI-11: 26 of that form's 43
+ * missed fields are exactly these).
+ *
+ * What keeps the lower floor from admitting every incidental gap is the
+ * column, not the width: a tick cell belongs to a printed column that repeats
+ * down the table, while the gaps between the dashes of a leader line - the
+ * failure class this floor was raised to exclude - land at a different x on
+ * every row and so never recur.
+ */
+const MIN_TICK_CELL_WIDTH = 6;
+const MIN_TICK_COLUMN_ROWS = 3;
 /** The blank remainder (after any hugging label) must be at least this large. */
 const MIN_BLANK_WIDTH = 25;
 const MIN_BLANK_HEIGHT = 8;
@@ -188,7 +203,7 @@ function buildClosedCells(ink) {
       const left = xs[j];
       const right = xs[j + 1];
       const width = right - left;
-      if (width < MIN_CELL_WIDTH) continue;
+      if (width < MIN_TICK_CELL_WIDTH) continue;
 
       const topCoverage = ruledCoverage(rules, top, left, right);
       const bottomCoverage = ruledCoverage(rules, bottom, left, right);
@@ -199,7 +214,7 @@ function buildClosedCells(ink) {
       if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
 
       const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-      cells.push({ left, right, bottom, top, width, height, closure });
+      cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
     }
   }
   return cells;
@@ -351,11 +366,39 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const textItemsPoints = textItems.map((item) => textItemToPoints(item, geometry));
   const closedCells = buildClosedCells(ink);
 
+  // Counted over every closed cell rather than the survivors below, because a tick column is
+  // admitted by the fact that it repeats and the filters it has to pass come after.
+  const columnKey = (c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
+  const closedColumnCounts = new Map();
+  for (const cell of closedCells) {
+    const key = columnKey(cell);
+    closedColumnCounts.set(key, (closedColumnCounts.get(key) || 0) + 1);
+  }
+
   // First pass: geometry + text classification; the column-repeat count
   // (table-cell vs text) below needs the whole population.
   const resolved = [];
   for (const cell of closedCells) {
     const ownText = textInsideCell(cell, textItemsPoints);
+    if (cell.narrow) {
+      // Too narrow to hold a label or a written answer, so the text tests below say nothing
+      // about it: a tick cell is admitted by its column and disqualified by any text at all.
+      if (ownText.length > 0) continue;
+      if ((closedColumnCounts.get(columnKey(cell)) || 0) < MIN_TICK_COLUMN_ROWS) continue;
+      resolved.push({
+        bounds: toPagePercentBox(geometry, {
+          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
+        }),
+        writableBounds: undefined,
+        cell,
+        kind: 'checkbox',
+        label: headerAbove(cell, textItemsPoints)?.str?.trim(),
+        ownTextCount: 0,
+        coverage: 0,
+        closure: cell.closure,
+      });
+      continue;
+    }
     const ownStr = ownText.map((t) => t.str).join(' ').trim();
     const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
     const cellArea = cell.width * cell.height;
@@ -390,7 +433,6 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // table-cell vs text: a column that recurs across >=3 row bands (same left/right within
   // POS_TOLERANCE) is a real repeating table row; a one-off labelled field (the common case
   // here - a header row over one blank data row) stays `text`.
-  const columnKey = (c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
   const columnCounts = new Map();
   for (const r of resolved) {
     const key = columnKey(r.cell);

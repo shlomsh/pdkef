@@ -511,25 +511,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.4515,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 1",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t044"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.4515,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 1",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t045"
     },
     {
@@ -573,25 +573,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.4775,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 2",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t049"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.4775,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 2",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t050"
     },
     {
@@ -635,25 +635,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.5037,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 3",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t054"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.5037,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 3",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t055"
     },
     {
@@ -697,25 +697,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.5296,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 4",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t059"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.5296,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 4",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t060"
     },
     {
@@ -759,25 +759,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.5556,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 5",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t064"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.5556,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 5",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t065"
     },
     {
@@ -821,25 +821,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.5815,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 6",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t069"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.5815,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 6",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t070"
     },
     {
@@ -883,25 +883,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.6075,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 7",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t074"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.6075,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 7",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t075"
     },
     {
@@ -945,25 +945,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.6337,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 8",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t079"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.6337,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 8",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t080"
     },
     {
@@ -1007,25 +1007,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.6596,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 9",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t084"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.6596,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 9",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t085"
     },
     {
@@ -1069,25 +1069,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.6856,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 10",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t089"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.6856,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0259
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 10",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t090"
     },
     {
@@ -1131,25 +1131,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.7115,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 11",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t094"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.7115,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.026
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 11",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t095"
     },
     {
@@ -1193,25 +1193,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.7375,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 12",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t099"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.7375,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0262
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 12",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t100"
     },
     {
@@ -1255,25 +1255,25 @@
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8893,
+        "x": 0.873714,
         "y": 0.7637,
-        "width": 0.0136,
+        "width": 0.017135,
         "height": 0.0258
       },
       "label": "2 (קצבת ילדים) / פרטים על ילדיי, שורה 13",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t104"
     },
     {
       "kind": "checkbox",
       "bounds": {
-        "x": 0.9029,
+        "x": 0.890849,
         "y": 0.7637,
-        "width": 0.0106,
+        "width": 0.017135,
         "height": 0.0258
       },
       "label": "1 (בחזקתך) / פרטים על ילדיי, שורה 13",
-      "notes": "table row band from raster rules",
+      "notes": "table row band from raster rules Corrected 2026-09-20 (MOBI-11): the recorded box was one column to the right of the ruled cell - it covered the neighbouring column's printed header digit, and the '1' column's box fell on blank paper past the table's last rule. Re-snapped to the page's own vertical rules (x=520.1/530.3/540.5), assigned by the printed header each column brackets ('2' at x 522.6-527.8, '1' at x 532.7-538.0). Row bands unchanged.",
       "id": "t105"
     },
     {
