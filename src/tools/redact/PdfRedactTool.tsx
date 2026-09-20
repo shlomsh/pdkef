@@ -1058,6 +1058,7 @@ export default function PdfRedactTool() {
         open={undoModalOpen}
         onClose={() => setUndoModalOpen(false)}
         actionHistory={actionHistory}
+        redoHistory={redoHistory}
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}

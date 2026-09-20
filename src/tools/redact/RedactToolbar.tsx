@@ -276,7 +276,7 @@ export default function RedactToolbar({
           type="button"
           className={styles.button}
           onClick={() => setUndoModalOpen(true)}
-          title="Undo changes"
+          title="Change history"
           disabled={actionHistory.length === 0}
           data-icon-only
           /* Hidden below the narrow band (SignToolbar.module.css's

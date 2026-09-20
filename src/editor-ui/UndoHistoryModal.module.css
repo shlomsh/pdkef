@@ -41,15 +41,34 @@
 
 .undo-history-details {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  /* Tighter than the 1rem it was: an undone row carries one more thing than
+     an applied one (the "Undone" badge), and at 390px the old gap plus a
+     fixed-width description column broke "Added whiteout box" over three
+     lines, making the quietest rows the tallest in the panel. */
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  row-gap: 0.15rem;
   color: var(--color-text);
   font-size: 0.9rem;
 }
 
+/* The description takes the row's width first; when everything cannot fit,
+   the metadata drops to its own line rather than squeezing the words into a
+   three-line column, which is what a fixed row of five columns did to "Added
+   whiteout box" at 390px. */
 .undo-history-desc {
-  flex: 1;
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.undo-history-time,
+.undo-history-page,
+.undo-history-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .undo-history-time {
@@ -61,4 +80,84 @@
 .undo-history-page {
   color: var(--color-muted);
   font-size: 0.85rem;
+}
+
+/* Undone rows sit above the "you are here" divider (historyStack.ts's
+   `future`, reversed so the entry Redo acts on next is the one closest to the
+   divider). Muted, un-checkable, and marked by more than color: a distinct
+   icon in the checkbox's place, a strikethrough on the description, and the
+   explicit "Undone" text in .undo-history-badge below - color/opacity is
+   never the only signal, since it is invisible in some contrast modes and
+   carries no information to a screen reader on its own. */
+.undo-history-item--undone {
+  cursor: default;
+  /* No fill. An undone step has to read as *quieter* than a live one, and the
+     first attempt gave these rows --color-surface-sunken, which is the mint
+     "where the work happens" ground: on a phone the steps you had taken back
+     shouted louder than the one still applied, which is the opposite of what
+     the panel is saying. The dashed edge carries "not currently part of the
+     document" without adding weight. */
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--color-border);
+}
+
+.undo-history-item--undone:hover {
+  background: transparent;
+}
+
+.undo-history-item--undone .undo-history-desc {
+  color: var(--color-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
+}
+
+.undo-history-undone-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+/* The badge sits with the timestamp, not beside the description. Put inline
+   with the description it stole the row's width and wrapped "Added whiteout
+   box" onto three lines at 390px, which made the undone rows the tallest
+   thing in the panel as well as the loudest. */
+.undo-history-badge {
+  flex: 0 0 auto;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* A rule with one word on it: everything below it has happened, everything
+   above it has been taken back. Logical properties throughout (margin-block,
+   border-block-start) so the Hebrew edition needs no override. */
+.undo-history-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block: 0.4rem;
+  color: var(--color-muted);
+}
+
+.undo-history-divider::before,
+.undo-history-divider::after {
+  content: '';
+  flex: 1;
+  border-block-start: 1px dashed var(--color-border-strong);
+}
+
+.undo-history-now {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

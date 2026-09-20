@@ -9,6 +9,7 @@ import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
+import undoHistoryStyles from '../../editor-ui/UndoHistoryModal.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -1453,7 +1454,7 @@ describe('PdfRedactTool UI flow', () => {
     async function openUndoHistoryModal(): Promise<HTMLElement> {
       const undoChangesBtn = required(
         Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-          .find((b) => b.title === 'Undo changes'),
+          .find((b) => b.title === 'Change history'),
         'Undo changes button',
       );
       await act(async () => {
@@ -1630,6 +1631,70 @@ describe('PdfRedactTool UI flow', () => {
       await pressRedoShortcut();
       // The selective revert cleared redoHistory, so box C does not return.
       expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
+    });
+
+    // The reported bug, pinned at the panel level rather than just the state
+    // it renders from: a real undo must put a visible, undone-marked row
+    // above the divider (not make it vanish), a real redo must bring it back
+    // below, and a selective revert of a still-live entry must clear that
+    // undone row again - a panel showing a redo that no longer exists is
+    // exactly what this timeline replaced the old checklist to fix.
+    it('a real undo shows an undone row above the divider, and redo moves it back below', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      const dialog = await openUndoHistoryModal();
+      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
+      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
+
+      await pressUndoShortcut(); // undoes box B; it should now render as an undone row
+      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).not.toBeNull();
+      const undoneRows = Array.from(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`));
+      expect(undoneRows).toHaveLength(1);
+      expect(undoneRows[0].textContent).toContain('Added blackout box');
+      expect(undoneRows[0].querySelector('input[type="checkbox"]')).toBeNull();
+
+      await pressRedoShortcut();
+      // Box B is applied again: the undone row and the divider are both gone.
+      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
+      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
+    });
+
+    it("a selective revert from below the divider clears the undone row above it", async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      await armTool('Blackout');
+      await drawBox(drawArea, 70, 240, 240, 540); // box C: left ~14%
+
+      await pressUndoShortcut(); // undoes box C; it should render as an undone row
+
+      const dialog = await openUndoHistoryModal();
+      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(1);
+
+      // Revert box A, the older of the two remaining applied (below-divider) entries.
+      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      expect(checkboxes).toHaveLength(2);
+      const olderEntryCheckbox = checkboxes[1];
+      await act(async () => {
+        olderEntryCheckbox.checked = true;
+        olderEntryCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const revertButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
+        'Revert selected button',
+      );
+      await act(async () => {
+        revertButton.click();
+      });
+
+      // The bug this pins: box C's undone row must not still be showing a
+      // redo that revertCommands has already thrown away.
+      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
+      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
     });
 
     it('the undo chip keeps a redo when its command is still the newest', async () => {
