@@ -33,6 +33,8 @@ export interface SignMessages {
   newSignatureButton: string;
   undoButton: string;
   undoTitle: string;
+  redoButton: string;
+  redoTitle: string;
   feedbackButton: string;
   feedbackTitle: string;
   shareButton: string;
@@ -113,6 +115,10 @@ export interface SignMessages {
   /** UndoHistoryModal.tsx. */
   undoHistoryTitle: string;
   revertSelectedLabel: string;
+  /** `formatMessage`-ready: "Redo: {description}", so the redo button's
+   * accessible name says what it would bring back rather than leaving that to
+   * a tooltip. */
+  redoDescriptionTemplate: string;
   /** Shared between EditorPageHeader.tsx, UndoHistoryModal.tsx's per-action
    * page line, and PdfWorkspace.tsx's clearPage announcement/title. */
   pageLabel: string;
@@ -195,6 +201,7 @@ export interface SignMessages {
   editsChangedWhilePreparing: string;
   revertedSelectedActions: string;
   undidActionTemplate: string;
+  redidActionTemplate: string;
   invalidPdfFile: string;
   placedSignatureOnPage: string;
   signaturePlacedNotSaved: string;

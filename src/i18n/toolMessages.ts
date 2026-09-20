@@ -681,7 +681,30 @@ import type { SignMessages } from '../editor/registry/messages';
 
 export type { SignMessages };
 
-const englishSignMessages: SignMessages = {
+/**
+ * UNDO-REDO: redo's strings. Redo has no toolbar control of its own
+ * (CLAUDE.md/editor.md's twelve-control note on SignToolbar), so it surfaces
+ * only through `UndoHistoryModal.tsx`'s footer button and, once wired, Sign's
+ * Cmd/Ctrl+Shift+Z announcement (the `redidActionTemplate` counterpart to
+ * `undidActionTemplate` below). These keys extend `SignMessages` locally
+ * rather than in `src/editor/registry/messages.ts` itself, since that shared
+ * catalogue is edited elsewhere this session while this file's English/Hebrew
+ * values are owned here; a caller that needs `redidActionTemplate` on a
+ * plain `SignMessages`-typed value will need that base interface to gain the
+ * field too.
+ */
+export interface UndoHistoryMessages extends SignMessages {
+  redoButton: string;
+  redoTitle: string;
+  /** `formatMessage`-ready: "Redo: {description}", so the button's accessible
+   * name says what it would bring back rather than relying on a tooltip. */
+  redoDescriptionTemplate: string;
+  /** Sign's live-region announcement after Cmd/Ctrl+Shift+Z, the redo
+   * counterpart to `undidActionTemplate`. */
+  redidActionTemplate: string;
+}
+
+const englishSignMessages: UndoHistoryMessages = {
   toolbarLabel: 'PDF annotations',
   textButton: 'Text',
   dateButton: 'Date',
@@ -758,6 +781,9 @@ const englishSignMessages: SignMessages = {
   saveSignatureLabel: 'Save Signature',
   undoHistoryTitle: 'Undo changes',
   revertSelectedLabel: 'Revert selected',
+  redoButton: 'Redo',
+  redoTitle: 'Bring back the change you just undid',
+  redoDescriptionTemplate: 'Redo: {description}',
   pageLabel: 'Page {number}',
   clearPageLabel: 'Clear page',
   clearPageTitle: 'Clear all annotations on this page',
@@ -826,6 +852,7 @@ const englishSignMessages: SignMessages = {
   editsChangedWhilePreparing: 'Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.',
   revertedSelectedActions: 'Reverted selected actions.',
   undidActionTemplate: 'Undid: {description}',
+  redidActionTemplate: 'Redid: {description}',
   invalidPdfFile: 'Please select a valid PDF file.',
   placedSignatureOnPage: 'Placed signature on page.',
   signaturePlacedNotSaved: 'Signature placed, but the browser could not save it for your next visit.',
@@ -879,7 +906,7 @@ const englishSignMessages: SignMessages = {
 // LOC-09 stage 1: an AI draft, not yet reviewed by a native speaker - the same
 // caveat hebrewMergeMessages and hebrewCompressMessages above carry. Pending
 // Shlomi's read-through.
-const hebrewSignMessages: SignMessages = {
+const hebrewSignMessages: UndoHistoryMessages = {
   toolbarLabel: 'הערות PDF',
   textButton: 'טקסט',
   dateButton: 'תאריך',
@@ -959,6 +986,9 @@ const hebrewSignMessages: SignMessages = {
   saveSignatureLabel: 'שמירת חתימה',
   undoHistoryTitle: 'ביטול שינויים',
   revertSelectedLabel: 'שחזור הנבחרים',
+  redoButton: 'ביצוע מחדש',
+  redoTitle: 'החזרת השינוי שביטלתם',
+  redoDescriptionTemplate: 'ביצוע מחדש: {description}',
   pageLabel: 'עמוד {number}',
   clearPageLabel: 'ניקוי העמוד',
   clearPageTitle: 'ניקוי כל ההערות בעמוד הזה',
@@ -1027,6 +1057,7 @@ const hebrewSignMessages: SignMessages = {
   editsChangedWhilePreparing: 'השינויים שלכם השתנו בזמן שה-PDF הוכן. הורידו שוב כדי ליצור קובץ מעודכן.',
   revertedSelectedActions: 'הפעולות שנבחרו שוחזרו.',
   undidActionTemplate: 'בוטל: {description}',
+  redidActionTemplate: 'בוצע מחדש: {description}',
   invalidPdfFile: 'בחרו קובץ PDF תקין.',
   placedSignatureOnPage: 'החתימה מוקמה בעמוד.',
   signaturePlacedNotSaved: 'החתימה מוקמה, אבל הדפדפן לא הצליח לשמור אותה לביקור הבא שלכם.',

@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
-import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
+import { englishSignMessages, formatMessage, type UndoHistoryMessages } from '../i18n/toolMessages';
 import dialogStyles from '../shell/Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
@@ -21,6 +21,9 @@ export default function UndoHistoryModal({
   undoSelection,
   setUndoSelection,
   onRevertSelected,
+  onRedo,
+  canRedo,
+  redoDescription,
   messages,
 }: {
   open: boolean;
@@ -29,12 +32,24 @@ export default function UndoHistoryModal({
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;
+  /** UNDO-REDO: optional so a caller that has not wired redo yet (both Sign
+   * and Redact, as of this change) keeps working unchanged. Redoes the single
+   * most recently undone action; there is no "redo selected" - the checklist
+   * above is undo-only. */
+  onRedo?: () => void;
+  /** Whether there is anything left to redo. Only read when `onRedo` is
+   * supplied; the button renders disabled while this is false. */
+  canRedo?: boolean;
+  /** The description of the action `onRedo` would bring back, e.g. "Added
+   * text box" - shown in the button's accessible name so it isn't a mystery
+   * click. Ignored while `canRedo` is false. */
+  redoDescription?: string;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
    * this dialog (Redact included) is unaffected. */
-  messages?: Partial<SignMessages>;
+  messages?: Partial<UndoHistoryMessages>;
 }) {
-  const t: SignMessages = { ...englishSignMessages, ...messages };
+  const t: UndoHistoryMessages = { ...englishSignMessages, ...messages };
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {
@@ -90,6 +105,18 @@ export default function UndoHistoryModal({
       </div>
 
       <div className={dialogStyles.footer}>
+        {onRedo && (
+          <button
+            type="button"
+            className={`${dialogStyles.button} ${dialogStyles.secondary}`}
+            onClick={onRedo}
+            disabled={!canRedo}
+            title={t.redoTitle}
+            aria-label={canRedo && redoDescription ? formatMessage(t.redoDescriptionTemplate, { description: redoDescription }) : undefined}
+          >
+            {t.redoButton}
+          </button>
+        )}
         <button
           type="button"
           className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.success}`}
