@@ -47,6 +47,31 @@ describe('reconcileFields', () => {
     expect(cells).toEqual([]);
   });
 
+  it('drops a cell whose printed box a checkbox sits in, above the strip it publishes', () => {
+    // Health's yes/no rows, live: a ruled box with "\u05db\u05df" and "\u05dc\u05d0" printed on its top line
+    // beside the two radios, and blank space under them. The cell publishes that blank band, so
+    // only a sixth of each radio falls inside its bounds - but the box the radios are in is the
+    // box this cell was cut from, and something else has already reported them. Published
+    // anyway, this was 20 of the 27 false positives on that form's page 1.
+    const radio = { pageIndex: 0, left: 52.3, top: 42.4, width: 1.1, height: 0.8 };
+    const yesNo = {
+      pageIndex: 0, left: 50.9, top: 42.9, width: 8.9, height: 1.4, kind: 'text',
+      enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
+    };
+    const { cells } = reconcileFields({ combs: [], checkboxes: [radio], cells: [yesNo] });
+    expect(cells).toEqual([]);
+  });
+
+  it('keeps a cell whose printed box a neighbouring checkbox sits outside of', () => {
+    const outside = { pageIndex: 0, left: 61, top: 42.4, width: 1.1, height: 0.8 };
+    const yesNo = {
+      pageIndex: 0, left: 50.9, top: 42.9, width: 8.9, height: 1.4, kind: 'text',
+      enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
+    };
+    const { cells } = reconcileFields({ combs: [], checkboxes: [outside], cells: [yesNo] });
+    expect(cells).toEqual([yesNo]);
+  });
+
   it('keeps a comb and a cell that merely touch', () => {
     const below = { ...nameCell, left: 73.6, top: 28.12 };
     const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [below] });
