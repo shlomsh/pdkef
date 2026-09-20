@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry } from '../../geometry/coords.ts';
+import { placeTextOnCell } from '../../text/combPlacement.ts';
 import { detectCellCandidates } from './formCells.js';
 
 // A 100x100pt page makes the PDF-point <-> page-percent arithmetic trivial to read: percent
@@ -176,6 +177,11 @@ describe('detectCellCandidates – the bounds are the writing strip, not the rul
     expect(cell.width).toBeCloseTo(50, 5);
     expect(cell.height).toBeCloseTo(12, 5);
     expect(cell.enclosure).toBeUndefined();
+    // The strip is not thrown away, though: it rides along as `writable`,
+    // which is where a box typed into the cell goes. See the placement
+    // describe below.
+    expect(cell.writable.left).toBeCloseTo(50, 5);
+    expect(cell.writable.width).toBeCloseTo(35, 5);
   });
 
   it('publishes the whole cell when the label is a header above it, not inside it', () => {
@@ -185,6 +191,62 @@ describe('detectCellCandidates – the bounds are the writing strip, not the rul
     expect(cell.label).toBe('שם משפחה');
     expect(cell.height).toBeCloseTo(20, 5);
     expect(cell.enclosure).toBeUndefined();
+  });
+});
+
+describe('detectCellCandidates -> placeTextOnCell: where the typed box goes', () => {
+  // One row, two cells, both carved sideways by their own printed text - and
+  // the two carves mean opposite things. The left cell's text is a caption a
+  // person writes *beside*; the right cell's is the `/  /` of a printed date,
+  // which a person writes *across*. Form 101 page 1 prints both, four cells
+  // apart.
+  //
+  // On an RTL form a box given a cell's whole span starts its text at the
+  // span's *right* edge (getTextAlign, and the same arithmetic in the
+  // exporter's pen). For the captioned cell that wall is where the caption is
+  // printed, so the whole span means "type across the caption" and the box has
+  // to stop at the strip. For the date cell the whole span is exactly right.
+  const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
+  const CAPTION_LEFT = 28;
+  // Both runs sit in the lower half of the band, so neither cell can carve a
+  // band under its text - a side carve is the only one on offer here.
+  const caption = text('מספר טלפון', { left: CAPTION_LEFT, top: 29, width: 20, height: 2.2 });
+  const separators = [
+    text('/', { left: 78, top: 29, width: 1.5, height: 2.2 }),
+    text('/', { left: 88, top: 29, width: 1.5, height: 2.2 }),
+  ];
+  const detect = () => detectCellCandidates(ink, geometry, 0, [caption, ...separators]);
+  const place = (cell) => placeTextOnCell(cell, { fontSize: 12, pageHeightPoints: 100 });
+
+  it('stops the box at a real caption hugging the cell wall, instead of typing across it', () => {
+    const [cell] = detect();
+    expect(cell.label).toBe('מספר טלפון');
+    // Placement only: the bounds are still the whole ruled cell.
+    expect(cell.left).toBeCloseTo(0, 5);
+    expect(cell.width).toBeCloseTo(50, 5);
+
+    const placed = place(cell);
+    expect(placed.left).toBeCloseTo(0, 5);
+    // The box's right edge is where the first typed character lands on this
+    // form, so it must not reach the caption's left edge.
+    expect(placed.left + placed.minWidth).toBeLessThanOrEqual(CAPTION_LEFT + 1e-9);
+  });
+
+  it('gives a date cell the whole cell, because `/  /` is written across, not beside', () => {
+    const [captioned, date] = detect();
+    // The pair is the assertion: the same side carve happens in both cells,
+    // and only a caption is a reason to move the box off it. Pinning both
+    // here is what stops the date cells being "fixed" alongside the phone
+    // cells, or the phone cells being given up to leave the dates alone.
+    expect(captioned.writable).toBeDefined();
+    expect(date.kind).toBe('date');
+    expect(date.writable).toBeUndefined();
+
+    const placed = place(date);
+    expect(placed.left).toBeCloseTo(50, 5);
+    expect(placed.minWidth).toBeCloseTo(50, 5);
+    // Which is what puts the day, month and year on top of the separators.
+    expect(placed.left + placed.minWidth).toBeGreaterThan(88);
   });
 });
 
