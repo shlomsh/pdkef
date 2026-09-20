@@ -34,6 +34,44 @@ describe('reconcileFields', () => {
     expect(cells).toEqual([]);
   });
 
+  it('claims the cell whose printed box holds the run, even when the run misses its strip', () => {
+    // The carve cuts a caption band off the top of a ruled box; a run printed
+    // in that band is inside the box but outside what the cell publishes. The
+    // box is still the rectangle the question is about, so the cell goes and
+    // the comb takes its strip - otherwise one printed box carries a comb and
+    // a text field on top of each other.
+    const inBand = { ...teeth, top: 25.4 };
+    const labelled = {
+      ...identityCell,
+      top: 26.4,
+      height: 1.69,
+      enclosure: { left: 73.6, top: 25.32, width: 17.15, height: 2.77 },
+    };
+    const { combs, cells } = reconcileFields({ combs: [inBand], checkboxes: [], cells: [labelled] });
+    expect(combs[0].writable).toEqual({ left: 73.6, top: 26.4, width: 17.15, height: 1.69 });
+    expect(cells).toEqual([]);
+  });
+
+  it('compares printed boxes, not strips, when picking the tightest enclosing cell', () => {
+    // Constructed so the two orderings disagree, which is the only way to see
+    // which one is used: the frame's own caption leaves it a thin strip
+    // (85.9 x 0.5 = 43) smaller in area than the identity cell's whole box
+    // (17.15 x 2.77 = 47.5), while the box it was cut from is 25 times larger.
+    // Tightness is a property of the printed box; a thin strip must not win it.
+    const frame = {
+      pageIndex: 0,
+      left: 4.8,
+      top: 26.5,
+      width: 85.9,
+      height: 0.5,
+      kind: 'text',
+      enclosure: { left: 4.8, top: 25.05, width: 85.9, height: 13.9 },
+    };
+    const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [frame, identityCell] });
+    expect(combs[0].writable).toEqual({ left: 73.6, top: 25.32, width: 17.15, height: 2.77 });
+    expect(cells).toEqual([]);
+  });
+
   it('leaves a boxed comb alone - its boxes are the field - but still drops the cell around it', () => {
     const boxed = { ...teeth, boxed: true };
     const { combs, cells } = reconcileFields({ combs: [boxed], checkboxes: [], cells: [identityCell] });

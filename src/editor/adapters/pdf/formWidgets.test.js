@@ -370,6 +370,22 @@ describe('withWidgetFields', () => {
     expect(cells).toEqual(ink.cells);
   });
 
+  it('does not add a widget cell inside the printed box an ink cell was cut from', () => {
+    // Health's yes/no boxes: the cell publishes the blank band under the two
+    // printed captions, so a widget sitting on the caption line misses the
+    // band entirely while being wholly inside the box the band came from.
+    // Asked of the strip, the widget looks like a field nobody found and the
+    // one printed box gets published twice.
+    const strip = {
+      ...box(50.9, 42.9, 8.9, 1.4),
+      kind: 'text',
+      enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
+    };
+    const ink = { combs: [], checkboxes: [], cells: [strip] };
+    const widgets = { combs: [], cells: [box(51.2, 42.35, 3, 0.5)] };
+    expect(withWidgetFields(ink, widgets).cells).toEqual([strip]);
+  });
+
   it('does not offer a cell over a comb it just added either', () => {
     const ink = { combs: [], checkboxes: [], cells: [] };
     const widgets = { combs: [{ ...box(10, 10), cells: 9 }], cells: [box(10, 10)] };
