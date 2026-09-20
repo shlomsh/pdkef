@@ -15,9 +15,10 @@ const srcDir = path.join(__dirname, '..', 'src');
  * Every class that appears after an interaction - a loaded file, an open dialog, an
  * error - is invisible to it. Two real defects lived in that blind spot for months:
  *
- *   - UndoHistoryModal.jsx rendered `className="undo-history-item"` while its rules
- *     sat in an UndoHistoryModal.module.css nothing imported, so the Undo dialog
- *     shipped unstyled on Sign and Redact. The one class of its six that did reach
+ *   - UndoHistoryModal.jsx (the change-history dialog, since removed from both
+ *     tools) rendered `className="undo-history-item"` while its rules sat in an
+ *     UndoHistoryModal.module.css nothing imported, so the dialog shipped
+ *     unstyled on Sign and Redact. The one class of its six that did reach
  *     the built HTML was then *allowlisted* in the other guard, which is how a real
  *     defect got a green check and a reassuring comment.
  *   - `.hint-message` was deleted from global.css in a40a937 and never re-homed, so

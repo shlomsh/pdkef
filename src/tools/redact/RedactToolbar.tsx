@@ -47,7 +47,6 @@ export default function RedactToolbar({
   shareReady = false,
   elementsCount,
   actionHistory,
-  setUndoModalOpen,
   onUndo,
   onRedo,
   canRedo,
@@ -71,12 +70,13 @@ export default function RedactToolbar({
   canSharePdf?: boolean;
   shareReady?: boolean;
   elementsCount: number;
+  /** Newest-first log of the add/delete commands Undo can step back through;
+   * the toolbar reads only its length, to disable Undo at the start. */
   actionHistory: ActionHistoryEntry[];
-  setUndoModalOpen: (open: boolean) => void;
   /** One tap, one step back - the same thing Cmd/Ctrl+Z does. The toolbar's
-   * Undo used to open the checklist dialog instead, which meant a phone had
-   * no single-step undo at all and no way to reach Redo, since the dialog was
-   * the only place it lived and reverting closed it. */
+   * Undo used to open a change-history dialog instead, which meant a phone
+   * had no single-step undo at all and no way to reach Redo, since the dialog
+   * was the only place it lived and reverting closed it. */
   onUndo: () => void;
   onRedo: () => void;
   /** Whether anything has been undone that Redo could bring back. Required,
@@ -240,11 +240,14 @@ export default function RedactToolbar({
           </button>
         </ArmHint>
 
-        {/* Undo, Redo and the checklist are three different things, so they
-            are three controls. Undo and Redo are one tap each; the checklist
-            is the occasional case of reverting something from further back.
-            Folding all three into one button is what left a phone unable to
-            redo at all. */}
+        {/* Undo and Redo are the whole history model, one tap each, plus the
+            keyboard shortcuts (src/lib/history/useHistoryShortcuts.js). A
+            third "History" control used to sit beside them and open a
+            change-history dialog whose checklist could revert an arbitrary
+            set; it was removed because a real Undo/Redo pair makes the
+            timeline redundant and its selective revert fought linear redo. Do
+            not bring it back. Folding undo and redo into one button is what
+            once left a phone unable to redo at all - keep them as two. */}
         <button
           type="button"
           className={styles.button}
@@ -273,35 +276,6 @@ export default function RedactToolbar({
             <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
           </svg>
           <span className={styles.label}>Redo</span>
-        </button>
-
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => setUndoModalOpen(true)}
-          title="Change history"
-          /* Undone steps are rows in that dialog too, above the NOW divider,
-             so an empty `actionHistory` is not an empty timeline: undo your way
-             back to the start and the only control that opens the dialog would
-             otherwise go dead with a full list behind it. */
-          disabled={actionHistory.length === 0 && !canRedo}
-          data-icon-only
-          /* Hidden below the narrow band (SignToolbar.module.css's
-             [data-optional-control]), which puts Redact back to nine controls
-             where SIGN-18 measured nine as the last count that balances at
-             320px with a 44px floor. Undo and Redo stay at every width, so
-             nothing editable is lost there - only the selective variant of an
-             undo you can still perform one tap at a time. That is the line
-             SIGN-18 draws ("not a control that edits the document"): this one
-             opens a dialog, and the dialog is not the only way to undo any
-             more. */
-          data-optional-control="history"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
-          <span className={styles.label}>History</span>
         </button>
 
         <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />

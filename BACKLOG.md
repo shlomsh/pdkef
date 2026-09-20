@@ -90,6 +90,7 @@ _None._
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
+| SITE-40 | P3 | [SITE-40](backlog/tasks/SITE-40.md) · Redact's toolbar packs 4+4+2 once 'Compress it' appears |
 
 ### In progress
 
@@ -416,6 +417,7 @@ _None._
 | UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
 | UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
 | UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
+| UNDO-06 | P2 | [UNDO-06](backlog/tasks/UNDO-06.md) · The change-history dialog goes; Undo and Redo are the whole model |
 
 ### Retired
 

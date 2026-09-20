@@ -26,8 +26,9 @@ const distDir = path.join(__dirname, '..', 'dist');
 //
 // This list has been abused once already: `undo-history-list` sat here labelled
 // "scroll container the undo modal measures" while the real cause was that
-// UndoHistoryModal.jsx never imported its CSS Module, so the entire dialog
-// shipped unstyled behind a green check. If a class you are about to allowlist
+// UndoHistoryModal.jsx (the change-history dialog, since removed) never
+// imported its CSS Module, so the entire dialog shipped unstyled behind a
+// green check. If a class you are about to allowlist
 // has a matching rule in some `.module.css`, the bug is a missing import, not a
 // hook - go wire it. scripts/check-class-resolution.js now catches that case at
 // the source, before it can reach this list.
