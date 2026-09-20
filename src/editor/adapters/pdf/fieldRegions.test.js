@@ -14,10 +14,17 @@ describe('reconcileFields', () => {
     expect(cells).toEqual([nameCell]);
   });
 
-  it('passes on the cell\'s own writable strip when a label carves one', () => {
-    const labelled = { ...identityCell, writable: { left: 73.6, top: 26.4, width: 17.15, height: 1.69 } };
+  it('passes on the band a labelled cell publishes, not the ruled box around it', () => {
+    // formCells.js already carves the caption off: the cell's own bounds are
+    // the strip, and its `enclosure` is only the tap target.
+    const labelled = {
+      ...identityCell,
+      top: 26.4,
+      height: 1.69,
+      enclosure: { left: 73.6, top: 25.32, width: 17.15, height: 2.77 },
+    };
     const { combs } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [labelled] });
-    expect(combs[0].writable).toEqual(labelled.writable);
+    expect(combs[0].writable).toEqual({ left: 73.6, top: 26.4, width: 17.15, height: 1.69 });
   });
 
   it('takes the tightest enclosing cell, not a section frame that also contains the run', () => {
