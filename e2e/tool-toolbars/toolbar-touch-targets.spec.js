@@ -85,6 +85,12 @@ async function readToolbar(page) {
 // whether the Web Share API is available. Both tools'
 // widths were picked the same way: narrow enough to force wrapping, one step
 // below the shared 920px icon-only breakpoint for the single/double-row case.
+// TODO(toolbar-remeasure): the History control (and the change-history dialog
+// behind it) is gone from both toolbars, so Sign is one control shorter and
+// Redact one shorter too, and the counts and stand-down widths described below
+// are stale. Left as measured on purpose - the follow-up toolbar task
+// re-measures in a real browser and rewrites them alongside
+// SignToolbar.module.css.
 const tools = [
   // 700 is Sign's own: thirteen 44px controls need a 629.6px line and a 700px
   // window gives 587.2px, so the band that used to be one line is now a

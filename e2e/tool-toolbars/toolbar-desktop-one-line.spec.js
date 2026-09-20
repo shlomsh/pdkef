@@ -9,8 +9,16 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    so this needs a real browser: every visible direct child sharing one `top`
    at a spread of real widths, and Download never ballooning even if a future
    control tips the row over again. Share is stubbed present throughout - the
-   wider, real case the bug was found in (twelve controls then, fourteen since
-   Undo, Redo and History became three). */
+   wider, real case the bug was found in (twelve controls then, fourteen once
+   Undo, Redo and History became three).
+
+   TODO(toolbar-remeasure): the change-history dialog and its History control
+   were removed, and Date got its label back, so every count and label list
+   below is stale: Sign is one control shorter, and Date is no longer in the
+   icon-only set. The numbers are deliberately left as they were - the
+   follow-up toolbar task re-measures them in a real browser (wide font
+   included) and rewrites them, together with SignToolbar.module.css's own
+   arithmetic. */
 
 async function makePdfBuffer() {
   const doc = await PDFDocument.create();
