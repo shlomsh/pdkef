@@ -181,6 +181,58 @@ const PRINTED = [
     doc: { ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }] },
     expect: { ...none, cells: 3 },
   },
+  // The three rows below pin MIN_TICK_CELL_WIDTH/MIN_TICK_COLUMN_ROWS (form
+  // 101's children table: 6-8pt tick columns that repeat down the page). Text
+  // is out of scope here on purpose - the runner always passes `[]` (see
+  // README's "Two things to know" - `detectPage` never even takes a
+  // `textRuns` argument) - so none of these rows can exercise the "a tick
+  // cell holding printed text is disqualified" half of the rule; that half is
+  // proven in formCells.test.js's `narrow tick columns` block instead.
+  {
+    name: 'a narrow column repeating down three ruled rows',
+    why: 'form 101 rules its children table this way - columns too narrow for a written answer, '
+      + 'but the same wall recurring row after row is what makes them tick targets (MOBI-11)',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 240, width: 24, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 220, width: 24, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 200, width: 24, height: 20, columns: 3 },
+      ],
+    },
+    // Surfaced with kind: 'checkbox' inside formCells.js, but the corpus's
+    // top-level `checkboxes` count is ink/widget-detected squares only
+    // (formGrid.js's detectPageRegions) - everything formCells.js returns,
+    // whatever its own `kind`, lands in the `cells` bucket here, the same as
+    // in production (useFormFieldRegions.ts pushes it into `found.cells`).
+    expect: { ...none, cells: 9 },
+  },
+  {
+    name: 'a narrow column repeated on only two ruled rows',
+    why: 'two rows is not a table yet - MIN_TICK_COLUMN_ROWS is 3, and this is the row that '
+      + 'stops a future change from calling two of them enough',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 220, width: 24, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 200, width: 24, height: 20, columns: 3 },
+      ],
+    },
+    expect: none,
+  },
+  {
+    name: 'a column under the 6pt tick floor, repeated four times',
+    why: 'a column narrower than MIN_TICK_CELL_WIDTH never becomes a closed cell at all, so no '
+      + 'amount of repetition turns it into a checkbox - the floor is what keeps a dotted leader '
+      + "line's stray gaps out, not the column-repeat count",
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 260, width: 15, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 240, width: 15, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 220, width: 15, height: 20, columns: 3 },
+        { ink: 'cellRow', x: 40, y: 200, width: 15, height: 20, columns: 3 },
+      ],
+    },
+    expect: none,
+  },
   {
     name: 'an undivided decorative panel',
     why: 'a row needs an interior wall - a plain box is a frame, not a field',
