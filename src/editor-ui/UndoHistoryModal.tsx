@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'preact/hooks';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
-import { englishSignMessages, formatMessage, type UndoHistoryMessages } from '../i18n/toolMessages';
+import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
 import dialogStyles from '../shell/Dialog.module.css';
 import styles from './UndoHistoryModal.module.css';
 
@@ -47,9 +47,9 @@ export default function UndoHistoryModal({
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
    * this dialog (Redact included) is unaffected. */
-  messages?: Partial<UndoHistoryMessages>;
+  messages?: Partial<SignMessages>;
 }) {
-  const t: UndoHistoryMessages = { ...englishSignMessages, ...messages };
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   useEffect(() => {

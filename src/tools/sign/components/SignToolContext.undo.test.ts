@@ -18,6 +18,7 @@ const baseState = (elements: EditorElement[]): SignToolState => ({
   activeElementId: null,
   editingElementId: null,
   actionHistory: [],
+  redoHistory: [],
   documentRevision: 0,
 });
 
@@ -66,5 +67,46 @@ describe('SignTool dependable undo', () => {
 
     state = reducer(state, { type: 'UNDO' });
     expect(state.elements.map((element) => element.id)).toEqual(['back', 'added', 'front']);
+  });
+
+  it('redoes an undone add command, restoring the exact stacking order', () => {
+    let state = baseState([back, front]);
+    state = reducer(state, { type: 'ADD_ELEMENT', payload: added });
+    state = reducer(state, {
+      type: 'ADD_ACTION_HISTORY',
+      payload: createActionEntry({
+        operation: 'add', type: 'ADD_SHAPE', pageIndex: 0, description: 'Added rectangle',
+        elements: [captureAddedElement(added, 2)],
+      }),
+    });
+
+    state = reducer(state, { type: 'UNDO' });
+    expect(state.elements.map((element) => element.id)).toEqual(['back', 'front']);
+
+    state = reducer(state, { type: 'REDO' });
+    expect(state.elements.map((element) => element.id)).toEqual(['back', 'front', 'added']);
+    expect(state.elements[2]).toEqual(added);
+    expect(state.actionHistory).toHaveLength(1);
+    expect(state.redoHistory).toEqual([]);
+  });
+
+  it('redoes an undone delete command, restoring the deleted layer between its original neighbors', () => {
+    let state = baseState([back, added, front]);
+    const snapshots = captureElementSnapshots(state.elements, (element) => element.id === added.id);
+    state = reducer(state, { type: 'DELETE_ELEMENT', payload: added.id });
+    state = reducer(state, {
+      type: 'ADD_ACTION_HISTORY',
+      payload: createActionEntry({
+        operation: 'delete', type: 'DELETE_ELEMENT', pageIndex: 0, description: 'Deleted rectangle',
+        elements: snapshots,
+      }),
+    });
+
+    state = reducer(state, { type: 'UNDO' });
+    expect(state.elements.map((element) => element.id)).toEqual(['back', 'added', 'front']);
+
+    state = reducer(state, { type: 'REDO' });
+    expect(state.elements.map((element) => element.id)).toEqual(['back', 'front']);
+    expect(state.redoHistory).toEqual([]);
   });
 });

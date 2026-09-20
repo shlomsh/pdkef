@@ -26,9 +26,15 @@ import type { ActionHistoryEntry, HistoryElement } from './actionHistory.ts';
  * starting redo from an empty, contiguous run at the top of `past`, not
  * something proven independently of it.
  */
+/**
+ * Inputs are `readonly` because these functions never mutate what they are
+ * given; the results are plain mutable arrays because every one of them is
+ * freshly built here. Returning them as `readonly` only forced each caller to
+ * copy an array that was already its own.
+ */
 export interface HistoryStack<TElement extends HistoryElement> {
-  past: readonly ActionHistoryEntry<TElement>[];
-  future: readonly ActionHistoryEntry<TElement>[];
+  past: ActionHistoryEntry<TElement>[];
+  future: ActionHistoryEntry<TElement>[];
 }
 
 export interface HistoryStep<TElement extends HistoryElement> extends HistoryStack<TElement> {
