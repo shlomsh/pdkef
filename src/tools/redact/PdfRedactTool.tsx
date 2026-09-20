@@ -20,7 +20,6 @@ import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
-import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
 import {
   applyHistoryEntries,
   captureAddedElement,
@@ -166,7 +165,7 @@ export default function PdfRedactTool() {
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
 
   // Undo history mirrors the Sign tool's atomic add/delete commands (see
-  // actionHistory.ts, useHistoryShortcuts.js, UndoHistoryModal.tsx). Add
+  // actionHistory.ts, useHistoryShortcuts.js). Add
   // commands remove their captured elements; delete and clear-page commands
   // restore complete snapshots at their original stacking indexes. Edits
   // (color, move, resize) remain deliberately outside this required undo
@@ -175,8 +174,8 @@ export default function PdfRedactTool() {
   // `past`/`future` are src/editor/model/historyStack.ts's own shape, held as
   // one state value rather than two: `future` (newest-undone-first, in-memory
   // only, never persisted) gains entries from any revert of the newest
-  // command, or the newest few together, whether that came from the keyboard,
-  // the dialog's checklist or the chip - historyStack.ts's `revertCommands`
+  // command, or the newest few together, whether that came from the keyboard
+  // or the five-second undo chip - historyStack.ts's `revertCommands`
   // decides that from the stack rather than from what the caller intended. A
   // revert from the middle of the stack still clears it, because a later,
   // still-live command's snapshot never accounted for the element coming
@@ -193,8 +192,6 @@ export default function PdfRedactTool() {
   const [history, setHistory] = useState<HistoryStack<RedactHistoryElement>>({ past: [], future: [] });
   const actionHistory = history.past;
   const redoHistory = history.future;
-  const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
-  const [undoModalOpen, setUndoModalOpen] = useState(false);
 
   const logAction: HistoryLogger<RedactHistoryElement> = (operation, type, pageIndex, description, snapshots) => {
     const entry = createActionEntry({ operation, type, pageIndex, description, elements: snapshots });
@@ -232,30 +229,12 @@ export default function PdfRedactTool() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Escape precedence while the Undo modal is open in full screen: close the
-  // modal FIRST, and only let a subsequent Escape exit full screen. Without this
-  // the browser's default Escape (exit fullscreen) races the dialog's own
-  // Escape, and full screen tends to win, leaving the dialog orphaned open
-  // behind it. The confirmations handle this for themselves in ConfirmDialog.
-  useEffect(() => {
-    if (!undoModalOpen) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      setUndoModalOpen(false);
-    };
-    window.addEventListener('keydown', onEsc, { capture: true });
-    return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen]);
-
   // Escape disarms the tool and drops the selection, matching the Sign editor.
   // It is a shortcut for the status line's Stop chip, not the only way out: a
   // phone has no Escape key, which is exactly why that chip exists.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
-      if (undoModalOpen) return; // the capture-phase handler above owns this press
       if (!activeStyle && !activeBoxId && !selectedBoxId) return;
       setTool(null);
       setActiveBoxId(null);
@@ -263,7 +242,7 @@ export default function PdfRedactTool() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [undoModalOpen, activeStyle, activeBoxId, selectedBoxId]);
+  }, [activeStyle, activeBoxId, selectedBoxId]);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -380,7 +359,6 @@ export default function PdfRedactTool() {
         setElements(presetElements);
         setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
         setDraftBaselineRevision(documentRevisionRef.current);
-        setUndoSelection(new Set());
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
       },
@@ -508,21 +486,17 @@ export default function PdfRedactTool() {
   };
 
   // Reverts a set of history entries and keeps every dependent piece in sync
-  // - selection, the action history list, and the "Undo changes" modal's own
-  // checklist. Shared by Cmd/Ctrl+Z (undoLast), the modal's selective revert
-  // (handleRevertSelected) and the short-lived undo chip (runUndoChip) so the
-  // three triggers cannot drift on what reverting actually does.
+  // - selection and the action history list. Shared by Cmd/Ctrl+Z and the
+  // toolbar's Undo (undoLast) and by the short-lived undo chip (runUndoChip),
+  // so the two triggers cannot drift on what reverting actually does.
   //
-  // Shared by all three reverts - the keyboard's single step, the dialog's
-  // checklist and the chip - so they cannot drift on what reverting means.
-  //
-  // None of them declares whether its revert is redoable any more. They used
-  // to, and they were guessing about something only knowable at the moment of
-  // the revert: `revertCommands` looks at the stack and keeps a redo whenever
-  // what was reverted is the newest command, or the newest few together. That
-  // matters most on a phone, where there is no Cmd+Z and the checklist is the
-  // only undo there is - while the checklist always cleared the future, Redo
-  // could never do anything at all on touch.
+  // Neither declares whether its revert is redoable. They used to, and they
+  // were guessing about something only knowable at the moment of the revert:
+  // `revertCommands` looks at the stack and keeps a redo whenever what was
+  // reverted is the newest command, or the newest few together. The chip is
+  // why that still matters - it reverts one named entry by id, which is a
+  // plain undo while nothing has landed above it and a middle-of-the-stack
+  // revert once something has.
   //
   // `select` runs inside `setHistory`'s updater, reading the actual current
   // `past` rather than a value this render closed over - what makes two undo
@@ -541,7 +515,6 @@ export default function PdfRedactTool() {
     });
     if (reverted.length === 0) return;
 
-    const revertedIds = new Set(reverted.map((entry) => entry.id));
     let survivingIds = new Set<string>();
     setElements((prevElements) => {
       const nextElements = revertHistoryEntries(prevElements, reverted);
@@ -551,12 +524,6 @@ export default function PdfRedactTool() {
     markDocumentEdited();
     setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setUndoSelection((currentSelection) => {
-      if (![...revertedIds].some((id) => currentSelection.has(id))) return currentSelection;
-      const next = new Set(currentSelection);
-      revertedIds.forEach((id) => next.delete(id));
-      return next;
-    });
     setAnnouncement(describeReverted(reverted));
   };
 
@@ -628,28 +595,6 @@ export default function PdfRedactTool() {
   // auto-repeat) would otherwise exploit. Nothing to undo reverts nothing.
   const undoLast = () => {
     applyRevert((entries) => `Undid: ${entries[0].description}`, (past) => past.slice(0, 1));
-  };
-
-  // "Undo changes" modal: checked commands are reverted newest-first,
-  // matching the result of pressing Cmd/Ctrl+Z for each of them in sequence.
-  // Checking the newest command, or the newest few, therefore leaves a redo
-  // behind exactly as the keyboard would; checking one from the middle of the
-  // stack does not. `revertCommands` draws that line, not this caller.
-  //
-  // On a phone this is the only undo there is, so it is also the only thing
-  // that can ever give the Redo control something to do.
-  const handleRevertSelected = () => {
-    if (undoSelection.size === 0) return;
-    applyRevert(
-      () => 'Reverted selected actions.',
-      (past) => past.filter((action) => undoSelection.has(action.id)),
-    );
-    // The dialog deliberately stays open. Reverting used to close it, so the
-    // list you were working through vanished after one tick - and while this
-    // dialog also held the only Redo control (before UNDO-03 put Undo and Redo
-    // on the toolbar), closing took redo off screen at the exact moment it
-    // became usable. The list updates in place and the person closes it when
-    // they are done.
   };
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
@@ -886,7 +831,6 @@ export default function PdfRedactTool() {
             shareReady={shareReady}
             elementsCount={elements.length}
             actionHistory={actionHistory}
-            setUndoModalOpen={setUndoModalOpen}
             onUndo={undoLast}
             onRedo={redoLast}
             canRedo={redoHistory.length > 0}
@@ -1052,16 +996,6 @@ export default function PdfRedactTool() {
           The PDF may be password-protected or corrupted.
         </ErrorMessage>
       )}
-
-      <UndoHistoryModal
-        open={undoModalOpen}
-        onClose={() => setUndoModalOpen(false)}
-        actionHistory={actionHistory}
-        redoHistory={redoHistory}
-        undoSelection={undoSelection}
-        setUndoSelection={setUndoSelection}
-        onRevertSelected={handleRevertSelected}
-      />
 
     </BasePdfTool>
   );

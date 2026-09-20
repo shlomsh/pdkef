@@ -116,7 +116,6 @@ function defaultProps(overrides: Partial<ComponentProps<typeof PdfWorkspace>> = 
     handleDownloadPdf: vi.fn(),
     handleSharePdf: vi.fn(),
     setAnnouncement: vi.fn(),
-    setUndoModalOpen: vi.fn(),
     toggleFullscreen: vi.fn(),
     isFullscreen: false,
     placeSignatureAt: vi.fn(),

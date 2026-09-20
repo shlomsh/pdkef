@@ -682,11 +682,10 @@ import type { SignMessages } from '../editor/registry/messages';
 export type { SignMessages };
 
 /**
- * UNDO-REDO: undo, redo and the change history are three controls on the
- * toolbar, so they are three strings here. Undo and Redo are one tap each and
- * say only what they do; History names the dialog it opens, which is why its
- * title is `undoHistoryTitle` - the dialog's own heading - rather than a
- * second wording of the same thing. The Cmd/Ctrl+Shift+Z announcement is
+ * UNDO-REDO: undo and redo are two controls on the toolbar, so they are two
+ * pairs of strings here - a button label and a title each - and they say only
+ * what they do. The change-history dialog that used to sit beside them is
+ * gone, and its strings with it. The Cmd/Ctrl+Shift+Z announcement is
  * `redidActionTemplate`, the counterpart to `undidActionTemplate` below. The
  * keys are declared on `SignMessages` in `src/editor/registry/messages.ts`
  * like every other string here.
@@ -702,7 +701,6 @@ const englishSignMessages: SignMessages = {
   newSignatureButton: 'New Signature',
   undoButton: 'Undo',
   undoTitle: 'Undo the last change',
-  historyButton: 'History',
   feedbackButton: 'Feedback',
   feedbackTitle: 'Report a bug or share feedback about Sign & Fill PDF (opens GitHub)',
   shareButton: 'Share',
@@ -786,12 +784,8 @@ const englishSignMessages: SignMessages = {
   changeImageLabel: 'Change Image',
   dialogCancelLabel: 'Cancel',
   saveSignatureLabel: 'Save Signature',
-  undoHistoryTitle: 'Change history',
-  revertSelectedLabel: 'Revert selected',
   redoButton: 'Redo',
   redoTitle: 'Bring back the change you just undid',
-  undoneLabel: 'Undone',
-  historyNowLabel: 'Now',
   pageLabel: 'Page {number}',
   clearPageLabel: 'Clear page',
   clearPageTitle: 'Clear all annotations on this page',
@@ -858,7 +852,6 @@ const englishSignMessages: SignMessages = {
   defaultFontUnavailable: 'The app’s default font is not available on this device. Connect to the internet, reload the app, and try again.',
   exportGenericFailure: 'Could not export the PDF. Your edits are still here. Try again.',
   editsChangedWhilePreparing: 'Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.',
-  revertedSelectedActions: 'Reverted selected actions.',
   undidActionTemplate: 'Undid: {description}',
   redidActionTemplate: 'Redid: {description}',
   invalidPdfFile: 'Please select a valid PDF file.',
@@ -925,7 +918,6 @@ const hebrewSignMessages: SignMessages = {
   newSignatureButton: 'חתימה חדשה',
   undoButton: 'ביטול פעולה',
   undoTitle: 'ביטול השינוי האחרון',
-  historyButton: 'היסטוריה',
   feedbackButton: 'משוב',
   feedbackTitle: 'דיווח על באג או שיתוף משוב על כלי החתימה והמילוי של PDF (נפתח ב-GitHub)',
   shareButton: 'שיתוף',
@@ -999,12 +991,8 @@ const hebrewSignMessages: SignMessages = {
   changeImageLabel: 'החלפת תמונה',
   dialogCancelLabel: 'ביטול',
   saveSignatureLabel: 'שמירת חתימה',
-  undoHistoryTitle: 'היסטוריית שינויים',
-  revertSelectedLabel: 'שחזור הנבחרים',
   redoButton: 'ביצוע מחדש',
   redoTitle: 'החזרת השינוי שביטלתם',
-  undoneLabel: 'בוטל',
-  historyNowLabel: 'עכשיו',
   pageLabel: 'עמוד {number}',
   clearPageLabel: 'ניקוי העמוד',
   clearPageTitle: 'ניקוי כל ההערות בעמוד הזה',
@@ -1071,7 +1059,6 @@ const hebrewSignMessages: SignMessages = {
   defaultFontUnavailable: 'גופן ברירת המחדל של האפליקציה לא זמין במכשיר הזה. התחברו לאינטרנט, טענו מחדש את האפליקציה, ונסו שוב.',
   exportGenericFailure: 'לא הצלחנו לייצא את ה-PDF. השינויים שלכם עדיין כאן. נסו שוב.',
   editsChangedWhilePreparing: 'השינויים שלכם השתנו בזמן שה-PDF הוכן. הורידו שוב כדי ליצור קובץ מעודכן.',
-  revertedSelectedActions: 'הפעולות שנבחרו שוחזרו.',
   undidActionTemplate: 'בוטל: {description}',
   redidActionTemplate: 'בוצע מחדש: {description}',
   invalidPdfFile: 'בחרו קובץ PDF תקין.',

@@ -83,8 +83,9 @@ describe('historyStack', () => {
     expect(result.future).toEqual([]);
   });
 
-  // The dialog's checklist is the only undo a touch user has, so reverting
-  // the newest command there has to leave a redo exactly as Cmd+Z would.
+  // Redact's undo chip reverts one named entry, and while that entry is still
+  // the newest, that is a plain undo - so it has to leave a redo exactly as
+  // Cmd+Z would.
   it('revertCommands keeps a redo when the newest command is the one reverted', () => {
     const [a, b, c] = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
     const result = revertCommands([c, b, a], [], new Set(['c']));

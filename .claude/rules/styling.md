@@ -113,8 +113,8 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
 - **Class resolution** (`check-class-resolution.js`, runs first in `test:css`): reads `src/**/*.jsx`
   and fails on a class string with no rule anywhere, a raw string whose rule is CSS-Modules-hashed, or a
   `styles['key']` lookup missing from its module (renders `class="undefined"`). Exists because the
-  built-HTML guard only sees an island's initial markup: `UndoHistoryModal` shipped unstyled against a
-  module nothing imported, and `.hint-message` was deleted from `global.css` and never re-homed. **Before
+  built-HTML guard only sees an island's initial markup: `UndoHistoryModal` (the change-history
+  dialog, since removed) shipped unstyled against a module nothing imported, and `.hint-message` was deleted from `global.css` and never re-homed. **Before
   allowlisting a class in either script, check for a rule in some `.module.css`; if one exists, the bug
   is a missing import.**
 - **Dead utilities** (`check-dead-utilities.js`): per page, against that page's own inline stylesheet.

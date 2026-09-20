@@ -77,23 +77,28 @@ async function readToolbar(page) {
   });
 }
 
-// Sign (9+ controls) takes the --controls-per-row:5 branch. Redact used to
-// stay under the 9th-child selector too (7-8 controls) and take the base
-// --controls-per-row:4 branch - a different code path in the same shared
-// module - but the Delete tool button (feat/delete-pdf-objects) pushed it to
-// 8-9, so both tools may now exercise the same 5-per-row branch depending on
-// whether the Web Share API is available. Both tools'
-// widths were picked the same way: narrow enough to force wrapping, one step
-// below the shared 920px icon-only breakpoint for the single/double-row case.
+// The two tools take different branches of the same shared module: Sign
+// counts twelve controls and takes --controls-per-row:6, Redact counts nine
+// and takes 5 (the counted set skips the view-density radiogroup and, where a
+// Share button exists, the desktop-only Download). Both tools' widths were
+// picked the same way: narrow enough to force wrapping, one step below the
+// shared 920px icon-only breakpoint for the single/double-row case.
 const tools = [
-  // 700 is Sign's own: thirteen 44px controls need a 629.6px line and a 700px
-  // window gives 587.2px, so the band that used to be one line is now a
-  // balanced 7+6 (it left toolbar-desktop-one-line.spec.js's widths for this
-  // list on 2026-09-20, when Undo, Redo and History became three controls).
-  // 320 is the other end: Feedback stands down at 344px of toolbar and History
-  // at 239px, so the counts this walks are 13, 12 and 11 - never ten, which is
-  // the one count that cannot be balanced at the 44px floor.
-  { name: 'Sign', path: '/sign', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 700] },
+  // Measured 2026-09-20, headless Chromium, after the History control came
+  // out. 693 and 660 are the top end, and they are the guard on the 581px
+  // container query: twelve 44px controls need a 580.8px line, a 693px window
+  // gives 580.2px of content and a 660px window 547.2px, and until that query
+  // landed both packed greedily as 11+1 with the last control stretched the
+  // full width of the row. 693 is the tighter of the two on purpose - it is
+  // the width that proves the threshold rounds UP past 580.8px rather than
+  // down to 580px, which is the whole reason that one query breaks the file's
+  // floor() convention. One line returns at 694px, which is
+  // toolbar-desktop-one-line.spec.js's job from 700px up.
+  // 320 is the other end: Feedback, now Sign's only optional control, stands
+  // down at 239px of toolbar, so the counts this walks are twelve and eleven -
+  // never ten or thirteen, the two counts that cannot be balanced at the 44px
+  // floor.
+  { name: 'Sign', path: '/sign', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
   { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340] },
 ];
 

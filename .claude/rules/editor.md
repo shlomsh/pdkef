@@ -114,13 +114,18 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 
 ## Undo and redo
 
-- **Undo, redo and the change history are three controls, in both tools.** Undo and Redo are one tap
-  each (and Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y - `src/lib/history/useHistoryShortcuts.js`, which
-  deliberately does not bind Cmd+Y, macOS's own); History opens `UndoHistoryModal`, which is the
-  timeline and the only place a step from further back can be reverted selectively. Do not put a Redo
-  button back in that dialog: a control that only exists while a dialog is open is, on a phone, no
-  control at all - the shipped bug was a toolbar Undo that opened the dialog, so touch had no
-  single-step undo and could reach Redo only in the one place that closed itself on use.
+- **Undo and Redo are two controls, in both tools, and they are the whole history model.** One tap
+  each, plus Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z and Ctrl+Y (`src/lib/history/useHistoryShortcuts.js`, which
+  deliberately does not bind Cmd+Y, macOS's own). Undo is disabled with an empty `actionHistory`,
+  Redo when nothing has been undone. **The shared change-history dialog (`UndoHistoryModal`) was
+  removed - do not rebuild it.** Beside a real Undo/Redo pair a timeline is redundant, and its
+  "Revert selected" was a selective undo that fought linear redo: reverting a checked set from the
+  middle of the stack had to throw the future away, so the dialog and Redo kept undoing each other's
+  work. The shipped bug behind that pair is still the reason Undo and Redo may never fold back into
+  one button, or into a dialog: a control that only exists while a dialog is open is, on a phone, no
+  control at all - a toolbar Undo that opened the dialog left touch with no single-step undo and
+  Redo reachable only in the one place that closed itself on use. Redact's five-second undo chip is
+  a separate feature and stays.
 - **The redo stack is strictly linear and lives only in memory.** `src/editor/model/historyStack.ts`
   owns it: `revertCommands` keeps the future when the reverted set is a contiguous run at the top of
   the past (that is an undo by another name) and clears it otherwise, and any new command clears it.
@@ -174,31 +179,50 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   centre. `--controls-per-row` (half the count, rounded up, via `:has(> :nth-child(N))`) caps each line
   so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose pixel thresholds
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
-  or `--toolbar-padding` change, or if a control is added anywhere. Flex, not grid: grid packs a
+  or `--toolbar-padding` change, or if a control is added anywhere. Round a new threshold **up** past
+  its figure unless you have checked the box cannot land in the band below it: the content box is the
+  viewport less 96.8px on a phone and 112.8px in the tablet band, so an ordinary integer window width
+  puts it on x.2, and both thresholds that were left on the floor() side of a whole-number figure
+  (581px, 288px) were measured stranding or unbalancing a real row at one - 693px gave 11+1, 384px
+  gave 5+5+2. Flex, not grid: grid packs a
   partial last row into the leading columns. **Only some counts can be balanced at the 44px floor**,
   because greedy flex fills each line to the cap: ten lands 4+4+2 or 3+3+3+1 and thirteen lands
   6+6+1 or 4+4+4+1, while nine, eleven and twelve all land evenly. That is what decides when an
-  optional control stands down, not taste - Sign shows thirteen above 344px of toolbar, twelve from
-  there (Feedback goes, since it is in the site footer too), eleven below 239px (History goes, last,
-  since its dialog is reachable from nowhere else), and never ten.
+  optional control stands down, not taste. The counted set is
+  `:nth-child(N of :not(.desktop-download):not([role="radiogroup"]))`: Sign counts **twelve** (with
+  Share or without), Redact **nine** (ten once a redacted export exists and "Compress it" appears).
+  Both are counts that balance, so neither needs a stand-down until the very bottom. Measured
+  2026-09-20, every integer viewport from 919px to 220px in headless Chromium: Sign holds one line
+  to 694px, wraps 6+6 to 385px, 4+4+4 to 336px, 4+4+3 to 288px and 3+3+3+2 to 239px; **Feedback -
+  now the only `[data-optional-control]` on either toolbar, since History and its dialog came out -
+  stands down at 335px** (239px of content box), and nothing else does. Redact holds one line to
+  544px, wraps 5+4 to 348px and 3+3+3 from 347px, and stands nothing down. Redact's tenth control
+  (the "Compress it" hand-off, which only exists once a redacted export does) puts it on the one
+  count that cannot balance: measured one line to 608px, 5+5 to 336px, then 4+4+2 from 335px down.
+  That is the shape the file tolerates for ten - a full short row, never a lone control - and no cap
+  improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.
+  Thirteen was the count that could not be balanced, and the second, earlier stand-down step Sign
+  used to carry at 344px existed only to get back to twelve; it went with History.
 - Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
-  one line with labels, set 4px apart; the toolbar box plateaus at 1172px (less with a classic
-  scrollbar), and Sign's fourteen controls with Share need 1135.7px of it in the wide Linux face
-  (measured 2026-09-20, headless Chromium) only because Date, Undo, Redo, History and Feedback are
-  `data-icon-only` at every width, so a new labelled control has to be paid for by re-measuring in a
-  real browser, wide font included. The three history controls cost 42px each and 33.6px more than
-  the box had: Date's label (43.9px) and 2px off every gap (26px) are what bought them, and the next
-  label to go is Replace's. Below 1300px every control is icon-only on one line, until Sign's
-  thirteen 44px targets stop fitting (a ~726px window; Redact's ten hold to ~600px), and
-  from there down the phone grid above. No label may ever
+  one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content (it reaches
+  that plateau at a 1280px window, so a classic scrollbar at 1300px no longer eats into it).
+  Measured 2026-09-20 in headless Chromium on Linux, the wide DejaVu face CI lands on, with Share
+  stubbed present: Sign's labelled row is **1139.7px against the 1172px box, 32.3px spare**. Spend
+  that on a thirteenth control and the next label to go is Replace's (62.7px of label); Date's is
+  not - it was icon-only for one day, and History leaving is what paid it back. Keep the gap at 4px
+  while the margin is this thin: the twelve gaps between the thirteen rendered controls would cost
+  24px of the 32.3px at 6px. Undo, Redo and Feedback stay `data-icon-only` at every width:
+  an arrow is a convention, and none of them is a tool. Below 1300px every control is icon-only on
+  one line, until the row's 44px targets stop fitting, and from there down the phone grid above. No
+  label may ever
   truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
   `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
   tried twice and drifted twice; do not bring them back.
 - Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
   Date, Symbols, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
   tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
-  first step), then the history group beside the work it acts on (Undo, Redo, History - the same
-  three, in the same order, as Redact), then the chrome group (view density, full screen,
+  first step), then the history group beside the work it acts on (Undo, Redo - the same
+  pair, in the same order, as Redact), then the chrome group (view density, full screen,
   Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
   thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
   f48fcbd8.
