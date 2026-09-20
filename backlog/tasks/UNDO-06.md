@@ -53,6 +53,42 @@ UNDO-03 paid for two extra controls with two concessions, both now unnecessary:
 The 2px-off-every-gap concession at >=1300px is kept: re-measuring is what decides, not symmetry, and
 the row has to clear 1172px with the wide Linux face.
 
+## The measurement
+
+Re-measured 2026-09-20 in headless Chromium on Linux (the wide DejaVu face), both tools, both share
+states, every integer viewport from 919px down to 220px.
+
+| | Sign (12 counted) | Redact (9 counted) |
+| --- | --- | --- |
+| one line | 919-694 | 919-544 |
+| | 693-385 **6+6** | 543-348 **5+4** |
+| | 384-336 **4+4+4** | 347-239 **3+3+3** |
+| | 335-288 **4+4+3** (Feedback stands down at 335) | 238-220 2+2+2+2+1 |
+| | 287-239 **3+3+3+2** | |
+| | 238-220 2+2+2+2+2+1 | |
+
+Labelled desktop row: **1139.7px against a 1172px content box, 32.3px spare.** Date's label is
+44.0px and History's control was 36px plus a 4px gap, which is what paid it back. Replace's 62.7px
+label is the next to go. The 4px gap at >=1300px stays: twelve gaps x 2px would eat 24px of the
+32.3px spare.
+
+Two threshold bugs came out of it, both from the same flaw - a container query matches the *content*
+box, which is the viewport less 96.8px of gutters and padding on a phone, so an integer window width
+lands on x.2 and falls straight into a band that starts on a whole number:
+
+- **Twelve needed its own engage tier at 581px, not 580px.** 12 x 44 + 11 x 4.8 = 580.8, and a 693px
+  window gives 580.2px of content, so a 580px threshold left the cap off and Sign packed 11+1 with
+  the twelfth control stretched across the full row.
+- **The existing 287px rule had the same flaw, latent until twelve walked into it.** At a 384px
+  window (287.2px content) the cap stayed at six where only five fit: 5+5+2. Now 288px.
+
+The rule is written down in `editor.md`: round a threshold up unless you have checked the box cannot
+land in the band.
+
+Redact reaches **ten** in one state - after an export, when "Compress it" appears - and ten is the
+count that cannot balance. It packs 4+4+2. Filed as SITE-40; it needs a Redact-side change, not a
+CSS threshold.
+
 ## Acceptance
 
 - Sign and Redact each show exactly Undo and Redo; no dialog exists to open.
