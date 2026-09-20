@@ -59,11 +59,13 @@ export interface FieldNavigationOptions {
 }
 
 export interface FieldNavigation {
-  /** Whether the document has any detected field at all - whether the toolbar
-   * shows a Next/Previous control in the first place. Session-durable (it
-   * only depends on `formRegions`, not on the current selection), so the
-   * control never mounts or unmounts as the person moves between fields -
-   * only `hasNext`/`hasPrevious` do that. */
+  /** Whether the document has any detected field at all. Necessary for the
+   * toolbar to show a Next/Previous control, and no longer sufficient - it
+   * also asks whether anyone is filling fields right now (SignToolbar.tsx's
+   * `fillingFields`). Session-durable in itself: it depends only on
+   * `formRegions`, never on the current selection, so it cannot make the
+   * control blink as the person moves from one field to the next. Only
+   * `hasNext`/`hasPrevious` change across a move. */
   hasFields: boolean;
   /** Whether Next/Previous has anywhere to go right now - the two buttons'
    * own disabled state. */
