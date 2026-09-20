@@ -88,6 +88,52 @@ the signal that these scores finally describe the real forms.
 Expect both to move: itc101's 62 checkbox targets should come back (the text layer carries their
 glyphs) and health's precision should return toward 94.2%.
 
+## Candidate forms to widen the corpus (researched 2026-09-20, NONE verified)
+
+Two scored Hebrew forms and one small Latin one is a thin corpus, and the detector's text-direction
+and label logic has seen only Hebrew and Latin. A search pass produced this shortlist.
+
+**Read the verification status before acting on any of it.** The same egress policy that blocked the
+Hebrew originals blocks `WebFetch` too (confirmed directly: `EGRESS_BLOCKED` for `www.irs.gov`), so
+only `WebSearch` worked and every URL below is a search-snippet lead, not a fetched file. No byte
+size, page count, `Content-Type` or AcroForm-vs-flat claim here was measured. Re-fetch, confirm, and
+record the sha256 before committing anything.
+
+**Licensing is the gate, and it splits cleanly:**
+
+- **Safe.** US federal works (IRS, USCIS, State Dept) are public domain under 17 U.S.C. §105. The
+  UK's HMRC forms are Crown copyright under **OGL v3.0**, which explicitly permits commercial
+  redistribution with attribution.
+- **Do not commit without checking.** Every Indian government candidate. GODL-India covers
+  central-government *open-data* uploads on data.gov.in, not ordinary departmental form PDFs, so it
+  must not be assumed. The one Indian policy readable in full (UIDAI's) permits reproduction but
+  bars use "in conjunction with commercial purposes" - a pattern that recurs. The terms pages for
+  incometaxindia.gov.in and the ECI CEO sites could not be read this session. That is the unfinished
+  homework.
+
+| Rank | Form | Why it earns a place | Licence |
+| --- | --- | --- | --- |
+| 1 | IRS Form 1040, **1913** (`irs.gov/pub/irs-prior/f1040--1913.pdf`) | The corpus has **zero scanned forms**. A no-text-layer document is a whole class of failure we cannot currently see. | public domain |
+| 2 | ECI **Form 6, Hindi** (`ceodelhi.gov.in/PDFFolder/forms/Form-6-Hindi.pdf`) | Devanagari, bilingual, with character-comb name boxes and drawn checkboxes - the closest Hindi analogue to what itc101 exercises in Hebrew. | **unclear** |
+| 3 | IRS Form 1040 (2024) (`irs.gov/pub/irs-pdf/f1040.pdf`) | First live AcroForm among the real forms; everything else scored is flat. | public domain |
+| 4 | USCIS Form I-9 | AcroForm with dropdowns and a genuine multi-column table, a shape nothing covers. | public domain |
+| 5 | HMRC SA100 | Numeric comb boxes and right-aligned money columns, a different visual convention entirely. | OGL v3.0 |
+
+Two findings worth keeping even if none of these are added:
+
+- **A legacy-font Devanagari form is a feature, not a problem.** The Rajasthan mirror of Form 6
+  returns mojibake in its own search title, meaning it uses a non-Unicode Devanagari font, which is
+  endemic to Indian government PDFs. A *geometry* detector should find its boxes anyway. One such
+  specimen would prove that, and nothing else in the corpus can.
+- **Obvious guesses that are wrong.** Aadhaar enrolment forms are English on the static PDF (Hindi
+  is applied at the kiosk), PAN Form 49A is English-only, the Indian passport form is generated
+  per-session with no stable URL, and the RTI form lives on shared S3WaaS hosting with a per-department
+  hash in the path. None are usable.
+
+Given the licensing split, the cheapest honest widening is **IRS 1913 + IRS 1040 (2024)**: both
+public domain, both fill real gaps (scanned; live AcroForm), neither needs a licence investigation.
+Hindi should wait for someone to read the ECI terms page.
+
 ## Scope
 
 - [ ] **One shared pipeline.** `corpus.test.js` re-implements what `useFormFieldRegions.ts` does;
