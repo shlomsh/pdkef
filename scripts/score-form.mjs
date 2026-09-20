@@ -108,7 +108,14 @@ async function one({ pdf, truth, page, expected }) {
   }
   const byKind = Object.fromEntries(Object.entries(result.byKind).map(([k, v]) => [k, +v.recall.toFixed(1)]));
   console.log('\n  baselines.json row (read these before you paste them):');
-  console.log(`    "recall": ${result.recall.toFixed(1)}, "precision": ${result.precision.toFixed(1)},`);
+  // `precision` is null when the detector produced no candidates at all,
+  // which is a real result rather than an error: a scanned page carries no
+  // vector ink, so there is nothing to be precise about. Printing `null` is
+  // what the row should say, and it is also what `scoring.test.js` reads to
+  // know the form is pinning a zero. Calling toFixed on it used to crash the
+  // run, right at the point where the most interesting form had most to say.
+  const pct = (value) => (value === null ? 'null' : value.toFixed(1));
+  console.log(`    "recall": ${pct(result.recall)}, "precision": ${pct(result.precision)},`);
   console.log(`    "byKind": ${JSON.stringify(byKind)}`);
   return { ok: true, result };
 }
@@ -128,7 +135,9 @@ if (args.all) {
     });
     if (!outcome.ok) failed = true;
     else {
-      const drop = (a, b) => a < b - 0.05;
+      // A null on either side means "no candidates", which `drop` cannot
+      // compare and must not silently read as zero.
+      const drop = (a, b) => a !== null && b !== null && a < b - 0.05;
       if (drop(outcome.result.recall, spec.recall) || drop(outcome.result.precision, spec.precision)) {
         console.error(`  BELOW BASELINE (${spec.recall}% / ${spec.precision}%)`);
         failed = true;
