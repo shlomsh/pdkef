@@ -47,6 +47,13 @@ drop the text layer, so `collectCheckboxGlyphs` finds none of form 101's 36 dete
 fires (which is why health precision lands on 80.2%, the spike's *pre-fix* number - that fix was
 text-dependent).
 
+**Superseded the same day, and the table above is left as it was measured.** MOBI-11's tick-column
+fix and the ground-truth correction under it landed on a parallel branch and moved form 101 to
+55.4% / 83.7% here, and to 82.0% / 92.7% on the real source PDF. The cause above still holds for 44
+of the 62 checkbox targets, which are drawn as glyphs; the other 18 are the children table's narrow
+tick columns, which `formCells` now recovers from ink and no longer needs a text layer to see.
+Health is unchanged. `scoring/baselines.json` carries the current numbers.
+
 ## The decision this ticket cannot make for itself
 
 **What document artifact may be committed?** Until the fixture carries text, CI cannot reproduce

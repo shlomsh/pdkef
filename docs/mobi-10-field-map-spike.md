@@ -50,7 +50,8 @@ radio, 15 text, 6 comb, 2 date, 1 signature. Each correction is recorded per tar
 | LLM vision, image only (reference, no runtime path) | 8.6% / 8.6% / 58% of 12 | 8.0% / 7.0% / 83% of 6 |
 | Existing MOBI-03 detector (combs + checkboxes) | 53.2% / **100%** / n.a. | 73.3% / **100%** / n.a. |
 | + geometric label association (`label.mjs`) | 53.2% / 100% / **90.5%** | 73.3% / 100% / **96.4%** |
-| + ink-grid cell heuristic (`cells.mjs`), union | **69.1% / 91.4% / 83.3%** | **86.7% / 94.2% / 96.9%** |
+| + ink-grid cell heuristic (`cells.mjs`), union | 69.1% / 91.4% / 83.3% | **86.7% / 94.2% / 96.9%** |
+| + narrow tick columns (MOBI-11, 2026-09-20), union | **82.0% / 92.7% / 80.7%** | **86.7% / 94.2% / 96.9%** (unchanged) |
 | Gate | 90 / 90 / 85 | 90 / 90 / 85 |
 
 Numbers above are post-MOBI-11-step-1 (2026-09-17): lifting `cells.mjs` into product code
@@ -146,3 +147,92 @@ The anydoc runner and the LLM-vision candidate maps were dropped from the branch
 results; `scripts/spike/mobi-10/report-anydoc.md` keeps the anydoc evidence (versions, quoted
 types, what each mode emitted). `CONTRACT.md` is the shared data shape. No root dependency was
 added; nothing fills a form.
+
+---
+
+## Addendum, 2026-09-20 (MOBI-11): a ground-truth error, and the tick columns it hid
+
+Two findings, from re-running this spike's own tooling against the two source PDFs (sha256 as
+recorded above, so the inputs are byte-identical to the original run).
+
+### 1. Form 101's children table was recorded one column to the right of its ruled cells
+
+26 of form 101's 62 checkbox targets are the children table's `1 (בחזקתך)` / `2 (קצבת ילדים)`
+tick columns, and all 26 were recorded at the wrong x. The page rules that table with verticals at
+**x = 520.1, 530.3 and 540.5** - two 10.2pt columns. The targets were recorded at 529.4 (width
+8.1) and 537.5 (width 6.3), which puts the `2` box over the *neighbouring* column and the `1` box
+on blank paper past the table's last rule.
+
+The printed column headers settle which column is which, independently of any detector: **`2` is
+printed at x 522.6-527.8 and `1` at x 532.7-538.0**, so each ruled column brackets its own header
+digit, centred. The targets were re-snapped to the ruled columns on that basis; row bands were not
+touched, and each corrected target records the reason in its `notes`.
+
+This is the same class of error the original review caught on the health form (48 grid checkboxes
+mapped onto the printed words כן / לא rather than the empty squares beside them). It survived
+because the children table's tick columns are narrow and unlabelled in the raster, and because no
+detector then emitted anything in that region to contradict them.
+
+**Anything measured against form 101's checkbox row before this date understates the detector.**
+The often-quoted `checkbox 36/62` was 36 glyph checkboxes matched, with all 26 tick cells scored as
+misses no matter where a detector put them.
+
+### 2. `formCells.js` could not see a tick column at all
+
+Independently of the above, the cell detector dropped every cell narrower than `MIN_CELL_WIDTH`
+(15pt), a floor written for free-text cells. Form 101's tick columns are 10.2pt, so all 26 were
+invisible to it, and `writableArea`'s 25pt blank-strip minimum would have dropped them again.
+
+The fix is not a lower floor on its own, which would admit every dotted-leader gap (failure class
+6 below). **A narrow ruled cell is a field when it is empty and its column repeats down the table**
+- a tick column recurs at one x across every row, while the gaps between a leader line's dashes
+land at a different x on each one. `MIN_TICK_CELL_WIDTH` (6pt) and `MIN_TICK_COLUMN_ROWS` (3)
+carry that rule; such a cell is classified `checkbox` and takes its label from the column header.
+
+Measured on form 101, union, IoU >= 0.5, against the corrected ground truth:
+
+| | recall | precision | labels |
+| --- | --- | --- | --- |
+| before | 69.1% | 91.4% | 83.3% |
+| after | **82.0%** | **92.7%** | 80.7% |
+
+Checkbox alone goes 58.1% -> **87.1% recall at 100% precision**: every candidate the change adds is
+a real tick cell. The health form is byte-identical before and after (86.7 / 94.2 / 96.9) - it
+rules no narrow columns. Label association falls 2.6 points because the 18 new candidates take
+their label from a column header up to 13 rows above, and `HEADER_SEARCH_HEIGHT` (220pt) does not
+reach the bottom of a 286pt table.
+
+### What is left on form 101, and what it would take
+
+25 misses: text 14, checkbox 8, signature 2, date 1. The 8 checkbox misses are 4 table rows split
+by an incidental mid-row rule (failure class 7), not a new class. Reaching the 90% gate needs
+**11 more**, and `text` at 53.3% recall / 36.4% precision is now the only place they can come
+from - the same caption-versus-field problem failure class 1 names. The gate is no longer blocked
+on geometry the detector cannot see; it is blocked on telling a caption from a field.
+
+### Where this work lives now
+
+Re-filed 2026-09-20 into its own epic, **`form-understanding`** ("read what a form asks, ask the
+person, fill it back"), because it had outgrown `mobile-round-trip`. This record stays the evidence
+base for all of it. MOBI-11 (the review surface) moved with it; MOBI-10 stays where it was decided.
+
+| | |
+| --- | --- |
+| FORM-01 | caption versus field, the only class left with room to reach the 90% gate |
+| FORM-02 | canonical field types, the missing link between a field map and a question |
+| FORM-03 | a column header the last row of a tall table can still reach |
+| FORM-04 | a Latin-script form in the corpus, so the numbers are not Hebrew-only |
+| FORM-05 | whether clip-path rectangles belong in the ink |
+| FORM-06 | spike: measure Tesseract `heb` before building any scanned path |
+| FORM-07 | a scanned form's ruled geometry, from its raster |
+| FORM-08 | re-evaluate `pdf-inspector`, whose MIT crate now has a positioned API |
+| FORM-09 | ask the person, and fill only what they confirm |
+| MOBI-13 | the scored corpus, and which document artifact CI may commit |
+| ARCH-24 | keeping field detection out of every page's first paint |
+
+Two of those arrived from a parallel branch the same day and are not mine. Worth knowing before you
+read a number here: **the spike is no longer the only place these are measured.** Every form in
+`src/editor/adapters/pdf/corpus/scoring/baselines.json` is now re-scored on every CI run and
+ratcheted, so that file is the live number and this record is the reasoning behind it. Where the two
+disagree, it is because the committed fixtures are geometry-only and this record scores the real
+source PDFs; `baselines.json` says so per form.

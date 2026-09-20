@@ -143,14 +143,16 @@ exists to prevent.
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 80.2% | Hebrew, flat |
-| `itc101` | 139 | 42.4% | 79.7% | Hebrew, flat, dense |
+| `itc101` | 139 | 55.4% | 83.7% | Hebrew, flat, dense |
 
 **Read those two Hebrew numbers with the caveat in `baselines.json`.** Both fixtures are
-geometry-only reductions built for the comb e2e tests, so the text layer is gone: `itc101` loses all
-62 checkbox targets because `collectCheckboxGlyphs` reads glyphs from that layer, and `health`
-precision sits at the spike's *pre-fix* 80.2% because `formCells`' own-text filter never fires. The
-recorded numbers on real source PDFs are 69.1%/91.4% and 86.7%/94.2%. MOBI-13 holds the decision
-about what artifact we commit to close that.
+geometry-only reductions built for the comb e2e tests, so the text layer is gone: `itc101` finds 18
+of its 62 checkbox targets and misses the other 44, which are drawn as glyphs that
+`collectCheckboxGlyphs` reads from the layer this fixture does not have. The 18 that survive are the
+children table's narrow tick columns, which `formCells` recovers from ink alone, so this row stopped
+being a flat checkbox zero (MOBI-11). `health` precision sits at the spike's *pre-fix* 80.2% because
+`formCells`' own-text filter never fires. The recorded numbers on real source PDFs are 82.0%/92.7%
+and 86.7%/94.2%. MOBI-13 holds the decision about what artifact we commit to close that.
 
 Per-kind recall is ratcheted too, not just the whole-form number. A form's overall recall can hold
 while one kind collapses and another improves - that trade is exactly what a single number hides.
