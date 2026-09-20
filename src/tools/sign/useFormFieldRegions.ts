@@ -100,11 +100,11 @@ export default function useFormFieldRegions(
       try {
         const [
           { PDFDocument },
-          { detectPageRegions, toPagePercentBox },
+          { detectPageRegions },
           { collectPageInk, pageCropBox },
           { detectCellCandidates },
           { reconcileFields, withWidgetFields },
-          { createPageGeometry },
+          { createPageGeometry, toPagePercentBox },
           { detectWidgetRegions },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
