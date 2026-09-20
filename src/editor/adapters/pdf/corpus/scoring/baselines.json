@@ -20,38 +20,34 @@
       "sha256": "95ab7e747d3a7796571326248252a342210b7001ec1d1832f2b2c28a4b626992"
     },
     "health": {
-      "pdf": "src/editor/adapters/pdf/__fixtures__/health-declaration-page1-geometry.pdf",
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/health-declaration-2021.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/health-page1.json",
-      "note": "Recall reproduces the spike's recorded 86.7% exactly. Precision is 80.2% here against a recorded 94.2% because this fixture is geometry-only: with no text layer, formCells' own-text filter never fires and the explanatory cells it would drop stay as false positives. 80.2% is the spike's own pre-fix number, which is the tell. See MOBI-13's fixture decision.",
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20), and it reproduces the spike's recorded 86.7%/94.2% exactly. The 10 misses are real detector gaps, not artifacts: both dates and the signature line are kinds the detector does not report at all, and the two phone combs and the e-mail/clause text cells are boxes it does not close. Nothing here is a fixture caveat any more.",
       "recall": 86.7,
-      "precision": 80.2,
+      "precision": 94.2,
       "byKind": {
-        "text": 66.6,
-        "comb": 66.6,
+        "text": 66.7,
+        "comb": 66.7,
         "radio": 100,
         "date": 0,
         "signature": 0
       },
-      "sha256": "9f0eef41ea14bd44c002d6d8da4f5b0b195f57a08f5a42c9cbe4e8c817fcc23b",
-      "derivedFrom": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53",
-      "derived": "geometry-only reduction of the annotated original; see note"
+      "sha256": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53"
     },
     "itc101": {
-      "pdf": "src/editor/adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf",
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/income-tax-101-2024.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
-      "note": "42.4% against a recorded 69.1%, and the whole gap is this fixture: collectCheckboxGlyphs reads checkbox glyphs from the text layer, which the geometry-only reduction removed, so all 62 checkbox targets miss where 36 were found before. 36/139 is ~26 points. See MOBI-13's fixture decision.",
-      "recall": 42.4,
-      "precision": 79.7,
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20), and it reproduces the spike's recorded 69.1%/91.4% exactly. The 62 checkbox targets came back with the text layer - collectCheckboxGlyphs reads their glyphs from it - though only 36 of them: the other 26 are drawn squares, which is the standing 'known gap' row in the element corpus. The 14 missed text cells are the same open-sided boxes health misses.",
+      "recall": 69.1,
+      "precision": 91.4,
       "byKind": {
         "comb": 100,
         "text": 53.3,
         "date": 95.8,
-        "checkbox": 0,
-        "signature": 0
+        "checkbox": 58.1,
+        "signature": 33.3
       },
-      "sha256": "3c7dc0b26da75cf4e9b656ef538885b63ca95637873a5622ca66e1e7c5b57ebc",
-      "derivedFrom": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad",
-      "derived": "geometry-only reduction of the annotated original; see note"
+      "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"
     }
   }
 }

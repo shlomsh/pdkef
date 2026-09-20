@@ -1,8 +1,13 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { greedyMatch } from './match.js';
 import { detectPage } from '../detect.js';
 import { toCandidates } from './candidates.js';
+import { toPageTextRuns } from '../../textRuns.js';
+import { createPageGeometry } from '../../../../geometry/coords.ts';
+import { pageCropBox } from '../../pageInk.js';
 
 /**
  * Scores the product detector against a form's reviewed ground truth.
@@ -15,9 +20,18 @@ import { toCandidates } from './candidates.js';
  * numbers in `docs/mobi-10-field-map-spike.md` were measured with that one.
  *
  * What this adds is running it against *product* code on a *committed* file,
- * so it can be an assertion rather than an errand. MOBI-13 has the shape and
- * the one decision still open (today's Hebrew fixtures are geometry-only, so
- * their scores here are lower than the recorded ones - see the ticket).
+ * so it can be an assertion rather than an errand.
+ *
+ * **It reads the page's text, because the product does.** The element corpus
+ * beside this one deliberately does not (`detect.js` says why): it measures
+ * geometry rules in isolation and a second parser would only add noise. A
+ * *score* is the opposite case. `formCells.js` uses real text runs for label
+ * lookup and to drop explanatory prose, so a score taken without them is a
+ * score of a pipeline we do not ship - and it is not a small difference:
+ * leaving text out costs the health declaration 14 points of precision
+ * (94.2% -> 80.2%) and form 101 four (91.4% -> 87.2%). Those were read as
+ * fixture damage until both originals were committed and the numbers did not
+ * move. See MOBI-13.
  */
 
 /** The matcher's IoU threshold, as every recorded number was measured at. */
@@ -39,14 +53,49 @@ export function loadTruth(path) {
 const pct = (numerator, denominator) => (denominator > 0 ? (numerator / denominator) * 100 : null);
 
 /**
+ * The page's text runs, read in Node the way the viewer reads them in the
+ * browser: pdf.js's legacy build (no worker, no DOM), then the one shared
+ * conversion in `textRuns.js`. The font and cMap directories have to be named
+ * explicitly off disk - the browser build resolves them relative to a URL that
+ * does not exist here - and a form whose text cannot be read scores on its
+ * geometry alone rather than failing the run, because a scanned form has no
+ * text layer to read and is still a form we want scored.
+ */
+async function pageTextRuns(bytes, pageIndex, geometry) {
+  const require = createRequire(import.meta.url);
+  const pdfjsDir = path.dirname(require.resolve('pdfjs-dist/package.json'));
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const loading = pdfjs.getDocument({
+    data: new Uint8Array(bytes),
+    standardFontDataUrl: `${path.join(pdfjsDir, 'standard_fonts')}${path.sep}`,
+    cMapUrl: `${path.join(pdfjsDir, 'cmaps')}${path.sep}`,
+    cMapPacked: true,
+    useSystemFonts: false,
+  });
+  try {
+    const doc = await loading.promise;
+    const { items } = await (await doc.getPage(pageIndex + 1)).getTextContent();
+    return toPageTextRuns(items, geometry);
+  } finally {
+    await loading.destroy();
+  }
+}
+
+/**
  * @param {{pdf: string, truth: string, pageIndex?: number}} form
  * @returns {Promise<{recall: number|null, precision: number|null, targets: number,
  *   candidates: number, matched: number, misses: Array, falsePositives: Array, byKind: object}>}
  */
 export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
   const truth = loadTruth(truthPath);
-  const doc = await PDFDocument.load(fs.readFileSync(pdf), { ignoreEncryption: true });
-  const candidates = toCandidates(detectPage(doc.getPage(pageIndex), pageIndex), pageIndex);
+  const bytes = fs.readFileSync(pdf);
+  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
+  const page = doc.getPage(pageIndex);
+  const textRuns = await pageTextRuns(bytes, pageIndex, createPageGeometry({
+    cropBox: pageCropBox(page),
+    rotation: page.getRotation().angle,
+  }));
+  const candidates = toCandidates(detectPage(page, pageIndex, textRuns), pageIndex);
   const { matches, misses, falsePositives } = greedyMatch(truth.targets, candidates, IOU);
 
   // Per kind, read from the target side: "of the N signature targets, how many

@@ -62,31 +62,53 @@ true numbers. Three options, in the owner's gift:
 
 Everything below is deliberately independent of that choice.
 
-## Fixture decision: committing the originals was chosen, and is blocked here
+## Fixture decision: committing the originals was chosen, and is DONE (2026-09-20)
 
-Shlomi chose option 1 - commit the two Hebrew originals - on 2026-09-20. **It could not be done from
-this environment.** The session's egress policy denies the public web at the gateway: `www.gov.il`,
-and equally `irs.gov`, `gov.uk`, `incometax.gov.in` and `example.com`, all answer
-`403 CONNECT tunnel failed`; only GitHub/npm/PyPI-style hosts are allowed, and the proxy README says
-not to route around it. So the files have to arrive another way - added to the repo directly, or
-this environment's network policy widened
-(https://code.claude.com/docs/en/claude-code-on-the-web).
-
-The recorded originals, for whoever fetches them:
+Shlomi chose option 1 - commit the two Hebrew originals - on 2026-09-20. An earlier session could
+not carry it out: its egress policy denied the public web at the gateway, so `www.gov.il` and every
+other candidate host answered `403 CONNECT tunnel failed`. A later session on an environment whose
+policy allows the public web fetched both, checked both sha256s against the values recorded here
+(they matched, so the committed ground truth still describes the form), and landed them in
+`src/editor/adapters/pdf/corpus/scoring/forms/`.
 
 | form | sha256 | url |
 | --- | --- | --- |
 | itc101 | `a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad` | https://www.gov.il/BlobFolder/service/itc101/he/Service_Pages_Income_tax_annual-report-2024_itc101.pdf |
 | health | `ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53` | https://www.gov.il/BlobFolder/service/issue_firearms_license_to_a_private_individual/he/services_health-declaration-2021.pdf |
 
-Everything needed to land them the moment they exist is in place. Drop each file in, point its
-`baselines.json` row at it, and run `node scripts/score-form.mjs --all`: it verifies the sha256
-against the truth file, checks the page size, prints the new numbers and the row to paste. The
-derivative note disappears on its own once the committed file *is* the annotated original, which is
-the signal that these scores finally describe the real forms.
+### The outcome, and the second cause the first one was hiding
 
-Expect both to move: itc101's 62 checkbox targets should come back (the text layer carries their
-glyphs) and health's precision should return toward 94.2%.
+| form | was (geometry-only) | now (original) | spike's recorded |
+| --- | --- | --- | --- |
+| health | 86.7% / 80.2% | **86.7% / 94.2%** | 86.7% / 94.2% |
+| itc101 | 42.4% / 79.7% | **69.1% / 91.4%** | 69.1% / 91.4% |
+
+Both reproduce the spike exactly, to the decimal. That is the strongest evidence available that the
+committed instrument and the hand-run spike measure the same thing, and it is worth more than either
+number on its own.
+
+**itc101 moved on the file alone, and health did not move at all.** The prediction above was half
+right, and the half it got wrong is the useful part. Two different things read a PDF's text and they
+were being treated as one:
+
+- `collectCheckboxGlyphs` reads glyphs off the **content stream** via pdf-lib. The reduction had
+  stripped them, so committing the original was enough: 36 of the 62 checkbox targets came straight
+  back. (The remaining 26 are drawn squares, which is the element corpus's standing `known gap` row,
+  not a fixture problem.)
+- `formCells`' own-text filter is fed by the **pdf.js text pass**, which `detect.js` does not run and
+  says so in its docstring. No fixture could have fixed that. `health` precision sat at 80.2%
+  with the original committed, exactly as it had with the reduction.
+
+So `score.js` now does its own pdf.js text pass and feeds `detectPage`, because
+`useFormFieldRegions.ts` does one and a score of a pipeline we do not ship is not a measurement.
+That is what took health to 94.2% and itc101's precision to 91.4%. The conversion from pdf.js items
+to `formCells`' shape is now one shared module, `src/editor/adapters/pdf/textRuns.js`, rather than a
+copy in each caller. The element corpus still runs without text, deliberately and for the reasons in
+`detect.js`: it isolates a geometry rule, where this measures the shipped pipeline.
+
+The lesson worth keeping: **"the fixture is the problem" was a correct diagnosis that explained only
+one of the two symptoms**, and the one it did not explain went unnoticed because it was filed under
+the same cause. A gap that a change was predicted to close and did not is evidence, not noise.
 
 ## Candidate forms to widen the corpus (researched 2026-09-20, NONE verified)
 
@@ -136,21 +158,21 @@ Hindi should wait for someone to read the ECI terms page.
 
 ## Scope
 
-- [ ] **One shared pipeline.** `corpus.test.js` re-implements what `useFormFieldRegions.ts` does;
+- [x] **One shared pipeline.** `corpus.test.js` re-implements what `useFormFieldRegions.ts` does;
       the scoring bridge would be a third copy. Extract it once, in the corpus package, and have
       both use it. This is a down payment on ARCH-24, not a competing design.
-- [ ] **A committed bridge**, product regions -> `CandidateField`, pure and tested.
-- [ ] **The matcher lifted into the corpus package**, with `score.mjs` importing it rather than
+- [x] **A committed bridge**, product regions -> `CandidateField`, pure and tested.
+- [x] **The matcher lifted into the corpus package**, with `score.mjs` importing it rather than
       owning it - the same direction MOBI-11 step 1 took for `cells.mjs` and `label.mjs`. It already
       exports `iou`, `kindsCompatible` and `greedyMatch` and guards its CLI, so this is a move, not
       a rewrite.
-- [ ] **The practice form as the third scored form, and the first Latin one.** It is self-labelling:
+- [x] **The practice form as the third scored form, and the first Latin one.** It is self-labelling:
       its nine AcroForm widgets *are* the truth, exact to the point, no annotation pass and no
       eyeballing needed. Annotate its kinds honestly (a signature field is `signature`, not `text`),
       so it reports our real gaps rather than a flattering 100%.
-- [ ] **Baselines and a ratchet.** Per form, per kind, recorded; the test fails when a number drops.
+- [x] **Baselines and a ratchet.** Per form, per kind, recorded; the test fails when a number drops.
       Like the CSS ratchets, it only ever goes down by a deliberate edit that says why.
-- [ ] **A documented "add a form" path**, so the loop is repeatable by someone who was not here:
+- [x] **A documented "add a form" path**, so the loop is repeatable by someone who was not here:
       commit the artifact, produce ground truth (a model proposes, a person eyeballs with
       `overlay.mjs`), record the baseline, done.
 
@@ -161,8 +183,8 @@ does should be a separate ticket whose evidence is this instrument's numbers mov
 
 ## Acceptance
 
-- [ ] One command scores every committed form and prints a per-form, per-kind table.
-- [ ] A baseline drop fails the test, naming the form, the kind and both numbers. Sabotage-checked.
-- [ ] The corpus and the scored set share one detection path and one fixture set.
-- [ ] Adding a form is documented in the corpus README and needs no new test code.
-- [ ] The fixture decision above is recorded here with its date and reason once made.
+- [x] One command scores every committed form and prints a per-form, per-kind table.
+- [x] A baseline drop fails the test, naming the form, the kind and both numbers. Sabotage-checked.
+- [x] The corpus and the scored set share one detection path and one fixture set.
+- [x] Adding a form is documented in the corpus README and needs no new test code.
+- [x] The fixture decision above is recorded here with its date and reason once made.
