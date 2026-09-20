@@ -21,14 +21,16 @@ interface EditPage {
   thumbnail: string | null;
 }
 
+interface EditState {
+  pages: EditPage[];
+  removedPageNums: Set<number>;
+  rotations: Record<number, number>;
+}
+
+const EMPTY_EDIT_STATE: EditState = { pages: [], removedPageNums: new Set(), rotations: {} };
+
 export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
-  // pages: array of { pageNumber, thumbnail } - ORDER is the final page order
-  const [pages, setPages] = useState<EditPage[]>([]);
-  // removedPageNums: Set of original page numbers (1-indexed) marked for removal
-  const [removedPageNums, setRemovedPageNums] = useState<Set<number>>(new Set());
-  // rotations: { [pageNumber]: degrees } - keyed by original page number
-  const [rotations, setRotations] = useState<Record<number, number>>({});
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
   const [progress, setProgress] = useState(0);
@@ -38,18 +40,14 @@ export default function PdfEditPagesTool() {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const sortableRef = useRef<Sortable | null>(null);
 
-  // Undo/redo: a whole-state snapshot stack over the three values above. The
-  // ref always mirrors the latest committed state so every mutation site -
-  // including the SortableJS onEnd handler below, whose effect only re-runs
-  // on pages.length - can commit the correct pre-mutation snapshot without a
-  // stale closure over removedPageNums/rotations.
-  const history = useEditHistory();
-  const historyRef = useRef(history);
-  historyRef.current = history;
-  const historySnapshotRef = useRef({ pages, removedPageNums, rotations });
-  useEffect(() => {
-    historySnapshotRef.current = { pages, removedPageNums, rotations };
-  }, [pages, removedPageNums, rotations]);
+  // Undo/redo: the hook owns the whole document (pages order, removedPageNums,
+  // rotations) as `present`, plus the past/future stacks, behind one
+  // useState. Every mutation site below reads `present` for rendering and
+  // routes its change through `commit`, whose updater always receives the
+  // live present - never a ref or a snapshot taken earlier that could have
+  // gone stale. See useEditHistory.js for why that matters.
+  const { present, canUndo, canRedo, commit, undo, redo, amend, reset } = useEditHistory(EMPTY_EDIT_STATE);
+  const { pages, removedPageNums, rotations } = present as EditState;
 
   // Wire up SortableJS on the grid whenever pages are loaded
   useEffect(() => {
@@ -72,19 +70,18 @@ export default function PdfEditPagesTool() {
       forceFallback: true,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
-        historyRef.current.commit(historySnapshotRef.current);
-        setPages((current) => {
-          const next = [...current];
+        commit((current: EditState) => {
+          const next = [...current.pages];
           const [moved] = next.splice(evt.oldIndex as number, 1);
           next.splice(evt.newIndex as number, 0, moved);
-          return next;
+          return { ...current, pages: next };
         });
         resetOutput();
         setAnnouncement(`Page moved from position ${(evt.oldIndex as number) + 1} to ${(evt.newIndex as number) + 1}.`);
       },
     });
     return () => sortableRef.current?.destroy();
-  }, [pages.length > 0]);
+  }, [pages.length > 0, commit]);
 
   const resetOutput = () => {
     clearPrepared();
@@ -101,13 +98,12 @@ export default function PdfEditPagesTool() {
     setFile(selectedFile);
     setStatus('loading-file');
     setProgress(0);
-    setRemovedPageNums(new Set());
-    setRotations({});
     setAddPageNumbers(false);
     clearDownload();
     clearPrepared();
-    setPages([]);
-    historyRef.current.reset();
+    // A new file starts a fresh document: reset (not commit) so the previous
+    // file's undo/redo stacks don't leak across files.
+    reset(EMPTY_EDIT_STATE);
 
     try {
       const bytes = await selectedFile.arrayBuffer();
@@ -118,17 +114,23 @@ export default function PdfEditPagesTool() {
         pageNumber: i + 1,
         thumbnail: null,
       }));
-      setPages(initialPages);
+      reset({ pages: initialPages, removedPageNums: new Set(), rotations: {} });
       setStatus('idle');
       setAnnouncement(`Loaded PDF file "${selectedFile.name}" with ${pageCount} pages.`);
 
-      // Render thumbnails sequentially in the background
+      // Render thumbnails sequentially in the background. This is not a user
+      // edit, so it goes through `amend`, not `commit`: it updates the live
+      // document *and* every past/future snapshot's pages, so a thumbnail
+      // that finishes rendering after the user has already committed a
+      // change (e.g. rotated a page) survives an undo past that commit
+      // instead of reverting to the placeholder the snapshot was taken with.
       renderPdfThumbnails(selectedFile, (pageIndex: number, dataUrl: string) => {
-        setPages((current) =>
-          current.map((p) =>
+        amend((current: EditState) => ({
+          ...current,
+          pages: current.pages.map((p) =>
             p.pageNumber === pageIndex ? { ...p, thumbnail: dataUrl } : p
-          )
-        );
+          ),
+        }));
       }).catch((err) => {
         console.error('Thumbnail generation failed:', err);
       });
@@ -137,12 +139,11 @@ export default function PdfEditPagesTool() {
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     }
-  }, []);
+  }, [reset, amend]);
 
   const togglePage = useCallback((pageNum: number) => {
-    historyRef.current.commit(historySnapshotRef.current);
-    setRemovedPageNums((current) => {
-      const next = new Set(current);
+    commit((current: EditState) => {
+      const next = new Set(current.removedPageNums);
       if (next.has(pageNum)) {
         next.delete(pageNum);
       } else {
@@ -150,76 +151,77 @@ export default function PdfEditPagesTool() {
       }
       const willRemove = next.has(pageNum);
       setAnnouncement(`Page ${pageNum} marked to be ${willRemove ? 'removed' : 'kept'}.`);
-      return next;
+      return { ...current, removedPageNums: next };
     });
     resetOutput();
-  }, []);
+  }, [commit]);
 
   const keepAll = useCallback(() => {
-    historyRef.current.commit(historySnapshotRef.current);
-    setRemovedPageNums(new Set());
+    if (removedPageNums.size === 0) return;
+    commit((current: EditState) => (
+      current.removedPageNums.size === 0 ? current : { ...current, removedPageNums: new Set() }
+    ));
     resetOutput();
     setAnnouncement('Marked all pages to be kept.');
-  }, []);
+  }, [commit, removedPageNums]);
 
   const removeAll = useCallback(() => {
-    historyRef.current.commit(historySnapshotRef.current);
-    const all = new Set(pages.map((p) => p.pageNumber));
-    setRemovedPageNums(all);
+    if (removedPageNums.size === pages.length) return;
+    commit((current: EditState) => {
+      const all = new Set(current.pages.map((p) => p.pageNumber));
+      return current.removedPageNums.size === all.size ? current : { ...current, removedPageNums: all };
+    });
     resetOutput();
     setAnnouncement('Marked all pages to be removed.');
-  }, [pages]);
+  }, [commit, pages.length, removedPageNums]);
 
   const rotatePage = useCallback((pageNum: number, direction: string) => {
-    historyRef.current.commit(historySnapshotRef.current);
-    setRotations((current) => {
-      const currentRot = current[pageNum] || 0;
+    commit((current: EditState) => {
+      const currentRot = current.rotations[pageNum] || 0;
       const nextRot = direction === 'left' ? currentRot - 90 : currentRot + 90;
-      return { ...current, [pageNum]: nextRot };
+      return { ...current, rotations: { ...current.rotations, [pageNum]: nextRot } };
     });
     resetOutput();
     setAnnouncement(`Page ${pageNum} rotated ${direction}.`);
-  }, []);
+  }, [commit]);
 
   const invertSelection = useCallback(() => {
-    historyRef.current.commit(historySnapshotRef.current);
-    setRemovedPageNums((current) => {
+    commit((current: EditState) => {
       const next: Set<number> = new Set();
-      pages.forEach((p) => {
-        if (!current.has(p.pageNumber)) {
+      current.pages.forEach((p) => {
+        if (!current.removedPageNums.has(p.pageNumber)) {
           next.add(p.pageNumber);
         }
       });
-      return next;
+      return { ...current, removedPageNums: next };
     });
     resetOutput();
     setAnnouncement('Inverted page selections.');
-  }, [pages]);
+  }, [commit]);
 
   const handleUndo = useCallback(() => {
-    const restored = historyRef.current.undo(historySnapshotRef.current);
-    if (!restored) return;
-    setPages(restored.pages);
-    setRemovedPageNums(restored.removedPageNums);
-    setRotations(restored.rotations);
+    if (!canUndo) return;
+    undo();
     resetOutput();
     setAnnouncement('Undid last change.');
-  }, []);
+  }, [undo, canUndo]);
 
   const handleRedo = useCallback(() => {
-    const restored = historyRef.current.redo(historySnapshotRef.current);
-    if (!restored) return;
-    setPages(restored.pages);
-    setRemovedPageNums(restored.removedPageNums);
-    setRotations(restored.rotations);
+    if (!canRedo) return;
+    redo();
     resetOutput();
     setAnnouncement('Redid last change.');
-  }, []);
+  }, [redo, canRedo]);
 
   // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z, through the same hook Sign and Redact
-  // use. Both callbacks read the stacks through a ref, so they are stable and
-  // the listener is bound once. The hook stands down while focus is in an
-  // input, which here means the page-numbers checkbox.
+  // use. The `canUndo`/`canRedo` guards here are only a courtesy (skip the
+  // announcement when the button is disabled); correctness under repeated
+  // same-task keydowns - ordinary key auto-repeat, which this hook does not
+  // suppress - comes from `undo`/`redo` themselves, which read the live
+  // past/future through a functional update and no-op safely with no extra
+  // history entry once there is truly nothing left to undo/redo (see
+  // useEditHistory.js). The hook stands down while focus is in an input,
+  // which here means the page-numbers checkbox.
   useHistoryShortcuts(handleUndo, handleRedo);
 
   const handleApplyChanges = async () => {
@@ -296,10 +298,10 @@ export default function PdfEditPagesTool() {
                 <button type="button" onClick={invertSelection}>
                   Invert
                 </button>
-                <button type="button" onClick={handleUndo} disabled={!history.canUndo} aria-label="Undo last change">
+                <button type="button" onClick={handleUndo} disabled={!canUndo} aria-label="Undo last change">
                   Undo
                 </button>
-                <button type="button" onClick={handleRedo} disabled={!history.canRedo} aria-label="Redo last undone change">
+                <button type="button" onClick={handleRedo} disabled={!canRedo} aria-label="Redo last undone change">
                   Redo
                 </button>
                 <label class={pdfToolStyles['page-numbers-toggle']}>

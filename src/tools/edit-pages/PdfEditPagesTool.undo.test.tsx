@@ -248,4 +248,99 @@ describe('PdfEditPagesTool undo/redo', () => {
     });
     expect(thumbTransform(1)).toContain('rotate(90deg)');
   });
+
+  // Regression for "two actions in one task swallow a history step": two
+  // rotate clicks dispatched synchronously, in the same task, must push two
+  // distinct undo steps rather than the same pre-rotation snapshot twice.
+  it('two rotate clicks dispatched in one task produce two distinct undo steps', async () => {
+    await loadPdf();
+    const btn = rotateButton(1, 'right');
+
+    await act(async () => {
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(180deg)');
+
+    await act(async () => {
+      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(90deg)');
+    expect(toolbarButton('Undo').disabled).toBe(false);
+
+    await act(async () => {
+      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(0deg)');
+    expect(toolbarButton('Undo').disabled).toBe(true);
+    expect(toolbarButton('Redo').disabled).toBe(false);
+  });
+
+  // Regression for the other half of the same defect: ordinary key
+  // auto-repeat delivers two keydowns in one task, which the shortcut hook
+  // does not suppress. Two undos must move two steps back, with canUndo and
+  // canRedo correct afterwards - not one visible undo plus a dead redo step.
+  it('two Cmd+Z keydowns dispatched in one task move two steps back', async () => {
+    await loadPdf();
+    const btn = rotateButton(1, 'right');
+
+    await act(async () => {
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(180deg)');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(0deg)');
+    expect(toolbarButton('Undo').disabled).toBe(true);
+    expect(toolbarButton('Redo').disabled).toBe(false);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(180deg)');
+    expect(toolbarButton('Undo').disabled).toBe(false);
+    expect(toolbarButton('Redo').disabled).toBe(true);
+  });
+
+  // Regression for "bulk actions commit even when they change nothing":
+  // "Keep all" with nothing removed must not push a history entry that would
+  // light up Undo and then visibly do nothing when pressed.
+  it('"Keep all" with nothing removed does not enable Undo', async () => {
+    await loadPdf();
+
+    await act(async () => {
+      toolbarButton('Keep all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(toolbarButton('Undo').disabled).toBe(true);
+  });
+
+  it('a second, redundant "Remove all" does not push a second history entry', async () => {
+    await loadPdf();
+
+    await act(async () => {
+      toolbarButton('Remove all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(Array.from(cards()).every((c) => c.className.includes(pageGridStyles['is-removed']))).toBe(true);
+    expect(toolbarButton('Undo').disabled).toBe(false);
+
+    // Every page is already removed, so this second click changes nothing
+    // and must not consume a second undo step.
+    await act(async () => {
+      toolbarButton('Remove all').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await act(async () => {
+      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    // One undo is enough to get all the way back to nothing removed.
+    expect(Array.from(cards()).some((c) => c.className.includes(pageGridStyles['is-removed']))).toBe(false);
+    expect(toolbarButton('Undo').disabled).toBe(true);
+  });
 });
