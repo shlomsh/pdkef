@@ -26,6 +26,7 @@
     "test:redirects": "node scripts/check-trailing-slash-redirects.js",
     "test:css": "node scripts/check-class-resolution.js && node scripts/check-editor-global-css.js && node scripts/check-dead-utilities.js && node scripts/check-css-duplication.js",
     "test:weight": "node scripts/check-page-weight.js",
+    "test:lazy-modules": "node scripts/check-lazy-modules.js",
     "test:fonts": "node scripts/check-font-glyf-alignment.js",
     "test:licenses": "node scripts/runtime-license-inventory.mjs --check",
     "test:dependency-governance": "node scripts/verify-dependency-governance.mjs",

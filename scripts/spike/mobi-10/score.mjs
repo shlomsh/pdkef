@@ -29,6 +29,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+// The matching itself lives with the scored corpus now (MOBI-13); this CLI
+// is a wrapper over it so the two can never disagree.
+import { greedyMatch, iou, kindsCompatible } from '../../../src/editor/adapters/pdf/corpus/scoring/match.js';
+
+export { greedyMatch, iou, kindsCompatible };
 
 function parseArgs(argv) {
   const args = { iou: 0.5 };
@@ -54,62 +59,6 @@ function readJson(file) {
 
 // 'date' sits in both groups: a date is drawn either as a blank line (text-like)
 // or as a comb of digit cells; which one is a label question, not a geometry one.
-const KIND_GROUPS = [
-  new Set(['text', 'table-cell', 'date']),
-  new Set(['comb', 'date']),
-  new Set(['checkbox', 'radio']),
-];
-
-export function kindsCompatible(a, b) {
-  if (a === b) return true;
-  if (a === 'unknown' || b === 'unknown') return true;
-  return KIND_GROUPS.some((group) => group.has(a) && group.has(b));
-}
-
-export function iou(a, b) {
-  const ax2 = a.x + a.width;
-  const ay2 = a.y + a.height;
-  const bx2 = b.x + b.width;
-  const by2 = b.y + b.height;
-  const ix1 = Math.max(a.x, b.x);
-  const iy1 = Math.max(a.y, b.y);
-  const ix2 = Math.min(ax2, bx2);
-  const iy2 = Math.min(ay2, by2);
-  const iw = Math.max(0, ix2 - ix1);
-  const ih = Math.max(0, iy2 - iy1);
-  const inter = iw * ih;
-  const union = a.width * a.height + b.width * b.height - inter;
-  if (!(union > 0)) return 0;
-  return inter / union;
-}
-
-/** One-to-one greedy IoU matching, highest-scoring pair claimed first. */
-export function greedyMatch(targets, candidates, iouThreshold) {
-  const pairs = [];
-  for (const t of targets) {
-    for (const c of candidates) {
-      if (t.pageIndex !== c.pageIndex) continue;
-      if (!kindsCompatible(t.kind, c.kind)) continue;
-      const score = iou(t.bounds, c.bounds);
-      if (score >= iouThreshold) pairs.push({ t, c, score });
-    }
-  }
-  pairs.sort((a, b) => b.score - a.score);
-
-  const usedTargets = new Set();
-  const usedCandidates = new Set();
-  const matches = [];
-  for (const pair of pairs) {
-    if (usedTargets.has(pair.t.id) || usedCandidates.has(pair.c.id)) continue;
-    usedTargets.add(pair.t.id);
-    usedCandidates.add(pair.c.id);
-    matches.push(pair);
-  }
-  const misses = targets.filter((t) => !usedTargets.has(t.id));
-  const falsePositives = candidates.filter((c) => !usedCandidates.has(c.id));
-  return { matches, misses, falsePositives };
-}
-
 const normalizeWhitespace = (s) => (s || '').trim().replace(/\s+/g, ' ');
 
 /** Correct when candidate.label and target.label, whitespace-normalized, contain one another. */
