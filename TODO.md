@@ -306,6 +306,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
 | UNDO-04 | P3 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
+| UNDO-06 | P2 | [UNDO-06](backlog/tasks/UNDO-06.md) · The change-history dialog goes; Undo and Redo are the whole model |
 
 
 ## One memory space: every opened file keeps its work, no drafts (2026-09-15)
