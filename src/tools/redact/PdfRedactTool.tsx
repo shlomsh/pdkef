@@ -31,10 +31,9 @@ import {
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
 import {
-  dropCommands,
   pushCommand,
   redoStep,
-  undoStep,
+  revertCommands,
   type HistoryStack,
 } from '../../editor/model/historyStack.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -175,15 +174,16 @@ export default function PdfRedactTool() {
   //
   // `past`/`future` are src/editor/model/historyStack.ts's own shape, held as
   // one state value rather than two: `future` (newest-undone-first, in-memory
-  // only, never persisted) only ever gains an entry from undoLast's single
-  // most-recent-command step (applyRevert's 'push' redoBehavior below, via
-  // undoStep). Every place a new command is pushed onto `past` (logAction,
-  // and deleteElement/clearPage's own direct pushes, via pushCommand) clears
-  // it instead, and so do the modal's selective revert and the undo chip
-  // (which targets a command by id, not necessarily the newest one still on
-  // the stack) via applyRevert's 'clear' redoBehavior, which is dropCommands
-  // - for the same reason its own doc comment gives: a stale future entry
-  // could re-insert an element a still-live later command assumed was gone.
+  // only, never persisted) gains entries from any revert of the newest
+  // command, or the newest few together, whether that came from the keyboard,
+  // the dialog's checklist or the chip - historyStack.ts's `revertCommands`
+  // decides that from the stack rather than from what the caller intended. A
+  // revert from the middle of the stack still clears it, because a later,
+  // still-live command's snapshot never accounted for the element coming
+  // back. Every place a new command is pushed onto `past` (logAction, and
+  // deleteElement/clearPage's own direct pushes, via pushCommand) clears it
+  // too.
+  //
   // One state value (not `actionHistory`/`redoHistory` as two useState hooks)
   // is what makes every read here `current.past`/`current.future` inside a
   // single functional update, so two undo keydowns landing in the same task
@@ -513,42 +513,31 @@ export default function PdfRedactTool() {
   // (handleRevertSelected) and the short-lived undo chip (runUndoChip) so the
   // three triggers cannot drift on what reverting actually does.
   //
-  // `redoBehavior` is an explicit, required choice by every caller rather
-  // than something this function infers, on purpose: the three callers are
-  // only safe to share revert logic at all because they agree on what
-  // reverting *means*, and whether that revert is safe to redo is a different
-  // question with a different answer per caller (see each call site). 'push'
-  // is undoLast's own single most-recent-command step, historyStack.ts's
-  // `undoStep`, and puts the reverted entry onto the front of `future` so
-  // `redoLast` can bring it back. 'clear' is the modal and the chip's shared
-  // shape - an arbitrary, caller-chosen set of ids, not necessarily the
-  // newest - and always drops `future` entirely, historyStack.ts's
-  // `dropCommands` (see its own doc comment for why a revert from the middle
-  // of the stack cannot leave a safe redo behind).
+  // Shared by all three reverts - the keyboard's single step, the dialog's
+  // checklist and the chip - so they cannot drift on what reverting means.
+  //
+  // None of them declares whether its revert is redoable any more. They used
+  // to, and they were guessing about something only knowable at the moment of
+  // the revert: `revertCommands` looks at the stack and keeps a redo whenever
+  // what was reverted is the newest command, or the newest few together. That
+  // matters most on a phone, where there is no Cmd+Z and the checklist is the
+  // only undo there is - while the checklist always cleared the future, Redo
+  // could never do anything at all on touch.
   //
   // `select` runs inside `setHistory`'s updater, reading the actual current
   // `past` rather than a value this render closed over - what makes two undo
-  // keydowns landing in the same task (ordinary key auto-repeat, no
-  // re-render between them) two distinct reverts instead of the same
-  // render-scoped "newest" entry reverted twice. It is unused in 'push' mode:
-  // undoStep's own contract is always "the single newest entry", the same
-  // thing every 'push' caller (only undoLast) wants.
+  // keydowns landing in the same task two distinct reverts instead of the
+  // same render-scoped "newest" entry reverted twice. An empty result reverts
+  // nothing, which is also how a stale chip id becomes a silent no-op.
   const applyRevert = (
-    redoBehavior: 'push' | 'clear',
     describeReverted: (entries: ActionHistoryEntry<RedactHistoryElement>[]) => string,
-    select?: (past: ActionHistoryEntry<RedactHistoryElement>[]) => ActionHistoryEntry<RedactHistoryElement>[],
+    select: (past: ActionHistoryEntry<RedactHistoryElement>[]) => ActionHistoryEntry<RedactHistoryElement>[],
   ) => {
     let reverted: ActionHistoryEntry<RedactHistoryElement>[] = [];
     setHistory((current) => {
-      if (redoBehavior === 'push') {
-        const step = undoStep(current.past, current.future);
-        if (!step) return current;
-        reverted = [step.entry];
-        return { past: step.past, future: step.future };
-      }
-      reverted = select ? select(current.past) : [];
+      reverted = select(current.past);
       if (reverted.length === 0) return current;
-      return dropCommands(current.past, current.future, new Set(reverted.map((entry) => entry.id)));
+      return revertCommands(current.past, current.future, new Set(reverted.map((entry) => entry.id)));
     });
     if (reverted.length === 0) return;
 
@@ -633,28 +622,25 @@ export default function PdfRedactTool() {
     disarmTool();
   };
 
-  // Cmd/Ctrl+Z: undo the single most recent atomic command, historyStack.ts's
-  // own `undoStep` (via applyRevert's 'push' mode) - the one caller where
-  // "the entry just reverted" and "the newest entry on the stack" are
-  // provably the same thing, so it is also the one caller where redoing it
-  // back is safe. The guard for "nothing to undo" lives inside applyRevert's
-  // `setHistory` updater (undoStep returns null), not here: reading
-  // `actionHistory.length` in this function's own render-scoped closure is
-  // exactly the staleness two undo keydowns in the same task (ordinary key
-  // auto-repeat) can exploit - see applyRevert's doc comment.
+  // Cmd/Ctrl+Z: revert the single newest command. `past.slice(0, 1)` is read
+  // inside applyRevert's own updater, not from this render's closure, which
+  // is exactly the staleness two undo keydowns in the same task (ordinary key
+  // auto-repeat) would otherwise exploit. Nothing to undo reverts nothing.
   const undoLast = () => {
-    applyRevert('push', (entries) => `Undid: ${entries[0].description}`);
+    applyRevert((entries) => `Undid: ${entries[0].description}`, (past) => past.slice(0, 1));
   };
 
-  // "Undo changes" modal: checked commands remain newest-first, matching the
-  // result of pressing Cmd/Ctrl+Z for each of those commands in sequence.
-  // This can revert an arbitrary checked set from the *middle* of the stack,
-  // so it always clears redoHistory - see historyStack.ts's dropCommands doc
-  // comment for why a surviving future entry would not be safe to redo here.
+  // "Undo changes" modal: checked commands are reverted newest-first,
+  // matching the result of pressing Cmd/Ctrl+Z for each of them in sequence.
+  // Checking the newest command, or the newest few, therefore leaves a redo
+  // behind exactly as the keyboard would; checking one from the middle of the
+  // stack does not. `revertCommands` draws that line, not this caller.
+  //
+  // On a phone this is the only undo there is, so it is also the only thing
+  // that can ever give the Redo control something to do.
   const handleRevertSelected = () => {
     if (undoSelection.size === 0) return;
     applyRevert(
-      'clear',
       () => 'Reverted selected actions.',
       (past) => past.filter((action) => undoSelection.has(action.id)),
     );
@@ -663,24 +649,20 @@ export default function PdfRedactTool() {
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
   // it named, by id, rather than "whatever is newest" - if another action
-  // landed after this one and before the chip was clicked, undoLast() would
-  // silently revert the wrong thing. A stale id (the entry already reverted
-  // some other way while the chip was still showing) is a silent no-op,
-  // handled by applyRevert itself (an empty `select` result reverts nothing).
+  // landed after this one and before the chip was clicked, reverting the
+  // newest would silently revert the wrong thing. A stale id is a silent
+  // no-op, handled by applyRevert itself.
   //
-  // That same by-id targeting is why this clears redoHistory rather than
-  // pushing: the chip stays live for UNDO_WINDOW_MS after a delete/clear
-  // command, and any other command logged in that window (a new box, another
-  // delete) sits *above* the chip's entry on the stack by the time it is
-  // clicked. Reverting a non-newest entry is exactly the "middle of the
-  // stack" case handleRevertSelected is in above, so it gets the same answer
-  // - dropCommands with a single id.
+  // Whether that revert leaves a redo behind is no longer this caller's
+  // guess. While the chip's entry is still the newest, reverting it is a
+  // plain undo and the redo survives; once something has landed above it
+  // inside the five-second window, it is a middle-of-the-stack revert and the
+  // future is dropped.
   const runUndoChip = () => {
     if (!undoAction) return;
     const entryId = undoAction.entryId;
     clearUndoChip();
     applyRevert(
-      'clear',
       (entries) => `Undid: ${entries[0].description}`,
       (past) => past.filter((action) => action.id === entryId),
     );

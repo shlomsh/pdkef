@@ -80,16 +80,42 @@ export function redoStep<TElement extends HistoryElement>(
 }
 
 /**
- * Selective revert: drops the commands identified by `ids` out of `past`
- * wherever they sit (not necessarily at the top), same as today's
- * `actionHistory.filter(...)` call sites. Always returns an empty `future` -
- * see this module's doc comment for why a revert from the middle of the
- * stack cannot leave a safe redo behind.
+ * Reverting a named set of commands, wherever they sit in `past`.
+ *
+ * Whether a redo can survive it is decided here, by looking at the stack,
+ * rather than by each caller declaring its intent. The three callers that
+ * revert (the keyboard's single step, the "Undo changes" dialog's checklist,
+ * and Redact's five-second chip) used to say up front whether their revert
+ * was redoable, and they were guessing about a fact that is only knowable at
+ * the moment of the revert.
+ *
+ * The rule is narrower than "a checklist revert is never redoable", which is
+ * what it replaced. What makes redo unsafe is reverting from the *middle* of
+ * the stack: a later, still-live command's snapshot never accounted for the
+ * element coming back. Reverting the newest command, or the newest few
+ * together, is simply undo, and redo can mirror it exactly.
+ *
+ * That distinction is load bearing on a phone. There is no Cmd+Z there, so
+ * the dialog's checklist is the only undo a touch user has; under the old
+ * blunt rule their redo stack was always empty and the Redo control could
+ * never do anything at all.
+ *
+ * `future` is newest-undone-first, and a contiguous top run is reversed into
+ * it so that redoing twice replays the two undos in the order a person would
+ * have done them one at a time.
  */
-export function dropCommands<TElement extends HistoryElement>(
+export function revertCommands<TElement extends HistoryElement>(
   past: readonly ActionHistoryEntry<TElement>[],
-  _future: readonly ActionHistoryEntry<TElement>[],
+  future: readonly ActionHistoryEntry<TElement>[],
   ids: ReadonlySet<string>,
 ): HistoryStack<TElement> {
+  const topRun = past.slice(0, ids.size);
+  const isContiguousTop = ids.size > 0
+    && topRun.length === ids.size
+    && topRun.every((entry) => ids.has(entry.id));
+
+  if (isContiguousTop) {
+    return { past: past.slice(ids.size), future: [...topRun].reverse().concat(future) };
+  }
   return { past: past.filter((entry) => !ids.has(entry.id)), future: [] };
 }

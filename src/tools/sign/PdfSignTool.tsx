@@ -298,15 +298,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const handleRevertSelected = () => {
     const idsToRevert = Array.from(undoSelection);
     if (idsToRevert.length === 0) return;
-    const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
-    dispatch({
-      type: 'SET_ELEMENTS',
-      payload: revertHistoryEntries(elements, revertedActions)
-    });
-    dispatch({
-      type: 'SET_ACTION_HISTORY',
-      payload: actionHistory.filter(action => !idsToRevert.includes(action.id))
-    });
+    dispatch({ type: 'REVERT_COMMANDS', payload: { ids: idsToRevert } });
     setUndoSelection(new Set());
     setUndoModalOpen(false);
     setAnnouncement(t.revertedSelectedActions);
