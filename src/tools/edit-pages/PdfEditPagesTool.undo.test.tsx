@@ -211,4 +211,41 @@ describe('PdfEditPagesTool undo/redo', () => {
     expect(toolbarButton('Undo').disabled).toBe(true);
     expect(toolbarButton('Redo').disabled).toBe(false);
   });
+
+  // The shared hook Sign and Redact use (src/lib/history/useHistoryShortcuts.js)
+  // is wired here too, so this tool gets the same two shortcuts. Shift+Cmd+Z
+  // must redo rather than undo a second time.
+  it('Cmd+Z undoes and Shift+Cmd+Z redoes', async () => {
+    await loadPdf();
+
+    await act(async () => {
+      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(90deg)');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(0deg)');
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(90deg)');
+  });
+
+  it('leaves the shortcuts alone while focus is in an input', async () => {
+    await loadPdf();
+
+    await act(async () => {
+      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    const checkbox = container.querySelector('input[type="checkbox"]');
+    checkbox.focus();
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, bubbles: true }));
+    });
+    expect(thumbTransform(1)).toContain('rotate(90deg)');
+  });
 });

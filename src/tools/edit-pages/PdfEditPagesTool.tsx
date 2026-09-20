@@ -3,6 +3,7 @@ import Sortable from 'sortablejs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from './editPages.js';
 import { useEditHistory } from './useEditHistory.js';
+import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -214,6 +215,12 @@ export default function PdfEditPagesTool() {
     resetOutput();
     setAnnouncement('Redid last change.');
   }, []);
+
+  // Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z, through the same hook Sign and Redact
+  // use. Both callbacks read the stacks through a ref, so they are stable and
+  // the listener is bound once. The hook stands down while focus is in an
+  // input, which here means the page-numbers checkbox.
+  useHistoryShortcuts(handleUndo, handleRedo);
 
   const handleApplyChanges = async () => {
     if (!file || removedPageNums.size === pages.length) return;
