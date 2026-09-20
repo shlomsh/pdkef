@@ -82,6 +82,22 @@ const QUOTED = /(['"`])([\s\S]*?)\1/g;
 const CODE_SHAPED = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
 /**
+ * WebKit puts a snippet of the SOURCE in its TypeErrors - `undefined is not a
+ * function (near '...')` - and that snippet is the single most useful token in
+ * the whole line. It is program text, not data, so it is safe; it just is not a
+ * bare dotted identifier, because it carries call and index syntax.
+ *
+ * The discriminator that actually matters is whitespace. A field label ("Student
+ * Social Security Number") and a line of a form ("Patient diagnosis: diabetes")
+ * have spaces; a code snippet does not. So a quoted run also survives when it is
+ * whitespace-free and made only of code punctuation. A single-token field name
+ * could still pass, which is the accepted cost of being able to diagnose a device
+ * we cannot reproduce; anything with a space in it, which is what a person's
+ * answers look like, cannot.
+ */
+const CODE_SNIPPET = /^[\w$.()[\]]{1,60}$/;
+
+/**
  * A filename keeps leaking through as a bare token once its path is gone
  * (`/home/me/tax return 2024.pdf` loses the path token and leaves `2024.pdf`).
  * Matched against real extensions rather than "a short dotted tail", because
@@ -122,7 +138,7 @@ export function describeFormDetectionFailure(error: unknown): string {
     .replace(/[^\x20-\x7E]/g, '')
     // Quoted runs first, whole: a label with spaces in it would otherwise
     // survive as several innocent-looking tokens.
-    .replace(QUOTED, (run, quote, inner) => (CODE_SHAPED.test(inner) ? run : `${quote}...${quote}`))
+    .replace(QUOTED, (run, quote, inner) => (CODE_SHAPED.test(inner) || CODE_SNIPPET.test(inner) ? run : `${quote}...${quote}`))
     .split(' ')
     .map((token) => (CONTENT_SHAPED.test(token) || FILE_SHAPED.test(token) ? '...' : token))
     .join(' ')

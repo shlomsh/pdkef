@@ -119,4 +119,18 @@ describe('describeFormDetectionFailure', () => {
     expect(line).not.toContain('.pdf');
     expect(line).not.toContain('2024');
   });
+
+  // The live iPhone report arrived as `TypeError: undefined is not a function
+  // (near '...')` - the snippet redacted by the rule above, which was the one
+  // token worth having. WebKit's `near` snippet is source text, so it stays.
+  it("keeps WebKit's source snippet, which is the token a device report exists for", () => {
+    expect(describeFormDetectionFailure(
+      new TypeError("undefined is not a function (near 'e.getOrInsertComputed(t)')"),
+    )).toBe("TypeError: undefined is not a function (near 'e.getOrInsertComputed(t)')");
+  });
+
+  it('still redacts a quoted run the moment it contains a space', () => {
+    const line = describeFormDetectionFailure(new TypeError("undefined is not a function (near 'Full Name field')"));
+    expect(line).not.toContain('Full Name');
+  });
 });
