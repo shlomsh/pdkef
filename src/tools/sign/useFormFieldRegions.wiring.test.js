@@ -30,6 +30,12 @@ import { describe, expect, it } from 'vitest';
  *
  * ARCH-24 removes the assembly, at which point this shrinks to one name. Until
  * then, this is the cheap check that the hook and the modules still agree.
+ *
+ * Plain `.js`, like every other test here that reads a file: `@types/node` is
+ * not a dependency and `tsconfig.json` declares no `types`, so a `.ts` file
+ * importing `node:fs` is three `astro check` errors. Adding the types package
+ * to satisfy one test would be a dependency-governance change to fix a file
+ * that never needed to be TypeScript.
  */
 
 const HOOK = path.resolve(
@@ -42,7 +48,11 @@ const HOOK = path.resolve(
  * in the hook, paired up: destructured names against the module each set comes
  * from, by position.
  */
-function importBindings(source: string): Array<{ specifier: string; names: string[] }> {
+/**
+ * @param {string} source
+ * @returns {Array<{specifier: string, names: string[]}>}
+ */
+function importBindings(source) {
   // Anchored from the `= await Promise.all([` backwards to its own `const [`,
   // not by one regex over the file: the hook has other array destructurings
   // (`const [, , , , e, f] = item.transform`) and a pattern loose enough to
