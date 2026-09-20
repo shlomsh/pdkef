@@ -62,6 +62,32 @@ true numbers. Three options, in the owner's gift:
 
 Everything below is deliberately independent of that choice.
 
+## Fixture decision: committing the originals was chosen, and is blocked here
+
+Shlomi chose option 1 - commit the two Hebrew originals - on 2026-09-20. **It could not be done from
+this environment.** The session's egress policy denies the public web at the gateway: `www.gov.il`,
+and equally `irs.gov`, `gov.uk`, `incometax.gov.in` and `example.com`, all answer
+`403 CONNECT tunnel failed`; only GitHub/npm/PyPI-style hosts are allowed, and the proxy README says
+not to route around it. So the files have to arrive another way - added to the repo directly, or
+this environment's network policy widened
+(https://code.claude.com/docs/en/claude-code-on-the-web).
+
+The recorded originals, for whoever fetches them:
+
+| form | sha256 | url |
+| --- | --- | --- |
+| itc101 | `a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad` | https://www.gov.il/BlobFolder/service/itc101/he/Service_Pages_Income_tax_annual-report-2024_itc101.pdf |
+| health | `ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53` | https://www.gov.il/BlobFolder/service/issue_firearms_license_to_a_private_individual/he/services_health-declaration-2021.pdf |
+
+Everything needed to land them the moment they exist is in place. Drop each file in, point its
+`baselines.json` row at it, and run `node scripts/score-form.mjs --all`: it verifies the sha256
+against the truth file, checks the page size, prints the new numbers and the row to paste. The
+derivative note disappears on its own once the committed file *is* the annotated original, which is
+the signal that these scores finally describe the real forms.
+
+Expect both to move: itc101's 62 checkbox targets should come back (the text layer carries their
+glyphs) and health's precision should return toward 94.2%.
+
 ## Scope
 
 - [ ] **One shared pipeline.** `corpus.test.js` re-implements what `useFormFieldRegions.ts` does;

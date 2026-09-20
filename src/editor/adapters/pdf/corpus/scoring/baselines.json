@@ -10,7 +10,14 @@
       "note": "Self-labelling: the nine AcroForm widgets are the truth, exact to the point. The one miss is the signature field, which collectTextFieldWidgets does not read by design (MOBI-11) - so this form reports a real scope line rather than a flattering 100%.",
       "recall": 88.9,
       "precision": 88.9,
-      "byKind": { "text": 100, "comb": 100, "checkbox": 100, "date": 100, "signature": 0 }
+      "byKind": {
+        "text": 100,
+        "comb": 100,
+        "checkbox": 100,
+        "date": 100,
+        "signature": 0
+      },
+      "sha256": "95ab7e747d3a7796571326248252a342210b7001ec1d1832f2b2c28a4b626992"
     },
     "health": {
       "pdf": "src/editor/adapters/pdf/__fixtures__/health-declaration-page1-geometry.pdf",
@@ -18,7 +25,16 @@
       "note": "Recall reproduces the spike's recorded 86.7% exactly. Precision is 80.2% here against a recorded 94.2% because this fixture is geometry-only: with no text layer, formCells' own-text filter never fires and the explanatory cells it would drop stay as false positives. 80.2% is the spike's own pre-fix number, which is the tell. See MOBI-13's fixture decision.",
       "recall": 86.7,
       "precision": 80.2,
-      "byKind": { "text": 66.6, "comb": 66.6, "radio": 100, "date": 0, "signature": 0 }
+      "byKind": {
+        "text": 66.6,
+        "comb": 66.6,
+        "radio": 100,
+        "date": 0,
+        "signature": 0
+      },
+      "sha256": "9f0eef41ea14bd44c002d6d8da4f5b0b195f57a08f5a42c9cbe4e8c817fcc23b",
+      "derivedFrom": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53",
+      "derived": "geometry-only reduction of the annotated original; see note"
     },
     "itc101": {
       "pdf": "src/editor/adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf",
@@ -26,7 +42,16 @@
       "note": "42.4% against a recorded 69.1%, and the whole gap is this fixture: collectCheckboxGlyphs reads checkbox glyphs from the text layer, which the geometry-only reduction removed, so all 62 checkbox targets miss where 36 were found before. 36/139 is ~26 points. See MOBI-13's fixture decision.",
       "recall": 42.4,
       "precision": 79.7,
-      "byKind": { "comb": 100, "text": 53.3, "date": 95.8, "checkbox": 0, "signature": 0 }
+      "byKind": {
+        "comb": 100,
+        "text": 53.3,
+        "date": 95.8,
+        "checkbox": 0,
+        "signature": 0
+      },
+      "sha256": "3c7dc0b26da75cf4e9b656ef538885b63ca95637873a5622ca66e1e7c5b57ebc",
+      "derivedFrom": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad",
+      "derived": "geometry-only reduction of the annotated original; see note"
     }
   }
 }

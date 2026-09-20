@@ -171,9 +171,17 @@ No new test code; a row and a file.
    measures nothing.
    If the form is a live AcroForm, skip all of this - its widgets *are* the truth, and
    `scripts/generate-practice-form-truth.mjs` shows how to derive it exactly.
-3. **Record the baseline.** Run the suite, read the printed row, put those numbers in
-   `baselines.json` with a note saying anything odd about them.
+3. **Record the baseline.** `node scripts/score-form.mjs --pdf <file> --truth <truth.json>` prints
+   the row to paste, the per-kind breakdown and what it missed. Read the numbers before you write
+   them down. `--all` re-scores every form and exits non-zero on a drop.
 4. That is the whole loop. From then on every run proves the form still works and says how well.
+
+**Two identities, kept apart.** A truth file's `sha256` is the document somebody *annotated*; a
+baselines row's `sha256` is the document we *committed and score*. `score-form.mjs` fails hard when
+the committed file stops matching its recorded hash - a baseline describes a document, not a
+filename - and prints a loud note when the two differ, which today they do for both Hebrew forms
+because those are committed as geometry-only reductions of the originals. A number measured against
+a derivative is still useful; silently believing it describes the real form is not.
 
 ## What the corpus is not
 
