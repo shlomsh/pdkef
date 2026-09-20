@@ -1597,6 +1597,58 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts()).toHaveLength(0);
       expect(announcementRegion().textContent).not.toContain('Redid');
     });
+
+    // Review finding: undoLast reads actionHistory[0]/elements from render
+    // scope, and applyRevert's setElements call is a plain value rather than
+    // a functional update. Two undo keydowns landing in the same task
+    // (ordinary key auto-repeat, no re-render between them) therefore revert
+    // the *same* top entry twice: idempotent for elements/actionHistory, but
+    // the functional `setRedoHistory(prev => [...entries, ...prev])` push
+    // runs twice against the same `entries`, leaving redoHistory holding the
+    // same entry object twice. Redoing twice then unshifts that one entry
+    // onto actionHistory twice too, so two rows end up sharing an id.
+    it('two undo keydowns in one task are two distinct undos, not the same one twice', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      // Both keydowns dispatched with no `await` between them, inside a
+      // single act() call, so Preact gets no chance to re-render (and thus
+      // no chance to give the second handler invocation an up-to-date
+      // closure) between the two - the same gap ordinary key auto-repeat
+      // exploits.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+
+      // Two real undos remove both boxes. A stale-closure bug that reverts
+      // the same (newest) entry twice would leave box A behind instead.
+      expect(boxLefts()).toEqual([]);
+
+      await pressRedoShortcut();
+      await pressRedoShortcut();
+
+      // Two real redos bring both boxes back, once each.
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      // The list is keyed by action.id (UndoHistoryModal.tsx) - a duplicated
+      // entry shows up as an extra row sharing another row's id, and checking
+      // one of a duplicate pair checks both (undoSelection is a Set of ids).
+      const dialog = await openUndoHistoryModal();
+      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      expect(checkboxes).toHaveLength(2);
+
+      await act(async () => {
+        checkboxes[0].checked = true;
+        checkboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      expect(checkboxes[0].checked).toBe(true);
+      expect(checkboxes[1].checked).toBe(false);
+    });
   });
 
   // Design-review finding #5: the Download control never said what it would
