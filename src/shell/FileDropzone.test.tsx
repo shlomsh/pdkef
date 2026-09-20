@@ -141,7 +141,14 @@ describe('FileDropzone', () => {
     // a second open could overwrite. Replaces the old "resumes the active
     // draft instead of asking to replace it" test, which existed only to
     // prove the since-removed same-file dialog shortcut.
-    it('opens a recent file straight away: no dialog, and its pointer is set before the hand-off', async () => {
+    // Reopening your own document must restore your work, so a recent tile
+    // points the tool at the entry and lets it restore - it does NOT hand the
+    // file off. A hand-off means "a file the person just dropped", and
+    // useEditorDraftPersistence opens one with empty elements and skips the
+    // restore branch entirely, which silently threw the work away (reported
+    // 2026-09-20). The end-to-end proof is
+    // e2e/home/recent-tile-restores-work.spec.js; this pins the mechanism.
+    it('opens a recent file by pointer alone, never through the hand-off that discards work', async () => {
       readRecentFiles.mockReturnValue([{
         id: 'sha256:active', tool: 'sign', fileName: 'contract.pdf', savedAt: Date.now(),
       }]);
@@ -158,17 +165,16 @@ describe('FileDropzone', () => {
 
       expect(container.querySelector('dialog')).toBeNull();
       expect(setCurrentEntry).toHaveBeenCalledWith('sign', 'sha256:active');
-      expect(saveHandoff).toHaveBeenCalledTimes(1);
-      expect(saveHandoff.mock.calls[0][0]).toBe('sign');
+      expect(saveHandoff).not.toHaveBeenCalled();
     });
 
     // MEM-01 folded Merge's entry into the same recency index every other
     // tool's work lives in, so a saved Merge set is an ordinary row from
-    // readRecentFiles() now (replacing the old readDraftMeta('merge') prepend
-    // and its by-id dedupe, both removed). What stays Merge-specific is how
-    // opening one resumes: a file set plus a page plan cannot go through
-    // saveHandoff's single-file contract, so this is pointer-only.
-    it('opens a saved merge set by pointer alone, skipping the single-file hand-off path', async () => {
+    // readRecentFiles() now. Merge reached the pointer-only path first, because
+    // a file set plus a page plan cannot go through saveHandoff's single-file
+    // contract; every tool takes it now, for the reason above. What stays
+    // Merge-specific is that it never needs to read the entry's bytes at all.
+    it('opens a saved merge set by pointer alone, without even reading its bytes', async () => {
       readRecentFiles.mockReturnValue([{
         id: 'sha256:merge-set', tool: 'merge', fileName: 'invoice + 2 more', savedAt: Date.now() - 60_000, pageCount: 7,
       }]);
