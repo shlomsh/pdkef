@@ -21,7 +21,10 @@ import { createPageGeometry } from '../../../geometry/coords.ts';
  * carries, and the geometry this measures does not read text at all. The cost
  * is real and measured: on the health declaration, `[]` gives 80.2% precision
  * where real text runs give 94.2% (`docs/mobi-10-field-map-spike.md`). A
- * caller with text in hand should pass it.
+ * caller with text in hand should pass it, and the scored corpus
+ * (`scoring/score.js`) opens the file with pdf.js to do exactly that: it
+ * measures the shipped pipeline, where this isolates a geometry rule. That
+ * 80.2% was read as fixture damage for a while. It was this default. MOBI-13.
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex

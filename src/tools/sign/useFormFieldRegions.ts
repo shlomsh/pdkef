@@ -59,26 +59,17 @@ export interface FormFieldRegions {
 
 const NONE: FormFieldRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] };
 
-/** pdf.js text items, converted through the one page-coordinate transform
- * (`toPagePercentBox`) into `formCells.js`'s page-percent `PageTextRun` shape.
- * `TextMarkedContent` entries (no `str`/`transform` of their own - marked-
- * content operators, not glyph runs) are skipped, same as a blank run. */
+/** The page's own text runs, in `formCells.js`'s page-percent shape. Only the
+ * opening of the document differs between this caller and the scored corpus,
+ * so the conversion itself lives in `textRuns.js` and both perform the
+ * identical one - see its docstring for why that matters to a measurement. */
 async function pageTextRuns(
   pdfjsPage: PDFPageProxy,
   geometry: PageGeometry,
-  toPagePercentBox: (geometry: PageGeometry, box: { x0: number; y0: number; x1: number; y1: number }) => PercentBox,
+  convert: (items: object[], geometry: PageGeometry) => Array<{ str: string } & PercentBox>,
 ) {
   const { items } = await pdfjsPage.getTextContent();
-  // A single inline callback, not filter().map(): 'str' in item narrows the
-  // TextItem | TextMarkedContent union for the rest of this function body,
-  // which a separate filter predicate and map callback cannot share without
-  // TextItem itself being part of pdfjs-dist's public type export.
-  return items.flatMap((item) => {
-    if (!('str' in item) || !item.str.trim()) return [];
-    const [, , , , e, f] = item.transform;
-    const box = toPagePercentBox(geometry, { x0: e, y0: f, x1: e + item.width, y1: f + item.height });
-    return [{ str: item.str, ...box }];
-  });
+  return convert(items, geometry);
 }
 
 export default function useFormFieldRegions(
@@ -104,7 +95,8 @@ export default function useFormFieldRegions(
           { collectPageInk, pageCropBox },
           { detectCellCandidates },
           { reconcileFields, withWidgetFields },
-          { createPageGeometry, toPagePercentBox },
+          { createPageGeometry },
+          { toPageTextRuns },
           { detectWidgetRegions },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
@@ -113,6 +105,7 @@ export default function useFormFieldRegions(
           import('../../editor/adapters/pdf/formCells.js'),
           import('../../editor/adapters/pdf/fieldRegions.js'),
           import('../../editor/geometry/coords.ts'),
+          import('../../editor/adapters/pdf/textRuns.js'),
           import('../../editor/adapters/pdf/formWidgets.js'),
         ]);
         const document = await PDFDocument.load(bytes.slice(0), {
@@ -137,7 +130,7 @@ export default function useFormFieldRegions(
           const ink = collectPageInk(pdfLibPage);
           const pdfjsPage = await pdfDocument.getPage(pageIndex + 1);
           if (!current) return;
-          const textItems = await pageTextRuns(pdfjsPage, geometry, toPagePercentBox);
+          const textItems = await pageTextRuns(pdfjsPage, geometry, toPageTextRuns);
           if (!current) return;
           found.pageDirections[pageIndex] = dominantTextDirection(textItems.map((item) => item.str));
           // The ink walk first, then whatever the page's own `/Tx` widgets

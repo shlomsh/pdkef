@@ -19,6 +19,7 @@ corpus/
     score.js       a form + its truth -> recall, precision, per-kind recall.
     baselines.json what we get today. A ratchet. Edit deliberately, say why.
     ground-truth/  one reviewed file per scored form.
+    forms/         the scored documents themselves, as issued.
     scoring.test.js the scored runner. Also case-agnostic.
 ```
 
@@ -127,6 +128,10 @@ and only a file somebody was actually sent proves the rules hold together:
 | `__fixtures__/income-tax-101-page1-geometry.pdf` | a dense flat form, no widgets at all |
 | `__fixtures__/health-declaration-page1-geometry.pdf` | the other scored flat form, whose checkboxes are painted rects rather than paths |
 
+The two `__fixtures__` reductions stay: the element corpus asserts against them and the comb e2e
+tests were built on them. They are no longer what the *scored* corpus reads - that is
+`scoring/forms/`, the originals - so a change to one does not silently move the other's numbers.
+
 The two flat forms carry no widget, which is what makes the widget pass a provable no-op on them -
 and therefore what lets the recall and precision numbers in `docs/mobi-10-field-map-spike.md` stand
 unchanged since the widget source was added. The corpus asserts that directly.
@@ -142,15 +147,29 @@ exists to prevent.
 | Form | targets | recall | precision | |
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
-| `health` | 75 | 86.7% | 80.2% | Hebrew, flat |
-| `itc101` | 139 | 42.4% | 79.7% | Hebrew, flat, dense |
+| `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
+| `itc101` | 139 | 69.1% | 91.4% | Hebrew, flat, dense |
 
-**Read those two Hebrew numbers with the caveat in `baselines.json`.** Both fixtures are
-geometry-only reductions built for the comb e2e tests, so the text layer is gone: `itc101` loses all
-62 checkbox targets because `collectCheckboxGlyphs` reads glyphs from that layer, and `health`
-precision sits at the spike's *pre-fix* 80.2% because `formCells`' own-text filter never fires. The
-recorded numbers on real source PDFs are 69.1%/91.4% and 86.7%/94.2%. MOBI-13 holds the decision
-about what artifact we commit to close that.
+**Those are the real forms now** (MOBI-13, 2026-09-20). Both Hebrew rows used to point at the
+geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%; the
+originals are committed in `scoring/forms/` and the numbers reproduce the MOBI-10 spike's recorded
+figures exactly, on both forms, to the decimal.
+
+Getting there took two fixes, not one, and the second was hidden behind the first:
+
+- **The text layer had to be in the file.** `collectCheckboxGlyphs` reads checkbox glyphs straight
+  off the content stream, so the reduction cost `itc101` all 62 of its checkbox targets. Committing
+  the original brought 36 of them back (the other 26 are drawn squares - the standing `known gap`).
+- **And something has to read it.** `health` did not move at all when its original landed, because
+  `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
+  and which `detect.js` deliberately does not run. The fixture was never that number's cause. The
+  scored corpus now does its own pdf.js pass (`score.js`), because the product does one and a score
+  of a pipeline we do not ship is not a measurement. That is what moved `health` 80.2% -> 94.2% and
+  `itc101` 87.2% -> 91.4%.
+
+The element corpus beside it still runs without text, on purpose, for the reasons in `detect.js`.
+The two corpora want different things: one isolates a geometry rule, the other measures the shipped
+pipeline.
 
 Per-kind recall is ratcheted too, not just the whole-form number. A form's overall recall can hold
 while one kind collapses and another improves - that trade is exactly what a single number hides.
@@ -179,9 +198,11 @@ No new test code; a row and a file.
 **Two identities, kept apart.** A truth file's `sha256` is the document somebody *annotated*; a
 baselines row's `sha256` is the document we *committed and score*. `score-form.mjs` fails hard when
 the committed file stops matching its recorded hash - a baseline describes a document, not a
-filename - and prints a loud note when the two differ, which today they do for both Hebrew forms
-because those are committed as geometry-only reductions of the originals. A number measured against
-a derivative is still useful; silently believing it describes the real form is not.
+filename - and prints a loud note when the two differ. Every scored form now matches its own truth
+file, so no run should print that note; if one starts to, the committed file is not the annotated
+document and the number has quietly stopped describing the form. A score measured against a
+derivative is still useful, but silently believing it describes the real form is how `health` spent
+a day being blamed on its fixture.
 
 ## What the corpus is not
 
