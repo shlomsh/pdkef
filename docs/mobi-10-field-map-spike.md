@@ -105,9 +105,12 @@ cell that was built and kept (`t003`, `t004`, `t005`, `t033`, `t120`, `t121`), a
 undivided private-address row whose single cell `reconcileFields` drops because the postcode comb
 is 60% contained in it (`t013`, `t014`, `t015`).
 
-**Two caveats on reading the row above.** First, `score-form.mjs --all` cannot see any of it: the
-scored corpus runs geometry-only fixtures with no text layer, so no carve happens and every
-baseline is byte-identical. The gain is real and the ratchet is blind to it. Second, publishing
+**Two caveats on reading the row above.** First, on the day it was measured `score-form.mjs --all`
+could not see any of it: the scored corpus ran geometry-only fixtures with no text layer, so no
+carve happened and every baseline was byte-identical. That changed the same day - the scored
+corpus now runs the real forms (MOBI-13), `baselines.json` records these numbers directly, and a
+text-dependent change is ratcheted like any other. Read any pre-2026-09-20 fixture number with
+that in mind. Second, publishing
 the strip unconditionally is a **wash** (82.0%/92.7%, five false positives become true positives
 and five true positives become false positives); only the caption-band carve is published, and the
 reasoning is in `formCells.js`'s "What a cell candidate's bounds are".

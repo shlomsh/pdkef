@@ -109,11 +109,13 @@ its own look: the private-address row is undivided, one wide cell is built for i
 A row-band fix (a horizontal rule should divide only the x-range it actually covers; today a
 left-column rule splits the children table) recovers all 12 of the class-7 targets and takes form
 101 to **94.2% recall / 95.6% precision**, checkbox recall 100%. It is written and measured but
-**not landed**, because on the text-free scored fixtures it drops two ratcheted precision floors
-(health 80.2 -> 60.7, itc101 83.7 -> 77.4) and the owner declined to lower them. Those fixtures
-measure the absence of a text layer rather than the detector; MOBI-13 owns the artifact decision
-that would make the measurement honest, and a branch scoring the real Hebrew forms was in flight
-on 2026-09-20. Re-measure after that lands before proposing a ratchet edit.
+**not landed** as of this entry. The reason it was held no longer applies and the next step is to
+re-measure, not to re-argue: it dropped two ratcheted precision floors (health 80.2 -> 60.7,
+itc101 83.7 -> 77.4) that were measured on text-free fixtures, and the owner rightly declined to
+lower them. MOBI-13 then landed the real forms into the scored corpus the same day, so those
+floors are now real-form numbers (health 94.2, itc101 96.7) and the fixture artefact is gone.
+**Re-run the band fix against the current baselines before proposing any ratchet edit**; on the
+real PDFs it cost health only 94.2 -> 90.3 before its own regression fix, and nothing after.
 
 **Labels are the remaining gate gap**: 83.2% against 85, with recall and precision both clear.
 Nothing done here attacks label association; it needs work on `headerAbove` / `fieldLabels.js`.
