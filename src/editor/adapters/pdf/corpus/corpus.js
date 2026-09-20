@@ -283,6 +283,29 @@ const HYBRID = [
     },
     expect: { ...none, checkboxes: 1 },
   },
+  // The row below pins the cell-side claim test: `reconcileFields` drops a
+  // printed cell something else has already reported. What it cannot reach is
+  // *which rectangle* that question is asked of. Since "Ask the claim question
+  // of the cell's printed box, not its writing strip" a cell's bounds are the
+  // blank strip and the printed box rides along as `enclosure` - but a cell
+  // only carves a strip when it has its own printed text inside it, and this
+  // runner passes none (README, "Two things to know"), so every cell here
+  // publishes its whole box and carries no `enclosure` at all. The strip half
+  // is proven where text exists: formCells.test.js's "the bounds are the
+  // writing strip, not the ruled box" block for the carve, fieldRegions.test.js
+  // for the claim question asked of the box, and the real-PDF numbers in
+  // docs/mobi-10-field-map-spike.md for what either is worth on a page.
+  {
+    name: 'a checkbox widget inside a printed ruled cell',
+    why: 'one rectangle, one region: the cell around a checkbox already reported is not offered '
+      + 'as a text field as well, or the middle of the row carries two hints. The two cells of '
+      + 'the same row that hold nothing must survive it',
+    doc: {
+      ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }],
+      widgets: [{ widget: 'checkbox', x: 74, y: 204, width: 12, height: 12 }],
+    },
+    expect: { ...none, cells: 2, checkboxes: 1 },
+  },
   {
     name: 'a widget and printed ink in different places',
     why: 'the sources add up when they are not the same field - the whole reason for two of them',
@@ -340,6 +363,24 @@ const KNOWN_GAPS = [
       + '(docs/mobi-10-field-map-spike.md). Fixing it should flip this row to 1.',
     doc: { ink: [{ ink: 'rect', ...SQUARE }] },
     expect: none,
+  },
+  {
+    name: 'a painted checkbox square inside a printed ruled cell',
+    why: 'the same page as "a checkbox widget inside a printed ruled cell", painted instead of '
+      + 'declared, and the row loses all three of its cells rather than the one holding the '
+      + 'square. A painted rect publishes its own top and bottom as horizontal rules '
+      + '(horizontalRulesAll), and buildClosedCells walks adjacent rules only: the square cuts '
+      + 'the 20pt band into 4/12/4, two of those are under MIN_ROW_HEIGHT, and the 12pt one '
+      + 'fails CLOSED_EDGE_COVERAGE because the square rules 12pt of an 80pt cell. So the '
+      + 'square still surfaces exactly once, but through geometry the claim test never gets '
+      + 'to see. Fixing it should make this row read cells: 2, the same as its widget twin.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 },
+        { ink: 'paintedRect', x: 74, y: 204, width: 12, height: 12 },
+      ],
+    },
+    expect: { ...none, checkboxes: 1 },
   },
   {
     name: 'a signature field',
