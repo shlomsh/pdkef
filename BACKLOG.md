@@ -52,6 +52,7 @@ _None._
 | --- | --- | --- |
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
+| MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 
 ### Blocked
 
