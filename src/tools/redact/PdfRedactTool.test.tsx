@@ -1424,6 +1424,181 @@ describe('PdfRedactTool UI flow', () => {
     });
   });
 
+  // Redo (UNDO-REDO): shares actionHistory.ts/historyStack.ts with the Sign
+  // tool, wired through applyRevert's explicit push-or-clear redoBehavior.
+  // RedactBox never puts an element's id on its own DOM node, so these use
+  // each box's distinct `style.left` (set from drawBox's own down/move
+  // coordinates) as a stand-in for identity and stacking order - the same
+  // proxy the resize-invariant tests above already read box geometry through.
+  describe('undo/redo history', () => {
+    const boxLefts = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`))
+      .map((box) => parseFloat(box.style.left));
+
+    async function pressUndoShortcut(): Promise<void> {
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+    }
+
+    async function pressRedoShortcut(): Promise<void> {
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+    }
+
+    function announcementRegion(): HTMLElement {
+      return required(container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'sr-only announcement region');
+    }
+
+    async function openUndoHistoryModal(): Promise<HTMLElement> {
+      const undoChangesBtn = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((b) => b.title === 'Undo changes'),
+        'Undo changes button',
+      );
+      await act(async () => {
+        undoChangesBtn.click();
+      });
+      return required(container.querySelector<HTMLElement>('dialog[aria-labelledby="undo-dialog-title"]'), 'undo history dialog');
+    }
+
+    it('undo then redo restores a box at the same stacking position', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      await pressUndoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      expect(announcementRegion().textContent).toContain('Undid: Added blackout box');
+
+      await pressRedoShortcut();
+      // Box B comes back at the end of the stack, not spliced in ahead of A -
+      // the same order applyHistoryEntries' restoreSnapshots reconstructs from
+      // the entry's own captured index.
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+      expect(announcementRegion().textContent).toContain('Redid: Added blackout box');
+    });
+
+    it('a new command after an undo clears the future, so redo then does nothing', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      await pressUndoShortcut(); // undoes box B; redoHistory now holds it
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+
+      await armTool('Blackout');
+      await drawBox(drawArea, 70, 240, 240, 540); // box C: left ~14% - a new command
+
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 14]);
+
+      await pressRedoShortcut();
+      // logAction cleared the future when box C was logged, so nothing comes back.
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 14]);
+    });
+
+    it("the modal's selective revert clears the future", async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      await armTool('Blackout');
+      await drawBox(drawArea, 70, 240, 240, 540); // box C: left ~14%
+
+      await pressUndoShortcut(); // undoes box C; redoHistory now holds it
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      const dialog = await openUndoHistoryModal();
+      // actionHistory is newest-first: [box B's add, box A's add] (box C's
+      // entry left the list when it was undone above). Check the *older* of
+      // the two - a revert from the middle/bottom of what remains, not the
+      // top - and revert only it.
+      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      expect(checkboxes).toHaveLength(2);
+      const olderEntryCheckbox = checkboxes[1];
+      await act(async () => {
+        olderEntryCheckbox.checked = true;
+        olderEntryCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const revertButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
+        'Revert selected button',
+      );
+      await act(async () => {
+        revertButton.click();
+      });
+
+      // Box A (the older entry) is gone; box B survives.
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
+
+      await pressRedoShortcut();
+      // The selective revert cleared redoHistory, so box C does not return.
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
+    });
+
+    it('the undo chip clears the future rather than pushing onto it', async () => {
+      // This has to leave redoHistory genuinely non-empty *before* the chip is
+      // clicked, and the chip's own target entry still live in actionHistory
+      // at that moment (not stale), to actually distinguish 'clear' from
+      // 'push' - a chip fired against an already-empty future proves nothing.
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+
+      // Delete box A: a direct actionHistory push (deleteElement, not
+      // logAction) that registers the 5s undo chip targeting this exact entry.
+      const boxA = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => {
+        boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      await act(async () => {
+        deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(boxLefts()).toHaveLength(0);
+
+      // Draw box B and undo it. This is the one case applyRevert pushes onto
+      // redoHistory (undoLast, a genuine most-recent-command step), so the
+      // future is non-empty going into the chip click - the chip's own entry
+      // (deleting box A) is still sitting in actionHistory underneath it,
+      // untouched by this undo.
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      await pressUndoShortcut();
+      expect(boxLefts()).toHaveLength(0);
+
+      // Click the still-live chip: it reverts the delete-box-A entry, restoring A.
+      const undoButton = required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      await act(async () => {
+        undoButton.click();
+      });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+
+      // If the chip had pushed instead of cleared, redoHistory's new top would
+      // be the very delete-box-A entry just reverted, and this redo would
+      // immediately re-delete A. Clearing means this is a no-op: box A stays,
+      // and box B (the actual previous top of the future) does not reappear.
+      await pressRedoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+    });
+
+    it('redo with an empty future is a safe no-op', async () => {
+      await loadFileAndGetDrawArea();
+      expect(boxLefts()).toHaveLength(0);
+
+      await pressRedoShortcut();
+
+      expect(boxLefts()).toHaveLength(0);
+      expect(announcementRegion().textContent).not.toContain('Redid');
+    });
+  });
+
   // Design-review finding #5: the Download control never said what it would
   // produce, and the identity row's file name never hinted at the output
   // name either.

@@ -1,7 +1,8 @@
 import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
-import { revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
+import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
 import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
 
@@ -36,7 +37,8 @@ export type SignToolAction =
         startTopPercent: number;
       };
     }
-  | { type: 'UNDO' };
+  | { type: 'UNDO' }
+  | { type: 'REDO' };
 
 export interface SignToolState {
   selectedTool: SignToolType | null;
@@ -45,6 +47,10 @@ export interface SignToolState {
   activeElementId: string | null;
   editingElementId: string | null;
   actionHistory: ActionHistoryEntry<EditorElement>[];
+  /** UNDO-REDO: the undone-but-not-yet-redone commands, newest-undone-first
+   * (historyStack.ts's `future`). In-memory only, never persisted - a
+   * restored draft always starts with an empty redo stack. */
+  redoHistory: ActionHistoryEntry<EditorElement>[];
   /** Monotonic document version; exports must match the version they started with. */
   documentRevision: number;
   /** Revision captured when a file is opened/restored; later revisions are edits. */
@@ -81,6 +87,7 @@ const initialState: SignToolState = {
   // edit session - the two cannot drift apart.
   editingElementId: null,
   actionHistory: [],
+  redoHistory: [],
   documentRevision: 0,
   draftBaselineRevision: 0,
 };
@@ -98,6 +105,10 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         ...state,
         elements: action.payload.elements,
         actionHistory: action.payload.actionHistory,
+        // A freshly opened file or a restored draft has no redoable future:
+        // history is restored from the draft, but the future never is (it is
+        // in-memory only per historyStack.ts).
+        redoHistory: [],
         activeElementId: null,
         editingElementId: null,
         documentRevision,
@@ -187,16 +198,27 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         ...state,
         editingElementId: action.payload === state.activeElementId ? action.payload : null
       };
+    // Selective revert (handleRevertSelected): the caller has already
+    // computed the surviving actionHistory (an arbitrary checked set dropped
+    // out, not necessarily from the top - the same shape dropCommands
+    // produces, but the ids aren't available here to call it directly). A
+    // surviving redo could re-insert an element a later, not-reverted
+    // command's snapshot never accounted for, so the future is always
+    // cleared - see historyStack.ts's module doc comment.
     case 'SET_ACTION_HISTORY':
       return {
         ...state,
-        actionHistory: action.payload
+        actionHistory: action.payload,
+        redoHistory: []
       };
-    case 'ADD_ACTION_HISTORY':
+    case 'ADD_ACTION_HISTORY': {
+      const { past, future } = pushCommand(state.actionHistory, state.redoHistory, action.payload);
       return {
         ...state,
-        actionHistory: [action.payload, ...state.actionHistory]
+        actionHistory: past,
+        redoHistory: future
       };
+    }
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
       return {
@@ -208,16 +230,37 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
       };
     }
     case 'UNDO': {
-      if (state.actionHistory.length === 0) return state;
-      const lastAction = state.actionHistory[0];
-      const elements = revertHistoryEntries(state.elements, [lastAction]);
+      const step = undoStep(state.actionHistory, state.redoHistory);
+      if (!step) return state;
+      const elements = revertHistoryEntries(state.elements, [step.entry]);
       const activeSurvives = elements.some((element) => element.id === state.activeElementId);
       return {
         ...state,
         elements,
         activeElementId: activeSurvives ? state.activeElementId : null,
         editingElementId: activeSurvives ? state.editingElementId : null,
-        actionHistory: state.actionHistory.slice(1),
+        actionHistory: step.past,
+        redoHistory: step.future,
+        documentRevision: nextDocumentRevision(state),
+      };
+    }
+    // UNDO-REDO: the exact mirror of UNDO above. SIGN-14 made every edit,
+    // undo and replacement revoke a prepared share file and a running export
+    // by bumping documentRevision, so redo must bump it too - a redo that
+    // skipped this would let a stale export download against a changed
+    // document.
+    case 'REDO': {
+      const step = redoStep(state.actionHistory, state.redoHistory);
+      if (!step) return state;
+      const elements = applyHistoryEntries(state.elements, [step.entry]);
+      const activeSurvives = elements.some((element) => element.id === state.activeElementId);
+      return {
+        ...state,
+        elements,
+        activeElementId: activeSurvives ? state.activeElementId : null,
+        editingElementId: activeSurvives ? state.editingElementId : null,
+        actionHistory: step.past,
+        redoHistory: step.future,
         documentRevision: nextDocumentRevision(state),
       };
     }

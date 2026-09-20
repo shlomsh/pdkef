@@ -41,7 +41,7 @@ import {
   revertHistoryEntries,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { useUndoShortcut } from '../../editor-ui/hooks/useUndoShortcut.js';
+import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { getSignExportReadiness } from './signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
@@ -115,7 +115,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [sourceBytes, setSourceBytes] = useState<ArrayBuffer | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, documentRevision, draftBaselineRevision }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, documentRevision, draftBaselineRevision }, dispatch } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   // Export errors are recoverable without unmounting the editor. A failed
@@ -317,6 +317,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
     dispatch({ type: 'UNDO' });
+    // The undone action drops out of actionHistory (moves to redoHistory), so
+    // it also disappears from the UndoHistoryModal checklist that
+    // undoSelection tracks. Pruning it here keeps undoSelection a subset of
+    // what's actually visible/revertable; otherwise a ghost id could leave
+    // "Revert selected" enabled with nothing checked in view.
     setUndoSelection((currentSelection) => {
       if (!currentSelection.has(lastAction.id)) return currentSelection;
       const newSet = new Set(currentSelection);
@@ -325,7 +330,20 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     });
     setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
   };
-  useUndoShortcut(undoLast);
+
+  // Shift+Cmd/Ctrl+Z or Ctrl+Y: redo the single most recently undone action
+  // (see historyStack.ts). The exact mirror of undoLast above, except redo
+  // never needs the undoSelection prune: undoLast already dropped that id out
+  // of undoSelection when the action was undone, and redo can only bring back
+  // an action that isn't checked in the modal (nothing else can re-add an id
+  // to undoSelection other than checking a currently-visible row).
+  const redoLast = () => {
+    if (redoHistory.length === 0) return;
+    const nextAction = redoHistory[0];
+    dispatch({ type: 'REDO' });
+    setAnnouncement(formatMessage(t.redidActionTemplate, { description: nextAction.description }));
+  };
+  useHistoryShortcuts(undoLast, redoLast);
 
 
   // Load saved signatures from workspace preferences on mount.
@@ -1083,6 +1101,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}
+        onRedo={redoLast}
+        canRedo={redoHistory.length > 0}
+        redoDescription={redoHistory[0]?.description}
         messages={messages}
       />
 

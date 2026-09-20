@@ -693,18 +693,7 @@ export type { SignMessages };
  * plain `SignMessages`-typed value will need that base interface to gain the
  * field too.
  */
-export interface UndoHistoryMessages extends SignMessages {
-  redoButton: string;
-  redoTitle: string;
-  /** `formatMessage`-ready: "Redo: {description}", so the button's accessible
-   * name says what it would bring back rather than relying on a tooltip. */
-  redoDescriptionTemplate: string;
-  /** Sign's live-region announcement after Cmd/Ctrl+Shift+Z, the redo
-   * counterpart to `undidActionTemplate`. */
-  redidActionTemplate: string;
-}
-
-const englishSignMessages: UndoHistoryMessages = {
+const englishSignMessages: SignMessages = {
   toolbarLabel: 'PDF annotations',
   textButton: 'Text',
   dateButton: 'Date',
@@ -906,7 +895,7 @@ const englishSignMessages: UndoHistoryMessages = {
 // LOC-09 stage 1: an AI draft, not yet reviewed by a native speaker - the same
 // caveat hebrewMergeMessages and hebrewCompressMessages above carry. Pending
 // Shlomi's read-through.
-const hebrewSignMessages: UndoHistoryMessages = {
+const hebrewSignMessages: SignMessages = {
   toolbarLabel: 'הערות PDF',
   textButton: 'טקסט',
   dateButton: 'תאריך',
