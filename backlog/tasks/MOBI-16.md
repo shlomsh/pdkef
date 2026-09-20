@@ -54,6 +54,13 @@ rule anywhere that reduces this bar on a small screen**; the only coarse-pointer
 None of those twelve is wanted *while typing a form field*. Font and size are chosen once per
 document, not once per field.
 
+**Measured, on a phone viewport against a production build.** `.page-wrapper` is 358 px inside a
+440 px viewport, and the bar's cap is 340 px (the page width less Floating UI's 2x8 padding) - the
+same 340 px for a field at 11.5% across the page and one at 75.3%, so its width does not depend on
+where the field sits. Nine controls at that cap is two rows, 68 px tall. Under the page zoom iOS
+applies on focus it is three rows at 1.8x and five at 3x; that mechanism is MOBI-17, and it is the
+strongest argument for the one-row typing bar below.
+
 **A hazard to fix while we are in here.** `.element-button` is 28px visually with a 44px hit box
 added by `::before { inset: -8px }` under `@media (pointer: coarse)`
 (`EditorControls.module.css:2-12`). On a wrapped two-row bar the row pitch is 32px, so the two rows'
