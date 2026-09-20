@@ -9,10 +9,30 @@ Nx project `form-corpus`. Run it with `npx vitest run src/editor/adapters/pdf/co
 
 ```
 corpus/
+  detect.js      one page through the whole detector. The one copy the tests share.
   documents.js   a declarative spec -> a real PDF. Builds only, decides nothing.
-  corpus.js      the cases and their expectations. This is the file you edit.
-  corpus.test.js the runner. Case-agnostic on purpose; you should not need to touch it.
+  corpus.js      the element cases and their expectations. This is the file you edit.
+  corpus.test.js the element runner. Case-agnostic; you should not need to touch it.
+  scoring/
+    match.js       IoU matching, lifted from the MOBI-10 spike. One home, two callers.
+    candidates.js  detector regions -> the spike's CandidateField contract.
+    score.js       a form + its truth -> recall, precision, per-kind recall.
+    baselines.json what we get today. A ratchet. Edit deliberately, say why.
+    ground-truth/  one reviewed file per scored form.
+    scoring.test.js the scored runner. Also case-agnostic.
 ```
+
+There are **two corpora and they answer different questions.** Keep them straight:
+
+| | Element corpus | Scored corpus |
+| --- | --- | --- |
+| Question | does this element still behave the way we decided? | how much of a real form do we find, and is it getting worse? |
+| Cases | synthetic, one element each | whole real forms with reviewed ground truth |
+| Verdict | pass / fail per behaviour | recall and precision, ratcheted |
+| Catches | a change that makes the detector greedier or blinder on one shape | a change that costs twenty points on a real page |
+
+Neither substitutes for the other. A green element corpus told us nothing when detection was dead
+on every document (MOBI-11 step 3d); a scored corpus would have said 0%.
 
 ## The paradigm
 
@@ -110,6 +130,50 @@ and only a file somebody was actually sent proves the rules hold together:
 The two flat forms carry no widget, which is what makes the widget pass a provable no-op on them -
 and therefore what lets the recall and precision numbers in `docs/mobi-10-field-map-spike.md` stand
 unchanged since the widget source was added. The corpus asserts that directly.
+
+## The scored corpus
+
+`scoring/` measures the detector against whole real forms, every run, and fails when a number drops.
+`baselines.json` is the ratchet: it records what we get today, and these only ever go **down** by a
+deliberate edit that says why. A number going up is free and should be re-recorded in the change
+that earned it - otherwise the next change gets to lose it silently, which is the exact failure this
+exists to prevent.
+
+| Form | targets | recall | precision | |
+| --- | --- | --- | --- | --- |
+| `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
+| `health` | 75 | 86.7% | 80.2% | Hebrew, flat |
+| `itc101` | 139 | 42.4% | 79.7% | Hebrew, flat, dense |
+
+**Read those two Hebrew numbers with the caveat in `baselines.json`.** Both fixtures are
+geometry-only reductions built for the comb e2e tests, so the text layer is gone: `itc101` loses all
+62 checkbox targets because `collectCheckboxGlyphs` reads glyphs from that layer, and `health`
+precision sits at the spike's *pre-fix* 80.2% because `formCells`' own-text filter never fires. The
+recorded numbers on real source PDFs are 69.1%/91.4% and 86.7%/94.2%. MOBI-13 holds the decision
+about what artifact we commit to close that.
+
+Per-kind recall is ratcheted too, not just the whole-form number. A form's overall recall can hold
+while one kind collapses and another improves - that trade is exactly what a single number hides.
+
+### Adding a scored form
+
+No new test code; a row and a file.
+
+1. **Commit the document.** A PDF the repo may carry. If it must be reduced, reduce it for
+   *scoring* - keep text and glyphs, not only paths - or you will measure the reduction instead of
+   the detector.
+2. **Write its ground truth** into `scoring/ground-truth/<form>-page1.json`, in
+   `scripts/spike/mobi-10/CONTRACT.md`'s shape (bounds are page fractions, origin top-left).
+   A model can propose the targets from a render; a person checks them against
+   `scripts/spike/mobi-10/overlay.mjs`, which draws the boxes over the page so they can be eyeballed.
+   Annotate **what the form is**, not what we currently detect: a signature line is `signature` even
+   though we report it as text today. A truth file written to match our output scores 100% and
+   measures nothing.
+   If the form is a live AcroForm, skip all of this - its widgets *are* the truth, and
+   `scripts/generate-practice-form-truth.mjs` shows how to derive it exactly.
+3. **Record the baseline.** Run the suite, read the printed row, put those numbers in
+   `baselines.json` with a note saying anything odd about them.
+4. That is the whole loop. From then on every run proves the form still works and says how well.
 
 ## What the corpus is not
 

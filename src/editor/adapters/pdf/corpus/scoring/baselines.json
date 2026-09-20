@@ -1,0 +1,32 @@
+{
+  "_why": "Recorded recall and precision per scored form. A ratchet, like the CSS ones: these only ever go DOWN by a deliberate edit that says why in its commit message. A number going up is free and should be re-recorded in the same change that earned it, or the next change gets to lose it silently.",
+  "_measuredAt": "2026-09-20",
+  "_iou": 0.5,
+  "_readMe": "src/editor/adapters/pdf/corpus/README.md, section 'The scored corpus'. MOBI-13 has the programme and the one decision still open.",
+  "forms": {
+    "pdkef-practice-form": {
+      "pdf": "public/images/redaction-guide/sample.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/practice-form-page1.json",
+      "note": "Self-labelling: the nine AcroForm widgets are the truth, exact to the point. The one miss is the signature field, which collectTextFieldWidgets does not read by design (MOBI-11) - so this form reports a real scope line rather than a flattering 100%.",
+      "recall": 88.9,
+      "precision": 88.9,
+      "byKind": { "text": 100, "comb": 100, "checkbox": 100, "date": 100, "signature": 0 }
+    },
+    "health": {
+      "pdf": "src/editor/adapters/pdf/__fixtures__/health-declaration-page1-geometry.pdf",
+      "truth": "scripts/spike/mobi-10/ground-truth/health-page1.json",
+      "note": "Recall reproduces the spike's recorded 86.7% exactly. Precision is 80.2% here against a recorded 94.2% because this fixture is geometry-only: with no text layer, formCells' own-text filter never fires and the explanatory cells it would drop stay as false positives. 80.2% is the spike's own pre-fix number, which is the tell. See MOBI-13's fixture decision.",
+      "recall": 86.7,
+      "precision": 80.2,
+      "byKind": { "text": 66.6, "comb": 66.6, "radio": 100, "date": 0, "signature": 0 }
+    },
+    "itc101": {
+      "pdf": "src/editor/adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf",
+      "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
+      "note": "42.4% against a recorded 69.1%, and the whole gap is this fixture: collectCheckboxGlyphs reads checkbox glyphs from the text layer, which the geometry-only reduction removed, so all 62 checkbox targets miss where 36 were found before. 36/139 is ~26 points. See MOBI-13's fixture decision.",
+      "recall": 42.4,
+      "precision": 79.7,
+      "byKind": { "comb": 100, "text": 53.3, "date": 95.8, "checkbox": 0, "signature": 0 }
+    }
+  }
+}
