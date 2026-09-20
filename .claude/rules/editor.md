@@ -50,6 +50,13 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
   moved this off a standalone `ci.yml` grep step).
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
   `global.css` at zero editor selectors.
+- **Field detection is Sign-only and stays behind a dynamic `import()`.** Its five chunks
+  (`pageInk`, `formGrid`, `formCells`, `fieldRegions`, `formWidgets`) are PDF geometry and AcroForm
+  parsing that a Redact or Merge visitor has no use for, and `useFormFieldRegions.ts` is the only
+  thing that may reach them. A static import from any eagerly-loaded module puts all five into every
+  tool's first paint, and it would build and test clean; `npm run test:lazy-modules`
+  (`scripts/check-lazy-modules.js`, after `build`) walks the built graph per page and fails on it.
+  Measured: /redact/ and /merge/ cannot reach them at all.
 - **The form-field detector has a corpus, and a new element belongs in it**:
   `src/editor/adapters/pdf/corpus/` (Nx project `form-corpus`) is one row per form element - live
   AcroForm widgets, printed ink, hybrids of both, page geometry, and the known gaps - each built into

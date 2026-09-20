@@ -214,6 +214,11 @@ jobs:
     - name: Check first-load page weight
       run: npm run test:weight
 
+    # Field detection is Sign-only and behind a dynamic import; nothing in the
+    # language keeps it there, so this walks the built graph a page at a time.
+    - name: Check Sign-only modules stay out of every page's first paint
+      run: npm run test:lazy-modules
+
   # The product e2e suite, split into two shards so each pays roughly half
   # the Playwright wall time (QUAL-05). Every chromium spec except the font
   # guards (their own job below) and webkit/perf (their own job, `e2e-webkit`,
