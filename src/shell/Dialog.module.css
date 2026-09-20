@@ -1,7 +1,6 @@
 /* Dialog chrome shared by every modal in the app: the confirmations
-   (ConfirmDialog.jsx), the undo history list (UndoHistoryModal.jsx), the
-   signature builder (SignatureDialog.jsx) and the share button that borrows the
-   secondary-button look (PdfShareButton.jsx).
+   (ConfirmDialog.jsx), the signature builder (SignatureDialog.jsx) and the
+   share button that borrows the secondary-button look (PdfShareButton.jsx).
 
    These rules used to live in SignatureDialog.module.css, and everything else
    imported that file to get at them - one specific dialog's stylesheet acting as

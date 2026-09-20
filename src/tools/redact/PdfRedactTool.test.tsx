@@ -9,7 +9,6 @@ import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
-import undoHistoryStyles from '../../editor-ui/UndoHistoryModal.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
@@ -1301,8 +1300,8 @@ describe('PdfRedactTool UI flow', () => {
 
   // Design-review finding #3: deleteElement (a box's own X) and clearPage
   // ("Clear all redactions on this page") used to change `elements` with no
-  // live-region announcement and no way back short of Cmd/Ctrl+Z or the full
-  // "Undo changes" modal. Both now announce and surface a short-lived Undo
+  // live-region announcement and no way back short of Cmd/Ctrl+Z. Both now
+  // announce and surface a short-lived Undo
   // chip in the toolbar's status slot (RedactToolbar.tsx swaps EditorToolStatus
   // for it while one is pending), mirroring Merge's own undo chip.
   describe('delete and clear-page announce and offer an undo chip (finding #3)', () => {
@@ -1451,18 +1450,6 @@ describe('PdfRedactTool UI flow', () => {
       return required(container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'sr-only announcement region');
     }
 
-    async function openUndoHistoryModal(): Promise<HTMLElement> {
-      const undoChangesBtn = required(
-        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-          .find((b) => b.title === 'Change history'),
-        'Undo changes button',
-      );
-      await act(async () => {
-        undoChangesBtn.click();
-      });
-      return required(container.querySelector<HTMLElement>('dialog[aria-labelledby="undo-dialog-title"]'), 'undo history dialog');
-    }
-
     it('undo then redo restores a box at the same stacking position', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
@@ -1503,10 +1490,12 @@ describe('PdfRedactTool UI flow', () => {
     });
 
     // Undo and Redo are toolbar controls, one tap each, because a phone has
-    // no keyboard. They used to be one button that opened the checklist
+    // no keyboard. They used to be one button that opened a change-history
     // dialog, which meant there was no single-step undo on touch at all and
     // no way to reach Redo, since the dialog was the only place it lived.
-    it('Undo and Redo are one tap each on the toolbar, without opening any dialog', async () => {
+    // That dialog is gone: these two controls are the whole history model,
+    // and neither may go back to opening anything.
+    it('Undo and Redo are one tap each on the toolbar, and open no dialog', async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
       await armTool('Blackout');
@@ -1526,181 +1515,13 @@ describe('PdfRedactTool UI flow', () => {
 
       await act(async () => { undo.click(); });
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
-      // No dialog opened: the tap itself undid something.
-      expect(container.querySelector('dialog[aria-labelledby="undo-dialog-title"][open]')).toBeNull();
+      // No dialog opened: the tap itself undid something, and there is no
+      // history dialog left in this tool to open.
+      expect(container.querySelector('dialog[open]')).toBeNull();
 
       expect(toolbarButton('Redo').disabled).toBe(false);
       await act(async () => { toolbarButton('Redo').click(); });
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
-    });
-
-    // The reported journey: reverting from the dialog used to close it, so the
-    // list you were working through vanished after one tick - and back when
-    // this dialog held the only Redo control, it took redo off screen at the
-    // exact moment it became usable. Redo is on the toolbar now, but the
-    // dialog still has no business closing itself mid-revert.
-    it('stays open after a revert, and leaves a redo the toolbar can perform', async () => {
-      // jsdom implements neither showModal nor close. Stubbing them to move
-      // the real `open` attribute is what keeps this test honest: the
-      // component only calls close() when the dialog is actually open, so a
-      // stub that left `open` false would make the assertion below pass
-      // whatever the code did.
-      const closeSpy = vi.fn();
-      const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
-      const originals = { showModal: proto.showModal, close: proto.close };
-      proto.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute('open', ''); };
-      proto.close = function close(this: HTMLDialogElement) { closeSpy(); this.removeAttribute('open'); };
-
-      try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
-      await armTool('Blackout');
-      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
-
-      const dialog = await openUndoHistoryModal();
-      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-      expect(checkboxes).toHaveLength(2);
-      await act(async () => {
-        checkboxes[0].checked = true; // newest: box B
-        checkboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      const revertButton = required(
-        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
-        'Revert selected button',
-      );
-      await act(async () => {
-        revertButton.click();
-      });
-
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
-      // jsdom does not implement showModal/close, so the dialog's own `open`
-      // is not observable here. What matters is that nothing asked it to
-      // close: the component calls close() only when its `open` prop goes
-      // false, which is exactly the regression this test exists for.
-      expect((dialog as HTMLDialogElement).open).toBe(true);
-      expect(closeSpy).not.toHaveBeenCalled();
-
-      // Redo lives on the toolbar, which stays reachable behind the open
-      // dialog; the dialog itself offers no Redo any more (one model, one
-      // place for each action).
-      expect(Array.from(dialog.querySelectorAll<HTMLButtonElement>('button'))
-        .map((b) => b.textContent.trim())).not.toContain('Redo');
-      const redoButton = required(
-        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((b) => b.title === 'Redo'),
-        'toolbar Redo button',
-      );
-      expect(redoButton.disabled).toBe(false);
-      await act(async () => {
-        redoButton.click();
-      });
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
-      } finally {
-        proto.showModal = originals.showModal;
-        proto.close = originals.close;
-      }
-    });
-
-    it("the modal's selective revert clears the future", async () => {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
-      await armTool('Blackout');
-      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
-      await armTool('Blackout');
-      await drawBox(drawArea, 70, 240, 240, 540); // box C: left ~14%
-
-      await pressUndoShortcut(); // undoes box C; redoHistory now holds it
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
-
-      const dialog = await openUndoHistoryModal();
-      // actionHistory is newest-first: [box B's add, box A's add] (box C's
-      // entry left the list when it was undone above). Check the *older* of
-      // the two - a revert from the middle/bottom of what remains, not the
-      // top - and revert only it.
-      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-      expect(checkboxes).toHaveLength(2);
-      const olderEntryCheckbox = checkboxes[1];
-      await act(async () => {
-        olderEntryCheckbox.checked = true;
-        olderEntryCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      const revertButton = required(
-        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
-        'Revert selected button',
-      );
-      await act(async () => {
-        revertButton.click();
-      });
-
-      // Box A (the older entry) is gone; box B survives.
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
-
-      await pressRedoShortcut();
-      // The selective revert cleared redoHistory, so box C does not return.
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
-    });
-
-    // The reported bug, pinned at the panel level rather than just the state
-    // it renders from: a real undo must put a visible, undone-marked row
-    // above the divider (not make it vanish), a real redo must bring it back
-    // below, and a selective revert of a still-live entry must clear that
-    // undone row again - a panel showing a redo that no longer exists is
-    // exactly what this timeline replaced the old checklist to fix.
-    it('a real undo shows an undone row above the divider, and redo moves it back below', async () => {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
-      await armTool('Blackout');
-      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
-
-      const dialog = await openUndoHistoryModal();
-      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
-      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
-
-      await pressUndoShortcut(); // undoes box B; it should now render as an undone row
-      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).not.toBeNull();
-      const undoneRows = Array.from(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`));
-      expect(undoneRows).toHaveLength(1);
-      expect(undoneRows[0].textContent).toContain('Added blackout box');
-      expect(undoneRows[0].querySelector('input[type="checkbox"]')).toBeNull();
-
-      await pressRedoShortcut();
-      // Box B is applied again: the undone row and the divider are both gone.
-      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
-      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
-    });
-
-    it("a selective revert from below the divider clears the undone row above it", async () => {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
-      await armTool('Blackout');
-      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
-      await armTool('Blackout');
-      await drawBox(drawArea, 70, 240, 240, 540); // box C: left ~14%
-
-      await pressUndoShortcut(); // undoes box C; it should render as an undone row
-
-      const dialog = await openUndoHistoryModal();
-      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(1);
-
-      // Revert box A, the older of the two remaining applied (below-divider) entries.
-      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-      expect(checkboxes).toHaveLength(2);
-      const olderEntryCheckbox = checkboxes[1];
-      await act(async () => {
-        olderEntryCheckbox.checked = true;
-        olderEntryCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      const revertButton = required(
-        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
-        'Revert selected button',
-      );
-      await act(async () => {
-        revertButton.click();
-      });
-
-      // The bug this pins: box C's undone row must not still be showing a
-      // redo that revertCommands has already thrown away.
-      expect(dialog.querySelector(`.${undoHistoryStyles['undo-history-divider']}`)).toBeNull();
-      expect(dialog.querySelectorAll(`.${undoHistoryStyles['undo-history-item--undone']}`)).toHaveLength(0);
     });
 
     it('the undo chip keeps a redo when its command is still the newest', async () => {
@@ -1747,9 +1568,8 @@ describe('PdfRedactTool UI flow', () => {
       // delete-box-A entry as the newest command on the stack, so reverting it
       // is a plain undo and redo mirrors it: A is deleted again. That is what
       // redo means, and the alternative - refusing on the grounds that the
-      // chip targets by id - is what used to leave touch users with a Redo
-      // control that could never do anything, since the chip and the dialog
-      // are the only undos a phone has.
+      // chip targets by id - would leave the Redo control dead after every
+      // chip undo, which on touch is most of them.
       await pressRedoShortcut();
       expect(boxLefts()).toHaveLength(0);
 
@@ -1842,19 +1662,19 @@ describe('PdfRedactTool UI flow', () => {
       // Two real redos bring both boxes back, once each.
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
 
-      // The list is keyed by action.id (UndoHistoryModal.tsx) - a duplicated
-      // entry shows up as an extra row sharing another row's id, and checking
-      // one of a duplicate pair checks both (undoSelection is a Set of ids).
-      const dialog = await openUndoHistoryModal();
-      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
-      expect(checkboxes).toHaveLength(2);
-
-      await act(async () => {
-        checkboxes[0].checked = true;
-        checkboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
-      });
-      expect(checkboxes[0].checked).toBe(true);
-      expect(checkboxes[1].checked).toBe(false);
+      // And the stack really holds two distinct commands, not one entry
+      // twice: undoing twice more (separately, so no closure is stale) has
+      // to clear both boxes and leave nothing to undo. A duplicated entry
+      // would spend one of those undos re-reverting the same command and
+      // leave box A on the page with Undo already dead.
+      await pressUndoShortcut();
+      await pressUndoShortcut();
+      expect(boxLefts()).toEqual([]);
+      const undoControl = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === 'Undo'),
+        'toolbar Undo button',
+      );
+      expect(undoControl.disabled).toBe(true);
     });
   });
 

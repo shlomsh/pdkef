@@ -54,7 +54,6 @@ import {
   signFormDetectionUnavailable,
   vercelMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
-import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
@@ -126,8 +125,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [, setProgress] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [undoModalOpen, setUndoModalOpen] = useState(false);
-  const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
   const [signatureToDelete, setSignatureToDelete] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
@@ -255,24 +252,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setAnnouncement(t.editsChangedWhilePreparing);
   }, [file, documentRevision, clearPrepared]);
 
-  // Escape precedence while the undo history is open in full screen: close the
-  // modal FIRST, and only let a subsequent Escape exit full screen. Without this
-  // the browser's default Escape (exit fullscreen) and the dialog's own Escape
-  // race, and full screen tends to win. Capturing it here also stops the global
-  // tool/selection Escape handler firing on the same press. The confirmations
-  // handle this for themselves inside ConfirmDialog.
-  useEffect(() => {
-    if (!undoModalOpen) return;
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      setUndoModalOpen(false);
-    };
-    window.addEventListener('keydown', onEsc, { capture: true });
-    return () => window.removeEventListener('keydown', onEsc, { capture: true });
-  }, [undoModalOpen]);
-
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
@@ -298,47 +277,18 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     });
   };
 
-  const handleRevertSelected = () => {
-    const idsToRevert = Array.from(undoSelection);
-    if (idsToRevert.length === 0) return;
-    dispatch({ type: 'REVERT_COMMANDS', payload: { ids: idsToRevert } });
-    setUndoSelection(new Set());
-    // The dialog deliberately stays open. Reverting used to close it, so the
-    // list you were working through vanished after one tick - and while this
-    // dialog also held the only Redo control (before UNDO-03 put Undo and Redo
-    // on the toolbar), closing took redo off screen at the exact moment it
-    // became usable. The list updates in place and the person closes it when
-    // they are done.
-    setAnnouncement(t.revertedSelectedActions);
-  };
-
   // Cmd/Ctrl+Z, and the toolbar's Undo: undo the single most recently logged
   // action (see actionHistory.ts).
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
     dispatch({ type: 'UNDO' });
-    // The undone action drops out of actionHistory (moves to redoHistory), so
-    // it also disappears from the UndoHistoryModal checklist that
-    // undoSelection tracks. Pruning it here keeps undoSelection a subset of
-    // what's actually visible/revertable; otherwise a ghost id could leave
-    // "Revert selected" enabled with nothing checked in view.
-    setUndoSelection((currentSelection) => {
-      if (!currentSelection.has(lastAction.id)) return currentSelection;
-      const newSet = new Set(currentSelection);
-      newSet.delete(lastAction.id);
-      return newSet;
-    });
     setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
   };
 
   // Shift+Cmd/Ctrl+Z, Ctrl+Y, and the toolbar's Redo: redo the single most
-  // recently undone action
-  // (see historyStack.ts). The exact mirror of undoLast above, except redo
-  // never needs the undoSelection prune: undoLast already dropped that id out
-  // of undoSelection when the action was undone, and redo can only bring back
-  // an action that isn't checked in the modal (nothing else can re-add an id
-  // to undoSelection other than checking a currently-visible row).
+  // recently undone action (see historyStack.ts). The exact mirror of
+  // undoLast above.
   const redoLast = () => {
     if (redoHistory.length === 0) return;
     const nextAction = redoHistory[0];
@@ -1098,7 +1048,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
               handleDownloadPdf={handleDownloadPdf}
               handleSharePdf={handleSharePdf}
               setAnnouncement={setAnnouncement}
-              setUndoModalOpen={setUndoModalOpen}
               onUndo={undoLast}
               onRedo={redoLast}
               toggleFullscreen={toggleFullscreen}
@@ -1127,17 +1076,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           setTempPlacement(null);
         }}
         onSaveSignature={handleAddSignatureElement}
-        messages={messages}
-      />
-
-      <UndoHistoryModal
-        open={undoModalOpen}
-        onClose={() => setUndoModalOpen(false)}
-        actionHistory={actionHistory}
-        redoHistory={redoHistory}
-        undoSelection={undoSelection}
-        setUndoSelection={setUndoSelection}
-        onRevertSelected={handleRevertSelected}
         messages={messages}
       />
 
