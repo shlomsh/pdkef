@@ -88,4 +88,35 @@ describe('describeFormDetectionFailure', () => {
     const detail = describeFormDetectionFailure(new TypeError('x'.repeat(5_000)));
     expect(detail.length).toBe('TypeError: '.length + 200);
   });
+
+  // Added after an adversarial pass on the landed sanitiser found three real
+  // leaks: an engine message quotes the identifier it choked on, and
+  // `obj[valueReadFromThePdf]` puts a field label in that exact position. All
+  // three of these reached the prefilled public issue body before the quoted-run
+  // rule was added, which is why they are pinned individually.
+  it('keeps a quoted run only when it looks like code, not like somebody form', () => {
+    expect(describeFormDetectionFailure(
+      new TypeError("undefined is not an object (evaluating 'page.getOrInsertComputed')"),
+    )).toBe("TypeError: undefined is not an object (evaluating 'page.getOrInsertComputed')");
+  });
+
+  it('redacts a field label an engine message quoted as a property name', () => {
+    const line = describeFormDetectionFailure(
+      new TypeError("Cannot read properties of undefined (reading 'Student Social Security Number')"),
+    );
+    expect(line).not.toContain('Social Security');
+    expect(line).toBe("TypeError: Cannot read properties of undefined (reading '...')");
+  });
+
+  it('redacts a quoted line of page text, spaces and all', () => {
+    const line = describeFormDetectionFailure(new TypeError("invalid argument 'Patient diagnosis: diabetes'"));
+    expect(line).not.toContain('diabetes');
+    expect(line).not.toContain('Patient');
+  });
+
+  it('drops a filename that survived its path being stripped', () => {
+    const line = describeFormDetectionFailure(new TypeError('Failed to fetch module /home/me/tax return 2024.pdf'));
+    expect(line).not.toContain('.pdf');
+    expect(line).not.toContain('2024');
+  });
 });
