@@ -110,51 +110,72 @@ The lesson worth keeping: **"the fixture is the problem" was a correct diagnosis
 one of the two symptoms**, and the one it did not explain went unnoticed because it was filed under
 the same cause. A gap that a change was predicted to close and did not is evidence, not noise.
 
-## Candidate forms to widen the corpus (researched 2026-09-20, NONE verified)
+## Candidate forms: the shortlist, now fetch-verified (2026-09-20)
 
-Two scored Hebrew forms and one small Latin one is a thin corpus, and the detector's text-direction
-and label logic has seen only Hebrew and Latin. A search pass produced this shortlist.
+The shortlist below was researched from search snippets alone, because that session's egress policy
+blocked the web. A later session fetched and measured every lead. **Two of the three "safe" picks
+had a false premise**, which is the argument for never committing to a lead you have not opened.
 
-**Read the verification status before acting on any of it.** The same egress policy that blocked the
-Hebrew originals blocks `WebFetch` too (confirmed directly: `EGRESS_BLOCKED` for `www.irs.gov`), so
-only `WebSearch` worked and every URL below is a search-snippet lead, not a fetched file. No byte
-size, page count, `Content-Type` or AcroForm-vs-flat claim here was measured. Re-fetch, confirm, and
-record the sha256 before committing anything.
+### What the measurements changed
 
-**Licensing is the gate, and it splits cleanly:**
+| Claim from the shortlist | What the file actually is |
+| --- | --- |
+| IRS 1040 **1913** is a scan, and fills the "zero scanned forms" gap | **False.** A clean vector re-typesetting (Distiller 4.05, 2000), 165 text items on page 0, **zero image XObjects** on any of its 4 pages. It cannot show us anything about a text-free page. It is an outlier in its own archive: its neighbours really are scans. |
+| `irs.gov/pub/irs-pdf/f1040.pdf` is the 2024 form | **Rolled over.** That path is always the current year and now serves 2025. The 2024 revision is at `irs.gov/pub/irs-prior/f1040--2024.pdf`, which is also the stable URL a recorded sha256 wants: a current-year path changes underneath its own hash every January. |
+| ECI Form 6 Hindi is "unclear" licensing | **Blocked, and the file could not even be found.** See below. |
 
-- **Safe.** US federal works (IRS, USCIS, State Dept) are public domain under 17 U.S.C. §105. The
-  UK's HMRC forms are Crown copyright under **OGL v3.0**, which explicitly permits commercial
-  redistribution with attribution.
-- **Do not commit without checking.** Every Indian government candidate. GODL-India covers
-  central-government *open-data* uploads on data.gov.in, not ordinary departmental form PDFs, so it
-  must not be assumed. The one Indian policy readable in full (UIDAI's) permits reproduction but
-  bars use "in conjunction with commercial purposes" - a pattern that recurs. The terms pages for
-  incometaxindia.gov.in and the ECI CEO sites could not be read this session. That is the unfinished
-  homework.
+### Where the scanned forms actually are
 
-| Rank | Form | Why it earns a place | Licence |
+The IRS switched from scan-to-PDF to vector re-typesetting between 1950 and 1955. Everything
+measured from 1955 back to 1918, and forward to 1980, is a pure raster scan with **zero text items
+on every page**. 1940 and 1950 are transitional and do carry text layers. So the gap is easy to fill
+with a public-domain file, just not with the one the shortlist named:
+
+| Form | bytes | page 0 content | why it is interesting |
 | --- | --- | --- | --- |
-| 1 | IRS Form 1040, **1913** (`irs.gov/pub/irs-prior/f1040--1913.pdf`) | The corpus has **zero scanned forms**. A no-text-layer document is a whole class of failure we cannot currently see. | public domain |
-| 2 | ECI **Form 6, Hindi** (`ceodelhi.gov.in/PDFFolder/forms/Form-6-Hindi.pdf`) | Devanagari, bilingual, with character-comb name boxes and drawn checkboxes - the closest Hindi analogue to what itc101 exercises in Hebrew. | **unclear** |
-| 3 | IRS Form 1040 (2024) (`irs.gov/pub/irs-pdf/f1040.pdf`) | First live AcroForm among the real forms; everything else scored is flat. | public domain |
-| 4 | USCIS Form I-9 | AcroForm with dropdowns and a genuine multi-column table, a shape nothing covers. | public domain |
-| 5 | HMRC SA100 | Numeric comb boxes and right-aligned money columns, a different visual convention entirely. | OGL v3.0 |
+| `f1040--1970.pdf` | 174K, 2pp | one CCITT G4 image, 2925x4105, 1bpc | the cheapest true scan; page 1 is a different size from page 0 |
+| `f1040--1962.pdf` | 553K, 2pp | one **Flate** bilevel raster, 4824x6710 | a **CropBox whose origin is not 0,0** (y=23.04), and a second decode path |
+| `f1040--1944.pdf` | 736K, 4pp | **25 stacked CCITT strips** | one page sliced into 25 image XObjects, which breaks any "find the page image" assumption |
 
-Two findings worth keeping even if none of these are added:
+All three are US federal works, public domain under 17 U.S.C. 105.
 
-- **A legacy-font Devanagari form is a feature, not a problem.** The Rajasthan mirror of Form 6
-  returns mojibake in its own search title, meaning it uses a non-Unicode Devanagari font, which is
-  endemic to Indian government PDFs. A *geometry* detector should find its boxes anyway. One such
-  specimen would prove that, and nothing else in the corpus can.
-- **Obvious guesses that are wrong.** Aadhaar enrolment forms are English on the static PDF (Hindi
-  is applied at the kiosk), PAN Form 49A is English-only, the Indian passport form is generated
-  per-session with no stable URL, and the RTI form lives on shared S3WaaS hosting with a per-department
-  hash in the path. None are usable.
+**A real hazard came out of this, and the repo was already defended against it.** pdf.js 6 decodes
+CCITT fax and JBIG2 through its WASM module, and a `getDocument()` call with no `wasmUrl` renders a
+scan as a **silently blank page** - a warning, no error. `src/lib/pdfjsWasm.js` exists for exactly
+this and `pdfjsWasm.test.js` walks `src/` to fail any call site that forgets. It caught the scored
+corpus's new pdf.js pass the same day, before any scan was committed.
 
-Given the licensing split, the cheapest honest widening is **IRS 1913 + IRS 1040 (2024)**: both
-public domain, both fill real gaps (scanned; live AcroForm), neither needs a licence investigation.
-Hindi should wait for someone to read the ECI terms page.
+### Licensing: the Indian homework, done
+
+The terms pages were read this time rather than guessed at.
+
+**ECI Form 6 (Hindi): BLOCKED.** Three independent reasons, any one sufficient:
+
+- **eci.gov.in grants nothing.** Its own footer asserts `(c) Copyright Election Commission of India`
+  and its terms page says all content "is the exclusive property of the ECI and is protected under
+  Indian copyright laws". A search of the site's full application bundle for any reproduction
+  permission found none. GODL is not asserted anywhere on it.
+- **The state CEO sites, which are the class of site that hosts this form, restrict it** and do not
+  even agree with each other. CEO Puducherry permits reproduction free of charge but states
+  "Commercial use of web contents is prohibited without the written permission of the Department".
+  CEO Uttarakhand requires permission "by sending a mail to us" for any reproduction. `ceodelhi.gov.in`,
+  the shortlist's own source, is unreachable, so its policy is unread.
+- **The Hindi file could not be located at all.** `voters.eci.gov.in/formspdf/Form_6_Hindi.pdf`
+  answers 406 across six filename variants, while `Form_6_English.pdf` and `Form_8_English.pdf`
+  both serve a real PDF from the same directory.
+
+Silence about redistribution is a block, not a gap to read hopefully. This closes the most valuable
+structural candidate, so if Devanagari matters it should be **generated** as a synthetic corpus
+document we own outright, which is what `documents.js` is for.
+
+**ITR-1: permitted, but unverified as a file.** Both the e-filing portal's live policy page and the
+department's own copyright policy grant reproduction "free of charge... without specific permission",
+with no commercial restriction and no third-party carve-out that would bite here. The conditions are
+accurate reproduction and prominent source acknowledgement. But `incometaxindia.gov.in` answers 403
+and **not one byte of an actual ITR-1 PDF was downloaded**, so the file itself stays unverified. Note
+also that this is a permission rather than an open licence: it is not ours to sublicense, so the repo's
+MIT grant would not extend to it and a NOTICE beside the fixture would have to say so. ITR-1 is
+English anyway, so it buys far less than Form 6 would have.
 
 ## Scope
 
