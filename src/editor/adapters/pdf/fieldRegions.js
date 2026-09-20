@@ -26,6 +26,25 @@ function overlap(a, b) {
 }
 
 /**
+ * What a cell occupies on the page for the purpose of "has something else
+ * already claimed this?": its printed rectangle.
+ *
+ * A cell's own `bounds` are the strip a person writes in, which can be a
+ * fraction of the box it was cut from (`formCells.js`, "What a cell candidate's
+ * bounds are"); the box rides along as `enclosure`. Asking the claim question of
+ * the strip asks the wrong thing - the health form rules a box per yes/no
+ * question with the two printed captions on its top line and blank space under
+ * them, so the radios it already detected sit *above* the carved strip and only
+ * 16% of each one falls inside it. Measured on the MOBI-10 source PDFs: all 20
+ * of those boxes contain their radio whole (containment 0.98-1.00 against the
+ * enclosure, 0.16-0.17 against the strip), and every one was published as a
+ * second field over a radio pair the checkbox detector had already reported.
+ */
+function claimExtent(region) {
+  return region.enclosure ?? region;
+}
+
+/**
  * Folds a page's native `/Tx` widget regions (`detectWidgetRegions`) into what
  * the ink detectors reconciled, so that one field is one region however many
  * sources saw it.
@@ -59,7 +78,7 @@ function overlap(a, b) {
  */
 export function withWidgetFields(reconciled, widgets) {
   const { combs, checkboxes, cells } = reconciled;
-  const unclaimed = (region, found) => !found.some((other) => overlap(region, other));
+  const unclaimed = (region, found) => !found.some((other) => overlap(claimExtent(region), claimExtent(other)));
   const allCombs = [...combs, ...widgets.combs.filter((comb) => unclaimed(comb, [...combs, ...checkboxes]))];
   // Rule 2. Against the ink pass's own combs this is a no-op - `reconcileFields`
   // has already dropped what they claimed - so it only ever removes a cell an
@@ -71,7 +90,7 @@ export function withWidgetFields(reconciled, widgets) {
 
 /**
  * @template {{left: number, top: number, width: number, height: number, boxed?: boolean, writable?: object}} Comb
- * @template {{left: number, top: number, width: number, height: number}} Cell
+ * @template {{left: number, top: number, width: number, height: number, enclosure?: object}} Cell
  * @param {{combs: Comb[], checkboxes: object[], cells: Cell[]}} detected
  * @returns {{combs: Comb[], cells: Cell[]}} the combs, each open one carrying
  *   its enclosing cell's blank strip as `writable`; the cells nothing else
@@ -80,11 +99,13 @@ export function withWidgetFields(reconciled, widgets) {
 export function reconcileFields({ combs, checkboxes, cells }) {
   const claimed = new Set();
   const reconciledCombs = combs.map((comb) => {
-    const enclosing = cells.filter((cell) => overlap(cell, comb));
+    const enclosing = cells.filter((cell) => overlap(claimExtent(cell), comb));
     enclosing.forEach((cell) => claimed.add(cell));
     if (comb.boxed || comb.writable || enclosing.length === 0) return comb;
-    // The tightest cell around the run: a section frame can overlap it too.
-    const cell = enclosing.reduce((best, c) => (c.width * c.height < best.width * best.height ? c : best));
+    // The tightest cell around the run, compared as printed boxes: a section
+    // frame can overlap it too.
+    const area = (c) => claimExtent(c).width * claimExtent(c).height;
+    const cell = enclosing.reduce((best, c) => (area(c) < area(best) ? c : best));
     // A cell's own bounds are already the strip a person writes in, not the
     // ruled box around it (formCells.js, "What a cell candidate's bounds are").
     const { left, top, width, height } = cell;
@@ -92,6 +113,7 @@ export function reconcileFields({ combs, checkboxes, cells }) {
   });
   return {
     combs: reconciledCombs,
-    cells: cells.filter((cell) => !claimed.has(cell) && !checkboxes.some((box) => overlap(cell, box))),
+    cells: cells.filter((cell) => !claimed.has(cell)
+      && !checkboxes.some((box) => overlap(claimExtent(cell), box))),
   };
 }
