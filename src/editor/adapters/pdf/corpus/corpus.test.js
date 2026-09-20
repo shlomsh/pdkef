@@ -5,12 +5,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { describe, expect, it } from 'vitest';
 import { buildDocument } from './documents.js';
 import { DOCUMENT_CASES, ELEMENT_CASES } from './corpus.js';
-import { detectPageRegions } from '../formGrid.js';
+import { allRegions, countRegions as counts, detectPage } from './detect.js';
 import { detectWidgetRegions } from '../formWidgets.js';
-import { detectCellCandidates } from '../formCells.js';
-import { reconcileFields, withWidgetFields } from '../fieldRegions.js';
-import { collectPageInk, pageCropBox } from '../pageInk.js';
-import { createPageGeometry } from '../../../geometry/coords.ts';
 
 /**
  * The corpus runner. `README.md` has the paradigm; `corpus.js` has the cases.
@@ -21,41 +17,6 @@ import { createPageGeometry } from '../../../geometry/coords.ts';
  */
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..');
-
-/**
- * Exactly what `useFormFieldRegions` does per page, minus the pdf.js text pass.
- *
- * Text is left out deliberately. It feeds `formCells.js`'s label lookup and
- * its "this cell is explanatory, drop it" filter, so including it would make
- * every row depend on a second parser and on whatever prose a fixture happens
- * to carry - and the detector's *geometry*, which is what this corpus is
- * about, does not read text at all. The cost is that a few cells a real page
- * would filter out survive here; the three real documents below are where
- * that path is exercised.
- *
- * If this drifts from the hook, the corpus is measuring something the product
- * does not do, so it is worth re-reading both when either changes.
- */
-function detectPage(page, pageIndex = 0) {
-  const ink = detectPageRegions(page, pageIndex);
-  const geometry = createPageGeometry({
-    cropBox: pageCropBox(page),
-    rotation: page.getRotation().angle,
-  });
-  const cells = detectCellCandidates(collectPageInk(page), geometry, pageIndex, []);
-  const reconciled = reconcileFields({ combs: ink.combs, checkboxes: ink.checkboxes, cells });
-  const merged = withWidgetFields({ ...reconciled, checkboxes: ink.checkboxes }, detectWidgetRegions(page, pageIndex));
-  return { combs: merged.combs, cells: merged.cells, checkboxes: ink.checkboxes };
-}
-
-const counts = ({ combs, cells, checkboxes }) => ({
-  combs: combs.length,
-  cells: cells.length,
-  checkboxes: checkboxes.length,
-});
-
-/** Every region a page reported, for the geometry assertions below. */
-const allRegions = ({ combs, cells, checkboxes }) => [...combs, ...cells, ...checkboxes];
 
 describe.each(ELEMENT_CASES)('$group: $name', (testCase) => {
   it(testCase.why, async () => {
