@@ -42,6 +42,7 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     activeElementId: null,
     editingElementId: null,
     actionHistory: [],
+    redoHistory: [],
     documentRevision: 0,
     ...overrides,
   };

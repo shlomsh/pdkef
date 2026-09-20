@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorElement } from './editorModel.ts';
 import {
+  applyHistoryEntries,
   captureAddedElement,
   captureElementSnapshots,
   createActionEntry,
@@ -82,6 +83,42 @@ describe('action history commands', () => {
 
     expect(ids(revertHistoryEntries<EditorElement>([back, front], [remove, add]))).toEqual(['back', 'front']);
     expect(ids(revertHistoryEntries<EditorElement>([back, front], [remove]))).toEqual(['back', 'front', 'middle']);
+  });
+
+  it('round-trips an add command through undo then redo, preserving exact stacking order', () => {
+    const add = createActionEntry({
+      operation: 'add', type: 'ADD_SHAPE', pageIndex: 0, description: 'Added rectangle',
+      elements: [captureAddedElement(middle, 1)],
+    });
+    const beforeUndo = [back, middle, front];
+
+    const afterUndo = revertHistoryEntries(beforeUndo, [add]);
+    expect(ids(afterUndo)).toEqual(['back', 'front']);
+
+    const afterRedo = applyHistoryEntries(afterUndo, [add]);
+    expect(ids(afterRedo)).toEqual(ids(beforeUndo));
+
+    // Re-applying an already-applied add is a no-op (restoreSnapshots skips
+    // ids already present), so redo can never be dispatched twice by mistake.
+    expect(ids(applyHistoryEntries(afterRedo, [add]))).toEqual(ids(afterRedo));
+  });
+
+  it('round-trips a delete command through undo then redo, preserving exact stacking order', () => {
+    const beforeDelete = [back, middle, front];
+    const remove = createActionEntry({
+      operation: 'delete', type: 'DELETE_ELEMENT', pageIndex: 0, description: 'Deleted rectangle',
+      elements: captureElementSnapshots(beforeDelete, (element) => element.id === middle.id),
+    });
+
+    const afterUndo = revertHistoryEntries([back, front], [remove]);
+    expect(ids(afterUndo)).toEqual(['back', 'middle', 'front']);
+
+    const afterRedo = applyHistoryEntries(afterUndo, [remove]);
+    expect(ids(afterRedo)).toEqual(['back', 'front']);
+
+    // Re-applying an already-applied delete is idempotent: the id is simply
+    // absent already, so filtering it out again changes nothing.
+    expect(ids(applyHistoryEntries(afterRedo, [remove]))).toEqual(ids(afterRedo));
   });
 
   it('requires stacking positions in the compile-time contract', () => {

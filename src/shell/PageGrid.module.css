@@ -240,9 +240,19 @@
   line-height: 1;
 }
 
-.grid-actions button:hover {
+.grid-actions button:not(:disabled):hover {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
+}
+
+/* Undo and Redo joined this row (UNDO-02) and spend most of their life with
+   nothing to do, so the row needed a real disabled state. Without one a
+   `disabled` button here rendered identically to a live one, including the
+   hover highlight, and only gave itself away on a click that did nothing. */
+.grid-actions button:disabled {
+  color: var(--color-muted);
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* hint label in toolbar */
