@@ -684,14 +684,10 @@ export type { SignMessages };
 /**
  * UNDO-REDO: redo's strings. Redo has no toolbar control of its own
  * (CLAUDE.md/editor.md's twelve-control note on SignToolbar), so it surfaces
- * only through `UndoHistoryModal.tsx`'s footer button and, once wired, Sign's
- * Cmd/Ctrl+Shift+Z announcement (the `redidActionTemplate` counterpart to
- * `undidActionTemplate` below). These keys extend `SignMessages` locally
- * rather than in `src/editor/registry/messages.ts` itself, since that shared
- * catalogue is edited elsewhere this session while this file's English/Hebrew
- * values are owned here; a caller that needs `redidActionTemplate` on a
- * plain `SignMessages`-typed value will need that base interface to gain the
- * field too.
+ * only through `UndoHistoryModal.tsx`'s footer button and Sign's
+ * Cmd/Ctrl+Shift+Z announcement (`redidActionTemplate`, the counterpart to
+ * `undidActionTemplate` below). The keys are declared on `SignMessages` in
+ * `src/editor/registry/messages.ts` like every other string here.
  */
 const englishSignMessages: SignMessages = {
   toolbarLabel: 'PDF annotations',

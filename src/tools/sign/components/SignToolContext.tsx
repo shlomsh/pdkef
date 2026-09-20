@@ -140,12 +140,21 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         elements: action.payload,
         activeElementId: null,
         editingElementId: null,
+        // Every use of this case replaces the document under the history, so
+        // nothing already undone is safe to redo on top of it.
+        redoHistory: [],
         documentRevision: nextDocumentRevision(state),
       };
     case 'ADD_ELEMENT':
       return {
         ...state,
         elements: [...state.elements, action.payload],
+        // A drag-drawn element enters the document here, at pointer-down, and
+        // is only logged on commit. Without this clear, a redo pressed
+        // mid-gesture would splice a restored element in beneath it and the
+        // commit would then log the drawn one at an index it no longer
+        // occupies, painting it behind its neighbour.
+        redoHistory: [],
         documentRevision: nextDocumentRevision(state),
       };
     case 'UPDATE_ELEMENT':
@@ -178,6 +187,7 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         elements: remaining,
         activeElementId: activeSurvives ? state.activeElementId : null,
         editingElementId: activeSurvives ? state.editingElementId : null,
+        redoHistory: [],
         documentRevision: nextDocumentRevision(state),
       };
     }
