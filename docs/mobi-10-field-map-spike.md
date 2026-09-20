@@ -51,7 +51,8 @@ radio, 15 text, 6 comb, 2 date, 1 signature. Each correction is recorded per tar
 | Existing MOBI-03 detector (combs + checkboxes) | 53.2% / **100%** / n.a. | 73.3% / **100%** / n.a. |
 | + geometric label association (`label.mjs`) | 53.2% / 100% / **90.5%** | 73.3% / 100% / **96.4%** |
 | + ink-grid cell heuristic (`cells.mjs`), union | 69.1% / 91.4% / 83.3% | **86.7% / 94.2% / 96.9%** |
-| + narrow tick columns (MOBI-11, 2026-09-20), union | **82.0% / 92.7% / 80.7%** | **86.7% / 94.2% / 96.9%** (unchanged) |
+| + narrow tick columns (MOBI-11, 2026-09-20), union | 82.0% / 92.7% / 80.7% | 86.7% / 94.2% / 96.9% |
+| + the writing strip as a cell's bounds (FORM-01, 2026-09-20), union | **85.6% / 96.7% / 81.5%** | **86.7% / 94.2% / 96.9%** (unchanged) |
 | Gate | 90 / 90 / 85 | 90 / 90 / 85 |
 
 Numbers above are post-MOBI-11-step-1 (2026-09-17): lifting `cells.mjs` into product code
@@ -70,6 +71,49 @@ none of the drawn squares), signature 1/3, text 16/30 with 7 false positives. On
 radio 51/51, comb 4/6 (phone and mobile are one run to the detector and area-code + number to the
 form), text 10/15 with 4 false positives, date 0/2 and signature 0/1 (the physician row has no
 ink around it at all).
+
+### What FORM-01 changed, and what it found (2026-09-20)
+
+The row above is one change: a ruled cell with a caption printed inside it now publishes the
+**writing strip** as its bounds rather than the strip plus the caption. Per kind on form 101,
+`text` went 53.3%/36.4% to 70.0%/81.8%; checkbox and comb precision stayed at 100%.
+
+The reason it is worth this much is that one box-extent error was being counted at both ends.
+Five of form 101's nine false positives sat on a real target and missed only on IoU (0.442-0.490,
+against a 0.5 threshold), so each was scored as a false positive *and* as a recall miss. They are
+the same five cells, not ten problems.
+
+Two things the measurement contradicted, both recorded here so they are not re-derived:
+
+**The caption-proximity signal is inverted.** `report-cells.md`'s failure class 1 proposed that a
+cell whose row carries a checkbox in an adjacent column is that checkbox's caption, not a field.
+Measured at IoU >= 0.5 on form 101: of the 7 `text` false positives, **zero** have a checkbox in
+their row band at any overlap threshold. Of the correct candidates, **nine** do - the children
+table's name cells, which share a wall (0.0pt gap) with the narrow tick columns MOBI-11 added.
+Applying the rule would have removed 0 false positives and destroyed 9 true positives, taking
+recall 82.0% to 75.5% and `text` recall 53.3% to 23.3%. The prose predates MOBI-11: the adjacency
+it keys on was created by the tick-column fix, three days after it was written. Class 1's two
+worked examples (`הכנסה אחרת`, `עבודה/קצבה/עסק`) are no longer emitted as cells at all - they
+survive only as labels on correctly detected checkboxes.
+
+**Only one of the 14 `text` recall misses is an out-of-scope class.** Classified from ink evidence
+(`collectPageInk` within 25pt of each target), not from the prose: class 4 (no ink at all) **0**,
+class 5 (inline blank, underline only) **1** - `t027`, which has a 41.3pt rule under it and no
+side or top wall - and class 6 (dotted leader) **0**. Four are class 7 (`t043`, `t053`, `t058`,
+`t063`, the children table split by an incidental left-column rule), six are near-miss IoU on a
+cell that was built and kept (`t003`, `t004`, `t005`, `t033`, `t120`, `t121`), and three are the
+undivided private-address row whose single cell `reconcileFields` drops because the postcode comb
+is 60% contained in it (`t013`, `t014`, `t015`).
+
+**Two caveats on reading the row above.** First, on the day it was measured `score-form.mjs --all`
+could not see any of it: the scored corpus ran geometry-only fixtures with no text layer, so no
+carve happened and every baseline was byte-identical. That changed the same day - the scored
+corpus now runs the real forms (MOBI-13), `baselines.json` records these numbers directly, and a
+text-dependent change is ratcheted like any other. Read any pre-2026-09-20 fixture number with
+that in mind. Second, publishing
+the strip unconditionally is a **wash** (82.0%/92.7%, five false positives become true positives
+and five true positives become false positives); only the caption-band carve is published, and the
+reasoning is in `formCells.js`'s "What a cell candidate's bounds are".
 
 ### What each source actually is
 

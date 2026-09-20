@@ -197,43 +197,49 @@ describe('placeTextOnCell', () => {
     expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - shrunkTextHeight / 2, 5);
   });
 
-  describe('on a cell with a printed label in its corner', () => {
-    // Form 101's employer "מספר טלפון" cell, live: 25.6pt tall (157.0-182.6pt),
-    // the label's baseline 7.7pt down from the top rule, so the blank strip a
-    // person writes in is the 17.9pt under it. Centring on the whole cell put
-    // the typed number's top against the label (reported).
-    const labelled: FieldRegion = {
-      pageIndex: 0, left: 21.888, top: 18.648, width: 13.221, height: 3.041,
-      writable: { left: 21.888, top: 19.563, width: 13.221, height: 2.126 },
+  describe('on a cell whose printed caption hugs a wall', () => {
+    // Form 101's employer "מספר טלפון נייד" cell, exactly as
+    // `detectCellCandidates` emits it (page 1, live PDF): the bounds are the
+    // whole ruled cell, because a side carve is too weak a guess to publish
+    // as the field's extent, and the 6.72%-wide blank strip beside the
+    // caption rides along as `writable`. The caption is printed against the
+    // cell's right wall, from 12.29% rightwards.
+    //
+    // The three tests this replaced hand-built a region with a `writable`
+    // strip *under* a caption and a bounds box the whole cell - a shape
+    // `formCells.js` cannot emit for either carve - and so went on passing
+    // while the product placed its boxes the other way (regression from
+    // 1a692b3). A region here is only worth asserting on if the detector
+    // could hand it over.
+    const captioned: FieldRegion = {
+      pageIndex: 0, left: 5.568, top: 36.321, width: 28.941, height: 2.637,
+      writable: { left: 5.568, top: 36.321, width: 6.720, height: 2.637 },
     };
+    const captionLeft = 12.288; // where the printed caption starts
 
-    it('centres the box in the writable strip under the label, not in the whole cell', () => {
-      const placed = placeTextOnCell(labelled, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
-      const textHeight = (12 * 1.29 / PAGE_HEIGHT) * 100;
-      const strip = labelled.writable!;
-      expect(placed.fontSize).toBe(12);
-      expect(placed.top).toBeCloseTo(strip.top + strip.height / 2 - textHeight / 2, 5);
-      // The box's top is below the label's baseline - the whole point.
-      expect(placed.top).toBeGreaterThan(strip.top);
+    it('spans the strip beside the caption, not the whole cell', () => {
+      const placed = placeTextOnCell(captioned, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      expect(placed.left).toBe(5.568);
+      expect(placed.minWidth).toBe(6.720);
     });
 
-    it('sizes the font by the strip, not the cell, so a tall label leaves less room', () => {
-      // Same cell, but only 9pt of blank under the label: 12pt (a 15.5pt box)
-      // would cross the label; the strip caps it.
-      const cramped: FieldRegion = { ...labelled, writable: { ...labelled.writable!, height: 1.069 } };
-      const placed = placeTextOnCell(cramped, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
-      expect(placed.fontSize).toBeCloseTo(cellFontSize(12, 1.069, PAGE_HEIGHT), 5);
-      expect(placed.fontSize).toBeLessThan(12);
+    it('keeps the typed box off the caption, which on an RTL form is where the text starts', () => {
+      // A box with a span lays its lines against whichever edge getTextAlign
+      // says, and on this form that is the right one - so the span's right
+      // edge is where the first character lands, in the export as much as on
+      // screen. Spanning the whole cell would start it on the caption.
+      const placed = placeTextOnCell(captioned, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      expect(placed.left + placed.minWidth).toBeLessThanOrEqual(captionLeft);
     });
 
-    it('spans the strip beside a label, when that is where the blank is', () => {
-      const beside: FieldRegion = {
-        pageIndex: 0, left: 50, top: 40, width: 20, height: 1.6,
-        writable: { left: 50, top: 40, width: 14, height: 1.6 },
-      };
-      const placed = placeTextOnCell(beside, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
-      expect(placed.left).toBe(50);
-      expect(placed.minWidth).toBe(14);
+    it('takes the bounds themselves when there is no strip to honour', () => {
+      // The other carve, and the common one: a caption in a band above the
+      // writing line leaves the bounds already equal to the strip, so no
+      // `writable` is published and nothing here has to know which case it is.
+      const { writable, ...band } = captioned;
+      const placed = placeTextOnCell(band, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      expect(placed.left).toBe(band.left);
+      expect(placed.minWidth).toBe(band.width);
     });
   });
 });

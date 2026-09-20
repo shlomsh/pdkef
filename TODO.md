@@ -106,6 +106,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 | MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
+| MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 
 
 ## Site quality: accessibility, CSS correctness and theming
@@ -325,6 +326,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
+| FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 

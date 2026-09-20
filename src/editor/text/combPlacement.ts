@@ -46,17 +46,24 @@ export interface FieldRegion extends PercentBox {
    * stays the run (what a tap targets, what the hint outlines, what the fill
    * order groups into a row); this is only where a box placed on it sits.
    *
-   * A detected cell does not use this: its own bounds are already the strip
-   * a person writes in, and the ruled box around it is `enclosure`. See
-   * "What a cell candidate's bounds are" in `formCells.js`.
+   * A detected cell sets it when its printed caption hugs a wall instead of
+   * sitting in a band above the writing line. There its bounds stay the whole
+   * ruled cell (the side carve is too weak a guess to publish as the field's
+   * extent, `formCells.js`, "What a cell candidate's bounds are"), so without
+   * this a box on it would start its text on the caption. A cell captioned in
+   * a band needs no `writable`: its bounds are already the strip.
    */
   writable?: PercentBox;
   /**
    * The printed rectangle a field's bounds were carved out of, when the two
    * differ - form 101 rules one box per field and prints the caption inside
    * it, above the writing line, so the field is the blank band and the
-   * `enclosure` is the box a person sees. Only the hit test uses it: a tap
-   * that lands on the caption is still a tap on that field.
+   * `enclosure` is the box a person sees. Both of the questions asked about a
+   * field as a whole are asked of it: the hit test here (a tap that lands on
+   * the caption is still a tap on that field) and the claim test that
+   * reconciles the detectors (`fieldRegions.js`'s `claimExtent`), which has to
+   * ask whether something already covers the printed box rather than the
+   * carved strip.
    */
   enclosure?: PercentBox;
 }
@@ -301,10 +308,18 @@ export function cellFontSize(
  * (`textBoxPaddingEm`) keeps the glyphs off the printed rule, so no extra
  * inset is applied.
  *
- * "The cell" here is the field's own bounds, which `formCells.js` already
- * reports as the blank strip under a printed caption - the band under "שם",
- * not the whole box "שם" is printed in. `writable` is honoured too, for a
- * region that carries one of its own.
+ * "The cell" here is the region's `writable` when it carries one and its own
+ * bounds otherwise, because which of the two holds the blank strip depends on
+ * where the caption is printed. `formCells.js` publishes a caption *band*'s
+ * strip as the bounds themselves - the band under "שם", not the whole box
+ * "שם" is printed in - but a caption hugging a wall leaves the bounds the
+ * whole cell and names the strip beside it `writable`. Either way the box
+ * lands on the blank and not on the caption, which matters most on an RTL
+ * form: a box with a span starts its text at the span's right edge, the very
+ * wall such a caption is printed against. A cell printing only separators
+ * (form 101's `/  /` dates) is not captioned at all and carries no
+ * `writable` - a person writes the date across those marks, so the box takes
+ * the whole cell.
  */
 export function placeTextOnCell(
   region: FieldRegion,
