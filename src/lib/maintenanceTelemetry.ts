@@ -8,13 +8,21 @@
  * continue unchanged when a browser is offline or an analytics script fails.
  */
 
-export const MAINTENANCE_EVENT_NAMES = ['sign_export'] as const;
+export const MAINTENANCE_EVENT_NAMES = ['sign_export', 'sign_form_detection'] as const;
 
 export type MaintenanceEventName = (typeof MAINTENANCE_EVENT_NAMES)[number];
 export type ExportDurationBucket = 'under_1s' | 'under_5s' | 'under_30s' | '30s_or_more';
 export type ExportErrorCode = 'unsupported_text' | 'cancelled' | 'invalid_document' | 'processing_failed';
+/**
+ * How many form fields the on-open detector published, coarsely (FORM-11).
+ * A bucket rather than the count for the same reason durations are bucketed:
+ * the question is "does detection come back empty in the wild", and a bucket
+ * answers it without carrying a number specific enough to characterise one
+ * person's document.
+ */
+export type FieldCountBucket = 'none' | 'one_to_five' | 'six_to_twenty' | 'over_twenty';
 
-export type MaintenanceEventProperties =
+export type SignExportProperties =
   | Readonly<{
       outcome: 'success';
       duration_bucket: ExportDurationBucket;
@@ -25,10 +33,42 @@ export type MaintenanceEventProperties =
       error_code: ExportErrorCode;
     }>;
 
-export interface MaintenanceEvent {
-  readonly name: MaintenanceEventName;
-  readonly properties: MaintenanceEventProperties;
-}
+/**
+ * Why a detection run produced nothing, when it produced nothing.
+ * Two codes are its own and not the export list's, because neither is a
+ * failure of reading the document: `modules_unavailable` is a browser holding
+ * a cached shell from before a deploy, and `not_started` is the run never
+ * happening at all because its inputs were not there - the one path to "no
+ * fields" that throws nothing anywhere. Every other failure reuses the export
+ * vocabulary, so the boundary has one list of codes to review, not two that
+ * drift.
+ */
+export type FormDetectionErrorCode = ExportErrorCode | 'modules_unavailable' | 'not_started';
+
+/**
+ * The detection walk's outcome. No duration: it is not a performance question.
+ */
+export type FormDetectionProperties =
+  | Readonly<{
+      outcome: 'success';
+      field_count_bucket: FieldCountBucket;
+    }>
+  | Readonly<{
+      outcome: 'failure';
+      error_code: FormDetectionErrorCode;
+    }>;
+
+export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties;
+
+/**
+ * A union keyed on the name, not one `{name, properties}` shape: with two
+ * events sharing one properties type, a caller could hand `sign_export` a
+ * field count and the compiler would agree. Each event's schema is now only
+ * reachable through its own name.
+ */
+export type MaintenanceEvent =
+  | Readonly<{ name: 'sign_export'; properties: SignExportProperties }>
+  | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>;
 
 /** The only transport shape approved for this client-side boundary. */
 export type MaintenanceTransport = (event: MaintenanceEvent) => void;
@@ -69,6 +109,64 @@ export function signExportFailed(durationMs: number, error: unknown): Maintenanc
       duration_bucket: bucketDuration(durationMs),
       error_code: classifyExportError(error),
     }),
+  });
+}
+
+function bucketFieldCount(fieldCount: number): FieldCountBucket {
+  if (!Number.isFinite(fieldCount) || fieldCount <= 0) return 'none';
+  if (fieldCount <= 5) return 'one_to_five';
+  if (fieldCount <= 20) return 'six_to_twenty';
+  return 'over_twenty';
+}
+
+/**
+ * One event per document opened in Sign, when the field walk finishes.
+ *
+ * It exists because "detection threw" and "this PDF has nothing detectable"
+ * were indistinguishable from outside for as long as the feature has shipped,
+ * and a total failure once survived a green build unnoticed (see
+ * `useFormFieldRegions.wiring.test.js`). The count is bucketed and nothing
+ * else about the document travels: no label, no filename, no page count, no
+ * bytes.
+ */
+export function signFormDetectionCompleted(fieldCount: number): MaintenanceEvent {
+  return Object.freeze({
+    name: 'sign_form_detection',
+    properties: Object.freeze({ outcome: 'success', field_count_bucket: bucketFieldCount(fieldCount) }),
+  });
+}
+
+export function signFormDetectionFailed(error: unknown): MaintenanceEvent {
+  return Object.freeze({
+    name: 'sign_form_detection',
+    properties: Object.freeze({ outcome: 'failure', error_code: classifyExportError(error) }),
+  });
+}
+
+/**
+ * The detector's own chunks never loaded. Reported apart from every other
+ * failure because it is not a failure of the detection at all: it is a
+ * browser still being served a shell from before a deploy, which turns a
+ * working detector into a permanent, invisible "no fields in this PDF". A
+ * rate here is the only way that shows up as anything.
+ */
+/**
+ * The run never happened: the bytes, the page count or the pdf.js document
+ * were not all there when the effect ran, and it returned early. Worth its
+ * own code because it is the only outcome with no exception behind it, so a
+ * rate here is the only way it is visible in aggregate at all.
+ */
+export function signFormDetectionNotStarted(): MaintenanceEvent {
+  return Object.freeze({
+    name: 'sign_form_detection',
+    properties: Object.freeze({ outcome: 'failure', error_code: 'not_started' }),
+  });
+}
+
+export function signFormDetectionUnavailable(): MaintenanceEvent {
+  return Object.freeze({
+    name: 'sign_form_detection',
+    properties: Object.freeze({ outcome: 'failure', error_code: 'modules_unavailable' }),
   });
 }
 

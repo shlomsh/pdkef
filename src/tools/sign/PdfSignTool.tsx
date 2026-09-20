@@ -49,6 +49,10 @@ import {
   reportMaintenanceEvent,
   signExportFailed,
   signExportSucceeded,
+  signFormDetectionCompleted,
+  signFormDetectionFailed,
+  signFormDetectionNotStarted,
+  signFormDetectionUnavailable,
   vercelMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
 import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
@@ -621,6 +625,38 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // instead of wherever the tap landed (MOBI-11). Needs the same pdf.js
   // document PdfWorkspace already renders pages from, for the page's text.
   const formRegions = useFormFieldRegions(sourceBytes, numPages, pdfDocument);
+
+  // FORM-11: one anonymous maintenance event per document, when that walk
+  // finishes. Reported from here rather than from inside the hook because
+  // this file already owns the boundary and its production-only transport
+  // (see runExport below), and a detector that keeps working is better
+  // evidenced by an aggregate than by waiting for the next bug report - a
+  // total detection failure once shipped and nothing noticed
+  // (useFormFieldRegions.wiring.test.js).
+  //
+  // What travels: a bucketed count, or an error code off a closed list. No
+  // labels, no filename, no page count, no bytes - maintenanceTelemetry.ts is
+  // the only thing that may describe an event and it cannot express them.
+  // `pending` is not an outcome, so it reports nothing; every other state
+  // fires once, because `formRegions` is state and only changes when the walk
+  // starts over for a different file.
+  useEffect(() => {
+    if (formRegions.detection === 'pending') return;
+    const transport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    const detectionEvent = () => {
+      // Four outcomes, four signals. A run that never started, a detector
+      // that never loaded (a stale cached shell after a deploy) and a
+      // detector that ran and threw are the same blank editor, and want
+      // three different fixes.
+      if (formRegions.detection === 'not-started') return signFormDetectionNotStarted();
+      if (formRegions.detection === 'unavailable') return signFormDetectionUnavailable();
+      if (formRegions.detection === 'failed') return signFormDetectionFailed(formRegions.detectionError);
+      return signFormDetectionCompleted(
+        formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
+      );
+    };
+    reportMaintenanceEvent(detectionEvent(), transport);
+  }, [formRegions]);
 
   // Next/Previous across those same fields (MOBI-06). Built once here, not in
   // PdfWorkspace/SignToolbar, so the desktop Tab shortcut below and the

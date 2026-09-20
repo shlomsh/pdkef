@@ -473,7 +473,9 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 
 ### Retired
 

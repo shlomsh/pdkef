@@ -38,5 +38,33 @@ describe('SignFeedbackButton', () => {
     expect(body).toContain('language or font if relevant');
     expect(body).toContain('GitHub issues are public.');
     expect(body).not.toContain('%0A');
+    // FORM-11 added the one automatic line this template can carry; without a
+    // detection failure it is not there, which is almost every report.
+    expect(body).not.toContain('Added automatically');
+  });
+
+  // The report a person opens is the only channel a device nobody here can
+  // reproduce has. What it carries is already sanitised (formDetectionDetail.ts)
+  // - this only has to place it, and say where it came from.
+  it('carries a form-detection failure into the report, introduced rather than slipped in', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => render(
+      <SignFeedbackButton
+        className="toolbar-button"
+        labelClassName="toolbar-label"
+        detectionFailure="TypeError: undefined is not an object (evaluating 'p.getOrInsertComputed')"
+      />,
+      container,
+    ));
+
+    const body = new URL(container.querySelector('.toolbar-button').href).searchParams.get('body');
+    expect(body).toContain('## Added automatically');
+    expect(body).toContain("TypeError: undefined is not an object (evaluating 'p.getOrInsertComputed')");
+    expect(body).toContain('The form-field check did not finish on this device.');
+    expect(body).toContain('nothing from your document in it');
+    // Everything the template already said is still said.
+    expect(body).toContain('GitHub issues are public.');
   });
 });

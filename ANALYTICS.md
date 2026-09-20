@@ -54,6 +54,16 @@ standard Vercel property allowance and makes breakdowns consistent.
 | `tool_result_ready` | Local processing completes and an output is ready | Successful completions by tool |
 | `tool_operation_failed` | A processing operation reaches a known failure state | Aggregate failure pressure by tool |
 
+Sign also emits `sign_form_detection` once per opened document, when the
+form-field check finishes: `outcome`, a coarse `field_count_bucket` on success,
+and one `error_code` on failure (`modules_unavailable` when the detector's own
+chunks never loaded, which is what a shell cached from before a deploy does,
+and `not_started` when the run never happened because its inputs were not all
+there - the one outcome with no exception behind it).
+It answers one question no other signal can - whether detection is coming back
+empty in the wild, and whether it is empty because the document has nothing in
+it or because the detector never ran. See `docs/maintenance-telemetry.md`.
+
 Sign also retains its existing `sign_export` maintenance event. It is now
 unsampled and uses only the fixed `outcome`, `duration_bucket`, and, on failure,
 `error_code` values defined in `src/lib/maintenanceTelemetry.ts`. It is a narrow
