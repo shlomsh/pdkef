@@ -107,6 +107,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
+| MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
+| MOBI-16 | P2 | [MOBI-16](backlog/tasks/MOBI-16.md) · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar |
 
 
 ## Site quality: accessibility, CSS correctness and theming

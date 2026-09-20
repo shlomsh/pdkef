@@ -1,7 +1,7 @@
 ---
 id: "MOBI-06"
 title: "Field-to-field navigation so filling a form never needs aiming"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -124,3 +124,19 @@ about when a document's fields were worth mentioning.
 Knock-on worth knowing: `fieldNav` feeds `data-status-active`, and below 559px that hides the
 filename in favour of the status line (`ToolShell.module.css`). That now happens only while somebody
 is filling fields, rather than for the whole life of any detected document.
+
+## Closed, 2026-09-20
+
+Shipped and in use on a phone. The order comes from the document's own direction, the arrows point
+the way that document reads, the control shows only while somebody is filling fields, and the move
+commits the current element before it lands on the next. Keyboard-aware scrolling is implemented in
+`bringFieldIntoView` (`useFieldNavigation.ts`): a plain `scrollIntoView` measures against the layout
+viewport, which does not shrink when the keyboard opens, so where `visualViewport` exists a second
+nudge re-centres the field in the space the keyboard actually left.
+
+What is *not* here is browser proof of either rendered behaviour - the arrows' physical orientation
+and that second nudge both need real layout, and jsdom has none. That is the whole of what remains,
+so it moves to MOBI-15 rather than holding this ticket open.
+
+Follow-on from using it on an iPhone 16 Pro Max: the arrows are correct but badly placed, because
+the toolbar that holds them scrolls off the top of the screen while you type. MOBI-16.

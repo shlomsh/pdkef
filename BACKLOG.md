@@ -46,12 +46,13 @@ _None._
 | --- | --- | --- |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
+| MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
+| MOBI-16 | P2 | [MOBI-16](backlog/tasks/MOBI-16.md) · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 
 ### Blocked
@@ -68,6 +69,7 @@ _None._
 | MOBI-03 | P1 | [MOBI-03](backlog/tasks/MOBI-03.md) · Recover fillable geometry from a flat form's own vector content |
 | MOBI-04 | P1 | [MOBI-04](backlog/tasks/MOBI-04.md) · Tap a detected comb run and type the whole number once |
 | MOBI-05 | P2 | [MOBI-05](backlog/tasks/MOBI-05.md) · Tap a detected checkbox to place a mark in it |
+| MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
 | MOBI-07 | P2 | [MOBI-07](backlog/tasks/MOBI-07.md) · Pre-generate the signed PDF so Share is one tap, not two |
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
