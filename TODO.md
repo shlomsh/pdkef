@@ -291,6 +291,17 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
 
 
+## Undo and redo across the tools (2026-09-20)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
+| UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
+| UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
+| UNDO-04 | P3 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
+| UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
+
+
 ## One memory space: every opened file keeps its work, no drafts (2026-09-15)
 
 | ID | Priority | Task |

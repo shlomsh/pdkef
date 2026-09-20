@@ -304,11 +304,14 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `sort.js` | `PdfImageToPdfTool`, `PdfMergeTool` |
 | `useHandoffIntake.ts` | `PdfCompressTool`, `PdfSplitTool` |
 | `gestures/controller.ts` | `CompareSlider` (shell), `PdfRedactTool`, `SignTool/useWorkspaceGestures`, `editor-ui/hooks/{useDraggableElement,useElementResize,usePdfCoordinates}` - moved from `src/editor/gestures/controller.ts` under DEBT-04 (part 2), since `CompareSlider` (shell) was a real non-editor consumer, the same shape as `pdfRender.js` above; `src/editor/gestures/pointer.ts` stayed put, `editor-ui`'s only consumer of it |
+| `history/useHistoryShortcuts.js` | `PdfRedactTool`, `PdfSignTool`, `PdfEditPagesTool` - the Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z listener (UNDO-01). It moved the other way to the table below: it was `editor-ui/hooks/useUndoShortcut.js` while Sign and Redact were its only consumers, and came back to `lib` the moment Edit Pages, which is not an editor tool, needed it too |
 
 ### Moved out of `src/lib/` to `src/editor-ui/hooks/` (DEBT-04)
 
-Sign and Redact were each other's only consumers, never a third tool, so these six belong with the
+Sign and Redact were each other's only consumers, never a third tool, so these belong with the
 rest of the Sign/Redact shared chrome rather than in `lib`. Consumers unchanged from the table above.
+(`useUndoShortcut.js` was a sixth. It went back to `src/lib/history/` under UNDO-01 when Edit Pages
+became a third consumer, which is the rule working in both directions rather than an exception to it.)
 
 | Module | Direct consumers |
 | --- | --- |
@@ -317,7 +320,6 @@ rest of the Sign/Redact shared chrome rather than in `lib`. Consumers unchanged 
 | `useDraggableElement.js` | `RedactBox`, `SignTool/DraggableWrapper` |
 | `useElementResize.js` | `RedactBox`, `SignTool/DraggableWrapper` |
 | `usePdfCoordinates.ts` | `PdfRedactTool`, `SignTool/nodes/TextNode`, plus `useDraggableElement.js`/`useElementResize.js`/`useWorkspaceGestures.ts` internally |
-| `useUndoShortcut.js` | `PdfRedactTool`, `PdfSignTool` |
 
 ### Site-only or build-only (DEBT-05: moved to `src/site-lib/`)
 

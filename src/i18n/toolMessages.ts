@@ -681,6 +681,14 @@ import type { SignMessages } from '../editor/registry/messages';
 
 export type { SignMessages };
 
+/**
+ * UNDO-REDO: redo's strings. Redo has no toolbar control of its own
+ * (CLAUDE.md/editor.md's twelve-control note on SignToolbar), so it surfaces
+ * only through `UndoHistoryModal.tsx`'s footer button and Sign's
+ * Cmd/Ctrl+Shift+Z announcement (`redidActionTemplate`, the counterpart to
+ * `undidActionTemplate` below). The keys are declared on `SignMessages` in
+ * `src/editor/registry/messages.ts` like every other string here.
+ */
 const englishSignMessages: SignMessages = {
   toolbarLabel: 'PDF annotations',
   textButton: 'Text',
@@ -758,6 +766,9 @@ const englishSignMessages: SignMessages = {
   saveSignatureLabel: 'Save Signature',
   undoHistoryTitle: 'Undo changes',
   revertSelectedLabel: 'Revert selected',
+  redoButton: 'Redo',
+  redoTitle: 'Bring back the change you just undid',
+  redoDescriptionTemplate: 'Redo: {description}',
   pageLabel: 'Page {number}',
   clearPageLabel: 'Clear page',
   clearPageTitle: 'Clear all annotations on this page',
@@ -826,6 +837,7 @@ const englishSignMessages: SignMessages = {
   editsChangedWhilePreparing: 'Your edits changed while the PDF was being prepared. Download again to create an up-to-date file.',
   revertedSelectedActions: 'Reverted selected actions.',
   undidActionTemplate: 'Undid: {description}',
+  redidActionTemplate: 'Redid: {description}',
   invalidPdfFile: 'Please select a valid PDF file.',
   placedSignatureOnPage: 'Placed signature on page.',
   signaturePlacedNotSaved: 'Signature placed, but the browser could not save it for your next visit.',
@@ -959,6 +971,9 @@ const hebrewSignMessages: SignMessages = {
   saveSignatureLabel: 'שמירת חתימה',
   undoHistoryTitle: 'ביטול שינויים',
   revertSelectedLabel: 'שחזור הנבחרים',
+  redoButton: 'ביצוע מחדש',
+  redoTitle: 'החזרת השינוי שביטלתם',
+  redoDescriptionTemplate: 'ביצוע מחדש: {description}',
   pageLabel: 'עמוד {number}',
   clearPageLabel: 'ניקוי העמוד',
   clearPageTitle: 'ניקוי כל ההערות בעמוד הזה',
@@ -1027,6 +1042,7 @@ const hebrewSignMessages: SignMessages = {
   editsChangedWhilePreparing: 'השינויים שלכם השתנו בזמן שה-PDF הוכן. הורידו שוב כדי ליצור קובץ מעודכן.',
   revertedSelectedActions: 'הפעולות שנבחרו שוחזרו.',
   undidActionTemplate: 'בוטל: {description}',
+  redidActionTemplate: 'בוצע מחדש: {description}',
   invalidPdfFile: 'בחרו קובץ PDF תקין.',
   placedSignatureOnPage: 'החתימה מוקמה בעמוד.',
   signaturePlacedNotSaved: 'החתימה מוקמה, אבל הדפדפן לא הצליח לשמור אותה לביקור הבא שלכם.',
