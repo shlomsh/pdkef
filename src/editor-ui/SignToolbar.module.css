@@ -40,8 +40,8 @@
    by reading the component. Recount by rendering, not by eye, whenever a slot's
    own component changes shape.
    Every real toolbar today has at least nine children even after that hidden
-   control is excluded (see below). Sign's in-toolbar bug action makes ten
-   controls visible; the five-per-row value remains the correct even split.
+   control is excluded (see below): Redact counts ten and Sign thirteen, so
+   five per row is Redact's even split and seven is Sign's.
    `.segmented` (ViewControl's >=920px view-density control, the hidden node
    this whole comment is about) carries no class or attribute of its own that
    a sibling module's selector can target - CSS Modules hash `styles.segmented`,
@@ -61,9 +61,14 @@
    11 rounded up is 6, not 5, so this needs its own override, later in source
    order than the 9-of rule above so it wins the cascade on a toolbar matched
    by both (every true-11 toolbar also has a 9th child). Sign has since grown
-   to thirteen and matches the rule below this one instead; this one is still
-   what a true-eleven toolbar takes, and it is also the cap Sign falls back to
-   at 287px and narrower, where eleven and twelve both want four per row. */
+   to thirteen and matches the rule below this one instead, so no toolbar takes
+   this value today: Redact counts ten and stops at the 9-of rule above, and
+   `:nth-child(n of ...)` counts DOM children whatever their rendering, so Sign
+   counts thirteen at every width even where twelve render. It stays because it
+   is the tier for eleven or twelve counted children - remove one control from
+   Sign and it is live again - and because the ladder reads as the arithmetic
+   it is. The six Sign actually uses between 288px and 344px is set further
+   down, on the children, by the query that hides Feedback. */
 .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 6; }
 /* Sign again, now that Undo, Redo and History are three controls rather than
    one: thirteen counted children, both with Share (fifteen children, less the
@@ -234,10 +239,10 @@
 .status-hint-spare { visibility: hidden; }
 /* Next/Previous across the document's own detected fields (MOBI-06;
    EditorToolStatus.tsx's `fieldNav` prop) - the type-Next-type control lives
-   here, in the row that already flexes and wraps, rather than as an eleventh
-   permanent button on `.toolbar`, whose 44px-per-item math a few hundred
-   lines down is already tuned for exactly ten items and would need
-   re-deriving in full for an eleventh.
+   here, in the row that already flexes and wraps, rather than as one more
+   permanent button on `.toolbar`, whose 44px-per-item math a few hundred lines
+   down is tuned per exact control count and has to be re-derived in full for
+   each one added (it was, twice: for Date, and again for Redo and History).
 
    Full --btn-min-size touch targets, not the smaller WCAG-2.5.5 exception
    `.status-action` above takes for itself: that switch is inline in a
@@ -309,8 +314,14 @@
      change. N controls need N * --btn-min-size + (N-1) gaps inside
      --toolbar-padding, which is 349.6px for seven, 447.2px for nine and 496.0px
      for ten, so each query fires just below its own figure - floor() for the
-     fractional ones, one pixel below for the one whole number (496.0). Skipping
-     a real N leaves it uncapped in the gap between its neighbours' thresholds:
+     fractional ones, one pixel below for the one whole number (496.0).
+     Firing below rather than at the figure leaves a sub-pixel band - 629 to
+     629.6, 287 to 288 - where the cap has not engaged yet and the row is
+     already one target too long, so it packs greedily and strands one control.
+     It is the convention every threshold here follows, and a fractional
+     container width is the only way to land in it; noted so the next reader
+     knows it is a known sliver and not an unnoticed case.
+     Skipping a real N leaves it uncapped in the gap between its neighbours' thresholds:
      that line still wraps once it stops fitting, but with no cap active it packs
      greedily and strands whatever's left on the second line at full stretched
      width, exactly the 8+1/1-giant-button failure this whole mechanism exists to
@@ -320,8 +331,9 @@
      truly-visible-child case - wrapped uncapped between roughly 448px and 496px
      of container width.
      N here means controls actually rendered, not raw DOM position: Sign with
-     share support counts twelve children (see the recount note above) but only
-     ever shows ten, since Download hides itself below 920px. `:nth-child(10 of
+     share support counts fifteen children (see the recount note above) but only
+     ever shows thirteen, since Download hides itself below 920px and the
+     view-density control hides above it. `:nth-child(10 of
      :not(.desktop-download))` reads as "the tenth child once you skip anything
      wearing that hidden-below-920px class", so it counts what a phone user
      actually sees rather than what exists in the DOM. Using a plain
@@ -372,9 +384,16 @@
   }
 
   /* 629.6px is where thirteen controls stop fitting one line at the touch
-     floor (13 * 44 + 12 * 4.8), the same arithmetic as every threshold above,
-     one tier up again now that Sign carries Undo, Redo and History as three
-     controls. Fires one pixel below the fractional figure, floor() convention.
+     floor (13 * 44 + 12 * 4.8), one tier up again now that Sign carries Undo,
+     Redo and History as three controls. Fires one pixel below the fractional
+     figure, floor() convention.
+     Note the figure carries no padding term, unlike 349.6/447.2/496.0 above,
+     which are the same N * 44 + (N-1) * 4.8 plus --toolbar-padding's 12.8px.
+     A container query matches the content box (the 239px rule below says so in
+     its own comment, and it is what the measured stand-down widths confirm), so
+     this one is the honest figure and those three fire ~12.8px early - which
+     caps a row slightly before it has to wrap, never late, so it has never
+     shown up as a defect. Do not "fix" them by adding 12.8px here.
      Above it the row still fits one line and the controls simply grow to fill
      it (measured: one line at 768px and 800px of viewport, 7+6 at 700px); the
      band this loses - roughly a 660-726px window - is the price of the two
@@ -455,9 +474,10 @@
   /* Feedback does not act on the document, so below 251px it stands down and
      lets the controls that do take the split above. On Sign it has already
      gone, at 344px (see that query, and why it is Feedback rather than
-     History); what goes here on that toolbar is History, the second and last
-     of its optional controls. Sign shows thirteen controls above 344px, twelve
-     from there down, and eleven here, and all three of those counts balance. Ten cannot be balanced here
+     History), so nothing of Sign's goes at this width: it shows twelve here
+     and splits 4+4+4. Its second and last optional control, History, stands
+     down at 239px below. Thirteen above 344px, twelve from there down, eleven
+     below 239px - all three balance, and none of them is ten. Ten cannot be balanced here
      at all: the 44px touch floor caps the line at four regardless of
      --controls-per-row, and greedy flex turns ten into 4+4+2 at a cap of four
      or five and 3+3+3+1 at three, while the balanced 4+3+3 is unreachable at
@@ -593,8 +613,8 @@
 /* Where the labels show, the row is set tighter than the icon rows: 4px gaps
    and .5rem horizontal padding. CI caught the labelled row wrapping at a
    1280px window on Linux, where the system-font stack lands on a wide face
-   (DejaVu, Verdana's width class: ~1177px for the twelve controls against SF's
-   ~1110px) and a classic 15px scrollbar takes the box down to ~1141px. The
+   (DejaVu, Verdana's width class: ~1177px for the twelve controls of the day
+   against SF's ~1110px) and a classic 15px scrollbar takes the box down to ~1141px. The
    tighter spacing recovers ~60px and the 1300px floor keeps the box at ~1160px
    or more even with a scrollbar, so a wide font still has ~40px to spare. The
    gap went 6px -> 4px on 2026-09-20 to pay for Redo and History (see the block

@@ -50,7 +50,7 @@ export default function RedactToolbar({
   setUndoModalOpen,
   onUndo,
   onRedo,
-  canRedo = false,
+  canRedo,
   exporting = false,
   undoAction = null,
   onUndoAction,
@@ -79,7 +79,10 @@ export default function RedactToolbar({
    * the only place it lived and reverting closed it. */
   onUndo: () => void;
   onRedo: () => void;
-  canRedo?: boolean;
+  /** Whether anything has been undone that Redo could bring back. Required,
+   * not defaulted: a caller that wired the handlers and forgot the flag would
+   * typecheck and ship a Redo button that never enables. */
+  canRedo: boolean;
   /** True while a redacted PDF is being generated - guards Download/Share
    * against re-entry so a second click can't start an overlapping export. */
   exporting?: boolean;
@@ -277,7 +280,11 @@ export default function RedactToolbar({
           className={styles.button}
           onClick={() => setUndoModalOpen(true)}
           title="Change history"
-          disabled={actionHistory.length === 0}
+          /* Undone steps are rows in that dialog too, above the NOW divider,
+             so an empty `actionHistory` is not an empty timeline: undo your way
+             back to the start and the only control that opens the dialog would
+             otherwise go dead with a full list behind it. */
+          disabled={actionHistory.length === 0 && !canRedo}
           data-icon-only
           /* Hidden below the narrow band (SignToolbar.module.css's
              [data-optional-control]), which puts Redact back to nine controls

@@ -73,7 +73,7 @@ export default function SignToolbar({
   actionHistory,
   onUndo,
   onRedo,
-  canRedo = false,
+  canRedo,
   toggleFullscreen,
   isFullscreen,
   onSavePdf,
@@ -97,8 +97,10 @@ export default function SignToolbar({
   onUndo: () => void;
   /** One tap forward again - Shift+Cmd/Ctrl+Z or Ctrl+Y. */
   onRedo: () => void;
-  /** Whether anything has been undone that Redo could bring back. */
-  canRedo?: boolean;
+  /** Whether anything has been undone that Redo could bring back. Required,
+   * not defaulted: a caller that wired the handlers and forgot the flag would
+   * typecheck and ship a Redo button that never enables. */
+  canRedo: boolean;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   onSavePdf: () => void;
@@ -702,7 +704,13 @@ export default function SignToolbar({
             className={styles.button}
             onClick={() => setUndoModalOpen(true)}
             title={t.undoHistoryTitle}
-            disabled={actionHistory.length === 0}
+            /* Undone steps are rows in that dialog too, above the NOW divider,
+               so an empty `actionHistory` is not an empty timeline: undo your
+               way back to the start and the only control that opens the
+               dialog would otherwise go dead with a full list behind it. That
+               was survivable while this control also performed the undo; it is
+               not now that it only opens the dialog. */
+            disabled={actionHistory.length === 0 && !canRedo}
             data-icon-only
             /* The second of this toolbar's two optional controls, and the
                later one to go: Feedback stands down at 344px of toolbar and

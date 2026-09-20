@@ -48,6 +48,13 @@ its label instead. New thresholds: a 629px one-line floor and the
 Measured rows, every width the guards walk: 4+4+3 at 320px, 4+4+4 at 360px, 6+6 at 390px and 430px,
 7+6 at 500px and 700px, one line from 768px up. Redact is unchanged at 5+5 and 3+3+3.
 
+## Fixed in review, worth knowing
+
+A History control disabled on `actionHistory.length === 0` goes dead at exactly the moment its dialog
+is fullest: undo everything and every step is sitting above the NOW divider, waiting to be redone,
+with the applied list empty. That was survivable while the same control also performed the undo; it is
+not once it only opens the dialog. Both tools now read `actionHistory.length === 0 && !canRedo`.
+
 ## Guards
 
 `e2e/tool-toolbars/toolbar-touch-targets.spec.js` gains Sign's 700px case: thirteen 44px targets need a

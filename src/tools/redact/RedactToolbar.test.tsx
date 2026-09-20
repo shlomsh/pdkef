@@ -34,6 +34,7 @@ describe('RedactToolbar returning-work status', () => {
           setUndoModalOpen={vi.fn()}
           onUndo={vi.fn()}
           onRedo={vi.fn()}
+          canRedo={false}
           showWelcomeTip={showWelcomeTip}
         />,
         container,
@@ -67,6 +68,7 @@ describe('RedactToolbar returning-work status', () => {
           setUndoModalOpen={vi.fn()}
           onUndo={vi.fn()}
           onRedo={vi.fn()}
+          canRedo={false}
           showWelcomeTip={false}
         />,
         container,
