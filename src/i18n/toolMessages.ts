@@ -1131,6 +1131,14 @@ export interface ShellMessages {
   draftSaving: string;
   draftNotSaved: string;
   draftConflict: string;
+  /** Persistence follow-up (SIGN-06): shown instead of draftSaved once a save
+   * has succeeded but this browser has not guaranteed it will keep the
+   * result (see draftStore.js's requestStoragePersistence/isStoragePersisted
+   * and useDraftPersistence.js's anti-noise gate - scoped to an installed
+   * home-screen app, not every ordinary tab). Never shown before a save has
+   * succeeded, and never in place of draftNotSaved/draftConflict, which stay
+   * the more urgent states. */
+  draftUnpersisted: string;
   addLabel: string;
   addShort: string;
   addTitle: string;
@@ -1183,6 +1191,7 @@ const englishShellMessages: ShellMessages = {
   draftSaving: 'Saving draft…',
   draftNotSaved: 'Draft not saved',
   draftConflict: 'Newer draft in another tab - saving here will replace it',
+  draftUnpersisted: 'Draft saved, but this browser might not keep it - download to be safe',
   addLabel: 'Add files',
   addShort: 'Add',
   addTitle: 'Add more files',
@@ -1230,6 +1239,7 @@ const hebrewShellMessages: ShellMessages = {
   draftSaving: 'שומרים טיוטה…',
   draftNotSaved: 'הטיוטה לא נשמרה',
   draftConflict: 'יש טיוטה חדשה יותר בלשונית אחרת. שמירה כאן תחליף אותה',
+  draftUnpersisted: 'הטיוטה נשמרה, אבל הדפדפן עלול לא לשמור אותה - כדאי להוריד ליתר ביטחון',
   addLabel: 'הוספת קבצים',
   addShort: 'הוספה',
   addTitle: 'הוספת קבצים נוספים',

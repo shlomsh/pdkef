@@ -24,7 +24,12 @@ vi.mock('./draftStore.js', () => ({
   loadDraft: vi.fn(() => Promise.resolve(null)),
   deleteDraft: vi.fn(() => Promise.resolve(true)),
   hasDraftHint: vi.fn(() => false),
-  subscribeToDraftChanges: vi.fn(() => () => {})
+  subscribeToDraftChanges: vi.fn(() => () => {}),
+  // 'unknown' by default (the "browser cannot tell us" case) so every test
+  // above that never touches persistence keeps its existing 'saved'
+  // expectations - only the describe block below overrides this to prove the
+  // unpersisted-warning path itself.
+  isStoragePersisted: vi.fn(() => Promise.resolve('unknown')),
 }));
 
 // Not what this test is about - avoid a real pdf.js decode of fake PDF bytes.
@@ -33,7 +38,7 @@ vi.mock('../thumbnails.js', () => ({
 }));
 
 import { renderDraftPreview } from '../thumbnails.js';
-import { saveDraft, attachDraftPreview } from './draftStore.js';
+import { saveDraft, attachDraftPreview, isStoragePersisted } from './draftStore.js';
 
 function Harness({ apiRef, props }) {
   apiRef.current = { result: useDraftPersistence(props) };
@@ -248,6 +253,138 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+});
+
+// SIGN-06 follow-up: the 'unpersisted' warning line. Scoped to an installed/
+// home-screen app (see useDraftPersistence.js's isInstalledStandalone
+// comment for why), so every test here controls window.matchMedia and
+// navigator.standalone explicitly rather than relying on src/test/setup.js's
+// default matchMedia stub (which answers 'matches' to every query, i.e. the
+// desktop/standalone-looking path - see its own comment).
+describe('useDraftPersistence - unpersisted-storage warning', () => {
+  let container;
+  let apiRef;
+  let originalMatchMedia;
+  let originalStandalone;
+
+  function stubStandalone(isStandalone) {
+    window.matchMedia = vi.fn(() => ({ matches: isStandalone }));
+    Object.defineProperty(navigator, 'standalone', { configurable: true, value: undefined });
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    apiRef = { current: null };
+    saveDraft.mockReset();
+    isStoragePersisted.mockReset();
+    isStoragePersisted.mockResolvedValue('unknown');
+    originalMatchMedia = window.matchMedia;
+    originalStandalone = Object.getOwnPropertyDescriptor(navigator, 'standalone');
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    vi.useRealTimers();
+    window.matchMedia = originalMatchMedia;
+    if (originalStandalone) Object.defineProperty(navigator, 'standalone', originalStandalone);
+    else delete navigator.standalone;
+  });
+
+  // Extra turns beyond flushDebounceAndMicrotasks: the persistence check
+  // itself is one more async hop (isStoragePersisted().then(...)) queued
+  // from an effect that only runs once saveState has settled to 'saved', and
+  // Preact's own effect scheduling adds another microtask on top of that.
+  async function flushPersistenceCheck() {
+    await flushDebounceAndMicrotasks();
+    await act(async () => {
+      for (let i = 0; i < 6; i += 1) {
+        // eslint-disable-next-line no-await-in-loop -- draining a fixed number of microtask turns is the point
+        await Promise.resolve();
+      }
+    });
+  }
+
+  it('never appears before a save has succeeded', async () => {
+    stubStandalone(true);
+    isStoragePersisted.mockResolvedValue(false);
+    saveDraft.mockImplementation(() => new Promise(() => {})); // never resolves
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    expect(apiRef.current.result.draftSaveState).toBe('pending');
+
+    await flushPersistenceCheck();
+    // The save never succeeded, so the check must never even have run.
+    expect(isStoragePersisted).not.toHaveBeenCalled();
+    expect(apiRef.current.result.draftSaveState).toBe('pending');
+  });
+
+  it('shows the warning after a successful save, in an installed/standalone context, when storage is not persisted', async () => {
+    stubStandalone(true);
+    isStoragePersisted.mockResolvedValue(false);
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    await flushPersistenceCheck();
+
+    expect(apiRef.current.result.draftSaveState).toBe('unpersisted');
+  });
+
+  it('never warns outside an installed/standalone context, even when storage is not persisted', async () => {
+    stubStandalone(false);
+    isStoragePersisted.mockResolvedValue(false);
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    await flushPersistenceCheck();
+
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+
+  it('never warns on an "unknown" answer - a browser that cannot tell us is not evidence of anything', async () => {
+    stubStandalone(true);
+    isStoragePersisted.mockResolvedValue('unknown');
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    await flushPersistenceCheck();
+
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+
+  it('lets a later real error win over an earlier unpersisted warning', async () => {
+    stubStandalone(true);
+    isStoragePersisted.mockResolvedValue(false);
+    saveDraft.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    await flushPersistenceCheck();
+    expect(apiRef.current.result.draftSaveState).toBe('unpersisted');
+
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
+    });
+    await flushPersistenceCheck();
+
+    expect(apiRef.current.result.draftSaveState).toBe('error');
   });
 });
 

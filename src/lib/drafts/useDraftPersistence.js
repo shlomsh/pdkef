@@ -1,6 +1,30 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile } from './draftStore.js';
+import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
+
+// The unpersisted-warning line is scoped to an installed/home-screen app, not
+// every browser tab. This is a deliberate anti-noise decision, not the
+// simplest thing to check: browsers differ on what `persisted()` reports
+// after an un-granted request (Chrome commonly answers `false` for an
+// ordinary tab while still keeping that tab's storage reliably in practice),
+// so warning on every `false` would train people to stop reading the line.
+// An installed app is exactly where this shipped from - the reported loss
+// was from an installed iOS home-screen app - and it is where a person is
+// most likely to treat "Draft saved" as a durable promise, so it is where
+// the warning earns its keep. The cost: an ordinary browser tab whose storage
+// is also technically unpersisted, and could in principle be evicted, never
+// sees the line. That trade is deliberate - see SIGN-06/the persistence
+// ticket's report for the reasoning.
+function isInstalledStandalone() {
+  try {
+    if (typeof window !== 'undefined' && window.matchMedia?.('(display-mode: standalone)').matches) return true;
+    // iOS Safari never matches the media query above, even once installed; it
+    // exposes this legacy boolean on `navigator` instead.
+    return typeof navigator !== 'undefined' && navigator.standalone === true;
+  } catch {
+    return false;
+  }
+}
 
 // Clears the blocking head script's DOM hint once a real restore check has
 // settled with nothing to restore. Shared by both "no record at all" and
@@ -41,9 +65,13 @@ export const RESTORE_TIMEOUT_MS = 4000;
  *   true to claim the load (a pending home-page handoff) and skip the draft restore
  * @param {(record: object) => void} opts.onRestore - rehydrate the tool from a draft
  * @returns {{ clearDraft: () => Promise<void>, isRestoring: boolean,
- *   draftSaveState: 'idle'|'pending'|'saved'|'error'|'conflict', draftSaveRevision: number }}
+ *   draftSaveState: 'idle'|'pending'|'saved'|'error'|'conflict'|'unpersisted', draftSaveRevision: number }}
  *   `draftSaveState` describes the current revision only. In particular, a
- *   scheduled or failed write is never reported as saved.
+ *   scheduled or failed write is never reported as saved. `'unpersisted'` is
+ *   `'saved'` with one extra fact attached - this browser has not guaranteed
+ *   it will keep what was just saved - and only ever replaces a `'saved'` of
+ *   the current revision; it can never appear before a save has actually
+ *   succeeded, and a later `'error'`/`'conflict'` always wins over it.
  *   starts true only when draftStore's synchronous hint (hasDraftHint) says a
  *   draft is likely, and flips false once the real restore settles or
  *   RESTORE_TIMEOUT_MS elapses - the caller's cue to hold off on an empty state
@@ -84,6 +112,11 @@ export function useDraftPersistence({
   }
   const currentRevision = revisionRef.current;
   const [saveState, setSaveState] = useState({ state: 'idle', revision: 0 });
+  // Set at most once per mount, and only once a save has actually succeeded -
+  // see the effect below and isInstalledStandalone's comment for the
+  // anti-noise scoping.
+  const [notPersisted, setNotPersisted] = useState(false);
+  const persistenceCheckedRef = useRef(false);
   const writePromisesRef = useRef(new Map());
   // A debounce can still fire after pagehide has flushed that same revision.
   // Remember successful revisions so one edit produces one write, while a
@@ -157,6 +190,27 @@ export function useDraftPersistence({
     writePromisesRef.current.set(revision, write);
     return write;
   };
+
+  // SIGN-06 follow-up: once a save has actually succeeded, ask (once) whether
+  // this origin's storage is really persistent. Gated on `saveState.state ===
+  // 'saved'` so the check - and therefore the line it can turn on - can never
+  // run before a save has succeeded; `draftSaveState`'s own derivation below
+  // is a second, independent guard against showing it any earlier.
+  useEffect(() => {
+    if (!enabled || persistenceCheckedRef.current || saveState.state !== 'saved') return;
+    persistenceCheckedRef.current = true;
+    if (!isInstalledStandalone()) return;
+    let cancelled = false;
+    isStoragePersisted().then((persisted) => {
+      // Only a definite `false` counts. `'unknown'` (no Storage API, a throw,
+      // a rejection) is not evidence of anything and must not cry wolf over a
+      // browser that simply cannot answer.
+      if (!cancelled && persisted === false) setNotPersisted(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, saveState.state]);
 
   // Restore on mount.
   useEffect(() => {
@@ -322,10 +376,14 @@ export function useDraftPersistence({
   // sourceChanged runs during render, before an old promise can paint its
   // completion. Derive pending for the new snapshot until its effect records
   // the same state, so there is no transient stale "Draft saved" chip.
+  // `notPersisted` only ever swaps in for a *current* 'saved' - never for
+  // 'idle'/'pending' (so the warning cannot appear before a save has
+  // succeeded) and never over 'error'/'conflict' (which fall through
+  // untouched, so they keep outranking it as the more urgent state).
   const draftSaveState = saveState.state === 'conflict'
     ? 'conflict'
     : saveState.revision === currentRevision
-    ? saveState.state
+    ? (saveState.state === 'saved' && notPersisted ? 'unpersisted' : saveState.state)
     : (canPersist ? 'pending' : 'idle');
 
   return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };

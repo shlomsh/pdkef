@@ -23,7 +23,7 @@ interface ToolShellContextValue {
    * instead of the generic glyph when a tool has it to give. The editor
    * variant ignores it - see the `editor` note on ToolShell. */
   file?: File | null;
-  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict';
+  draftSaveState?: 'idle' | 'pending' | 'saved' | 'error' | 'conflict' | 'unpersisted';
   multiple?: boolean;
   /** The shell's own copy (dropzone, actions, confirmations), defaulting to
    * English; BasePdfTool supplies a locale's catalogue on a localized page. */
@@ -137,6 +137,11 @@ export default function ToolShell({ editor = false, status = null, children }: {
   const { fileLabel, fileMeta, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved }
+    : draftSaveState === 'unpersisted'
+      // Still a save that succeeded, not a problem - same quiet weight as
+      // "Saving draft…", never the danger color 'error'/'conflict' use, so
+      // it reads as a fact to notice rather than a fault to worry about.
+      ? { label: messages.draftUnpersisted, className: styles.pending }
     : draftSaveState === 'pending'
       ? { label: messages.draftSaving, className: styles.pending }
       : draftSaveState === 'error'
