@@ -110,3 +110,44 @@ describe('SignTool dependable undo', () => {
     expect(state.redoHistory).toEqual([]);
   });
 });
+
+// Review finding: the "clear the future on any new command" invariant was
+// held by call-site ordering in three cases rather than by the reducer. These
+// pin it down where it is now enforced. ADD_ELEMENT is the one that mattered:
+// a drag-drawn element enters the document at pointer-down and is only logged
+// on commit, so a redo pressed mid-gesture used to splice a restored element
+// in beneath it and leave the commit logging the drawn one at a stale index.
+describe('every case that changes the document clears the redo future', () => {
+  const undoneState = (): SignToolState => {
+    const withHistory = reducer(baseState([added]), {
+      type: 'ADD_ACTION_HISTORY',
+      payload: createActionEntry<EditorElement>({
+        operation: 'add',
+        type: 'ADD_SHAPE',
+        pageIndex: 0,
+        description: 'Added rectangle',
+        elements: [captureAddedElement(added, 0)],
+      }),
+    });
+    const undone = reducer(withHistory, { type: 'UNDO' });
+    expect(undone.redoHistory).toHaveLength(1);
+    expect(undone.elements).toEqual([]);
+    return undone;
+  };
+
+  it('ADD_ELEMENT clears it, so a mid-gesture redo cannot splice underneath', () => {
+    const next = reducer(undoneState(), { type: 'ADD_ELEMENT', payload: front });
+    expect(next.redoHistory).toEqual([]);
+    // REDO is now inert: the drawn element keeps the index its commit will log.
+    expect(reducer(next, { type: 'REDO' }).elements.map((element) => element.id)).toEqual(['front']);
+  });
+
+  it('SET_ELEMENTS clears it', () => {
+    expect(reducer(undoneState(), { type: 'SET_ELEMENTS', payload: [back] }).redoHistory).toEqual([]);
+  });
+
+  it('CLEAR_PAGE clears it', () => {
+    const withElement: SignToolState = { ...undoneState(), elements: [back] };
+    expect(reducer(withElement, { type: 'CLEAR_PAGE', payload: 0 }).redoHistory).toEqual([]);
+  });
+});

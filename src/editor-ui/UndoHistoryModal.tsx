@@ -6,7 +6,9 @@ import styles from './UndoHistoryModal.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
 // actions (see actionHistory.ts) as a checklist so several can be reverted at
-// once, alongside the Cmd/Ctrl+Z single-step undo (useUndoShortcut.js).
+// once, alongside the single-step undo and redo shortcuts
+// (src/lib/history/useHistoryShortcuts.js). Its footer also carries Redo,
+// which has no toolbar control of its own (UNDO-03).
 //
 // Self-manages its own dialog ref and showModal()/close() lifecycle (rather
 // than the caller owning the ref) so it's a drop-in for either tool. Uses

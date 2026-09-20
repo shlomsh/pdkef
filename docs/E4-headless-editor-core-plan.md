@@ -101,7 +101,7 @@ Both [`PdfSignTool.jsx`](../src/components/PdfSignTool.jsx) and
   [`useEditorDraftPersistence.js`](../src/editor/workspace/useEditorDraftPersistence.js)).
 - **Fullscreen** (real + `pseudo-fullscreen` fallback) and **Escape precedence** while a modal is open.
 - **Undo history** ([`actionHistory.ts`](../src/editor/model/actionHistory.ts),
-  [`useUndoShortcut.js`](../src/editor-ui/hooks/useUndoShortcut.js), `UndoHistoryModal`).
+  [`useHistoryShortcuts.js`](../src/lib/history/useHistoryShortcuts.js), `UndoHistoryModal`).
 - **Download / continue-editing / start-over** flow and URL revocation.
 - **Native share** of the baked PDF via [`usePdfShare.js`](../src/lib/usePdfShare.js) (added on `main`
   in `e2ab13b`, after this epic was scoped). This one is **already shared** — a single hook

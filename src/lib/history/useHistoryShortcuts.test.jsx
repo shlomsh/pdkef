@@ -70,10 +70,37 @@ describe('useHistoryShortcuts', () => {
     expect(onUndo).not.toHaveBeenCalled();
   });
 
-  it('Cmd+Y redoes', () => {
+  // Cmd+Y is the browser's on macOS (History in Safari, Library in Firefox),
+  // so taking it would silently swallow those: this handler calls
+  // preventDefault as soon as a chord matches.
+  it('leaves Cmd+Y to the browser', () => {
     act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
-    act(() => dispatchKeyDown({ key: 'y', metaKey: true }));
-    expect(onRedo).toHaveBeenCalledTimes(1);
+    const event = dispatchKeyDown({ key: 'y', metaKey: true });
+    expect(onRedo).not.toHaveBeenCalled();
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('leaves Ctrl+Alt+Z alone rather than reading it as undo', () => {
+    act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
+    const event = dispatchKeyDown({ key: 'z', ctrlKey: true, altKey: true });
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  // A redo chord with no handler wired should fall through to the browser
+  // rather than become a key that does nothing anywhere.
+  it('does not preventDefault on a redo chord it cannot handle', () => {
+    act(() => render(<Harness onUndo={onUndo} onRedo={undefined} />, container));
+    const event = dispatchKeyDown({ key: 'z', metaKey: true, shiftKey: true });
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('does preventDefault on a chord it handles', () => {
+    act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
+    expect(dispatchKeyDown({ key: 'z', metaKey: true }).defaultPrevented).toBe(true);
+    expect(dispatchKeyDown({ key: 'z', metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+    expect(dispatchKeyDown({ key: 'y', ctrlKey: true }).defaultPrevented).toBe(true);
   });
 
   it('does nothing without a modifier key', () => {
@@ -107,7 +134,7 @@ describe('useHistoryShortcuts', () => {
     textarea.focus();
     act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
     act(() => dispatchKeyDown({ key: 'z', metaKey: true }));
-    act(() => dispatchKeyDown({ key: 'y', metaKey: true }));
+    act(() => dispatchKeyDown({ key: 'y', ctrlKey: true }));
     expect(onUndo).not.toHaveBeenCalled();
     expect(onRedo).not.toHaveBeenCalled();
   });
