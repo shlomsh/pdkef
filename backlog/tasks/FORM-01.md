@@ -1,7 +1,7 @@
 ---
 id: "FORM-01"
 title: "Tell a caption from a field, and take form 101 to the 90% gate"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
@@ -56,37 +56,74 @@ record, the tooling takes `--input <path>`, and the committed geometry-only fixt
 byte-faithful for the pure-ink path but carry **no text at all**, so they cannot exercise
 `formCells.js` or `fieldLabels.js`.
 
-## Where this stands, 2026-09-20
+## Where this stands, 2026-09-20 (second entry: the signal was tried and it is wrong)
 
-Nothing here has started. What changed today is the ground this ticket stands on, and four things
-about it are not obvious from the sections above.
+**The rule this ticket proposes does not work, and the acceptance box above must not be ticked by
+trying it again.** It was implemented and measured on the real source PDFs. Of form 101's 7 `text`
+false positives, **zero** have a detected checkbox in their row band, at any overlap threshold.
+Of the candidates that are correct, **nine** do - the children table's name cells, which share a
+wall (0.0pt gap) with the narrow tick columns. The rule removes 0 false positives and destroys 9
+true positives: recall 82.0% -> 75.5%, `text` recall 53.3% -> 23.3%.
 
-**The scoring toolchain moved while this ticket was being written.** The acceptance says "measure it
-with `score.mjs`", and that still works, but the number CI enforces now lives in
-`src/editor/adapters/pdf/corpus/scoring/baselines.json`, re-scored every run by
-`scoring.test.js` and ratcheted. `scripts/score-form.mjs --all` re-scores every form and prints the
-row to paste. A number this ticket earns has to be re-recorded there in the same change, or the next
-change gets to lose it silently.
+The signal is inverted because `report-cells.md` predates MOBI-11. The adjacency it keys on was
+manufactured by the tick-column fix three days later. Its two worked examples are also already
+solved: `הכנסה אחרת` and `עבודה/קצבה/עסק` are no longer emitted as cells - they survive as labels
+on correctly detected checkboxes (`pdfjs-layout-checkbox-0002`/`-0003`, confidence 0.8).
 
-**A detector change now owes the element corpus a row**, and the negative rows matter more than the
-positive ones. See `.claude/rules/editor.md` and `src/editor/adapters/pdf/corpus/README.md`. The
-caption rule this ticket proposes is a rule about what must *stop* being detected, which is exactly
-what that corpus is for: pin a caption cell beside a checkbox that must not be offered, next to a
-short labelled cell that must still be. The tick-column rows added today are the worked example of
-the shape.
+Nor can a threshold separate them. On form 101 the false positives' own-text lengths are 0-19
+chars and their blank remainders 38.6-183.9pt; both ranges are strict subsets of the true
+positives'. `שם פרטי` appears as both, with cell widths 104.3 vs 103.9pt and blank strips 75.2 vs
+74.8pt - **0.4pt apart**. No length, width or remainder cut exists.
 
-**The corpus harness passes no text at all.** `detectPage` is called with no `textRuns` argument, so
-any rule that reads a cell's own text cannot be pinned there and belongs in `formCells.test.js`
-instead. The caption rule reads text length, so expect to need both.
+### What did work
 
-**The source PDFs are fetchable from some environments and not others.** MOBI-13 records the egress
-gateway denying `www.gov.il` and `irs.gov`; that was true in the session that wrote it and false in
-this one, where the itc101 original downloaded cleanly and hashed to the `a5bfa867...` already
-recorded. So check before assuming either way, verify the sha256 against the ground-truth file when
-it lands, and never commit the file.
+The precision problem was a box-extent error, not a classification one. Five of the nine false
+positives sat on a real target and missed only on IoU (0.442-0.490), so each scored as a false
+positive *and* a recall miss - the same cells at both ends, which is why the ticket's instruction
+to attack recall and precision separately was wrong for this group.
 
-Two environment traps that cost time today and are not the repo's fault: this container is a
-**shallow clone**, so `gitLastModified.test.js` fails and `test:seo` reports two missing `lastmod`
-entries, both green on CI's full clone; and Playwright cannot launch here when the installed
-Chromium build does not match the pinned `@playwright/test`, so an e2e-affecting change may have to
-be argued statically and confirmed on CI.
+Landed (`1a692b3`, `8591cb0`): a cell publishes its **writing strip** as bounds, for a
+caption-band carve only. Form 101 **82.0/92.7/80.7 -> 85.6/96.7/81.5**, `text` precision
+**36.4% -> 81.8%**, checkbox and comb precision unchanged at 100%, health unchanged.
+
+### The 14 `text` recall misses, classified from ink evidence
+
+Only **one** is an out-of-scope class, not the several this ticket assumed:
+
+| class | n | targets |
+| --- | --- | --- |
+| 4 - no ink at all | 0 | - |
+| 5 - inline blank, underline only | 1 | `t027` (41.3pt rule under it, no side or top wall) |
+| 6 - dotted leader | 0 | - |
+| 7 - table row split by an incidental rule | 4 | `t043`, `t053`, `t058`, `t063` |
+| near-miss IoU on a cell built and kept | 6 | `t003`, `t004`, `t005`, `t033`, `t120`, `t121` |
+| undivided row, cell claimed by a comb | 3 | `t013`, `t014`, `t015` |
+
+The six near-misses are closed by the landed change. The three `t013`-`t015` are an own-goal worth
+its own look: the private-address row is undivided, one wide cell is built for it, and
+`reconcileFields` deletes that cell because the postcode comb is >= 60% contained in it
+(`CLAIM_CONTAINMENT`).
+
+### What remains for the gate
+
+A row-band fix (a horizontal rule should divide only the x-range it actually covers; today a
+left-column rule splits the children table) recovers all 12 of the class-7 targets and takes form
+101 to **94.2% recall / 95.6% precision**, checkbox recall 100%. It is written and measured but
+**not landed**, because on the text-free scored fixtures it drops two ratcheted precision floors
+(health 80.2 -> 60.7, itc101 83.7 -> 77.4) and the owner declined to lower them. Those fixtures
+measure the absence of a text layer rather than the detector; MOBI-13 owns the artifact decision
+that would make the measurement honest, and a branch scoring the real Hebrew forms was in flight
+on 2026-09-20. Re-measure after that lands before proposing a ratchet edit.
+
+**Labels are the remaining gate gap**: 83.2% against 85, with recall and precision both clear.
+Nothing done here attacks label association; it needs work on `headerAbove` / `fieldLabels.js`.
+
+### Two cautions for whoever picks this up
+
+`score-form.mjs` on the real itc101.pdf prints **81.3% / 89.0%** and no label figure, because
+`corpus/detect.js` passes `textRuns = []`. That is not a stale record, it is a blind `formCells`.
+Use the `scripts/spike/mobi-10/` chain (extract -> cells + label -> union -> score) for any
+text-dependent number.
+
+The source PDFs: this ticket said they can never be committed. MOBI-13 records the owner choosing
+to commit the originals on 2026-09-20, so check MOBI-13 before repeating the constraint.

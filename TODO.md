@@ -326,6 +326,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
+| FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 
