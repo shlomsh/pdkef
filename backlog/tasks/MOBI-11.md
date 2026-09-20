@@ -3,7 +3,7 @@ id: "MOBI-11"
 title: "A reviewable field-map stage in Sign, from the geometry detector, before any guided filling"
 status: "in_progress"
 priority: "P2"
-epic: "mobile-round-trip"
+epic: "form-understanding"
 phase: "near-term"
 depends_on: ["MOBI-10"]
 legacy_state: "In Progress"
@@ -33,8 +33,10 @@ not available at runtime anyway.
   stays exactly that.
 - [ ] Each proposal carries its label and kind; a low-confidence proposal is visibly tentative.
 - [ ] MOBI-06's next/previous navigation consumes the reviewed map, not the raw detector output.
-- [ ] Bring the failure classes in `scripts/spike/mobi-10/report-cells.md` down with fixtures,
-  and add a Latin-script flat form to the ground-truth corpus so the numbers are not Hebrew-only.
+- [ ] **Split out 2026-09-20**, so this ticket can close on the review surface alone: the
+  remaining failure classes are FORM-01 (caption versus field, the only class left with room to
+  reach the gate), the label reach on a tall table is FORM-03, and the Latin-script form is
+  FORM-04. The tick-column class was closed here; see Step 3.
 - [x] Re-score with `score.mjs` against the reviewed ground truth; the numbers go in the spike record.
 
 ## Progress
@@ -134,3 +136,10 @@ one: `HEADER_SEARCH_HEIGHT` (220pt) does not reach the bottom of a 286pt table, 
 association fell 2.6 points; and `pageInk.js` discards clip-path rectangles (`re W n`) entirely,
 which is right for the health form's 76 phantom squares but may be discarding real table-cell
 geometry on forms that rule cells as clip paths.
+
+**Re-filed 2026-09-20** from `mobile-round-trip` into `form-understanding`, which was opened for
+this work: reading a flat form well enough to ask a person what it wants outgrew the epic holding
+it. MOBI-10 stays where it was decided, per the re-filing convention in `scripts/backlog-epics.mjs`.
+What is left here is the review surface itself, the acceptance items above it that are still open;
+the detector accuracy work it used to carry is FORM-01, FORM-03 and FORM-04, and the semantic layer
+that consumes this map is FORM-02.
