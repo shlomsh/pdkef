@@ -1123,7 +1123,7 @@ describe('SignToolbar Component', () => {
   // only has to read `fieldNavigation` and hand EditorToolStatus the right
   // shape, in English by default and the given catalogue otherwise.
   describe('fieldNavigation', () => {
-    const noFields = { hasFields: false, hasNext: false, hasPrevious: false, goToNext: () => {}, goToPrevious: () => {} };
+    const noFields = { hasFields: false, hasNext: false, hasPrevious: false, direction: 'ltr' as const, goToNext: () => {}, goToPrevious: () => {} };
 
     it('renders no field-nav control when the document has none (the default)', () => {
       container = document.createElement('div');
@@ -1142,7 +1142,7 @@ describe('SignToolbar Component', () => {
       act(() => {
         render(
           <SignToolProvider>
-            <SignToolbar fieldNavigation={{ hasFields: true, hasNext: true, hasPrevious: false, goToNext, goToPrevious }} />
+            <SignToolbar fieldNavigation={{ hasFields: true, hasNext: true, hasPrevious: false, direction: 'ltr', goToNext, goToPrevious }} />
           </SignToolProvider>,
           container,
         );
@@ -1174,6 +1174,27 @@ describe('SignToolbar Component', () => {
       const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
       expect(previous.getAttribute('aria-label')).toBe(hebrewSignMessages.previousFieldLabel);
       expect(next.getAttribute('aria-label')).toBe(hebrewSignMessages.nextFieldLabel);
+    });
+
+    // The labels above are the locale's; the arrows are the document's. On the
+    // Hebrew catalogue those two disagree for an LTR form, which is the pair
+    // that shipped broken the other way round (MOBI-06, 2026-09-20).
+    it('passes the document direction through while the labels stay the locale\'s', () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(
+          <SignToolProvider>
+            <SignToolbar
+              fieldNavigation={{ ...noFields, hasFields: true, hasNext: true, hasPrevious: true, direction: 'ltr' }}
+              messages={hebrewSignMessages}
+            />
+          </SignToolProvider>,
+          container,
+        );
+      });
+      expect(container.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('ltr');
+      expect(container.querySelector(`.${styles.help}`)!.getAttribute('dir')).toBe('rtl');
     });
   });
 

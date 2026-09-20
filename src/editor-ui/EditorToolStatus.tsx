@@ -67,7 +67,9 @@ import { formatMessage } from '../i18n/toolMessages';
  *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
  *   beside whichever row the stack is showing, present for as long as the document has any
  *   detected field, so the control's own mount state never changes underfoot - only its two
- *   buttons' `disabled` does, as the person reaches either end of the order.
+ *   buttons' `disabled` does, as the person reaches either end of the order. Its `direction`
+ *   is the document's, not this component's `dir`, and goes on the `.field-nav` element so the
+ *   arrows point the way they travel even when the two disagree - see SignToolbar.module.css.
  */
 export default function EditorToolStatus({
   copy,
@@ -126,6 +128,7 @@ export default function EditorToolStatus({
     onPrevious: () => void;
     nextLabel: string;
     previousLabel: string;
+    direction: 'ltr' | 'rtl';
   } | null;
   lang?: string;
   dir?: 'ltr' | 'rtl';
@@ -294,7 +297,7 @@ export default function EditorToolStatus({
           after the stack, means it never counts toward the stack's own
           reserved-row bookkeeping and is never duplicated into a reservation. */}
       {fieldNav && (
-        <div className={styles['field-nav']}>
+        <div className={styles['field-nav']} dir={fieldNav.direction}>
           <button
             type="button"
             className={styles['field-nav-button']}

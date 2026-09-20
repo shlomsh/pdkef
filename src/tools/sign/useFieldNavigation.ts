@@ -1,6 +1,6 @@
 import { createElementId } from '../../editor/model/ids.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
-import type { EditorElement, TextElement } from '../../editor/model/editorModel.ts';
+import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { placeTextOnField } from '../../editor/text/combPlacement.ts';
@@ -69,8 +69,44 @@ export interface FieldNavigation {
    * own disabled state. */
   hasNext: boolean;
   hasPrevious: boolean;
+  /** Which way the two chevrons point, from the printed direction of the page
+   * the navigation is standing on - not the UI locale's. An arrow that points
+   * away from where it takes you is wrong in every language, and keying the
+   * mirroring on the locale meant a Hebrew form opened on the English edition
+   * drew `>` for a step that moved the cursor left (MOBI-06, 2026-09-20). One
+   * direction for the whole document, not one per page - see `arrowDirection`
+   * for why a per-page answer hides itself.
+   *
+   * Row wraps are the honest exception: the last field of a row goes to the
+   * first of the next, which travels against the arrow in `ltr` and `rtl`
+   * alike. These point the way the row reads, not the way every single step
+   * moves. */
+  direction: TextDirection;
   goToNext: () => void;
   goToPrevious: () => void;
+}
+
+/**
+ * Which way the two chevrons point, for the whole document at once.
+ *
+ * Per page would be more faithful to each page - and was the first cut - but
+ * the two buttons look identical whichever way they are set: `dir` reverses
+ * the flex row and the glyph mirror undoes that, so `<` sits on the left in
+ * both directions and only the binding swaps. A page boundary would then
+ * change what the button under a finger does with nothing on screen to say
+ * so, and tapping the same spot twice across it would walk forward and then
+ * straight back. `EditorToolStatus` already refuses to let this control move
+ * or unmount underfoot for the same reason. One direction per document keeps
+ * the whole benefit on every single-direction form - which is every real one
+ * these arrows were built for - and costs only that a minority page inside a
+ * mixed document reads its rows against the arrow, consistently and visibly,
+ * rather than invisibly.
+ *
+ * Ties go `ltr`, the way `dominantTextDirection` breaks its own.
+ */
+function arrowDirection(order: TypableField[], pageDirections: TextDirection[]): TextDirection {
+  const rtl = order.filter((field) => (pageDirections[field.region.pageIndex] ?? 'ltr') === 'rtl').length;
+  return rtl * 2 > order.length ? 'rtl' : 'ltr';
 }
 
 /**
@@ -136,6 +172,8 @@ export default function useFieldNavigation({
     ? elements.find((element) => element.id === activeElementId) ?? null
     : null;
   const position = fieldPosition(order, activeElement ? positionOf(activeElement) : null);
+
+  const direction = arrowDirection(order, formRegions.pageDirections);
 
   /** Opens `field`: selects the box already sitting on it, or creates one. */
   const goTo = (field: TypableField, announcement: string) => {
@@ -205,6 +243,7 @@ export default function useFieldNavigation({
     hasFields: order.length > 0,
     hasNext: position.next !== null,
     hasPrevious: position.previous !== null,
+    direction,
     goToNext: () => {
       if (position.next === null) return;
       goTo(order[position.next], t.movedToNextFieldAnnouncement);

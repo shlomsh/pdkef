@@ -243,13 +243,20 @@
 .field-nav-button:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-primary); }
 .field-nav-button:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 .field-nav-button:disabled { opacity: .4; cursor: not-allowed; }
-/* The UI's own reading direction, not the PDF page's (fieldOrder.ts's own
-   docstring: a Hebrew form on an English UI still reads right to left and an
-   English one on a Hebrew UI still reads left to right) - these arrows are
-   chrome, read by whoever is operating the app in their own language, so a
-   Hebrew UI mirrors them the way its own pagination would, regardless of
-   which way the document underneath happens to read. */
-.help[dir="rtl"] .field-nav-button svg { transform: scaleX(-1); }
+/* The PDF page's own reading direction, not the UI's - `dir` here is set on
+   `.field-nav` from `fieldNav.direction` (useFieldNavigation.ts), overriding
+   the locale `dir` that `.help` carries for everything else in the row.
+
+   This was keyed on the UI locale until 2026-09-20, on the argument that the
+   arrows are chrome and belong to whoever is operating the app. Shipping it
+   proved the argument wrong: a Hebrew form on the English edition drew a
+   right-pointing chevron for Next while the fill order walked each row right
+   to left, so the arrow pointed away from where it went. An arrow is a claim
+   about direction of travel before it is anything else. Both halves have to
+   turn together, which is why `dir` and not a bare transform: it reverses the
+   flex row as well, so the button on the left both points left and moves
+   left, rather than leaving the two chevrons aimed at each other. */
+.field-nav[dir="rtl"] .field-nav-button svg { transform: scaleX(-1); }
 /* The tool button's one hover tooltip - what it does, plus the double-click
    shortcut - replacing its native `title` outright rather than sitting beside
    it (see ArmHint.jsx). Visual styling only: show/hide, the hover delay and

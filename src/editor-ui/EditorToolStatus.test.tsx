@@ -167,7 +167,7 @@ describe('EditorToolStatus', () => {
   // from the stack above - it is not one of the rows the "keeps every
   // reservation" test counts, so it must never appear in `rows()`.
   describe('fieldNav', () => {
-    const fieldNav = { hasNext: true, hasPrevious: false, onNext: vi.fn(), onPrevious: vi.fn(), nextLabel: 'Next field', previousLabel: 'Previous field' };
+    const fieldNav = { hasNext: true, hasPrevious: false, onNext: vi.fn(), onPrevious: vi.fn(), nextLabel: 'Next field', previousLabel: 'Previous field', direction: 'ltr' as const };
 
     it('renders nothing when the caller passes none - Redact is unaffected', () => {
       const host = mount();
@@ -205,6 +205,32 @@ describe('EditorToolStatus', () => {
     it('coexists with an armed tool and with the override, never replacing either', () => {
       expect(mount({ fieldNav, copy: TOOLS[0] }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
       expect(mount({ fieldNav, override: <span>Removed 1 box</span> }).querySelector(`.${styles['field-nav']}`)).not.toBeNull();
+    });
+
+    // The arrows belong to the document, the rest of the row to the reader.
+    // Keyed on the locale instead, a Hebrew form on the English edition drew a
+    // right-pointing chevron for a Next that moved the cursor left; the CSS
+    // that mirrors them hangs off this attribute, so it is the seam to pin.
+    it('takes its dir from the document, overriding the locale dir on the row', () => {
+      const host = mount({ fieldNav: { ...fieldNav, direction: 'rtl' as const }, dir: 'ltr' });
+      expect(host.getAttribute('dir')).toBe('ltr');
+      expect(host.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('rtl');
+    });
+
+    it('leaves an LTR document reading left to right inside a Hebrew UI', () => {
+      const host = mount({ fieldNav, dir: 'rtl' });
+      expect(host.getAttribute('dir')).toBe('rtl');
+      expect(host.querySelector(`.${styles['field-nav']}`)!.getAttribute('dir')).toBe('ltr');
+    });
+
+    // Order is previous-then-next in the DOM either way: `dir` on the flex
+    // container is what puts the left-pointing one on the left, so a11y order
+    // and reading order stay the component's, not the stylesheet's.
+    it('keeps Previous first in the DOM whichever way the document reads', () => {
+      const host = mount({ fieldNav: { ...fieldNav, hasPrevious: true, direction: 'rtl' as const } });
+      const [first, second] = host.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
+      expect(first.getAttribute('aria-label')).toBe('Previous field');
+      expect(second.getAttribute('aria-label')).toBe('Next field');
     });
   });
 });

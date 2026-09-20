@@ -42,3 +42,60 @@ real phone viewport, which needs a browser test rather than jsdom. Previous retu
 order. The current element is committed before the move, so nothing is lost. Escape still unwinds one
 level at a time and the arming model is unchanged. The added control does not break the toolbar's
 touch-target floor or its wrapped-row cap.
+
+## Where this stands, 2026-09-20
+
+The ordering shipped correct and stayed correct: `orderTypableFields` clusters rows by y and sorts
+within a row by a direction-signed edge, off `dominantTextDirection` per page. The Hebrew fixture
+test proves the right-to-left row walk this ticket asked for.
+
+The arrows did not. `SignToolbar.module.css` mirrored the two chevron glyphs on `.help[dir="rtl"]` -
+the **UI locale's** direction - with a comment arguing that the arrows are chrome and belong to
+whoever is operating the app in their own language. That argument does not survive contact with a
+Hebrew form on the English edition: the order walks each row right to left while the arrows stay
+unmirrored, so the right-pointing chevron moves the cursor left. Shlomi, on the live /sign/ on an
+iPhone, once iOS could detect fields at all: "it is opposite direction fwd/back in rtl documents",
+and the ruling that settles it - "regardless of the logic of left to right versus right to left, it
+just should be visually logic."
+
+So the mirroring is now keyed on the document: `useFieldNavigation` publishes `direction` from the
+page the navigation is standing on, `EditorToolStatus` puts it on `.field-nav` as `dir`, and the CSS
+matches `.field-nav[dir="rtl"]`. `dir` rather than a bare transform, so the flex row reverses too and
+the button on the left both points left and moves left. The labels stay the locale's - a screen
+reader should hear "next field", not a compass bearing.
+
+The first cut took the direction per page, and review caught why that is wrong. The two flips
+compose, so the rendered picture is *invariant*: `<` on the left and `>` on the right whichever way
+the document reads, with only the binding swapped. A per-page direction therefore changes what the
+button under a finger does at a page boundary with nothing on screen to say so - tap the left arrow
+to cross from an RTL page to an LTR one and the same arrow, unmoved and unchanged, now walks you
+back. `EditorToolStatus` already refuses to let this control mount, unmount or move underfoot for
+exactly that reason. So `arrowDirection` takes one direction for the whole document, by which way
+holds more of its fields, ties to `ltr`. The cost is that a minority page inside a mixed document
+reads its rows against the arrow - consistently and visibly, which is the failure worth having.
+Taking it per document also deleted rather than patched a real bug the per-page cut had: an element
+sitting below every detected field returns `index: null, next: null` from `fieldPosition`, so the
+anchor fell through to page 0 and could contradict the step Previous was about to take.
+
+**Why it was not caught.** No test anywhere asserted glyph orientation, the `dir` attribute, or any
+case where UI locale and document direction disagree: every fixture fixed one or the other in
+isolation, so both halves passed while contradicting each other. That seam is now pinned in
+`EditorToolStatus.test.tsx`, `SignToolbar.test.tsx` and `useFieldNavigation.test.ts`. The mirroring
+itself is CSS, so jsdom cannot see it and no e2e covers `field-nav` - the rendered result is still
+unproven by machine, and was confirmed on the device instead.
+
+**Honest limits of the new rule.** Two, both accepted rather than solved. A row wrap travels against
+the arrow - the last field of a row goes to the first of the next - in `ltr` and `rtl` alike; the
+chevrons point the way a row reads, not the way every single step moves, and making them literal
+would mean a different control (up/down as well as left/right) that nobody has asked for. And a page
+whose direction differs from the document's majority reads its own rows against the arrow, which is
+the deliberate price of not letting the buttons trade places mid-walk.
+
+**Cheapest thing still missing:** one e2e on an RTL fixture in the English edition, comparing the two
+buttons' `getBoundingClientRect().x` against which one is `disabled`. That is the only machine proof
+this fix can have, and CLAUDE.md's e2e criterion - "only for what jsdom cannot prove (rendered
+rects)" - describes it exactly. Not written here because the pinned Playwright build is not
+installed in this environment, so it could only have been written blind.
+
+**Still open on this ticket:** the acceptance clause about scrolling the target clear of the
+on-screen keyboard at a real phone viewport, which wants a browser test rather than jsdom.

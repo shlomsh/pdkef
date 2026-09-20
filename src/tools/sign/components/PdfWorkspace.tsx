@@ -51,6 +51,7 @@ const NOOP_FIELD_NAVIGATION: FieldNavigation = {
   hasFields: false,
   hasNext: false,
   hasPrevious: false,
+  direction: 'ltr',
   goToNext: () => {},
   goToPrevious: () => {},
 };

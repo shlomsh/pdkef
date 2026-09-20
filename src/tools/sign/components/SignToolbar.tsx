@@ -62,6 +62,7 @@ const NOOP_FIELD_NAVIGATION: FieldNavigation = {
   hasFields: false,
   hasNext: false,
   hasPrevious: false,
+  direction: 'ltr',
   goToNext: () => {},
   goToPrevious: () => {},
 };
@@ -291,6 +292,7 @@ export default function SignToolbar({
     hasPrevious: fieldNavigation.hasPrevious,
     onNext: fieldNavigation.goToNext,
     onPrevious: fieldNavigation.goToPrevious,
+    direction: fieldNavigation.direction,
     nextLabel: t.nextFieldLabel,
     previousLabel: t.previousFieldLabel,
   } : null;
