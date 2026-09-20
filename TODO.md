@@ -105,6 +105,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-09 | P2 | [MOBI-09](backlog/tasks/MOBI-09.md) · Give iOS its own entry path, stated in the product |
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 | MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
+| MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 
 
 ## Site quality: accessibility, CSS correctness and theming
@@ -260,6 +261,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
 | ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
 | ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
+| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |

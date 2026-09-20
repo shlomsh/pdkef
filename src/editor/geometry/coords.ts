@@ -216,6 +216,29 @@ export function pdfPointToPagePercent(point: Point, geometry: PageGeometry): Poi
   };
 }
 
+/**
+ * A PDF user-space box as the top-left-origin percentages the editor stores.
+ *
+ * Both corners go through `pdfPointToPagePercent`, so a rotated page or a
+ * translated crop box comes out right without the caller knowing how. It
+ * lives here rather than in a detector because it is a coordinate transform
+ * and nothing else: `formGrid.js` owned it until the widget detector needed
+ * it too, and a module cannot import from one that imports it back.
+ */
+export function toPagePercentBox(
+  geometry: PageGeometry,
+  { x0, y0, x1, y1 }: { x0: number; y0: number; x1: number; y1: number },
+): { left: number; top: number; width: number; height: number } {
+  const a = pdfPointToPagePercent({ x: x0, y: y0 }, geometry);
+  const b = pdfPointToPagePercent({ x: x1, y: y1 }, geometry);
+  return {
+    left: Math.min(a.x, b.x),
+    top: Math.min(a.y, b.y),
+    width: Math.abs(b.x - a.x),
+    height: Math.abs(b.y - a.y),
+  };
+}
+
 /** Stored percentages -> bottom-left-origin coordinates used by serializers. */
 export function pagePercentToEditorPoint(point: Point, geometry: PageGeometry): Point {
   return {

@@ -51,6 +51,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
+| MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 
 ### Blocked
 
@@ -313,6 +314,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
 
 ### In progress
