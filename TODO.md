@@ -290,6 +290,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
+| DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it |
 
 
 ## Undo and redo across the tools (2026-09-20)
