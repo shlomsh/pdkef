@@ -75,6 +75,7 @@ describe('SignToolContext Reducer', () => {
     activeElementId: null,
     editingElementId: null,
     actionHistory: [],
+    redoHistory: [],
     documentRevision: 0,
   };
 
@@ -323,6 +324,65 @@ describe('SignToolContext Reducer', () => {
     const stateAfterUndo2 = reducer(stateAfterUndo1, { type: 'UNDO' });
     expect(stateAfterUndo2.elements).toHaveLength(0);
     expect(stateAfterUndo2.actionHistory).toHaveLength(0);
+  });
+
+  describe('REDO', () => {
+    it('does nothing when the future is empty, returning the identical state object', () => {
+      const nextState = reducer(initialState, { type: 'REDO' });
+      expect(nextState).toBe(initialState);
+    });
+
+    it('bumps documentRevision, mirroring UNDO', () => {
+      const state: SignToolState = {
+        ...initialState,
+        documentRevision: 7,
+        actionHistory: [addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
+      };
+      const undone = reducer(state, { type: 'UNDO' });
+      expect(undone.documentRevision).toBe(8);
+
+      const redone = reducer(undone, { type: 'REDO' });
+      expect(redone.documentRevision).toBe(9);
+      expect(redone.elements.map((el) => el.id)).toEqual(['el-1']);
+    });
+  });
+
+  it('ADD_ACTION_HISTORY after an undo clears the future, so a further redo is a no-op', () => {
+    const state: SignToolState = {
+      ...initialState,
+      actionHistory: [addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
+    };
+    const undone = reducer(state, { type: 'UNDO' });
+    expect(undone.redoHistory).toHaveLength(1);
+
+    const withNewAction = reducer(undone, {
+      type: 'ADD_ACTION_HISTORY',
+      payload: addHistory('act-2', 'ADD_SHAPE', rectangleElement('el-2')),
+    });
+    expect(withNewAction.redoHistory).toEqual([]);
+
+    const redoAttempt = reducer(withNewAction, { type: 'REDO' });
+    expect(redoAttempt).toBe(withNewAction);
+  });
+
+  it('SET_ACTION_HISTORY (selective revert) clears the future', () => {
+    const state: SignToolState = {
+      ...initialState,
+      actionHistory: [addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
+      redoHistory: [addHistory('act-2', 'ADD_SHAPE', rectangleElement('el-2'))],
+    };
+    const next = reducer(state, { type: 'SET_ACTION_HISTORY', payload: [] });
+    expect(next.actionHistory).toEqual([]);
+    expect(next.redoHistory).toEqual([]);
+  });
+
+  it('LOAD_DOCUMENT clears the future', () => {
+    const state: SignToolState = {
+      ...initialState,
+      redoHistory: [addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
+    };
+    const next = reducer(state, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
+    expect(next.redoHistory).toEqual([]);
   });
 
   describe('ENSURE_MINIMUM_SIZE', () => {

@@ -37,14 +37,14 @@
     "itc101": {
       "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/income-tax-101-2024.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
-      "note": "Scored against the annotated original (MOBI-13, 2026-09-20), and it reproduces the spike's recorded 69.1%/91.4% exactly. The 62 checkbox targets came back with the text layer - collectCheckboxGlyphs reads their glyphs from it - though only 36 of them: the other 26 are drawn squares, which is the standing 'known gap' row in the element corpus. The 14 missed text cells are the same open-sided boxes health misses.",
-      "recall": 69.1,
-      "precision": 91.4,
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20). Two independent gains stacked here. Committing the original brought the text layer back, which is where collectCheckboxGlyphs reads checkbox glyphs, and the scored corpus now runs the pdf.js text pass the product runs. Then MOBI-11's tick-column fix landed on main. Together they take checkbox recall from 0 to 87.1% (54 of 62) and the form from 42.4%/79.7% to here. The 20 misses left are 9 text cells, 8 drawn-square checkboxes, 2 signature lines and 1 date.",
+      "recall": 85.6,
+      "precision": 96.7,
       "byKind": {
         "comb": 100,
-        "text": 53.3,
+        "text": 70,
         "date": 95.8,
-        "checkbox": 58.1,
+        "checkbox": 87.1,
         "signature": 33.3
       },
       "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"

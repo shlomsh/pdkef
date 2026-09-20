@@ -6,7 +6,9 @@ import styles from './UndoHistoryModal.module.css';
 
 // Shared "Undo changes" dialog for the Sign and Redact tools — lists logged
 // actions (see actionHistory.ts) as a checklist so several can be reverted at
-// once, alongside the Cmd/Ctrl+Z single-step undo (useUndoShortcut.js).
+// once, alongside the single-step undo and redo shortcuts
+// (src/lib/history/useHistoryShortcuts.js). Its footer also carries Redo,
+// which has no toolbar control of its own (UNDO-03).
 //
 // Self-manages its own dialog ref and showModal()/close() lifecycle (rather
 // than the caller owning the ref) so it's a drop-in for either tool. Uses
@@ -21,6 +23,9 @@ export default function UndoHistoryModal({
   undoSelection,
   setUndoSelection,
   onRevertSelected,
+  onRedo,
+  canRedo,
+  redoDescription,
   messages,
 }: {
   open: boolean;
@@ -29,6 +34,18 @@ export default function UndoHistoryModal({
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;
+  /** UNDO-REDO: optional so a caller that has not wired redo yet (both Sign
+   * and Redact, as of this change) keeps working unchanged. Redoes the single
+   * most recently undone action; there is no "redo selected" - the checklist
+   * above is undo-only. */
+  onRedo?: () => void;
+  /** Whether there is anything left to redo. Only read when `onRedo` is
+   * supplied; the button renders disabled while this is false. */
+  canRedo?: boolean;
+  /** The description of the action `onRedo` would bring back, e.g. "Added
+   * text box" - shown in the button's accessible name so it isn't a mystery
+   * click. Ignored while `canRedo` is false. */
+  redoDescription?: string;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
    * this dialog (Redact included) is unaffected. */
@@ -90,6 +107,18 @@ export default function UndoHistoryModal({
       </div>
 
       <div className={dialogStyles.footer}>
+        {onRedo && (
+          <button
+            type="button"
+            className={`${dialogStyles.button} ${dialogStyles.secondary}`}
+            onClick={onRedo}
+            disabled={!canRedo}
+            title={t.redoTitle}
+            aria-label={canRedo && redoDescription ? formatMessage(t.redoDescriptionTemplate, { description: redoDescription }) : undefined}
+          >
+            {t.redoButton}
+          </button>
+        )}
         <button
           type="button"
           className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.success}`}

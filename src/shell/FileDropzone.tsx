@@ -98,13 +98,23 @@ export default function FileDropzone({
       const cached: any = await loadRecentFile(recent.cacheId);
       if (!cached?.fileBytes) throw new Error('missing-recent');
       const target = cached.tool || recent.tool;
-      // The entry behind this tile already exists, so its pointer can be set
-      // synchronously here - the cheapest way to make the target tool resume
-      // it (its pre-paint hint, hasDraftHint) even before the hand-off below
-      // is consumed on the next page load.
+      // Point the tool at this entry and let it restore itself, exactly as
+      // Merge does above. Every tool takes this path now, not only Merge.
+      //
+      // It used to hand the file off instead, and that silently threw the
+      // work away: a hand-off means "a file the person just dropped", so
+      // useEditorDraftPersistence's beforeRestore opens it with
+      // `{ elements: [], actionHistory: [] }` and returns true, which
+      // short-circuits the onRestore branch that would have loaded the saved
+      // elements. That rule is right for a dropped file - it is strictly
+      // newer than anything the pointer names - but a recent tile is the
+      // opposite case: the entry is the work, and the bytes are already in
+      // the store. Opening one's own saved document through the "brand new
+      // file" door is what lost it (reported 2026-09-20: reopening a redacted
+      // document from the home page thumbnail showed no boxes at all, while
+      // the entry still held every one of them).
       setCurrentEntry(target, recent.cacheId);
-      const file = new File([cached.fileBytes], cached.fileName, { type: cached.fileType || 'application/pdf' });
-      await handOff(file, target);
+      window.location.href = toolHref(target);
     } catch {
       setError(messages.recentFileUnavailable);
       setBusy(false);

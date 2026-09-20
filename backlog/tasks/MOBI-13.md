@@ -47,6 +47,13 @@ drop the text layer, so `collectCheckboxGlyphs` finds none of form 101's 36 dete
 fires (which is why health precision lands on 80.2%, the spike's *pre-fix* number - that fix was
 text-dependent).
 
+**Superseded the same day, and the table above is left as it was measured.** MOBI-11's tick-column
+fix and the ground-truth correction under it landed on a parallel branch and moved form 101 to
+55.4% / 83.7% here, and to 82.0% / 92.7% on the real source PDF. The cause above still holds for 44
+of the 62 checkbox targets, which are drawn as glyphs; the other 18 are the children table's narrow
+tick columns, which `formCells` now recovers from ink and no longer needs a text layer to see.
+Health is unchanged. `scoring/baselines.json` carries the current numbers.
+
 ## The decision this ticket cannot make for itself
 
 **What document artifact may be committed?** Until the fixture carries text, CI cannot reproduce
@@ -78,14 +85,22 @@ policy allows the public web fetched both, checked both sha256s against the valu
 
 ### The outcome, and the second cause the first one was hiding
 
-| form | was (geometry-only) | now (original) | spike's recorded |
-| --- | --- | --- | --- |
-| health | 86.7% / 80.2% | **86.7% / 94.2%** | 86.7% / 94.2% |
-| itc101 | 42.4% / 79.7% | **69.1% / 91.4%** | 69.1% / 91.4% |
+| form | was (geometry-only) | on landing | spike's recorded | after merging `main` |
+| --- | --- | --- | --- | --- |
+| health | 86.7% / 80.2% | **86.7% / 94.2%** | 86.7% / 94.2% | 86.7% / 94.2% |
+| itc101 | 42.4% / 79.7% | **69.1% / 91.4%** | 69.1% / 91.4% | **85.6% / 96.7%** |
 
-Both reproduce the spike exactly, to the decimal. That is the strongest evidence available that the
-committed instrument and the hand-run spike measure the same thing, and it is worth more than either
-number on its own.
+On landing, both reproduced the spike exactly, to the decimal. That agreement is the strongest
+evidence available that the committed instrument and the hand-run spike measure the same thing, and
+it is worth more than either number on its own - so it is recorded here even though `itc101` has
+since moved past it.
+
+It moved because MOBI-11's tick-column fix landed on `main` while this work was on a branch. That
+fix and the text layer are independent gains on the same kind: the original's glyphs brought 36 of
+the 62 checkbox targets back, and the tick columns took it to 54, leaving the 8 drawn squares that
+are the element corpus's standing `known gap` row. `main` predicted 82.0%/92.7% for this form on its
+real source PDF; the extra four points of precision are the pdf.js text pass, which `main` had no
+way to run.
 
 **itc101 moved on the file alone, and health did not move at all.** The prediction above was half
 right, and the half it got wrong is the useful part. Two different things read a PDF's text and they
