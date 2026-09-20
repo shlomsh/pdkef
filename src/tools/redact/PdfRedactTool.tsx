@@ -22,6 +22,7 @@ import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import UndoHistoryModal from '../../editor-ui/UndoHistoryModal.tsx';
 import {
+  applyHistoryEntries,
   captureAddedElement,
   captureElementSnapshots,
   createActionEntry,
@@ -29,7 +30,14 @@ import {
   type ActionHistoryEntry,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
-import { useUndoShortcut } from '../../editor-ui/hooks/useUndoShortcut.js';
+import {
+  dropCommands,
+  pushCommand,
+  redoStep,
+  undoStep,
+  type HistoryStack,
+} from '../../editor/model/historyStack.ts';
+import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -159,16 +167,38 @@ export default function PdfRedactTool() {
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
 
   // Undo history mirrors the Sign tool's atomic add/delete commands (see
-  // actionHistory.ts, useUndoShortcut.js, UndoHistoryModal.tsx). Add commands
-  // remove their captured elements; delete and clear-page commands restore
-  // complete snapshots at their original stacking indexes. Edits (color,
-  // move, resize) remain deliberately outside this required undo slice.
-  const [actionHistory, setActionHistory] = useState<ActionHistoryEntry<RedactHistoryElement>[]>([]);
+  // actionHistory.ts, useHistoryShortcuts.js, UndoHistoryModal.tsx). Add
+  // commands remove their captured elements; delete and clear-page commands
+  // restore complete snapshots at their original stacking indexes. Edits
+  // (color, move, resize) remain deliberately outside this required undo
+  // slice.
+  //
+  // `past`/`future` are src/editor/model/historyStack.ts's own shape, held as
+  // one state value rather than two: `future` (newest-undone-first, in-memory
+  // only, never persisted) only ever gains an entry from undoLast's single
+  // most-recent-command step (applyRevert's 'push' redoBehavior below, via
+  // undoStep). Every place a new command is pushed onto `past` (logAction,
+  // and deleteElement/clearPage's own direct pushes, via pushCommand) clears
+  // it instead, and so do the modal's selective revert and the undo chip
+  // (which targets a command by id, not necessarily the newest one still on
+  // the stack) via applyRevert's 'clear' redoBehavior, which is dropCommands
+  // - for the same reason its own doc comment gives: a stale future entry
+  // could re-insert an element a still-live later command assumed was gone.
+  // One state value (not `actionHistory`/`redoHistory` as two useState hooks)
+  // is what makes every read here `current.past`/`current.future` inside a
+  // single functional update, so two undo keydowns landing in the same task
+  // (ordinary key auto-repeat, no re-render between them) act on the actual
+  // result of each other rather than both reverting the same render-scoped
+  // "newest" entry - see applyRevert, undoLast and redoLast below.
+  const [history, setHistory] = useState<HistoryStack<RedactHistoryElement>>({ past: [], future: [] });
+  const actionHistory = history.past;
+  const redoHistory = history.future;
   const [undoSelection, setUndoSelection] = useState<Set<string>>(new Set());
   const [undoModalOpen, setUndoModalOpen] = useState(false);
 
   const logAction: HistoryLogger<RedactHistoryElement> = (operation, type, pageIndex, description, snapshots) => {
-    setActionHistory(prev => [createActionEntry({ operation, type, pageIndex, description, elements: snapshots }), ...prev]);
+    const entry = createActionEntry({ operation, type, pageIndex, description, elements: snapshots });
+    setHistory(current => pushCommand(current.past, current.future, entry));
   };
 
   // Redact design-review finding #3: deleteElement and clearPage used to
@@ -348,7 +378,7 @@ export default function PdfRedactTool() {
         setErrorDetail(null);
         setProgress(0);
         setElements(presetElements);
-        setActionHistory(preset.actionHistory);
+        setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
         setDraftBaselineRevision(documentRevisionRef.current);
         setUndoSelection(new Set());
         seedUniqueId(presetElements);
@@ -477,28 +507,68 @@ export default function PdfRedactTool() {
     setUndoAction(null);
   };
 
-  // Reverts a set of history entries against current state and keeps every
-  // dependent piece in sync - selection, the action history list, and the
-  // "Undo changes" modal's own checklist. Shared by Cmd/Ctrl+Z (undoLast),
-  // the modal's selective revert (handleRevertSelected) and the short-lived
-  // undo chip (runUndoChip) so the three triggers cannot drift on what
-  // reverting actually does.
-  const applyRevert = (entries: ActionHistoryEntry<RedactHistoryElement>[], announcement: string) => {
-    const nextElements = revertHistoryEntries(elements, entries);
-    const survivingIds = new Set(nextElements.map((element) => element.id));
-    setElements(nextElements);
+  // Reverts a set of history entries and keeps every dependent piece in sync
+  // - selection, the action history list, and the "Undo changes" modal's own
+  // checklist. Shared by Cmd/Ctrl+Z (undoLast), the modal's selective revert
+  // (handleRevertSelected) and the short-lived undo chip (runUndoChip) so the
+  // three triggers cannot drift on what reverting actually does.
+  //
+  // `redoBehavior` is an explicit, required choice by every caller rather
+  // than something this function infers, on purpose: the three callers are
+  // only safe to share revert logic at all because they agree on what
+  // reverting *means*, and whether that revert is safe to redo is a different
+  // question with a different answer per caller (see each call site). 'push'
+  // is undoLast's own single most-recent-command step, historyStack.ts's
+  // `undoStep`, and puts the reverted entry onto the front of `future` so
+  // `redoLast` can bring it back. 'clear' is the modal and the chip's shared
+  // shape - an arbitrary, caller-chosen set of ids, not necessarily the
+  // newest - and always drops `future` entirely, historyStack.ts's
+  // `dropCommands` (see its own doc comment for why a revert from the middle
+  // of the stack cannot leave a safe redo behind).
+  //
+  // `select` runs inside `setHistory`'s updater, reading the actual current
+  // `past` rather than a value this render closed over - what makes two undo
+  // keydowns landing in the same task (ordinary key auto-repeat, no
+  // re-render between them) two distinct reverts instead of the same
+  // render-scoped "newest" entry reverted twice. It is unused in 'push' mode:
+  // undoStep's own contract is always "the single newest entry", the same
+  // thing every 'push' caller (only undoLast) wants.
+  const applyRevert = (
+    redoBehavior: 'push' | 'clear',
+    describeReverted: (entries: ActionHistoryEntry<RedactHistoryElement>[]) => string,
+    select?: (past: ActionHistoryEntry<RedactHistoryElement>[]) => ActionHistoryEntry<RedactHistoryElement>[],
+  ) => {
+    let reverted: ActionHistoryEntry<RedactHistoryElement>[] = [];
+    setHistory((current) => {
+      if (redoBehavior === 'push') {
+        const step = undoStep(current.past, current.future);
+        if (!step) return current;
+        reverted = [step.entry];
+        return { past: step.past, future: step.future };
+      }
+      reverted = select ? select(current.past) : [];
+      if (reverted.length === 0) return current;
+      return dropCommands(current.past, current.future, new Set(reverted.map((entry) => entry.id)));
+    });
+    if (reverted.length === 0) return;
+
+    const revertedIds = new Set(reverted.map((entry) => entry.id));
+    let survivingIds = new Set<string>();
+    setElements((prevElements) => {
+      const nextElements = revertHistoryEntries(prevElements, reverted);
+      survivingIds = new Set(nextElements.map((element) => element.id));
+      return nextElements;
+    });
     markDocumentEdited();
     setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    const revertedIds = new Set(entries.map((entry) => entry.id));
-    setActionHistory(prev => prev.filter((action) => !revertedIds.has(action.id)));
     setUndoSelection((currentSelection) => {
       if (![...revertedIds].some((id) => currentSelection.has(id))) return currentSelection;
       const next = new Set(currentSelection);
       revertedIds.forEach((id) => next.delete(id));
       return next;
     });
-    setAnnouncement(announcement);
+    setAnnouncement(describeReverted(reverted));
   };
 
   const deleteElement = (id: string) => {
@@ -512,7 +582,7 @@ export default function PdfRedactTool() {
     const entry = createActionEntry<RedactHistoryElement>({
       operation: 'delete', type: 'DELETE_ELEMENT', pageIndex: el.pageIndex, description: `Deleted ${el.type} box`, elements: snapshots,
     });
-    setActionHistory(prev => [entry, ...prev]);
+    setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
     registerUndo('Removed 1 box', entry);
   };
 
@@ -563,22 +633,31 @@ export default function PdfRedactTool() {
     disarmTool();
   };
 
-  // Cmd/Ctrl+Z: undo the single most recent atomic command through the same
-  // pure reverter used by selective history.
+  // Cmd/Ctrl+Z: undo the single most recent atomic command, historyStack.ts's
+  // own `undoStep` (via applyRevert's 'push' mode) - the one caller where
+  // "the entry just reverted" and "the newest entry on the stack" are
+  // provably the same thing, so it is also the one caller where redoing it
+  // back is safe. The guard for "nothing to undo" lives inside applyRevert's
+  // `setHistory` updater (undoStep returns null), not here: reading
+  // `actionHistory.length` in this function's own render-scoped closure is
+  // exactly the staleness two undo keydowns in the same task (ordinary key
+  // auto-repeat) can exploit - see applyRevert's doc comment.
   const undoLast = () => {
-    if (actionHistory.length === 0) return;
-    const lastAction = actionHistory[0];
-    applyRevert([lastAction], `Undid: ${lastAction.description}`);
+    applyRevert('push', (entries) => `Undid: ${entries[0].description}`);
   };
-  useUndoShortcut(undoLast);
 
   // "Undo changes" modal: checked commands remain newest-first, matching the
   // result of pressing Cmd/Ctrl+Z for each of those commands in sequence.
+  // This can revert an arbitrary checked set from the *middle* of the stack,
+  // so it always clears redoHistory - see historyStack.ts's dropCommands doc
+  // comment for why a surviving future entry would not be safe to redo here.
   const handleRevertSelected = () => {
-    const idsToRevert = Array.from(undoSelection);
-    if (idsToRevert.length === 0) return;
-    const revertedActions = actionHistory.filter(action => idsToRevert.includes(action.id));
-    applyRevert(revertedActions, 'Reverted selected actions.');
+    if (undoSelection.size === 0) return;
+    applyRevert(
+      'clear',
+      () => 'Reverted selected actions.',
+      (past) => past.filter((action) => undoSelection.has(action.id)),
+    );
     setUndoModalOpen(false);
   };
 
@@ -586,14 +665,58 @@ export default function PdfRedactTool() {
   // it named, by id, rather than "whatever is newest" - if another action
   // landed after this one and before the chip was clicked, undoLast() would
   // silently revert the wrong thing. A stale id (the entry already reverted
-  // some other way while the chip was still showing) is a silent no-op.
+  // some other way while the chip was still showing) is a silent no-op,
+  // handled by applyRevert itself (an empty `select` result reverts nothing).
+  //
+  // That same by-id targeting is why this clears redoHistory rather than
+  // pushing: the chip stays live for UNDO_WINDOW_MS after a delete/clear
+  // command, and any other command logged in that window (a new box, another
+  // delete) sits *above* the chip's entry on the stack by the time it is
+  // clicked. Reverting a non-newest entry is exactly the "middle of the
+  // stack" case handleRevertSelected is in above, so it gets the same answer
+  // - dropCommands with a single id.
   const runUndoChip = () => {
     if (!undoAction) return;
-    const entry = actionHistory.find((action) => action.id === undoAction.entryId);
+    const entryId = undoAction.entryId;
     clearUndoChip();
-    if (!entry) return;
-    applyRevert([entry], `Undid: ${entry.description}`);
+    applyRevert(
+      'clear',
+      (entries) => `Undid: ${entries[0].description}`,
+      (past) => past.filter((action) => action.id === entryId),
+    );
   };
+
+  // Shift+Cmd/Ctrl+Z or Ctrl+Y: reapplies the single most recently undone
+  // command, historyStack.ts's own `redoStep`, the exact mirror of undoLast -
+  // same reasoning for reading `future` inside the functional update rather
+  // than this render's closed-over `redoHistory`. applyHistoryEntries is
+  // revertHistoryEntries' mirror (an 'add' entry is restored, a 'delete'
+  // entry is re-removed), so the same surviving-id reconciliation applies:
+  // an id the redo just removed again is cleared from selection.
+  const redoLast = () => {
+    let redone: ActionHistoryEntry<RedactHistoryElement>[] = [];
+    setHistory((current) => {
+      const step = redoStep(current.past, current.future);
+      if (!step) return current;
+      redone = [step.entry];
+      return { past: step.past, future: step.future };
+    });
+    if (redone.length === 0) return;
+    const nextAction = redone[0];
+
+    let survivingIds = new Set<string>();
+    setElements((prevElements) => {
+      const nextElements = applyHistoryEntries(prevElements, [nextAction]);
+      survivingIds = new Set(nextElements.map((element) => element.id));
+      return nextElements;
+    });
+    markDocumentEdited();
+    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
+    setAnnouncement(`Redid: ${nextAction.description}`);
+  };
+
+  useHistoryShortcuts(undoLast, redoLast);
 
   // Passed to ElementToolbar's onChange for whiteout boxes: applies the color and
   // remembers it, same as the Sign tool's whiteout tool.
@@ -627,7 +750,7 @@ export default function PdfRedactTool() {
     const entry = createActionEntry<RedactHistoryElement>({
       operation: 'delete', type: 'CLEAR_PAGE', pageIndex, description, elements: snapshots,
     });
-    setActionHistory(prev => [entry, ...prev]);
+    setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
     registerUndo(description, entry);
   };
 
@@ -947,6 +1070,9 @@ export default function PdfRedactTool() {
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}
+        onRedo={redoLast}
+        canRedo={redoHistory.length > 0}
+        redoDescription={redoHistory[0]?.description}
       />
 
     </BasePdfTool>

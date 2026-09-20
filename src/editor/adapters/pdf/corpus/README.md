@@ -148,7 +148,7 @@ exists to prevent.
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
-| `itc101` | 139 | 69.1% | 91.4% | Hebrew, flat, dense |
+| `itc101` | 139 | 85.6% | 96.7% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 
@@ -169,21 +169,26 @@ path finds anything the row fails and has to be re-recorded by whoever earned it
 annotated and waiting. MOBI-14 holds the question of whether to build that.
 
 **Those are the real forms now** (MOBI-13, 2026-09-20). Both Hebrew rows used to point at the
-geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%; the
-originals are committed in `scoring/forms/` and the numbers reproduce the MOBI-10 spike's recorded
-figures exactly, on both forms, to the decimal.
+geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%. The
+originals are committed in `scoring/forms/`, and when they first landed both forms reproduced the
+MOBI-10 spike's recorded figures *exactly, to the decimal* - 86.7%/94.2% and 69.1%/91.4%. That
+agreement is worth more than either number: it is the evidence that this committed instrument and
+the hand-run spike measure the same thing. `itc101` has since gone past the spike, to 85.6%/96.7%,
+because MOBI-11's tick-column fix landed on `main` in between.
 
 Getting there took two fixes, not one, and the second was hidden behind the first:
 
 - **The text layer had to be in the file.** `collectCheckboxGlyphs` reads checkbox glyphs straight
   off the content stream, so the reduction cost `itc101` all 62 of its checkbox targets. Committing
-  the original brought 36 of them back (the other 26 are drawn squares - the standing `known gap`).
+  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, leaving the
+  8 drawn squares that are the standing `known gap`.
 - **And something has to read it.** `health` did not move at all when its original landed, because
   `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
   and which `detect.js` deliberately does not run. The fixture was never that number's cause. The
   scored corpus now does its own pdf.js pass (`score.js`), because the product does one and a score
   of a pipeline we do not ship is not a measurement. That is what moved `health` 80.2% -> 94.2% and
-  `itc101` 87.2% -> 91.4%.
+  `itc101`'s precision 87.2% -> 91.4% at the time, and it is still worth about 4 points of precision
+  on top of the tick-column fix.
 
 The element corpus beside it still runs without text, on purpose, for the reasons in `detect.js`.
 The two corpora want different things: one isolates a geometry rule, the other measures the shipped

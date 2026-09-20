@@ -1,6 +1,5 @@
-import { createPageGeometry, pagePercentToPdfPoint } from '../../geometry/coords.ts';
+import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { toPagePercentBox } from '../../geometry/coords.ts';
 
 /**
  * Closed table/box cells from vector ink (`pageInk.js`) that `formGrid.js`'s comb/checkbox
@@ -36,6 +35,35 @@ import { toPagePercentBox } from '../../geometry/coords.ts';
  *    when the same column recurs across three or more row bands (a real repeating table, not a
  *    one-off labelled field).
  *
+ * ## What a cell candidate's bounds are
+ *
+ * The strip a person writes in, not the ruled box around it. Form 101 rules
+ * one box per field and prints the caption inside it, in a band above the
+ * writing line: the box is `שם` plus the blank under it, and only the blank
+ * is the field. Publishing the whole box put its bounds about half on the
+ * caption - measured against the MOBI-10 ground truth, five of form 101's
+ * labelled cells sat on a real target at IoU 0.44-0.49, just under the 0.5
+ * match threshold, and scored as false positives on a field they had
+ * correctly found. Publishing the band under the caption instead takes those
+ * five to IoU 0.56-0.65 (page 1: recall 82.0% -> 85.6%, precision 92.7% ->
+ * 96.7%, text recall 53.3% -> 70.0%, with no new miss or false positive on
+ * either spike form).
+ *
+ * Only the *band* carve is trusted for this. `writableArea` can also carve
+ * sideways, when a caption hugs the cell's right wall, and that carve is a
+ * much weaker guess at where the answer goes: it read form 101's three
+ * date cells (printed `/ /` separators that a person writes *across*, not
+ * beside) and two of its phone cells as labels, and each time it left a
+ * 40pt sliver against the left wall. Published as bounds those five went the
+ * other way, IoU 0.54-0.74 down to 0.09-0.22, turning five true positives
+ * into false ones. So a side carve still admits the cell - there is room to
+ * write in it - but the whole cell is what gets published, and what text
+ * placement then centres on.
+ *
+ * The ruled box does not disappear: it rides along as `enclosure` whenever it
+ * differs from the bounds, because a tap should still land on a field when it
+ * lands on the field's printed caption (`cellRegionAt`).
+ *
  * ## Coordinates
  *
  * Ink geometry stays in PDF points throughout (the unit `pageInk.js` and `formGrid.js` already
@@ -67,6 +95,22 @@ const MIN_ROW_HEIGHT = 6;
 const MAX_ROW_HEIGHT = 45;
 /** A column narrower than this is a rule gap, not a cell anyone could write in. */
 const MIN_CELL_WIDTH = 15;
+
+/**
+ * A ruled cell narrower than `MIN_CELL_WIDTH` is a tick target rather than a
+ * place to write a word - form 101 rules its children table as 13 rows of
+ * 6.3pt and 8.1pt columns a person ticks, and a width floor written for
+ * free-text cells cannot see any of them (MOBI-11: 26 of that form's 43
+ * missed fields are exactly these).
+ *
+ * What keeps the lower floor from admitting every incidental gap is the
+ * column, not the width: a tick cell belongs to a printed column that repeats
+ * down the table, while the gaps between the dashes of a leader line - the
+ * failure class this floor was raised to exclude - land at a different x on
+ * every row and so never recur.
+ */
+const MIN_TICK_CELL_WIDTH = 6;
+const MIN_TICK_COLUMN_ROWS = 3;
 /** The blank remainder (after any hugging label) must be at least this large. */
 const MIN_BLANK_WIDTH = 25;
 const MIN_BLANK_HEIGHT = 8;
@@ -188,7 +232,7 @@ function buildClosedCells(ink) {
       const left = xs[j];
       const right = xs[j + 1];
       const width = right - left;
-      if (width < MIN_CELL_WIDTH) continue;
+      if (width < MIN_TICK_CELL_WIDTH) continue;
 
       const topCoverage = ruledCoverage(rules, top, left, right);
       const bottomCoverage = ruledCoverage(rules, bottom, left, right);
@@ -199,7 +243,7 @@ function buildClosedCells(ink) {
       if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
 
       const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-      cells.push({ left, right, bottom, top, width, height, closure });
+      cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
     }
   }
   return cells;
@@ -300,24 +344,33 @@ function classifyKind(ownText, label) {
  * too small to write in). Never an L shape: a right-aligned answer belongs
  * against the cell's own right wall, not the label's left.
  *
- * Returns `cell` itself when the whole cell is writable, so a caller can tell
- * "no label" from "a strip".
+ * Returns `{area, carve}`: `area` is `cell` itself when the whole cell is
+ * writable, so a caller can tell "no label" from "a strip", and `carve` says
+ * which way the label carved it - a caption sitting in a `band` above the
+ * writing line, or a caption at the `side` of it. The two are not equally
+ * trustworthy as a published box; see "What a cell candidate's bounds are"
+ * in the module docstring.
  */
 function writableArea(cell, ownText) {
   let area = cell;
+  let carve = 'none';
   if (ownText.length > 0) {
     const textLeft = Math.min(...ownText.map((t) => t.x0));
     // A pdf.js item's box starts at its baseline, so this is the label's baseline.
     const textBottom = Math.min(...ownText.map((t) => t.y0));
     const rightHug = Math.max(...ownText.map((t) => t.x1)) >= cell.left + cell.width * 0.5;
     const topHug = textBottom >= cell.bottom + cell.height * 0.5;
-    if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) area = { ...cell, top: textBottom };
-    else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) area = { ...cell, right: textLeft };
-    else return null;
+    if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) {
+      area = { ...cell, top: textBottom };
+      carve = 'band';
+    } else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) {
+      area = { ...cell, right: textLeft };
+      carve = 'side';
+    } else return null;
   }
   const width = area.right - area.left;
   const height = area.top - area.bottom;
-  return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? area : null;
+  return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? { area, carve } : null;
 }
 
 /**
@@ -335,7 +388,7 @@ function confidenceOf(resolved, kind) {
 /**
  * @typedef {{left: number, top: number, width: number, height: number}} PercentBox
  * @typedef {PercentBox & {str: string}} PageTextRun
- * @typedef {PercentBox & {kind: string, writable?: PercentBox}} FieldCandidate
+ * @typedef {PercentBox & {kind: string, enclosure?: PercentBox}} FieldCandidate
  */
 
 /**
@@ -351,11 +404,39 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const textItemsPoints = textItems.map((item) => textItemToPoints(item, geometry));
   const closedCells = buildClosedCells(ink);
 
+  // Counted over every closed cell rather than the survivors below, because a tick column is
+  // admitted by the fact that it repeats and the filters it has to pass come after.
+  const columnKey = (c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
+  const closedColumnCounts = new Map();
+  for (const cell of closedCells) {
+    const key = columnKey(cell);
+    closedColumnCounts.set(key, (closedColumnCounts.get(key) || 0) + 1);
+  }
+
   // First pass: geometry + text classification; the column-repeat count
   // (table-cell vs text) below needs the whole population.
   const resolved = [];
   for (const cell of closedCells) {
     const ownText = textInsideCell(cell, textItemsPoints);
+    if (cell.narrow) {
+      // Too narrow to hold a label or a written answer, so the text tests below say nothing
+      // about it: a tick cell is admitted by its column and disqualified by any text at all.
+      if (ownText.length > 0) continue;
+      if ((closedColumnCounts.get(columnKey(cell)) || 0) < MIN_TICK_COLUMN_ROWS) continue;
+      resolved.push({
+        bounds: toPagePercentBox(geometry, {
+          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
+        }),
+        enclosureBounds: undefined,
+        cell,
+        kind: 'checkbox',
+        label: headerAbove(cell, textItemsPoints)?.str?.trim(),
+        ownTextCount: 0,
+        coverage: 0,
+        closure: cell.closure,
+      });
+      continue;
+    }
     const ownStr = ownText.map((t) => t.str).join(' ').trim();
     const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
     const cellArea = cell.width * cell.height;
@@ -376,21 +457,24 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();
     const kind = classifyKind(ownText, label);
 
+    // The field is the writing strip, not the ruled box around it - but only
+    // the caption-band carve is trusted to say where that strip is. See
+    // "What a cell candidate's bounds are" in the module docstring.
+    const field = writable.carve === 'band' ? writable.area : cell;
     const bounds = toPagePercentBox(geometry, {
+      x0: field.left, y0: field.bottom, x1: field.right, y1: field.top,
+    });
+    const enclosureBounds = field === cell ? undefined : toPagePercentBox(geometry, {
       x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
     });
-    const writableBounds = writable === cell ? undefined : toPagePercentBox(geometry, {
-      x0: writable.left, y0: writable.bottom, x1: writable.right, y1: writable.top,
-    });
     resolved.push({
-      bounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
+      bounds, enclosureBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
     });
   }
 
   // table-cell vs text: a column that recurs across >=3 row bands (same left/right within
   // POS_TOLERANCE) is a real repeating table row; a one-off labelled field (the common case
   // here - a header row over one blank data row) stays `text`.
-  const columnKey = (c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
   const columnCounts = new Map();
   for (const r of resolved) {
     const key = columnKey(r.cell);
@@ -406,7 +490,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       id: `combined-heuristic-${String(index).padStart(4, '0')}`,
       pageIndex,
       ...r.bounds,
-      ...(r.writableBounds ? { writable: r.writableBounds } : {}),
+      ...(r.enclosureBounds ? { enclosure: r.enclosureBounds } : {}),
       kind,
       label: r.label || undefined,
       required: 'unknown',

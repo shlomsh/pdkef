@@ -50,7 +50,7 @@ function overlap(a, b) {
  *    managed "some closed box here" is the better answer, and leaving both
  *    would put a plain text box and a nine-cell comb on one rectangle.
  *
- * A widget comb is `boxed`, so it does not want the claimed cell's `writable`
+ * A widget comb is `boxed`, so it does not want the claimed cell's writing
  * strip the way an open comb does: its own boxes are the field.
  *
  * @param {{combs: Array, checkboxes: Array, cells: Array}} reconciled
@@ -71,7 +71,7 @@ export function withWidgetFields(reconciled, widgets) {
 
 /**
  * @template {{left: number, top: number, width: number, height: number, boxed?: boolean, writable?: object}} Comb
- * @template {{left: number, top: number, width: number, height: number, writable?: object}} Cell
+ * @template {{left: number, top: number, width: number, height: number}} Cell
  * @param {{combs: Comb[], checkboxes: object[], cells: Cell[]}} detected
  * @returns {{combs: Comb[], cells: Cell[]}} the combs, each open one carrying
  *   its enclosing cell's blank strip as `writable`; the cells nothing else
@@ -85,7 +85,9 @@ export function reconcileFields({ combs, checkboxes, cells }) {
     if (comb.boxed || comb.writable || enclosing.length === 0) return comb;
     // The tightest cell around the run: a section frame can overlap it too.
     const cell = enclosing.reduce((best, c) => (c.width * c.height < best.width * best.height ? c : best));
-    const { left, top, width, height } = cell.writable ?? cell;
+    // A cell's own bounds are already the strip a person writes in, not the
+    // ruled box around it (formCells.js, "What a cell candidate's bounds are").
+    const { left, top, width, height } = cell;
     return { ...comb, writable: { left, top, width, height } };
   });
   return {

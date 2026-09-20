@@ -102,6 +102,22 @@ describe('cellRegionAt', () => {
     expect(cellRegionAt([left, right], { x: 19.8, y: 41 }, 0)).toBe(left);
     expect(cellRegionAt([left, right], { x: 20.6, y: 41 }, 0)).toBe(right);
   });
+
+  // Form 101's employer cells: the field is the blank band, but a person aims
+  // at the printed box, caption included.
+  const labelled: FieldRegion = {
+    pageIndex: 0,
+    left: 21.9, top: 19.6, width: 13.2, height: 2.1,
+    enclosure: { left: 21.9, top: 18.6, width: 13.2, height: 3.0 },
+  };
+
+  it('takes a tap on the printed caption above the band as a tap on the field', () => {
+    expect(cellRegionAt([labelled], { x: 28, y: 19 }, 0)).toBe(labelled);
+  });
+
+  it('still rejects a tap clear of the printed box', () => {
+    expect(cellRegionAt([labelled], { x: 28, y: 17.5 }, 0)).toBeNull();
+  });
 });
 
 describe('cellFontSize', () => {

@@ -126,19 +126,23 @@ describe('detectCellCandidates', () => {
   });
 });
 
-describe('detectCellCandidates – the writable strip beside a printed label', () => {
+describe('detectCellCandidates – the bounds are the writing strip, not the ruled box', () => {
   // Form 101's employer row, live: "מספר טלפון" printed small in the top-right
   // corner of a 25pt-tall cell. Centring a box on the whole cell put the top
   // of the typed number against that label's baseline; the answer belongs
-  // in the blank strip under it.
+  // in the blank strip under it, and so does the field's own box (five of
+  // form 101's labelled cells scored as false positives on a real target,
+  // at IoU 0.44-0.49, purely because they published the caption too).
 
-  it('reports no writable strip for a wholly blank cell - the whole cell is it', () => {
+  it('publishes the whole cell, and no enclosure, for a wholly blank one', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     const [cell] = detectCellCandidates(ink, geometry, 0, []);
-    expect(cell.writable).toBeUndefined();
+    expect(cell.top).toBeCloseTo(20, 5);
+    expect(cell.height).toBeCloseTo(20, 5);
+    expect(cell.enclosure).toBeUndefined();
   });
 
-  it('carves the strip UNDER a label sitting in the top corner, keeping the cell\'s full width', () => {
+  it('publishes the band UNDER a label sitting in the top corner, at the cell\'s full width', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
     // Percent top 21, height 6 -> PDF y 73..79: the label's baseline is at 73,
     // 13pt above the cell floor (60), in the cell's top half and hugging its
@@ -146,35 +150,75 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
     const label = text('שם', { left: 70, top: 21, width: 10, height: 6 });
     const [, cell] = detectCellCandidates(ink, geometry, 0, [label]);
     expect(cell.label).toBe('שם');
-    // The cell itself is unchanged - it is still what a tap targets.
-    expect(cell.top).toBeCloseTo(20, 5);
-    expect(cell.height).toBeCloseTo(20, 5);
-    // The strip starts at the label's baseline and runs to the floor, full width:
+    // The band starts at the label's baseline and runs to the floor, full width:
     // NOT the inner corner of the L (which would stop at the label's left, 70).
-    expect(cell.writable.left).toBeCloseTo(50, 5);
-    expect(cell.writable.top).toBeCloseTo(27, 5);
-    expect(cell.writable.width).toBeCloseTo(50, 5);
-    expect(cell.writable.height).toBeCloseTo(13, 5);
+    expect(cell.left).toBeCloseTo(50, 5);
+    expect(cell.top).toBeCloseTo(27, 5);
+    expect(cell.width).toBeCloseTo(50, 5);
+    expect(cell.height).toBeCloseTo(13, 5);
+    // The ruled box rides along, so a tap on the caption still lands on the field.
+    expect(cell.enclosure.top).toBeCloseTo(20, 5);
+    expect(cell.enclosure.height).toBeCloseTo(20, 5);
   });
 
-  it('carves the strip BESIDE a label that only hugs the right wall of a one-line cell', () => {
+  it('keeps the whole cell when the only blank is a strip BESIDE a right-hugging label', () => {
     // A 12pt-tall cell: the label's baseline (65) is in the lower half, so
-    // there is no room under it, but 35pt of blank to its left.
+    // there is no room under it, but 35pt of blank to its left. That blank is
+    // what admits the cell, and it is not trusted to be where the answer goes:
+    // form 101's `/ /` date cells and its phone cells read exactly this way and
+    // lost IoU 0.54-0.74 -> 0.09-0.22 when the sliver was published.
     const ink = rowBand({ top: 72, bottom: 60, columns: [0, 50, 100] });
     const label = text('שם', { left: 85, top: 29, width: 12, height: 6 });
     const [, cell] = detectCellCandidates(ink, geometry, 0, [label]);
     expect(cell.label).toBe('שם');
-    expect(cell.writable.left).toBeCloseTo(50, 5);
-    expect(cell.writable.top).toBeCloseTo(28, 5);
-    expect(cell.writable.width).toBeCloseTo(35, 5);
-    expect(cell.writable.height).toBeCloseTo(12, 5);
+    expect(cell.left).toBeCloseTo(50, 5);
+    expect(cell.top).toBeCloseTo(28, 5);
+    expect(cell.width).toBeCloseTo(50, 5);
+    expect(cell.height).toBeCloseTo(12, 5);
+    expect(cell.enclosure).toBeUndefined();
   });
 
-  it('reports no writable strip when the label is a header above the cell, not inside it', () => {
+  it('publishes the whole cell when the label is a header above it, not inside it', () => {
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 40, 100] });
     const header = text('שם משפחה', { left: 40, top: 10, width: 30 });
     const [, cell] = detectCellCandidates(ink, geometry, 0, [header]);
     expect(cell.label).toBe('שם משפחה');
-    expect(cell.writable).toBeUndefined();
+    expect(cell.height).toBeCloseTo(20, 5);
+    expect(cell.enclosure).toBeUndefined();
+  });
+});
+
+describe('narrow tick columns', () => {
+  /** Three stacked 20pt row bands sharing one column layout (MOBI-11's children table shape). */
+  function stackedRows(columns, count = 3) {
+    const bands = [];
+    for (let i = 0; i < count; i += 1) {
+      bands.push(rowBand({ top: 80 - i * 20, bottom: 60 - i * 20, columns }));
+    }
+    return mergeInk(...bands);
+  }
+
+  it('reads a narrow blank column that repeats down a table as tick cells', () => {
+    // A wide writable cell (0..60) beside two 8pt tick columns, the shape form 101 rules its
+    // children table in: a name to write, then two columns a person ticks.
+    const ink = stackedRows([0, 60, 68, 76]);
+    const ticks = detectCellCandidates(ink, geometry, 0, []).filter((c) => c.kind === 'checkbox');
+    expect(ticks).toHaveLength(6);
+    expect(ticks.every((c) => c.width < 15)).toBe(true);
+  });
+
+  it('leaves a narrow column alone when it does not repeat', () => {
+    // The same 8pt columns on a single band: an incidental gap, not a printed tick column.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 60, 68, 76] });
+    expect(detectCellCandidates(ink, geometry, 0, []).some((c) => c.kind === 'checkbox')).toBe(false);
+  });
+
+  it('does not tick a narrow cell that holds printed text', () => {
+    // A repeating narrow column carrying a row number is a printed value, not somewhere to tick.
+    const ink = stackedRows([0, 60, 68, 76]);
+    const digits = [1, 2, 3].map((n, i) => text(String(n), { left: 69, top: 21 + i * 20, width: 4 }));
+    const ticks = detectCellCandidates(ink, geometry, 0, digits).filter((c) => c.kind === 'checkbox');
+    // The 68..76 column is out; the 60..68 column beside it still ticks.
+    expect(ticks.every((c) => c.left < 68)).toBe(true);
   });
 });

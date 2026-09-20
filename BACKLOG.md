@@ -52,7 +52,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-06 | P2 | [MOBI-06](backlog/tasks/MOBI-06.md) · Field-to-field navigation so filling a form never needs aiming |
-| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
 
 ### Blocked
@@ -383,6 +382,69 @@ _None._
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
+
+### Retired
+
+_None._
+
+## Undo and redo
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
+| UNDO-04 | P3 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
+| UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
+| UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
+
+### Retired
+
+_None._
+
+## Form understanding
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
+| FORM-02 | P1 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |
+| FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · A column header the last row of a tall table can still reach |
+| FORM-04 | P2 | [FORM-04](backlog/tasks/FORM-04.md) · A Latin-script form in the ground-truth corpus |
+| FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |
+| FORM-06 | P1 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |
+| FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |
+| FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |
+| FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
+
+### In progress
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
 
 ### Retired
 
