@@ -71,6 +71,9 @@ export default function SignToolbar({
   setDialogOpen,
   setUndoModalOpen,
   actionHistory,
+  onUndo,
+  onRedo,
+  canRedo = false,
   toggleFullscreen,
   isFullscreen,
   onSavePdf,
@@ -90,6 +93,12 @@ export default function SignToolbar({
   setDialogOpen: (open: boolean) => void;
   setUndoModalOpen: (open: boolean) => void;
   actionHistory: ActionHistoryEntry[];
+  /** One tap, one step back - the same thing Cmd/Ctrl+Z does. */
+  onUndo: () => void;
+  /** One tap forward again - Shift+Cmd/Ctrl+Z or Ctrl+Y. */
+  onRedo: () => void;
+  /** Whether anything has been undone that Redo could bring back. */
+  canRedo?: boolean;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   onSavePdf: () => void;
@@ -392,16 +401,22 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('date')}
               aria-pressed={selectedTool === 'date'}
-              // Optional at the same extreme-narrow band as Feedback
-              // (SignToolbar.module.css's [data-optional-control] rule),
-              // unlike a real document-editing tool this pattern is normally
-              // never applied to: unlike Feedback, hiding this loses only the
-              // dedicated shortcut, not the capability - today's date is still
-              // one tap away via the Text tool's own insert-date control
-              // (ElementToolbar.tsx), which never leaves the toolbar. See that
-              // CSS rule's comment for why hiding a document-editing control
-              // is normally off the table.
-              data-optional-control="date"
+              // Icon-only at every width, and present at every width. It used
+              // to be the reverse - labelled, and gone below the narrowest
+              // band - which is the trade Undo/Redo/History bought out: the
+              // labelled desktop row had no room for three history controls
+              // (measured 1205.6px against a 1172px box), and a calendar is as
+              // plain a convention as an undo arrow, so the 43.9px this label
+              // costs pays for the row instead. Losing the label is cheaper
+              // than losing the control: hiding a document-editing control at
+              // all is normally off the table (see SignToolbar.module.css's
+              // [data-optional-control] rule), and it only ever happened here
+              // because today's date is also one tap away via the Text tool's
+              // own insert-date control (ElementToolbar.tsx). Thirteen
+              // controls also cannot balance into rows below 345px of toolbar,
+              // and Date staying while Feedback stands down is what lands that
+              // band on twelve rather than ten.
+              data-icon-only
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -642,10 +657,20 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
+          {/* Undo, Redo and the change history are three different things, so
+              they are three controls, the same three RedactToolbar.tsx carries
+              and in the same order. Undo and Redo are one tap each; History is
+              the occasional case of reverting something from further back.
+              Folding all three into one button - this control used to open the
+              dialog and nothing else - is what left a phone with no
+              single-step undo and no way to reach Redo at all. All three are
+              `data-icon-only`: an arrow is a convention, none of them is a
+              tool, and the labelled desktop row has no width to spare (see the
+              1300px block in SignToolbar.module.css). */}
           <button
             type="button"
             className={styles.button}
-            onClick={() => setUndoModalOpen(true)}
+            onClick={onUndo}
             title={t.undoTitle}
             disabled={actionHistory.length === 0}
             data-icon-only
@@ -655,6 +680,46 @@ export default function SignToolbar({
               <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
             </svg>
             <span className={styles.label}>{t.undoButton}</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.button}
+            onClick={onRedo}
+            title={t.redoTitle}
+            disabled={!canRedo}
+            data-icon-only
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+            </svg>
+            <span className={styles.label}>{t.redoButton}</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.button}
+            onClick={() => setUndoModalOpen(true)}
+            title={t.undoHistoryTitle}
+            disabled={actionHistory.length === 0}
+            data-icon-only
+            /* The second of this toolbar's two optional controls, and the
+               later one to go: Feedback stands down at 344px of toolbar and
+               this at 239px (SignToolbar.module.css's [data-optional-control]
+               rules, which carry the counting arithmetic behind both). Undo
+               and Redo stay at every width, so nothing editable is lost when
+               it goes - only the selective variant of an undo you can still
+               perform one tap at a time, which is the line SIGN-18 draws: this
+               control does not edit the document, it opens a dialog, and the
+               dialog is no longer the only way to undo. */
+            data-optional-control="history"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <span className={styles.label}>{t.historyButton}</span>
           </button>
 
           <ViewControl
