@@ -38,7 +38,6 @@ import {
   captureAddedElement,
   captureElementSnapshots,
   createActionEntry,
-  revertHistoryEntries,
   type HistoryLogger,
 } from '../../editor/model/actionHistory.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
@@ -300,7 +299,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (idsToRevert.length === 0) return;
     dispatch({ type: 'REVERT_COMMANDS', payload: { ids: idsToRevert } });
     setUndoSelection(new Set());
-    setUndoModalOpen(false);
+    // The dialog deliberately stays open. It is the only place Redo lives
+    // (there is no toolbar control for it yet, UNDO-03), so closing here
+    // took it off screen at the exact moment it became usable: you undid
+    // something, the dialog vanished, and reopening it showed a list with
+    // nothing to redo from. On a phone this is the only undo there is, so
+    // that was the whole of redo, hidden. The list updates in place and
+    // the person closes it when they are done.
     setAnnouncement(t.revertedSelectedActions);
   };
 

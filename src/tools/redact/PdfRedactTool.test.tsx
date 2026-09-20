@@ -1501,6 +1501,66 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 14]);
     });
 
+    // The reported journey, and the whole of redo on a phone: there is no
+    // keyboard and no toolbar Redo control, so this dialog is the only place
+    // either action exists. Reverting used to close it, which took Redo off
+    // screen at the exact moment it became usable.
+    it('stays open after a revert, with Redo now usable, so the only redo control is still there', async () => {
+      // jsdom implements neither showModal nor close. Stubbing them to move
+      // the real `open` attribute is what keeps this test honest: the
+      // component only calls close() when the dialog is actually open, so a
+      // stub that left `open` false would make the assertion below pass
+      // whatever the code did.
+      const closeSpy = vi.fn();
+      const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
+      const originals = { showModal: proto.showModal, close: proto.close };
+      proto.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute('open', ''); };
+      proto.close = function close(this: HTMLDialogElement) { closeSpy(); this.removeAttribute('open'); };
+
+      try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      const dialog = await openUndoHistoryModal();
+      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      expect(checkboxes).toHaveLength(2);
+      await act(async () => {
+        checkboxes[0].checked = true; // newest: box B
+        checkboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const revertButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
+        'Revert selected button',
+      );
+      await act(async () => {
+        revertButton.click();
+      });
+
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      // jsdom does not implement showModal/close, so the dialog's own `open`
+      // is not observable here. What matters is that nothing asked it to
+      // close: the component calls close() only when its `open` prop goes
+      // false, which is exactly the regression this test exists for.
+      expect((dialog as HTMLDialogElement).open).toBe(true);
+      expect(closeSpy).not.toHaveBeenCalled();
+
+      const redoButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Redo'),
+        'Redo button',
+      );
+      expect(redoButton.disabled).toBe(false);
+      await act(async () => {
+        redoButton.click();
+      });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+      } finally {
+        proto.showModal = originals.showModal;
+        proto.close = originals.close;
+      }
+    });
+
     it("the modal's selective revert clears the future", async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
