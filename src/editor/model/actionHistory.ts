@@ -127,3 +127,27 @@ export function revertHistoryEntries<TElement extends HistoryElement>(
     return restoreSnapshots(current, entry.elements);
   }, [...elements]);
 }
+
+/**
+ * The exact mirror of revertHistoryEntries, for redo: an 'add' command is
+ * reverted by removing its elements and re-applied by restoring their
+ * snapshots (the same operation revert uses for 'delete'), and a 'delete'
+ * command is reverted by restoring its snapshots and re-applied by removing
+ * them again (the same operation revert uses for 'add'). Snapshots make this
+ * safe either direction without reconstructing live editor state, exactly
+ * the reason ActionHistoryEntry retains them (see its doc comment above).
+ * Entries are applied in the order supplied, oldest-undone-first for a
+ * multi-step redo, matching how revertHistoryEntries expects newest-first.
+ */
+export function applyHistoryEntries<TElement extends HistoryElement>(
+  elements: readonly TElement[],
+  entries: readonly ActionHistoryEntry<TElement>[],
+): TElement[] {
+  return entries.reduce<TElement[]>((current, entry) => {
+    if (entry.operation === 'delete') {
+      const removedIds = new Set(entry.elements.map(({ element }) => element.id));
+      return current.filter((element) => !removedIds.has(element.id));
+    }
+    return restoreSnapshots(current, entry.elements);
+  }, [...elements]);
+}
