@@ -210,9 +210,10 @@ decision it now shares, but `formGrid.js` consumes it, so `formWidgets.js` could
 updated: `formCells.js` and the Sign hook). The import graph is acyclic without the widget module
 having to own things that are not its own.
 
-Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
-wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
-things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision
+Remaining: the reviewable-proposal question above (design decision, not yet scoped) and MOBI-06
+wiring; closing the report-cells.md failure classes and the Latin-script corpus addition moved to
+FORM-01, FORM-03 and FORM-04 (see "Split out 2026-09-20" above). Two things this step deliberately
+left: a widget's `/TU` tooltip and `/T` name are free, high-precision
 labels (the idea harvested below) and are read by nothing yet, since no UI surfaces a label; and
 `classifyKind` in `formCells.js` still recognises only Hebrew signature/date roots, so on a Latin
 form a signature line arrives as an ordinary text cell - which is what the practice form wants
@@ -235,7 +236,7 @@ Two design ideas from its code are worth keeping, unverified:
 It also tried merging dotted-leader segments closer than 6 pt into one span before treating them
 as a blank line, aimed at failure class 2 in `scripts/spike/mobi-10/report-cells.md`; untested.
 Its W-9 ground truth was mostly the form's own AcroForm field list (20 of 22 targets), so it does
-not stand in for the Latin-script flat form this ticket still wants.
+not stand in for the Latin-script flat form FORM-04 now wants.
 
 
 **Step 3, 2026-09-20 - the tick columns, and the ground-truth error under them.** Re-ran the

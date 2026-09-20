@@ -227,3 +227,12 @@ base for all of it. MOBI-11 (the review surface) moved with it; MOBI-10 stays wh
 | FORM-07 | a scanned form's ruled geometry, from its raster |
 | FORM-08 | re-evaluate `pdf-inspector`, whose MIT crate now has a positioned API |
 | FORM-09 | ask the person, and fill only what they confirm |
+| MOBI-13 | the scored corpus, and which document artifact CI may commit |
+| ARCH-24 | keeping field detection out of every page's first paint |
+
+Two of those arrived from a parallel branch the same day and are not mine. Worth knowing before you
+read a number here: **the spike is no longer the only place these are measured.** Every form in
+`src/editor/adapters/pdf/corpus/scoring/baselines.json` is now re-scored on every CI run and
+ratcheted, so that file is the live number and this record is the reasoning behind it. Where the two
+disagree, it is because the committed fixtures are geometry-only and this record scores the real
+source PDFs; `baselines.json` says so per form.

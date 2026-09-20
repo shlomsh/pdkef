@@ -26,8 +26,8 @@
       "recall": 86.7,
       "precision": 80.2,
       "byKind": {
-        "text": 66.6,
-        "comb": 66.6,
+        "text": 66.7,
+        "comb": 66.7,
         "radio": 100,
         "date": 0,
         "signature": 0
@@ -39,14 +39,14 @@
     "itc101": {
       "pdf": "src/editor/adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
-      "note": "42.4% against a recorded 69.1%, and the whole gap is this fixture: collectCheckboxGlyphs reads checkbox glyphs from the text layer, which the geometry-only reduction removed, so all 62 checkbox targets miss where 36 were found before. 36/139 is ~26 points. See MOBI-13's fixture decision.",
-      "recall": 42.4,
-      "precision": 79.7,
+      "note": "55.4% here against 82.0% on the real source PDF, and the gap is still this fixture. 44 of the 62 checkbox targets are drawn as glyphs, which collectCheckboxGlyphs reads from the text layer the geometry-only reduction removed. The 18 that do match are the children table's narrow tick columns, which formCells recovers from ink alone (MOBI-11), which is why this row is no longer a flat checkbox zero. See MOBI-13's fixture decision.",
+      "recall": 55.4,
+      "precision": 83.7,
       "byKind": {
         "comb": 100,
         "text": 53.3,
         "date": 95.8,
-        "checkbox": 0,
+        "checkbox": 29,
         "signature": 0
       },
       "sha256": "3c7dc0b26da75cf4e9b656ef538885b63ca95637873a5622ca66e1e7c5b57ebc",
