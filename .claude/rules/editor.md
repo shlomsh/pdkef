@@ -179,25 +179,39 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   centre. `--controls-per-row` (half the count, rounded up, via `:has(> :nth-child(N))`) caps each line
   so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose pixel thresholds
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
-  or `--toolbar-padding` change, or if a control is added anywhere. Flex, not grid: grid packs a
+  or `--toolbar-padding` change, or if a control is added anywhere. Round a new threshold **up** past
+  its figure unless you have checked the box cannot land in the band below it: the content box is the
+  viewport less 96.8px on a phone and 112.8px in the tablet band, so an ordinary integer window width
+  puts it on x.2, and both thresholds that were left on the floor() side of a whole-number figure
+  (581px, 288px) were measured stranding or unbalancing a real row at one - 693px gave 11+1, 384px
+  gave 5+5+2. Flex, not grid: grid packs a
   partial last row into the leading columns. **Only some counts can be balanced at the 44px floor**,
   because greedy flex fills each line to the cap: ten lands 4+4+2 or 3+3+3+1 and thirteen lands
   6+6+1 or 4+4+4+1, while nine, eleven and twelve all land evenly. That is what decides when an
-  optional control stands down, not taste. **TODO(toolbar-remeasure): the counts and stand-down
-  widths that used to be stated here described Sign at thirteen/twelve/eleven controls with History
-  as the last optional control to go. History and its dialog are gone and Date has its label back,
-  so both tools are one control shorter and Feedback is now Sign's only `[data-optional-control]`.
-  The follow-up toolbar task re-measures in a real browser and writes the new counts, widths and
-  stand-down order here; do not guess them in the meantime.**
+  optional control stands down, not taste. The counted set is
+  `:nth-child(N of :not(.desktop-download):not([role="radiogroup"]))`: Sign counts **twelve** (with
+  Share or without), Redact **nine** (ten once a redacted export exists and "Compress it" appears).
+  Both are counts that balance, so neither needs a stand-down until the very bottom. Measured
+  2026-09-20, every integer viewport from 919px to 220px in headless Chromium: Sign holds one line
+  to 694px, wraps 6+6 to 385px, 4+4+4 to 336px, 4+4+3 to 288px and 3+3+3+2 to 239px; **Feedback -
+  now the only `[data-optional-control]` on either toolbar, since History and its dialog came out -
+  stands down at 335px** (239px of content box), and nothing else does. Redact holds one line to
+  544px, wraps 5+4 to 348px and 3+3+3 from 347px, and stands nothing down. Redact's tenth control
+  (the "Compress it" hand-off, which only exists once a redacted export does) puts it on the one
+  count that cannot balance: measured one line to 608px, 5+5 to 336px, then 4+4+2 from 335px down.
+  That is the shape the file tolerates for ten - a full short row, never a lone control - and no cap
+  improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.
+  Thirteen was the count that could not be balanced, and the second, earlier stand-down step Sign
+  used to carry at 344px existed only to get back to twelve; it went with History.
 - Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
-  one line with labels, set 4px apart; the toolbar box plateaus at 1172px (less with a classic
-  scrollbar). **TODO(toolbar-remeasure): the width arithmetic that stood here was measured against
-  Sign's fourteen controls with Share (2026-09-20, headless Chromium, wide Linux face), with Date,
-  Undo, Redo, History and Feedback all `data-icon-only`. History is gone and Date is labelled again,
-  which changes both the control count and the labelled-row width, so those figures have been taken
-  out rather than adjusted by arithmetic. The follow-up toolbar task re-measures in a real browser,
-  wide font included, and writes the new numbers here - including which label is next to go if the
-  row ever outgrows the box again.** Undo, Redo and Feedback stay `data-icon-only` at every width:
+  one line with labels, set 4px apart; the toolbar box plateaus at 1172px of content (it reaches
+  that plateau at a 1280px window, so a classic scrollbar at 1300px no longer eats into it).
+  Measured 2026-09-20 in headless Chromium on Linux, the wide DejaVu face CI lands on, with Share
+  stubbed present: Sign's labelled row is **1139.7px against the 1172px box, 32.3px spare**. Spend
+  that on a thirteenth control and the next label to go is Replace's (62.7px of label); Date's is
+  not - it was icon-only for one day, and History leaving is what paid it back. Keep the gap at 4px
+  while the margin is this thin: the twelve gaps between the thirteen rendered controls would cost
+  24px of the 32.3px at 6px. Undo, Redo and Feedback stay `data-icon-only` at every width:
   an arrow is a convention, and none of them is a tool. Below 1300px every control is icon-only on
   one line, until the row's 44px targets stop fitting, and from there down the phone grid above. No
   label may ever

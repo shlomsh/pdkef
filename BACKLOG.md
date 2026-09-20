@@ -90,6 +90,7 @@ _None._
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
+| SITE-40 | P3 | [SITE-40](backlog/tasks/SITE-40.md) · Redact's toolbar packs 4+4+2 once 'Compress it' appears |
 
 ### In progress
 
