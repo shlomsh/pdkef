@@ -1540,7 +1540,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
     });
 
-    it('the undo chip clears the future rather than pushing onto it', async () => {
+    it('the undo chip keeps a redo when its command is still the newest', async () => {
       // This has to leave redoHistory genuinely non-empty *before* the chip is
       // clicked, and the chip's own target entry still live in actionHistory
       // at that moment (not stale), to actually distinguish 'clear' from
@@ -1580,12 +1580,56 @@ describe('PdfRedactTool UI flow', () => {
       });
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
 
-      // If the chip had pushed instead of cleared, redoHistory's new top would
-      // be the very delete-box-A entry just reverted, and this redo would
-      // immediately re-delete A. Clearing means this is a no-op: box A stays,
-      // and box B (the actual previous top of the future) does not reappear.
+      // By the time the chip is clicked, undoing box B has left the
+      // delete-box-A entry as the newest command on the stack, so reverting it
+      // is a plain undo and redo mirrors it: A is deleted again. That is what
+      // redo means, and the alternative - refusing on the grounds that the
+      // chip targets by id - is what used to leave touch users with a Redo
+      // control that could never do anything, since the chip and the dialog
+      // are the only undos a phone has.
       await pressRedoShortcut();
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      expect(boxLefts()).toHaveLength(0);
+
+      // And the undo below it is still there to redo afterwards.
+      await pressRedoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
+    });
+
+    it('the undo chip drops the future when another command landed above it', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+
+      const boxA = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => {
+        boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      await act(async () => {
+        deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(boxLefts()).toHaveLength(0);
+
+      // Box B is drawn and LEFT IN PLACE, so it sits above the chip's entry on
+      // the stack. Reverting the chip is then a middle-of-the-stack revert: a
+      // redo could re-insert something box B's own command never accounted
+      // for, so the future must be dropped.
+      await armTool('Blackout'); // one-shot: the tool disarmed after box A
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      const afterB = boxLefts().map((n) => Math.round(n));
+      expect(afterB).toHaveLength(1); // B really is on the stack above the chip's entry
+
+      const undoButton = required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      await act(async () => {
+        undoButton.click();
+      });
+      const afterChip = boxLefts().map((n) => Math.round(n));
+      expect(afterChip).not.toEqual(afterB);
+
+      await pressRedoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual(afterChip);
     });
 
     it('redo with an empty future is a safe no-op', async () => {
