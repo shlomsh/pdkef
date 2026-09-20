@@ -40,8 +40,8 @@
    by reading the component. Recount by rendering, not by eye, whenever a slot's
    own component changes shape.
    Every real toolbar today has at least nine children even after that hidden
-   control is excluded (see below). Sign's in-toolbar bug action makes ten
-   controls visible; the five-per-row value remains the correct even split.
+   control is excluded (see below): Redact counts ten and Sign thirteen, so
+   five per row is Redact's even split and seven is Sign's.
    `.segmented` (ViewControl's >=920px view-density control, the hidden node
    this whole comment is about) carries no class or attribute of its own that
    a sibling module's selector can target - CSS Modules hash `styles.segmented`,
@@ -57,16 +57,29 @@
    flex wraps 9 real controls under an uncorrected --controls-per-row: 5. */
 .toolbar { --controls-per-row: 4; }
 .toolbar:has(> :nth-child(9 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 5; }
-/* The Date tool (SignToolbar.tsx) added an 11th real child to Sign's
-   Date+Feedback-visible case (was 10) - half of 11 rounded up is 6, not 5, so
-   this needs its own override, later in source order than the 9-of rule
-   above so it wins the cascade on a toolbar matched by both (every true-11
-   toolbar also has a 9th child). Date is `[data-optional-control]` alongside
-   Feedback (see its own comment in SignToolbar.tsx), so the two always show
-   or hide together and the real count is only ever 9 or 11 - never 10 - which
-   is what keeps the exactly-9/not-10 three-way-split selectors further down
-   correct with no changes of their own. */
+/* The Date tool (SignToolbar.tsx) added an 11th real child to Sign - half of
+   11 rounded up is 6, not 5, so this needs its own override, later in source
+   order than the 9-of rule above so it wins the cascade on a toolbar matched
+   by both (every true-11 toolbar also has a 9th child). Sign has since grown
+   to thirteen and matches the rule below this one instead, so no toolbar takes
+   this value today: Redact counts ten and stops at the 9-of rule above, and
+   `:nth-child(n of ...)` counts DOM children whatever their rendering, so Sign
+   counts thirteen at every width even where twelve render. It stays because it
+   is the tier for eleven or twelve counted children - remove one control from
+   Sign and it is live again - and because the ladder reads as the arithmetic
+   it is. The six Sign actually uses between 288px and 344px is set further
+   down, on the children, by the query that hides Feedback. */
 .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 6; }
+/* Sign again, now that Undo, Redo and History are three controls rather than
+   one: thirteen counted children, both with Share (fifteen children, less the
+   radiogroup and the desktop-only Download) and without it (fourteen, less the
+   radiogroup - Download carries no .desktop-download class when there is no
+   Share to swap in, and stays visible on a phone). Half of thirteen rounded up
+   is seven, and seven 44px targets need 336.8px of line, which is why thirteen
+   is only ever shown above 344px - see that query further down. Later in source
+   order than the 9- and 11-of rules above, both of which a thirteen-child
+   toolbar also matches. */
+.toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) { --controls-per-row: 7; }
 
 .dropdown { position: relative; display: flex; }
 .toolbar .dropdown > .button { width: 100%; flex: 1 1 auto; }
@@ -226,10 +239,10 @@
 .status-hint-spare { visibility: hidden; }
 /* Next/Previous across the document's own detected fields (MOBI-06;
    EditorToolStatus.tsx's `fieldNav` prop) - the type-Next-type control lives
-   here, in the row that already flexes and wraps, rather than as an eleventh
-   permanent button on `.toolbar`, whose 44px-per-item math a few hundred
-   lines down is already tuned for exactly ten items and would need
-   re-deriving in full for an eleventh.
+   here, in the row that already flexes and wraps, rather than as one more
+   permanent button on `.toolbar`, whose 44px-per-item math a few hundred lines
+   down is tuned per exact control count and has to be re-derived in full for
+   each one added (it was, twice: for Date, and again for Redo and History).
 
    Full --btn-min-size touch targets, not the smaller WCAG-2.5.5 exception
    `.status-action` above takes for itself: that switch is inline in a
@@ -308,8 +321,14 @@
      change. N controls need N * --btn-min-size + (N-1) gaps inside
      --toolbar-padding, which is 349.6px for seven, 447.2px for nine and 496.0px
      for ten, so each query fires just below its own figure - floor() for the
-     fractional ones, one pixel below for the one whole number (496.0). Skipping
-     a real N leaves it uncapped in the gap between its neighbours' thresholds:
+     fractional ones, one pixel below for the one whole number (496.0).
+     Firing below rather than at the figure leaves a sub-pixel band - 629 to
+     629.6, 287 to 288 - where the cap has not engaged yet and the row is
+     already one target too long, so it packs greedily and strands one control.
+     It is the convention every threshold here follows, and a fractional
+     container width is the only way to land in it; noted so the next reader
+     knows it is a known sliver and not an unnoticed case.
+     Skipping a real N leaves it uncapped in the gap between its neighbours' thresholds:
      that line still wraps once it stops fitting, but with no cap active it packs
      greedily and strands whatever's left on the second line at full stretched
      width, exactly the 8+1/1-giant-button failure this whole mechanism exists to
@@ -319,8 +338,9 @@
      truly-visible-child case - wrapped uncapped between roughly 448px and 496px
      of container width.
      N here means controls actually rendered, not raw DOM position: Sign with
-     share support counts twelve children (see the recount note above) but only
-     ever shows ten, since Download hides itself below 920px. `:nth-child(10 of
+     share support counts fifteen children (see the recount note above) but only
+     ever shows thirteen, since Download hides itself below 920px and the
+     view-density control hides above it. `:nth-child(10 of
      :not(.desktop-download))` reads as "the tenth child once you skip anything
      wearing that hidden-below-920px class", so it counts what a phone user
      actually sees rather than what exists in the DOM. Using a plain
@@ -359,17 +379,68 @@
     .toolbar:has(> :nth-child(10 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
   }
 
-  /* 532.0px is where Sign's Date+Feedback-visible eleven controls stop fitting
-     one line at the touch floor (11 * 44 + 10 * 4.8), the same "N * --btn-min-
-     size + (N-1) gaps" arithmetic as the two thresholds above, one more tier
-     up now that Date is a real eleventh control on that toolbar (see the
-     --controls-per-row: 6 rule's own comment). Fires one pixel below, same
-     convention as 495px's whole-number case just above. No real toolbar's
-     true visible count sits at exactly 10 (Date and Feedback hide together),
-     so this and the 495px query never both match the same toolbar - which is
-     fine, since they'd compute the same flex-basis were they to overlap. */
+  /* 532.0px is where eleven controls stop fitting one line at the touch floor
+     (11 * 44 + 10 * 4.8), the same "N * --btn-min-size + (N-1) gaps"
+     arithmetic as the two thresholds above. Fires one pixel below, same
+     convention as 495px's whole-number case just above. Overlapping queries
+     are harmless here: every threshold in this group computes the same
+     flex-basis from the toolbar's own --controls-per-row, so a toolbar matched
+     by several of them gets one answer. */
   @container toolbar (max-width: 531px) {
     .toolbar:has(> :nth-child(11 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
+  /* 629.6px is where thirteen controls stop fitting one line at the touch
+     floor (13 * 44 + 12 * 4.8), one tier up again now that Sign carries Undo,
+     Redo and History as three controls. Fires one pixel below the fractional
+     figure, floor() convention.
+     Note the figure carries no padding term, unlike 349.6/447.2/496.0 above,
+     which are the same N * 44 + (N-1) * 4.8 plus --toolbar-padding's 12.8px.
+     A container query matches the content box (the 239px rule below says so in
+     its own comment, and it is what the measured stand-down widths confirm), so
+     this one is the honest figure and those three fire ~12.8px early - which
+     caps a row slightly before it has to wrap, never late, so it has never
+     shown up as a defect. Do not "fix" them by adding 12.8px here.
+     Above it the row still fits one line and the controls simply grow to fill
+     it (measured: one line at 768px and 800px of viewport, 7+6 at 700px); the
+     band this loses - roughly a 660-726px window - is the price of the two
+     extra controls and is guarded as a balanced 7+6 by
+     e2e/tool-toolbars/toolbar-touch-targets.spec.js. */
+  @container toolbar (max-width: 629px) {
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { flex-grow: 0; flex-basis: max(var(--btn-min-size), (100% - (var(--controls-per-row) - 1) * var(--toolbar-gap)) / var(--controls-per-row)); }
+  }
+
+  /* Thirteen cannot be balanced below 345px, and this is where it stands down
+     to twelve, which can be balanced at every width below.
+
+     Seven per row needs 336.8px (7 * 44 + 6 * 4.8) and six needs 288px, so
+     between those two figures at most six 44px targets fit a line and thirteen
+     packs 6+6+1 - the stranded control every rule in this block exists to
+     prevent. No --controls-per-row value reaches a balanced thirteen there:
+     a cap of five gives 5+5+3 and a cap of four gives 4+4+4+1. Twelve, by
+     contrast, is the friendliest count in the file - it lands 6+6 at a cap of
+     six, 4+4+4 at four and 3+3+3+3 once the floor takes over - so History
+     hides here and the count becomes twelve for the rest of the way down.
+     345px rather than 337px so the seven-per-row line has real margin: at
+     exactly 337px the seven targets need 336.8px of it.
+
+     Feedback is the one to go, and it goes here rather than at its own 239px
+     step below: it is the control that does not act on the document at all,
+     and it is the one that survives being hidden, since "Report a bug" and
+     "Feedback & ideas" are in the site footer of every page. History could
+     have gone instead - it does not edit the document either - but its dialog
+     is reachable from nowhere else, and on a phone selective revert would then
+     not exist at all. Redact, at ten controls, needs neither to stand down
+     until 239px. `[data-optional-control="feedback"]`, not the bare attribute,
+     because that is exactly the difference: one control, one threshold, scoped
+     to the thirteen-child toolbar that needs it.
+
+     The cap has to move with the count: six-per-row for twelve, down to the
+     287px rule below (four-per-row, the same rule eleven controls take), which
+     is later in source order and so wins where both match. */
+  @container toolbar (max-width: 344px) {
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) [data-optional-control="feedback"] { display: none; }
+    .toolbar:has(> :nth-child(13 of :not(.desktop-download):not([role="radiogroup"]))) > * { --controls-per-row: 6; }
   }
 
   /* Once even the two-row split stops fitting - five-per-row controls need
@@ -401,28 +472,30 @@
      the --controls-per-row: 5 trigger above (see its comment for why a role
      attribute stands in for a class here): without it, ViewControl's hidden
      `.segmented` control inflates Sign's counted total from nine to ten,
-     which trips the very guard above meant to exclude Sign's true ten-visible
-     cases from this rule - so a toolbar that has never actually shown ten
+     which trips the very guard above meant to exclude a true ten-visible
+     toolbar from this rule - so a toolbar that has never actually shown ten
      visible controls loses the three-way split anyway, and 9 real controls
      wrap under the uncorrected 5-per-row share as 4+4+1. This shipped exactly
      that way once already, reproduced deterministically (every run, not an
      intermittent flake) against a real build and caught by CI. */
   /* Feedback does not act on the document, so below 251px it stands down and
-     lets the nine that do take the three-way split above. Date joined it as a
-     second `[data-optional-control]` (SignToolbar.tsx) once it became an
-     eleventh real control on this same toolbar: unlike Feedback, hiding a
-     document-editing control is normally off the table (see below), but
-     Date's own capability is not lost when its toolbar shortcut is - the Text
-     tool's own insert-date control (ElementToolbar.tsx) reaches the same
-     "today's date" text from the row that never hides. The two hide and show
-     together (same attribute, same query), which is what keeps the real
-     count landing on exactly nine or eleven and never ten - nine controls
-     always visible, two optional. Ten cannot be balanced here at all: the 44px touch floor caps
-     the line at four regardless of --controls-per-row, and greedy flex turns
-     ten into 4+4+2 at a cap of four or five and 3+3+3+1 at three, while the
-     balanced 4+3+3 is unreachable at every cap. Nine, by contrast, lands
-     exactly - 3 * 71.2 + 2 * 4.8 = 223.2px at a 320px viewport, the full
-     content box, with a 71.2px target instead of 44px.
+     lets the controls that do take the split above. On Sign it has already
+     gone, at 344px (see that query, and why it is Feedback rather than
+     History), so nothing of Sign's goes at this width: it shows twelve here
+     and splits 4+4+4. Its second and last optional control, History, stands
+     down at 239px below. Thirteen above 344px, twelve from there down, eleven
+     below 239px - all three balance, and none of them is ten. Ten cannot be balanced here
+     at all: the 44px touch floor caps the line at four regardless of
+     --controls-per-row, and greedy flex turns ten into 4+4+2 at a cap of four
+     or five and 3+3+3+1 at three, while the balanced 4+3+3 is unreachable at
+     every cap. That is the whole reason the two optional controls come off at
+     two different widths rather than together: thirteen less three is ten.
+     Nine, by contrast, lands exactly - 3 * 71.2 + 2 * 4.8 = 223.2px at a 320px
+     viewport, the full content box, with a 71.2px target instead of 44px - and
+     it is the count Redact reaches here.
+     Date is no longer one of these. It is a document-editing control, which
+     this pattern is normally never applied to, and it now pays for its place
+     with its label instead (`data-icon-only`, see SignToolbar.tsx).
      `[data-optional-control]` rather than a class because CSS Modules hash
      `styles.*`, so this has to be nameable from the counting selectors below
      too, exactly the reason `[role="radiogroup"]` stands in for `.segmented`
@@ -468,9 +541,9 @@
   /* 239.2px is where ten controls stop fitting five to a line at the touch
      floor (5 * 44 + 4 * 4.8), and it is deliberately NOT the 251px above.
      251px is nine's clamp point, and reusing it would hide Feedback across a
-     12px band (336-347px viewport) where ten still fit perfectly well as 5+5 -
-     which on real hardware is an iPhone SE 2nd/3rd gen at 110% zoom losing a
-     control for no reason. Container queries match the CONTENT box, so these
+     12px band (336-347px viewport) where Redact's ten still fit perfectly well
+     as 5+5 - which on real hardware is an iPhone SE 2nd/3rd gen at 110% zoom
+     losing a control for no reason. Container queries match the CONTENT box, so these
      figures are content width: this fires at a 335px viewport, 251px fires at
      347px. Getting that wrong is easy and silent, since the border box is what
      you measure in devtools.
@@ -503,7 +576,19 @@
    labelled are ~1240px in SF; with Undo and Feedback icon-only (`data-icon-only`,
    an arrow and a bug are conventions and neither is a tool) and the tighter
    spacing at the end of this file they are ~1050px in SF and ~1120px in a wide
-   face. Redact is narrower at every share state. Two rules keep this honest:
+   face. Redact is narrower at every share state.
+
+   Re-measured 2026-09-20, in headless Chromium on Linux (the wide DejaVu face
+   CI lands on, Share present), when Undo's single control became the three
+   Undo/Redo/History controls Redact already had. Three icon-only controls cost
+   42px each: the row needed 1205.6px against that 1172px box, and wrapped,
+   stranding Download on a second line - the exact SIGN-29 failure. Two changes
+   bought it back, neither of them a relaxed guard: Date went icon-only
+   (-43.9px, see SignToolbar.tsx) and the gap below dropped from 6px to 4px
+   (-26px, 13 gaps). Measured after: 1135.7px, 36.3px of the box spare. Spend
+   that on a fourteenth control and the next label to go is Replace's (62.7px).
+
+   Two rules keep this honest:
 
    - **Nothing shrinks.** `flex-shrink: 0`. Under `flex: 1 1 auto` every button could
      shrink past its label and `.label`'s ellipsis quietly took up the slack: at
@@ -516,10 +601,10 @@
      is not firing today.
 
    Between, up to 1299px: the same one line, every control icon-only with its
-   tooltip, 44px targets, growing to share the row (twelve of them are 762px, so
-   the row fits down to the 920px floor's 796px box and on down through the
-   tablet band, until eleven 44px targets no longer fit one line at roughly a
-   660px viewport).
+   tooltip, 44px targets, growing to share the row (thirteen of them are 629.6px,
+   so the row fits down to the 920px floor's 796px box and on down through the
+   tablet band, until those thirteen no longer fit one line at roughly a 726px
+   viewport - measured: one line at 768px, 7+6 at 700px).
 
    iPhone, and any window narrower than that: the centred, evenly split two-row
    icon grid in the phone block above, unchanged.
@@ -532,15 +617,18 @@
   .toolbar .label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0; }
 }
 
-/* Where the labels show, the row is set a little tighter than the icon rows: 6px
-   gaps and .5rem horizontal padding. CI caught the labelled row wrapping at a
+/* Where the labels show, the row is set tighter than the icon rows: 4px gaps
+   and .5rem horizontal padding. CI caught the labelled row wrapping at a
    1280px window on Linux, where the system-font stack lands on a wide face
-   (DejaVu, Verdana's width class: ~1177px for the twelve controls against SF's
-   ~1110px) and a classic 15px scrollbar takes the box down to ~1141px. The
+   (DejaVu, Verdana's width class: ~1177px for the twelve controls of the day
+   against SF's ~1110px) and a classic 15px scrollbar takes the box down to ~1141px. The
    tighter spacing recovers ~60px and the 1300px floor keeps the box at ~1160px
-   or more even with a scrollbar, so a wide font still has ~40px to spare. */
+   or more even with a scrollbar, so a wide font still has ~40px to spare. The
+   gap went 6px -> 4px on 2026-09-20 to pay for Redo and History (see the block
+   above for the measurements); 36.3px of the 1172px box are spare on the wide
+   face, ~21px of a scrollbar-narrowed one. */
 @media (min-width: 1300px) {
-  .toolbar { --toolbar-gap: .375rem; --btn-padding: .6rem .5rem; }
+  .toolbar { --toolbar-gap: .25rem; --btn-padding: .6rem .5rem; }
 }
 
 @media (min-width: 920px) {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import UndoHistoryModal from './UndoHistoryModal.tsx';
 import type { ActionHistoryEntry } from '../editor/model/actionHistory.ts';
 import styles from './UndoHistoryModal.module.css';
+import dialogStyles from '../shell/Dialog.module.css';
 
 // jsdom doesn't implement the dialog element's showModal()/close(); stub them
 // the same way SignatureDialog.test.tsx does, since UndoHistoryModal.tsx calls
@@ -42,7 +43,12 @@ function baseProps(overrides: Partial<Parameters<typeof UndoHistoryModal>[0]> = 
   };
 }
 
-describe('UndoHistoryModal redo affordance', () => {
+// Redo is a toolbar control in both tools, not a dialog one: this dialog is
+// unreachable while it is closed, so a Redo that lived only here was, on a
+// phone, no redo at all. It had a footer button during the one change where
+// the toolbar's single history control still opened this dialog; these guard
+// that it did not come back and leave two controls doing one job.
+describe('UndoHistoryModal footer', () => {
   let container = document.createElement('div');
 
   afterEach(() => {
@@ -51,86 +57,33 @@ describe('UndoHistoryModal redo affordance', () => {
     document.body.innerHTML = '';
   });
 
-  function findRedoButton() {
-    return Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
-      (b) => b.textContent?.trim() === 'Redo',
-    );
+  function footerButtons() {
+    return Array.from(container.querySelectorAll<HTMLButtonElement>(`.${dialogStyles.footer} button`));
   }
 
-  it('renders no redo button when onRedo is not supplied', () => {
+  it('offers only "Revert selected" - redo belongs to the toolbar', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<UndoHistoryModal {...baseProps({ redoHistory: REDO_HISTORY })} />, container);
+    });
+
+    expect(footerButtons().map((b) => b.textContent?.trim())).toEqual(['Revert selected']);
+  });
+
+  it('disables "Revert selected" until something is checked', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     act(() => {
       render(<UndoHistoryModal {...baseProps()} />, container);
     });
 
-    expect(findRedoButton()).toBeUndefined();
-  });
+    expect(required(footerButtons()[0], 'Revert selected button').disabled).toBe(true);
 
-  it('renders the redo button disabled when canRedo is false', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    const onRedo = vi.fn();
     act(() => {
-      render(<UndoHistoryModal {...baseProps({ onRedo, canRedo: false })} />, container);
+      render(<UndoHistoryModal {...baseProps({ undoSelection: new Set(['a1']) })} />, container);
     });
-
-    const redoButton = required(findRedoButton(), 'redo button');
-    expect(redoButton.disabled).toBe(true);
-  });
-
-  it('calls onRedo when the enabled redo button is clicked', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    const onRedo = vi.fn();
-    act(() => {
-      render(<UndoHistoryModal {...baseProps({ onRedo, canRedo: true, redoDescription: 'Added text box' })} />, container);
-    });
-
-    const redoButton = required(findRedoButton(), 'redo button');
-    expect(redoButton.disabled).toBe(false);
-    act(() => {
-      redoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-    expect(onRedo).toHaveBeenCalledTimes(1);
-  });
-
-  it("names what it would bring back in the button's accessible name", () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    const onRedo = vi.fn();
-    act(() => {
-      render(<UndoHistoryModal {...baseProps({ onRedo, canRedo: true, redoDescription: 'Added text box' })} />, container);
-    });
-
-    const redoButton = required(findRedoButton(), 'redo button');
-    expect(redoButton.getAttribute('aria-label')).toBe('Redo: Added text box');
-  });
-
-  it('does not claim a description in its accessible name while there is nothing to redo', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    const onRedo = vi.fn();
-    act(() => {
-      render(<UndoHistoryModal {...baseProps({ onRedo, canRedo: false, redoDescription: 'Added text box' })} />, container);
-    });
-
-    const redoButton = required(findRedoButton(), 'redo button');
-    expect(redoButton.getAttribute('aria-label')).toBeNull();
-  });
-
-  it('keeps "Revert selected" as the footer\'s primary action beside redo', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    act(() => {
-      render(<UndoHistoryModal {...baseProps({ onRedo: vi.fn(), canRedo: true, redoDescription: 'Added text box' })} />, container);
-    });
-
-    const revertButton = required(
-      Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === 'Revert selected'),
-      'Revert selected button',
-    );
-    expect(revertButton).not.toBeNull();
+    expect(required(footerButtons()[0], 'Revert selected button').disabled).toBe(false);
   });
 });
 

@@ -88,6 +88,8 @@ export default function PdfWorkspace({
   handleSharePdf,
   setAnnouncement,
   setUndoModalOpen,
+  onUndo,
+  onRedo,
   toggleFullscreen,
   isFullscreen,
   placeSignatureAt,
@@ -114,6 +116,12 @@ export default function PdfWorkspace({
   handleSharePdf: () => void;
   setAnnouncement: (msg: string) => void;
   setUndoModalOpen: (open: boolean) => void;
+  /** The tool's own single-step undo and redo, passed through to the toolbar.
+   * They come from PdfSignTool rather than straight from the reducer because
+   * undo also prunes the dialog's checkbox selection. `canRedo` is read from
+   * the context below, beside `actionHistory`. */
+  onUndo: () => void;
+  onRedo: () => void;
   toggleFullscreen: () => void;
   isFullscreen: boolean;
   placeSignatureAt: (
@@ -141,7 +149,7 @@ export default function PdfWorkspace({
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory }, dispatch } = useSignTool();
+  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory }, dispatch } = useSignTool();
   useAutoFontProvisioning(elements);
   const {
     lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
@@ -326,6 +334,9 @@ export default function PdfWorkspace({
             setDialogOpen={setDialogOpen}
             setUndoModalOpen={setUndoModalOpen}
             actionHistory={actionHistory}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            canRedo={redoHistory.length > 0}
             toggleFullscreen={toggleFullscreen}
             isFullscreen={isFullscreen || isPseudoFullscreen}
             onSavePdf={handleSavePdf}

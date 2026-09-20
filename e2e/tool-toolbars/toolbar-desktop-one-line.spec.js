@@ -9,7 +9,8 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
    so this needs a real browser: every visible direct child sharing one `top`
    at a spread of real widths, and Download never ballooning even if a future
    control tips the row over again. Share is stubbed present throughout - the
-   wider, real twelve-control case the bug was found in. */
+   wider, real case the bug was found in (twelve controls then, fourteen since
+   Undo, Redo and History became three). */
 
 async function makePdfBuffer() {
   const doc = await PDFDocument.create();
@@ -59,30 +60,36 @@ async function readToolbarLine(page) {
   });
 }
 
-// From where eleven 44px icons first fit one line (~532px box, ~660px
-// viewport; narrower is the phone grid, covered by toolbar-phone-row.spec.js),
-// the 920px floor, the laptop band the bug lived in, both
-// sides of the 1300px label breakpoint, and the plateau beyond it.
-const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
+// From where each tool's own icon row first fits one line, up through the
+// 920px floor, the laptop band the bug lived in, both sides of the 1300px
+// label breakpoint, and the plateau beyond it. The floor is arithmetic, not
+// taste: N * 44px + (N-1) * 4.8px of gap, plus the toolbar's own padding and
+// the page gutters. Redact's ten controls need a 483.2px box, which a 700px
+// window has. Sign's thirteen - Undo, Redo and History are three controls
+// since 2026-09-20 - need 629.6px, which a 700px window does not have and a
+// 768px one does (measured, both). Below its own floor a toolbar is the
+// wrapped grid, whose balance is toolbar-touch-targets.spec.js's job; Sign's
+// 700px case moved there rather than being dropped.
+const WIDTHS = [920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 
-// Generous: Download is a real button among eleven or twelve others, never
+// Generous: Download is a real button among ten to thirteen others, never
 // the whole row. 40% is well above its labelled width at every measured
 // case (worst measured was ~19% of the toolbar at 920px) and well below the
 // ~100% a wrapped, stranded control reached before this fix.
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign', fixture: 'sign-desktop-one-line.pdf' },
-  { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf' },
+  { name: 'Sign', path: '/sign', fixture: 'sign-desktop-one-line.pdf', widths: [768, ...WIDTHS] },
+  { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf', widths: [700, 768, ...WIDTHS] },
 ];
 
 for (const tool of tools) {
-  test(`${tool.name} toolbar stays one line with Share present, 700px and up`, async ({ page }) => {
+  test(`${tool.name} toolbar stays one line with Share present, ${tool.widths[0]}px and up`, async ({ page }) => {
     await stubSharePresent(page);
     await page.setViewportSize({ width: 1600, height: 1000 });
     await openTool(page, tool.path, tool.fixture);
 
-    for (const width of WIDTHS) {
+    for (const width of tool.widths) {
       await page.setViewportSize({ width, height: 1000 });
       const { childCount, tops, downloadWidth, toolbarWidth } = await readToolbarLine(page);
       expect(childCount, `${tool.name} at ${width}px: expected several visible controls`).toBeGreaterThan(5);
@@ -100,9 +107,9 @@ for (const tool of tools) {
 
 // jsdom cannot see which labels are clipped to the 1x1 visually-hidden box,
 // so the two anchors are checked on real rendered label widths: at 1440px
-// (the plateau) every label shows except Undo and Feedback, which are
-// icon-only at every width (`data-icon-only`); at 1200px everything is
-// icon-only. And the row reads in the order a form gets done: Text first,
+// (the plateau) every label shows except Date, Undo, Redo, History and
+// Feedback, which are icon-only at every width (`data-icon-only`); at 1200px
+// everything is icon-only. And the row reads in the order a form gets done: Text first,
 // Sign after the filling vocabulary (Text, Date, Symbols, Shapes, Whiteout).
 async function labelWidth(page, text) {
   return page.evaluate((label) => {
@@ -112,7 +119,7 @@ async function labelWidth(page, text) {
   }, text);
 }
 
-test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except Undo and Feedback, and none show below 1300px', async ({ page }) => {
+test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except the icon-only five, and none show below 1300px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
   await openTool(page, '/sign', 'sign-desktop-one-line-order.pdf');
@@ -124,12 +131,15 @@ test('Text leads and Sign follows the filling tools, labels show at the desktop 
   });
   expect(leadingLabels, 'the filling tools lead and Sign follows them').toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign']);
 
-  for (const label of ['Sign', 'Text', 'Date', 'Symbols', 'Whiteout', 'Replace', 'Share', 'Download']) {
+  for (const label of ['Sign', 'Text', 'Symbols', 'Whiteout', 'Replace', 'Share', 'Download']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist`).not.toBeNull();
     expect(width, `${label} should be labelled at 1440px`).toBeGreaterThan(5);
   }
-  for (const label of ['Undo', 'Feedback']) {
+  // Date joined the icon-only set when Undo, Redo and History became three
+  // controls: the labelled row had no 42px to spare and a calendar reads on
+  // its own (SignToolbar.module.css's 1300px block carries the measurements).
+  for (const label of ['Undo', 'Redo', 'History', 'Date', 'Feedback']) {
     const width = await labelWidth(page, label);
     expect(width, `${label} label should exist for screen readers`).not.toBeNull();
     expect(width, `${label} is icon-only at every width`).toBeLessThanOrEqual(2);

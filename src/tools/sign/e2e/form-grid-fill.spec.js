@@ -214,20 +214,20 @@ test.describe('tapping a printed comb run', () => {
   });
 
   test('undo removes the placed comb in one step', async ({ page }) => {
-    // "One step" is one history entry, not one click: the Undo control opens a
-    // history list. Snapping to a printed field must not log the placement as
-    // several actions just because it sets more fields than a plain text box.
+    // "One step" is one history entry as well as one tap: snapping to a printed
+    // field must not log the placement as several actions just because it sets
+    // more fields than a plain text box. The toolbar's Undo is the one tap; the
+    // History control beside it is what says how many entries there were.
     await openWithFixture(page);
     await tapRun(page, IDENTITY_RUN);
     await expect(page.locator('[data-editor-element]')).toHaveCount(1);
 
-    await page.getByRole('toolbar', { name: 'PDF annotations' })
-      .getByRole('button', { name: /Undo/i }).click();
-    const entries = page.getByRole('dialog').getByRole('checkbox');
-    await expect(entries).toHaveCount(1);
-    await entries.first().check();
-    await page.getByRole('button', { name: 'Revert selected' }).click();
+    const toolbar = page.getByRole('toolbar', { name: 'PDF annotations' });
+    await toolbar.getByRole('button', { name: 'History', exact: true }).click();
+    await expect(page.getByRole('dialog').getByRole('checkbox')).toHaveCount(1);
+    await page.keyboard.press('Escape');
 
+    await toolbar.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(page.locator('[data-editor-element]')).toHaveCount(0);
   });
 });
@@ -255,14 +255,18 @@ test.describe('tapping a detected checkbox', () => {
     await expect(page.locator('[data-editor-element]')).toHaveCount(0);
     await expect(symbolTool).toHaveAttribute('aria-pressed', 'false');
 
-    // Clearing is a delete command, not an untracked visual toggle: undoing
-    // just that newest command restores the same mark in the same square.
-    await page.getByRole('toolbar', { name: 'PDF annotations' })
-      .getByRole('button', { name: /Undo/i }).click();
-    const entries = page.getByRole('dialog').getByRole('checkbox');
-    await expect(entries).toHaveCount(2);
-    await entries.first().check();
-    await page.getByRole('button', { name: 'Revert selected' }).click();
+    // Clearing is a delete command, not an untracked visual toggle: two entries
+    // in the history, and one tap of Undo brings the mark back rather than
+    // taking the add away, which is what an untracked toggle would have left as
+    // the newest entry. Both controls are here at a phone width - History is
+    // the last of this toolbar's controls to stand down and does not until
+    // 239px of toolbar (SignToolbar.module.css).
+    const toolbar = page.getByRole('toolbar', { name: 'PDF annotations' });
+    await toolbar.getByRole('button', { name: 'History', exact: true }).click();
+    await expect(page.getByRole('dialog').getByRole('checkbox')).toHaveCount(2);
+    await page.keyboard.press('Escape');
+
+    await toolbar.getByRole('button', { name: 'Undo', exact: true }).click();
     await expect(page.locator('[data-editor-element]')).toHaveCount(1);
   });
 });
