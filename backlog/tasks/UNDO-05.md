@@ -40,3 +40,17 @@ Out of scope for now, and it is not an extension: these tools store an **inverse
 there is no forward equivalent, and a thunk cannot be persisted through `draftStore`'s structured clone
 either. Redo would mean replacing the chip with a real stack, which is also a product decision:
 `docs/ux-design-guidelines.md` §6 makes the transient chip the house pattern.
+
+## Update 2026-09-20: the thumbnail half of this is no longer a prediction
+
+UNDO-02 hit exactly the defect this ticket predicts for Merge and Split, in Edit Pages, and it was
+reproduced rather than reasoned: a thumbnail that finished rendering after a snapshot was taken was
+permanently destroyed by an undo past that point, because the snapshot held the pages array and
+thumbnails arrive asynchronously outside history. On a long scan it blanked most of the grid.
+
+The fix there is the shape to copy, and it is not "snapshot the thumbnails too". A thumbnail is not
+a user edit, so undo must not be able to take it away: `src/tools/edit-pages/useEditHistory.js` grew
+an `amend` that applies an async change to the live document *and* to every snapshot already on the
+stacks, leaving the history's length untouched. Merge and Split need the same separation whenever
+they get a real stack, and Split's wholesale `setPages(snapshot)` has the same hole today inside its
+five-second window.

@@ -45,6 +45,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
+| MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 
 ### In progress
 
@@ -415,6 +416,34 @@ _None._
 
 _None._
 
+## One memory space
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
+| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
+| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
+
+### Retired
+
+_None._
+
 ## Form understanding
 
 ### Open
@@ -581,17 +610,3 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
-
-## One memory space
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
-| MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
-| MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
-
-### Retired
-
-_None._
