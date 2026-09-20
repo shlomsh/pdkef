@@ -150,6 +150,7 @@ exists to prevent.
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
 | `itc101` | 139 | 69.1% | 91.4% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
+| `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
@@ -158,6 +159,14 @@ pass not going greedy beside it: on the 1040's crowded page the detector emits 9
 targets, and the 5 that do not match are printed-geometry cells the widgets do not corroborate. The
 forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
 field is.
+
+**And one form finds nothing at all, on purpose.** `irs-1040-1970` is a genuine scan: its whole page
+is one CCITT image, so `collectPageInk` reports zero verticals, zero horizontals and zero rects.
+There is no vector ink to read, 0 candidates is the honest answer, and `precision` is `null` rather
+than 0 because with nothing emitted there is nothing to be precise about. The zero is an assertion,
+in the same way a `known gap` row is: the test pins `candidates` at exactly 0, so the day a raster
+path finds anything the row fails and has to be re-recorded by whoever earned it. Its 64 targets are
+annotated and waiting. MOBI-14 holds the question of whether to build that.
 
 **Those are the real forms now** (MOBI-13, 2026-09-20). Both Hebrew rows used to point at the
 geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%; the
