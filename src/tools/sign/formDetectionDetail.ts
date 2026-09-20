@@ -82,12 +82,50 @@ const QUOTED = /(['"`])([\s\S]*?)\1/g;
 const CODE_SHAPED = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 
 /**
+ * WebKit puts a snippet of the SOURCE in its TypeErrors - `undefined is not a
+ * function (near '...')` - and that snippet is the single most useful token in
+ * the whole line. It is program text, not data, so it is safe; it just is not a
+ * bare dotted identifier, because it carries call and index syntax.
+ *
+ * The discriminator that actually matters is whitespace. A field label ("Student
+ * Social Security Number") and a line of a form ("Patient diagnosis: diabetes")
+ * have spaces; a code snippet does not. So a quoted run also survives when it is
+ * whitespace-free and made only of code punctuation. A single-token field name
+ * could still pass, which is the accepted cost of being able to diagnose a device
+ * we cannot reproduce; anything with a space in it, which is what a person's
+ * answers look like, cannot.
+ */
+const CODE_SNIPPET = /^[\w$.()[\]]{1,60}$/;
+
+/**
  * A filename keeps leaking through as a bare token once its path is gone
  * (`/home/me/tax return 2024.pdf` loses the path token and leaves `2024.pdf`).
  * Matched against real extensions rather than "a short dotted tail", because
  * the latter also eats `Object.x`, which is code and is worth keeping.
  */
 const FILE_SHAPED = /^[\w.-]+\.(?:pdf|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|txt|csv|json|xml|zip)$/i;
+
+/**
+ * The top frame of the stack, as `chunk.hash.js:line:column`.
+ *
+ * This is worth more than the message and leaks less. A message is built out of
+ * whatever the thrower was holding, so it needs the whole guard above; a frame
+ * is a position in our own built output and can contain nothing else. It is also
+ * what actually answers the question - WebKit's `undefined is not a function`
+ * says a method is missing but not which, and the frame says exactly where to
+ * look. Matched strictly: a built asset filename and two numbers, nothing else,
+ * and any frame that is not that shape is dropped rather than trimmed.
+ */
+const STACK_FRAME = /\/_astro\/([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
+
+function topFrame(error: Error): string {
+  const stack = typeof error.stack === 'string' ? error.stack : '';
+  for (const line of stack.split('\n')) {
+    const hit = STACK_FRAME.exec(line);
+    if (hit) return `${hit[1]}:${hit[2]}:${hit[3]}`;
+  }
+  return '';
+}
 
 /**
  * `error.name`, or the constructor's name when the error never set one -
@@ -122,11 +160,13 @@ export function describeFormDetectionFailure(error: unknown): string {
     .replace(/[^\x20-\x7E]/g, '')
     // Quoted runs first, whole: a label with spaces in it would otherwise
     // survive as several innocent-looking tokens.
-    .replace(QUOTED, (run, quote, inner) => (CODE_SHAPED.test(inner) ? run : `${quote}...${quote}`))
+    .replace(QUOTED, (run, quote, inner) => (CODE_SHAPED.test(inner) || CODE_SNIPPET.test(inner) ? run : `${quote}...${quote}`))
     .split(' ')
     .map((token) => (CONTENT_SHAPED.test(token) || FILE_SHAPED.test(token) ? '...' : token))
     .join(' ')
     .trim()
     .slice(0, MAX_MESSAGE);
-  return message ? `${name}: ${message}` : name;
+  const line = message ? `${name}: ${message}` : name;
+  const frame = topFrame(error);
+  return frame ? `${line} [${frame}]` : line;
 }
