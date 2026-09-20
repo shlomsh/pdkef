@@ -62,6 +62,24 @@ and `test:module-boundaries` can state the direction as a rule instead of a conv
 - Whether `pageDirections` belongs in the same return value - it is text-derived, not geometry, and
   it is here only because the hook already had the text runs in hand.
 
+## Lazy loading is already true, and now guarded
+
+Measured on the built output (2026-09-20): /redact/ and /merge/ cannot reach the five detector
+chunks at all, eagerly or lazily, and /sign/ reaches all five only through the dynamic `import()`
+in `useFormFieldRegions.ts` - none on first paint. `npm run test:lazy-modules`
+(`scripts/check-lazy-modules.js`, after `build`) walks each tool page's static-import graph and
+fails if one appears; sabotage-checked with a static import from `PdfWorkspace.tsx`.
+
+One measured cost of Step 3d's layering move: `toPagePercentBox` went from `formGrid.js` (lazy) to
+`coords.ts`, which every tool loads, so Redact now carries 102 bytes of minified arithmetic it never
+calls. `pdfPointToPagePercent`, which it wraps, was already in that chunk. Left as is - a private
+module for ten lines would be the worse trade - but recorded rather than unnoticed.
+
+**This ticket must not regress that.** One entry point makes it easier, not harder: the guard's list
+shrinks to that entry point, and a new source inherits the protection instead of needing its own.
+An OCR source in particular is the case to watch, since a wasm or worker payload dwarfs anything
+here.
+
 ## Acceptance
 
 - [ ] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
@@ -72,3 +90,4 @@ and `test:module-boundaries` can state the direction as a rule instead of a conv
       in the corpus, not asserted in prose.
 - [ ] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
+- [ ] `test:lazy-modules` still passes, with its list reduced to the new entry point.
