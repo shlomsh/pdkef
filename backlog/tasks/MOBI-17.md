@@ -66,6 +66,33 @@ which is exactly "enlarged out of proportion". At 3x it is five rows and taller 
 one-sided distance, so the element's x cancels out. Both `top-start` and `top-end` behave the same,
 so RTL is not a mirror case here either.
 
+## The worst case is our own practice form
+
+This is not something only a dense government form provokes. `FileDropzone.tsx:157-162` offers
+`public/images/redaction-guide/sample.pdf` in every tool that mounts the shell, Sign included, so
+the practice form is the front door: the first document most people open, and one whose every
+dimension we chose.
+
+Measured on it, same viewport and build:
+
+- `PAGE_SIZE = [680, 500]` (`practiceFormContent.js:15`) - a custom landscape page, wider than US
+  Letter, so it scales *worse*: `358 / 680 = 0.5265` against Letter's 0.585.
+- All nine detected fields compute to **6.32 CSS px**, identically. Their printed cells are tall
+  enough that the auto-fit never shrinks below `DEFAULT_FONT_SIZE_PT`, so every one of them is
+  12 pt x 0.5265.
+- iOS zoom on tapping any of them: **16 / 6.32 = 2.53x**.
+- At 2.53x the visual viewport is 174 px, the toolbar's cap falls to 116 px, and the bar becomes
+  **five rows, 164 CSS px tall - 110% of the visible screen height.**
+
+So on the document we ship to demonstrate the tool, tapping any field produces a floating toolbar
+taller than the screen it floats over.
+
+**The trap to avoid:** the page size and the field sizes are ours, so the demo can be made to
+behave by enlarging its type or squaring up its page. That would hide the problem exactly where it
+is most visible and leave every real form as it is. Worth doing on its own merits - a 680 pt page
+is an odd choice that costs 10% of scale against a portrait one - but it is not this ticket's fix
+and must not be mistaken for it.
+
 ## What to do about it
 
 Shlomi's reading is the right one: zooming to the field is a good idea, and what we have is the
