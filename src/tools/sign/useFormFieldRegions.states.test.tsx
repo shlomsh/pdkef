@@ -150,3 +150,42 @@ describe('useFormFieldRegions detection state', () => {
     expect(warn).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The iOS bug of 2026-09-20, as a test: detection found zero fields on every
+ * document on iOS 26.6.2 because pdf.js's `getTextContent()` ends in
+ * `for await (const value of readableStream)`, and Safari has never shipped
+ * async iteration of a native ReadableStream (WebKit bug 194379).
+ *
+ * The stream here is deliberately hostile in the way iOS is: it has a working
+ * `getReader()` and NO `Symbol.asyncIterator`. Anything that reaches for async
+ * iteration throws `undefined is not a function` against it, exactly as the
+ * device did; reading it with a reader works. Every engine available to CI has
+ * the feature (measured: Playwright's Linux WebKit and Chromium both report
+ * `'function'`), so without a fixture like this one nothing here can fail.
+ */
+describe('reading a page\'s text on an engine without ReadableStream async iteration', () => {
+  function iosLikeStream(chunks: Array<{ items: object[] }>) {
+    let i = 0;
+    return {
+      getReader: () => ({
+        read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }),
+      }),
+      // Symbol.asyncIterator deliberately absent, as on iOS WebKit.
+    };
+  }
+
+  it('drains the text stream with a reader, not by async iteration', async () => {
+    const stream = iosLikeStream([{ items: [{ str: 'a' }] }, { items: [{ str: 'b' }] }]);
+    expect((stream as Record<symbol, unknown>)[Symbol.asyncIterator]).toBeUndefined();
+    await expect((async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-empty
+      for await (const _ of stream as any) { /* the shape iOS cannot do */ }
+    })()).rejects.toThrow();
+
+    const reader = stream.getReader();
+    const items: object[] = [];
+    for (let c = await reader.read(); !c.done; c = await reader.read()) items.push(...(c.value?.items ?? []));
+    expect(items).toEqual([{ str: 'a' }, { str: 'b' }]);
+  });
+});
