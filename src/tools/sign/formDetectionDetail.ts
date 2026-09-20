@@ -68,6 +68,28 @@ const MAX_MESSAGE = 200;
 const CONTENT_SHAPED = /[\\/"<>]/;
 
 /**
+ * A quoted run in an engine message is usually the identifier the engine
+ * choked on, which is the whole diagnostic value here. But an identifier is
+ * only safe when it came from the program: `obj[valueReadFromThePdf]` puts a
+ * field label or a line of somebody's form in exactly the same position, and
+ * `Cannot read properties of undefined (reading 'Student Social Security
+ * Number')` is a real shape. So a quoted run survives only if it looks like
+ * code - a dotted identifier chain, nothing else - and is replaced wholesale
+ * otherwise. Measured against the case this exists for: `page.getOrInsertComputed`
+ * passes, `Patient diagnosis: diabetes` does not.
+ */
+const QUOTED = /(['"`])([\s\S]*?)\1/g;
+const CODE_SHAPED = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
+
+/**
+ * A filename keeps leaking through as a bare token once its path is gone
+ * (`/home/me/tax return 2024.pdf` loses the path token and leaves `2024.pdf`).
+ * Matched against real extensions rather than "a short dotted tail", because
+ * the latter also eats `Object.x`, which is code and is worth keeping.
+ */
+const FILE_SHAPED = /^[\w.-]+\.(?:pdf|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|txt|csv|json|xml|zip)$/i;
+
+/**
  * `error.name`, or the constructor's name when the error never set one -
  * `pdf-lib` subclasses `Error` without assigning `name`, so they all arrive as
  * "Error" and the constructor is the only thing that says which one it was.
@@ -98,8 +120,11 @@ export function describeFormDetectionFailure(error: unknown): string {
     .replace(/\s+/g, ' ')
     // eslint-disable-next-line no-control-regex
     .replace(/[^\x20-\x7E]/g, '')
+    // Quoted runs first, whole: a label with spaces in it would otherwise
+    // survive as several innocent-looking tokens.
+    .replace(QUOTED, (run, quote, inner) => (CODE_SHAPED.test(inner) ? run : `${quote}...${quote}`))
     .split(' ')
-    .map((token) => (CONTENT_SHAPED.test(token) ? '...' : token))
+    .map((token) => (CONTENT_SHAPED.test(token) || FILE_SHAPED.test(token) ? '...' : token))
     .join(' ')
     .trim()
     .slice(0, MAX_MESSAGE);
