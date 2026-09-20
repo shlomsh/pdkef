@@ -209,6 +209,40 @@ ink pass not going greedy beside it: 92 candidates for 88 targets, so 5 false po
 printed-geometry cells the widgets do not corroborate, plus one cell that falls under IoU 0.5
 against its own widget.
 
+## Corpus widened: IRS Form 1040, tax year 1970, a true scan (2026-09-20)
+
+The shortlist wanted a scanned form and named the 1913 one, which turned out not to be a scan at all.
+`irs.gov/pub/irs-prior/f1040--1970.pdf` (sha256
+`8d9b89b6966313ada1cf15f9e51fee18f110bfac63ab85b4623ee53255305811`) is one: 174K, two pages, page 0
+is a single CCITTFaxDecode image, 2925x4105 at 1 bit, with no text layer and no AcroForm. Public
+domain under 17 U.S.C. 105. Its 64 targets were annotated by eye from the render and reviewed
+against `overlay.mjs`.
+
+**It scores 0% recall with 0 candidates**, and the measurement says exactly why:
+
+```
+ink: verticals 0  horizontals 0  rects 0
+regions: combs 0  cells 0  checkboxes 0
+```
+
+Every rule on that page is pixels, and the detector reads content-stream geometry. This is the class
+of failure the corpus existed to expose and could not: three forms in, a scanned document was a blind
+spot, and nothing in a green run would have hinted at it. MOBI-14 now holds the question of whether
+to serve raster input, with the evidence and the annotated truth already in place to measure it.
+
+Two things it broke on the way in, both fixed:
+
+- `score-form.mjs` crashed calling `toFixed` on a null precision, at the exact point where the most
+  interesting form had the most to say.
+- `scoring.test.js` asserted `candidates > 0` as a non-vacuity check, which is right for a truth file
+  that failed to load and wrong for a measurement that is legitimately zero. Non-vacuity now rests on
+  targets, and a recorded `null` precision pins the zero exactly instead.
+
+**That second fix means this ticket's "adding a form needs no new test code" is not quite true, and
+the acceptance box below says so.** It holds for a form the detector can see. A form it cannot see
+was a new kind of row and the vocabulary had to grow once to express it, which is a fair price and
+worth recording rather than glossing.
+
 ## Scope
 
 - [x] **One shared pipeline.** `corpus.test.js` re-implements what `useFormFieldRegions.ts` does;
@@ -239,5 +273,7 @@ does should be a separate ticket whose evidence is this instrument's numbers mov
 - [x] One command scores every committed form and prints a per-form, per-kind table.
 - [x] A baseline drop fails the test, naming the form, the kind and both numbers. Sabotage-checked.
 - [x] The corpus and the scored set share one detection path and one fixture set.
-- [x] Adding a form is documented in the corpus README and needs no new test code.
+- [x] Adding a form is documented in the corpus README and needs no new test code. *(True for a form
+      the detector can see. The scanned form needed one amendment to `scoring.test.js` so a
+      legitimately-zero candidate count could be expressed; see the 1970 section above.)*
 - [x] The fixture decision above is recorded here with its date and reason once made.

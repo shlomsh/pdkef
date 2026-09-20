@@ -61,6 +61,20 @@
         "checkbox": 100
       },
       "sha256": "0a7a54354283044cb41373c6faabfa50955d44bdf91b4b76fa1ca2bf13f6d718"
+    },
+    "irs-1040-1970": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/irs-1040-1970.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/irs-1040-1970-page1.json",
+      "note": "A genuinely scanned page, and the only form here the detector cannot see at all. Its whole page is one CCITTFaxDecode image, so collectPageInk finds zero verticals, zero horizontals and zero rects: there is no vector ink to read, and 0 candidates is the honest answer rather than a fault to fix under MOBI-13. That is why precision is null rather than 0 - with nothing emitted there is nothing to be precise about. The zero is an assertion: scoring.test.js pins candidates at exactly 0, so the day a raster path finds anything here the row fails and has to be re-recorded by whoever earned it. The 64 targets are annotated by eye from the render and describe the form, so they are ready to measure against the moment that happens.",
+      "recall": 0.0,
+      "precision": null,
+      "byKind": {
+        "date": 0,
+        "text": 0,
+        "checkbox": 0,
+        "signature": 0
+      },
+      "sha256": "8d9b89b6966313ada1cf15f9e51fee18f110bfac63ab85b4623ee53255305811"
     }
   }
 }
