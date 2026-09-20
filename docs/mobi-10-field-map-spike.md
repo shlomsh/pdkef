@@ -209,3 +209,21 @@ by an incidental mid-row rule (failure class 7), not a new class. Reaching the 9
 **11 more**, and `text` at 53.3% recall / 36.4% precision is now the only place they can come
 from - the same caption-versus-field problem failure class 1 names. The gate is no longer blocked
 on geometry the detector cannot see; it is blocked on telling a caption from a field.
+
+### Where this work lives now
+
+Re-filed 2026-09-20 into its own epic, **`form-understanding`** ("read what a form asks, ask the
+person, fill it back"), because it had outgrown `mobile-round-trip`. This record stays the evidence
+base for all of it. MOBI-11 (the review surface) moved with it; MOBI-10 stays where it was decided.
+
+| | |
+| --- | --- |
+| FORM-01 | caption versus field, the only class left with room to reach the 90% gate |
+| FORM-02 | canonical field types, the missing link between a field map and a question |
+| FORM-03 | a column header the last row of a tall table can still reach |
+| FORM-04 | a Latin-script form in the corpus, so the numbers are not Hebrew-only |
+| FORM-05 | whether clip-path rectangles belong in the ink |
+| FORM-06 | spike: measure Tesseract `heb` before building any scanned path |
+| FORM-07 | a scanned form's ruled geometry, from its raster |
+| FORM-08 | re-evaluate `pdf-inspector`, whose MIT crate now has a positioned API |
+| FORM-09 | ask the person, and fill only what they confirm |
