@@ -35,6 +35,7 @@ export interface SignMessages {
   undoTitle: string;
   redoButton: string;
   redoTitle: string;
+  historyButton: string;
   feedbackButton: string;
   feedbackTitle: string;
   shareButton: string;
@@ -129,10 +130,6 @@ export interface SignMessages {
   /** UndoHistoryModal.tsx. */
   undoHistoryTitle: string;
   revertSelectedLabel: string;
-  /** `formatMessage`-ready: "Redo: {description}", so the redo button's
-   * accessible name says what it would bring back rather than leaving that to
-   * a tooltip. */
-  redoDescriptionTemplate: string;
   /** UndoHistoryModal.tsx's timeline: the visible, non-color marker on every
    * row above the "you are here" divider (the undone/redoable steps), read by
    * itself in the DOM so a screen reader states it without depending on the

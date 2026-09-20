@@ -303,17 +303,17 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (idsToRevert.length === 0) return;
     dispatch({ type: 'REVERT_COMMANDS', payload: { ids: idsToRevert } });
     setUndoSelection(new Set());
-    // The dialog deliberately stays open. It is the only place Redo lives
-    // (there is no toolbar control for it yet, UNDO-03), so closing here
-    // took it off screen at the exact moment it became usable: you undid
-    // something, the dialog vanished, and reopening it showed a list with
-    // nothing to redo from. On a phone this is the only undo there is, so
-    // that was the whole of redo, hidden. The list updates in place and
-    // the person closes it when they are done.
+    // The dialog deliberately stays open. Reverting used to close it, so the
+    // list you were working through vanished after one tick - and while this
+    // dialog also held the only Redo control (before UNDO-03 put Undo and Redo
+    // on the toolbar), closing took redo off screen at the exact moment it
+    // became usable. The list updates in place and the person closes it when
+    // they are done.
     setAnnouncement(t.revertedSelectedActions);
   };
 
-  // Cmd/Ctrl+Z: undo the single most recently logged action (see actionHistory.ts).
+  // Cmd/Ctrl+Z, and the toolbar's Undo: undo the single most recently logged
+  // action (see actionHistory.ts).
   const undoLast = () => {
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
@@ -332,7 +332,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
   };
 
-  // Shift+Cmd/Ctrl+Z or Ctrl+Y: redo the single most recently undone action
+  // Shift+Cmd/Ctrl+Z, Ctrl+Y, and the toolbar's Redo: redo the single most
+  // recently undone action
   // (see historyStack.ts). The exact mirror of undoLast above, except redo
   // never needs the undoSelection prune: undoLast already dropped that id out
   // of undoSelection when the action was undone, and redo can only bring back
@@ -1098,6 +1099,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
               handleSharePdf={handleSharePdf}
               setAnnouncement={setAnnouncement}
               setUndoModalOpen={setUndoModalOpen}
+              onUndo={undoLast}
+              onRedo={redoLast}
               toggleFullscreen={toggleFullscreen}
               isFullscreen={isFullscreen}
               placeSignatureAt={placeSignatureAt}
@@ -1135,9 +1138,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}
-        onRedo={redoLast}
-        canRedo={redoHistory.length > 0}
-        redoDescription={redoHistory[0]?.description}
         messages={messages}
       />
 

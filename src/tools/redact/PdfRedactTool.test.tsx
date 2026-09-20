@@ -1534,11 +1534,12 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
     });
 
-    // The reported journey, and the whole of redo on a phone: there is no
-    // keyboard and no toolbar Redo control, so this dialog is the only place
-    // either action exists. Reverting used to close it, which took Redo off
-    // screen at the exact moment it became usable.
-    it('stays open after a revert, with Redo now usable, so the only redo control is still there', async () => {
+    // The reported journey: reverting from the dialog used to close it, so the
+    // list you were working through vanished after one tick - and back when
+    // this dialog held the only Redo control, it took redo off screen at the
+    // exact moment it became usable. Redo is on the toolbar now, but the
+    // dialog still has no business closing itself mid-revert.
+    it('stays open after a revert, and leaves a redo the toolbar can perform', async () => {
       // jsdom implements neither showModal nor close. Stubbing them to move
       // the real `open` attribute is what keeps this test honest: the
       // component only calls close() when the dialog is actually open, so a
@@ -1579,9 +1580,14 @@ describe('PdfRedactTool UI flow', () => {
       expect((dialog as HTMLDialogElement).open).toBe(true);
       expect(closeSpy).not.toHaveBeenCalled();
 
+      // Redo lives on the toolbar, which stays reachable behind the open
+      // dialog; the dialog itself offers no Redo any more (one model, one
+      // place for each action).
+      expect(Array.from(dialog.querySelectorAll<HTMLButtonElement>('button'))
+        .map((b) => b.textContent.trim())).not.toContain('Redo');
       const redoButton = required(
-        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Redo'),
-        'Redo button',
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((b) => b.title === 'Redo'),
+        'toolbar Redo button',
       );
       expect(redoButton.disabled).toBe(false);
       await act(async () => {

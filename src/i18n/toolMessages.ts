@@ -682,12 +682,14 @@ import type { SignMessages } from '../editor/registry/messages';
 export type { SignMessages };
 
 /**
- * UNDO-REDO: redo's strings. Redo has no toolbar control of its own
- * (CLAUDE.md/editor.md's twelve-control note on SignToolbar), so it surfaces
- * only through `UndoHistoryModal.tsx`'s footer button and Sign's
- * Cmd/Ctrl+Shift+Z announcement (`redidActionTemplate`, the counterpart to
- * `undidActionTemplate` below). The keys are declared on `SignMessages` in
- * `src/editor/registry/messages.ts` like every other string here.
+ * UNDO-REDO: undo, redo and the change history are three controls on the
+ * toolbar, so they are three strings here. Undo and Redo are one tap each and
+ * say only what they do; History names the dialog it opens, which is why its
+ * title is `undoHistoryTitle` - the dialog's own heading - rather than a
+ * second wording of the same thing. The Cmd/Ctrl+Shift+Z announcement is
+ * `redidActionTemplate`, the counterpart to `undidActionTemplate` below. The
+ * keys are declared on `SignMessages` in `src/editor/registry/messages.ts`
+ * like every other string here.
  */
 const englishSignMessages: SignMessages = {
   toolbarLabel: 'PDF annotations',
@@ -699,7 +701,8 @@ const englishSignMessages: SignMessages = {
   signButton: 'Sign',
   newSignatureButton: 'New Signature',
   undoButton: 'Undo',
-  undoTitle: 'Undo changes',
+  undoTitle: 'Undo the last change',
+  historyButton: 'History',
   feedbackButton: 'Feedback',
   feedbackTitle: 'Report a bug or share feedback about Sign & Fill PDF (opens GitHub)',
   shareButton: 'Share',
@@ -787,7 +790,6 @@ const englishSignMessages: SignMessages = {
   revertSelectedLabel: 'Revert selected',
   redoButton: 'Redo',
   redoTitle: 'Bring back the change you just undid',
-  redoDescriptionTemplate: 'Redo: {description}',
   undoneLabel: 'Undone',
   historyNowLabel: 'Now',
   pageLabel: 'Page {number}',
@@ -922,7 +924,8 @@ const hebrewSignMessages: SignMessages = {
   signButton: 'חתימה',
   newSignatureButton: 'חתימה חדשה',
   undoButton: 'ביטול פעולה',
-  undoTitle: 'ביטול השינויים האחרונים',
+  undoTitle: 'ביטול השינוי האחרון',
+  historyButton: 'היסטוריה',
   feedbackButton: 'משוב',
   feedbackTitle: 'דיווח על באג או שיתוף משוב על כלי החתימה והמילוי של PDF (נפתח ב-GitHub)',
   shareButton: 'שיתוף',
@@ -1000,7 +1003,6 @@ const hebrewSignMessages: SignMessages = {
   revertSelectedLabel: 'שחזור הנבחרים',
   redoButton: 'ביצוע מחדש',
   redoTitle: 'החזרת השינוי שביטלתם',
-  redoDescriptionTemplate: 'ביצוע מחדש: {description}',
   undoneLabel: 'בוטל',
   historyNowLabel: 'עכשיו',
   pageLabel: 'עמוד {number}',

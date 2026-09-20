@@ -38,6 +38,8 @@ const defaultToolbarProps: ComponentProps<typeof ProductionSignToolbar> = {
   setDialogOpen: () => {},
   setUndoModalOpen: () => {},
   actionHistory: [],
+  onUndo: () => {},
+  onRedo: () => {},
   toggleFullscreen: () => {},
   isFullscreen: false,
   onSavePdf: () => {},
@@ -96,11 +98,12 @@ describe('SignToolbar Component', () => {
 
     // The row reads in the order a form gets done: the filling vocabulary
     // first, Sign after it as the last thing you do to a filled form, then
-    // Undo beside the work it undoes, then the chrome group (view density's
-    // Full screen fallback here, Feedback next - see SignToolbar.tsx's own
-    // ordering comment for the rest).
+    // the history group beside the work it acts on (Undo, Redo, History - the
+    // same three, in the same order, as RedactToolbar), then the chrome group
+    // (view density's Full screen fallback here, Feedback next - see
+    // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 9)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Full screen', 'Feedback']);
+    expect(labels.slice(0, 11)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Redo', 'History', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here
@@ -114,6 +117,63 @@ describe('SignToolbar Component', () => {
     });
 
     expect(contextValue.selectedTool).toBe('text');
+  });
+
+  // The three history controls are three different actions, which is the whole
+  // point of them being three controls: the toolbar's single Undo used to open
+  // the dialog, so a phone had no one-tap undo and no way to reach Redo at all
+  // (the dialog held the only one, and reverting closed the dialog).
+  it('undoes, redoes and opens the history from three separate controls', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    const setUndoModalOpen = vi.fn();
+    const entry = {
+      id: 'a1', type: 'text', operation: 'add', pageIndex: 0,
+      description: 'Added text box', timestamp: Date.now(), elements: [],
+    } as ComponentProps<typeof ProductionSignToolbar>['actionHistory'][number];
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar actionHistory={[entry]} canRedo onUndo={onUndo} onRedo={onRedo} setUndoModalOpen={setUndoModalOpen} />
+        </SignToolProvider>,
+        container,
+      );
+    });
+
+    const byLabel = (label: string) => findExactButton(container, label);
+
+    act(() => { byLabel('Undo').click(); });
+    expect(onUndo).toHaveBeenCalledTimes(1);
+    expect(setUndoModalOpen).not.toHaveBeenCalled();
+
+    act(() => { byLabel('Redo').click(); });
+    expect(onRedo).toHaveBeenCalledTimes(1);
+
+    act(() => { byLabel('History').click(); });
+    expect(setUndoModalOpen).toHaveBeenCalledWith(true);
+    expect(onUndo).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Undo and History with an empty history, and Redo with nothing undone', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <SignToolbar actionHistory={[]} canRedo={false} />
+        </SignToolProvider>,
+        container,
+      );
+    });
+
+    for (const label of ['Undo', 'Redo', 'History']) {
+      expect(findExactButton(container, label).disabled, `${label} should be disabled`).toBe(true);
+    }
   });
 
   // Every tool arms for one placement; double-clicking its button keeps it on.

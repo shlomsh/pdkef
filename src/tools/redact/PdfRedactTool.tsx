@@ -644,13 +644,12 @@ export default function PdfRedactTool() {
       () => 'Reverted selected actions.',
       (past) => past.filter((action) => undoSelection.has(action.id)),
     );
-    // The dialog deliberately stays open. It is the only place Redo lives
-    // (there is no toolbar control for it yet, UNDO-03), so closing here
-    // took it off screen at the exact moment it became usable: you undid
-    // something, the dialog vanished, and reopening it showed a list with
-    // nothing to redo from. On a phone this is the only undo there is, so
-    // that was the whole of redo, hidden. The list updates in place and
-    // the person closes it when they are done.
+    // The dialog deliberately stays open. Reverting used to close it, so the
+    // list you were working through vanished after one tick - and while this
+    // dialog also held the only Redo control (before UNDO-03 put Undo and Redo
+    // on the toolbar), closing took redo off screen at the exact moment it
+    // became usable. The list updates in place and the person closes it when
+    // they are done.
   };
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
@@ -1062,9 +1061,6 @@ export default function PdfRedactTool() {
         undoSelection={undoSelection}
         setUndoSelection={setUndoSelection}
         onRevertSelected={handleRevertSelected}
-        onRedo={redoLast}
-        canRedo={redoHistory.length > 0}
-        redoDescription={redoHistory[0]?.description}
       />
 
     </BasePdfTool>

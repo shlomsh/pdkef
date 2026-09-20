@@ -112,6 +112,28 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Never interpolate a raw tool id into copy. Keep "click and" on the drag tools ("drag on a page" reads
   as dragging from the toolbar). Guarded in `SignToolbar.test.tsx`.
 
+## Undo and redo
+
+- **Undo, redo and the change history are three controls, in both tools.** Undo and Redo are one tap
+  each (and Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y - `src/lib/history/useHistoryShortcuts.js`, which
+  deliberately does not bind Cmd+Y, macOS's own); History opens `UndoHistoryModal`, which is the
+  timeline and the only place a step from further back can be reverted selectively. Do not put a Redo
+  button back in that dialog: a control that only exists while a dialog is open is, on a phone, no
+  control at all - the shipped bug was a toolbar Undo that opened the dialog, so touch had no
+  single-step undo and could reach Redo only in the one place that closed itself on use.
+- **The redo stack is strictly linear and lives only in memory.** `src/editor/model/historyStack.ts`
+  owns it: `revertCommands` keeps the future when the reverted set is a contiguous run at the top of
+  the past (that is an undo by another name) and clears it otherwise, and any new command clears it.
+  Without that rule a redo can re-insert an element a still-live later command assumed was gone.
+  Undo->redo preserves exact z-order *because of* it: `restoreSnapshots` splices at
+  `Math.min(index, restored.length)`.
+- **Undo covers add and delete only** (`HistoryOperation`), so redo does too. Moves, resizes, styling
+  and typing are deliberately untracked; "I nudged a box and can't get it back" is not a redo bug and
+  is not fixed by one - it needs a third `update` operation carrying before/after snapshots.
+- **Redo must bump `documentRevision`,** exactly as undo does: SIGN-14 makes any edit revoke a
+  prepared share file and a running export, and a redo that skipped it would let a stale export
+  download against a changed document.
+
 ## Element toolbar placement and creation defaults
 
 - The element toolbar stays **above** the element: `top-start` for LTR, `top-end` for RTL. Never
@@ -150,15 +172,24 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   rendered ~13px beside ~31px buttons under `flex-basis: 0`).
 - `flex-grow: 0` once it wraps, or lines of five and four get different widths and nothing is left to
   centre. `--controls-per-row` (half the count, rounded up, via `:has(> :nth-child(N))`) caps each line
-  so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose two pixel thresholds
+  so nine controls wrap 5+4 not 8+1; it engages inside `@container` queries whose pixel thresholds
   are the one hand-computed thing in the file and must be redone if `--btn-min-size`, `--toolbar-gap`
-  or `--toolbar-padding` change. Flex, not grid: grid packs a partial last row into the leading columns.
+  or `--toolbar-padding` change, or if a control is added anywhere. Flex, not grid: grid packs a
+  partial last row into the leading columns. **Only some counts can be balanced at the 44px floor**,
+  because greedy flex fills each line to the cap: ten lands 4+4+2 or 3+3+3+1 and thirteen lands
+  6+6+1 or 4+4+4+1, while nine, eleven and twelve all land evenly. That is what decides when an
+  optional control stands down, not taste - Sign shows thirteen above 344px of toolbar, twelve from
+  there (Feedback goes, since it is in the site footer too), eleven below 239px (History goes, last,
+  since its dialog is reachable from nowhere else), and never ten.
 - Two anchors, desktop and iPhone, one step between (SIGN-29, 2026-09-18). From 1300px the row is
-  one line with labels, set 6px apart; the toolbar box plateaus at 1172px (less with a classic
-  scrollbar), and Sign's twelve controls with Share fit it (~1050px in SF, ~1120px in a wide Linux
-  face) only because Undo and Feedback are `data-icon-only` at every width, so a new labelled
-  control has to be paid for by re-measuring in a real browser, wide font included. Below 1300px every
-  control is icon-only on one line, until eleven 44px targets stop fitting (a ~660px window), and
+  one line with labels, set 4px apart; the toolbar box plateaus at 1172px (less with a classic
+  scrollbar), and Sign's fourteen controls with Share need 1135.7px of it in the wide Linux face
+  (measured 2026-09-20, headless Chromium) only because Date, Undo, Redo, History and Feedback are
+  `data-icon-only` at every width, so a new labelled control has to be paid for by re-measuring in a
+  real browser, wide font included. The three history controls cost 42px each and 33.6px more than
+  the box had: Date's label (43.9px) and 2px off every gap (26px) are what bought them, and the next
+  label to go is Replace's. Below 1300px every control is icon-only on one line, until Sign's
+  thirteen 44px targets stop fitting (a ~726px window; Redact's ten hold to ~600px), and
   from there down the phone grid above. No label may ever
   truncate: `flex-shrink: 0`, and if the labelled row ever outgrows the box it wraps whole, which
   `e2e/tool-toolbars/toolbar-desktop-one-line.spec.js` catches. Container-query label tiers were
@@ -166,7 +197,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - Sign's own toolbar order reads in the order a form gets done: the filling vocabulary first (Text,
   Date, Symbols, Shapes, Whiteout), then Sign as the last thing you do to a filled form (it is the
   tool the page is named for, but it led the row for one day under SIGN-29 and read as the wrong
-  first step), then Undo beside the work it undoes, then the chrome group (view density, full screen,
+  first step), then the history group beside the work it acts on (Undo, Redo, History - the same
+  three, in the same order, as Redact), then the chrome group (view density, full screen,
   Feedback), then Replace with the other finishing action, then export at the far edge - one kind of
   thing per group. Redact's own order is unchanged: it already led with Blur, its named tool, since
   f48fcbd8.
