@@ -48,6 +48,19 @@
         "signature": 33.3
       },
       "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"
+    },
+    "irs-1040-2024": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/irs-1040-2024.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/irs-1040-2024-page1.json",
+      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 98.9% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page - the 5 false positives are printed-geometry cells the widgets do not corroborate, and the one miss is a cell that falls under IoU 0.5 against its widget. A drop here means the widget pass broke.",
+      "recall": 98.9,
+      "precision": 94.6,
+      "byKind": {
+        "text": 98.1,
+        "comb": 100,
+        "checkbox": 100
+      },
+      "sha256": "0a7a54354283044cb41373c6faabfa50955d44bdf91b4b76fa1ca2bf13f6d718"
     }
   }
 }

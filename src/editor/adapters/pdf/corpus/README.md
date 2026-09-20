@@ -149,6 +149,15 @@ exists to prevent.
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
 | `itc101` | 139 | 69.1% | 91.4% | Hebrew, flat, dense |
+| `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
+
+**A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
+`irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
+we find them. What those two rows really watch is the widget pass continuing to work and the ink
+pass not going greedy beside it: on the 1040's crowded page the detector emits 92 candidates for 88
+targets, and the 5 that do not match are printed-geometry cells the widgets do not corroborate. The
+forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
+field is.
 
 **Those are the real forms now** (MOBI-13, 2026-09-20). Both Hebrew rows used to point at the
 geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%; the
