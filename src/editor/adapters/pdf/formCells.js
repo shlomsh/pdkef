@@ -1,6 +1,6 @@
 import { createPageGeometry, pagePercentToPdfPoint } from '../../geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { toPagePercentBox } from './formGrid.js';
+import { toPagePercentBox } from '../../geometry/coords.ts';
 
 /**
  * Closed table/box cells from vector ink (`pageInk.js`) that `formGrid.js`'s comb/checkbox

@@ -92,8 +92,129 @@ cell still carries whatever label `formCells.js`'s own header/own-text lookup fo
 in the UI surfaces it yet - the hint layer stays purely visual, `aria-hidden`, matching the
 existing comb/checkbox hints exactly.
 
+**Step 3, done 2026-09-19 (`pdfObjects.js`, `formGrid.js`, `fieldRegions.js`,
+`useFormFieldRegions.ts`, `formWidgets.test.js`):** the detector was blind to its own demo form.
+Opening the bundled practice form in Sign - the file the home page offers on a first visit, and
+the one the hero demo tells the story of - surfaced 3 of its 9 fields: the student-ID comb and
+the two checkboxes. The six free-text fields (student name, parent/guardian, emergency contact,
+allergies, signature line, date) showed no hint at all.
+
+Cause, not a threshold to loosen: every source feeding the detector reads the page's own content
+stream, and the practice form is a *live AcroForm*, not a flat one. `scripts/generate-practice-
+form.mjs` builds each field with `form.createTextField(...).addToPage(...)`, so pdf-lib paints
+that box inside the widget's `/AP /N` appearance stream - a separate object graph the page stream
+never invokes. `collectPageInk`'s docstring already scopes out even Form XObjects reached by `Do`;
+an annotation appearance is further out still. The ink walk was right to find nothing: at those
+coordinates the page really does draw nothing. The three fields that did work each worked by
+accident - the generator also paints nine guide boxes for the comb straight into the page stream,
+and `collectCheckboxWidgets` was already reading `/Btn` rects off `/Annots`.
+
+So the fix is the `/Tx` counterpart of the `/Btn` reader that already existed:
+`collectTextFieldWidgets` (`pdfObjects.js`) walks `/Annots` for text-field widgets and returns
+each `/Rect`, skipping hidden, no-view and read-only ones; `detectWidgetRegions` (`formGrid.js`)
+puts them in page percentages, a comb widget (comb flag plus `/MaxLen`) becoming a `boxed` comb of
+that many cells; `withWidgetFields` (`fieldRegions.js`) folds them into what the ink pass
+reconciled, ink winning every overlap. Both halves were needed: `/FT`, `/Ff`, `/T` and `/MaxLen`
+all sit on the parent field dict on a pdf-lib-generated form, so reading the widget alone finds
+nothing, and the comb arrives from both sources at once and must be reported once.
+
+Review (fresh subagent, zero shared context) found one real bug in the first cut: a widget comb
+overlapping a region the ink pass had reported as a plain cell was added without the cell being
+removed, leaving two snap targets on one rectangle. It never fired on the practice form - the ink
+comb detector classifies that field as a comb too, so the comb-vs-comb branch caught it - but it
+is reachable on any form whose teeth the ink heuristics miss while `detectCellCandidates` still
+finds the box. Fixed by applying `reconcileFields`'s own precedence rather than the blanket "ink
+wins" the first cut claimed: between equals ink wins, but **a comb beats a cell whichever source
+found it**, because a cell is the weakest thing either side reports. Regression test included, and
+verified to fail without the fix. The same review also added rotation and shifted-crop-box
+coverage for the widget path (the practice form is unrotated at the origin, so nothing else
+exercised that transform) and isolated two mutation tests behind a per-test reload.
+
+The practice form now reports all 9 (1 comb, 6 cells, 2 checkboxes), pinned by
+`formWidgets.test.js` against the shipped asset itself. The two scored spike forms are unchanged -
+neither carries a widget, so `detectWidgetRegions` returns nothing on both (verified) and the
+recall/precision table in `docs/mobi-10-field-map-spike.md` still stands as measured. This also
+reaches any form filled once in another app and passed on, which is the same shape.
+
+**Step 3b, done 2026-09-19 (`formWidgets.js` is new; `pdfObjects.js`, `formGrid.js`,
+`useFormFieldRegions.ts`):** the widget path is now a pure core with a thin pdf-lib reader around
+it, in one module of its own. `fillableTextField(entry)` is the whole of the flag arithmetic and
+`widgetRegions(fields, geometry, pageIndex)` is the whole of the classification and transform;
+neither touches a PDF object, so every edge case is a plain object in a test rather than a PDF
+someone has to build. `pdfObjects.js` keeps only the reading (`widgetEntries` pulls the five
+values a widget states about itself; `pageWidgets` and `inheritedEntry` are now exported and
+shared with the `/Btn` collector) and decides nothing.
+
+`detectWidgetRegions` moved out of `formGrid.js` with the rest, which is what keeps the import
+graph acyclic: `toPagePercentBox` lives in `formGrid.js` rather than in `coords.ts` where a pure
+coordinate transform belongs, so anything importing it cannot also be imported by it. That
+inversion is pre-existing and was left alone here; moving `toPagePercentBox` to `coords.ts` (two
+real consumers, `formCells.js` and the Sign hook) would let the widget module stand free of the
+ink detector entirely, and is worth doing on its own.
+
+47 unit tests, of which 31 are on the pure halves. Each guard was mutation-checked rather than
+assumed: dropping the read-only check fails 3, dropping hidden/no-view fails 4, moving the comb
+flag one bit fails 4, accepting `/MaxLen` 1 as a run fails 1, forgetting the `MAX_COMB_CELLS` cap
+fails 1. Behaviour is unchanged - the practice form still reports 1 comb, 6 cells, 2 checkboxes,
+in the detector and in a browser.
+
+**Step 3c, done 2026-09-19 (`src/editor/adapters/pdf/corpus/`, new Nx project `form-corpus`):**
+the detector now has a corpus - one row per form element, each built into a real PDF and run
+through the whole pipeline, so adding an element is a row rather than a test body and the elements
+already there keep proving themselves while the detector is refactored. 65 tests over 27 elements
+in five groups: live AcroForm widgets (text, comb, multiline, required, read-only, hidden,
+no-view, checkbox, radio, push button, dropdown, signature), printed ink (comb teeth, boxed combs,
+painted squares, ruled rows, panels, clipping paths), hybrids where both sources describe one
+field, page geometry (rotation, a crop box off the origin, page indices across two pages), and the
+known gaps. A third of the rows pin things that must *not* be detected, which is what catches a
+change making the detector greedier. `README.md` in the package holds the paradigm.
+
+Specs, not committed `.pdf` files: a binary fixture is opaque in review and has to be regenerated
+by hand when the vocabulary grows. The three real documents (our practice form and the two scored
+flat forms) run alongside, and the corpus asserts directly that both flat forms carry no widget -
+which is what lets this ticket's recall/precision table stand unchanged.
+
+Writing it found three things. **A push button was reported as a checkbox** (`/Btn` covers push
+buttons, and `collectCheckboxWidgets` filtered on `/FT` alone), so the Symbol tool offered a
+checkmark over a Submit or Print control - fixed by excluding `/Ff` bit 17. Two were in the corpus
+itself and are worth recording because both would have been silent: a default field name derived
+from the rectangle collides across pages, which is the most natural multi-page case there is; and
+an "every region is inside the page" guard was wrong, because pdf-lib insets a bordered field by
+half its border width, so a field can legitimately poke past a crop box - the guard now asserts a
+region *intersects* the page, which is the real invariant.
+
+Two limits are pinned as `known gap` rows rather than left to be rediscovered: a checkbox square
+stroked as a path is never a checkbox candidate (`findCheckboxes` reads `ink.rects`, and pdf-lib
+never emits `re` - this is the miss behind "none of the drawn squares" on form 101), and a real
+`/Sig` field is invisible because signature placement is a different creation mode.
+
+**Step 3d, done 2026-09-19 (`formWidgets.js`, `pdfObjects.js`, `formGrid.js`, `coords.ts`,
+`formCells.js`, corpus):** the visibility rules only ever applied to half the widgets. Shlomi caught
+that the checkboxes were never mentioned: `fillableTextField` skipped hidden, no-view and read-only
+`/Tx` widgets, while `collectCheckboxWidgets` read `/Btn` rects straight off `/Annots` with none of
+those checks - so a hidden checkbox, a no-view checkbox, a read-only checkbox and every option of a
+hidden radio group all stayed mark targets. Verified before fixing; the corpus had a row for each
+flag on a text field and none on a checkbox, which is exactly why it did not catch it.
+
+Both kinds now answer through one pure function, `visibleWritableRect`, with `fillableTextField`
+and the new `markableButtonField` adding only what is specific to their own field type (comb runs;
+excluding push buttons). Paired corpus rows for every flag against both kinds keep them in step, and
+the README says to add the full set when a field kind is added.
+
+This needed the layering fix Step 3b had flagged: `collectCheckboxWidgets` had to move next to the
+decision it now shares, but `formGrid.js` consumes it, so `formWidgets.js` could not keep importing
+`toPagePercentBox` from `formGrid.js`. `toPagePercentBox` moved to `coords.ts`, beside the
+`pdfPointToPagePercent` it wraps and where a pure coordinate transform belongs (two consumers
+updated: `formCells.js` and the Sign hook). The import graph is acyclic without the widget module
+having to own things that are not its own.
+
 Remaining: the reviewable-proposal question above (design decision, not yet scoped), MOBI-06
-wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition.
+wiring, closing the report-cells.md failure classes, and the Latin-script corpus addition. Two
+things this step deliberately left: a widget's `/TU` tooltip and `/T` name are free, high-precision
+labels (the idea harvested below) and are read by nothing yet, since no UI surfaces a label; and
+`classifyKind` in `formCells.js` still recognises only Hebrew signature/date roots, so on a Latin
+form a signature line arrives as an ordinary text cell - which is what the practice form wants
+today, but is a guess, not a decision.
 
 ## Ideas harvested from the parallel spike branch (deleted 2026-09-17)
 

@@ -457,44 +457,64 @@ export function hasFillableAcroForm(pdfDoc) {
   return (acroForm.getFields()?.length ?? 0) > 0;
 }
 
-/** True when a widget inherits the PDF button field type from itself or a parent. */
-function isButtonWidget(context, widget) {
+/**
+ * A field entry as the widget sees it: its own, or the nearest ancestor's.
+ *
+ * Field attributes are inheritable, and a writer is free to put them anywhere
+ * on the chain. `@cantoo/pdf-lib` writes a widget as a child of its field
+ * dict rather than merging the two, so on a form it generated `/FT`, `/Ff`,
+ * `/T` and `/MaxLen` all sit on the parent and the widget dict carries only
+ * `/Rect`, `/F` and `/AP` - reading the widget alone finds nothing at all.
+ */
+export function inheritedEntry(context, widget, key) {
   let field = widget;
   const seen = new Set();
   while (field instanceof PDFDict && !seen.has(field)) {
     seen.add(field);
-    const type = context.lookup(field.get(PDFName.of('FT')))?.asString?.();
-    if (type === '/Btn') return true;
+    const entry = context.lookup(field.get(PDFName.of(key)));
+    if (entry !== undefined) return entry;
     field = context.lookup(field.get(PDFName.of('Parent')));
   }
-  return false;
+  return undefined;
 }
 
-/**
- * Collects native PDF button widgets from the page annotation tree.
- *
- * Checkboxes are `/Btn` fields. The same field type also covers radio buttons;
- * a symbol mark is a useful placement target for either, and their exact
- * printed rectangle comes from the annotation rather than a visual heuristic.
- *
- * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @returns {Array<{x: number, y: number, width: number, height: number}>}
- */
-export function collectCheckboxWidgets(page) {
+
+/** Every `/Widget` annotation on the page, in annotation order. */
+export function pageWidgets(page) {
   const context = page.doc.context;
   const annotations = context.lookup(page.node.get(PDFName.of('Annots')));
   if (!(annotations instanceof PDFArray)) return [];
-
-  const boxes = [];
+  const widgets = [];
   for (let index = 0; index < annotations.size(); index += 1) {
     const widget = context.lookup(annotations.get(index));
     if (!(widget instanceof PDFDict)) continue;
-    const subtype = context.lookup(widget.get(PDFName.of('Subtype')))?.asString?.();
-    if (subtype !== '/Widget' || !isButtonWidget(context, widget)) continue;
-    const rect = context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.();
-    if (rect?.width > 0 && rect?.height > 0) boxes.push(rect);
+    if (context.lookup(widget.get(PDFName.of('Subtype')))?.asString?.() !== '/Widget') continue;
+    widgets.push(widget);
   }
-  return boxes;
+  return widgets;
+}
+
+/**
+ * The five entries a widget states about itself, as plain values, for
+ * `formWidgets.js` to decide on.
+ *
+ * `/FT`, `/Ff` and `/MaxLen` are inheritable and go through `inheritedEntry`;
+ * `/F` and `/Rect` are the widget's own and are read straight off it. This
+ * reads, it does not judge - which widget is worth offering is a pure
+ * decision made on the result.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {import('@cantoo/pdf-lib').PDFDict} widget
+ * @returns {import('./formWidgets.js').WidgetEntry}
+ */
+export function widgetEntries(context, widget) {
+  return {
+    fieldType: inheritedEntry(context, widget, 'FT')?.asString?.(),
+    annotationFlags: context.lookup(widget.get(PDFName.of('F')))?.asNumber?.(),
+    fieldFlags: inheritedEntry(context, widget, 'Ff')?.asNumber?.(),
+    maxLen: inheritedEntry(context, widget, 'MaxLen')?.asNumber?.(),
+    rect: context.lookup(widget.get(PDFName.of('Rect')))?.asRectangle?.(),
+  };
 }
 
 /**
