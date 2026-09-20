@@ -45,6 +45,11 @@ export const epics = [
   // dialog: a file in PDkef is never final, so every opened file keeps its work
   // in the one recents memory space and the per-tool "draft" (the older half of
   // the store, one slot per tool) goes away with the warning that defended it.
+  // Opened 2026-09-20 from the redo assessment. Undo shipped under SIGN-12 with
+  // redo deferred as P3; the assessment found redo is cheap in Sign and Redact
+  // (ActionHistoryEntry already carries whole-element snapshots for exactly this
+  // reason) and that Edit Pages, the one destructive tool, has no undo at all.
+  { key: 'undo-and-redo', label: 'Undo and redo', heading: 'Undo and redo across the tools (2026-09-20)' },
   { key: 'one-memory-space', label: 'One memory space', heading: 'One memory space: every opened file keeps its work, no drafts (2026-09-15)' },
 ];
 
