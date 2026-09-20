@@ -70,7 +70,6 @@ const NOOP_FIELD_NAVIGATION: FieldNavigation = {
 export default function SignToolbar({
   setAnnouncement,
   setDialogOpen,
-  setUndoModalOpen,
   actionHistory,
   onUndo,
   onRedo,
@@ -92,7 +91,8 @@ export default function SignToolbar({
 }: {
   setAnnouncement: (msg: string) => void;
   setDialogOpen: (open: boolean) => void;
-  setUndoModalOpen: (open: boolean) => void;
+  /** Newest-first log of the add/delete commands Undo can step back through;
+   * the toolbar reads only its length, to disable Undo at the start. */
   actionHistory: ActionHistoryEntry[];
   /** One tap, one step back - the same thing Cmd/Ctrl+Z does. */
   onUndo: () => void;
@@ -396,7 +396,8 @@ export default function SignToolbar({
               cover what is wrong - and Sign comes after them, the last thing
               you do to a filled form, even though it is the tool the page is
               named for (Redact's own order still leads with Blur, its named
-              tool, since f48fcbd8). Undo sits beside the work it undoes; the
+              tool, since f48fcbd8). Undo and Redo sit beside the work they
+              act on; the
               chrome - view density, full screen, Feedback - groups together
               next; Replace sits with the other finishing action; export
               (Share/Download) stays at the far edge. One kind of thing per
@@ -424,22 +425,14 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('date')}
               aria-pressed={selectedTool === 'date'}
-              // Icon-only at every width, and present at every width. It used
-              // to be the reverse - labelled, and gone below the narrowest
-              // band - which is the trade Undo/Redo/History bought out: the
-              // labelled desktop row had no room for three history controls
-              // (measured 1205.6px against a 1172px box), and a calendar is as
-              // plain a convention as an undo arrow, so the 43.9px this label
-              // costs pays for the row instead. Losing the label is cheaper
-              // than losing the control: hiding a document-editing control at
-              // all is normally off the table (see SignToolbar.module.css's
-              // [data-optional-control] rule), and it only ever happened here
-              // because today's date is also one tap away via the Text tool's
-              // own insert-date control (ElementToolbar.tsx). Thirteen
-              // controls also cannot balance into rows below 345px of toolbar,
-              // and Date staying while Feedback stands down is what lands that
-              // band on twelve rather than ten.
-              data-icon-only
+              // Labelled again, and present at every width. Date gave its
+              // label up purely to pay for a third history control (the
+              // removed change-history dialog's button): the labelled desktop
+              // row had no room for three of them, and a calendar is as plain
+              // a convention as an undo arrow, so the 43.9px this label costs
+              // bought the row instead. With History gone the budget is back
+              // and the label with it - nothing else in the row ever depended
+              // on Date being icon-only.
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -680,14 +673,15 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          {/* Undo, Redo and the change history are three different things, so
-              they are three controls, the same three RedactToolbar.tsx carries
-              and in the same order. Undo and Redo are one tap each; History is
-              the occasional case of reverting something from further back.
-              Folding all three into one button - this control used to open the
-              dialog and nothing else - is what left a phone with no
-              single-step undo and no way to reach Redo at all. All three are
-              `data-icon-only`: an arrow is a convention, none of them is a
+          {/* Undo and Redo are the whole history model, the same pair
+              RedactToolbar.tsx carries and in the same order: one tap each,
+              and the keyboard shortcuts beside them
+              (src/lib/history/useHistoryShortcuts.js). A third "History"
+              control used to sit here and open a change-history dialog whose
+              checklist could revert an arbitrary set; it was removed because
+              a real Undo/Redo pair makes the timeline redundant and its
+              selective revert fought linear redo. Do not bring it back. Both
+              are `data-icon-only`: an arrow is a convention, neither is a
               tool, and the labelled desktop row has no width to spare (see the
               1300px block in SignToolbar.module.css). */}
           <button
@@ -718,37 +712,6 @@ export default function SignToolbar({
               <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
             </svg>
             <span className={styles.label}>{t.redoButton}</span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.button}
-            onClick={() => setUndoModalOpen(true)}
-            title={t.undoHistoryTitle}
-            /* Undone steps are rows in that dialog too, above the NOW divider,
-               so an empty `actionHistory` is not an empty timeline: undo your
-               way back to the start and the only control that opens the
-               dialog would otherwise go dead with a full list behind it. That
-               was survivable while this control also performed the undo; it is
-               not now that it only opens the dialog. */
-            disabled={actionHistory.length === 0 && !canRedo}
-            data-icon-only
-            /* The second of this toolbar's two optional controls, and the
-               later one to go: Feedback stands down at 344px of toolbar and
-               this at 239px (SignToolbar.module.css's [data-optional-control]
-               rules, which carry the counting arithmetic behind both). Undo
-               and Redo stay at every width, so nothing editable is lost when
-               it goes - only the selective variant of an undo you can still
-               perform one tap at a time, which is the line SIGN-18 draws: this
-               control does not edit the document, it opens a dialog, and the
-               dialog is no longer the only way to undo. */
-            data-optional-control="history"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-            <span className={styles.label}>{t.historyButton}</span>
           </button>
 
           <ViewControl

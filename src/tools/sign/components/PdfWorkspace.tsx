@@ -87,7 +87,6 @@ export default function PdfWorkspace({
   handleDownloadPdf,
   handleSharePdf,
   setAnnouncement,
-  setUndoModalOpen,
   onUndo,
   onRedo,
   toggleFullscreen,
@@ -115,11 +114,10 @@ export default function PdfWorkspace({
   handleDownloadPdf: () => void;
   handleSharePdf: () => void;
   setAnnouncement: (msg: string) => void;
-  setUndoModalOpen: (open: boolean) => void;
   /** The tool's own single-step undo and redo, passed through to the toolbar.
    * They come from PdfSignTool rather than straight from the reducer because
-   * undo also prunes the dialog's checkbox selection. `canRedo` is read from
-   * the context below, beside `actionHistory`. */
+   * each one also announces what it moved. `canRedo` is read from the context
+   * below, beside `actionHistory`. */
   onUndo: () => void;
   onRedo: () => void;
   toggleFullscreen: () => void;
@@ -332,7 +330,6 @@ export default function PdfWorkspace({
           <SignToolbar
             setAnnouncement={setAnnouncement}
             setDialogOpen={setDialogOpen}
-            setUndoModalOpen={setUndoModalOpen}
             actionHistory={actionHistory}
             onUndo={onUndo}
             onRedo={onRedo}

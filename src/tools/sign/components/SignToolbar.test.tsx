@@ -36,7 +36,6 @@ function findExactButton(root: ParentNode, label: string): HTMLButtonElement {
 const defaultToolbarProps: ComponentProps<typeof ProductionSignToolbar> = {
   setAnnouncement: () => {},
   setDialogOpen: () => {},
-  setUndoModalOpen: () => {},
   actionHistory: [],
   onUndo: () => {},
   onRedo: () => {},
@@ -82,7 +81,6 @@ describe('SignToolbar Component', () => {
           <SignToolbar
             setAnnouncement={setAnnouncement}
             setDialogOpen={() => {}}
-            setUndoModalOpen={() => {}}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
@@ -99,12 +97,12 @@ describe('SignToolbar Component', () => {
 
     // The row reads in the order a form gets done: the filling vocabulary
     // first, Sign after it as the last thing you do to a filled form, then
-    // the history group beside the work it acts on (Undo, Redo, History - the
-    // same three, in the same order, as RedactToolbar), then the chrome group
+    // the history group beside the work it acts on (Undo, Redo - the same
+    // pair, in the same order, as RedactToolbar), then the chrome group
     // (view density's Full screen fallback here, Feedback next - see
     // SignToolbar.tsx's own ordering comment for the rest).
     const labels = Array.from(buttons, button => query(button, `.${styles.label}`).textContent.trim());
-    expect(labels.slice(0, 11)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Redo', 'History', 'Full screen', 'Feedback']);
+    expect(labels.slice(0, 10)).toEqual(['Text', 'Date', 'Symbols', 'Shapes', 'Whiteout', 'Sign', 'Undo', 'Redo', 'Full screen', 'Feedback']);
     expect(labels.at(-1)).toBe('Download');
 
     // Exact-label match, not "contains Text or has an svg": every button here
@@ -120,17 +118,18 @@ describe('SignToolbar Component', () => {
     expect(contextValue.selectedTool).toBe('text');
   });
 
-  // The three history controls are three different actions, which is the whole
-  // point of them being three controls: the toolbar's single Undo used to open
-  // the dialog, so a phone had no one-tap undo and no way to reach Redo at all
-  // (the dialog held the only one, and reverting closed the dialog).
-  it('undoes, redoes and opens the history from three separate controls', async () => {
+  // Undo and redo are two different actions, which is the whole point of them
+  // being two controls: the toolbar's single Undo used to open a change-history
+  // dialog, so a phone had no one-tap undo and no way to reach Redo at all (the
+  // dialog held the only one, and reverting closed the dialog). That dialog is
+  // gone; these two are the whole history model, so neither may fold back into
+  // the other.
+  it('undoes and redoes from two separate controls', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
     const onUndo = vi.fn();
     const onRedo = vi.fn();
-    const setUndoModalOpen = vi.fn();
     const entry = {
       id: 'a1', type: 'text', operation: 'add', pageIndex: 0,
       description: 'Added text box', timestamp: Date.now(), elements: [],
@@ -139,7 +138,7 @@ describe('SignToolbar Component', () => {
     act(() => {
       render(
         <SignToolProvider>
-          <SignToolbar actionHistory={[entry]} canRedo onUndo={onUndo} onRedo={onRedo} setUndoModalOpen={setUndoModalOpen} />
+          <SignToolbar actionHistory={[entry]} canRedo onUndo={onUndo} onRedo={onRedo} />
         </SignToolProvider>,
         container,
       );
@@ -149,17 +148,14 @@ describe('SignToolbar Component', () => {
 
     act(() => { byLabel('Undo').click(); });
     expect(onUndo).toHaveBeenCalledTimes(1);
-    expect(setUndoModalOpen).not.toHaveBeenCalled();
+    expect(onRedo).not.toHaveBeenCalled();
 
     act(() => { byLabel('Redo').click(); });
     expect(onRedo).toHaveBeenCalledTimes(1);
-
-    act(() => { byLabel('History').click(); });
-    expect(setUndoModalOpen).toHaveBeenCalledWith(true);
     expect(onUndo).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Undo and History with an empty history, and Redo with nothing undone', () => {
+  it('disables Undo with an empty history, and Redo with nothing undone', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -172,16 +168,15 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    for (const label of ['Undo', 'Redo', 'History']) {
+    for (const label of ['Undo', 'Redo']) {
       expect(findExactButton(container, label).disabled, `${label} should be disabled`).toBe(true);
     }
   });
 
-  // Undo your way back to the start and `actionHistory` is empty while the
-  // dialog behind History is at its fullest - every step sitting above the NOW
-  // divider, waiting to be redone. Disabling History on the applied list alone
-  // shut the only door to that list.
-  it('keeps History reachable once everything has been undone', () => {
+  // Undo your way back to the start and `actionHistory` is empty while every
+  // step sits in the redo stack, waiting to be brought back. Undo goes dead
+  // there, but Redo must not: it is the only way back to the work.
+  it('keeps Redo live once everything has been undone', () => {
     container = document.createElement('div');
     document.body.appendChild(container);
 
@@ -194,7 +189,6 @@ describe('SignToolbar Component', () => {
       );
     });
 
-    expect(findExactButton(container, 'History').disabled).toBe(false);
     expect(findExactButton(container, 'Undo').disabled).toBe(true);
     expect(findExactButton(container, 'Redo').disabled).toBe(false);
   });
@@ -219,7 +213,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -391,7 +384,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -461,7 +453,6 @@ describe('SignToolbar Component', () => {
               <SignToolbar
                 setAnnouncement={() => {}}
                 setDialogOpen={() => {}}
-                setUndoModalOpen={() => {}}
                 actionHistory={[]}
                 toggleFullscreen={() => {}}
                 isFullscreen={false}
@@ -538,7 +529,6 @@ describe('SignToolbar Component', () => {
               <SignToolbar
                 setAnnouncement={() => {}}
                 setDialogOpen={() => {}}
-                setUndoModalOpen={() => {}}
                 actionHistory={[]}
                 toggleFullscreen={() => {}}
                 isFullscreen={false}
@@ -596,7 +586,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -700,7 +689,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -763,7 +751,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -819,7 +806,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -875,7 +861,6 @@ describe('SignToolbar Component', () => {
           <SignToolbar
             setAnnouncement={() => {}}
             setDialogOpen={setDialogOpen}
-            setUndoModalOpen={() => {}}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
@@ -906,7 +891,6 @@ describe('SignToolbar Component', () => {
           <SignToolbar
             setAnnouncement={() => {}}
             setDialogOpen={() => {}}
-            setUndoModalOpen={() => {}}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
@@ -936,7 +920,6 @@ describe('SignToolbar Component', () => {
           <SignToolbar
             setAnnouncement={() => {}}
             setDialogOpen={() => {}}
-            setUndoModalOpen={() => {}}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
@@ -987,7 +970,6 @@ describe('SignToolbar Component', () => {
             <SignToolbar
               setAnnouncement={() => {}}
               setDialogOpen={() => {}}
-              setUndoModalOpen={() => {}}
               actionHistory={[]}
               toggleFullscreen={() => {}}
               isFullscreen={false}
@@ -1178,7 +1160,6 @@ describe('SignToolbar Component', () => {
           <SignToolbar
             setAnnouncement={() => {}}
             setDialogOpen={() => {}}
-            setUndoModalOpen={() => {}}
             actionHistory={[]}
             toggleFullscreen={() => {}}
             isFullscreen={false}
