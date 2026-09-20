@@ -132,3 +132,51 @@ test('Redact resumes a closed tab\'s work, and moving the pointer to a second fi
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(1, { timeout: 10_000 });
 });
+
+/* Every restore assertion above draws Blackout, and only Blackout. Blur and
+   Whiteout were exercised elsewhere but never across a close-and-reopen, so a
+   defect in restoring one of them specifically had nothing watching it - which
+   is exactly the shape of a report we could not otherwise have ruled out
+   (2026-09-20, blur boxes reported missing after reopening an installed app).
+   Restoring the work is the tool's flagship promise, so it is asserted per
+   style, and per style's own stored fields rather than by counting boxes: a
+   restore that brought every box back as a blackout would pass a count. */
+test('a reopened tab restores blur and whiteout boxes, not only blackout', async ({ page, context }) => {
+  await openRedactTool(page, await makePdfBuffer('styles'), 'redact-restore-styles.pdf');
+
+  await drawRedaction(page, 'Blur', { x: 0.12, y: 0.16 }, { x: 0.34, y: 0.22 });
+  await selectRedactStyle(page, 'Whiteout');
+  const overlay = page.locator('.redact-draw-area').first();
+  const box = await overlay.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.12, box.y + box.height * 0.30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.34, box.y + box.height * 0.36, { steps: 6 });
+  await page.waitForTimeout(50);
+  await page.mouse.up();
+  await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
+
+  await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
+
+  await page.close();
+  const reopened = await context.newPage();
+  await reopened.goto('/redact/');
+  await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await expect(reopened.locator('[class*="redact-box"]')).toHaveCount(2, { timeout: 10_000 });
+
+  // Read the restored types out of the store, so the assertion is about what
+  // came back rather than about how many outlines are on screen.
+  const types = await reopened.evaluate(async () => {
+    const rows = await new Promise((resolve) => {
+      const request = indexedDB.open('pdf-toolkit-workspace', 1);
+      request.onsuccess = () => {
+        const db = request.result;
+        const all = db.transaction('workspace', 'readonly').objectStore('workspace').getAll();
+        all.onsuccess = () => { db.close(); resolve(all.result); };
+      };
+      request.onerror = () => resolve([]);
+    });
+    const entry = rows.find((row) => row.work?.redact?.elements?.length);
+    return (entry?.work.redact.elements || []).map((element) => element.type).sort();
+  });
+  expect(types).toEqual(['blur', 'whiteout']);
+});

@@ -758,3 +758,60 @@ describe('legacy per-tool draft migration', () => {
     expect(await getRawRecord('sign')).toBeUndefined();
   });
 });
+
+/* Saving and keeping are two different promises. Without a persistence
+   request the browser may evict this whole database whenever it likes, and
+   the person is told nothing - reported from an installed iOS home-screen app
+   where "Draft saved" had appeared and the work was gone on reopening.
+   The request must be best-effort in the strictest sense: a browser with no
+   Storage API, or one that throws on it, must still save. */
+describe('storage persistence request', () => {
+  const bytes = () => new TextEncoder().encode('%PDF-1.4 persistence').buffer;
+
+  beforeEach(() => {
+    indexedDB = new IDBFactory();
+    localStorage.clear();
+  });
+
+  it('asks the browser to keep this origin, and only asks once', async () => {
+    const persist = vi.fn(() => Promise.resolve(true));
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: { persist } });
+
+    vi.resetModules();
+    const mod = await import('./draftStore.js');
+    await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
+    await mod.saveDraft('redact', { fileBytes: bytes(), fileName: 'a.pdf', fileType: 'application/pdf', elements: [] });
+
+    expect(persist).toHaveBeenCalledTimes(1);
+    vi.unstubAllGlobals();
+  });
+
+  it('still saves when the browser has no Storage API at all', async () => {
+    vi.stubGlobal('navigator', { ...globalThis.navigator, storage: undefined });
+
+    vi.resetModules();
+    const mod = await import('./draftStore.js');
+    const saved = await mod.saveDraft('redact', {
+      fileBytes: bytes(), fileName: 'b.pdf', fileType: 'application/pdf', elements: [{ id: 'x', pageIndex: 0, type: 'blur' }],
+    });
+
+    expect(saved).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it('still saves when persist() rejects or throws', async () => {
+    vi.stubGlobal('navigator', {
+      ...globalThis.navigator,
+      storage: { persist: () => { throw new Error('denied'); } },
+    });
+
+    vi.resetModules();
+    const mod = await import('./draftStore.js');
+    const saved = await mod.saveDraft('redact', {
+      fileBytes: bytes(), fileName: 'c.pdf', fileType: 'application/pdf', elements: [],
+    });
+
+    expect(saved).toBe(true);
+    vi.unstubAllGlobals();
+  });
+});
