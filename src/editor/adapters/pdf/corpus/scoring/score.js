@@ -55,11 +55,15 @@ const pct = (numerator, denominator) => (denominator > 0 ? (numerator / denomina
 /**
  * The page's text runs, read in Node the way the viewer reads them in the
  * browser: pdf.js's legacy build (no worker, no DOM), then the one shared
- * conversion in `textRuns.js`. The font and cMap directories have to be named
- * explicitly off disk - the browser build resolves them relative to a URL that
- * does not exist here - and a form whose text cannot be read scores on its
- * geometry alone rather than failing the run, because a scanned form has no
- * text layer to read and is still a form we want scored.
+ * conversion in `textRuns.js`. The font, cMap and WASM directories have to be
+ * named explicitly off disk, because the browser build resolves them against a
+ * same-origin URL that does not exist here. `wasmUrl` is not optional even for
+ * a text pass: pdf.js 6 decodes CCITT fax and JBIG2 through it, and without it
+ * a scanned form's images are dropped silently rather than erroring
+ * (`src/lib/pdfjsWasm.js` has the whole story, and `pdfjsWasm.test.js` fails
+ * any call site that forgets). A form whose text cannot be read scores on its
+ * geometry alone rather than failing the run, because a scan has no text layer
+ * and is still a form we want scored.
  */
 async function pageTextRuns(bytes, pageIndex, geometry) {
   const require = createRequire(import.meta.url);
@@ -69,6 +73,7 @@ async function pageTextRuns(bytes, pageIndex, geometry) {
     data: new Uint8Array(bytes),
     standardFontDataUrl: `${path.join(pdfjsDir, 'standard_fonts')}${path.sep}`,
     cMapUrl: `${path.join(pdfjsDir, 'cmaps')}${path.sep}`,
+    wasmUrl: `${path.join(pdfjsDir, 'wasm')}${path.sep}`,
     cMapPacked: true,
     useSystemFonts: false,
   });
