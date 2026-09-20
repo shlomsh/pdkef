@@ -1,7 +1,7 @@
 ---
 id: "UNDO-01"
 title: "Redo for Sign and Redact, on the keyboard and in the Undo dialog"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "undo-and-redo"
 phase: "near-term"
@@ -58,3 +58,27 @@ the entry; Redact's `applyRevert` filters it out by id. Both are one line from p
 History logs `add` and `delete` only. Redo covers placements, deletions, duplications and clear-page,
 and nothing else. If the felt gap is a nudged box that will not come back, redo is not the fix:
 UNDO-04 is.
+
+## Done 2026-09-20
+
+Shipped as planned: keyboard plus the shared Undo dialog, no new toolbar control. `applyHistoryEntries`
+and the pure `historyStack` helpers underneath; Sign through its reducer, Redact through one merged
+stack. Redo bumps `documentRevision` in Sign and marks the document edited in Redact, so no stale
+export survives it. The redo stack stays in memory and every restore path resets it.
+
+An independent review with no shared context found four real defects, all fixed here:
+
+- `Cmd+Y` was hijacked on macOS, where it belongs to the browser (Safari's History, Firefox's
+  Library), and `preventDefault` ran before any handler, so it was swallowed silently. Redo on Y is
+  `Ctrl+Y` only now. `Ctrl+Alt+Z` no longer reads as undo, and `preventDefault` runs only once a
+  handler exists to act.
+- Three Sign reducer cases changed the document without clearing the future. `ADD_ELEMENT` was
+  reachable: a drag-drawn element enters at pointer-down and is only logged on commit, so a redo
+  pressed mid-gesture spliced a restored element beneath it and the commit then logged the drawn one
+  at a stale index, painting it behind its neighbour.
+- Redact lost a step when two undos landed in one task, which is what key auto-repeat produces: both
+  invocations closed over the same render-scoped state, so the second reverted what the first already
+  had, and redoing twice gave two dialog rows the same id. Reproduced as a failing test first. Sign
+  was never exposed, its history being in a reducer.
+- Redact hand-rolled the bookkeeping the shared helpers exist for, leaving the invariant to four
+  comments. It uses them now, which also gave `dropCommands` its first production caller.

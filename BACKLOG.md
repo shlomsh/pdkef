@@ -397,10 +397,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
-| UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
+_None._
 
 ### Blocked
 
@@ -408,7 +405,10 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
+| UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
 
 ### Retired
 
