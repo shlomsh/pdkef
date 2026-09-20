@@ -108,6 +108,8 @@ function defaultProps(overrides: Partial<ComponentProps<typeof PdfWorkspace>> = 
     pdfDocument: null,
     pageWrapperRefs: { current: [] },
     setTempPlacement: vi.fn(),
+    onUndo: vi.fn(),
+    onRedo: vi.fn(),
     setDialogOpen: vi.fn(),
     logAction: vi.fn(),
     handleSavePdf: vi.fn(),

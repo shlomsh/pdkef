@@ -14,9 +14,17 @@ import styles from './UndoHistoryModal.module.css';
 // both the toolbar's Undo and Redo controls always have something visible to
 // point at - the bug this replaced was a checklist that dropped a row the
 // moment it was undone, leaving Redo's enabled state pointing at nothing on
-// screen. See actionHistory.ts and historyStack.ts for the two arrays this
-// reads, and src/lib/history/useHistoryShortcuts.js for the keyboard
-// shortcuts this dialog is not the only way to reach undo/redo any more.
+// screen.
+//
+// Undo and redo themselves are not in here. They are one tap each on the
+// toolbar (and the keyboard), which is the only place they can be reached
+// while this dialog is closed; this dialog's one job is the thing the toolbar
+// cannot do, which is reverting something from further back. Do not add a
+// Redo button to the footer again.
+//
+// See actionHistory.ts and historyStack.ts for the two arrays this reads, and
+// src/lib/history/useHistoryShortcuts.js for the keyboard shortcuts that are
+// the other way to reach undo and redo.
 //
 // Self-manages its own dialog ref and showModal()/close() lifecycle (rather
 // than the caller owning the ref) so it's a drop-in for either tool. Uses
@@ -32,9 +40,6 @@ export default function UndoHistoryModal({
   undoSelection,
   setUndoSelection,
   onRevertSelected,
-  onRedo,
-  canRedo,
-  redoDescription,
   messages,
 }: {
   open: boolean;
@@ -51,18 +56,6 @@ export default function UndoHistoryModal({
   undoSelection: Set<string>;
   setUndoSelection: (s: Set<string>) => void;
   onRevertSelected: () => void;
-  /** UNDO-REDO: optional so a caller that has not wired redo yet (both Sign
-   * and Redact, as of this change) keeps working unchanged. Redoes the single
-   * most recently undone action; there is no "redo selected" - the checklist
-   * above is undo-only. */
-  onRedo?: () => void;
-  /** Whether there is anything left to redo. Only read when `onRedo` is
-   * supplied; the button renders disabled while this is false. */
-  canRedo?: boolean;
-  /** The description of the action `onRedo` would bring back, e.g. "Added
-   * text box" - shown in the button's accessible name so it isn't a mystery
-   * click. Ignored while `canRedo` is false. */
-  redoDescription?: string;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop, so every existing (English) caller of
    * this dialog (Redact included) is unaffected. */
@@ -158,19 +151,13 @@ export default function UndoHistoryModal({
         </div>
       </div>
 
+      {/* One action, and it is the one this dialog is the only place for.
+          Redo lives on the toolbar beside Undo, in both tools: it had a button
+          here first, while the toolbar's single control still opened this
+          dialog, and keeping both would have left two controls doing the same
+          thing in two places with different reach - the dialog's pair is
+          unreachable while it is closed, which on a phone was all of redo. */}
       <div className={dialogStyles.footer}>
-        {onRedo && (
-          <button
-            type="button"
-            className={`${dialogStyles.button} ${dialogStyles.secondary}`}
-            onClick={onRedo}
-            disabled={!canRedo}
-            title={t.redoTitle}
-            aria-label={canRedo && redoDescription ? formatMessage(t.redoDescriptionTemplate, { description: redoDescription }) : undefined}
-          >
-            {t.redoButton}
-          </button>
-        )}
         <button
           type="button"
           className={`${dialogStyles.button} ${dialogStyles.primary} ${dialogStyles.success}`}
