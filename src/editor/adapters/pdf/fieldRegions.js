@@ -26,6 +26,50 @@ function overlap(a, b) {
 }
 
 /**
+ * Folds a page's native `/Tx` widget regions (`detectWidgetRegions`) into what
+ * the ink detectors reconciled, so that one field is one region however many
+ * sources saw it.
+ *
+ * The two sources are not alternatives, because a form can be both at once.
+ * Our own practice form paints nine guide boxes for its student-ID comb into
+ * the page stream *and* lays a live comb widget over them, so that field
+ * arrives twice and only one of the two may reach the editor - a second hint
+ * on the same strip is a second tap target for one box. Everything the ink
+ * walk did not find, though, is a field a live form is simply telling us
+ * about, and that is the whole of what this adds.
+ *
+ * Two precedence rules, and they are the ones `reconcileFields` already
+ * applies to the ink pass's own two detectors:
+ *
+ * 1. **Between equals, ink wins.** It is the source whose numbers the
+ *    fixtures pin, and on a hybrid its box is the one actually printed.
+ * 2. **A comb beats a cell, whichever source found it,** and claims it. A
+ *    cell is the weakest thing either side reports - `formCells.js` caps its
+ *    own confidence below the comb detector's for exactly this reason - so a
+ *    widget that says "nine boxes, `/MaxLen` 9" against an ink pass that only
+ *    managed "some closed box here" is the better answer, and leaving both
+ *    would put a plain text box and a nine-cell comb on one rectangle.
+ *
+ * A widget comb is `boxed`, so it does not want the claimed cell's `writable`
+ * strip the way an open comb does: its own boxes are the field.
+ *
+ * @param {{combs: Array, checkboxes: Array, cells: Array}} reconciled
+ * @param {{combs: Array, cells: Array}} widgets
+ * @returns {{combs: Array, cells: Array}}
+ */
+export function withWidgetFields(reconciled, widgets) {
+  const { combs, checkboxes, cells } = reconciled;
+  const unclaimed = (region, found) => !found.some((other) => overlap(region, other));
+  const allCombs = [...combs, ...widgets.combs.filter((comb) => unclaimed(comb, [...combs, ...checkboxes]))];
+  // Rule 2. Against the ink pass's own combs this is a no-op - `reconcileFields`
+  // has already dropped what they claimed - so it only ever removes a cell an
+  // added widget comb now covers.
+  const inkCells = cells.filter((cell) => unclaimed(cell, allCombs));
+  const taken = [...allCombs, ...checkboxes, ...inkCells];
+  return { combs: allCombs, cells: [...inkCells, ...widgets.cells.filter((cell) => unclaimed(cell, taken))] };
+}
+
+/**
  * @template {{left: number, top: number, width: number, height: number, boxed?: boolean, writable?: object}} Comb
  * @template {{left: number, top: number, width: number, height: number, writable?: object}} Cell
  * @param {{combs: Comb[], checkboxes: object[], cells: Cell[]}} detected
