@@ -1,7 +1,7 @@
 ---
 id: "UNDO-06"
 title: "The change-history dialog goes; Undo and Redo are the whole model"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "undo-and-redo"
 phase: "near-term"
@@ -10,7 +10,7 @@ depends_on: ["UNDO-03"]
 
 # UNDO-06 · The change-history dialog goes; Undo and Redo are the whole model
 
-*Filed 2026-09-20, the day UNDO-03 landed.* UNDO-03 gave both tools three history controls: Undo,
+*Filed 2026-09-20, the day UNDO-03 landed. Done 2026-09-20.* UNDO-03 gave both tools three history controls: Undo,
 Redo and History. Shlomi's read on seeing it, and it is the right one: **a timeline is redundant once
 Undo and Redo are two real buttons.** Either the dialog goes, or the toolbar goes back to one button
 that opens it and holds undo and redo inside.
