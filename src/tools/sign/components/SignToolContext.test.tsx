@@ -365,15 +365,35 @@ describe('SignToolContext Reducer', () => {
     expect(redoAttempt).toBe(withNewAction);
   });
 
-  it('SET_ACTION_HISTORY (selective revert) clears the future', () => {
+  // The dialog's checklist is the only undo on touch, so reverting the newest
+  // command there has to leave a redo exactly as Cmd+Z would. Reverting from
+  // the middle of the stack still cannot.
+  it('REVERT_COMMANDS keeps a redo when the newest command is the one checked', () => {
+    // Index 1: el-2 was appended after el-1, so redo must splice it back there.
+    const newest = addHistory('act-2', 'ADD_SHAPE', rectangleElement('el-2'), 1);
     const state: SignToolState = {
       ...initialState,
-      actionHistory: [addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
-      redoHistory: [addHistory('act-2', 'ADD_SHAPE', rectangleElement('el-2'))],
+      elements: [textElement('el-1'), rectangleElement('el-2')],
+      actionHistory: [newest, addHistory('act-1', 'ADD_TEXT', textElement('el-1'))],
     };
-    const next = reducer(state, { type: 'SET_ACTION_HISTORY', payload: [] });
-    expect(next.actionHistory).toEqual([]);
+    const next = reducer(state, { type: 'REVERT_COMMANDS', payload: { ids: ['act-2'] } });
+    expect(next.elements.map((element) => element.id)).toEqual(['el-1']);
+    expect(next.redoHistory).toEqual([newest]);
+    expect(reducer(next, { type: 'REDO' }).elements.map((element) => element.id)).toEqual(['el-1', 'el-2']);
+  });
+
+  it('REVERT_COMMANDS clears the future when a command below the top is checked', () => {
+    const state: SignToolState = {
+      ...initialState,
+      elements: [textElement('el-1'), rectangleElement('el-2')],
+      actionHistory: [
+        addHistory('act-2', 'ADD_SHAPE', rectangleElement('el-2')),
+        addHistory('act-1', 'ADD_TEXT', textElement('el-1')),
+      ],
+    };
+    const next = reducer(state, { type: 'REVERT_COMMANDS', payload: { ids: ['act-1'] } });
     expect(next.redoHistory).toEqual([]);
+    expect(next.actionHistory.map((entry) => entry.id)).toEqual(['act-2']);
   });
 
   it('LOAD_DOCUMENT clears the future', () => {
