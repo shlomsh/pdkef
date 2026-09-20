@@ -116,7 +116,7 @@ const FILE_SHAPED = /^[\w.-]+\.(?:pdf|png|jpe?g|gif|webp|docx?|xlsx?|pptx?|txt|c
  * look. Matched strictly: a built asset filename and two numbers, nothing else,
  * and any frame that is not that shape is dropped rather than trimmed.
  */
-const STACK_FRAME = /([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
+const STACK_FRAME = /\/_astro\/([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
 
 function topFrame(error: Error): string {
   const stack = typeof error.stack === 'string' ? error.stack : '';
