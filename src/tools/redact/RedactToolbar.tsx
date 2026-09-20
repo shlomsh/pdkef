@@ -48,6 +48,9 @@ export default function RedactToolbar({
   elementsCount,
   actionHistory,
   setUndoModalOpen,
+  onUndo,
+  onRedo,
+  canRedo = false,
   exporting = false,
   undoAction = null,
   onUndoAction,
@@ -70,6 +73,13 @@ export default function RedactToolbar({
   elementsCount: number;
   actionHistory: ActionHistoryEntry[];
   setUndoModalOpen: (open: boolean) => void;
+  /** One tap, one step back - the same thing Cmd/Ctrl+Z does. The toolbar's
+   * Undo used to open the checklist dialog instead, which meant a phone had
+   * no single-step undo at all and no way to reach Redo, since the dialog was
+   * the only place it lived and reverting closed it. */
+  onUndo: () => void;
+  onRedo: () => void;
+  canRedo?: boolean;
   /** True while a redacted PDF is being generated - guards Download/Share
    * against re-entry so a second click can't start an overlapping export. */
   exporting?: boolean;
@@ -227,11 +237,16 @@ export default function RedactToolbar({
           </button>
         </ArmHint>
 
+        {/* Undo, Redo and the checklist are three different things, so they
+            are three controls. Undo and Redo are one tap each; the checklist
+            is the occasional case of reverting something from further back.
+            Folding all three into one button is what left a phone unable to
+            redo at all. */}
         <button
           type="button"
           className={styles.button}
-          onClick={() => setUndoModalOpen(true)}
-          title="Undo changes"
+          onClick={onUndo}
+          title="Undo"
           disabled={actionHistory.length === 0}
           data-icon-only
         >
@@ -240,6 +255,46 @@ export default function RedactToolbar({
             <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
           </svg>
           <span className={styles.label}>Undo</span>
+        </button>
+
+        <button
+          type="button"
+          className={styles.button}
+          onClick={onRedo}
+          title="Redo"
+          disabled={!canRedo}
+          data-icon-only
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6" />
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+          </svg>
+          <span className={styles.label}>Redo</span>
+        </button>
+
+        <button
+          type="button"
+          className={styles.button}
+          onClick={() => setUndoModalOpen(true)}
+          title="Undo changes"
+          disabled={actionHistory.length === 0}
+          data-icon-only
+          /* Hidden below the narrow band (SignToolbar.module.css's
+             [data-optional-control]), which puts Redact back to nine controls
+             where SIGN-18 measured nine as the last count that balances at
+             320px with a 44px floor. Undo and Redo stay at every width, so
+             nothing editable is lost there - only the selective variant of an
+             undo you can still perform one tap at a time. That is the line
+             SIGN-18 draws ("not a control that edits the document"): this one
+             opens a dialog, and the dialog is not the only way to undo any
+             more. */
+          data-optional-control="history"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+          </svg>
+          <span className={styles.label}>History</span>
         </button>
 
         <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />

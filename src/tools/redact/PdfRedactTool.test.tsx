@@ -1501,6 +1501,38 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 14]);
     });
 
+    // Undo and Redo are toolbar controls, one tap each, because a phone has
+    // no keyboard. They used to be one button that opened the checklist
+    // dialog, which meant there was no single-step undo on touch at all and
+    // no way to reach Redo, since the dialog was the only place it lived.
+    it('Undo and Redo are one tap each on the toolbar, without opening any dialog', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      const toolbarButton = (title: string) => required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((b) => b.title === title),
+        `${title} button`,
+      );
+
+      const undo = toolbarButton('Undo');
+      const redo = toolbarButton('Redo');
+      expect(undo.disabled).toBe(false);
+      expect(redo.disabled).toBe(true);
+
+      await act(async () => { undo.click(); });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      // No dialog opened: the tap itself undid something.
+      expect(container.querySelector('dialog[aria-labelledby="undo-dialog-title"][open]')).toBeNull();
+
+      expect(toolbarButton('Redo').disabled).toBe(false);
+      await act(async () => { toolbarButton('Redo').click(); });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+    });
+
     // The reported journey, and the whole of redo on a phone: there is no
     // keyboard and no toolbar Redo control, so this dialog is the only place
     // either action exists. Reverting used to close it, which took Redo off
