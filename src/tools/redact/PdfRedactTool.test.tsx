@@ -1501,6 +1501,98 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 14]);
     });
 
+    // Undo and Redo are toolbar controls, one tap each, because a phone has
+    // no keyboard. They used to be one button that opened the checklist
+    // dialog, which meant there was no single-step undo on touch at all and
+    // no way to reach Redo, since the dialog was the only place it lived.
+    it('Undo and Redo are one tap each on the toolbar, without opening any dialog', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+
+      const toolbarButton = (title: string) => required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((b) => b.title === title),
+        `${title} button`,
+      );
+
+      const undo = toolbarButton('Undo');
+      const redo = toolbarButton('Redo');
+      expect(undo.disabled).toBe(false);
+      expect(redo.disabled).toBe(true);
+
+      await act(async () => { undo.click(); });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      // No dialog opened: the tap itself undid something.
+      expect(container.querySelector('dialog[aria-labelledby="undo-dialog-title"][open]')).toBeNull();
+
+      expect(toolbarButton('Redo').disabled).toBe(false);
+      await act(async () => { toolbarButton('Redo').click(); });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+    });
+
+    // The reported journey, and the whole of redo on a phone: there is no
+    // keyboard and no toolbar Redo control, so this dialog is the only place
+    // either action exists. Reverting used to close it, which took Redo off
+    // screen at the exact moment it became usable.
+    it('stays open after a revert, with Redo now usable, so the only redo control is still there', async () => {
+      // jsdom implements neither showModal nor close. Stubbing them to move
+      // the real `open` attribute is what keeps this test honest: the
+      // component only calls close() when the dialog is actually open, so a
+      // stub that left `open` false would make the assertion below pass
+      // whatever the code did.
+      const closeSpy = vi.fn();
+      const proto = HTMLDialogElement.prototype as unknown as Record<string, unknown>;
+      const originals = { showModal: proto.showModal, close: proto.close };
+      proto.showModal = function showModal(this: HTMLDialogElement) { this.setAttribute('open', ''); };
+      proto.close = function close(this: HTMLDialogElement) { closeSpy(); this.removeAttribute('open'); };
+
+      try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+
+      const dialog = await openUndoHistoryModal();
+      const checkboxes = Array.from(dialog.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'));
+      expect(checkboxes).toHaveLength(2);
+      await act(async () => {
+        checkboxes[0].checked = true; // newest: box B
+        checkboxes[0].dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const revertButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Revert selected'),
+        'Revert selected button',
+      );
+      await act(async () => {
+        revertButton.click();
+      });
+
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      // jsdom does not implement showModal/close, so the dialog's own `open`
+      // is not observable here. What matters is that nothing asked it to
+      // close: the component calls close() only when its `open` prop goes
+      // false, which is exactly the regression this test exists for.
+      expect((dialog as HTMLDialogElement).open).toBe(true);
+      expect(closeSpy).not.toHaveBeenCalled();
+
+      const redoButton = required(
+        Array.from(dialog.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent.trim() === 'Redo'),
+        'Redo button',
+      );
+      expect(redoButton.disabled).toBe(false);
+      await act(async () => {
+        redoButton.click();
+      });
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([10, 12]);
+      } finally {
+        proto.showModal = originals.showModal;
+        proto.close = originals.close;
+      }
+    });
+
     it("the modal's selective revert clears the future", async () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
@@ -1540,7 +1632,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
     });
 
-    it('the undo chip clears the future rather than pushing onto it', async () => {
+    it('the undo chip keeps a redo when its command is still the newest', async () => {
       // This has to leave redoHistory genuinely non-empty *before* the chip is
       // clicked, and the chip's own target entry still live in actionHistory
       // at that moment (not stale), to actually distinguish 'clear' from
@@ -1580,12 +1672,56 @@ describe('PdfRedactTool UI flow', () => {
       });
       expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
 
-      // If the chip had pushed instead of cleared, redoHistory's new top would
-      // be the very delete-box-A entry just reverted, and this redo would
-      // immediately re-delete A. Clearing means this is a no-op: box A stays,
-      // and box B (the actual previous top of the future) does not reappear.
+      // By the time the chip is clicked, undoing box B has left the
+      // delete-box-A entry as the newest command on the stack, so reverting it
+      // is a plain undo and redo mirrors it: A is deleted again. That is what
+      // redo means, and the alternative - refusing on the grounds that the
+      // chip targets by id - is what used to leave touch users with a Redo
+      // control that could never do anything, since the chip and the dialog
+      // are the only undos a phone has.
       await pressRedoShortcut();
-      expect(boxLefts().map((n) => Math.round(n))).toEqual([10]);
+      expect(boxLefts()).toHaveLength(0);
+
+      // And the undo below it is still there to redo afterwards.
+      await pressRedoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual([12]);
+    });
+
+    it('the undo chip drops the future when another command landed above it', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%
+
+      const boxA = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => {
+        boxA.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      await act(async () => {
+        deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(boxLefts()).toHaveLength(0);
+
+      // Box B is drawn and LEFT IN PLACE, so it sits above the chip's entry on
+      // the stack. Reverting the chip is then a middle-of-the-stack revert: a
+      // redo could re-insert something box B's own command never accounted
+      // for, so the future must be dropped.
+      await armTool('Blackout'); // one-shot: the tool disarmed after box A
+      await drawBox(drawArea, 60, 220, 220, 520); // box B: left ~12%
+      const afterB = boxLefts().map((n) => Math.round(n));
+      expect(afterB).toHaveLength(1); // B really is on the stack above the chip's entry
+
+      const undoButton = required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo button');
+      await act(async () => {
+        undoButton.click();
+      });
+      const afterChip = boxLefts().map((n) => Math.round(n));
+      expect(afterChip).not.toEqual(afterB);
+
+      await pressRedoShortcut();
+      expect(boxLefts().map((n) => Math.round(n))).toEqual(afterChip);
     });
 
     it('redo with an empty future is a safe no-op', async () => {

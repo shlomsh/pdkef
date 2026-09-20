@@ -2,7 +2,7 @@ import { createContext } from 'preact';
 import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
-import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
+import { pushCommand, redoStep, revertCommands, undoStep } from '../../../editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
 import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
 
@@ -24,7 +24,7 @@ export type SignToolAction =
   | { type: 'CLEAR_PAGE'; payload: number }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
-  | { type: 'SET_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement>[] }
+  | { type: 'REVERT_COMMANDS'; payload: { ids: string[] } }
   | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
@@ -208,19 +208,33 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         ...state,
         editingElementId: action.payload === state.activeElementId ? action.payload : null
       };
-    // Selective revert (handleRevertSelected): the caller has already
-    // computed the surviving actionHistory (an arbitrary checked set dropped
-    // out, not necessarily from the top - the same shape dropCommands
-    // produces, but the ids aren't available here to call it directly). A
-    // surviving redo could re-insert an element a later, not-reverted
-    // command's snapshot never accounted for, so the future is always
-    // cleared - see historyStack.ts's module doc comment.
-    case 'SET_ACTION_HISTORY':
+    // The "Undo changes" dialog's checklist, as one command rather than a
+    // pair of dispatches the caller had to order correctly.
+    //
+    // Whether a redo survives is `revertCommands`'s call, not this reducer's
+    // and not the dialog's: reverting the newest command, or the newest few
+    // together, is plain undo and keeps the future; reverting from the middle
+    // of the stack drops it, because a later, still-live command's snapshot
+    // never accounted for the element coming back. On a phone the checklist
+    // is the only undo there is, so this is also the only thing that can give
+    // the dialog's Redo control anything to do.
+    case 'REVERT_COMMANDS': {
+      const ids = new Set(action.payload.ids);
+      const reverted = state.actionHistory.filter((entry) => ids.has(entry.id));
+      if (reverted.length === 0) return state;
+      const elements = revertHistoryEntries(state.elements, reverted);
+      const { past, future } = revertCommands(state.actionHistory, state.redoHistory, ids);
+      const activeSurvives = elements.some((element) => element.id === state.activeElementId);
       return {
         ...state,
-        actionHistory: action.payload,
-        redoHistory: []
+        elements,
+        activeElementId: activeSurvives ? state.activeElementId : null,
+        editingElementId: activeSurvives ? state.editingElementId : null,
+        actionHistory: past,
+        redoHistory: future,
+        documentRevision: nextDocumentRevision(state),
       };
+    }
     case 'ADD_ACTION_HISTORY': {
       const { past, future } = pushCommand(state.actionHistory, state.redoHistory, action.payload);
       return {

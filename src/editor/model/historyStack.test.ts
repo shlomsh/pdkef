@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorElement } from './editorModel.ts';
 import { captureAddedElement, createActionEntry, type ActionHistoryEntry } from './actionHistory.ts';
-import { dropCommands, pushCommand, redoStep, undoStep } from './historyStack.ts';
+import { pushCommand, redoStep, revertCommands, undoStep } from './historyStack.ts';
 
 const shape: EditorElement = {
   id: 'shape', type: 'rectangle', pageIndex: 0, left: 10, top: 10, width: 20, height: 20,
@@ -69,19 +69,48 @@ describe('historyStack', () => {
     expect(redone!.future).toEqual([]);
   });
 
-  it('dropCommands removes commands identified by id from anywhere in past and always empties future', () => {
-    const a = makeEntry('a');
-    const b = makeEntry('b');
-    const c = makeEntry('c');
-
-    // b sits in the middle of the stack - selective revert, not a plain undo.
-    const result = dropCommands([c, b, a], [makeEntry('stale-redo')], new Set(['b']));
-    expect(result).toEqual({ past: [c, a], future: [] });
+  it('revertCommands drops a command from the middle of past and empties future', () => {
+    const [a, b, c] = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
+    const result = revertCommands([c, b, a], [makeEntry('stale-redo')], new Set(['b']));
+    expect(result.past).toEqual([c, a]);
+    expect(result.future).toEqual([]);
   });
 
-  it('dropCommands empties future even when nothing in past actually matched', () => {
+  it('revertCommands empties future even when nothing in past actually matched', () => {
     const a = makeEntry('a');
-    const result = dropCommands([a], [makeEntry('stale-redo')], new Set(['not-present']));
-    expect(result).toEqual({ past: [a], future: [] });
+    const result = revertCommands([a], [makeEntry('stale-redo')], new Set(['not-present']));
+    expect(result.past).toEqual([a]);
+    expect(result.future).toEqual([]);
+  });
+
+  // The dialog's checklist is the only undo a touch user has, so reverting
+  // the newest command there has to leave a redo exactly as Cmd+Z would.
+  it('revertCommands keeps a redo when the newest command is the one reverted', () => {
+    const [a, b, c] = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
+    const result = revertCommands([c, b, a], [], new Set(['c']));
+    expect(result.past).toEqual([b, a]);
+    expect(result.future).toEqual([c]);
+  });
+
+  // Reverting the newest few together is several undos at once, so redoing
+  // twice must replay them in the order they would have been done singly.
+  it('revertCommands keeps a redo for a contiguous run at the top, oldest replayed first', () => {
+    const [a, b, c] = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
+    const result = revertCommands([c, b, a], [], new Set(['c', 'b']));
+    expect(result.past).toEqual([a]);
+    expect(result.future).toEqual([b, c]);
+
+    const first = redoStep(result.past, result.future);
+    expect(first?.entry).toBe(b);
+    const second = redoStep(first!.past, first!.future);
+    expect(second?.entry).toBe(c);
+    expect(second?.past).toEqual([c, b, a]);
+  });
+
+  it('revertCommands drops the future when the run includes a command below the top', () => {
+    const [a, b, c] = [makeEntry('a'), makeEntry('b'), makeEntry('c')];
+    const result = revertCommands([c, b, a], [], new Set(['c', 'a']));
+    expect(result.past).toEqual([b]);
+    expect(result.future).toEqual([]);
   });
 });
