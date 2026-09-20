@@ -51,18 +51,40 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
  *
  * Only the *band* carve is trusted for this. `writableArea` can also carve
  * sideways, when a caption hugs the cell's right wall, and that carve is a
- * much weaker guess at where the answer goes: it read form 101's three
- * date cells (printed `/ /` separators that a person writes *across*, not
- * beside) and two of its phone cells as labels, and each time it left a
+ * much weaker guess at how much of the page the field is: it read form 101's
+ * three date cells (printed `/ /` separators that a person writes *across*,
+ * not beside) and two of its phone cells as labels, and each time it left a
  * 40pt sliver against the left wall. Published as bounds those five went the
  * other way, IoU 0.54-0.74 down to 0.09-0.22, turning five true positives
  * into false ones. So a side carve still admits the cell - there is room to
- * write in it - but the whole cell is what gets published, and what text
- * placement then centres on.
+ * write in it - and the whole cell is what gets published as its bounds.
  *
- * The ruled box does not disappear: it rides along as `enclosure` whenever it
- * differs from the bounds, because a tap should still land on a field when it
- * lands on the field's printed caption (`cellRegionAt`).
+ * ## Where the typed box goes, which is a different question
+ *
+ * "How big is this field" and "where does an answer typed into it start" are
+ * not the same question, and a side carve is a bad answer to the first and a
+ * necessary one to the second. On an RTL form a box given the cell's whole
+ * span starts its text at the span's *right* edge (`getTextAlign` -> the
+ * exporter's pen) - which is the wall the caption is printed against, so the
+ * answer runs straight across the caption, in the export as much as on
+ * screen. So a side-carved cell publishes the blank strip as `writable`:
+ * bounds unchanged, placement kept off the printed caption
+ * (`placeTextOnCell`).
+ *
+ * Unless its own text is not a caption at all. Form 101's date cells print
+ * `/  /`, and a person writes the day, month and year *across* those marks,
+ * not beside them - nothing in the cell is spoken for, and the typed box
+ * wants all of it. `isPrintedSeparators` is that test, the same fact
+ * `classifyKind` already calls such a cell a date by. Measured on form 101
+ * page 1 (page-percent spans): the two phone cells' typed box goes from the
+ * whole cell (w28.94, w26.13) back to the strip beside their captions (w6.72,
+ * w5.60), while the three `/ /` date cells keep the whole w12.35 span.
+ *
+ * The ruled box does not disappear either: it rides along as `enclosure`
+ * whenever it differs from the bounds, and both of the questions asked about
+ * a field as a whole are asked of it - the hit test (a tap that lands on the
+ * printed caption is still a tap on that field, `cellRegionAt`) and the claim
+ * test that reconciles the two detectors (`fieldRegions.js`'s `claimExtent`).
  *
  * ## Coordinates
  *
@@ -327,9 +349,26 @@ const GLYPH_NOISE_RE = /^[a-zA-Z]{1,3}(\s+[a-zA-Z]{1,3})*$/;
 /** Longer than this is a sentence/paragraph, not a short label hugging an edge. */
 const MAX_LABEL_CHARS = 25;
 
+/**
+ * Is a cell's own printed text separators a person writes *across*, rather
+ * than a caption they have to write beside?
+ *
+ * One fact, two consequences, and they are the same fact twice. A cell
+ * printed `/  /` is a date; it is a date *because* those marks are part of
+ * the answer's own shape - the day goes before the first slash, the month
+ * between them - so no part of the cell belongs to the printing and a typed
+ * box may take all of it. A cell printed `מספר טלפון` is captioned, the
+ * caption keeps its corner of the cell, and an answer has to start clear of
+ * it. `GLYPH_NOISE_RE` above is the same idea for a third kind of own text
+ * (checkbox glyphs, dropped outright rather than written on or beside).
+ */
+function isPrintedSeparators(ownStr) {
+  return ownStr.length > 0 && SLASH_DATE_RE.test(ownStr);
+}
+
 function classifyKind(ownText, label) {
   const ownStr = ownText.map((t) => t.str).join(' ').trim();
-  if (ownStr && SLASH_DATE_RE.test(ownStr)) return 'date';
+  if (isPrintedSeparators(ownStr)) return 'date';
   const haystack = `${label || ''} ${ownStr}`;
   if (haystack.includes(HEBREW_SIGNATURE)) return 'signature';
   if (haystack.includes(HEBREW_DATE)) return 'date';
@@ -388,7 +427,7 @@ function confidenceOf(resolved, kind) {
 /**
  * @typedef {{left: number, top: number, width: number, height: number}} PercentBox
  * @typedef {PercentBox & {str: string}} PageTextRun
- * @typedef {PercentBox & {kind: string, enclosure?: PercentBox}} FieldCandidate
+ * @typedef {PercentBox & {kind: string, enclosure?: PercentBox, writable?: PercentBox}} FieldCandidate
  */
 
 /**
@@ -428,6 +467,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
           x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
         }),
         enclosureBounds: undefined,
+        writableBounds: undefined,
         cell,
         kind: 'checkbox',
         label: headerAbove(cell, textItemsPoints)?.str?.trim(),
@@ -467,8 +507,17 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     const enclosureBounds = field === cell ? undefined : toPagePercentBox(geometry, {
       x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
     });
+    // A side carve is not trusted as bounds, but it is still where a typed box
+    // belongs: see "Where the typed box goes" in the module docstring. Printed
+    // separators are not a caption - a person writes the date across `/  /` -
+    // so that cell publishes no strip and keeps the whole span.
+    const writableBounds = writable.carve === 'side' && !isPrintedSeparators(ownStr)
+      ? toPagePercentBox(geometry, {
+        x0: writable.area.left, y0: writable.area.bottom, x1: writable.area.right, y1: writable.area.top,
+      })
+      : undefined;
     resolved.push({
-      bounds, enclosureBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
+      bounds, enclosureBounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
     });
   }
 
@@ -491,6 +540,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       pageIndex,
       ...r.bounds,
       ...(r.enclosureBounds ? { enclosure: r.enclosureBounds } : {}),
+      ...(r.writableBounds ? { writable: r.writableBounds } : {}),
       kind,
       label: r.label || undefined,
       required: 'unknown',

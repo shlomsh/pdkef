@@ -19,6 +19,7 @@ corpus/
     score.js       a form + its truth -> recall, precision, per-kind recall.
     baselines.json what we get today. A ratchet. Edit deliberately, say why.
     ground-truth/  one reviewed file per scored form.
+    forms/         the scored documents themselves, as issued.
     scoring.test.js the scored runner. Also case-agnostic.
 ```
 
@@ -113,8 +114,10 @@ one shows up as a failing row to update rather than as a silent change, and so n
 the same limit from scratch. Each row's `why` names where the evidence lives.
 
 Today: a checkbox square stroked as a path is never a checkbox candidate (the miss behind "none of
-the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`), and a real `/Sig` field is
-invisible because signature placement is a different creation mode.
+the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); a painted square inside a ruled
+row costs that row every one of its cells, because the square's own top and bottom become rules and
+`buildClosedCells` walks adjacent rules only; and a real `/Sig` field is invisible because signature
+placement is a different creation mode.
 
 ## The real documents
 
@@ -126,6 +129,10 @@ and only a file somebody was actually sent proves the rules hold together:
 | `public/images/redaction-guide/sample.pdf` | our practice form - a live AcroForm, 9 fields, the file the home page offers on a first visit |
 | `__fixtures__/income-tax-101-page1-geometry.pdf` | a dense flat form, no widgets at all |
 | `__fixtures__/health-declaration-page1-geometry.pdf` | the other scored flat form, whose checkboxes are painted rects rather than paths |
+
+The two `__fixtures__` reductions stay: the element corpus asserts against them and the comb e2e
+tests were built on them. They are no longer what the *scored* corpus reads - that is
+`scoring/forms/`, the originals - so a change to one does not silently move the other's numbers.
 
 The two flat forms carry no widget, which is what makes the widget pass a provable no-op on them -
 and therefore what lets the recall and precision numbers in `docs/mobi-10-field-map-spike.md` stand
@@ -142,17 +149,52 @@ exists to prevent.
 | Form | targets | recall | precision | |
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
-| `health` | 75 | 86.7% | 80.2% | Hebrew, flat |
-| `itc101` | 139 | 55.4% | 83.7% | Hebrew, flat, dense |
+| `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
+| `itc101` | 139 | 85.6% | 96.7% | Hebrew, flat, dense |
+| `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
+| `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 
-**Read those two Hebrew numbers with the caveat in `baselines.json`.** Both fixtures are
-geometry-only reductions built for the comb e2e tests, so the text layer is gone: `itc101` finds 18
-of its 62 checkbox targets and misses the other 44, which are drawn as glyphs that
-`collectCheckboxGlyphs` reads from the layer this fixture does not have. The 18 that survive are the
-children table's narrow tick columns, which `formCells` recovers from ink alone, so this row stopped
-being a flat checkbox zero (MOBI-11). `health` precision sits at the spike's *pre-fix* 80.2% because
-`formCells`' own-text filter never fires. The recorded numbers on real source PDFs are 82.0%/92.7%
-and 86.7%/94.2%. MOBI-13 holds the decision about what artifact we commit to close that.
+**A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
+`irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
+we find them. What those two rows really watch is the widget pass continuing to work and the ink
+pass not going greedy beside it: on the 1040's crowded page the detector emits 92 candidates for 88
+targets, and the 5 that do not match are printed-geometry cells the widgets do not corroborate. The
+forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
+field is.
+
+**And one form finds nothing at all, on purpose.** `irs-1040-1970` is a genuine scan: its whole page
+is one CCITT image, so `collectPageInk` reports zero verticals, zero horizontals and zero rects.
+There is no vector ink to read, 0 candidates is the honest answer, and `precision` is `null` rather
+than 0 because with nothing emitted there is nothing to be precise about. The zero is an assertion,
+in the same way a `known gap` row is: the test pins `candidates` at exactly 0, so the day a raster
+path finds anything the row fails and has to be re-recorded by whoever earned it. Its 64 targets are
+annotated and waiting. MOBI-14 holds the question of whether to build that.
+
+**Those are the real forms now** (MOBI-13, 2026-09-20). Both Hebrew rows used to point at the
+geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 42.4%/79.7%. The
+originals are committed in `scoring/forms/`, and when they first landed both forms reproduced the
+MOBI-10 spike's recorded figures *exactly, to the decimal* - 86.7%/94.2% and 69.1%/91.4%. That
+agreement is worth more than either number: it is the evidence that this committed instrument and
+the hand-run spike measure the same thing. `itc101` has since gone past the spike, to 85.6%/96.7%,
+because MOBI-11's tick-column fix landed on `main` in between.
+
+Getting there took two fixes, not one, and the second was hidden behind the first:
+
+- **The text layer had to be in the file.** `collectCheckboxGlyphs` reads checkbox glyphs straight
+  off the content stream, so the reduction cost `itc101` all 62 of its checkbox targets. Committing
+  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, leaving the
+  8 drawn squares that are the standing `known gap`.
+- **And something has to read it.** `health` did not move at all when its original landed, because
+  `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
+  and which `detect.js` deliberately does not run. The fixture was never that number's cause. The
+  scored corpus now does its own pdf.js pass (`score.js`), because the product does one and a score
+  of a pipeline we do not ship is not a measurement. That is what moved `health` 80.2% -> 94.2% and
+  `itc101`'s precision 87.2% -> 91.4% at the time, and it is still worth about 4 points of precision
+  on top of the tick-column fix.
+
+The element corpus beside it still runs without text, on purpose, for the reasons in `detect.js`.
+The two corpora want different things: one isolates a geometry rule, the other measures the shipped
+pipeline.
 
 Per-kind recall is ratcheted too, not just the whole-form number. A form's overall recall can hold
 while one kind collapses and another improves - that trade is exactly what a single number hides.
@@ -181,9 +223,11 @@ No new test code; a row and a file.
 **Two identities, kept apart.** A truth file's `sha256` is the document somebody *annotated*; a
 baselines row's `sha256` is the document we *committed and score*. `score-form.mjs` fails hard when
 the committed file stops matching its recorded hash - a baseline describes a document, not a
-filename - and prints a loud note when the two differ, which today they do for both Hebrew forms
-because those are committed as geometry-only reductions of the originals. A number measured against
-a derivative is still useful; silently believing it describes the real form is not.
+filename - and prints a loud note when the two differ. Every scored form now matches its own truth
+file, so no run should print that note; if one starts to, the committed file is not the annotated
+document and the number has quietly stopped describing the form. A score measured against a
+derivative is still useful, but silently believing it describes the real form is how `health` spent
+a day being blamed on its fixture.
 
 ## What the corpus is not
 

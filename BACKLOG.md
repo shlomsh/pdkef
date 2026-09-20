@@ -45,6 +45,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
+| MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 
 ### In progress
 
@@ -449,7 +450,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
 | FORM-02 | P1 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |
 | FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · A column header the last row of a tall table can still reach |
 | FORM-04 | P2 | [FORM-04](backlog/tasks/FORM-04.md) · A Latin-script form in the ground-truth corpus |
@@ -458,11 +458,13 @@ _None._
 | FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
+| FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Blocked

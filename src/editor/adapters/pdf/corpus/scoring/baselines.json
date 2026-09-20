@@ -20,11 +20,11 @@
       "sha256": "95ab7e747d3a7796571326248252a342210b7001ec1d1832f2b2c28a4b626992"
     },
     "health": {
-      "pdf": "src/editor/adapters/pdf/__fixtures__/health-declaration-page1-geometry.pdf",
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/health-declaration-2021.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/health-page1.json",
-      "note": "Recall reproduces the spike's recorded 86.7% exactly. Precision is 80.2% here against a recorded 94.2% because this fixture is geometry-only: with no text layer, formCells' own-text filter never fires and the explanatory cells it would drop stay as false positives. 80.2% is the spike's own pre-fix number, which is the tell. See MOBI-13's fixture decision.",
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20), and it reproduces the spike's recorded 86.7%/94.2% exactly. The 10 misses are real detector gaps, not artifacts: both dates and the signature line are kinds the detector does not report at all, and the two phone combs and the e-mail/clause text cells are boxes it does not close. Nothing here is a fixture caveat any more.",
       "recall": 86.7,
-      "precision": 80.2,
+      "precision": 94.2,
       "byKind": {
         "text": 66.7,
         "comb": 66.7,
@@ -32,26 +32,49 @@
         "date": 0,
         "signature": 0
       },
-      "sha256": "9f0eef41ea14bd44c002d6d8da4f5b0b195f57a08f5a42c9cbe4e8c817fcc23b",
-      "derivedFrom": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53",
-      "derived": "geometry-only reduction of the annotated original; see note"
+      "sha256": "ccd0cb0257126e55192dda3c6cac822c0d3fdf785bbef9780f7e6ded94adba53"
     },
     "itc101": {
-      "pdf": "src/editor/adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf",
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/income-tax-101-2024.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
-      "note": "55.4% here against 82.0% on the real source PDF, and the gap is still this fixture. 44 of the 62 checkbox targets are drawn as glyphs, which collectCheckboxGlyphs reads from the text layer the geometry-only reduction removed. The 18 that do match are the children table's narrow tick columns, which formCells recovers from ink alone (MOBI-11), which is why this row is no longer a flat checkbox zero. See MOBI-13's fixture decision.",
-      "recall": 55.4,
-      "precision": 83.7,
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20). Two independent gains stacked here. Committing the original brought the text layer back, which is where collectCheckboxGlyphs reads checkbox glyphs, and the scored corpus now runs the pdf.js text pass the product runs. Then MOBI-11's tick-column fix landed on main. Together they take checkbox recall from 0 to 87.1% (54 of 62) and the form from 42.4%/79.7% to here. The 20 misses left are 9 text cells, 8 drawn-square checkboxes, 2 signature lines and 1 date.",
+      "recall": 85.6,
+      "precision": 96.7,
       "byKind": {
         "comb": 100,
-        "text": 53.3,
+        "text": 70,
         "date": 95.8,
-        "checkbox": 29,
+        "checkbox": 87.1,
+        "signature": 33.3
+      },
+      "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"
+    },
+    "irs-1040-2024": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/irs-1040-2024.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/irs-1040-2024-page1.json",
+      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 98.9% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page - the 5 false positives are printed-geometry cells the widgets do not corroborate, and the one miss is a cell that falls under IoU 0.5 against its widget. A drop here means the widget pass broke.",
+      "recall": 98.9,
+      "precision": 94.6,
+      "byKind": {
+        "text": 98.1,
+        "comb": 100,
+        "checkbox": 100
+      },
+      "sha256": "0a7a54354283044cb41373c6faabfa50955d44bdf91b4b76fa1ca2bf13f6d718"
+    },
+    "irs-1040-1970": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/irs-1040-1970.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/irs-1040-1970-page1.json",
+      "note": "A genuinely scanned page, and the only form here the detector cannot see at all. Its whole page is one CCITTFaxDecode image, so collectPageInk finds zero verticals, zero horizontals and zero rects: there is no vector ink to read, and 0 candidates is the honest answer rather than a fault to fix under MOBI-13. That is why precision is null rather than 0 - with nothing emitted there is nothing to be precise about. The zero is an assertion: scoring.test.js pins candidates at exactly 0, so the day a raster path finds anything here the row fails and has to be re-recorded by whoever earned it. The 64 targets are annotated by eye from the render and describe the form, so they are ready to measure against the moment that happens.",
+      "recall": 0.0,
+      "precision": null,
+      "byKind": {
+        "date": 0,
+        "text": 0,
+        "checkbox": 0,
         "signature": 0
       },
-      "sha256": "3c7dc0b26da75cf4e9b656ef538885b63ca95637873a5622ca66e1e7c5b57ebc",
-      "derivedFrom": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad",
-      "derived": "geometry-only reduction of the annotated original; see note"
+      "sha256": "8d9b89b6966313ada1cf15f9e51fee18f110bfac63ab85b4623ee53255305811"
     }
   }
 }
