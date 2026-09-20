@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from './editPages.js';
+import { useEditHistory } from './useEditHistory.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -36,6 +37,19 @@ export default function PdfEditPagesTool() {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const sortableRef = useRef<Sortable | null>(null);
 
+  // Undo/redo: a whole-state snapshot stack over the three values above. The
+  // ref always mirrors the latest committed state so every mutation site -
+  // including the SortableJS onEnd handler below, whose effect only re-runs
+  // on pages.length - can commit the correct pre-mutation snapshot without a
+  // stale closure over removedPageNums/rotations.
+  const history = useEditHistory();
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  const historySnapshotRef = useRef({ pages, removedPageNums, rotations });
+  useEffect(() => {
+    historySnapshotRef.current = { pages, removedPageNums, rotations };
+  }, [pages, removedPageNums, rotations]);
+
   // Wire up SortableJS on the grid whenever pages are loaded
   useEffect(() => {
     if (!gridRef.current || pages.length === 0) return;
@@ -57,6 +71,7 @@ export default function PdfEditPagesTool() {
       forceFallback: true,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex === evt.newIndex || evt.oldIndex == null || evt.newIndex == null) return;
+        historyRef.current.commit(historySnapshotRef.current);
         setPages((current) => {
           const next = [...current];
           const [moved] = next.splice(evt.oldIndex as number, 1);
@@ -91,6 +106,7 @@ export default function PdfEditPagesTool() {
     clearDownload();
     clearPrepared();
     setPages([]);
+    historyRef.current.reset();
 
     try {
       const bytes = await selectedFile.arrayBuffer();
@@ -123,6 +139,7 @@ export default function PdfEditPagesTool() {
   }, []);
 
   const togglePage = useCallback((pageNum: number) => {
+    historyRef.current.commit(historySnapshotRef.current);
     setRemovedPageNums((current) => {
       const next = new Set(current);
       if (next.has(pageNum)) {
@@ -138,12 +155,14 @@ export default function PdfEditPagesTool() {
   }, []);
 
   const keepAll = useCallback(() => {
+    historyRef.current.commit(historySnapshotRef.current);
     setRemovedPageNums(new Set());
     resetOutput();
     setAnnouncement('Marked all pages to be kept.');
   }, []);
 
   const removeAll = useCallback(() => {
+    historyRef.current.commit(historySnapshotRef.current);
     const all = new Set(pages.map((p) => p.pageNumber));
     setRemovedPageNums(all);
     resetOutput();
@@ -151,6 +170,7 @@ export default function PdfEditPagesTool() {
   }, [pages]);
 
   const rotatePage = useCallback((pageNum: number, direction: string) => {
+    historyRef.current.commit(historySnapshotRef.current);
     setRotations((current) => {
       const currentRot = current[pageNum] || 0;
       const nextRot = direction === 'left' ? currentRot - 90 : currentRot + 90;
@@ -161,6 +181,7 @@ export default function PdfEditPagesTool() {
   }, []);
 
   const invertSelection = useCallback(() => {
+    historyRef.current.commit(historySnapshotRef.current);
     setRemovedPageNums((current) => {
       const next: Set<number> = new Set();
       pages.forEach((p) => {
@@ -173,6 +194,26 @@ export default function PdfEditPagesTool() {
     resetOutput();
     setAnnouncement('Inverted page selections.');
   }, [pages]);
+
+  const handleUndo = useCallback(() => {
+    const restored = historyRef.current.undo(historySnapshotRef.current);
+    if (!restored) return;
+    setPages(restored.pages);
+    setRemovedPageNums(restored.removedPageNums);
+    setRotations(restored.rotations);
+    resetOutput();
+    setAnnouncement('Undid last change.');
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    const restored = historyRef.current.redo(historySnapshotRef.current);
+    if (!restored) return;
+    setPages(restored.pages);
+    setRemovedPageNums(restored.removedPageNums);
+    setRotations(restored.rotations);
+    resetOutput();
+    setAnnouncement('Redid last change.');
+  }, []);
 
   const handleApplyChanges = async () => {
     if (!file || removedPageNums.size === pages.length) return;
@@ -247,6 +288,12 @@ export default function PdfEditPagesTool() {
                 </button>
                 <button type="button" onClick={invertSelection}>
                   Invert
+                </button>
+                <button type="button" onClick={handleUndo} disabled={!history.canUndo} aria-label="Undo last change">
+                  Undo
+                </button>
+                <button type="button" onClick={handleRedo} disabled={!history.canRedo} aria-label="Redo last undone change">
+                  Redo
                 </button>
                 <label class={pdfToolStyles['page-numbers-toggle']}>
                   <input
