@@ -54,6 +54,15 @@ import { formatMessage } from '../i18n/toolMessages';
  *   than in place of this component: a chip mounted instead of the stack was a row of its own
  *   height, so the toolbar under it moved when the chip appeared and again, 5s later with no
  *   input to excuse it, when the chip went.
+ * @param {object} [props.fieldSummary] - `{ text, problem }`: what the form-field detector
+ *   found in this document, already worded by the caller (Sign), and whether what it found is a
+ *   result or a failure. Undefined for a toolbar with no detector at all (Redact), which renders
+ *   nothing; `text` null while the walk is still running. It is one of the stack's rows, and
+ *   shows at rest - the answer belongs to the document, not to whichever tool happens to be
+ *   armed, and having no surface at rest is what made a working detector look broken three
+ *   separate times (FORM-11). `problem` is not a colour - it is whether this is a result or a
+ *   failure, which decides whether the phone's one shared row is worth spending on it and
+ *   whether the slot counts as live (see `.help-fields` and the row itself).
  * @param {object|null} [props.fieldNav] - Sign's Next/Previous across detected fields
  *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
  *   beside whichever row the stack is showing, present for as long as the document has any
@@ -81,6 +90,7 @@ export default function EditorToolStatus({
   keepOnTitleOff = 'Keep {button} on to use it several times. Double-clicking {button} does the same.',
   hintEsc = 'or press Esc to stop entirely',
   hintDoubleClick = 'or double-click {button}',
+  fieldSummary,
   fieldNav = null,
   lang = 'en',
   dir = 'ltr',
@@ -97,6 +107,11 @@ export default function EditorToolStatus({
   keepOnTitleOff?: string;
   hintEsc?: string;
   hintDoubleClick?: string;
+  /** FORM-11: the detector's own one-line report - see the prop doc above.
+   * `undefined` (Redact) renders nothing; a null `text` renders the empty live
+   * region, which has to be in the DOM *before* the text arrives for a screen
+   * reader to announce the arrival rather than a node appearing from nowhere. */
+  fieldSummary?: { text: string | null; problem: boolean };
   /** MOBI-06: Next/Previous across the document's own detected fields - Sign's
    * only caller, so Redact gets its current behaviour by leaving this null.
    * Present (non-null) for the whole session once the document has any
@@ -197,13 +212,17 @@ export default function EditorToolStatus({
     </>
   );
 
+  // Shown only at rest: an armed tool's row owns the cell while it is armed
+  // (see the comment on the row itself), and an override owns it outright.
+  const fieldsShown = Boolean(fieldSummary?.text) && !copy && !override;
+
   return (
     // `data-status-active` is how the shell (ToolShell.module.css) knows this
     // line has something live to say. On a phone the identity line and this one
     // share a single fixed-height row, and that attribute is what swaps the
     // filename out for the armed row. It is an attribute rather than a class
     // because the two live in different CSS modules.
-    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override || fieldNav ? '' : undefined}>
+    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override || fieldNav || (fieldsShown && fieldSummary?.problem) ? '' : undefined}>
       {/* Everything this toolbar could ever show lives here at once - the idle
           tip, whichever tool is actually armed, and a hidden copy of every other
           tool's row - stacked in one grid cell (`.help-stack`/`.help-row` in
@@ -213,9 +232,41 @@ export default function EditorToolStatus({
           state change worth announcing; the idle tip is standing advice, not a
           change, and a hidden reservation is not a state at all. */}
       <div className={`${styles['help-stack']}`}>
-        <div className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override ? styles['help-shown'] : styles['help-spare']}`}>
+        <div className={`${styles['help-row']} ${styles['help-idle']} ${!copy && !override && !fieldsShown ? styles['help-shown'] : styles['help-spare']}`}>
           <span>{idle}</span>
         </div>
+        {/* The detector's answer, in the stack rather than beside it, and this
+            is load-bearing rather than tidy. The slot's width is the widest
+            row it holds and the identity row it rides in wraps: a sibling span
+            appearing next to the stack when the walk finished pushed that row
+            over at 900px, which moved the toolbar and the whole document down
+            a line, unprompted, a moment after every file opened. In the cell
+            it costs nothing - the hidden reservations already set the height,
+            and one short line is never the widest row.
+
+            It belongs here on its own terms too. The answer to "what is in
+            this document" is standing advice, exactly like the idle tip it
+            takes the turn of, and once a tool is armed the hint overlay is
+            drawing the same answer on the page itself.
+
+            What it must not do is take the armed row's turn: that row carries
+            the keep-on switch, which on a phone is the only way out of a
+            locked tool. So this yields to an armed tool and to an override,
+            and never leaves two rows visible in one cell.
+
+            `role="status"`, unlike the hint overlay it reports on - that layer
+            is correctly `aria-hidden`, being a pile of rectangles, so without
+            this the detector's result reached the eye only. Rendered empty
+            from the start rather than mounted when the walk finishes, because
+            a live region that arrives already full is announced unreliably. */}
+        {fieldSummary !== undefined && (
+          <div
+            className={`${styles['help-row']} ${styles['help-fields']}${fieldSummary.problem ? ` ${styles['help-fields-problem']}` : ''} ${fieldsShown ? styles['help-shown'] : styles['help-spare']}`}
+            role="status"
+          >
+            <span>{fieldSummary.text}</span>
+          </div>
+        )}
         {override ? (
           <div className={`${styles['help-row']} ${styles['help-shown']}`} role="status">
             {override}

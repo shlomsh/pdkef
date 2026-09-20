@@ -8,6 +8,16 @@ import '../styles/staticPage.css';
 
 const page = staticPages.find((p) => p.slug === 'about');
 if (!page) throw new Error('staticPages is missing the "about" entry');
+
+// FORM-11: the identity of the build this page was served from. The service
+// worker deliberately has no `skipWaiting()` (csp-scripts-pwa), so an old
+// bundle serving after a deploy is an expected state, not an edge case - and
+// "am I looking at the new code?" had no answer anywhere in the product. It is
+// the same id `sw.js` already carries: `scripts/generate-precache-manifest.mjs`
+// hashes dist/ and substitutes `__BUILD_ID__` in both files, so this page and
+// the cache version can never disagree. `astro dev` has no dist to hash and
+// says so rather than printing the raw placeholder.
+const buildId = import.meta.env.DEV ? 'dev' : '__BUILD_ID__';
 ---
 
 <BaseLayout title={page.title} description={page.description}>
@@ -29,6 +39,12 @@ if (!page) throw new Error('staticPages is missing the "about" entry');
         </div>
       ))}
     </section>
+    {/* Not part of the page's content: no heading, outside <main>'s prose
+        section and absent from the Markdown twin and the JSON-LD, because it
+        is a fact about the bytes in front of you rather than anything to read.
+        Deliberately findable, though - it is here so that answering "is this
+        the current version?" takes seconds instead of a browser session. */}
+    <p class="mx-auto max-w-[720px] px-6 pb-16 type-body text-[var(--color-muted)]">Build {buildId}</p>
   </main>
 
   <Footer />

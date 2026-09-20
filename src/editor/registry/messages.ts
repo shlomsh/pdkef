@@ -62,6 +62,20 @@ export interface SignMessages {
    * title, an icon button with no visible text of its own. */
   nextFieldLabel: string;
   previousFieldLabel: string;
+  /** FORM-11: the form-field detector's own line in the status slot. Three
+   * answers, kept apart on purpose - a count, an empty document, and a check
+   * that did not finish, which used to be the same silence as the second. */
+  fieldsFoundOne: string;
+  /** Takes `{count}`. */
+  fieldsFoundOther: string;
+  fieldsFoundNone: string;
+  fieldsCheckFailed: string;
+  /** The check never loaded, which a stale cached shell can cause and a
+   * person can clear - so this one says what to try, not where to report. */
+  fieldsCheckUnavailable: string;
+  /** The check never started: its inputs were not all there when it ran.
+   * Nothing throws on that path, so this line is the only thing that exists. */
+  fieldsCheckNotStarted: string;
   /** Not yet wired into SignToolbar.tsx's setAnnouncement() calls - see this
    * catalogue's header comment. */
   toolActive: string;

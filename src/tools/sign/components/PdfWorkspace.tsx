@@ -19,6 +19,7 @@ import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import FormFieldHints from './FormFieldHints.tsx';
 import type { FormFieldRegions } from '../useFormFieldRegions.ts';
+import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
@@ -75,7 +76,7 @@ export default function PdfWorkspace({
   workspaceRef,
   numPages,
   pageSizes,
-  formRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] },
+  formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
   pdfDocument,
   pageWrapperRefs,
   setTempPlacement,
@@ -336,6 +337,27 @@ export default function PdfWorkspace({
             exportIssueCount={exportReadiness.blockingFieldCount}
             onReviewExportIssues={reviewExportIssues}
             fieldNavigation={fieldNavigation}
+            /* FORM-11: every region the detector published for this file,
+               counted. It is deliberately the same set the hint overlay
+               outlines - combs, free-text cells and checkboxes - so what the
+               line says is exactly what a person can see and tap, rather than
+               the smaller set Next/Previous walks. The toolbar gets the count,
+               never the regions: a field's own label is content out of
+               somebody's form. */
+            formDetection={{
+              state: formRegions.detection,
+              count: formRegions.combs.length + formRegions.cells.length + formRegions.checkboxes.length,
+              // The one line the Feedback report may carry. `detectionIssue`
+              // is already content-free (the hook writes it itself, and it
+              // outlives a later successful run on purpose); a caught error
+              // is turned into text here and nowhere else, sanitised on the
+              // way out - see formDetectionDetail.ts for what may survive
+              // that and why the raw error may not.
+              detail: formRegions.detectionIssue
+                ?? (formRegions.detectionError === undefined
+                  ? null
+                  : describeFormDetectionFailure(formRegions.detectionError)),
+            }}
             messages={messages}
           />
 

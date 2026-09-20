@@ -57,4 +57,20 @@ if (!worker.includes('__BUILD_ID__')) {
 }
 fs.writeFileSync(workerPath, worker.replaceAll('__BUILD_ID__', buildId));
 
+// The same id, rendered where a person can read it (FORM-11). `sw.js` has no
+// `skipWaiting()` on purpose, so a browser can be serving a previous build for
+// a while and "which one am I on?" needs an answer that is not the console.
+// Substituted here rather than computed in the page because the id is a hash
+// of dist/ and the page is part of dist/ - it cannot exist before the build it
+// names. Both substitutions happen after the hash, exactly like sw.js's, so
+// the printed id describes the build's content and not itself. Hard failure,
+// not a skip: a page that quietly lost the placeholder would read as a build
+// id nobody can act on.
+const aboutPath = path.join(distDir, 'about', 'index.html');
+const about = fs.readFileSync(aboutPath, 'utf8');
+if (!about.includes('__BUILD_ID__')) {
+  throw new Error('dist/about/index.html is missing the __BUILD_ID__ placeholder.');
+}
+fs.writeFileSync(aboutPath, about.replaceAll('__BUILD_ID__', buildId));
+
 console.log(`✅ Precaching ${urls.length} build assets (pdkef-${buildId}).`);

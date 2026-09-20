@@ -1,11 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  signFormDetectionNotStarted,
+  signFormDetectionUnavailable,
   classifyExportError,
   reportMaintenanceEvent,
   sanitizeAnalyticsEvent,
   sanitizeAnalyticsPath,
   signExportFailed,
   signExportSucceeded,
+  signFormDetectionCompleted,
+  signFormDetectionFailed,
 } from './maintenanceTelemetry.ts';
 
 const sensitiveValues = {
@@ -51,6 +55,76 @@ describe('anonymous maintenance telemetry', () => {
     expect(serialized).toContain('processing_failed');
     expect(serialized).not.toContain(sensitiveValues.filename);
     expect(serialized).not.toContain(sensitiveValues.rawMessage);
+  });
+
+  // FORM-11. The signal that was missing: detection failing and detection
+  // finding nothing were one indistinguishable silence, and a total failure
+  // once shipped unnoticed. A bucket answers "does this come back empty in the
+  // wild" without carrying a number specific enough to characterise anyone's
+  // document.
+  it('reports a detection result as a bucket and nothing else', () => {
+    expect(signFormDetectionCompleted(0)).toEqual({
+      name: 'sign_form_detection',
+      properties: { outcome: 'success', field_count_bucket: 'none' },
+    });
+    expect(signFormDetectionCompleted(5).properties).toMatchObject({ field_count_bucket: 'one_to_five' });
+    expect(signFormDetectionCompleted(7).properties).toMatchObject({ field_count_bucket: 'six_to_twenty' });
+    expect(signFormDetectionCompleted(97).properties).toMatchObject({ field_count_bucket: 'over_twenty' });
+    expect(signFormDetectionCompleted(Number.NaN).properties).toMatchObject({ field_count_bucket: 'none' });
+
+    const event = signFormDetectionCompleted(7);
+    expect(Object.isFrozen(event)).toBe(true);
+    expect(Object.isFrozen(event.properties)).toBe(true);
+    expect(Object.keys(event.properties)).toEqual(['outcome', 'field_count_bucket']);
+  });
+
+  it('reports a detection failure as one code off the same closed list, never the error', () => {
+    const error = Object.assign(new Error(sensitiveValues.rawMessage), sensitiveValues, {
+      name: 'InvalidPDFException',
+    });
+    const serialized = JSON.stringify(signFormDetectionFailed(error));
+
+    expect(serialized).toContain('invalid_document');
+    for (const value of Object.values(sensitiveValues)) expect(serialized).not.toContain(value);
+    expect(serialized).not.toContain('stack');
+    expect(JSON.parse(serialized).properties).toEqual({ outcome: 'failure', error_code: 'invalid_document' });
+    // A bug in our own code, which is what the incident behind this was.
+    expect(signFormDetectionFailed(new TypeError('x is not a function')).properties)
+      .toMatchObject({ error_code: 'processing_failed' });
+    // No count on a failure: there is nothing to count, and a duration would
+    // be a performance question this event is not asking.
+    expect('field_count_bucket' in signFormDetectionFailed(error).properties).toBe(false);
+    expect('duration_bucket' in signFormDetectionFailed(error).properties).toBe(false);
+  });
+
+  // Separate from every other failure on purpose: this one is a browser still
+  // being served a shell from before a deploy, which turns a working detector
+  // into a permanent "no fields in this PDF" and is the person's to clear, not
+  // ours to fix in the detector.
+  it('gives a detector that never loaded its own code, distinct from one that threw', () => {
+    expect(signFormDetectionUnavailable()).toEqual({
+      name: 'sign_form_detection',
+      properties: { outcome: 'failure', error_code: 'modules_unavailable' },
+    });
+    expect(Object.isFrozen(signFormDetectionUnavailable().properties)).toBe(true);
+    expect(signFormDetectionFailed(new TypeError('boom')).properties)
+      .not.toEqual(signFormDetectionUnavailable().properties);
+  });
+
+  // The outcome with no exception behind it: the run never happened because
+  // its inputs were not all there. Nothing throws, so a rate here is the only
+  // way it is visible at all.
+  it('gives a run that never started its own code too', () => {
+    expect(signFormDetectionNotStarted()).toEqual({
+      name: 'sign_form_detection',
+      properties: { outcome: 'failure', error_code: 'not_started' },
+    });
+    const codes = [
+      signFormDetectionNotStarted(),
+      signFormDetectionUnavailable(),
+      signFormDetectionFailed(new TypeError('boom')),
+    ].map((event) => (event.properties as { error_code: string }).error_code);
+    expect(new Set(codes).size).toBe(3);
   });
 
   it('does not invoke the transport while offline', () => {

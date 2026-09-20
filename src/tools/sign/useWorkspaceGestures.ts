@@ -171,7 +171,7 @@ export default function useWorkspaceGestures({
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
   pageSizes = [],
-  formRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] },
+  formRegions = { detection: 'pending', combs: [], checkboxes: [], cells: [], pageDirections: [] },
   elements = [],
   nextElementIndex = 0,
   // PdfWorkspace supplies a ref it owns for component teardown. Keeping this

@@ -529,7 +529,10 @@ describe('SignToolbar Component', () => {
         dispatch({ type: 'SET_TOOL', payload: locked ? { tool, locked: true } : tool });
       });
 
-      return container.querySelector('[role="status"]').textContent;
+      // The row the stack is actually showing. `[role="status"]` alone is no
+      // longer unique here: FORM-11's field-summary row is a live region too,
+      // sitting hidden in the same cell whenever a tool is armed.
+      return query(container, `.${styles['help-shown']}`).textContent;
     };
 
     // The status line's one control: a toggle reading "Keep Shapes on" while the
@@ -1171,6 +1174,117 @@ describe('SignToolbar Component', () => {
       const [previous, next] = container.querySelectorAll<HTMLButtonElement>(`.${styles['field-nav-button']}`);
       expect(previous.getAttribute('aria-label')).toBe(hebrewSignMessages.previousFieldLabel);
       expect(next.getAttribute('aria-label')).toBe(hebrewSignMessages.nextFieldLabel);
+    });
+  });
+
+  // FORM-11: the detector used to say nothing at all, so a form it had read
+  // correctly and a form it had never managed to look at were the same blank
+  // toolbar. The toolbar owns the wording (TOOL_COPY, CLAUDE.md's editor
+  // rule); the states come from the hook.
+  describe('formDetection', () => {
+    const mountToolbar = (props: Partial<ComponentProps<typeof ProductionSignToolbar>> = {}) => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<SignToolProvider><SignToolbar {...props} /></SignToolProvider>, container);
+      });
+      return query(container, `.${styles['help-fields']}`);
+    };
+
+    it('says nothing at all until the one walk for this file has finished', () => {
+      expect(mountToolbar().textContent).toBe('');
+      expect(mountToolbar({ formDetection: { state: 'pending', count: 9, detail: null } }).textContent).toBe('');
+    });
+
+    it('counts what was found, in the singular and the plural', () => {
+      expect(mountToolbar({ formDetection: { state: 'done', count: 7, detail: null } }).textContent)
+        .toBe('7 form fields found');
+      expect(mountToolbar({ formDetection: { state: 'done', count: 1, detail: null } }).textContent)
+        .toBe('1 form field found');
+    });
+
+    // The two states this whole ticket is about. "Nothing in it" is an answer
+    // about the document; "could not check" is an answer about us, and it
+    // points at where the detail is waiting.
+    it('tells a document with no fields apart from a check that did not finish', () => {
+      expect(mountToolbar({ formDetection: { state: 'done', count: 0, detail: null } }).textContent)
+        .toBe('No form fields found');
+
+      const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: x is not a function' } });
+      expect(failed.textContent).toBe('Could not check this PDF for form fields. The Feedback button has the details.');
+      expect(failed.classList.contains(styles['help-fields-problem'])).toBe(true);
+      // Never the error itself: what is on screen is copy, and the detail
+      // rides in the Feedback report where it is introduced.
+      expect(failed.textContent).not.toContain('TypeError');
+    });
+
+    // The leading theory for a live report nobody could reproduce: the shell
+    // is served cache-first, so a copy cached before a deploy asks for chunk
+    // names that deploy replaced, the detector's dynamic import rejects, and
+    // every document silently has no fields. It is the one state the person
+    // can clear themselves, so it is the one whose copy tells them how.
+    it('tells a detector that never loaded apart from one that ran and threw', () => {
+      const unavailable = mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail: 'TypeError: Importing a module script failed.' } });
+      expect(unavailable.textContent).toBe('Could not load the form field check. Reopening this page usually fixes it.');
+      expect(unavailable.classList.contains(styles['help-fields-problem'])).toBe(true);
+
+      const failed = mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null } });
+      expect(failed.textContent).not.toBe(unavailable.textContent);
+
+      // Both are worth reporting, so both carry their detail into Feedback.
+      mountToolbar({ formDetection: { state: 'unavailable', count: 0, detail: 'TypeError: Importing a module script failed.' } });
+      const body = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
+        .searchParams.get('body')!;
+      expect(body).toContain('TypeError: Importing a module script failed.');
+    });
+
+    // The prime suspect for the live report, and the only path to "no fields"
+    // with no exception behind it anywhere: the effect's precondition bail.
+    it('says so when the check never started, distinctly from every other outcome', () => {
+      const notStarted = mountToolbar({
+        formDetection: { state: 'not-started', count: 0, detail: 'Detection did not start: no pdf.js document. bytes=4096, pages=3, document=no' },
+      });
+      expect(notStarted.textContent)
+        .toBe('The form field check did not start on this file. The Feedback button has the details.');
+      expect(notStarted.classList.contains(styles['help-fields-problem'])).toBe(true);
+
+      const wordings = new Set((['done', 'failed', 'unavailable', 'not-started'] as const).map((state) => (
+        mountToolbar({ formDetection: { state, count: 0, detail: null } }).textContent
+      )));
+      expect(wordings.size).toBe(4);
+
+      // The line a person could not otherwise give us rides in the report.
+      mountToolbar({
+        formDetection: { state: 'not-started', count: 0, detail: 'Detection did not start: no pdf.js document. bytes=4096, pages=3, document=no' },
+      });
+      const body = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
+        .searchParams.get('body')!;
+      expect(body).toContain('bytes=4096, pages=3, document=no');
+    });
+
+    it('reads every one of those from the given catalogue, like the rest of TOOL_COPY', () => {
+      const found = mountToolbar({
+        formDetection: { state: 'done', count: 3, detail: null },
+        messages: hebrewSignMessages,
+      });
+      expect(found.textContent).toBe(hebrewSignMessages.fieldsFoundOther.replace('{count}', '3'));
+      expect(mountToolbar({ formDetection: { state: 'failed', count: 0, detail: null }, messages: hebrewSignMessages }).textContent)
+        .toBe(hebrewSignMessages.fieldsCheckFailed);
+    });
+
+    // The report is the only way a device we cannot reproduce ever tells us
+    // what it threw, and the only automatic content it has ever carried.
+    it('hands a failure detail to the Feedback report, and nothing otherwise', () => {
+      mountToolbar({ formDetection: { state: 'failed', count: 0, detail: 'TypeError: p.findLast is not a function' } });
+      const failedBody = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
+        .searchParams.get('body')!;
+      expect(failedBody).toContain('TypeError: p.findLast is not a function');
+      expect(failedBody).toContain('nothing from your document in it');
+
+      mountToolbar({ formDetection: { state: 'done', count: 7, detail: null } });
+      const okBody = new URL(query<HTMLAnchorElement>(container, 'a[data-optional-control="feedback"]').href)
+        .searchParams.get('body')!;
+      expect(okBody).not.toContain('Added automatically');
     });
   });
 });

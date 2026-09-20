@@ -134,6 +134,11 @@
 .help-row { grid-area: 1 / 1; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
 .help-shown { visibility: visible; }
 .help-spare { visibility: hidden; }
+/* FORM-11: the form-field detector's own line, one of the stack's rows (see
+   EditorToolStatus.tsx for why it is in the cell rather than beside it). Same
+   muted weight as the idle tip whose turn it takes - it is a fact about the
+   document, not a notice, and a count that shouts is worse than no count. */
+.help-fields { color: var(--color-muted); }
 /* The phone label of the keep-on switch, swapped in by width below; on a wider
    screen it is the long one that shows. Both are always in the DOM. */
 .keep-short { display: none; }
@@ -157,6 +162,19 @@
 @media (max-width: 559px) {
   .help { font-size: .78rem; }
   .help-idle { display: none; }
+  /* A count goes the same way the idle tip does, and for the same reason:
+     this cell is the filename's, and the file's own name is worth more than
+     "7 form fields found" to someone who can see the outlines by arming a
+     tool. `display: none` rather than `visibility`, so it does not vote on
+     the row's height either. */
+  .help-fields { display: none; }
+  /* The exception. A check that could not run is the one thing that has to
+     reach the device it failed on, and the devices we cannot reproduce are
+     phones - a report of "no fields at all", from an iPhone, on two documents
+     that detect correctly everywhere we can test, is the report that put this
+     line here. It takes the filename's turn for that document only
+     (`data-status-active`, EditorToolStatus.tsx). */
+  .help-fields-problem { display: flex; }
   .help-row { flex-wrap: nowrap; }
   .help-icon { display: none; }
   .help-text { flex: 1 1 auto; min-width: 0; }

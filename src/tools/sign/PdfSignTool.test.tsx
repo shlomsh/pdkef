@@ -127,6 +127,36 @@ describe('PdfSignTool UI flow', () => {
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });
 
+  // FORM-11. The detector runs once per document and used to report nothing in
+  // any outcome, so a total failure and an ordinary form were the same silence
+  // - the state that let a broken detector ship unnoticed. jsdom's pdf.js stub
+  // cannot walk a page, so the walk here fails, which is the outcome worth
+  // guarding: it is reported, once, as a code and nothing else.
+  it('reports the form-field walk once per document, as one anonymous event', async () => {
+    const reportEvent = vi.spyOn(maintenanceTelemetry, 'reportMaintenanceEvent');
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => { render(<PdfSignTool />, container); });
+
+    await act(async () => {
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('form.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // The walk is asynchronous (pdf-lib and the five detectors arrive by
+    // dynamic import), so the event lands after the file does.
+    const detected = () => reportEvent.mock.calls
+      .map(([event]) => event)
+      .filter((event) => event.name === 'sign_form_detection');
+    await vi.waitFor(() => expect(detected()).toHaveLength(1), { timeout: 3000, interval: 50 });
+    const detection = detected();
+    expect(Object.keys(detection[0].properties)).toEqual(['outcome', 'error_code']);
+    // Nothing about the document travels, the filename included.
+    expect(JSON.stringify(detection[0])).not.toContain('form.pdf');
+    // And the person is told, rather than left with a blank editor.
+    expect(container.textContent).toContain('Could not check this PDF for form fields');
+  });
+
   it.each([
     ['download', 'Save your changes and download the signed PDF', () => new signModule.UnrepresentableTextError(['\u{1F600}'], [1]), '\u{1F600}', 'Initial text'],
     ['offline-font download', 'Save your changes and download the signed PDF', () => new signModule.FontUnavailableError('Pacifico'), 'Connect to the internet', 'Initial text'],
@@ -287,7 +317,10 @@ describe('PdfSignTool UI flow', () => {
       expect(container.querySelector(`.${workspaceStyles['page-wrapper']}`)).not.toBeNull();
       expect(container.textContent).not.toContain('Saving document layers');
       // Nor may it count as a user export for SIG-13's export-duration signal.
-      expect(reportEvent).not.toHaveBeenCalled();
+      // By name, not by call count: opening the file also reports FORM-11's
+      // one form-detection event, which is about the document and not about
+      // this export.
+      expect(reportEvent.mock.calls.map(([event]) => event.name)).not.toContain('sign_export');
 
       // Once the background export lands, Share is ready with no prior tap.
       await vi.waitFor(() => {
@@ -307,7 +340,7 @@ describe('PdfSignTool UI flow', () => {
       await vi.waitFor(() => {
         expect(container.querySelector('button[title="Share the signed PDF"]')).not.toBeNull();
       }, { timeout: 3000, interval: 50 });
-      expect(reportEvent).not.toHaveBeenCalled();
+      expect(reportEvent.mock.calls.map(([event]) => event.name)).not.toContain('sign_export');
     } finally {
       if (originalShare) Object.defineProperty(navigator, 'share', originalShare);
       else Reflect.deleteProperty(navigator, 'share');

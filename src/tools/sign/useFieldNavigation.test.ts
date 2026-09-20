@@ -25,7 +25,7 @@ const cell = (pageIndex: number, left: number, top: number, width = 20): FieldRe
 
 const rowRight = comb(0, 70, 20); // rightmost - first on an RTL page
 const rowLeft = comb(0, 20, 20);
-const emptyRegions: FormFieldRegions = { combs: [], checkboxes: [], cells: [], pageDirections: [] };
+const emptyRegions: FormFieldRegions = { detection: 'done', combs: [], checkboxes: [], cells: [], pageDirections: [] };
 
 function makeHook(overrides: Partial<Parameters<typeof useFieldNavigation>[0]> = {}) {
   const dispatch = vi.fn();
@@ -62,7 +62,7 @@ describe('useFieldNavigation – nothing detected', () => {
 });
 
 describe('useFieldNavigation – creating a box on an empty field', () => {
-  const formRegions: FormFieldRegions = { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+  const formRegions: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
 
   it('reports hasFields whenever the document has any, regardless of the current position', () => {
     expect(makeHook({ formRegions }).hasFields).toBe(true);
@@ -71,7 +71,7 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
     // must not unmount there, only grey its buttons out. Reuses rowRight
     // (order[0]) as the sole detected field, so being "on" it means being at
     // both ends of the order at once.
-    const solo: FormFieldRegions = { combs: [rowRight], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+    const solo: FormFieldRegions = { detection: 'done', combs: [rowRight], checkboxes: [], cells: [], pageDirections: ['rtl'] };
     const onlyField: TextElement = { id: 'e', type: 'text', pageIndex: 0, left: 70, top: 19.5, text: '' };
     const nav = makeHook({ formRegions: solo, elements: [onlyField], activeElementId: 'e' });
     expect(nav.hasFields).toBe(true);
@@ -101,7 +101,7 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
   it('creates the box the same way a tap on a free-text cell would: minWidth, no comb fields', () => {
     const soloCell = cell(0, 55, 33.2);
     const { goToNext, dispatch, setAnnouncement } = makeHook({
-      formRegions: { combs: [], checkboxes: [], cells: [soloCell], pageDirections: ['ltr'] },
+      formRegions: { detection: 'done', combs: [], checkboxes: [], cells: [soloCell], pageDirections: ['ltr'] },
     });
     goToNext();
     const el = addedElement(dispatch) as TextElement;
@@ -123,7 +123,7 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
 
   it('seeds LTR on a left-to-right page - the seed is the form\'s direction, not a Hebrew default', () => {
     const { goToNext, dispatch } = makeHook({
-      formRegions: { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr'] },
+      formRegions: { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr'] },
     });
     goToNext();
     expect((addedElement(dispatch) as TextElement).textDirection).toBe('ltr');
@@ -144,7 +144,7 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
 });
 
 describe('useFieldNavigation – landing on a field that already has a box', () => {
-  const formRegions: FormFieldRegions = { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+  const formRegions: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
   // Sits on rowRight (left 70, top 20) - the first field an RTL page's Next
   // reaches with nothing selected. elementIsOnField's tolerance is generous
   // enough that the box placeCombOnRegion would itself produce also matches.
@@ -174,7 +174,7 @@ describe('useFieldNavigation – landing on a field that already has a box', () 
 
 describe('useFieldNavigation – walking forward across renders', () => {
   it('advances from the field just created to the next one, the way PdfWorkspace re-renders it', () => {
-    const formRegions: FormFieldRegions = { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
+    const formRegions: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl'] };
     let elements: EditorElement[] = [];
     let activeElementId: string | null = null;
     const dispatch = vi.fn((action: { type: string; payload: unknown }) => {
@@ -207,7 +207,7 @@ describe('useFieldNavigation – walking forward across renders', () => {
 
 describe('useFieldNavigation – direction-aware ordering', () => {
   it('an LTR page visits the leftmost field first, unlike the RTL fixtures above', () => {
-    const formRegions: FormFieldRegions = { combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr' as TextDirection] };
+    const formRegions: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr' as TextDirection] };
     const { goToNext, dispatch } = makeHook({ formRegions });
     goToNext();
     expect(addedElement(dispatch)).toMatchObject({ left: 20 });

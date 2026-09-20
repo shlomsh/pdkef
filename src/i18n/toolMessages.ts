@@ -725,6 +725,25 @@ const englishSignMessages: SignMessages = {
   armHint: 'Double-click to keep {label} on',
   nextFieldLabel: 'Next field',
   previousFieldLabel: 'Previous field',
+  // FORM-11: what the on-open detector found, said out loud. Plain counts, no
+  // claim of completeness ("found", not "there are"), and a failure that says
+  // the check did not finish rather than blaming the document - the detector
+  // reaches ~85% recall on a real form, so "none" and "we could not look" are
+  // genuinely different answers and the copy keeps them different.
+  // The failure line names the Feedback button on purpose: the report that
+  // prompted this came from a device nobody here can reproduce, and that
+  // button is where the sanitised error is waiting to be relayed. No alarm,
+  // no blame on the file, and nothing a person has to understand to help.
+  // The unavailable line is the one a person can act on themselves (a shell
+  // cached before a deploy, asking for chunks that deploy replaced), so it
+  // spends its second sentence on the fix instead - no cache vocabulary, no
+  // instruction to clear anything, just the thing that usually works.
+  fieldsFoundOne: '1 form field found',
+  fieldsFoundOther: '{count} form fields found',
+  fieldsFoundNone: 'No form fields found',
+  fieldsCheckFailed: 'Could not check this PDF for form fields. The Feedback button has the details.',
+  fieldsCheckUnavailable: 'Could not load the form field check. Reopening this page usually fixes it.',
+  fieldsCheckNotStarted: 'The form field check did not start on this file. The Feedback button has the details.',
   toolActive: '{button} tool active. {action}',
   signToolActive: 'Sign tool active. {action}',
   toolLocked: '{button} stays on after each one. Switch it off, or press Escape, when you are done.',
@@ -926,6 +945,12 @@ const hebrewSignMessages: SignMessages = {
   armHint: 'לחיצה כפולה כדי להשאיר את {label} פעיל',
   nextFieldLabel: 'שדה הבא',
   previousFieldLabel: 'שדה קודם',
+  fieldsFoundOne: 'נמצא שדה טופס אחד',
+  fieldsFoundOther: 'נמצאו {count} שדות טופס',
+  fieldsFoundNone: 'לא נמצאו שדות טופס',
+  fieldsCheckFailed: 'לא ניתן היה לבדוק שדות טופס בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
+  fieldsCheckUnavailable: 'בדיקת שדות הטופס לא נטענה. פתיחה מחדש של הדף בדרך כלל פותרת את זה.',
+  fieldsCheckNotStarted: 'בדיקת שדות הטופס לא התחילה בקובץ הזה. הפרטים מחכים בכפתור המשוב.',
   toolActive: 'הכלי {button} פעיל. {action}',
   signToolActive: 'כלי החתימה פעיל. {action}',
   toolLocked: '{button} יישאר פעיל אחרי כל שימוש. כבו אותו, או לחצו Escape, כשתסיימו.',

@@ -15,6 +15,7 @@ import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts'
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
+import type { FormDetectionState } from '../useFormFieldRegions.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
@@ -37,6 +38,26 @@ const isSignToolType = (tool: string): tool is SignToolType => (SIGN_TOOL_TYPES 
 // navigate) fall back to, same reasoning as PdfWorkspace.tsx's own copy of
 // this constant: a fixed "nothing to do here" value rather than an optional
 // prop every read site has to guard.
+/** Nothing claimed about the document yet - the toolbar's own tests and any
+ * caller that does not run the detector get this and say nothing. */
+const NO_FORM_DETECTION: FormDetection = { state: 'pending', count: 0, detail: null };
+
+/** What the detector found, as the toolbar needs it: the state of the one walk
+ * per file, and how many regions it came back with. Regions themselves never
+ * reach the toolbar - a count is the whole of what the copy may say, and a
+ * label out of somebody's form is document content. */
+export interface FormDetection {
+  state: FormDetectionState;
+  count: number;
+  /**
+   * One sanitised line naming what the walk died of, when it died - the
+   * Feedback report's only automatic content. Null in every other state.
+   * `formDetectionDetail.ts` is what makes it safe to carry; nothing else may
+   * put an error into this field.
+   */
+  detail?: string | null;
+}
+
 const NOOP_FIELD_NAVIGATION: FieldNavigation = {
   hasFields: false,
   hasNext: false,
@@ -62,6 +83,7 @@ export default function SignToolbar({
   exportIssueCount = 0,
   onReviewExportIssues = () => {},
   fieldNavigation = NOOP_FIELD_NAVIGATION,
+  formDetection = NO_FORM_DETECTION,
   messages,
 }: {
   setAnnouncement: (msg: string) => void;
@@ -86,6 +108,10 @@ export default function SignToolbar({
    * PdfWorkspace.tsx passes the one PdfSignTool.tsx built, so its Tab shortcut
    * and this toolbar's control read the same hasNext/hasPrevious. */
   fieldNavigation?: FieldNavigation;
+  /** FORM-11: the result of the one form-field detection run for this file
+   * (`useFormFieldRegions`), which PdfWorkspace derives from the regions it
+   * already holds. Counted, never quoted. */
+  formDetection?: FormDetection;
   /** LOC-09 stage 1: the always-visible toolbar row's own catalogue - see
    * src/i18n/toolMessages.ts's SignMessages. Optional and English-default so
    * every existing caller (this file's own tests included) is unaffected;
@@ -269,6 +295,41 @@ export default function SignToolbar({
     previousLabel: t.previousFieldLabel,
   } : null;
 
+  // FORM-11: the detector's report, worded here because TOOL_COPY owns every
+  // tool-facing string (CLAUDE.md's editor rule) and `t` is where a locale's
+  // edition of it arrives. Four states, three of them things worth saying:
+  //   - pending: null, so the line stays empty rather than flashing a count
+  //     that is about to change, or claiming "none" before anyone has looked.
+  //   - done with a count: what was found, without claiming it is everything
+  //     (the detector runs at roughly 85% recall on a real form).
+  //   - done with nothing: an answer about the document.
+  //   - failed: an answer about us - the detector ran on this file and threw.
+  //   - unavailable: the detector never loaded, which a shell cached before a
+  //     deploy causes and reopening the page usually clears. It is the one a
+  //     person can do something about, so it is the only one whose second
+  //     sentence is an instruction rather than a pointer.
+  //   - not-started: its inputs were not all there and it never ran. Nothing
+  //     is thrown on that path, so this line is the only evidence that
+  //     exists, which is why it says so rather than staying quiet.
+  // Keeping all five apart is the point: before FORM-11 they were one
+  // silence. See useFormFieldRegions.ts's `detection`.
+  const fieldSummary = {
+    problem: formDetection.state === 'failed'
+      || formDetection.state === 'unavailable'
+      || formDetection.state === 'not-started',
+    text: (() => {
+      if (formDetection.state === 'pending') return null;
+      if (formDetection.state === 'not-started') return t.fieldsCheckNotStarted;
+      if (formDetection.state === 'unavailable') return t.fieldsCheckUnavailable;
+      if (formDetection.state === 'failed') return t.fieldsCheckFailed;
+      if (formDetection.count === 0) return t.fieldsFoundNone;
+      return formatMessage(
+        formDetection.count === 1 ? t.fieldsFoundOne : t.fieldsFoundOther,
+        { count: formDetection.count },
+      );
+    })(),
+  };
+
   // The hint line, handed to the shell so it rides in the file row instead of
   // taking a line of its own directly above the document. EditorToolStatus owns
   // the shape of it, and the Keep adding / Stop chip that is the only exit from
@@ -280,6 +341,7 @@ export default function SignToolbar({
       onToggleKeepOn={() => selectedTool && (toolLocked ? unlockTool(selectedTool) : lockTool(selectedTool))}
       idle={`${t.tipIdle}${hasTextElement ? ` ${t.tipEditText}` : ''}`}
       reserveCopies={Object.values(TOOL_COPY)}
+      fieldSummary={fieldSummary}
       fieldNav={fieldNav}
       keepOnLabel={t.keepOn}
       keepOnShort={t.keepOnShort}
@@ -617,6 +679,12 @@ export default function SignToolbar({
             title={t.feedbackTitle}
             lang={t.lang}
             dir={t.dir}
+            /* FORM-11: the one thing this report ever fills in by itself, and
+               only when the field walk threw. A failure a person cannot
+               describe is a failure nobody can fix - an iPhone seeing no
+               outlines and no snapping, on a document that works everywhere we
+               can test, is a report we have had and could do nothing with. */
+            detectionFailure={formDetection.detail ?? null}
           />
 
           {/* The united file action, in the exact slot Start over used to hold.
