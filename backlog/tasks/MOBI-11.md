@@ -114,3 +114,23 @@ as a blank line, aimed at failure class 2 in `scripts/spike/mobi-10/report-cells
 Its W-9 ground truth was mostly the form's own AcroForm field list (20 of 22 targets), so it does
 not stand in for the Latin-script flat form this ticket still wants.
 
+
+**Step 3, 2026-09-20 - the tick columns, and the ground-truth error under them.** Re-ran the
+MOBI-10 tooling against both source PDFs (sha256 unchanged) and found form 101's 26 children-table
+tick targets recorded one column right of their ruled cells; the printed column headers (`2` at
+x 522.6-527.8, `1` at x 532.7-538.0) fix which ruled column is which, and the targets were
+re-snapped on that basis, row bands untouched, each carrying its reason in `notes`. Separately,
+`formCells.js`'s 15pt width floor made every 10.2pt tick column invisible: `MIN_TICK_CELL_WIDTH`
+(6pt) plus `MIN_TICK_COLUMN_ROWS` (3) now admit a narrow *empty* cell whose column repeats down the
+table, classified `checkbox`, which is the rule that keeps dotted-leader gaps out (they never recur
+at one x). Form 101 union goes **69.1/91.4/83.3 -> 82.0/92.7/80.7**, checkbox alone 58.1% -> 87.1%
+recall at 100% precision; the health form is unchanged. Record and remaining-miss breakdown in the
+[spike addendum](../../docs/mobi-10-field-map-spike.md).
+
+**The gate is now a `text`-recall problem, not a geometry one.** 11 more fields on form 101 reach
+90%, and `text` (53.3% recall, 36.4% precision) is the only class with room - failure class 1, a
+caption beside a checkbox versus a real field. Two things worth their own tickets rather than this
+one: `HEADER_SEARCH_HEIGHT` (220pt) does not reach the bottom of a 286pt table, which is why label
+association fell 2.6 points; and `pageInk.js` discards clip-path rectangles (`re W n`) entirely,
+which is right for the health form's 76 phantom squares but may be discarding real table-cell
+geometry on forms that rule cells as clip paths.

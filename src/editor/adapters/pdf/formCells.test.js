@@ -178,3 +178,38 @@ describe('detectCellCandidates – the writable strip beside a printed label', (
     expect(cell.writable).toBeUndefined();
   });
 });
+
+describe('narrow tick columns', () => {
+  /** Three stacked 20pt row bands sharing one column layout (MOBI-11's children table shape). */
+  function stackedRows(columns, count = 3) {
+    const bands = [];
+    for (let i = 0; i < count; i += 1) {
+      bands.push(rowBand({ top: 80 - i * 20, bottom: 60 - i * 20, columns }));
+    }
+    return mergeInk(...bands);
+  }
+
+  it('reads a narrow blank column that repeats down a table as tick cells', () => {
+    // A wide writable cell (0..60) beside two 8pt tick columns, the shape form 101 rules its
+    // children table in: a name to write, then two columns a person ticks.
+    const ink = stackedRows([0, 60, 68, 76]);
+    const ticks = detectCellCandidates(ink, geometry, 0, []).filter((c) => c.kind === 'checkbox');
+    expect(ticks).toHaveLength(6);
+    expect(ticks.every((c) => c.width < 15)).toBe(true);
+  });
+
+  it('leaves a narrow column alone when it does not repeat', () => {
+    // The same 8pt columns on a single band: an incidental gap, not a printed tick column.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 60, 68, 76] });
+    expect(detectCellCandidates(ink, geometry, 0, []).some((c) => c.kind === 'checkbox')).toBe(false);
+  });
+
+  it('does not tick a narrow cell that holds printed text', () => {
+    // A repeating narrow column carrying a row number is a printed value, not somewhere to tick.
+    const ink = stackedRows([0, 60, 68, 76]);
+    const digits = [1, 2, 3].map((n, i) => text(String(n), { left: 69, top: 21 + i * 20, width: 4 }));
+    const ticks = detectCellCandidates(ink, geometry, 0, digits).filter((c) => c.kind === 'checkbox');
+    // The 68..76 column is out; the 60..68 column beside it still ticks.
+    expect(ticks.every((c) => c.left < 68)).toBe(true);
+  });
+});
