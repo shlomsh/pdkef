@@ -213,3 +213,69 @@ describe('useFieldNavigation – direction-aware ordering', () => {
     expect(addedElement(dispatch)).toMatchObject({ left: 20 });
   });
 });
+
+// The chevrons are a claim about which way a press travels, so they follow the
+// page rather than the UI's language: the bug this covers shipped as a Hebrew
+// form on the English edition drawing `>` for a step that moved left.
+describe('useFieldNavigation - which way the arrows point', () => {
+  it('takes the direction from the page the fields are printed on, not the locale', () => {
+    const rtl: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl' as TextDirection] };
+    expect(makeHook({ formRegions: rtl }).direction).toBe('rtl');
+    const ltr: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['ltr' as TextDirection] };
+    expect(makeHook({ formRegions: ltr }).direction).toBe('ltr');
+  });
+
+  // Per page would look identical on screen - `dir` reverses the row and the
+  // glyph mirror undoes it - so the button under a finger would change meaning
+  // at a page boundary with nothing to show for it, and two taps on one spot
+  // would go forward and straight back. One answer per document instead.
+  it('holds one direction for the whole document, wherever in it the person is standing', () => {
+    const mostlyRtl: FormFieldRegions = {
+      detection: 'done',
+      combs: [rowRight, rowLeft, comb(1, 20, 20)],
+      checkboxes: [],
+      cells: [],
+      pageDirections: ['rtl' as TextDirection, 'ltr' as TextDirection],
+    };
+    expect(makeHook({ formRegions: mostlyRtl }).direction).toBe('rtl');
+
+    // Standing on the lone LTR page does not turn the arrows round.
+    const onPageTwo: TextElement = { id: 'e', type: 'text', pageIndex: 1, left: 20, top: 19.5, text: '' };
+    expect(makeHook({ formRegions: mostlyRtl, elements: [onPageTwo], activeElementId: 'e' }).direction).toBe('rtl');
+  });
+
+  it('goes with whichever direction holds more of the fields, ties to ltr', () => {
+    const mostlyLtr: FormFieldRegions = {
+      detection: 'done',
+      combs: [rowRight, comb(1, 20, 20), comb(1, 60, 30)],
+      checkboxes: [],
+      cells: [],
+      pageDirections: ['rtl' as TextDirection, 'ltr' as TextDirection],
+    };
+    expect(makeHook({ formRegions: mostlyLtr }).direction).toBe('ltr');
+
+    // One field each way is a tie, and a tie reads left to right - the same
+    // way dominantTextDirection breaks its own.
+    const even: FormFieldRegions = {
+      detection: 'done',
+      combs: [rowRight, comb(1, 20, 20)],
+      checkboxes: [],
+      cells: [],
+      pageDirections: ['rtl' as TextDirection, 'ltr' as TextDirection],
+    };
+    expect(makeHook({ formRegions: even }).direction).toBe('ltr');
+  });
+
+  // The old per-page cut read the page of `position.index ?? position.next`,
+  // which is null for both on an element below every field - so it silently
+  // fell back to page 0 and could contradict the step Previous would take.
+  it('is unmoved by an element that sits past every detected field', () => {
+    const rtl: FormFieldRegions = { detection: 'done', combs: [rowRight, rowLeft], checkboxes: [], cells: [], pageDirections: ['rtl' as TextDirection] };
+    const belowEverything: TextElement = { id: 'e', type: 'text', pageIndex: 0, left: 40, top: 90, text: '' };
+    expect(makeHook({ formRegions: rtl, elements: [belowEverything], activeElementId: 'e' }).direction).toBe('rtl');
+  });
+
+  it('falls back to ltr when nothing was detected, rather than reading an absent page', () => {
+    expect(makeHook().direction).toBe('ltr');
+  });
+});
