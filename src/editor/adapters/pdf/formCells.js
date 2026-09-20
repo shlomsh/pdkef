@@ -35,6 +35,35 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
  *    when the same column recurs across three or more row bands (a real repeating table, not a
  *    one-off labelled field).
  *
+ * ## What a cell candidate's bounds are
+ *
+ * The strip a person writes in, not the ruled box around it. Form 101 rules
+ * one box per field and prints the caption inside it, in a band above the
+ * writing line: the box is `שם` plus the blank under it, and only the blank
+ * is the field. Publishing the whole box put its bounds about half on the
+ * caption - measured against the MOBI-10 ground truth, five of form 101's
+ * labelled cells sat on a real target at IoU 0.44-0.49, just under the 0.5
+ * match threshold, and scored as false positives on a field they had
+ * correctly found. Publishing the band under the caption instead takes those
+ * five to IoU 0.56-0.65 (page 1: recall 82.0% -> 85.6%, precision 92.7% ->
+ * 96.7%, text recall 53.3% -> 70.0%, with no new miss or false positive on
+ * either spike form).
+ *
+ * Only the *band* carve is trusted for this. `writableArea` can also carve
+ * sideways, when a caption hugs the cell's right wall, and that carve is a
+ * much weaker guess at where the answer goes: it read form 101's three
+ * date cells (printed `/ /` separators that a person writes *across*, not
+ * beside) and two of its phone cells as labels, and each time it left a
+ * 40pt sliver against the left wall. Published as bounds those five went the
+ * other way, IoU 0.54-0.74 down to 0.09-0.22, turning five true positives
+ * into false ones. So a side carve still admits the cell - there is room to
+ * write in it - but the whole cell is what gets published, and what text
+ * placement then centres on.
+ *
+ * The ruled box does not disappear: it rides along as `enclosure` whenever it
+ * differs from the bounds, because a tap should still land on a field when it
+ * lands on the field's printed caption (`cellRegionAt`).
+ *
  * ## Coordinates
  *
  * Ink geometry stays in PDF points throughout (the unit `pageInk.js` and `formGrid.js` already
@@ -315,24 +344,33 @@ function classifyKind(ownText, label) {
  * too small to write in). Never an L shape: a right-aligned answer belongs
  * against the cell's own right wall, not the label's left.
  *
- * Returns `cell` itself when the whole cell is writable, so a caller can tell
- * "no label" from "a strip".
+ * Returns `{area, carve}`: `area` is `cell` itself when the whole cell is
+ * writable, so a caller can tell "no label" from "a strip", and `carve` says
+ * which way the label carved it - a caption sitting in a `band` above the
+ * writing line, or a caption at the `side` of it. The two are not equally
+ * trustworthy as a published box; see "What a cell candidate's bounds are"
+ * in the module docstring.
  */
 function writableArea(cell, ownText) {
   let area = cell;
+  let carve = 'none';
   if (ownText.length > 0) {
     const textLeft = Math.min(...ownText.map((t) => t.x0));
     // A pdf.js item's box starts at its baseline, so this is the label's baseline.
     const textBottom = Math.min(...ownText.map((t) => t.y0));
     const rightHug = Math.max(...ownText.map((t) => t.x1)) >= cell.left + cell.width * 0.5;
     const topHug = textBottom >= cell.bottom + cell.height * 0.5;
-    if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) area = { ...cell, top: textBottom };
-    else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) area = { ...cell, right: textLeft };
-    else return null;
+    if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) {
+      area = { ...cell, top: textBottom };
+      carve = 'band';
+    } else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) {
+      area = { ...cell, right: textLeft };
+      carve = 'side';
+    } else return null;
   }
   const width = area.right - area.left;
   const height = area.top - area.bottom;
-  return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? area : null;
+  return width >= MIN_BLANK_WIDTH && height >= MIN_BLANK_HEIGHT ? { area, carve } : null;
 }
 
 /**
@@ -350,7 +388,7 @@ function confidenceOf(resolved, kind) {
 /**
  * @typedef {{left: number, top: number, width: number, height: number}} PercentBox
  * @typedef {PercentBox & {str: string}} PageTextRun
- * @typedef {PercentBox & {kind: string, writable?: PercentBox}} FieldCandidate
+ * @typedef {PercentBox & {kind: string, enclosure?: PercentBox}} FieldCandidate
  */
 
 /**
@@ -389,7 +427,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
         bounds: toPagePercentBox(geometry, {
           x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
         }),
-        writableBounds: undefined,
+        enclosureBounds: undefined,
         cell,
         kind: 'checkbox',
         label: headerAbove(cell, textItemsPoints)?.str?.trim(),
@@ -419,14 +457,18 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();
     const kind = classifyKind(ownText, label);
 
+    // The field is the writing strip, not the ruled box around it - but only
+    // the caption-band carve is trusted to say where that strip is. See
+    // "What a cell candidate's bounds are" in the module docstring.
+    const field = writable.carve === 'band' ? writable.area : cell;
     const bounds = toPagePercentBox(geometry, {
+      x0: field.left, y0: field.bottom, x1: field.right, y1: field.top,
+    });
+    const enclosureBounds = field === cell ? undefined : toPagePercentBox(geometry, {
       x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
     });
-    const writableBounds = writable === cell ? undefined : toPagePercentBox(geometry, {
-      x0: writable.left, y0: writable.bottom, x1: writable.right, y1: writable.top,
-    });
     resolved.push({
-      bounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
+      bounds, enclosureBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
     });
   }
 
@@ -448,7 +490,7 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       id: `combined-heuristic-${String(index).padStart(4, '0')}`,
       pageIndex,
       ...r.bounds,
-      ...(r.writableBounds ? { writable: r.writableBounds } : {}),
+      ...(r.enclosureBounds ? { enclosure: r.enclosureBounds } : {}),
       kind,
       label: r.label || undefined,
       required: 'unknown',

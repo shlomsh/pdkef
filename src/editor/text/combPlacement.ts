@@ -40,14 +40,25 @@ export interface FieldRegion extends PercentBox {
   pageIndex: number;
   /**
    * The part of the field a person actually writes in, when that is not the
-   * whole of it: a detected cell (`formCells.js`) often carries its own
-   * printed label in a top or right corner - "שם", "מספר טלפון" - and the
-   * blank remainder below or beside that label is where the answer goes.
-   * The field itself stays the whole cell (what a tap targets, what the hint
-   * outlines, what the fill order groups into a row); this is only where a
-   * box placed on it sits. Absent when the whole field is blank.
+   * whole of it. `fieldRegions.js` sets it on an open comb whose teeth hang
+   * inside a printed cell: the teeth are a few points tall, the cell is the
+   * strip, and a box on the field belongs in the strip. The field itself
+   * stays the run (what a tap targets, what the hint outlines, what the fill
+   * order groups into a row); this is only where a box placed on it sits.
+   *
+   * A detected cell does not use this: its own bounds are already the strip
+   * a person writes in, and the ruled box around it is `enclosure`. See
+   * "What a cell candidate's bounds are" in `formCells.js`.
    */
   writable?: PercentBox;
+  /**
+   * The printed rectangle a field's bounds were carved out of, when the two
+   * differ - form 101 rules one box per field and prints the caption inside
+   * it, above the writing line, so the field is the blank band and the
+   * `enclosure` is the box a person sees. Only the hit test uses it: a tap
+   * that lands on the caption is still a tap on that field.
+   */
+  enclosure?: PercentBox;
 }
 
 /** A detected comb run: a ruled strip divided into `cells` equal boxes. */
@@ -130,6 +141,12 @@ const CHECKBOX_HIT_MARGIN_Y_PERCENT = 0.5;
  * form 101's two date fields share a wall, and the health declaration's yes/no
  * checkboxes are a few points apart. A tap between two of them should pick the
  * one it is closer to the middle of, not whichever the detector reported first.
+ *
+ * What a tap is tested against is the field's `enclosure` when it has one -
+ * the printed rectangle the bounds were carved out of - so that a labelled
+ * cell keeps the whole box a person sees as its target while placing the box
+ * in the blank band. Combs and checkboxes have no enclosure and are
+ * unaffected.
  */
 function regionAt<T extends FieldRegion>(
   regions: T[],
@@ -137,16 +154,20 @@ function regionAt<T extends FieldRegion>(
   pageIndex: number,
   margin: { top: number; bottom: number; sides: number },
 ): T | null {
-  const hits = regions.filter((region) => region.pageIndex === pageIndex
-    && point.x >= region.left - margin.sides
-    && point.x <= region.left + region.width + margin.sides
-    && point.y >= region.top - margin.top
-    && point.y <= region.top + region.height + margin.bottom);
+  const target = (region: T): PercentBox => region.enclosure ?? region;
+  const hits = regions.filter((region) => {
+    if (region.pageIndex !== pageIndex) return false;
+    const box = target(region);
+    return point.x >= box.left - margin.sides
+      && point.x <= box.left + box.width + margin.sides
+      && point.y >= box.top - margin.top
+      && point.y <= box.top + box.height + margin.bottom;
+  });
   if (hits.length === 0) return null;
-  const distance = (region: T) => Math.hypot(
-    point.x - (region.left + region.width / 2),
-    point.y - (region.top + region.height / 2),
-  );
+  const distance = (region: T) => {
+    const box = target(region);
+    return Math.hypot(point.x - (box.left + box.width / 2), point.y - (box.top + box.height / 2));
+  };
   return hits.reduce((best, region) => (distance(region) < distance(best) ? region : best));
 }
 
@@ -280,9 +301,10 @@ export function cellFontSize(
  * (`textBoxPaddingEm`) keeps the glyphs off the printed rule, so no extra
  * inset is applied.
  *
- * All of "the cell" above means its `writable` part when the detector found
- * a printed label hugging one of its edges - the blank strip under "שם", not
- * the whole box "שם" is printed in - and the whole cell otherwise.
+ * "The cell" here is the field's own bounds, which `formCells.js` already
+ * reports as the blank strip under a printed caption - the band under "שם",
+ * not the whole box "שם" is printed in. `writable` is honoured too, for a
+ * region that carries one of its own.
  */
 export function placeTextOnCell(
   region: FieldRegion,
