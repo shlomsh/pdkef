@@ -55,3 +55,38 @@ reuse grant; see `scripts/generate-form-grid-fixtures.mjs`). Their URLs and sha2
 record, the tooling takes `--input <path>`, and the committed geometry-only fixtures are
 byte-faithful for the pure-ink path but carry **no text at all**, so they cannot exercise
 `formCells.js` or `fieldLabels.js`.
+
+## Where this stands, 2026-09-20
+
+Nothing here has started. What changed today is the ground this ticket stands on, and four things
+about it are not obvious from the sections above.
+
+**The scoring toolchain moved while this ticket was being written.** The acceptance says "measure it
+with `score.mjs`", and that still works, but the number CI enforces now lives in
+`src/editor/adapters/pdf/corpus/scoring/baselines.json`, re-scored every run by
+`scoring.test.js` and ratcheted. `scripts/score-form.mjs --all` re-scores every form and prints the
+row to paste. A number this ticket earns has to be re-recorded there in the same change, or the next
+change gets to lose it silently.
+
+**A detector change now owes the element corpus a row**, and the negative rows matter more than the
+positive ones. See `.claude/rules/editor.md` and `src/editor/adapters/pdf/corpus/README.md`. The
+caption rule this ticket proposes is a rule about what must *stop* being detected, which is exactly
+what that corpus is for: pin a caption cell beside a checkbox that must not be offered, next to a
+short labelled cell that must still be. The tick-column rows added today are the worked example of
+the shape.
+
+**The corpus harness passes no text at all.** `detectPage` is called with no `textRuns` argument, so
+any rule that reads a cell's own text cannot be pinned there and belongs in `formCells.test.js`
+instead. The caption rule reads text length, so expect to need both.
+
+**The source PDFs are fetchable from some environments and not others.** MOBI-13 records the egress
+gateway denying `www.gov.il` and `irs.gov`; that was true in the session that wrote it and false in
+this one, where the itc101 original downloaded cleanly and hashed to the `a5bfa867...` already
+recorded. So check before assuming either way, verify the sha256 against the ground-truth file when
+it lands, and never commit the file.
+
+Two environment traps that cost time today and are not the repo's fault: this container is a
+**shallow clone**, so `gitLastModified.test.js` fails and `test:seo` reports two missing `lastmod`
+entries, both green on CI's full clone; and Playwright cannot launch here when the installed
+Chromium build does not match the pinned `@playwright/test`, so an e2e-affecting change may have to
+be argued statically and confirmed on CI.
