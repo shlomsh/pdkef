@@ -39,6 +39,11 @@ function overlap(a, b) {
  * of those boxes contain their radio whole (containment 0.98-1.00 against the
  * enclosure, 0.16-0.17 against the strip), and every one was published as a
  * second field over a radio pair the checkbox detector had already reported.
+ *
+ * Asked of *both* sides of every claim test, not just the cell's. Only cells
+ * carry an `enclosure` today, so the other side is its own extent either way;
+ * comparing a printed box against a carved strip the moment a second source
+ * grows one is the kind of asymmetry nothing would report.
  */
 function claimExtent(region) {
   return region.enclosure ?? region;
@@ -99,7 +104,7 @@ export function withWidgetFields(reconciled, widgets) {
 export function reconcileFields({ combs, checkboxes, cells }) {
   const claimed = new Set();
   const reconciledCombs = combs.map((comb) => {
-    const enclosing = cells.filter((cell) => overlap(claimExtent(cell), comb));
+    const enclosing = cells.filter((cell) => overlap(claimExtent(cell), claimExtent(comb)));
     enclosing.forEach((cell) => claimed.add(cell));
     if (comb.boxed || comb.writable || enclosing.length === 0) return comb;
     // The tightest cell around the run, compared as printed boxes: a section
@@ -114,6 +119,6 @@ export function reconcileFields({ combs, checkboxes, cells }) {
   return {
     combs: reconciledCombs,
     cells: cells.filter((cell) => !claimed.has(cell)
-      && !checkboxes.some((box) => overlap(claimExtent(cell), box))),
+      && !checkboxes.some((box) => overlap(claimExtent(cell), claimExtent(box)))),
   };
 }
