@@ -365,7 +365,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
 
 ### Blocked
 
