@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
 import { redactPdf } from '../../editor/adapters/pdf/redact.js';
+import * as pdfjsDist from 'pdfjs-dist';
 import { pxToPercent, pxDeltaToPercent } from '../../editor/geometry/coords.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -1771,6 +1772,138 @@ describe('PdfRedactTool UI flow', () => {
         // Dropping the export still has to hand the editor back.
         expect(query(container, `.${workspaceStyles.workspace}`)
           .classList.contains(workspaceStyles['is-processing'])).toBe(false);
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
+
+    // The invalidation effect above retires the export for a replacement file
+    // too, and it used to follow that with setStatus('editing') - over a
+    // 'loading' the new file's own loader had just set. That shipped once and
+    // was fixed by hand; this pins it. The two states differ in what they
+    // tell the person: a file still being read is loading, it has no edits
+    // that could have changed mid-prepare.
+    it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
+      let finishRedaction!: (value: Blob) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<Blob>((resolve) => {
+        finishRedaction = resolve;
+      }));
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      window.URL.createObjectURL = createObjectURL;
+      window.URL.revokeObjectURL = vi.fn();
+
+      try {
+        const drawArea = await loadFileAndGetDrawArea();
+        await drawBox(drawArea, 50, 200, 200, 500);
+
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
+        await act(async () => {
+          downloadButton.click();
+        });
+        expect(query(container, `.${workspaceStyles.workspace}`)
+          .classList.contains(workspaceStyles['is-processing'])).toBe(true);
+
+        // Hold the replacement's document open, so the assertions below land
+        // in the window where the new file is still being read.
+        let resolveReplacementDocument!: (document: unknown) => void;
+        vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+          promise: new Promise<unknown>((resolve) => { resolveReplacementDocument = resolve; }),
+        }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+
+        const input = query<HTMLInputElement>(container, 'input[type="file"]');
+        await act(async () => {
+          setInputFiles(input, [makePdfFile('replacement.pdf')]);
+        });
+        // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
+        const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
+          .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
+        await act(async () => {
+          confirmReplace.click();
+        });
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        // The new file is still being read: no editor, and nothing claiming
+        // this person's edits changed underneath an export they no longer have.
+        //
+        // The announcement is what pins the guard. The workspace is mounted on
+        // `pdfDocument` as well as on the status, and the replacement's own
+        // loader nulls that in the same render that sets 'loading', so the
+        // editor is off screen either way - dropping the guard makes this
+        // window say the wrong thing rather than draw the wrong thing.
+        expect(resolveReplacementDocument).toBeDefined();
+        expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
+        expect(query(container, '[role="status"][aria-live="polite"]').textContent)
+          .not.toContain('Your edits changed while the PDF was being prepared');
+
+        // The replacement finishes loading and gets a clean editor of its own.
+        await act(async () => {
+          resolveReplacementDocument({
+            numPages: 2,
+            getPage: vi.fn(() => Promise.resolve({
+              getViewport: () => ({ width: 612, height: 792 }),
+              render: () => ({ promise: Promise.resolve() }),
+            })),
+          });
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
+        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+
+        // And the export started from the file that is no longer open commits
+        // nothing when it finally resolves.
+        createObjectURL.mockClear();
+        await act(async () => {
+          finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        expect(createObjectURL).not.toHaveBeenCalled();
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
+
+    // The run's own keys cannot see an unmount: the refs they read still hold
+    // the same file and revision after the editor has left the tree, so
+    // without retiring the run here a finished export downloads a file for a
+    // tool the person has navigated away from. Sign's unmount does the same
+    // with activeExportRequestRef.
+    it('does not download an export that finishes after the editor unmounts', async () => {
+      let finishRedaction!: (value: Blob) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<Blob>((resolve) => {
+        finishRedaction = resolve;
+      }));
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      window.URL.createObjectURL = createObjectURL;
+      window.URL.revokeObjectURL = vi.fn();
+
+      try {
+        const drawArea = await loadFileAndGetDrawArea();
+        await drawBox(drawArea, 50, 200, 200, 500);
+
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
+        await act(async () => {
+          downloadButton.click();
+        });
+
+        act(() => render(null, container));
+        createObjectURL.mockClear();
+
+        await act(async () => {
+          finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        expect(createObjectURL).not.toHaveBeenCalled();
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;

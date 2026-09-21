@@ -15,22 +15,25 @@ function mountProbe(keys?: unknown[]): { run: LatestRun; rerender: (nextKeys?: u
   document.body.appendChild(container);
 
   let captured!: LatestRun;
-  let currentKeys = keys;
 
-  function Probe() {
-    // Re-read on every render, exactly as a tool's own `() => [file, rev]`
-    // closure does.
-    captured = useLatestRun(currentKeys === undefined ? undefined : () => currentKeys as unknown[]);
+  // The keys come in as a prop and the closure is built inside the render, so
+  // every render hands the hook a *different* closure over that render's
+  // values - exactly the shape of a tool's own `() => [file, revisionRef.current]`.
+  // A probe that closed over one mutable variable defined outside the
+  // component would keep working even if the hook never refreshed the
+  // closure it stored, and would prove nothing.
+  function Probe({ keys: renderKeys }: { keys?: unknown[] }) {
+    const list = renderKeys;
+    captured = useLatestRun(list === undefined ? undefined : () => list);
     return null;
   }
 
-  act(() => render(<Probe />, container!));
+  act(() => render(<Probe keys={keys} />, container!));
 
   return {
     get run() { return captured; },
     rerender(nextKeys?: unknown[]) {
-      currentKeys = nextKeys;
-      act(() => render(<Probe />, container!));
+      act(() => render(<Probe keys={nextKeys} />, container!));
     },
   };
 }

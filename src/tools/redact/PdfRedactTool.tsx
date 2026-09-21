@@ -303,6 +303,10 @@ export default function PdfRedactTool() {
   useEffect(() => () => {
     loadIdRef.current++;
     loadControllerRef.current?.cancel();
+    // An export resolving after the editor has left the tree must not fire a
+    // download for a tool the person walked away from (Sign does the same
+    // with activeExportRequestRef).
+    exportRun.invalidate();
   }, []);
 
   const handlePageViewportReady = useCallback((pageNum: number) => {
@@ -357,7 +361,14 @@ export default function PdfRedactTool() {
     setStatus('editing');
     setProgress(0);
     setAnnouncement('Your edits changed while the PDF was being prepared. Export again to create an up-to-date file.');
-  }, [file, elements, clearPrepared, exportRun]);
+    // Keyed on the revision, not on `elements`, so this fires on exactly what
+    // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
+    // two different notions of "the document moved", an edit that bumped the
+    // revision without replacing the elements array would retire the run
+    // while leaving this effect asleep, and the workspace would stay behind
+    // `.is-processing` with no way out but a reload. Sign keys on the
+    // revision for the same reason (PdfSignTool.tsx).
+  }, [file, documentRevision, clearPrepared, exportRun]);
 
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
