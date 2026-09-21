@@ -106,6 +106,12 @@ const PERF_BUDGETS = [
   // src/tools/compress/e2e/compare-preview.spec.js (once ARCH-17 moves it),
   // with nothing to rewrite when that move lands.
   '**/compress/**/compare-preview.spec.js',
+  // Not a wall-clock budget but the same stability problem, which is what
+  // this project is for: a CLS reading taken while another worker burns the
+  // same CPUs is the noise DEBT-16 was filed over, and this spec throttles
+  // the CPU to 4x deliberately, so a neighbour competing for it changes what
+  // it measures. QUAL-17.
+  '**/home/landing-cls.spec.js',
 ];
 
 export default defineConfig({

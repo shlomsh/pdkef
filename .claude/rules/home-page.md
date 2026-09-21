@@ -120,10 +120,28 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   reachable by the pre-hydration frame. Measured 0.0000-0.0004 at 0-3 recents after
   (`PerformanceObserver({type:'layout-shift'})`, seeding `pdf-toolkit:workspace:recent-files` via
   `page.addInitScript`).
-- **Accepted residual: ~0.02 CLS at 4-6 recents** (0.0211 on the current grid; re-measure if the grid
-  changes). The three-column recents grid grows a second row, which moves the picker tile down. Fixing
-  it means reserving two-row height for every visitor to smooth a transition only returning visitors
-  with four or more files see; rejected. Re-open only on real-user CLS from Search Console / CrUX.
+- **Accepted residual: the launcher's own reflow when recents arrive**, re-measured 2026-09-21 on
+  built output with 6 recents seeded (QUAL-17). Through `astro preview`, the surface CI measures:
+  0.00000 at 393x851 and 0.00906 at 851x393. It was 0.0211 on the 2026-08 grid. The three-column
+  grid grows rows when `FileDropzone`'s mount effect reads the index, which moves the picker tile
+  down. Fixing it means reserving two-row height for every visitor to smooth a transition only
+  returning visitors with four or more files see; rejected.
+- **Since `ef8aa76` the dock moves with it.** That commit changed `.home-hero` from a fixed
+  `height: calc(100svh + 1216svh)` to `min-height` with `min-content` header and dock rows, so a
+  landscape phone would stop crushing the dock from 111px to 34px. The fixed height had been
+  containing the launcher's late growth; without it that growth pushes `.home-dock` and everything
+  below. Measured A/B on a standalone static server at 393x851, one shift either way at the same
+  moment, the only difference being `NAV.home-dock` joining the entry's source list: 0.0092 before,
+  0.0144 after. **That harness reports a shift at 393x851 that `astro preview` does not**, and the
+  difference has not been isolated, so treat 0.0144 as an upper bound from a harsher transfer than
+  production and the preview figures above as the CI-comparable ones. QUAL-17 holds the fix pending
+  Speed Insights segmented by route and device; it lists the three options and why each is a trade.
+- **Guard: `e2e/home/landing-cls.spec.js`** (in `PERF_BUDGETS`, so `--workers=1`). It pins current
+  behaviour rather than the fix: nothing *new* may join the dock outside `#home-files`, and total
+  landing CLS stays under 0.03. It does not assert the dock stays put - that assertion waits on the
+  decision above. Its CPU and network throttling is load-bearing; unthrottled it reports 0 on a
+  build that shifts, and an earlier revision that read 1.5s after the tiles appeared raced the
+  paint and under-reported. Re-measure whenever the grid changes.
 - **The demo and the launcher cannot simply swap.** Demo copy must be server-rendered (SEO surface), so
   hiding it after hydration flashes and collapses several screens, and deciding before first paint
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than

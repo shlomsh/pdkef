@@ -94,7 +94,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The home dock joins the launcher's post-hydration shift, and nothing in CI watches the landing path |
 
 ### Blocked
 
