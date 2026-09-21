@@ -9,6 +9,7 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import styles from './PdfSplitTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import * as pdfjsDist from 'pdfjs-dist';
 
 // Test split.js library
 describe('split.js library helpers', () => {
@@ -314,6 +315,75 @@ describe('PdfSplitTool UI flow', () => {
       'num-5-page-5.pdf',
     ]);
     nativeShare.restore();
+  });
+
+  // DEBT-18: the load path had no cancellation at all, so the first file's
+  // continuation kept writing numPages/pages/status after a second pick, and
+  // its thumbnail loop stamped the first file's rendered pages into the
+  // second file's cells one at a time - `p.pageNumber === i` matches whatever
+  // grid is mounted. loadingTask.destroy() was only reached after all N pages.
+  it('drops a load whose file was replaced before the document resolved', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    let resolveFirstDocument;
+    const firstDestroy = vi.fn(() => Promise.resolve());
+    const firstGetPage = vi.fn(() =>
+      Promise.resolve({
+        getViewport: () => ({ width: 600, height: 800 }),
+        render: () => ({ promise: Promise.resolve() }),
+      }),
+    );
+    vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+      promise: new Promise((resolve) => {
+        resolveFirstDocument = () => resolve({ numPages: 300, getPage: firstGetPage });
+      }),
+      destroy: firstDestroy,
+    }));
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSplitTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+
+    // The 300-page file, still opening.
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('three-hundred.pdf')]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+    expect(resolveFirstDocument).toBeDefined();
+
+    // Replaced by a three-page one, which opens immediately.
+    mockState.numPages = 3;
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('three.pdf')]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    // Only now does the first file's document arrive.
+    await act(async () => {
+      resolveFirstDocument();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const fileBar = container.querySelector(`.${toolShellStyles.identity}`);
+    expect(fileBar.textContent).toContain('three.pdf');
+    expect(fileBar.textContent).toContain('3 pages');
+    expect(container.querySelector('#page-selector-input').value).toBe('1-3');
+    expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(3);
+    expect(container.querySelector(`.${styles['canvas-title']}`).textContent).toBe('extracted_three.pdf');
+
+    // The abandoned task is released, and released without walking 300 pages
+    // into the three-page grid first.
+    expect(firstDestroy).toHaveBeenCalled();
+    expect(firstGetPage).not.toHaveBeenCalled();
   });
 });
 

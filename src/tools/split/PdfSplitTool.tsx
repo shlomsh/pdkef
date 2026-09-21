@@ -9,6 +9,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
@@ -82,6 +83,13 @@ export default function PdfSplitTool({
   const segmentRefs = useRef<Array<HTMLButtonElement | null>>([]);
   /** Bumped on every change so a prepare that finishes late is dropped. */
   const prepareSeq = useRef(0);
+  /**
+   * The document load is a separate race from the prepare (DEBT-18): a page
+   * selector change must not abandon a thumbnail loop, and a new file must.
+   * `begin()` supersedes the run before it, so picking a second file is all
+   * the invalidation this needs - no counter of its own beside prepareSeq.
+   */
+  const loadRun = useLatestRun();
   /** A tap on the element while it was still preparing: deliver on ready. */
   const pendingTap = useRef(false);
   const outputsRef = useRef<OutputFile[]>([]);
@@ -204,11 +212,15 @@ export default function PdfSplitTool({
   }, [status, outputs, mode, downloadAll]);
 
   const loadDocumentAndThumbnails = async (pdfFile: File) => {
+    const run = loadRun.begin();
+    let loadingTask: any = null;
     try {
       const lib = await getPdfjs();
       const bytes = await pdfFile.arrayBuffer();
-      const loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
+      if (!run.isCurrent()) return;
+      loadingTask = lib.getDocument({ data: bytes, wasmUrl: PDFJS_WASM_URL });
       const pdf = await loadingTask.promise;
+      if (!run.isCurrent()) return;
 
       const pageCount = pdf.numPages;
       setNumPages(pageCount);
@@ -225,6 +237,11 @@ export default function PdfSplitTool({
       setAnnouncement(`Loaded PDF "${pdfFile.name}" with ${pageCount} pages.`);
 
       for (let i = 1; i <= pageCount; i += 1) {
+        // Checked per page, not once before the loop: setPages below matches
+        // on `p.pageNumber === i` alone, so a loop that outlives its file
+        // would stamp this document's thumbnails into the next one's cells
+        // one at a time.
+        if (!run.isCurrent()) return;
         try {
           const page = await pdf.getPage(i);
           const nativeViewport = page.getViewport({ scale: 1 });
@@ -238,6 +255,7 @@ export default function PdfSplitTool({
 
           await page.render({ canvasContext: context, viewport }).promise;
           const url = canvas.toDataURL('image/png');
+          if (!run.isCurrent()) return;
 
           setPages((current) =>
             current.map((p) => (p.pageNumber === i ? { ...p, thumbnail: url } : p)),
@@ -247,11 +265,17 @@ export default function PdfSplitTool({
         }
       }
 
-      await loadingTask.destroy();
+      run.settle();
     } catch (err) {
       console.error('Error loading PDF document:', err);
+      if (!run.isCurrent()) return;
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
+    } finally {
+      // In `finally` so an abandoned load releases pdf.js too, not only one
+      // that walked every page - that was the leak behind the old
+      // after-the-loop destroy().
+      if (loadingTask) await Promise.resolve(loadingTask.destroy()).catch(() => {});
     }
   };
 

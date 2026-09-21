@@ -107,6 +107,11 @@ export default function PdfRedactTool() {
   // retires the run in flight.
   const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
+  // Read by the invalidation effect below, which fires after the render that
+  // already moved status on (a replacement file sets 'loading' in the same
+  // batch as `file`), so it must ask what the workspace is showing now.
+  const statusRef = useRef(status);
+  statusRef.current = status;
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
   // still uses status='error', which unmounts the workspace (see below).
@@ -344,6 +349,11 @@ export default function PdfRedactTool() {
     // export superseded the first", and only the first case should hand the
     // editor back. Mirrors PdfSignTool.tsx's own invalidation effect.
     if (!exportRun.invalidate()) return;
+    // Only the export's own screen is ours to take down. A replacement file
+    // invalidates the export too, and its loader has already put the
+    // workspace into 'loading' - saying "editing" over that would show an
+    // empty editor for the file still being read.
+    if (statusRef.current !== 'redacting') return;
     setStatus('editing');
     setProgress(0);
     setAnnouncement('Your edits changed while the PDF was being prepared. Export again to create an up-to-date file.');

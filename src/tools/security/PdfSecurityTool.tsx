@@ -8,6 +8,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
 export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string }) {
@@ -19,8 +20,15 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  // DEBT-18: both async paths here belong to one file, so they share one run.
+  // `begin()` supersedes whatever was in flight (a second pick retires the
+  // first file's encryption check), and resetOutput - which every file pick
+  // and every password edit already calls - retires a running unlock/protect.
+  // No keys: nothing invalidates a run without going through one of those.
+  const fileRun = useLatestRun();
 
   const resetOutput = () => {
+    fileRun.invalidate();
     clearPrepared();
     setStatus('idle');
     clearDownload();
@@ -37,7 +45,13 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
     setMode(null);
     setAnnouncement(`Checking file "${selectedFile.name}"...`);
 
+    const run = fileRun.begin();
     const encrypted = await isPdfEncrypted(selectedFile);
+    // A slower check on a file that has since been replaced must not decide
+    // the form's mode: offering Unlock for a file with no password sends
+    // handleSubmit down the unlockPdf branch, which can only ever fail.
+    if (!run.isCurrent()) return;
+    run.settle();
     const newMode = encrypted ? 'unlock' : 'protect';
     setMode(newMode);
     
@@ -60,20 +74,32 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
     setStatus('processing');
     setAnnouncement(mode === 'unlock' ? 'Unlocking PDF…' : 'Protecting PDF…');
 
+    // Captured before the await, and used instead of `file`/`mode` below, so
+    // the result can never be written under a newer file's name.
+    const run = fileRun.begin();
+    const sourceFile = file;
+    const sourceMode = mode;
+
     try {
-      const blob = mode === 'unlock' 
-        ? await unlockPdf(file, password)
-        : await protectPdf(file, password);
-        
+      const blob = sourceMode === 'unlock'
+        ? await unlockPdf(sourceFile, password)
+        : await protectPdf(sourceFile, password);
+
+      if (!run.isCurrent()) return;
+      run.settle();
       setDownloadBlob(blob);
-      prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`);
+      prepare(blob, `${sourceFile.name.replace(/\.pdf$/i, '')}_${sourceMode}ed.pdf`);
       setStatus('done');
-      setAnnouncement(mode === 'unlock' 
+      setAnnouncement(sourceMode === 'unlock'
         ? 'Your unlocked PDF is ready.'
         : 'Your protected PDF is ready.'
       );
     } catch (err: any) {
       console.error(err);
+      // Same rule on the way out: a failure for a file nobody is looking at
+      // any more must not put the loaded one into an error state.
+      if (!run.isCurrent()) return;
+      run.settle();
       setStatus('error');
       if (err instanceof WrongPasswordError) {
         setAnnouncement('Incorrect password.');
