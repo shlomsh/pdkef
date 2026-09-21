@@ -254,4 +254,59 @@ describe('PdfToImageTool UI flow', () => {
 
     expect(container.querySelector(`.${pdfToolStyles['page-selector-error']}`)).not.toBeNull();
   });
+
+  // DEBT-18: resetOutput() cleared what had already landed but did not
+  // invalidate a conversion still running, so the first file's images,
+  // prepared share files and `status: 'done'` arrived under the second
+  // file's name.
+  it('drops a conversion whose file was replaced while it ran', async () => {
+    const pendingImageBlobs = [];
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      pendingImageBlobs.push(() => callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' })));
+    };
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('first.pdf')]);
+    });
+
+    const convertButton = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent.includes('Convert to'),
+    );
+    await act(async () => {
+      convertButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(pendingImageBlobs.length).toBeGreaterThan(0);
+
+    // Replaced mid-conversion.
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('second.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+
+    // Only now do the first file's pages finish encoding.
+    await act(async () => {
+      pendingImageBlobs.forEach((finish) => finish());
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(container.textContent).toContain('second.pdf');
+    // Nothing from the first file's run: no images, no prepared share files,
+    // no 'done' state offering them.
+    expect(container.querySelector(`a.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
+    expect(container.textContent).not.toContain('Your images are ready.');
+    expect(Array.from(container.querySelectorAll('button')).some((b) =>
+      b.textContent.includes('Convert to'),
+    )).toBe(true);
+  });
 });

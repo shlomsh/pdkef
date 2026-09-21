@@ -8,6 +8,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
 const SCALE_OPTIONS = [
@@ -37,6 +38,11 @@ export default function PdfToImageTool() {
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef<any>(null);
+  // DEBT-18: resetOutput is the single place every change that invalidates a
+  // running conversion already goes through (a new file, a page selector,
+  // format, scale or layout), so the cheap token form is enough here - no
+  // keys to compare.
+  const convertRun = useLatestRun();
 
   useEffect(() => {
     if (status === 'done' && downloadRef.current) {
@@ -45,6 +51,7 @@ export default function PdfToImageTool() {
   }, [status]);
 
   const resetOutput = () => {
+    convertRun.invalidate();
     clearPrepared();
     setStatus('idle');
     setProgress(0);
@@ -92,20 +99,32 @@ export default function PdfToImageTool() {
     setPageSelectorError('');
     setStatus('converting');
     setProgress(0);
+    // Captured before the first await. The object URLs are deliberately
+    // created after the check below, so a dropped run leaves none to revoke.
+    const run = convertRun.begin();
+    const sourceFile = file;
     try {
-      const rendered: any[] = await convertPdfToImages(file, {
+      const rendered: any[] = await convertPdfToImages(sourceFile, {
         format,
         scale,
         layout,
         pages: pageSelector,
-        onProgress: setProgress,
+        onProgress: (value: number) => {
+          if (run.isCurrent()) setProgress(value);
+        },
       } as any);
+      if (!run.isCurrent()) return;
+      run.settle();
       setImages(rendered.map((image) => ({ ...image, url: URL.createObjectURL(image.blob) })));
       prepareFiles(rendered.map(({ blob, filename }) => ({ blob, filename, type: blob.type })));
       setStatus('done');
       setAnnouncement('Your images are ready.');
     } catch (err: any) {
       console.error(err);
+      // A failure belonging to a file that is no longer loaded must not push
+      // 'error' (or a page-selector error) onto the one that is.
+      if (!run.isCurrent()) return;
+      run.settle();
       if (err.message?.startsWith('Invalid page selector') || err.message === 'No valid pages in range') {
         setPageSelectorError(err.message);
         setStatus('idle');

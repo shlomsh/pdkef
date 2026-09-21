@@ -203,4 +203,76 @@ describe('PdfSecurityTool', () => {
 
     expect(container.textContent).toContain("The password may be incorrect.");
   });
+
+  // DEBT-18: nothing was captured around either await here, so whichever
+  // promise resolved last won. A slow check on a large encrypted file landing
+  // after a small plain one is picked left the form offering Unlock for a
+  // file with no password, and handleSubmit then took the unlockPdf branch,
+  // which fails with "The password may be incorrect" forever.
+  describe('a file replaced mid-flight (DEBT-18)', () => {
+    async function confirmReplace() {
+      const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+      const confirm = Array.from(dialog.querySelectorAll('button')).find((button) => button.textContent.trim() === 'Replace file');
+      await act(async () => {
+        confirm.click();
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+    }
+
+    it('keeps the mode of the file that is actually loaded', async () => {
+      let resolveFirstCheck;
+      securityLib.isPdfEncrypted
+        .mockImplementationOnce(() => new Promise((resolve) => { resolveFirstCheck = resolve; }))
+        .mockResolvedValue(false);
+      mount();
+
+      await loadFile('big-encrypted.pdf');
+      // The slow check has not answered yet, so there is no form to offer.
+      expect(container.querySelector('form')).toBeNull();
+
+      await loadFile('small-plain.pdf');
+      await confirmReplace();
+      expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
+
+      // Only now does the replaced file's check answer, with the other answer.
+      await act(async () => {
+        resolveFirstCheck(true);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
+      expect(container.textContent).toContain('Enter a password to protect it');
+    });
+
+    it('never writes the replaced file\'s bytes under the new file\'s name', async () => {
+      let resolveProtect;
+      securityLib.isPdfEncrypted.mockResolvedValue(false);
+      securityLib.protectPdf.mockImplementationOnce(() => new Promise((resolve) => { resolveProtect = resolve; }));
+      mount();
+
+      await loadFile('first.pdf');
+      const passwordInput = container.querySelector('input[type="password"]');
+      await act(async () => {
+        passwordInput.value = 'secret';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+      expect(securityLib.protectPdf).toHaveBeenCalledTimes(1);
+
+      await loadFile('second.pdf');
+      await confirmReplace();
+
+      await act(async () => {
+        resolveProtect(new Blob(['first-file-bytes'], { type: 'application/pdf' }));
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      expect(container.textContent).toContain('second.pdf');
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
+    });
+  });
 });
