@@ -132,8 +132,9 @@ brackets carries the evidence; do not relearn it.
   first screen (hero, launcher, dock) is one composed unit that nothing gets inserted into. [home-page]
 - **Never reveal with an IntersectionObserver what JS first hid**; derive reveal state from scroll
   position (`animation-timeline: view()`). [home-page]
-- **Service worker: no `skipWaiting()`, best-effort precache except `/`, self-uninstall on a 404
-  manifest.** [csp-scripts-pwa]
+- **Service worker: no `skipWaiting()`; every JS chunk and `/` are required at install, the rest
+  best-effort; self-uninstall on a 404 manifest.** A cache that activates missing a chunk cannot
+  refill it after the next deploy, and the tool then renders and does nothing. [csp-scripts-pwa]
 - **Astro stays on `^7.0.3`**: older majors carry published advisories; anything needing
   `legacy-peer-deps` is re-audited first. [csp-scripts-pwa]
 

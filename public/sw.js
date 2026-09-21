@@ -4,8 +4,12 @@
 //
 // Strategy:
 //   - The built application shell (every page, script and style - everything
-//     except fonts) is precached during install, best-effort per URL except
-//     the root fallback (see precacheAppShell and precacheFilter.mjs). A
+//     except fonts) is precached during install. Every JS chunk and the root
+//     fallback are required and fail the install if they cannot be cached;
+//     everything else is best-effort (see precacheAppShell and
+//     precacheFilter.mjs). A chunk missing from a cache that is still serving
+//     cannot be refetched once the next deploy is live, and the tool dies
+//     silently - so an incomplete cache must not activate. A
 //     service worker can never intercept the navigation that first registers
 //     it, so a page's own first-ever load - including a `client:load`
 //     island's hydration bundle - happens uncontrolled and uncached; without
@@ -38,6 +42,12 @@ const REQUIRED_URL = '/';
 // them all at once is what makes a phone on a weak connection drop some of
 // them, so they go through a small pool instead.
 const PRECACHE_CONCURRENCY = 6;
+
+// Attempts for a URL whose absence would break a build, and the linear backoff
+// between them. Three attempts covers a dropped response or a cell handover
+// without holding the install open long enough to matter.
+const PRECACHE_REQUIRED_ATTEMPTS = 3;
+const PRECACHE_RETRY_BACKOFF_MS = 400;
 
 // SIGN-23: non-default faces are opt-in family packs, not part of the initial
 // ~37 MB app download. A successful provision stores this synthetic marker
@@ -124,33 +134,91 @@ async function forEachLimited(items, limit, task) {
   await Promise.all(lanes);
 }
 
+/**
+ * A JS chunk is required; everything else is best-effort.
+ *
+ * The distinction is what a miss costs once the NEXT build is live. Vercel
+ * serves only the current deployment, so every content-hashed URL from the
+ * previous one 404s the moment a deploy lands (measured 2026-09-21 against
+ * production: three old hashes 404, three current ones 200). Roughly half of
+ * each tool page's chunk URLs change per deploy.
+ *
+ * So a missing HTML page costs that page offline, and it comes back on the
+ * next online visit. A missing JS chunk costs the tool: this worker has no
+ * `skipWaiting()`, so it keeps serving its own cache until every page from
+ * this build has closed, and during that window the gap cannot be filled from
+ * the network any more. Reproduced end to end: evicting one chunk from a
+ * populated cache and then publishing the next build leaves `/sign/` painting
+ * its static shell perfectly while `astro-island` never hydrates, with a bare
+ * 404 in the network panel and nothing thrown. FCP, LCP and CLS all stay
+ * healthy while the tool is dead, which is why it reads as a middling score
+ * rather than an outage.
+ *
+ * Requiring the JS therefore costs no extra bytes - install already fetches
+ * every one of these URLs - and only changes what happens on a miss.
+ */
+function isRequiredForInstall(url) {
+  return url === REQUIRED_URL || url.endsWith('.js');
+}
+
+/**
+ * Fetch for the precache, retrying a required URL before giving up on it.
+ *
+ * Without this, "required" would turn one dropped response on a weak
+ * connection into a failed install. A retry is cheap next to that: the whole
+ * point of the stricter rule is that an incomplete cache must not activate,
+ * not that a flaky first attempt should cost the visitor the new build.
+ */
+async function fetchForPrecache(url, attempts) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, PRECACHE_RETRY_BACKOFF_MS * attempt));
+    }
+    try {
+      const response = await fetchFresh(url);
+      if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
+      return response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 async function precacheAppShell() {
   const urls = await loadPrecacheManifest();
   const cache = await caches.open(CACHE_VERSION);
 
-  // Per-URL tolerance is deliberate. This precaches every page and script
-  // chunk in the build, so on a weak connection something will eventually
-  // fail, and an earlier version failed the whole install on the first bad
-  // response - the visitor then got no offline shell at all and
+  // Per-URL tolerance is kept for everything this build can survive without.
+  // It exists because an earlier version failed the whole install on the first
+  // bad response, and the visitor then got no offline shell at all and
   // re-downloaded the entire site on their next visit, silently, forever.
-  // Anything missed here still resolves over the network on demand and is
-  // cached on first use by the fetch handler below, so a miss costs nothing
-  // but the offline guarantee for that one asset. Only REQUIRED_URL ('/')
-  // is load-bearing enough to fail the install over.
+  //
+  // What this no longer claims is that a miss is free. It used to say the
+  // missed URL "still resolves over the network on demand", which is true only
+  // until the next deploy and false forever after - see isRequiredForInstall
+  // above. The JS is required for that reason; a cache that is missing a chunk
+  // must not become the cache that serves this origin.
+  //
+  // Failing the install is the safe direction. This worker never activates,
+  // the previous one keeps serving its own complete cache, and the visitor
+  // stays on a working older build until a later visit succeeds. The failure
+  // being replaced is a tool that renders and does nothing.
   const missed = [];
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
+    const required = isRequiredForInstall(url);
     try {
-      const response = await fetchFresh(url);
-      if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
+      const response = await fetchForPrecache(url, required ? PRECACHE_REQUIRED_ATTEMPTS : 1);
       await cache.put(url, response);
     } catch (error) {
-      if (url === REQUIRED_URL) throw error;
+      if (required) throw error;
       missed.push(url);
     }
   });
 
   if (missed.length > 0) {
-    console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
+    console.warn(`[pdkef] ${missed.length}/${urls.length} non-script assets are not cached for offline use; they will load from the network until the next visit.`);
   }
 }
 
