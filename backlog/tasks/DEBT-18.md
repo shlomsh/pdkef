@@ -1,7 +1,7 @@
 ---
 id: "DEBT-18"
 title: "Four tools commit async results that their inputs already invalidated"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "architecture-debt"
 phase: "near-term"
@@ -73,20 +73,20 @@ ticket rather than four bug fixes: the next async path added to a tool will get 
 
 ## Scope
 
-- [ ] One shared primitive in `src/lib/` for "this async result is still wanted", taken from what Sign
+- [x] One shared primitive in `src/lib/` for "this async result is still wanted", taken from what Sign
       and Compress already do rather than invented. Sign's three-part check (request id, document
       revision, source file) is the richer of the two; the helper should make the cheap case cheap
       without forcing every caller to carry all three.
-- [ ] Redact first, and separately, since it is the only one with a content consequence: capture the
+- [x] Redact first, and separately, since it is the only one with a content consequence: capture the
       file and `documentRevisionRef` before the `await` in `handleSavePdf`, bail before
       `setExportedForHandoff`, `prepare` and `download`. Fix the comment at :211-215 in the same
       change so it describes what the code does.
-- [ ] Split, To-Image and Security onto the same helper. Split should use `prepareSeq` or the helper,
+- [x] Split, To-Image and Security onto the same helper. Split should use `prepareSeq` or the helper,
       not a second bespoke counter, and must bail inside the per-page thumbnail loop, not only after
       the document resolves.
-- [ ] Sign and Compress keep their behaviour. Move them onto the helper only if it comes out simpler;
+- [x] Sign and Compress keep their behaviour. Move them onto the helper only if it comes out simpler;
       a refactor that churns the one path that is already correct is not the point.
-- [ ] Unit coverage per tool for the losing-race case: start a load or export, invalidate it, resolve
+- [x] Unit coverage per tool for the losing-race case: start a load or export, invalidate it, resolve
       the stale promise, assert nothing committed. Redact's case is the specific one above, driven
       through the keyboard shortcut rather than a synthetic state poke, because the keyboard path is
       what makes it reachable.
@@ -108,7 +108,43 @@ ticket rather than four bug fixes: the next async path added to a tool will get 
 The object-URL teardown gaps found in the same review (`PdfImageToPdfTool.tsx:45-50`, whose `[]`-dep
 cleanup closes over the initial empty array and revokes nothing, and `PdfToImageTool.tsx`, which has
 no unmount revoke at all). Same review, same "the small tools never got the hardening the big ones
-did" theme, different mechanism. They get their own ticket so this one can close.
+did" theme, different mechanism. They are DEBT-19, along with two unguarded `await`s the review of this work turned up
+(`handoffToCompress` in Split, and the unhandled read failure behind `isPdfEncrypted` in Security).
+
+## Outcome
+
+Landed on `main` in four commits: `06c8171` (this ticket), `b17b4e5` (the `useLatestRun` primitive
+and Redact), `748c27a` (Split, To-Image, Security) and `51d7907` (the fix round below).
+
+`src/lib/useLatestRun.ts` is the primitive. It came out cheaper than Sign's three-part check for the
+callers that need nothing: `useLatestRun()` with no argument is a token, and an optional
+`readKeys` closure adds Sign's "did the inputs move" comparison for the callers that do (Redact
+passes `file` and `documentRevisionRef`). Its object identity is stable across renders on purpose -
+Redact keeps `exportRun` in an effect dependency array, and a fresh object per render would have
+`invalidate()` killing every export within a frame.
+
+Sign and Compress were left alone, as the scope bullet allowed: moving them would have churned the
+two paths that were already correct for no gain.
+
+An independent review of the implementation (fresh subagent, no shared context) found two tests that
+passed without testing anything - Split's in-loop guards and the primitive's key refresh were both
+covered by tests that stayed green with the code under test deleted. Both were confirmed by deleting
+the guard and rewritten in `51d7907`; all five race tests now fail without their fix, checked by
+deletion rather than by reading the test.
+
+One real bug shipped inside this ticket and was caught by that review: `b17b4e5` restored the editor
+after an invalidated export without checking what the status had become, so replacing the file
+mid-export wrote `'editing'` over the loader's `'loading'` and showed an empty editor for a file
+still being read. The `statusRef` guard in `51d7907` closes it. It went out because a checkpoint was
+committed on a green suite without a review pass, which is the cost this ticket's own process notes
+are about.
+
+**Verified:** `check:fast` green, 105 tests across the five affected suites, the eight pre-build CI
+guards, `build`, `test:csp`, `test:redirects`, `test:css`, `test:weight`, `test:lazy-modules`.
+**Not verified:** Playwright. This environment's browser bundle is chromium-1194 and Playwright
+1.63.0 wants 1243, with no WebKit present, so no e2e ran here at all. It needs a real CI run.
+`test:seo` and two `gitLastModified` unit tests fail in this environment for an unrelated reason
+(shallow clone, 123 commits); proven pre-existing by re-running them on a stashed clean tree.
 
 ## Evidence
 
