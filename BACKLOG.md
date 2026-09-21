@@ -94,9 +94,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The home dock joins the launcher's post-hydration shift, and nothing in CI watches the landing path |
+_None._
 
 ### Blocked
 
@@ -114,6 +112,7 @@ _None._
 | QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
 | QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
+| QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The home dock joins the launcher's post-hydration shift, and nothing in CI watches the landing path |
 
 ### Retired
 

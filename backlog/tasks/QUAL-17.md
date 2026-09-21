@@ -1,7 +1,7 @@
 ---
 id: "QUAL-17"
 title: "The home dock joins the launcher's post-hydration shift, and nothing in CI watches the landing path"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
@@ -102,14 +102,15 @@ measurement and the missing guard, not a fix.
 - `.claude/rules/home-page.md`: the residual bullet carries the re-measured figures from both
   surfaces, the dock's participation and its cause, and the guard's actual scope.
 
-## Open, and needing a decision rather than a patch
+## The CSS decision, resolved by the field data
 
 The guard above pins the blast radius at today's behaviour. It does not make the dock stop
 moving, because every way to do that is a trade the rule has already weighed once:
 
-Shlomi is holding this pending the dashboard read. If CLS on `/` for mobile is flat there and
-INP is what moved, the two already-fixed Sep 20 defects are the better explanation and this CSS
-is a side issue; the guard still earns its place either way. The three options, unchanged:
+Held on 2026-09-21 pending the dashboard read, then answered by it: **option 3, accept 0.0144.**
+`/` does not appear in the degraded routes at all, on either device, so the dock's entry into the
+launcher's shift is costing real visitors nothing measurable. The guard pins it; nothing else is
+owed. The three options are kept for whoever changes this grid next:
 
 1. **Reserve the rows before first paint**, the way QUAL-10 fixed the tool pages: a blocking
    head script reads the recents count and sets an attribute on `<html>`, so the grid reserves
@@ -129,3 +130,41 @@ On a 4x-throttled phone profile the home page paints at ~0.62s and does not fini
 until ~5.3s, which is when the shift lands. The 261KB brotli of eager JS on `/` is what sits in
 that gap, and it is the one number that would move CLS, INP and LCP together. Worth its own
 ticket rather than being folded into this one.
+
+
+## Resolution, 2026-09-21
+
+**There was no regression.** The prompt for this ticket was an RES chart turning down over
+2026-09-19 to 21. Filtering Speed Insights by route and device says otherwise:
+
+- The degraded routes are `/redact` (852 events, RES 81) and `/sign` (317, RES 77), on **desktop**.
+  `/` is not among them. Mobile carries ~8 events on the one route it shows, with P75 pinned at 100
+  and a gap in the series - too thin to read.
+- Per-route history is flat. `/redact`'s P95/P99 sit between roughly 45 and 78 across the whole
+  window, already below 90 on 09-16 to 09-18, before the deploys. `/sign`'s P90/P95/P99 sit in the
+  70-80 band the same way, with one brief excursion above 90 on 09-18 that falls back. Neither
+  shows a step change at 09-19/20.
+- Three independent lab reads agree the pages are healthy: this session's measurements (desktop
+  fresh visit CLS 0.0000, LCP 80-208ms; the 16 saved-work-restore and tool-layout guards green;
+  INP at 4x CPU no worse than 208ms), and Lighthouse via PageSpeed Insights (Performance 100
+  desktop, 94 mobile on `/redact/`). CrUX has **no field data** for the URL on either device, which
+  is itself the point: the traffic is too thin for Google to publish, and these RES numbers rest on
+  a few hundred events.
+
+So RES 77-81 on the two heaviest editor pages is a **tail characteristic**, not a fault: P75 is
+fine and the worst ~5% of sessions carry the score. That is what an in-browser PDF editor looks
+like when somebody opens a large scan on an old machine. The 09-19/20 dip in the aggregate was
+real and has recovered; the best explanation for it remains the two INP defects fixed the same day
+(`8ced566`/`c188e4a`, `604bd31`/`a729106`).
+
+**Delivered anyway, and worth keeping:** the landing-path guard above, the re-measured residual in
+`.claude/rules/home-page.md`, and - found while investigating, unrelated to the metrics - the
+service worker fix in `08a125b`, where a cache could activate with a hole in it and leave a
+returning visitor a tool that renders and silently does nothing after a deploy.
+
+**Not done, deliberately:** lifting `/redact` and `/sign` off 77-81. That is an INP project on the
+editor, not a bug hunt, and it should be chosen rather than triggered by a dashboard. The measured
+lever is that placing a text box costs ~200ms at 4x CPU of which 3-5ms is handler work - the rest
+is the re-render behind it, and nothing in `src/tools/*/` or `src/editor-ui/` is memoized. The
+cost is flat in document length (200ms at 1 page, 208ms at 40), so page count is not the axis.
+File it when it is worth doing.
