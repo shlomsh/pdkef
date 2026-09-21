@@ -37,6 +37,7 @@ import {
 } from '../../editor/model/historyStack.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -99,6 +100,12 @@ export default function PdfRedactTool() {
   const documentRevisionRef = useRef(documentRevision);
   documentRevisionRef.current = documentRevision;
   const markDocumentEdited = () => setDocumentRevision((revision) => revision + 1);
+  // DEBT-18: an export is only wanted while the document it was started from
+  // is still the document on screen. Both keys are read fresh on every check,
+  // so a file swap or any edit that bumps the revision - including an undo or
+  // redo arriving by keyboard while `.is-processing` blocks the pointer -
+  // retires the run in flight.
+  const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
   const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
@@ -212,7 +219,15 @@ export default function PdfRedactTool() {
   // in-toolbar "Compress it" hand-off can act on, set once a save actually
   // succeeds and cleared - same as usePdfShare's own prepared file - whenever
   // the source or the boxes change under it (see the clearPrepared effect
-  // below), so it never hands Compress a stale export.
+  // below).
+  //
+  // That effect only ever cleared what had already landed, which left one
+  // window open (DEBT-18): an edit during the export's await cleared this,
+  // and then the export resolved and put the pre-edit bytes straight back.
+  // The effect now also retires the run in flight (`exportRun.invalidate()`)
+  // and handleSavePdf checks its ticket before committing anything, so the
+  // hand-off and the Share sheet only ever carry an export of the boxes
+  // currently on the page.
   const [exportedForHandoff, setExportedForHandoff] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffBusy, setHandoffBusy] = useState(false);
   const [handoffFailed, setHandoffFailed] = useState(false);
@@ -322,7 +337,17 @@ export default function PdfRedactTool() {
   useEffect(() => {
     clearPrepared();
     setExportedForHandoff(null);
-  }, [file, elements, clearPrepared]);
+    // An export still running was started from boxes that no longer exist.
+    // Retiring it here rather than in handleSavePdf's own bail is what lets
+    // the workspace come back out of `.is-processing`: only this effect knows
+    // the difference between "the user changed the document" and "a second
+    // export superseded the first", and only the first case should hand the
+    // editor back. Mirrors PdfSignTool.tsx's own invalidation effect.
+    if (!exportRun.invalidate()) return;
+    setStatus('editing');
+    setProgress(0);
+    setAnnouncement('Your edits changed while the PDF was being prepared. Export again to create an up-to-date file.');
+  }, [file, elements, clearPrepared, exportRun]);
 
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -701,9 +726,19 @@ export default function PdfRedactTool() {
       hasBoxes ? 'Applying redactions and flattening pages...' : 'Removing selected content...',
     );
 
+    // DEBT-18: everything this run is an export *of*, captured before the
+    // first await. `sourceFile` is used below instead of `file` so the name
+    // on the result can never be a newer file's.
+    const run = exportRun.begin();
+    const sourceFile = file;
+
     try {
-      const redactedBlob = await applyPageEdits(file, elements, (p) => setProgress(p));
-      const filename = `redacted_${file.name}`;
+      const redactedBlob = await applyPageEdits(sourceFile, elements, (p) => {
+        if (run.isCurrent()) setProgress(p);
+      });
+      if (!run.isCurrent()) return;
+      run.settle();
+      const filename = `redacted_${sourceFile.name}`;
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress it" hand-off below.
       setExportedForHandoff({ blob: redactedBlob, name: filename });
@@ -718,6 +753,11 @@ export default function PdfRedactTool() {
       }
     } catch (err) {
       console.error(err);
+      // A failure nobody is waiting for any more: the invalidation effect has
+      // already put the editor back, and reporting it would blame the user's
+      // current boxes for a run they replaced.
+      if (!run.isCurrent()) return;
+      run.settle();
       // Recoverable: keep the workspace mounted so the boxes that caused the
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
