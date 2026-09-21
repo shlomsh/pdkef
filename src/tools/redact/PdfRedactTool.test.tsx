@@ -1707,4 +1707,74 @@ describe('PdfRedactTool UI flow', () => {
       expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('2 boxes marked');
     });
   });
+
+  // DEBT-18: the export is the one async path here whose stale result is a
+  // document rather than a wrong label. `.is-processing` sets
+  // `pointer-events: none` on the workspace, which stops the pointer and not
+  // the keyboard, and useHistoryShortcuts binds an unconditional window
+  // keydown - so a redo mid-export is reachable, and it is driven here
+  // through that keystroke rather than a synthetic state poke for exactly
+  // that reason.
+  describe('an edit that lands mid-export (DEBT-18)', () => {
+    it('drops an export whose boxes a keyboard redo has already changed', async () => {
+      let finishRedaction!: (value: Blob) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<Blob>((resolve) => {
+        finishRedaction = resolve;
+      }));
+      const originalCreateObjectURL = window.URL.createObjectURL;
+      const originalRevokeObjectURL = window.URL.revokeObjectURL;
+      const createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      window.URL.createObjectURL = createObjectURL;
+      window.URL.revokeObjectURL = vi.fn();
+
+      try {
+        const drawArea = await loadFileAndGetDrawArea();
+        await drawBox(drawArea, 50, 200, 200, 500); // box A
+        await armTool('Blackout');
+        await drawBox(drawArea, 60, 220, 220, 520); // box B
+
+        // Undo box B, so the export started below covers box A alone and box
+        // B is sitting in the redo future one keystroke away.
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+        });
+        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+        const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+          .find((button) => button.textContent.includes('Download')), 'Download button');
+        await act(async () => {
+          downloadButton.click();
+        });
+
+        const workspace = query(container, `.${workspaceStyles.workspace}`);
+        expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
+
+        // The keystroke the processing overlay cannot block.
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+        });
+        expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+
+        createObjectURL.mockClear();
+        await act(async () => {
+          finishRedaction(new Blob(['redacted'], { type: 'application/pdf' }));
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        // Two boxes are on the page; the blob that just resolved has one.
+        // Nothing may offer it: no download, and no "Compress it" hand-off
+        // armed with bytes that are missing the box already restored.
+        expect(createObjectURL).not.toHaveBeenCalled();
+        expect(Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
+          .find((button) => button.textContent.includes('Compress it'))).toBeUndefined();
+
+        // Dropping the export still has to hand the editor back.
+        expect(query(container, `.${workspaceStyles.workspace}`)
+          .classList.contains(workspaceStyles['is-processing'])).toBe(false);
+      } finally {
+        window.URL.createObjectURL = originalCreateObjectURL;
+        window.URL.revokeObjectURL = originalRevokeObjectURL;
+      }
+    });
+  });
 });
