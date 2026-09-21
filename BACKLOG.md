@@ -362,12 +362,11 @@ _None._
 | DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it |
+| DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
+_None._
 
 ### Blocked
 
@@ -390,6 +389,7 @@ _None._
 | DEBT-12 | P3 | [DEBT-12](backlog/tasks/DEBT-12.md) · Ratchets that ratchet: a page-count-invariant duplication factor, stale-exception detection, one import scanner |
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
+| DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
 
 ### Retired
 
