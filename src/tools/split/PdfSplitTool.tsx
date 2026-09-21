@@ -275,7 +275,17 @@ export default function PdfSplitTool({
       // In `finally` so an abandoned load releases pdf.js too, not only one
       // that walked every page - that was the leak behind the old
       // after-the-loop destroy().
-      if (loadingTask) await Promise.resolve(loadingTask.destroy()).catch(() => {});
+      // try/catch, not `Promise.resolve(destroy()).catch()`: destroy() is
+      // called before the wrapper exists, so a synchronous throw would escape
+      // this `finally` entirely - past the catch branch's setStatus('error')
+      // and out of a `void`-called async function as an unhandled rejection.
+      if (loadingTask) {
+        try {
+          await loadingTask.destroy();
+        } catch {
+          // An abandoned task failing to release is nothing the person can act on.
+        }
+      }
     }
   };
 

@@ -385,6 +385,152 @@ describe('PdfSplitTool UI flow', () => {
     expect(firstDestroy).toHaveBeenCalled();
     expect(firstGetPage).not.toHaveBeenCalled();
   });
+
+  // The test above never reaches the thumbnail loop: it resolves the first
+  // document only after the replacement has finished loading, so the run is
+  // already stale before the loop is entered (firstGetPage is never called).
+  // These two do reach it - the document resolves first, the file is replaced
+  // mid-loop - because `p.pageNumber === i` matches whatever grid is mounted,
+  // so a loop that outlives its file stamps its thumbnails into the next
+  // file's cells one cell at a time. DEBT-18's scope calls for bailing
+  // *inside* the loop, not only after the document resolves.
+  describe('a file replaced while the thumbnail loop is running (DEBT-18)', () => {
+    // jsdom cannot rasterise, so toDataURL() would otherwise hand back
+    // undefined and a missing guard would look like a passing one: every
+    // thumbnail would be falsy and no <img> would render either way.
+    function stubCanvasDataUrl() {
+      vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,STALE');
+    }
+
+    function thumbnails() {
+      return container.querySelectorAll(`.${styles['cell-thumb-img']}`);
+    }
+
+    /** A 3-page replacement whose own pages never finish rendering, so every
+     *  thumbnail visible in its grid can only have come from the abandoned load. */
+    function mockReplacementDocument() {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({
+          numPages: 3,
+          getPage: vi.fn(() => Promise.resolve({
+            getViewport: () => ({ width: 600, height: 800 }),
+            render: () => ({ promise: new Promise(() => {}) }),
+          })),
+        }),
+        destroy: vi.fn(() => Promise.resolve()),
+      }));
+    }
+
+    async function pickFile(name) {
+      const input = container.querySelector('input[type="file"]');
+      await act(async () => {
+        setInputFiles(input, [makePdfFile(name)]);
+      });
+      // Replacing a file that is already loaded is confirmed first (MEM-03,
+      // BasePdfTool). Take the same step the person does.
+      const confirmReplace = Array.from(container.querySelectorAll('dialog button'))
+        .find((button) => button.textContent.trim() === 'Replace file');
+      if (confirmReplace) {
+        await act(async () => {
+          confirmReplace.click();
+        });
+      }
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    }
+
+    function mountTool() {
+      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+      URL.revokeObjectURL = vi.fn();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfSplitTool />, container);
+      });
+    }
+
+    it('does not stamp the replacement grid with a thumbnail the abandoned loop was still rendering', async () => {
+      stubCanvasDataUrl();
+
+      let finishSecondPage;
+      const firstGetPage = vi.fn((pageNumber) => Promise.resolve({
+        getViewport: () => ({ width: 600, height: 800 }),
+        render: () => ({
+          promise: pageNumber === 2
+            ? new Promise((resolve) => { finishSecondPage = resolve; })
+            : Promise.resolve(),
+        }),
+      }));
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({ numPages: 5, getPage: firstGetPage }),
+        destroy: vi.fn(() => Promise.resolve()),
+      }));
+      mockReplacementDocument();
+
+      mountTool();
+
+      // The five-page file opens immediately, so the loop really runs: page 1
+      // lands in its own grid, page 2 is mid-render.
+      await pickFile('five.pdf');
+      expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(5);
+      expect(thumbnails().length).toBe(1);
+      expect(finishSecondPage).toBeDefined();
+
+      // Replaced mid-loop.
+      await pickFile('three.pdf');
+      expect(container.querySelectorAll(`.${styles.cell}`).length).toBe(3);
+      expect(thumbnails().length).toBe(0);
+
+      // Page 2 of the *previous* file finishes rendering into a canvas nobody
+      // is waiting for any more.
+      await act(async () => {
+        finishSecondPage();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(thumbnails().length).toBe(0);
+      // And the loop stopped rather than walking the remaining three pages.
+      expect(firstGetPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2]);
+    });
+
+    it('stops the abandoned loop at the next page even when the page it was on failed to render', async () => {
+      stubCanvasDataUrl();
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      let failSecondPage;
+      const firstGetPage = vi.fn((pageNumber) => Promise.resolve({
+        getViewport: () => ({ width: 600, height: 800 }),
+        render: () => ({
+          promise: pageNumber === 2
+            ? new Promise((_resolve, reject) => { failSecondPage = reject; })
+            : Promise.resolve(),
+        }),
+      }));
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({ numPages: 5, getPage: firstGetPage }),
+        destroy: vi.fn(() => Promise.resolve()),
+      }));
+      mockReplacementDocument();
+
+      mountTool();
+      await pickFile('five.pdf');
+      expect(failSecondPage).toBeDefined();
+
+      await pickFile('three.pdf');
+
+      // A page that throws is caught per page, so the loop would otherwise
+      // carry on to page 3 without ever reaching the post-render check.
+      await act(async () => {
+        failSecondPage(new Error('page render failed'));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(firstGetPage.mock.calls.map(([pageNumber]) => pageNumber)).toEqual([1, 2]);
+      expect(thumbnails().length).toBe(0);
+    });
+  });
+
 });
 
 import fs from 'fs';
