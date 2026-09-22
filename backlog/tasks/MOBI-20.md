@@ -1,5 +1,5 @@
 ---
-id: "MOBI-19"
+id: "MOBI-20"
 title: "Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px"
 status: "open"
 priority: "P3"
@@ -9,7 +9,7 @@ depends_on: ["MOBI-16"]
 legacy_state: "Open"
 ---
 
-# MOBI-19 · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px
+# MOBI-20 · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px
 
 **Status note.** Two of the five pairs below are closed (see "What this ticket fixed"); the
 ticket stays open for the four same-row ones its title is actually about, which are pre-existing

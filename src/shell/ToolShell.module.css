@@ -382,7 +382,7 @@
   padding: 0.35rem 0.75rem;
 }
 
-/* MOBI-19: coarse pointer only, not a width breakpoint - a landscape phone is
+/* MOBI-20: coarse pointer only, not a width breakpoint - a landscape phone is
    wider than any phone breakpoint and just as short of room. The sticky card's
    own vertical padding is what MOBI-16's move left on the table. While a field
    is being filled the 44px field-nav chevrons
