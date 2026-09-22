@@ -49,13 +49,13 @@ _None._
 | MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
 | MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
+| MOBI-19 | P3 | [MOBI-19](backlog/tasks/MOBI-19.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
-| MOBI-19 | P3 | [MOBI-19](backlog/tasks/MOBI-19.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 
 ### Blocked
 

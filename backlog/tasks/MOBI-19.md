@@ -1,7 +1,7 @@
 ---
 id: "MOBI-19"
 title: "Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px"
-status: "in_progress"
+status: "open"
 priority: "P3"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -10,6 +10,10 @@ legacy_state: "Open"
 ---
 
 # MOBI-19 · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px
+
+**Status note.** Two of the five pairs below are closed (see "What this ticket fixed"); the
+ticket stays open for the four same-row ones its title is actually about, which are pre-existing
+and bar-wide. Nobody is working on it.
 
 ## What was measured
 
