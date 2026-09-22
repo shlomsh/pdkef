@@ -1,6 +1,6 @@
 import { render, type ComponentChildren, type ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RawTextNode from './TextNode.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
@@ -467,6 +467,68 @@ describe('TextNode component', () => {
     );
 
     expect(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]').style.fontFamily).toBe('Caveat');
+  });
+
+  // MOBI-16 follow-up: a text box's corner (font size, MOBI-12) and side
+  // (comb span) resize handles used to be a fixed 10px/-4px regardless of
+  // the box's own height, so a short single-line field packed three of them
+  // into a few px of vertical space and they rendered as one overlapping
+  // blob (reported live, twice, on the practice form). TextNode.tsx's own
+  // job is only the measurement - it hands `[data-editor-text] .resizer` in
+  // EditorElement.module.css one raw value, `--half-height`, and that CSS
+  // does the actual shrink-and-separate arithmetic (`clamp()`/`max()`) that
+  // guarantees the handles never overlap, however short the box gets. jsdom
+  // has no CSS engine to evaluate that arithmetic (editor.md: "these need a
+  // real browser... jsdom can only assert middleware config and committed
+  // state") - `--half-height` reaching the DOM correctly is what a unit
+  // test here can prove; a real rendered non-overlap check is
+  // resizer-handle-spacing.spec.js (MOBI-19).
+  describe('passes its measured box height to the resize handles', () => {
+    let originalGetBoundingClientRect: typeof Element.prototype.getBoundingClientRect;
+    let mockDisplayHeight = 0;
+
+    beforeEach(() => {
+      originalGetBoundingClientRect = Element.prototype.getBoundingClientRect;
+      Element.prototype.getBoundingClientRect = function (this: Element) {
+        if (this.hasAttribute('data-editor-text-display')) return new DOMRect(0, 0, 100, mockDisplayHeight);
+        return originalGetBoundingClientRect.call(this);
+      };
+    });
+
+    afterEach(() => {
+      Element.prototype.getBoundingClientRect = originalGetBoundingClientRect;
+    });
+
+    const halfHeightOf = (h: HTMLElement) =>
+      requireElement<HTMLElement>(h, '[data-editor-resizer="left"]').style.getPropertyValue('--half-height');
+
+    it('halves the measured box height for a short single-line field', () => {
+      mockDisplayHeight = 16;
+      host = mount(
+        <TextNode element={{ text: 'Hi', fontSize: 12 }} isActive onChange={() => {}} onSelect={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />
+      );
+      expect(halfHeightOf(host)).toBe('8px');
+    });
+
+    it('halves the measured box height for a normal or multi-line box too', () => {
+      mockDisplayHeight = 40;
+      host = mount(
+        <TextNode element={{ text: 'Hi', fontSize: 24 }} isActive onChange={() => {}} onSelect={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />
+      );
+      expect(halfHeightOf(host)).toBe('20px');
+    });
+
+    it('updates every resize handle, not just one', () => {
+      mockDisplayHeight = 16;
+      host = mount(
+        <TextNode element={{ text: 'Hi', fontSize: 12 }} isActive onChange={() => {}} onSelect={() => {}} onResizeStart={() => {}} pageWidthPoints={600} />
+      );
+      const handles = [...host.querySelectorAll<HTMLElement>('[data-editor-resizer]')];
+      expect(handles.length).toBeGreaterThan(0);
+      for (const handle of handles) {
+        expect(handle.style.getPropertyValue('--half-height')).toBe('8px');
+      }
+    });
   });
 
   describe('comb layout', () => {
