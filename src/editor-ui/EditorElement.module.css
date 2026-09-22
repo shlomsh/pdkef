@@ -26,11 +26,44 @@
    shrink-to-fit against that folded the bar into a one-button column. */
 .actions { position: absolute; top: -44px; left: 0; display: flex; flex-wrap: wrap; width: max-content; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
+/* MOBI-20: the wrapped bar's rows have to clear each other's hit boxes. Same
+   arithmetic as `.quick-field-nav` below, in the other axis: 28px of button
+   against a 44px `::before` target means a 4px row gap leaves the two rows
+   12px inside each other, and Delete sits in that second row. Measured before
+   this rule: four overlapping cross-row pairs at 390px. 28 + 16 = a 44px row
+   pitch, so they meet at zero. Column gap is deliberately left at the bar's
+   4px: raising it too would add ~144px of line to the expanded set and push it
+   to a third row over the document, which is the cost MOBI-16 existed to
+   remove. The same-row overlap that leaves is MOBI-20's own scope. */
+@media (pointer: coarse) {
+  .actions { row-gap: 16px; }
+}
 /* MOBI-16: the Previous/Next pair of the compact editing bar (DraggableWrapper.tsx),
    grouped so `dir` can flip their visual order for an RTL document without
    touching the Aa disclosure beside them - same technique EditorToolStatus's
-   own `.field-nav` uses for the top toolbar's copy of this control. */
-.quick-field-nav { display: inline-flex; align-items: center; gap: 4px; }
+   own `.field-nav` uses for the top toolbar's copy of this control.
+
+   16px between them, not the bar's usual 4px, and that is load-bearing.
+   `.element-button` is 28px with a 44px hit area from `::before { inset: -8px }`
+   (EditorControls.module.css), so 28 + 4 puts these two targets 32px apart -
+   12px of overlap, measured. Both pseudo-elements are `position: absolute` at
+   `z-index: auto`, so they paint in tree order and Next's wins: the trailing
+   4px of the *visible* Previous fired Next, which walks a form backwards. It
+   is the worst pair on the bar to get wrong. 28 + 16 = 44 makes them meet at
+   exactly zero. No media query needed - this bar only renders on a coarse
+   pointer, so a mouse never sees the spacing. (MOBI-20.) */
+.quick-field-nav { display: inline-flex; align-items: center; gap: 16px; }
+/* The other half of the RTL contract, and the half that was missing. `dir` on
+   `.quick-field-nav` reverses the row, so for an RTL document Previous (first in
+   the DOM) moves to the right; the glyphs have to turn with it or the picture
+   comes out `>` `<`, two arrows pointing at each other - which is what shipped
+   and was reported on a Hebrew form in the English edition (2026-09-22). Both
+   flips together leave the picture invariant, `<` left and `>` right, with only
+   the binding swapped. Identical to the top card's own rule,
+   `.field-nav[dir="rtl"] .field-nav-button svg` in SignToolbar.module.css; MOBI-06
+   records the same bug on that copy. Guarded in a real engine by
+   src/tools/sign/e2e/field-nav-arrow-direction.spec.js - jsdom applies no CSS. */
+.quick-field-nav[dir="rtl"] svg { transform: scaleX(-1); }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the
    user chose to wrap at), so a line should never auto-wrap - only an explicit
@@ -60,6 +93,13 @@
    width rather than the measure's, or `text-align: right` on RTL text would
    align it inside the text's own intrinsic width at the cell's left end. */
 .text-display[data-span="field"] { grid-template-columns: 100%; }
+/* And not the fixed 4px sides: a cell box sets its text in by `--field-inset`,
+   the room the cell has to spare (TextNode.tsx, `fieldTextInset`), and the
+   exporter by the same number. A fixed 4px pushed the last digit of a mobile
+   number past form 101's phone cell wall; none at all crowded roomy cells.
+   The measure stays unpadded: it is the text's own width. */
+.text-display[data-span="field"] .text-input { padding-inline: var(--field-inset, 0px); }
+.text-display[data-span="field"] .text-measure { padding-inline: 0; }
 .text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 0; }
 /* Centred on the cell centre, which is the whole point: the printed pitch
    decides where the glyph goes, never the font's advance width. */

@@ -1,0 +1,295 @@
+import { render } from 'preact';
+import { useRef } from 'preact/hooks';
+import { act } from 'preact/test-utils';
+import { describe, expect, it, afterEach, vi } from 'vitest';
+import useDraggableElement from './useDraggableElement.js';
+
+// MOBI-21 review fix coverage. No @testing-library/preact-hooks in this repo
+// - see useCurrentPage.test.jsx/useCoarsePointer.test.tsx for the same
+// tiny-harness pattern used for hook tests elsewhere. The harness renders the
+// actual draggable node and wires handlePointerDown to it exactly as
+// DraggableWrapper.tsx does (onMouseDown / onTouchStart), so every test
+// dispatches real Touch/MouseEvents at the real DOM node rather than calling
+// hook internals directly - the same "drive it like the browser would" style
+// as DraggableWrapper.gestureInvariants.test.tsx.
+
+type ApiRef = { current: { handlePointerDown: (e: Event) => void } | null };
+
+function Harness({
+  apiRef,
+  onSelect = () => {},
+  onChange = () => {},
+  onTap,
+}: {
+  apiRef: ApiRef;
+  onSelect?: (e: Event) => void;
+  onChange?: (changes: Record<string, number>) => void;
+  onTap?: (() => void) | null;
+}) {
+  const elementRef = useRef<HTMLDivElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  // A text element with no explicit width/minWidth and ltr direction, so
+  // textAnchorsRightEdge(element) is false and the ordinary left-anchored
+  // clamp math applies - keeps the drag math boring so these tests stay
+  // about tap detection, not clamping.
+  const element = { id: 'el-1', type: 'text', left: 20, top: 10, text: 'Hi', fontSize: 12, textDirection: 'ltr' };
+  const getPageWrapper = () => wrapperRef.current;
+
+  const { handlePointerDown } = useDraggableElement({
+    element,
+    elementRef,
+    getPageWrapper,
+    onSelect,
+    onChange,
+    onTap: onTap ?? null,
+  });
+
+  apiRef.current = { handlePointerDown };
+
+  return (
+    <div ref={wrapperRef}>
+      <div ref={elementRef} data-el onMouseDown={handlePointerDown} onTouchStart={handlePointerDown} />
+    </div>
+  );
+}
+
+// .claude/rules/editor.md's "Geometry rules": a 0x0 jsdom default rect
+// saturates every delta to +/-Infinity, which would make a passing test here
+// prove nothing about the 8px tolerance or the clamp math it interacts with.
+// Both the page wrapper and the dragged element get a realistic, non-square
+// rect instead.
+function pageRect() {
+  return new DOMRect(0, 0, 600, 800);
+}
+
+function elRect() {
+  return new DOMRect(260, 380, 80, 20);
+}
+
+function mount({
+  onSelect,
+  onChange,
+  onTap,
+}: { onSelect?: (e: Event) => void; onChange?: (changes: Record<string, number>) => void; onTap?: (() => void) | null } = {}) {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const apiRef: ApiRef = { current: null };
+  act(() => {
+    render(<Harness apiRef={apiRef} onSelect={onSelect} onChange={onChange} onTap={onTap} />, host);
+  });
+  const wrapper = host.querySelector('div') as HTMLDivElement;
+  wrapper.getBoundingClientRect = pageRect;
+  const el = host.querySelector('[data-el]') as HTMLDivElement;
+  el.getBoundingClientRect = elRect;
+  return { host, el, wrapper, unmount: () => act(() => render(null, host)) };
+}
+
+// Touch/TouchEvent init dicts here only ever carry the fields the hook and
+// the gesture controller actually read (touches, cancelable) - jsdom does
+// not validate Touch objects, so plain point literals are enough (confirmed
+// against jsdom 30's TouchEvent: a dispatched event's `.touches` is exactly
+// the array passed in, no Touch-instance coercion).
+function touch(clientX: number, clientY: number) {
+  return { clientX, clientY } as Touch;
+}
+
+function dispatchTouchStart(target: EventTarget, touches: Touch[], { cancelable = true } = {}) {
+  act(() => {
+    target.dispatchEvent(
+      new TouchEvent('touchstart', { touches, changedTouches: touches, bubbles: true, cancelable })
+    );
+  });
+}
+
+function dispatchTouchMove(touches: Touch[]) {
+  act(() => {
+    window.dispatchEvent(
+      new TouchEvent('touchmove', { touches, changedTouches: touches, bubbles: true, cancelable: true })
+    );
+  });
+}
+
+function dispatchTouchEnd(lastTouch: Touch) {
+  act(() => {
+    window.dispatchEvent(
+      new TouchEvent('touchend', { touches: [], changedTouches: [lastTouch], bubbles: true, cancelable: true })
+    );
+  });
+}
+
+function dispatchTouchCancel() {
+  act(() => {
+    window.dispatchEvent(new TouchEvent('touchcancel', { touches: [], changedTouches: [], bubbles: true }));
+  });
+}
+
+function dispatchMouseDown(target: EventTarget, clientX: number, clientY: number) {
+  act(() => {
+    target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX, clientY }));
+  });
+}
+
+function dispatchMouseUp(clientX: number, clientY: number) {
+  act(() => {
+    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, clientX, clientY }));
+  });
+}
+
+describe('useDraggableElement MOBI-21 tap detection (review fixes)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.useRealTimers();
+  });
+
+  it('calls onTap exactly once for a single-finger touch that releases with no movement', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onTap once the finger has moved past the 8px tolerance', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(320, 400)]); // dx = 20px > TAP_MOVEMENT_TOLERANCE_PX
+    dispatchTouchEnd(touch(320, 400));
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  it('still calls onTap when the finger stays inside the 8px slop', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(305, 400)]); // dx = 5px, inside the 8px tolerance
+    dispatchTouchEnd(touch(305, 400));
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  it('never calls onTap for a mouse gesture, even with zero movement', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchMouseDown(el, 300, 400);
+    dispatchMouseUp(300, 400);
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // Review finding #1 (multi-finger): a TouchList is always truthy, so a
+  // pinch that starts with a second finger already down must not read as a
+  // tap candidate just because `e.touches` exists.
+  it('does not call onTap when the touchstart already carries two touches', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400), touch(340, 440)]);
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // Review finding #1, the other half: a pinch that starts with ONE finger on
+  // the box (a valid tap candidate at touchstart) must stop being one the
+  // moment a second finger joins mid-gesture.
+  it('does not call onTap when a second finger joins during the gesture', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(300, 400), touch(340, 440)]); // second finger, no movement on the first
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // Review finding #2 (fling stop): the touchstart that merely stops an
+  // in-flight scroll fling is non-cancelable and the finger doesn't move -
+  // it must never read as a tap that opens the keyboard.
+  it('does not call onTap for a non-cancelable touchstart (a fling-stopping touch)', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)], { cancelable: false });
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // Review finding #4 (long-press): a hold past TAP_HOLD_LIMIT_MS (500ms) is
+  // a long-press, not a tap, even with zero movement.
+  it('does not call onTap when the touch is held past the long-press limit', () => {
+    vi.useFakeTimers();
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  it('still calls onTap for a quick release inside the long-press limit', () => {
+    vi.useFakeTimers();
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  // Review finding #3 (order): the flag must be set AFTER the outgoing
+  // gesture's own cancelDragRef.current?.() call, whose cancel() resets the
+  // same flag - otherwise a still-live gesture at pointer-down wipes the
+  // *new* gesture's tap candidacy the instant it is set. A second
+  // touchstart on the same element while the first gesture is still live
+  // (no touchend/touchcancel yet) starts a fresh gesture whose own,
+  // unrelated release must still be read as a tap.
+  it('still calls onTap for a fresh touch that interrupts a still-live previous gesture', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]); // gesture A starts, never released
+    dispatchTouchStart(el, [touch(300, 400)]); // gesture B interrupts it
+    dispatchTouchEnd(touch(300, 400)); // gesture B releases with no movement
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onTap when the gesture is interrupted by touchcancel', () => {
+    const onTap = vi.fn();
+    const { el } = mount({ onTap });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchCancel();
+
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  it('does not throw and still commits the position when no onTap is passed', () => {
+    const onChange = vi.fn();
+    const { el } = mount({ onChange, onTap: null });
+
+    expect(() => {
+      dispatchTouchStart(el, [touch(300, 400)]);
+      dispatchTouchEnd(touch(300, 400));
+    }).not.toThrow();
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});

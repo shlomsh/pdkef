@@ -43,3 +43,26 @@ hydrates is enough, and is honest about what it covers - the nudge's arithmetic,
 **Acceptance.** Both specs live with the Sign e2e suite and fail if the CSS rule is re-keyed or the
 second scroll is removed. Note for whoever picks this up: the pinned Playwright build was not
 installed in the environment where MOBI-06 was written, which is why these were not written then.
+
+## Clause 1 done, 2026-09-22 - because the bug it guards against shipped again
+
+The arrow-direction spec this ticket asked for is `src/tools/sign/e2e/field-nav-arrow-direction.spec.js`.
+It was written the day the bug it describes shipped a second time, on the other copy of the control:
+MOBI-16 moved the chevrons onto the element toolbar (`.quick-field-nav`, `DraggableWrapper.tsx`), set
+`dir` from the document there so the row reverses, and never carried over the glyph mirror the top
+card has. On a Hebrew form in the English edition the element bar drew `>` `<`, two arrows pointing at
+each other (reported from an iPhone on income tax form 101).
+
+The spec reads the picture, not the attribute: for each arrow it takes the rect and the computed
+transform's x-scale sign, and asserts `<` on the left and `>` on the right for both a right-to-left and
+a left-to-right document, plus which side Next is bound to. Both runs are in the English edition so the
+locale cannot enter into it. Proven red-to-green: without the mirror rule it fails with "left arrow
+(Next field) is drawn <: expected true, received false"; with it both documents pass.
+
+Two things learned writing it. The `__fixtures__/*-geometry.pdf` files carry lines and boxes but no text
+layer, so the page direction detector reads them as `ltr` - the RTL case has to use the real form from
+`corpus/scoring/forms/income-tax-101-2024.pdf`. And the spec asserts the resolved direction before
+anything else, because a guard that silently tested two LTR documents would have gone green on the bug.
+
+**Clause 2 is still open**: the keyboard-clearance nudge. It is being reworked under MOBI-22, where the
+scroll was found to fire before the element exists; its proof belongs with that change.

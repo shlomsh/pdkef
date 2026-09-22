@@ -187,6 +187,21 @@
   .keep-long { display: none; }
   .keep-short { display: inline; }
 }
+/* MOBI-20: coarse pointer only, not a width breakpoint - a tablet or a
+   landscape phone wider than 559px can still wrap this row across several
+   translations, and while a field is being typed into the chevrons that used
+   to set this row's height are on the element instead (SignToolbar.tsx's
+   `elementNavTakesOver`). `.help`'s line-height is otherwise the 1.35 `.status`
+   sets in ToolShell.module.css, sized for a row that could carry a 44px
+   control; on touch the tallest thing left is `.status-action`'s untouched
+   2rem/34px floor, so a wrapped sentence no longer needs mouse-row line
+   spacing, and `.help-row`'s gap (used for both the horizontal spacing on one
+   line and the vertical spacing between wrapped ones) can tighten with it.
+   Never applied to `.status-action` itself - see its own comment below. */
+@media (pointer: coarse) {
+  .help { line-height: 1.15; }
+  .help-row { gap: var(--space-1); }
+}
 /* The one control that turns "keep adding" on and off - the only way out of a
    locked tool that exists on a phone, where there is no Escape key and no
    reliable double-click (a double-tap is the browser's zoom gesture). It sits

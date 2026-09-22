@@ -164,12 +164,20 @@ describe('text serialize alignment in a field-spanned box', () => {
 
   const base = { type: 'text', id: 't1', pageIndex: 0, left: 10, top: 10, fontSize: 12, fontFamily: 'Arimo', color: '#000000', minWidth: 20 };
 
+  // A roomy cell sets its text in 0.25em (3pt at 12pt) off the aligned wall,
+  // the same `fieldTextInset` the editor pads its textarea with.
   it('starts a phone number at the cell\'s right edge on a Hebrew form, where the editor shows it', async () => {
-    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'rtl' })).toEqual([100 + 122.4 - 42]);
+    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'rtl' })).toEqual([100 + 122.4 - 42 - 3]);
   });
 
   it('starts it at the left edge on an English form', async () => {
-    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'ltr' })).toEqual([100]);
+    expect(await serializeSpanned({ ...base, text: '0528200202', textDirection: 'ltr' })).toEqual([100 + 3]);
+  });
+
+  it('gives a tight cell only half the room it has left, never the whole inset', async () => {
+    // A 44pt cell holding the 42pt line: 2pt spare, so 1pt off the wall.
+    const tight = { ...base, minWidth: (44 / 612) * 100, text: '0528200202', textDirection: 'rtl' };
+    expect(await serializeSpanned(tight)).toEqual([100 + 44 - 42 - 1]);
   });
 
   it('centres it in the cell when asked to', async () => {

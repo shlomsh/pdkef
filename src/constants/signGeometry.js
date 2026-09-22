@@ -48,6 +48,10 @@ export const DEFAULT_SHAPE_FALLBACK_ASPECT_RATIO = 1;
 export const HELVETICA_BASELINE_OFFSET_EM = 0.85;      // Fallback Helvetica baseline offset (em)
 export const DEFAULT_LINE_HEIGHT_EM = 1.05;             // Default text line height multiplier (em)
 export const TEXT_BOX_PADDING_EM = 0.12;                // Text box padding (em) matching editor styles
+// How far a box on a detected form cell keeps its text off the cell's wall
+// when there is room: a person leaves a little air in a roomy cell and none in
+// a tight one. Never more than half the cell's spare width (`fieldTextInset`).
+export const FIELD_TEXT_INSET_EM = 0.25;
 // Total height of an empty one-line text box, in em: the 1.05em line box plus
 // the .12em padding above and below it (see EditorElement.module.css
 // .text-display / .text-input). Used to center a newly placed text box on the

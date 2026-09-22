@@ -125,27 +125,127 @@ function positionOf(element: EditorElement): PlacedText {
 }
 
 /**
- * Scrolls a just-reached field into view, accounting for the on-screen
- * keyboard where the platform exposes it. `scrollIntoView` measures against
- * the layout viewport, which does not shrink when the keyboard opens - a
- * plain `block: 'center'` can still centre a field behind it. Where
- * `visualViewport` exists, a follow-up nudge re-centres the field inside the
- * space the keyboard has actually left; where it does not (jsdom, older
- * browsers), the plain scroll is the whole answer.
+ * Scrolls a just-reached field into view, centred in the space the on-screen
+ * keyboard actually leaves (the visual viewport), inside whatever is actually
+ * scrolling - the page, or the workspace in full screen.
+ *
+ * Proven by `src/tools/sign/e2e/field-move-scroll.spec.js`, which samples the
+ * scroll offset across a press: one monotonic move, arriving centred. Read that
+ * spec's module doc before chasing an "instant jump" in a trace of your own - a
+ * Playwright `locator.click()` scrolls its target into view first, instantly,
+ * and that driver-side scroll was mistaken for an app-side one for a whole round
+ * of MOBI-22.
  */
+
+// One pending field move at a time. Next pressed during the previous move's
+// smooth scroll used to leave two deferred scrolls queued, each measured at a
+// different moment; the older one is simply abandoned now.
+let pendingFrame = 0;
+
 function bringFieldIntoView(elementId: string) {
+  // Deferred to after paint, and that is load-bearing. Every caller runs this
+  // in the same tick as the dispatch that selects or creates the box, so on the
+  // create path the node does not exist in the DOM yet and a synchronous
+  // `querySelector` returned null - the move silently did no scrolling at all,
+  // and what actually brought the field into view was the browser's own scroll
+  // on focus. Two frames: the first lets Preact commit, the second lets layout
+  // settle so the rect measured is the one the person will see.
+  if (typeof requestAnimationFrame !== 'function') {
+    scrollFieldIntoView(elementId);
+    return;
+  }
+  if (pendingFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pendingFrame);
+  pendingFrame = requestAnimationFrame(() => {
+    pendingFrame = requestAnimationFrame(() => {
+      pendingFrame = 0;
+      scrollFieldIntoView(elementId);
+    });
+  });
+}
+
+/**
+ * The element that actually scrolls the field, or null when it is the page.
+ *
+ * In full screen it is `.workspace` (`overflow-y: auto`, Workspace.module.css),
+ * and on an iPhone full screen is ALWAYS that: Safari has no element
+ * `requestFullscreen`, so PdfSignTool falls back to pseudo-fullscreen. A
+ * `window` scroll there moves nothing at all - which, with `focus()` no longer
+ * allowed to scroll, would have left Next landing on a field off screen.
+ */
+function scrollContainerOf(node: HTMLElement): HTMLElement | null {
+  for (let el = node.parentElement; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+  }
+  return null;
+}
+
+/** Breathing room a field needs inside the visible band to count as in view. */
+const FIELD_VIEW_MARGIN_PX = 8;
+
+function scrollFieldIntoView(elementId: string) {
   if (typeof document === 'undefined') return;
   const node = document.querySelector<HTMLElement>(`[data-editor-element-id="${elementId}"]`);
-  if (!node || typeof node.scrollIntoView !== 'function') return;
-  node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!node) return;
   const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
-  if (!viewport) return;
+
+  // No visualViewport (jsdom, older browsers): there is nothing better to know,
+  // so the plain centred scroll is the whole answer - and `scrollIntoView`
+  // scrolls every scrolling ancestor, full screen included.
+  if (!viewport || typeof window.scrollTo !== 'function') {
+    if (typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // ONE scroll, measured once, to an ABSOLUTE target. It used to be an
+  // asynchronous smooth `scrollIntoView` followed by a nudge computed from a rect
+  // read before that scroll had moved anything, which no-opped or double-counted;
+  // measured at a phone viewport with the keyboard's shrunken visual viewport,
+  // the field landed at y=461 in a band ending at 400 - behind the keyboard - and
+  // iOS then scrolled again by itself. Absolute rather than relative (`scrollTo`,
+  // not `scrollBy`) because whether a relative smooth scroll adds to the current
+  // offset or to one still in flight differs by engine, and a second Next during
+  // the first move's glide is exactly when that matters.
+  //
+  // The band is the visual viewport, clipped to the scrolling container when
+  // there is one: `block: 'center'` centres on the layout viewport, which iOS
+  // does not shrink when the keyboard opens.
   const rect = node.getBoundingClientRect();
-  const visibleTop = viewport.offsetTop;
-  const visibleBottom = viewport.offsetTop + viewport.height;
-  if (rect.top >= visibleTop && rect.bottom <= visibleBottom) return;
-  const target = visibleTop + viewport.height / 2 - rect.height / 2;
-  window.scrollBy({ top: rect.top - target, behavior: 'smooth' });
+  if (!Number.isFinite(rect.top) || !Number.isFinite(viewport.offsetTop) || !Number.isFinite(window.scrollY)) return;
+
+  // MOBI-25: pinch-zoomed, the arithmetic below is not safe to trust. It mixes
+  // layout-viewport rects with the visual viewport's offset and hands the sum to
+  // window.scrollTo, and iOS resolves that differently once the page is scaled:
+  // a Next on a zoomed-in iPhone, with the keyboard up and the next field already
+  // on screen, threw the page all the way to its top (reported in production
+  // 2026-09-22). The browser's own reveal knows both viewports and both axes, and
+  // `nearest` only moves as far as it must.
+  if (viewport.scale > 1.01) {
+    if (typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    return;
+  }
+
+  const container = scrollContainerOf(node);
+  let bandTop = viewport.offsetTop;
+  let bandBottom = viewport.offsetTop + viewport.height;
+  if (container) {
+    const box = container.getBoundingClientRect();
+    bandTop = Math.max(bandTop, box.top);
+    bandBottom = Math.min(bandBottom, box.bottom);
+  }
+  // MOBI-25: a field already in full view stays where it is. It compares a
+  // layout-viewport rect with the visual viewport's band, which only agree
+  // unzoomed - so it must stay below the zoom branch above. Moving to the
+  // neighbour you can see should be a hop, not a page movement - centring every
+  // move made even the box beside this one scroll.
+  if (rect.top >= bandTop + FIELD_VIEW_MARGIN_PX && rect.bottom <= bandBottom - FIELD_VIEW_MARGIN_PX) return;
+  const target = bandTop + (bandBottom - bandTop) / 2 - rect.height / 2;
+  const delta = rect.top - target;
+  // Sub-pixel deltas are not worth an animation the browser rounds to nothing,
+  // and firing one on every move is what makes a walk feel busy.
+  if (Math.abs(delta) < 1) return;
+  if (container) container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
+  else window.scrollTo({ top: window.scrollY + delta, behavior: 'smooth' });
 }
 
 export default function useFieldNavigation({

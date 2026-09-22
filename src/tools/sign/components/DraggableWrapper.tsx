@@ -8,6 +8,7 @@ import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../co
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
@@ -18,6 +19,13 @@ import type { NodeResizeStart } from './nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
 import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+
+// How far a coarse-pointer `.element-button`'s 44px hit area overhangs the
+// button itself: `::before { inset: -8px }` in EditorControls.module.css. Kept
+// beside the offset it corrects rather than exported from the stylesheet,
+// because a CSS Module cannot export a number; if that inset ever changes,
+// this has to change with it.
+const COARSE_HIT_OVERHANG_PX = 8;
 
 type DraggableChildProps = {
   element?: EditorElement;
@@ -84,14 +92,9 @@ export default function DraggableWrapper<T extends EditorElement>({
   // MOBI-16: on a phone, the full formatting bar for a text box in an edit
   // session wraps to two or three rows (a dozen buttons against a ~340px
   // page cap) and covers the fields just filled - measured on the practice
-  // form as ~84px of document. `isCoarsePointer` is read once via
-  // matchMedia, the same pattern ArmHint.tsx uses for its own hover check,
-  // rather than tracked with a resize listener: pointer type is a device
-  // characteristic, not something that changes mid-session. Desktop (a fine
-  // pointer) never sees this - the full toolbar renders exactly as before.
-  const [isCoarsePointer] = useState(
-    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
-  );
+  // form as ~84px of document. Desktop (a fine pointer) never sees this - the
+  // full toolbar renders exactly as before.
+  const isCoarsePointer = useCoarsePointer();
   // Starts collapsed on every fresh edit session (a new field reached by
   // Next/Previous mounts its own DraggableWrapper instance with this at its
   // default false; re-entering an edit session on the same box resets it via
@@ -138,7 +141,40 @@ export default function DraggableWrapper<T extends EditorElement>({
     pageGeometry,
     onSelect,
     onChange,
+    // MOBI-21: on a phone, one tap on a text box selects it *and* opens its
+    // edit session, which is how every mobile form behaves (tap a field,
+    // type). It is also the only route there on touch: the wrapper
+    // `preventDefault()`s the `touchstart` to own the drag, which kills the
+    // synthesised click and with it the `dblclick` TextNode listens for, so
+    // once a session closed the box was unreachable by finger (the shipped
+    // bug). Nothing is lost by opening on the first tap: moving is a drag
+    // (movement, so not a tap), and delete/formatting stay one tap away on
+    // the element's own bar. Desktop is untouched on both counts - a fine
+    // pointer gets no `onTap` at all, and `useDraggableElement` only ever
+    // raises one for a touch gesture, so click-selects / double-click-edits
+    // exactly as before.
+    onTap: isCoarsePointer && element.type === 'text' && !isEditing ? beginEditFromTap : null,
   });
+
+  // MOBI-24: iOS raises the keyboard only for a focus() made while the touch
+  // itself is being handled. `onTap` runs inside the `touchend` listener, but
+  // opening the session through state alone leaves the focus to TextNode's
+  // effect, which Preact runs a frame later - the box turned editable and no
+  // keyboard ever came, so on an iPhone the box could still not be typed into
+  // (reported in production after MOBI-21 shipped; WebKit under Playwright
+  // does not enforce the rule, which is why every e2e passed). So the textarea
+  // takes focus here, synchronously, before the state change; TextNode's
+  // effect then finds it already focused and leaves it alone.
+  function beginEditFromTap() {
+    const input = elementRef.current?.querySelector<HTMLTextAreaElement>('[data-editor-text-input]');
+    if (input) {
+      input.readOnly = false;
+      input.focus({ preventScroll: true });
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+    onBeginEdit();
+  }
 
   // Resize gesture logic (extracted into useElementResize - shared with Redact, E7.5).
   const { handleResizeStart, isSpanResizing } = useElementResize({
@@ -181,7 +217,19 @@ export default function DraggableWrapper<T extends EditorElement>({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(TOOLBAR_FLOATING_OFFSET),
+      // Measured, not derived: at the plain 8px offset a tap aimed at a short text
+      // box (5.8px tall on the health-declaration form) landed on the bar above
+      // it instead - Delete in one run, destroying what had just been typed,
+      // Duplicate in another, cloning the element into the export on every tap.
+      // At 16px it does not (touch-edit-reentry.spec.js, proven red-to-green).
+      // The geometry alone does not explain it: the bar's 4px padding means a
+      // button's 44px hit area overhangs the bar by only 4px, which should stop
+      // short of the box. The likely mechanism is the browser's own touch-target
+      // adjustment, which moves a touch onto the nearest clickable element
+      // within the finger's radius - so a real finger, wider than a test's,
+      // may need more clearance still. MOBI-23 tracks proving that on a device.
+      // Desktop keeps 8px: a mouse is a point, and nothing is adjusted.
+      offset(isCoarsePointer ? TOOLBAR_FLOATING_OFFSET + COARSE_HIT_OVERHANG_PX : TOOLBAR_FLOATING_OFFSET),
       shift((state) => ({
         boundary: floatingBoundary(state),
         padding: TOOLBAR_FLOATING_OFFSET,

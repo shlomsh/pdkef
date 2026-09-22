@@ -221,12 +221,13 @@ describe('sign.js signPdf', () => {
     const item = items.find((i) => i.dir === 'rtl');
     expect(item).toBeDefined();
 
+    // Set in 0.25em (5pt at 20pt) off the wall: the cell has room to spare.
     const rightEdge = item.transform[4] + item.width;
-    expect(rightEdge).toBeCloseTo(percentToPoints(element.left + element.minWidth, pdfWidth), 0);
+    expect(rightEdge).toBeCloseTo(percentToPoints(element.left + element.minWidth, pdfWidth) - 5, 0);
     expect(item.transform[4]).toBeGreaterThan(percentToPoints(element.left, pdfWidth));
   });
 
-  it('bakes LTR text in a box on a form cell starting at `left`, the cell\'s left edge', async () => {
+  it('bakes LTR text in a box on a form cell starting just in from `left`, the cell\'s left edge', async () => {
     const file = getFixtureFile();
     const element = {
       id: 'el-ltr-cell', type: 'text', pageIndex: 0, left: 10, top: 10, minWidth: 50,
@@ -235,7 +236,7 @@ describe('sign.js signPdf', () => {
     const blob = await signPdf(file, [element]);
     const items = await getTextItems(blob);
     const item = items.find((i) => i.str.includes('Hello'));
-    expect(item.transform[4]).toBeCloseTo(percentToPoints(element.left, 200), 0);
+    expect(item.transform[4]).toBeCloseTo(percentToPoints(element.left, 200) + 5, 0);
   });
 
   it('bakes LTR text starting at the stored `left` percent (unaffected by the RTL fix)', async () => {

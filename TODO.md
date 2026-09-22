@@ -112,7 +112,14 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 | MOBI-19 | P1 | [MOBI-19](backlog/tasks/MOBI-19.md) · A text box's resize handles overlap into a blob on any short single-line field |
-| MOBI-20 | P1 | [MOBI-20](backlog/tasks/MOBI-20.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
+| MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
+| MOBI-21 | P1 | [MOBI-21](backlog/tasks/MOBI-21.md) · There is no way back into a text box on touch once its edit session closes |
+| MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
+| MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
+| MOBI-24 | P1 | [MOBI-24](backlog/tasks/MOBI-24.md) · A tapped text box on an iPhone opens its session but never its keyboard |
+| MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
+| MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
+| MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 
 
 ## Site quality: accessibility, CSS correctness and theming
@@ -302,6 +309,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |
+| DEBT-22 | P2 | [DEBT-22](backlog/tasks/DEBT-22.md) · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else |
 
 
 ## Undo and redo across the tools (2026-09-20)
