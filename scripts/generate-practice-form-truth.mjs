@@ -11,10 +11,10 @@ import { PDFDocument, PDFName, PDFDict } from '@cantoo/pdf-lib';
  * cheapest honest ground truth we have and - since the other two scored forms
  * are Hebrew - the first Latin one.
  *
- * Kinds describe the FORM, not the detector. `parent_guardian_signature` is a
- * signature target and `signature_date` is a date target even though the
- * detector reports both as ordinary text today; a truth file written to match
- * what we already do would score 100% and measure nothing.
+ * Kinds describe the FORM, not the detector - which is also what
+ * `formWidgets.js`'s `classifyTextFieldKind` now reads a widget's own `/T`
+ * name for (2026-09-22), so this script's regex is kept in step with that
+ * one rather than left to drift into the truth file's own answer key.
  *
  * Run: node scripts/generate-practice-form-truth.mjs
  */

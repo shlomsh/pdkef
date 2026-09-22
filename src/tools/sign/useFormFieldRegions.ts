@@ -313,7 +313,12 @@ export default function useFormFieldRegions(
           found.combs.push(...combs);
           // Signature cells aren't wired into a snap yet - signature
           // placement is a different creation mode (a saved-signature
-          // dialog, not a point tap) and stays out of this first pass.
+          // dialog, not a point tap) and stays out of this first pass. This
+          // now also catches a signature line on a fillable form: our own
+          // practice form's `parent_guardian_signature` widget reads as
+          // `kind: 'signature'` from its own field name (`formWidgets.js`),
+          // so the location it used to offer as an ordinary "double-click to
+          // edit" text cell is dropped here rather than mislabelled.
           found.cells.push(...cells.filter((cell) => cell.kind !== 'signature'));
         }
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });

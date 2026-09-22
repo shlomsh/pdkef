@@ -495,13 +495,17 @@ export function pageWidgets(page) {
 }
 
 /**
- * The five entries a widget states about itself, as plain values, for
+ * The six entries a widget states about itself, as plain values, for
  * `formWidgets.js` to decide on.
  *
- * `/FT`, `/Ff` and `/MaxLen` are inheritable and go through `inheritedEntry`;
- * `/F` and `/Rect` are the widget's own and are read straight off it. This
- * reads, it does not judge - which widget is worth offering is a pure
- * decision made on the result.
+ * `/FT`, `/Ff`, `/MaxLen` and `/T` are inheritable and go through
+ * `inheritedEntry`; `/F` and `/Rect` are the widget's own and are read
+ * straight off it. This reads, it does not judge - which widget is worth
+ * offering, and what kind it is, is a pure decision made on the result.
+ * `/T` is a text string (`PDFString` or `PDFHexString` depending on the
+ * writer), never a `/FT`-style name, so it is decoded rather than read with
+ * `asString()` - the same distinction `scripts/generate-practice-form-truth.mjs`
+ * already draws when it reads field names for the ground truth.
  *
  * @param {import('@cantoo/pdf-lib').PDFContext} context
  * @param {import('@cantoo/pdf-lib').PDFDict} widget
@@ -510,6 +514,7 @@ export function pageWidgets(page) {
 export function widgetEntries(context, widget) {
   return {
     fieldType: inheritedEntry(context, widget, 'FT')?.asString?.(),
+    fieldName: inheritedEntry(context, widget, 'T')?.decodeText?.(),
     annotationFlags: context.lookup(widget.get(PDFName.of('F')))?.asNumber?.(),
     fieldFlags: inheritedEntry(context, widget, 'Ff')?.asNumber?.(),
     maxLen: inheritedEntry(context, widget, 'MaxLen')?.asNumber?.(),

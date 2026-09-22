@@ -219,6 +219,27 @@ labels (the idea harvested below) and are read by nothing yet, since no UI surfa
 form a signature line arrives as an ordinary text cell - which is what the practice form wants
 today, but is a guess, not a decision.
 
+**Step 4, done 2026-09-22 (`pdfObjects.js`, `formWidgets.js`, `useFormFieldRegions.ts`,
+`formWidgets.test.js`, `baselines.json`, `generate-practice-form-truth.mjs`):** closed the second
+half of that guess, for the widget path. Our own practice form's `parent_guardian_signature` and
+`signature_date` fields were showing the person a generic "double-click to edit" text prompt over
+the signature line (reported live, from the shipped Sign tool). Not a form-content problem - the
+field's own `/T` name already says "signature" - but `formWidgets.js` never read `/T` at all, so
+every non-comb `/Tx` widget reported `kind: 'text'` regardless of its name, same as `classifyKind`'s
+Hebrew-only gap but on the side that reads no page ink to begin with. `widgetEntries` now decodes
+`/T` and `fillableTextField` classifies it (`classifyTextFieldKind`: `/date$/i` before `/signature/i`,
+same order and reason as `generate-practice-form-truth.mjs`'s own `kindOf`, which the two now stay
+in step with). Existing behaviour is unchanged everywhere else: `useFormFieldRegions.ts` already
+dropped `kind: 'signature'` cells before offering them (signature snap still isn't wired, per Step
+3's note above), so the practice form's signature line simply stops being mis-offered as text - it
+now offers nothing there until MOBI-06/the reviewable-proposal work above wires a real signature
+affordance in. Corpus effect verified with `score.mjs`: `pdkef-practice-form` was the one form whose
+truth already expected `signature`/`date` kinds from the widgets and scored a real miss for it
+(88.9%/88.9%, `signature: 0` in `byKind`); it now scores 100%/100% and `baselines.json` is
+re-recorded per its own ratchet rule. No other scored form's `/Tx` field names match `/signature/i`
+or `/date$/i` (checked `irs-1040-2024`, the only other AcroForm among the five - `health`, `itc101`
+and `irs-1040-1970` carry no AcroForm at all), so nothing else moved.
+
 ## Ideas harvested from the parallel spike branch (deleted 2026-09-17)
 
 A second session ran the same spike on `claude/mobi-10-research-15aa19` with similar tools and,

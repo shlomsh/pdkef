@@ -60,8 +60,19 @@ describe('fillableTextField', () => {
   const rect = { x: 10, y: 20, width: 100, height: 12 };
   const field = (over = {}) => ({ fieldType: '/Tx', rect, ...over });
 
-  it('takes a plain text field and reports its rectangle unchanged', () => {
-    expect(fillableTextField(field())).toEqual({ x: 10, y: 20, width: 100, height: 12 });
+  it('takes a plain text field and reports its rectangle, kind text', () => {
+    expect(fillableTextField(field())).toEqual({ x: 10, y: 20, width: 100, height: 12, kind: 'text' });
+  });
+
+  it.each([
+    ['a name with no signal at all', 'parent_guardian', 'text'],
+    ['a name containing "signature"', 'parent_guardian_signature', 'signature'],
+    ['a name ending in "date", checked before the signature match', 'signature_date', 'date'],
+    ['a name ending in "Date" case-insensitively', 'ExpirationDate', 'date'],
+    ['a name containing "Signature" case-insensitively', 'AuthorizedSignature', 'signature'],
+    ['no name at all', undefined, 'text'],
+  ])('classifies %s as %s', (_case, fieldName, kind) => {
+    expect(fillableTextField(field({ fieldName })).kind).toBe(kind);
   });
 
   it.each([
@@ -189,6 +200,11 @@ describe('widgetRegions', () => {
     expect(cells[0]).toEqual({ kind: 'text', pageIndex: 0, left: 10, top: 10, width: 50, height: 10 });
   });
 
+  it('carries a field\'s own kind through onto its cell', () => {
+    const { cells } = widgetRegions([at(20, 80, 100, 10, { kind: 'signature' })], geometry, 0);
+    expect(cells[0].kind).toBe('signature');
+  });
+
   it('sorts a comb widget from an ordinary one and marks it boxed', () => {
     const { combs, cells } = widgetRegions(
       [at(20, 80, 100, 10, { combCells: 9 }), at(20, 40, 100, 10)],
@@ -240,6 +256,15 @@ describe('the practice form, end to end', () => {
     const { combs, cells, checkboxes } = detectPage(page);
     expect({ combs: combs.length, cells: cells.length, checkboxes: checkboxes.length })
       .toEqual({ combs: 1, cells: 6, checkboxes: 2 });
+  });
+
+  it('reads the signature line and its date from their own field names, not as ordinary text', () => {
+    // `parent_guardian_signature` and `signature_date` (practiceFormContent.js)
+    // carry no printed ink of their own for `formCells.js` to read a caption
+    // keyword from - this is the widget path's own name-based read.
+    const { cells } = detectPage(page);
+    const kinds = cells.map((cell) => cell.kind).sort();
+    expect(kinds).toEqual(['date', 'signature', 'text', 'text', 'text', 'text']);
   });
 
   it('reports the student ID once, not twice, though both sources see it', () => {

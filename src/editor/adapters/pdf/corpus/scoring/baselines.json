@@ -7,15 +7,15 @@
     "pdkef-practice-form": {
       "pdf": "public/images/redaction-guide/sample.pdf",
       "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/practice-form-page1.json",
-      "note": "Self-labelling: the nine AcroForm widgets are the truth, exact to the point. The one miss is the signature field, which collectTextFieldWidgets does not read by design (MOBI-11) - so this form reports a real scope line rather than a flattering 100%.",
-      "recall": 88.9,
-      "precision": 88.9,
+      "note": "Self-labelling: the nine AcroForm widgets are the truth, exact to the point. 100% since 2026-09-22: `formWidgets.js` now reads a signature/date kind off the widget's own `/T` field name (`parent_guardian_signature`, `signature_date`), not just ink label text, closing the one scope line this form used to report.",
+      "recall": 100,
+      "precision": 100,
       "byKind": {
         "text": 100,
         "comb": 100,
         "checkbox": 100,
         "date": 100,
-        "signature": 0
+        "signature": 100
       },
       "sha256": "95ab7e747d3a7796571326248252a342210b7001ec1d1832f2b2c28a4b626992"
     },

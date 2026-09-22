@@ -19,12 +19,16 @@ import { pageWidgets, widgetEntries } from './pdfObjects.js';
  *
  * The module is in two halves, and the seam is deliberate:
  *
- * - **The decisions are pure functions over plain numbers.** `fillableTextField`
- *   is the whole of the flag arithmetic; `widgetRegions` is the whole of the
- *   classification and the transform. Neither touches a PDF object, so every
- *   edge case is a plain object in a unit test rather than a PDF someone has
- *   to build. This is where the bugs would be, so this is what is testable.
- * - **The pdf-lib half only reads.** `collectTextFieldWidgets` pulls five
+ * - **The decisions are pure functions over plain values.** `fillableTextField`
+ *   is the whole of the flag arithmetic, plus `classifyTextFieldKind` reading
+ *   the field's own `/T` name for a signature or date field the widget path
+ *   otherwise cannot tell from an ordinary one - a live widget carries no
+ *   page ink, so `formCells.js`'s label-keyword match has nothing to read
+ *   here. `widgetRegions` is the whole of the transform. Neither touches a
+ *   PDF object, so every edge case is a plain object in a unit test rather
+ *   than a PDF someone has to build. This is where the bugs would be, so
+ *   this is what is testable.
+ * - **The pdf-lib half only reads.** `collectTextFieldWidgets` pulls six
  *   values off each widget and hands them over; `detectWidgetRegions` composes
  *   the two. Neither decides anything.
  */
@@ -39,12 +43,14 @@ const FIELD_COMB = 1 << 24;
 /**
  * What one widget annotation says about itself, as plain values.
  *
- * `fieldType`, `fieldFlags` and `maxLen` are *inheritable* field attributes
- * and may come from an ancestor rather than the widget (see `widgetEntries`);
- * `annotationFlags` and `rect` are the widget's own and are never inherited.
+ * `fieldType`, `fieldName`, `fieldFlags` and `maxLen` are *inheritable* field
+ * attributes and may come from an ancestor rather than the widget (see
+ * `widgetEntries`); `annotationFlags` and `rect` are the widget's own and are
+ * never inherited.
  *
  * @typedef {object} WidgetEntry
  * @property {string} [fieldType] `/FT`, as pdf-lib renders a name: `'/Tx'`.
+ * @property {string} [fieldName] `/T`, decoded text.
  * @property {number} [annotationFlags] `/F`.
  * @property {number} [fieldFlags] `/Ff`.
  * @property {number} [maxLen] `/MaxLen`.
@@ -59,7 +65,32 @@ const FIELD_COMB = 1 << 24;
  * @property {number} width
  * @property {number} height
  * @property {number} [combCells]
+ * @property {'text' | 'date' | 'signature'} [kind] From the field's own name; absent on a comb.
  */
+
+/**
+ * A field's own `/T` name says what it is for even where nothing is printed
+ * beside it to read - a live widget carries no page ink, so the ink
+ * detectors' label-keyword match (`classifyKind` in `formCells.js`) has
+ * nothing to work from here. Same two keywords, same order and the same
+ * reason for the order, as `scripts/generate-practice-form-truth.mjs`, which
+ * reads this off the raw PDF to write the ground truth these two feed:
+ * `signature_date` is a date field that happens to carry the word
+ * "signature", so the more specific suffix test has to come first.
+ *
+ * English only, unlike `classifyKind`'s Hebrew root: a `/T` name is an
+ * internal identifier, generally ASCII, chosen by whoever built the form -
+ * not printed form copy in the form's own language.
+ *
+ * @param {string} [fieldName]
+ * @returns {'text' | 'date' | 'signature'}
+ */
+function classifyTextFieldKind(fieldName) {
+  if (!fieldName) return 'text';
+  if (/date$/i.test(fieldName)) return 'date';
+  if (/signature/i.test(fieldName)) return 'signature';
+  return 'text';
+}
 
 /** `/Ff` bit 17: a push button, which holds no value and cannot be ticked. */
 const FIELD_PUSH_BUTTON = 1 << 16;
@@ -128,6 +159,9 @@ export function markableButtonField(entry) {
  * meaningless - the spec makes the two inseparable - so both fall through to
  * an ordinary field rather than a comb of nothing.
  *
+ * An ordinary field's `kind` comes from `classifyTextFieldKind`; a comb
+ * carries none, since the run itself already says what it is.
+ *
  * @param {WidgetEntry} entry
  * @returns {TextFieldWidget | null} null when the widget is not one to offer.
  */
@@ -136,7 +170,9 @@ export function fillableTextField(entry) {
   const rect = visibleWritableRect(entry);
   if (!rect) return null;
   const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && entry.maxLen > 1;
-  return isComb ? { ...rect, combCells: entry.maxLen } : rect;
+  return isComb
+    ? { ...rect, combCells: entry.maxLen }
+    : { ...rect, kind: classifyTextFieldKind(entry.fieldName) };
 }
 
 /**
@@ -170,7 +206,7 @@ export function widgetRegions(fields, geometry, pageIndex = 0) {
     if (field.combCells && field.combCells <= MAX_COMB_CELLS) {
       combs.push({ kind: 'comb', pageIndex, cells: field.combCells, boxed: true, ...box });
     } else {
-      cells.push({ kind: 'text', pageIndex, ...box });
+      cells.push({ kind: field.kind ?? 'text', pageIndex, ...box });
     }
   }
   return { combs, cells };
