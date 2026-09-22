@@ -187,7 +187,7 @@
   .keep-long { display: none; }
   .keep-short { display: inline; }
 }
-/* MOBI-19: coarse pointer only, not a width breakpoint - a tablet or a
+/* MOBI-20: coarse pointer only, not a width breakpoint - a tablet or a
    landscape phone wider than 559px can still wrap this row across several
    translations, and while a field is being typed into the chevrons that used
    to set this row's height are on the element instead (SignToolbar.tsx's

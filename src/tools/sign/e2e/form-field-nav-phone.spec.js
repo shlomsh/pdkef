@@ -276,7 +276,7 @@ test.describe('filling a form field on a phone', () => {
     // and what the assertions above hold.
     // Closing it means a 16px column gap across the whole bar, which pushes the
     // expanded set to a third row over the document - the cost MOBI-16 existed
-    // to remove - so it is its own ticket, MOBI-19, and not a silent omission.
+    // to remove - so it is its own ticket, MOBI-20, and not a silent omission.
     // The compact bar, which is the state a phone fills a form in, has no
     // overlapping pair at all; the test below is what holds that.
   });

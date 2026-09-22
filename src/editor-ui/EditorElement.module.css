@@ -26,7 +26,7 @@
    shrink-to-fit against that folded the bar into a one-button column. */
 .actions { position: absolute; top: -44px; left: 0; display: flex; flex-wrap: wrap; width: max-content; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
-/* MOBI-19: the wrapped bar's rows have to clear each other's hit boxes. Same
+/* MOBI-20: the wrapped bar's rows have to clear each other's hit boxes. Same
    arithmetic as `.quick-field-nav` below, in the other axis: 28px of button
    against a 44px `::before` target means a 4px row gap leaves the two rows
    12px inside each other, and Delete sits in that second row. Measured before
@@ -34,7 +34,7 @@
    pitch, so they meet at zero. Column gap is deliberately left at the bar's
    4px: raising it too would add ~144px of line to the expanded set and push it
    to a third row over the document, which is the cost MOBI-16 existed to
-   remove. The same-row overlap that leaves is MOBI-19's own scope. */
+   remove. The same-row overlap that leaves is MOBI-20's own scope. */
 @media (pointer: coarse) {
   .actions { row-gap: 16px; }
 }
@@ -51,7 +51,7 @@
    4px of the *visible* Previous fired Next, which walks a form backwards. It
    is the worst pair on the bar to get wrong. 28 + 16 = 44 makes them meet at
    exactly zero. No media query needed - this bar only renders on a coarse
-   pointer, so a mouse never sees the spacing. (MOBI-19.) */
+   pointer, so a mouse never sees the spacing. (MOBI-20.) */
 .quick-field-nav { display: inline-flex; align-items: center; gap: 16px; }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the
