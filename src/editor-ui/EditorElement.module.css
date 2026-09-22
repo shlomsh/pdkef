@@ -93,15 +93,23 @@
    `half-height - 1` always - correct for a normal box, where it comfortably
    exceeds the handles' combined radii, but shrinking to nothing as the box
    gets shorter, which is the overlap. `max()` keeps whichever is bigger:
-   that natural spread, or `handle-size + 1px` (the smallest gap the two
-   handles' own radii need plus a visible 1px of daylight) - so on a short
-   box the corner handles float outward past the box's own edge just far
-   enough to clear the side handle, however short the box gets, rather than
-   collapsing onto it. `--corner-offset` converts that spread into the `top`/
-   `bottom` value each corner actually uses. `var(..., 10px)` throughout is
-   every other element type's unchanged fixed size and offset, for the
-   fallback case and for `nearestHandle` (ElementResizers.tsx) reading real
-   rendered rects either way. */
+   that natural spread, or `handle-size + 3px` (the smallest gap the two
+   handles' own radii need, plus 3px of true daylight rather than 1 - two
+   circles a bare 1px apart still read as touching once anti-aliasing softens
+   their edges, especially at the zoom a person pinches to in order to see a
+   field this small at all: pinch-zoom is a pure visual-viewport magnifier,
+   it never changes a `getBoundingClientRect()` value, so a 1px CSS gap stays
+   exactly 1px of *layout* separation at any zoom level and the blur can
+   still eat it) - so on a short box the corner handles float outward past
+   the box's own edge just far enough to clear the side handle with room to
+   spare, however short the box gets, rather than collapsing onto it. A box
+   at or above ~30px tall (already most of the range 10px handles allow) sees
+   no change at all: its natural spread already clears this floor on its
+   own. `--corner-offset` converts the spread into the `top`/`bottom` value
+   each corner actually uses. `var(..., 10px)` throughout is every other
+   element type's unchanged fixed size and offset, for the fallback case and
+   for `nearestHandle` (ElementResizers.tsx) reading real rendered rects
+   either way. */
 [data-editor-text] .resizer {
   --handle-size: clamp(5px, calc(var(--half-height, 10px) - 2px), 10px);
   width: var(--handle-size, 10px);
@@ -109,7 +117,7 @@
 }
 [data-editor-text] .resizer.top-left, [data-editor-text] .resizer.top-right,
 [data-editor-text] .resizer.bottom-left, [data-editor-text] .resizer.bottom-right {
-  --corner-spread: max(calc(var(--handle-size, 10px) + 1px), calc(var(--half-height, 10px) - 1px));
+  --corner-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
   --corner-offset: calc(var(--half-height, 10px) - var(--corner-spread) - var(--handle-size, 10px) / 2);
 }
 [data-editor-text] .resizer.top-left, [data-editor-text] .resizer.top-right { top: var(--corner-offset, -4px); }
