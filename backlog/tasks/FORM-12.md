@@ -56,6 +56,15 @@ itc101 baseline (ground truth t043-t045, t053-t055, t058-t060, t063-t065).
 - The detector is work in progress and more forms are coming. The scored numbers are a ratchet, not a
   target: a new form that disagrees with a rule here is evidence, not noise.
 
+## Open risks (from review, not yet evidenced on a real form)
+
+- `isBackgroundPanel` drops any filled, unstroked rect larger than a row both ways. A frame drawn as
+  a black fill with a white inset, or a tinted column block whose sides are the column walls, would
+  lose real walls. No scored form does either today; a form that does should become a corpus row.
+- Only page 1 of each form is scored. The change also finds more cells elsewhere (1040 page 2:
+  34 -> 51, itc101 page 0: 81 -> 113), and their precision is unmeasured until those pages have
+  ground truth.
+
 ## Acceptance
 
 - [x] The 12 ground-truth cells above are detected.
