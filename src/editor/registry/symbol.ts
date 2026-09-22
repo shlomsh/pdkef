@@ -1,5 +1,5 @@
 import { MAX_SYMBOL_WIDTH_PCT, MIN_SYMBOL_WIDTH_PX } from '../../constants/signGeometry.js';
-import { LineCapStyle, rgb } from '@cantoo/pdf-lib';
+import { LINE_CAP_ROUND, rgb } from '../../lib/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';
@@ -101,7 +101,7 @@ export const symbolDefinition: ElementDefinition<SymbolElement> = {
           end: at(line[i][0], line[i][1]),
           thickness,
           color: symbolColor,
-          lineCap: LineCapStyle.Round,
+          lineCap: LINE_CAP_ROUND,
         });
       }
     }

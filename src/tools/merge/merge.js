@@ -1,7 +1,7 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
 import { mergedFileName, mergedTitle } from './mergePlan.ts';
 import { addFileOutline } from './outline.js';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 export { mergedFileName, mergedTitle };
 
@@ -58,6 +58,8 @@ export async function inspectPdf(file, fileIndex = 0) {
       cause,
     });
   }
+
+  const { PDFDocument } = await getPdfLib();
 
   let doc;
   try {
@@ -125,6 +127,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
 
   checkAborted(signal);
 
+  const { PDFDocument } = await getPdfLib();
   const merged = await PDFDocument.create();
 
   let font = null;
@@ -286,7 +289,7 @@ export async function mergePdfs(files, options = {}, onProgress, signal) {
         title: fileOutlineTitle(files[fileIndex].name),
         pageIndex,
       }));
-    addFileOutline(merged, outlineEntries);
+    await addFileOutline(merged, outlineEntries);
   }
 
   if (typeof title === 'string' && title.length > 0) {

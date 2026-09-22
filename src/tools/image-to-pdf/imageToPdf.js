@@ -1,4 +1,4 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 export class UnsupportedImageError extends Error {
   constructor(fileName) {
@@ -13,6 +13,7 @@ export class UnsupportedImageError extends Error {
 // point), so the image fills the page edge-to-edge with no distortion or
 // letterboxing. Runs entirely in-memory in the browser - no network I/O.
 export async function imagesToPdf(files, onProgress) {
+  const { PDFDocument } = await getPdfLib();
   const pdf = await PDFDocument.create();
 
   for (let i = 0; i < files.length; i += 1) {

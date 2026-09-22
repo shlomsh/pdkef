@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'preact/hooks';
-import { listDeletableObjects } from '../../editor/adapters/pdf/deleteObjects.js';
 
 /**
  * Finds the images and text runs the Delete tool can offer to remove, for the
@@ -11,7 +10,10 @@ import { listDeletableObjects } from '../../editor/adapters/pdf/deleteObjects.js
  * lexer cannot parse at all, not just one odd page - yields an empty list
  * rather than throwing: Delete mode then simply has nothing to highlight,
  * which is the same "no highlight, no delete" fallback `listDeletableObjects`
- * already applies per page.
+ * already applies per page. The scanner itself arrives by dynamic import
+ * (DEBT-20): it carries @cantoo/pdf-lib, and nothing here runs until a file is
+ * open, so /redact/ has no reason to download it before then. A chunk that
+ * fails to load is just another unreadable-PDF case and takes the same path.
  *
  * @param {File|null} file identity that triggers a re-scan
  * @param {ArrayBuffer|Uint8Array|null} fileBytes the loaded file's bytes
@@ -28,7 +30,8 @@ export default function useDeletableObjects(file, fileBytes) {
       return undefined;
     }
 
-    listDeletableObjects(fileBytes)
+    import('../../editor/adapters/pdf/deleteObjects.js')
+      .then(({ listDeletableObjects }) => listDeletableObjects(fileBytes))
       .then((found) => {
         if (!cancelled) setObjects(found);
       })

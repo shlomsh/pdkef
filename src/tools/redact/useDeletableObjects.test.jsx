@@ -17,7 +17,11 @@ async function buildSample() {
   return new Uint8Array(await doc.save());
 }
 
+// The hook reaches the scanner through a dynamic import (DEBT-20), so one tick
+// is no longer enough: wait for that module to land before letting the effect's
+// own promise chain settle.
 const flush = () => act(async () => {
+  await import('../../editor/adapters/pdf/deleteObjects.js');
   await new Promise((resolve) => setTimeout(resolve, 0));
 });
 
