@@ -177,6 +177,15 @@ function scrollFieldIntoView(elementId: string) {
   // correct and needs no second pass. Centring on the VISUAL viewport is the
   // whole point: `block: 'center'` centres on the layout viewport, which iOS
   // does not shrink when the keyboard opens.
+  //
+  // What this leaves is one smooth scroll and nothing else, which
+  // `src/tools/sign/e2e/field-move-scroll.spec.js` measures by sampling the
+  // scroll offset across a press: travel equals net displacement, and the field
+  // lands centred in the band the keyboard leaves. Read that spec's module doc
+  // before chasing an "instant jump" in a trace of your own - a Playwright
+  // `locator.click()` scrolls its target into view first, instantly, and that
+  // driver-side scroll was mistaken for a second app-side move for a whole
+  // round of this ticket.
   const rect = node.getBoundingClientRect();
   const target = viewport.offsetTop + viewport.height / 2 - rect.height / 2;
   const delta = rect.top - target;

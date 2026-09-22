@@ -53,6 +53,17 @@
    exactly zero. No media query needed - this bar only renders on a coarse
    pointer, so a mouse never sees the spacing. (MOBI-20.) */
 .quick-field-nav { display: inline-flex; align-items: center; gap: 16px; }
+/* The other half of the RTL contract, and the half that was missing. `dir` on
+   `.quick-field-nav` reverses the row, so for an RTL document Previous (first in
+   the DOM) moves to the right; the glyphs have to turn with it or the picture
+   comes out `>` `<`, two arrows pointing at each other - which is what shipped
+   and was reported on a Hebrew form in the English edition (2026-09-22). Both
+   flips together leave the picture invariant, `<` left and `>` right, with only
+   the binding swapped. Identical to the top card's own rule,
+   `.field-nav[dir="rtl"] .field-nav-button svg` in SignToolbar.module.css; MOBI-06
+   records the same bug on that copy. Guarded in a real engine by
+   src/tools/sign/e2e/field-nav-arrow-direction.spec.js - jsdom applies no CSS. */
+.quick-field-nav[dir="rtl"] svg { transform: scaleX(-1); }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the
    user chose to wrap at), so a line should never auto-wrap - only an explicit
