@@ -50,7 +50,7 @@ describe('addFileOutline', () => {
 
   it('writes a Type/First/Last/Count outline root and one item per entry, in the given order', async () => {
     const doc = await makeDoc(3);
-    addFileOutline(doc, [
+    await addFileOutline(doc, [
       { title: 'Alpha', pageIndex: 0 },
       { title: 'Beta', pageIndex: 2 },
     ]);
@@ -68,7 +68,7 @@ describe('addFileOutline', () => {
 
   it('points each entry\'s Dest at the expected page ref, and chains Prev/Next correctly', async () => {
     const doc = await makeDoc(3);
-    addFileOutline(doc, [
+    await addFileOutline(doc, [
       { title: 'First file', pageIndex: 0 },
       { title: 'Second file', pageIndex: 1 },
       { title: 'Third file', pageIndex: 2 },
@@ -93,7 +93,7 @@ describe('addFileOutline', () => {
 
   it('titles survive PDFHexString round-tripping non-Latin script', async () => {
     const doc = await makeDoc(1);
-    addFileOutline(doc, [{ title: 'דוח מס', pageIndex: 0 }]);
+    await addFileOutline(doc, [{ title: 'דוח מס', pageIndex: 0 }]);
 
     const bytes = await doc.save();
     const reloaded = await PDFDocument.load(bytes);
@@ -104,7 +104,7 @@ describe('addFileOutline', () => {
 
   it('is a no-op (writes no /Outlines at all) for an empty entries list', async () => {
     const doc = await makeDoc(2);
-    addFileOutline(doc, []);
+    await addFileOutline(doc, []);
 
     const bytes = await doc.save();
     const reloaded = await PDFDocument.load(bytes);

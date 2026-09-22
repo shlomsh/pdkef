@@ -29,6 +29,21 @@ function query<T extends Element = HTMLElement>(root: ParentNode, selector: stri
   return required(root.querySelector<T>(selector), selector);
 }
 
+// Export now loads applyPageEdits on demand (DEBT-20 keeps pdf-lib off
+// /redact/'s first paint), and a module load is not a fixed number of ticks:
+// it takes more of them under a full-suite run than it does with this file
+// alone, which is exactly how a counted tick goes green here and red in CI.
+// So wait on the thing the test is really waiting for. The bound turns a
+// genuine regression into a named failure rather than a hang.
+async function settleUntil(description: string, ready: () => boolean, limit = 50): Promise<void> {
+  for (let i = 0; i < limit && !ready(); i += 1) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+  }
+  if (!ready()) throw new Error(`Timed out waiting for ${description}`);
+}
+
 const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
 
 // Exercise the real controller while wrapping each commit callback. This proves
@@ -178,13 +193,14 @@ describe('PdfRedactTool UI flow', () => {
 
       await act(async () => {
         generateButton.click();
-        // handleSavePdf now awaits applyPageEdits(), which conditionally chains
-        // deleteObjectsFromPdf() before redactPdf() - one more microtask hop than
-        // awaiting redactPdf() directly, even on this box-only path. A bare
-        // `click()` doesn't await the handler it fires, so give the promise
-        // chain a tick to actually settle before asserting its effects.
-        await new Promise((resolve) => setTimeout(resolve, 0));
       });
+      // A bare `click()` does not await the handler it fires, and that handler
+      // has a chunk to load before it reaches redactPdf. Wait for the download
+      // the whole export ends in.
+      await settleUntil(
+        'the redacted PDF to be downloaded',
+        () => (window.URL.revokeObjectURL as Mock).mock.calls.length > 0,
+      );
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
       expect(container.querySelector(`.${REDACT_BOX}`)).not.toBeNull();
@@ -216,6 +232,9 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         downloadButton.click();
       });
+      // finishRedaction is assigned by the redactPdf mock's own body, so this
+      // waits for the export to have got that far and nothing shorter.
+      await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
 
       expect(container.querySelector('.redact-draw-area')).toBe(pageBefore);
       expect(container.querySelector(`.${workspaceStyles.workspace}`).classList.contains(workspaceStyles['is-processing'])).toBe(true);
@@ -251,10 +270,11 @@ describe('PdfRedactTool UI flow', () => {
       expect(prepareButton).not.toBeNull();
       await act(async () => {
         prepareButton.click();
-        // See the comment on the same pattern above: applyPageEdits() adds one
-        // more microtask hop than awaiting redactPdf() directly.
-        await new Promise((resolve) => setTimeout(resolve, 0));
       });
+      await settleUntil(
+        'the prepared share file',
+        () => container.querySelector('button[title="Share the redacted PDF"]') !== null,
+      );
 
       expect(container.querySelector(`.${workspaceStyles.workspace}`)).not.toBeNull();
       // Label stays "Share" in both states (MOBI-07 follow-up), so the ready
@@ -1746,6 +1766,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           downloadButton.click();
         });
+        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
 
         const workspace = query(container, `.${workspaceStyles.workspace}`);
         expect(workspace.classList.contains(workspaceStyles['is-processing'])).toBe(true);
@@ -1804,6 +1825,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           downloadButton.click();
         });
+        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
         expect(query(container, `.${workspaceStyles.workspace}`)
           .classList.contains(workspaceStyles['is-processing'])).toBe(true);
 
@@ -1894,6 +1916,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           downloadButton.click();
         });
+        await settleUntil('the export to reach redactPdf', () => typeof finishRedaction === 'function');
 
         act(() => render(null, container));
         createObjectURL.mockClear();

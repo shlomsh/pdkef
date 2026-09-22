@@ -1,5 +1,5 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
 import { applyRotation } from '../../lib/pageOps.js';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 // Parses a printer-style page range string (e.g. "1-3, 5, 8-") into a sorted,
 // deduped array of 1-indexed page numbers clamped to [1, pageCount].
@@ -128,6 +128,7 @@ export function outputFileName(fileName, mode, pageNumber) {
 // rotate control, added on top of whatever rotation the source page already
 // carried (pageOps.js's applyRotation, shared with Merge and Edit Pages).
 export async function splitPdf(file, { pageNumbers, mode = 'combined', rotations = {}, onProgress }) {
+  const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
   const source = await PDFDocument.load(bytes, { ignoreEncryption: true });
 

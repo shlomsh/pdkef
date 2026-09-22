@@ -1,6 +1,6 @@
 import type { ElementDefinition } from './types.ts';
 import type { EllipseElement } from '../model/editorModel.ts';
-import { rgb } from '@cantoo/pdf-lib';
+import { rgb } from '../../lib/pdfLiterals.ts';
 import { hasBoxGeometry, hasNumber, hasString, isRecord } from './schema.ts';
 import { applyBoxResize } from './boxResize.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';

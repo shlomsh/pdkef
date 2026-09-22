@@ -1,4 +1,4 @@
-import { PDFArray, PDFDict, PDFHexString, PDFName, PDFNumber } from '@cantoo/pdf-lib';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 // MERGE-15 spike: writes a flat, one-level PDF outline (/Outlines) - one
 // bookmark per source file, each pointing at that file's first surviving
@@ -22,9 +22,16 @@ import { PDFArray, PDFDict, PDFHexString, PDFName, PDFNumber } from '@cantoo/pdf
 // Refs for every item are reserved up front (`context.nextRef()`) so /Prev
 // and /Next can point forward and backward in one pass instead of a
 // second walk to patch them in after the fact.
-export function addFileOutline(pdfDoc, entries) {
+//
+// DEBT-20: async only because the pdf-lib primitives below are fetched on
+// demand (pdfLib.js) rather than statically imported. The work itself is
+// synchronous, and the one production caller - mergePdfs - is already async
+// and has by then loaded the library anyway, so the await resolves off the
+// memoized promise without a second round trip.
+export async function addFileOutline(pdfDoc, entries) {
   if (!Array.isArray(entries) || entries.length === 0) return;
 
+  const { PDFArray, PDFDict, PDFHexString, PDFName, PDFNumber } = await getPdfLib();
   const { context, catalog } = pdfDoc;
 
   const rootRef = context.nextRef();

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
-import { PDFDocument } from '@cantoo/pdf-lib';
 import { editPages } from './editPages.js';
+import { getPdfLib } from '../../lib/pdfLib.js';
 import { useEditHistory } from './useEditHistory.js';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { renderPdfThumbnails } from '../../lib/thumbnails.js';
@@ -106,6 +106,10 @@ export default function PdfEditPagesTool() {
     reset(EMPTY_EDIT_STATE);
 
     try {
+      // Loaded here, not at module scope: pdf-lib is 628 KiB and this is the
+      // first moment the page needs it, so /edit-pdf/ ships without it until a
+      // file is picked. The catch below already covers a failure.
+      const { PDFDocument } = await getPdfLib();
       const bytes = await selectedFile.arrayBuffer();
       const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
       const pageCount = pdfDoc.getPageCount();

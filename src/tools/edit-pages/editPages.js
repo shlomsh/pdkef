@@ -1,5 +1,5 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
 import { applyRotation, embedPageNumberFont, stampPageNumber } from '../../lib/pageOps.js';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 /**
  * Edits pages in a PDF: reorders, removes, rotates, and/or adds page numbers.
@@ -20,6 +20,7 @@ export async function editPages(
   { pageOrder = null, removedPageNums = new Set(), rotations = {}, addPageNumbers = false },
   onProgress,
 ) {
+  const { PDFDocument } = await getPdfLib();
   const bytes = await file.arrayBuffer();
   const srcDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const originalCount = srcDoc.getPageCount();

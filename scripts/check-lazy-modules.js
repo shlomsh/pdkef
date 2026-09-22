@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 /**
- * Form-field detection must stay lazy: a Redact-only visitor never downloads it.
+ * Some chunks must never be in a page's first paint. This is what proves it.
  *
- * The detector is five chunks of PDF geometry and AcroForm parsing that only
- * the Sign tool asks for, and only once somebody opens a file. Nothing in the
- * language stops a future `import { detectPageRegions } from '...'` at the top
- * of a shared module from pulling all five into the chunk every tool loads on
- * first paint - it would still build, still pass every unit test, and still
- * work. It would just cost every Redact and Merge visitor a payload they have
- * no use for, silently.
+ * Two kinds are listed below. Form-field detection is Sign-only work. The two
+ * PDF libraries are every tool's work, but none of it until somebody opens a
+ * file, and together they are 1 MB (DEBT-20: pdf-lib alone was eager on all
+ * eleven tool pages and on both home pages, because five shape modules imported
+ * it for a colour constructor).
+ *
+ * Nothing in the language stops a future `import { detectPageRegions } from
+ * '...'`, or an `import { rgb } from '@cantoo/pdf-lib'`, at the top of a shared
+ * module from pulling the whole thing into the chunk every tool loads on first
+ * paint. It would still build, still pass every unit test, and still work. It
+ * would just cost every visitor a payload they have no use for, silently. That
+ * is exactly how pdf-lib got there, and it sat there unnoticed because the
+ * chunk was named `es.<hash>.js` after the package's entry file.
  *
  * So this walks the built output the way a browser does. For each tool page it
  * takes the real entry points (the island's `component-url`, its renderer, any
@@ -38,20 +44,54 @@ const ASSETS = path.join(DIST, '_astro');
  * Rollup names a chunk after its entry module, so this is keyed on the source
  * file's name rather than a hash. If that naming ever changes, the guard would
  * quietly match nothing - which is what the non-vacuity check below is for.
+ * The two library rows are only this legible because `astro.config.mjs` names
+ * those chunks deliberately; read the comment there before renaming either.
+ *
+ * `reachableFrom` is the other half of each row, and it is not optional
+ * bookkeeping. Absence alone is cheap to satisfy: delete the feature and the
+ * guard goes green. So each row also names pages that must still reach the
+ * chunk *lazily*, which is what proves the deferral works rather than that the
+ * code is gone. List the pages whose core job needs it, not every page that
+ * touches it.
  */
 const LAZY_ONLY = [
-  { chunk: /^formWidgets\./, why: 'AcroForm widget reading' },
-  { chunk: /^formGrid\./, why: 'comb and checkbox detection' },
-  { chunk: /^formCells\./, why: 'closed-cell detection' },
-  { chunk: /^pageInk\./, why: 'the content-stream ink walk' },
-  { chunk: /^fieldRegions\./, why: 'cross-source reconciliation' },
+  { chunk: /^formWidgets\./, why: 'AcroForm widget reading', reachableFrom: ['sign'] },
+  { chunk: /^formGrid\./, why: 'comb and checkbox detection', reachableFrom: ['sign'] },
+  { chunk: /^formCells\./, why: 'closed-cell detection', reachableFrom: ['sign'] },
+  { chunk: /^pageInk\./, why: 'the content-stream ink walk', reachableFrom: ['sign'] },
+  { chunk: /^fieldRegions\./, why: 'cross-source reconciliation', reachableFrom: ['sign'] },
+  {
+    chunk: /^pdf-lib\./,
+    why: 'pdf-lib, 628 KiB: nothing needs it until a file is opened',
+    // Every tool that writes a PDF. /pdf-to-image/ is deliberately absent: it
+    // reads with pdf.js and never builds a document, so it should not reach
+    // pdf-lib at all, and listing it here would make that a requirement.
+    reachableFrom: ['sign', 'redact', 'merge', 'split', 'compress', 'unlock', 'image-to-pdf', 'edit-pdf'],
+  },
+  {
+    chunk: /^pdf\./,
+    why: 'pdf.js, 421 KiB: nothing needs it until a file is opened',
+    // Already true when this row was added, and guarded so it stays true.
+    // `/^pdf\./` needs the literal dot: it must not also match `pdf-lib.`,
+    // whose row is right above and means something different.
+    reachableFrom: ['sign', 'redact', 'compress', 'split', 'pdf-to-image'],
+  },
 ];
 
-/** The page that is allowed to reach these at all, lazily. */
-const OWNER = 'sign';
-
-/** Tool pages to check. Every one of them must be free of the list above. */
-const PAGES = ['sign', 'redact', 'merge', 'compress', 'split'];
+/**
+ * Pages to check. Every one must be free of the list above.
+ *
+ * All ten tool pages, both localized tool pages, and both home pages. The home
+ * pages are here because that is where this last went wrong unseen: the Hebrew
+ * home was carrying 628 KiB of pdf-lib through the editor registry, and no
+ * budget or ratchet said a word. '' is the site root.
+ */
+const PAGES = [
+  '', 'he',
+  'sign', 'redact', 'merge', 'compress', 'compress-image', 'split',
+  'unlock', 'image-to-pdf', 'edit-pdf', 'pdf-to-image',
+  'he/sign', 'he/merge', 'he/compress',
+];
 
 const QUOTE = '["\'`]';
 const STATIC_IMPORT = new RegExp(
@@ -127,22 +167,23 @@ for (const page of PAGES) {
       errors.push(
         `/${page}/ loads ${leaked.join(', ')} (${why}) on first paint.\n`
         + '    Something now imports it statically from a chunk this page already loads.\n'
-        + '    Field detection is Sign-only and must stay behind a dynamic import().',
+        + '    Find that import and put it behind a dynamic import() on the path that\n'
+        + '    actually needs it. Do not delete the row.',
       );
     }
   }
-  if (page === OWNER) {
-    // And prove the mechanism still works, rather than only that the modules
-    // are absent: if Sign stopped reaching them lazily, detection is dead.
+  // And prove the mechanism still works, rather than only that the chunk is
+  // absent: a feature deleted outright would pass the check above.
+  const owed = LAZY_ONLY.filter(({ reachableFrom }) => reachableFrom.includes(page));
+  if (owed.length > 0) {
     const reachable = closure(entries, anyDeps);
-    const missing = LAZY_ONLY
+    const unreachable = owed
       .filter(({ chunk }) => ![...reachable].some((file) => chunk.test(file)))
       .map(({ why }) => why);
-    if (missing.length > 0) {
-      errors.push(`/${OWNER}/ cannot reach ${missing.join(', ')} even lazily - detection would never run.`);
+    if (unreachable.length > 0) {
+      errors.push(`/${page}/ cannot reach ${unreachable.join('; ')} even lazily - that work could never run.`);
     } else {
-      const lazyOnly = [...reachable].filter((f) => !eager.has(f) && LAZY_ONLY.some(({ chunk }) => chunk.test(f)));
-      notes.push(`/${OWNER}/ reaches all ${lazyOnly.length} detector chunks lazily, none on first paint`);
+      notes.push(`/${page}/ reaches ${owed.length} lazy-only chunk(s), none on first paint`);
     }
   }
 }
@@ -153,5 +194,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Lazy-module check passed: ${PAGES.length} tool pages, none loads field detection eagerly.`);
+console.log(`Lazy-module check passed: ${PAGES.length} pages, none loads a lazy-only chunk eagerly.`);
 for (const note of notes) console.log(`  ${note}`);
