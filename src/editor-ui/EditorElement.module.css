@@ -92,6 +92,60 @@
    mid-edge with a horizontal cursor instead of at the corners - unlike a box
    type's left/right, which are just two of its eight regular resize handles. */
 [data-editor-text] .resizer.left, [data-editor-text] .resizer.right { top: 50%; bottom: auto; transform: translateY(-50%); cursor: ew-resize; }
+/* A text box gets all six handles (corner = font size, side = comb span -
+   see above, both still real gestures, never dropped), and a short
+   single-line field is routinely under 20px tall: at the fixed 10px/-4px
+   geometry below, the corner and side handles on one edge sit within a few
+   px of each other and render as one overlapping blob (reported live,
+   twice - and merely shrinking the handles, tried first, still left them
+   touching on the shortest fields: two circles a couple of px apart touch
+   at any size down to a legible floor). `--half-height` is set inline per
+   element by TextNode.tsx from its own measured box height (`ResizeObserver`,
+   same pattern as its `scaleFactor` effect just above it in that file),
+   never from a CSS container query: `.element`'s height is intrinsic for
+   text (`usesIntrinsicSize`), and giving it `container-type: size` to query
+   its own height would force an explicit size and break that.
+
+   `--handle-size` shrinks toward a 5px floor as the box gets shorter (10px
+   is every other element type's unchanged, unaffected size, and the
+   ceiling here too, so a normal or multi-line box looks pixel-identical to
+   before). `--corner-spread` is the actual fix for overlap: the distance
+   from the box's own vertical centre (where the side handles sit) to a
+   corner handle's centre. The fixed design this replaces put that spread at
+   `half-height - 1` always - correct for a normal box, where it comfortably
+   exceeds the handles' combined radii, but shrinking to nothing as the box
+   gets shorter, which is the overlap. `max()` keeps whichever is bigger:
+   that natural spread, or `handle-size + 3px` (the smallest gap the two
+   handles' own radii need, plus 3px of true daylight rather than 1 - two
+   circles a bare 1px apart still read as touching once anti-aliasing softens
+   their edges, especially at the zoom a person pinches to in order to see a
+   field this small at all: pinch-zoom is a pure visual-viewport magnifier,
+   it never changes a `getBoundingClientRect()` value, so a 1px CSS gap stays
+   exactly 1px of *layout* separation at any zoom level and the blur can
+   still eat it) - so on a short box the corner handles float outward past
+   the box's own edge just far enough to clear the side handle with room to
+   spare, however short the box gets, rather than collapsing onto it. A box
+   at or above ~30px tall (already most of the range 10px handles allow) sees
+   no change at all: its natural spread already clears this floor on its
+   own. `--corner-offset` converts the spread into the `top`/`bottom` value
+   each corner actually uses. `var(..., 10px)` throughout is every other
+   element type's unchanged fixed size and offset, for the fallback case and
+   for `nearestHandle` (ElementResizers.tsx) reading real rendered rects
+   either way. */
+[data-editor-text] .resizer {
+  --handle-size: clamp(5px, calc(var(--half-height, 10px) - 2px), 10px);
+  width: var(--handle-size, 10px);
+  height: var(--handle-size, 10px);
+}
+[data-editor-text] .resizer.top-left, [data-editor-text] .resizer.top-right,
+[data-editor-text] .resizer.bottom-left, [data-editor-text] .resizer.bottom-right {
+  --corner-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
+  --corner-offset: calc(var(--half-height, 10px) - var(--corner-spread) - var(--handle-size, 10px) / 2);
+}
+[data-editor-text] .resizer.top-left, [data-editor-text] .resizer.top-right { top: var(--corner-offset, -4px); }
+[data-editor-text] .resizer.bottom-left, [data-editor-text] .resizer.bottom-right { bottom: var(--corner-offset, -4px); }
+[data-editor-text] .resizer.top-left, [data-editor-text] .resizer.bottom-left, [data-editor-text] .resizer.left { left: calc(var(--handle-size, 10px) / -2 + 1px); }
+[data-editor-text] .resizer.top-right, [data-editor-text] .resizer.bottom-right, [data-editor-text] .resizer.right { right: calc(var(--handle-size, 10px) / -2 + 1px); }
 .signature-image { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; }
 .resizer { position: absolute; bottom: -4px; width: 10px; height: 10px; background: var(--color-primary); border: 1px solid var(--color-surface); border-radius: 50%; z-index: 5; }
 .resizer.right { right: -4px; cursor: se-resize; }
@@ -116,5 +170,15 @@
    resizer variants (10px default, 9px `.shape .resizer.corner`) land a hair
    over 44 with the same single inset value rather than each carrying its own -
    over-44 is harmless, under-44 is the bug. Previously -14px, which only
-   reached 36-37px (Redact design-review finding #2). */
-@media (pointer: coarse) { .element::after { inset: -8px; } .element.active::after { inset: -16px; } .resizer::before { content: ''; position: absolute; inset: -18px; } }
+   reached 36-37px (Redact design-review finding #2). Text's own halo is
+   `calc()` instead, because its visual size is no longer fixed at 10px (see
+   `--handle-size` above): the formula is the same fixed-value math worked
+   backwards - `(size - 44) / 2` lands exactly on 44px whatever `size` is,
+   so a small handle on a short field keeps the same real touch target as a
+   full-size one, it just no longer shows the overlap on screen. */
+@media (pointer: coarse) {
+  .element::after { inset: -8px; }
+  .element.active::after { inset: -16px; }
+  .resizer::before { content: ''; position: absolute; inset: -18px; }
+  [data-editor-text] .resizer::before { inset: calc((var(--handle-size, 10px) - 44px) / 2); }
+}
