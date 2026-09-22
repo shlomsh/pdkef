@@ -141,6 +141,22 @@ test.describe('typing into a detected form cell', () => {
   });
 });
 
+/** Form 101's employer-row phone cell, detected at page-percent left 21.89, width 13.22, top 19.56. */
+async function employerPhoneHint(page) {
+  const pageOne = page.locator('[class*="page-overlay"]').first();
+  const overlay = await pageOne.boundingBox();
+  const hints = pageOne.locator('[class*="field-hint-cell"]');
+  let phone = null;
+  for (let i = 0; i < await hints.count(); i += 1) {
+    const box = await hints.nth(i).boundingBox();
+    const left = ((box.x - overlay.x) / overlay.width) * 100;
+    const top = ((box.y - overlay.y) / overlay.height) * 100;
+    if (Math.abs(left - 21.89) < 0.5 && Math.abs(top - 19.56) < 1.5) phone = { hint: hints.nth(i), box };
+  }
+  expect(phone, 'form 101 employer phone cell hint').not.toBeNull();
+  return phone;
+}
+
 // A phone renders the page small, so the cell is a few dozen pixels wide and
 // the box's fixed side padding is a real share of it.
 test.describe('typing into a narrow detected cell on a phone', () => {
@@ -151,19 +167,7 @@ test.describe('typing into a narrow detected cell on a phone', () => {
     // the cell's font size; sizing the empty box by its placeholder pushed it
     // across the wall into the employer's name cell (live report, iPhone).
     await openWithFixture(page, { file: FORM_101, name: 'form-101.pdf' });
-    const pageOne = page.locator('[class*="page-overlay"]').first();
-    const overlay = await pageOne.boundingBox();
-    const hints = pageOne.locator('[class*="field-hint-cell"]');
-    let phone = null;
-    for (let i = 0; i < await hints.count(); i += 1) {
-      const box = await hints.nth(i).boundingBox();
-      // The cell detected at page-percent left 21.89, width 13.22, top 19.56.
-      const left = ((box.x - overlay.x) / overlay.width) * 100;
-      const top = ((box.y - overlay.y) / overlay.height) * 100;
-      if (Math.abs(left - 21.89) < 0.5 && Math.abs(top - 19.56) < 1.5) phone = { hint: hints.nth(i), box };
-    }
-    expect(phone, 'form 101 employer phone cell hint').not.toBeNull();
-    const { hint, box: cell } = phone;
+    const { hint, box: cell } = await employerPhoneHint(page);
     await hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
     const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
     await expect(input).toHaveAttribute('placeholder', 'Type your text');
@@ -171,9 +175,32 @@ test.describe('typing into a narrow detected cell on a phone', () => {
     expect(Math.abs(element.x - cell.x)).toBeLessThanOrEqual(EDGE_SLACK_PX);
     expect(element.x + element.width).toBeLessThanOrEqual(cell.x + cell.width + EDGE_SLACK_PX);
 
-    // A phone number fits, so the box does not grow once typed either.
-    await input.fill('03-1234567');
+  });
+
+  test('a ten-digit mobile number fits the cell at the largest size the cell allows', async ({ page }) => {
+    // Live report: at the size the cell's height caps a box to, the box's
+    // side padding pushed the last digit of 0528200202 past the wall - on
+    // screen, while the export (which has no side padding) fit it.
+    await openWithFixture(page, { file: FORM_101, name: 'form-101.pdf' });
+    const { hint, box: cell } = await employerPhoneHint(page);
+    const tapCell = () => hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
+    // Remember a large size, so the next box on the cell is capped by its height.
+    await tapCell();
+    const compact = page.getByRole('button', { name: 'Formatting options' });
+    if (await compact.isVisible()) await compact.click();
+    const bigger = page.getByTitle('Increase font size');
+    for (let i = 0; i < 12; i += 1) await bigger.click();
+    await page.getByTitle('Delete element').click();
+    // Tools are one-shot: the first box disarmed Text, and its hints with it.
+    await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).click();
+    await tapCell();
+
+    const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
+    await input.fill('0528200202');
     const typed = await activeBox(page);
     expect(typed.x + typed.width).toBeLessThanOrEqual(cell.x + cell.width + EDGE_SLACK_PX);
+    const text = await typedTextRect(page);
+    expect(text.left).toBeGreaterThanOrEqual(cell.x - EDGE_SLACK_PX);
+    expect(text.right).toBeLessThanOrEqual(cell.x + cell.width + EDGE_SLACK_PX);
   });
 });
