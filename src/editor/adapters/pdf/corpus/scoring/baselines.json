@@ -1,6 +1,6 @@
 {
   "_why": "Recorded recall and precision per scored form. A ratchet, like the CSS ones: these only ever go DOWN by a deliberate edit that says why in its commit message. A number going up is free and should be re-recorded in the same change that earned it, or the next change gets to lose it silently.",
-  "_measuredAt": "2026-09-20",
+  "_measuredAt": "2026-09-22",
   "_iou": 0.5,
   "_readMe": "src/editor/adapters/pdf/corpus/README.md, section 'The scored corpus'. MOBI-13 has the programme and the one decision still open.",
   "forms": {
@@ -37,14 +37,14 @@
     "itc101": {
       "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/income-tax-101-2024.pdf",
       "truth": "scripts/spike/mobi-10/ground-truth/itc101-page1.json",
-      "note": "Scored against the annotated original (MOBI-13, 2026-09-20). Two independent gains stacked here. Committing the original brought the text layer back, which is where collectCheckboxGlyphs reads checkbox glyphs, and the scored corpus now runs the pdf.js text pass the product runs. Then MOBI-11's tick-column fix landed on main. Together they take checkbox recall from 0 to 87.1% (54 of 62) and the form from 42.4%/79.7% to here. The 20 misses left are 9 text cells, 8 drawn-square checkboxes, 2 signature lines and 1 date.",
-      "recall": 85.6,
-      "precision": 96.7,
+      "note": "Scored against the annotated original (MOBI-13, 2026-09-20). Committing the original brought the text layer back, the scored corpus runs the pdf.js text pass the product runs, and MOBI-11's tick-column fix took checkbox recall from 0 to 87.1% and the form to 85.6%/96.7%. Then FORM-12 (2026-09-22): buildClosedCells scopes rows per column, so a stray rule from the boxes to the left of the children table (y=450.42 and friends) no longer splits its rows. That found all 12 of the table's cells (t043-t045, t053-t055, t058-t060, t063-t065: four name cells and eight tick cells, so the 8 checkbox misses were never drawn squares), text 70 -> 83.3 and checkbox 87.1 -> 100. Precision went DOWN deliberately, 96.7 -> 95.6: the same table's column-header row (captions 'מספר זהות' and 'שם', y 461.6-474.0) used to be split by a stray rule at 471.4 and hidden. Now it closes and its captions pass writableArea's side carve, which is 2 false positives, tracked as FORM-13. The 8 misses left are 5 text cells (the private address row, the health fund name, the e-mail), 2 signature lines and 1 date.",
+      "recall": 94.2,
+      "precision": 95.6,
       "byKind": {
         "comb": 100,
-        "text": 70,
+        "text": 83.3,
         "date": 95.8,
-        "checkbox": 87.1,
+        "checkbox": 100,
         "signature": 33.3
       },
       "sha256": "a5bfa867340f6569fb4e7d98e83a421e362f5c4b5ecf32037d6b51869913f8ad"
@@ -52,11 +52,11 @@
     "irs-1040-2024": {
       "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/irs-1040-2024.pdf",
       "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/irs-1040-2024-page1.json",
-      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 98.9% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page - the 5 false positives are printed-geometry cells the widgets do not corroborate, and the one miss is a cell that falls under IoU 0.5 against its widget. A drop here means the widget pass broke.",
-      "recall": 98.9,
-      "precision": 94.6,
+      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 100% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page. FORM-12 (2026-09-22): the page body is one 492x666pt unstroked fill, and its left side at x=91.6 was read as a wall that split every field it crossed. Treating a filled, unstroked panel taller and wider than any row as background, not ink, found t004 (the one miss, which had fallen under IoU 0.5) and removed 4 false positives. It added one: the line 6c amount box, closed on all four sides but not in the truth, so 2 false positives remain, both printed-geometry cells the widgets do not corroborate. A drop here means the widget pass broke.",
+      "recall": 100,
+      "precision": 97.8,
       "byKind": {
-        "text": 98.1,
+        "text": 100,
         "comb": 100,
         "checkbox": 100
       },

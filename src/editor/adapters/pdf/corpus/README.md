@@ -114,10 +114,10 @@ one shows up as a failing row to update rather than as a silent change, and so n
 the same limit from scratch. Each row's `why` names where the evidence lives.
 
 Today: a checkbox square stroked as a path is never a checkbox candidate (the miss behind "none of
-the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); a painted square inside a ruled
-row costs that row every one of its cells, because the square's own top and bottom become rules and
-`buildClosedCells` walks adjacent rules only; and a real `/Sig` field is invisible because signature
-placement is a different creation mode.
+the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); and a real `/Sig` field is
+invisible because signature placement is a different creation mode. A painted square inside a ruled
+row used to be a third, costing the row every one of its cells; since `buildClosedCells` scopes rows
+per column it reads like its widget twin, and that row now lives in the printed group.
 
 ## The real documents
 
