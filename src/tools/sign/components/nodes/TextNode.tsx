@@ -45,6 +45,35 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     return () => observer.disconnect();
   }, [pageWidthPoints]);
 
+  // Reported live, twice, on a short single-line field: a text box's corner
+  // (font size, MOBI-12) and side (comb span) resize handles overlap into a
+  // blob. Merely shrinking the handles was not enough on its own - two
+  // handles a couple of px apart still touch even at their smallest legible
+  // size - so `EditorElement.module.css` also pushes the corner handles
+  // further from the box's vertical centre than their own edge would put
+  // them, whenever the box is too short for that centre to already be far
+  // enough away. `--half-height` is the one raw measurement that formula
+  // needs; the shrink-and-separate arithmetic itself lives in CSS (`clamp()`
+  // and `max()`), not here - see that file's comment on `[data-editor-text]
+  // .resizer` for the exact formula. Measuring `textRef` directly (not
+  // deriving a height from `textFontSize` below) is deliberately exact
+  // rather than approximate: padding, line-height and multi-line wrapping
+  // all affect the real box height, and a formula guessing at them would
+  // drift from what is actually on screen. Same ResizeObserver pattern as
+  // the `scaleFactor` effect just above - ordinary layout measurement, not
+  // the golden-rule gesture path (editor.md): nothing here writes back to
+  // `onChange`/state that a draft persists, only a local, cosmetic value.
+  const [halfHeight, setHalfHeight] = useState(0);
+  useLayoutEffect(() => {
+    const node = textRef.current;
+    if (!node) return;
+    const updateHeight = () => setHalfHeight(node.getBoundingClientRect().height / 2);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   // The caret follows the edit session, not the selection. Two things open one:
   // starting to edit (created, double-clicked, Enter), and returning from the
   // floating toolbar - clicking A+ or a colour moves focus out of the textarea,
@@ -276,6 +305,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         isActive={isActive}
         onResizeStart={onResizeStart}
         messages={messages}
+        style={{ '--half-height': `${halfHeight}px` }}
       />
     </>
   );
