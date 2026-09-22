@@ -441,8 +441,12 @@ describe('PdfRedactTool UI flow', () => {
           .find((button) => button.textContent.includes('Download')), 'Download button');
         await act(async () => {
           downloadButton.click();
-          await new Promise((resolve) => setTimeout(resolve, 0));
         });
+        // Same dynamic import as the other export tests (DEBT-20), so the same
+        // bounded poll rather than a counted tick. This one was not observed
+        // failing, which is not a reason to leave a counted tick on a path that
+        // now waits on a module load.
+        await settleUntil('the deleted-objects export', () => capturedBlob !== undefined);
 
         // This path never touches the mocked redactPdf: a delete-only session
         // has no box element, so applyPageEdits returns deleteObjectsFromPdf's
