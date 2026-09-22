@@ -57,6 +57,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
+| MOBI-24 | P1 | [MOBI-24](backlog/tasks/MOBI-24.md) · A tapped text box on an iPhone opens its session but never its keyboard |
 
 ### Blocked
 

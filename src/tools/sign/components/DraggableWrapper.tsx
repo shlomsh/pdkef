@@ -153,8 +153,28 @@ export default function DraggableWrapper<T extends EditorElement>({
     // pointer gets no `onTap` at all, and `useDraggableElement` only ever
     // raises one for a touch gesture, so click-selects / double-click-edits
     // exactly as before.
-    onTap: isCoarsePointer && element.type === 'text' && !isEditing ? onBeginEdit : null,
+    onTap: isCoarsePointer && element.type === 'text' && !isEditing ? beginEditFromTap : null,
   });
+
+  // MOBI-24: iOS raises the keyboard only for a focus() made while the touch
+  // itself is being handled. `onTap` runs inside the `touchend` listener, but
+  // opening the session through state alone leaves the focus to TextNode's
+  // effect, which Preact runs a frame later - the box turned editable and no
+  // keyboard ever came, so on an iPhone the box could still not be typed into
+  // (reported in production after MOBI-21 shipped; WebKit under Playwright
+  // does not enforce the rule, which is why every e2e passed). So the textarea
+  // takes focus here, synchronously, before the state change; TextNode's
+  // effect then finds it already focused and leaves it alone.
+  function beginEditFromTap() {
+    const input = elementRef.current?.querySelector<HTMLTextAreaElement>('[data-editor-text-input]');
+    if (input) {
+      input.readOnly = false;
+      input.focus({ preventScroll: true });
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }
+    onBeginEdit();
+  }
 
   // Resize gesture logic (extracted into useElementResize - shared with Redact, E7.5).
   const { handleResizeStart, isSpanResizing } = useElementResize({
