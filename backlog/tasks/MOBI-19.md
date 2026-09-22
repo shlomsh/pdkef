@@ -65,13 +65,24 @@ The CSS does the arithmetic, in two parts:
   other element type's fixed size, and what a tall/multi-line text box still uses); 5px is a floor
   small enough to fit the shortest printed comb cell while staying a visible dot.
 - **Spread**: how far a corner handle's centre sits from the box's own vertical centre (where the side
-  handles live), `max(handle-size + 1px, half-height - 1px)`. The second term is the old design's
-  natural spread, correct once the box is tall enough that it already clears the handles' combined
-  radii on its own; the first is the floor that design was missing - the smallest gap two handles that
-  size actually need, plus a visible 1px of daylight - so a short box's corner handles float outward
-  past its own top/bottom edge exactly as far as they must to clear the side handle, however short the
-  box gets, rather than collapsing onto it. Where the natural spread already wins (any normal or
-  multi-line box), the two formulas agree exactly and nothing moves from before.
+  handles live), `max(handle-size + 3px, half-height - 1px)`. The second term is the old design's
+  natural spread, correct once the box is tall enough (roughly 30px+) that it already clears the
+  handles' combined radii on its own; the first is the floor that design was missing - the smallest gap
+  two handles that size actually need, plus a real 3px of daylight - so a short box's corner handles
+  float outward past its own top/bottom edge exactly as far as they must to clear the side handle,
+  however short the box gets, rather than collapsing onto it. Where the natural spread already wins
+  (any box at or above the ~30px crossover), the two formulas agree exactly and nothing moves from
+  before.
+
+  **First shipped with a 1px margin, not 3px** - Shlomi, after seeing it: "a user will zoom on the
+  field but the handles will remain overlapping with the zoom applied still." A bare non-overlap is not
+  the bar. Pinch-zoom is a pure visual-viewport magnifier - it never changes a `getBoundingClientRect()`
+  value, so a thin CSS-px gap stays exactly that thin at any zoom level - but anti-aliasing blurs each
+  circle's edge by roughly half a px, and 1px of gap is thin enough for that blur alone to read as
+  touching once someone is actually pinch-zoomed in close enough to look, which is exactly when a field
+  this small gets scrutinised. 3px survives that; verified by cropping tight on the same cluster at an
+  8x render scale (the CSS-px geometry a real pinch-zoom would show, magnified) and by tightening the
+  e2e guard below from "not touching" to "at least 2px of true edge-to-edge clearance."
 
 The coarse-pointer 44px touch halo (`.resizer::before`) keeps its `calc((var(--handle-size, 10px) -
 44px) / 2)` override for text, so the invisible touch target stays exactly 44px at every handle size and
@@ -79,9 +90,8 @@ position - shrinking or moving the visible dot never shrinks what a finger can a
 
 Verified on the practice form's own 8px field with real rendered measurements, not eyeballing: the
 `resizer-handle-spacing.spec.js` e2e checks every one of the six handles' real `getBoundingClientRect()`
-pairwise and fails if any two circles are closer than the sum of their radii (with a 0.5px
-floating-point allowance). On that field the fix lands centres 6px apart against 5px of combined
-radius - a full 1px of clear space, not a bare non-overlap.
+pairwise and fails if any two circles have under 2px of edge-to-edge clearance. On that field the fix
+lands centres 8px apart against 5px of combined radius - 3px of clear space, not a bare non-overlap.
 
 Guards: `TextNode.test.tsx`'s "passes its measured box height to the resize handles" describe block
 (jsdom can only prove `--half-height` reaches the DOM correctly - it has no CSS engine to evaluate

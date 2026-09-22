@@ -69,16 +69,23 @@ test('a text box\'s resize handles never overlap, however short the field is', a
   );
   expect(handles.length).toBe(6);
 
-  const overlapping = [];
+  // A bare non-overlap is not the bar: a gap of a fraction of a px still
+  // reads as touching once anti-aliasing softens each circle's edge,
+  // especially at the zoom a person pinches to in order to see a field this
+  // small at all - and pinch-zoom is a pure visual-viewport magnifier, so a
+  // thin CSS-px gap stays exactly that thin at any zoom level. Require at
+  // least 2px of true clearance between every pair's edges (edge-to-edge
+  // distance = centre distance minus both radii), not just a positive one.
+  const MIN_CLEARANCE_PX = 2;
+  const tooClose = [];
   for (let i = 0; i < handles.length; i += 1) {
     for (let j = i + 1; j < handles.length; j += 1) {
       const a = handles[i];
       const b = handles[j];
       const distance = Math.hypot(a.cx - b.cx, a.cy - b.cy);
-      // A hair of floating-point/anti-aliasing slack (0.5px), never enough
-      // to read as touching.
-      if (distance < a.radius + b.radius - 0.5) overlapping.push(`${a.handle} x ${b.handle} (${distance.toFixed(2)}px apart, need ${(a.radius + b.radius).toFixed(2)}px)`);
+      const clearance = distance - a.radius - b.radius;
+      if (clearance < MIN_CLEARANCE_PX) tooClose.push(`${a.handle} x ${b.handle}: ${clearance.toFixed(2)}px clearance`);
     }
   }
-  expect(overlapping, `Overlapping handle pairs:\n${overlapping.join('\n')}`).toEqual([]);
+  expect(tooClose, `Handle pairs with under ${MIN_CLEARANCE_PX}px clearance:\n${tooClose.join('\n')}`).toEqual([]);
 });
