@@ -82,9 +82,29 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     if (!isEditing || !textareaRef.current) return;
     if (document.activeElement === textareaRef.current) return;
 
-    textareaRef.current.focus();
+    // `preventScroll`, because the field move has already decided where this
+    // element should sit (bringFieldIntoView in useFieldNavigation.ts centres it
+    // on the visual viewport). A focus that scrolls too adds a second, browser-
+    // driven jump on top of ours, which on iOS is the one that yanks the page to
+    // put the caret above the keyboard. One deliberate scroll reads as a move;
+    // two read as a glitch.
+    // `preventScroll` stops `focus()` itself scrolling, but `setSelectionRange`
+    // below still brings the caret into view, and that one has no opt-out. Both
+    // together were the instant jump measured before the field move's own
+    // smooth scroll: 1400 -> 176 in a single frame at 90ms, then a glide from
+    // 176 to 441 - "scrolled all the way up and then all the way down to the
+    // next element" (2026-09-22). Snapshotting the scroll position around the
+    // pair and putting it back leaves exactly one deliberate move, the one
+    // bringFieldIntoView makes.
+    const scrolled = typeof window !== 'undefined' && typeof window.scrollTo === 'function'
+      ? { x: window.scrollX, y: window.scrollY }
+      : null;
+    textareaRef.current.focus({ preventScroll: true });
     const len = textareaRef.current.value.length;
     textareaRef.current.setSelectionRange(len, len);
+    if (scrolled && (window.scrollX !== scrolled.x || window.scrollY !== scrolled.y)) {
+      window.scrollTo(scrolled.x, scrolled.y);
+    }
   }, [
     isEditing,
     element.fontFamily,
