@@ -2,7 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
+import { fieldTextInset, getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
@@ -206,6 +206,24 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // not moving changes nothing on screen, and the drag itself (text.ts's
   // writeDOM) is what reveals the cells once it has cleared the floor.
   const cells = comb || isSpanResizing ? combLayout(element, isRtl) : null;
+
+  // A box on a detected cell keeps its text off the wall only as far as the
+  // cell has room (`fieldTextInset`, which the exporter calls with the same
+  // widths in points). The measure is the text's own width, unpadded; the
+  // display is the box, at least the cell wide. Written straight to the node
+  // after layout, like any cosmetic measurement here - never through state.
+  useLayoutEffect(() => {
+    const display = textRef.current;
+    if (!display) return;
+    if (!spannedField) {
+      display.style.removeProperty('--field-inset');
+      return;
+    }
+    const measure = display.querySelector<HTMLElement>('[data-text-part="measure"]');
+    const textWidth = measure ? measure.getBoundingClientRect().width : 0;
+    const inset = fieldTextInset(display.getBoundingClientRect().width, textWidth, textFontSize);
+    display.style.setProperty('--field-inset', `${inset}px`);
+  });
 
   return (
     <>

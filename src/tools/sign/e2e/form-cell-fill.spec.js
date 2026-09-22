@@ -130,6 +130,25 @@ test.describe('typing into a detected form cell', () => {
     expect(Math.abs((element.x + element.width) - (cell.x + cell.width))).toBeLessThanOrEqual(EDGE_SLACK_PX);
   });
 
+  test('a roomy cell keeps its text a quarter-em off the wall, as the export does', async ({ page }) => {
+    // fieldTextInset: up to 0.25em when the cell has room. The health form's
+    // name cell is far wider than a short name, so the full inset applies.
+    await openWithFixture(page);
+    const { hint, box: cell } = await widestCellHint(page);
+    await hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
+    const input = page.locator('[data-editor-element][data-editor-active] [data-editor-text-input]');
+    await input.fill('שלומי');
+    const { fontPx, gap } = await input.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { fontPx: parseFloat(style.fontSize), gap: parseFloat(style.paddingRight) };
+    });
+    // The textarea's padding is what sets the glyphs in from the box's wall
+    // (text-align right, so the right padding is the gap).
+    expect(Math.abs(gap - 0.25 * fontPx)).toBeLessThan(0.5);
+    const text = await typedTextRect(page);
+    expect(text.right).toBeLessThan(cell.x + cell.width - 0.2 * fontPx);
+  });
+
   test('is still plain text, not a comb: no per-character cells appear', async ({ page }) => {
     await openWithFixture(page);
     const { hint, box: cell } = await widestCellHint(page);
