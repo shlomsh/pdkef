@@ -629,10 +629,9 @@ describe('PdfMergeTool UI flow', () => {
   });
 
   // Both hand-off buttons disable themselves for the navigation they start, so
-  // a back-navigation used to bring them back permanently greyed out: the
-  // browser restores the island it froze, `handoffBusy` and all. Same freeze,
-  // same fix as the home page's stuck picker (lib/useNavigatingAway.ts).
-  it('offers the hand-offs again after a back-navigation, rather than coming back greyed out', async () => {
+  // a restored page used to bring them back permanently greyed out
+  // (lib/useNavigatingAway.ts).
+  it('offers the hand-offs again after a restore, rather than coming back greyed out', async () => {
     const navigate = vi.fn();
     mount({ navigate });
     await loadFiles(['a.pdf', 'b.pdf']);
@@ -646,7 +645,11 @@ describe('PdfMergeTool UI flow', () => {
     expect(navigate).toHaveBeenCalledWith('/compress/');
     expect(handoff('Sign it').disabled).toBe(true);
 
-    await act(async () => { window.dispatchEvent(new Event('pageshow')); });
+    await act(async () => {
+      const restore = new Event('pageshow');
+      restore.persisted = true;
+      window.dispatchEvent(restore);
+    });
 
     expect(handoff('Sign it').disabled).toBe(false);
     await act(async () => {

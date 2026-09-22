@@ -299,6 +299,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
+| DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |
 
 
 ## Undo and redo across the tools (2026-09-20)
