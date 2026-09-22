@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveHandoff, setCurrentEntry, readRecentFiles } from '../lib/drafts/draftStore.js';
+import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
@@ -53,7 +54,9 @@ export default function FileDropzone({
   // here; the mount effect below is the only thing that may.
   const [recents, setRecents] = useState<RecentFileItem[] | null>(null);
   const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  // Disables every tile, the picker and the drop target while it is set, so it
+  // is the hook's flag rather than a plain useState (../lib/useNavigatingAway.ts).
+  const [busy, setBusy] = useNavigatingAway();
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
