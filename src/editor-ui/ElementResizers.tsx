@@ -32,7 +32,7 @@ export function nearestHandle(event: EditorPointerEvent, pressed: HTMLElement, f
   return best;
 }
 
-export default function ElementResizers({ element, isActive, onResizeStart, messages }: {
+export default function ElementResizers({ element, isActive, onResizeStart, messages, style }: {
   element: EditorElement;
   isActive: boolean;
   onResizeStart: NodeResizeStart;
@@ -40,6 +40,17 @@ export default function ElementResizers({ element, isActive, onResizeStart, mess
    * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
    * which never passes it, so its English rendering is unaffected. */
   messages?: Partial<SignMessages>;
+  /** `--half-height`, from TextNode.tsx's own measured box height - see the
+   * comment on `[data-editor-text] .resizer` in EditorElement.module.css,
+   * which derives both the handle size and how far the corner handles sit
+   * from centre from this one raw measurement. Applied to every handle (not
+   * a wrapping element: this component renders a flat list of siblings, no
+   * container of its own), so the custom property reaches each handle's own
+   * inline style directly rather than relying on CSS inheritance from an
+   * ancestor that has no reason to carry it. Every other caller (ShapeNode,
+   * WhiteoutNode, ...) leaves this unset, and that CSS's own `var(...,
+   * 10px)` fallback is what makes that a no-op. */
+  style?: Record<string, string>;
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const { handles } = getElementDefinition(element.type).resizeBehavior;
@@ -64,7 +75,9 @@ export default function ElementResizers({ element, isActive, onResizeStart, mess
             key={handle}
             className={[styles.resizer, isLineHandle && styles['line-handle'], isCorner && styles.corner, !isLineHandle && styles[handle]].filter(Boolean).join(' ')}
             data-editor-resizer={handle}
-            style={isLineHandle ? { position: 'absolute', left: `${point.left}%`, top: `${point.top}%`, pointerEvents: 'auto', cursor: 'crosshair', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' } : undefined}
+            style={isLineHandle
+              ? { position: 'absolute', left: `${point.left}%`, top: `${point.top}%`, pointerEvents: 'auto', cursor: 'crosshair', transform: 'translate(-50%, -50%)', bottom: 'auto', right: 'auto' }
+              : style}
             onMouseDown={(event) => onResizeStart(event, nearestHandle(event, event.currentTarget, handle))}
             onTouchStart={(event) => onResizeStart(event, nearestHandle(event, event.currentTarget, handle))}
             title={isLineHandle ? undefined

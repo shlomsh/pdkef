@@ -111,6 +111,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-16 | P2 | [MOBI-16](backlog/tasks/MOBI-16.md) · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar |
 | MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
+| MOBI-19 | P1 | [MOBI-19](backlog/tasks/MOBI-19.md) · A text box's resize handles overlap into a blob on any short single-line field |
 
 
 ## Site quality: accessibility, CSS correctness and theming
