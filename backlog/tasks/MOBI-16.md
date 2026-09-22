@@ -117,20 +117,33 @@ collapse chevron beside it; the same toggle folds back. Pointer type is read onc
 `window.matchMedia('(pointer: coarse)')`, the same computed-once pattern `ArmHint.tsx` already uses for
 its own hover check, so desktop is untouched with no resize listener anywhere.
 
-**Resolved the "genuinely open" question: sit alongside, not replace.** `EditorToolStatus`'s
-status-line Previous/Next (MOBI-06) is unchanged - still the only copy a desktop or keyboard-only user
-sees, and still present the instant a tool is armed before anything is selected. The element-anchored
-pair is additive, mounted only for the one field actually being typed into. Both read from the same
-`fieldNavigation` hook result (`PdfWorkspace.tsx` threads it to the active `DraggableWrapper` alone, so
-every other element's wrapper never re-renders on a step), so they can never disagree about
-hasNext/hasPrevious or which field is next.
+**Resolved the "genuinely open" question, in two steps.** First cut: sit alongside, not replace -
+`EditorToolStatus`'s status-line Previous/Next (MOBI-06) left unchanged, since it is still the only
+copy a desktop or keyboard-only user sees, and still the only one present the instant a tool is armed
+before anything is selected. Shlomi, on seeing it live: "those buttons and the real estate they consume
+should have been gone" - the status-line pair sitting over the identity row *while the element-anchored
+one was already doing the job* was exactly the redundant chrome this ticket exists to remove, not a
+harmless extra. Second cut, same day: `SignToolbar.tsx` now also hides its `fieldNav` (and with it
+`EditorToolStatus`'s `.field-nav`) whenever `state.editingElementId !== null` on a coarse pointer -
+`elementNavTakesOver`, read via the same computed-once `matchMedia('(pointer: coarse)')`. So the final
+shape is a handoff, not a duplication: **idle, a tool armed with nothing tapped yet, or a box merely
+selected (not edited)** keeps the status-line copy, exactly as before; **actually typing into a field on
+touch** hides it and the element-anchored bar (compact or, once `Aa` is tapped, the full toolbar with
+its collapse chevron) owns the job alone. Both still read from the same `fieldNavigation` hook result,
+so they can never disagree about hasNext/hasPrevious or which field is next - only one of the two is
+ever mounted at a time now. Desktop is unaffected either way.
+
+One accepted trade from the second cut: while the full formatting toolbar is open (`Aa` tapped), no
+Previous/Next is on screen at all - the person taps the collapse chevron to get it back. Judged
+acceptable: that is an explicit choice to see formatting controls, not an accident, and the ticket's
+own "reachable in one tap" bar is symmetric either direction.
 
 Not attempted here: MOBI-17 (page zoom on focus, which can push the wrapped bar to three or five rows)
 is a different mechanism and stays open on its own ticket - a one-row bar just makes hitting it less
 likely, per the ticket text above.
 
-Guards: `DraggableWrapper.test.tsx`'s "compact editing toolbar (MOBI-16)" block (jsdom, gates by pointer
-type and by whether a `fieldNav` was supplied) and
+Guards: `DraggableWrapper.test.tsx`'s "compact editing toolbar (MOBI-16)" block, `SignToolbar.test.tsx`'s
+`fieldNavigation` describe block (both jsdom, gate by pointer type and edit-session state) and
 `src/tools/sign/e2e/mobile-compact-editing-toolbar.spec.js` (real touch input and rendered rects: one
-row under 44px tall on a phone viewport, the full toolbar on a fine pointer, Next actually stepping
-fields without losing the caret session).
+row under 44px tall on a phone viewport, the status-line copy actually absent from the DOM while it is
+up, the full toolbar on a fine pointer, Next actually stepping fields without losing the caret session).
