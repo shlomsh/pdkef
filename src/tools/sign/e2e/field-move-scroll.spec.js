@@ -211,6 +211,64 @@ test.describe('a field move scrolls once', () => {
     expectOneMoveIntoTheBand(trace);
   });
 
+  // Full screen is a different scroller. `.workspace` scrolls there, not the
+  // page, and on an iPhone full screen is ALWAYS that pseudo-fullscreen: Safari
+  // has no element `requestFullscreen`, so PdfSignTool falls back to it. A move
+  // that scrolls only the window moves nothing in it - and with the textarea
+  // focusing under `preventScroll`, nothing else would bring the field in
+  // either. Hiding `requestFullscreen` before the page loads takes the same
+  // branch Safari does.
+  test('in full screen, Next scrolls the workspace and lands the field on screen', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(Element.prototype, 'requestFullscreen', { configurable: true, value: undefined });
+    });
+    await openWithFixture(page);
+    await tapFirstCellHint(page);
+    await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
+
+    await page.getByRole('button', { name: 'Full screen' }).first().click();
+    const workspace = page.locator('[class*="pseudo-fullscreen"]');
+    await expect(workspace).toHaveCount(1);
+
+    // A short screen - a phone in landscape - so the workspace has real scroll
+    // range on a one-page form, then park it at the bottom: the next field is
+    // near the top of the page, so it starts well out of view above.
+    await page.setViewportSize({ width: 390, height: 320 });
+    await workspace.evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    await page.waitForTimeout(150);
+    const startTop = await workspace.evaluate((el) => el.scrollTop);
+    expect(startTop, 'the workspace itself is the scroller here, with range to move').toBeGreaterThan(150);
+
+    const before = await activeElement(page).getAttribute('data-editor-element-id');
+    await page.evaluate(() => {
+      document.querySelector(
+        '[data-editor-element][data-editor-active] [data-editor-actions] button[aria-label="Next field"]',
+      ).click();
+    });
+    await expect.poll(() => activeElement(page).getAttribute('data-editor-element-id')).not.toBe(before);
+
+    // Wait for the glide to finish: three identical samples in a row.
+    await expect.poll(async () => {
+      const seen = [];
+      for (let i = 0; i < 3; i += 1) {
+        seen.push(await workspace.evaluate((el) => Math.round(el.scrollTop)));
+        await page.waitForTimeout(80);
+      }
+      return new Set(seen).size;
+    }, { timeout: 5000 }).toBe(1);
+
+    const where = await page.evaluate(() => {
+      const node = document.querySelector('[data-editor-element][data-editor-active]');
+      const ws = document.querySelector('[class*="pseudo-fullscreen"]');
+      const r = node.getBoundingClientRect();
+      const w = ws.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, bandTop: Math.max(0, w.top), bandBottom: Math.min(window.innerHeight, w.bottom), moved: ws.scrollTop };
+    });
+    expect(where.moved, 'the workspace scrolled').not.toBe(startTop);
+    expect(where.top, 'the field is not above the visible band').toBeGreaterThanOrEqual(where.bandTop);
+    expect(where.bottom, 'the field is not below the visible band').toBeLessThanOrEqual(where.bandBottom);
+  });
+
   test('the long move the report describes is one glide, not up and then down', async ({ page }) => {
     await openWithFixture(page);
     await tapFirstCellHint(page);

@@ -103,3 +103,25 @@ armed was creating elements, was wrong: nothing was created, something was clone
 **Split out, so this can close:** a text box narrower than ~46px that is selected but not being edited is
 still covered edge to edge by its own resize-handle hit areas. One-tap entry makes it reachable from the
 deselected state, which is the common one; the selected-not-editing case after a drag is MOBI-23.
+
+## Review, 2026-09-22 - what was changed and what was decided
+
+An independent review of this fix before it shipped found, and this change answers:
+
+- **Multi-finger, fling-stop and long-press were counting as taps.** A tap is now exactly one finger, on a
+  cancelable `touchstart` (the one that merely stops a scroll fling is not cancelable and must not open the
+  keyboard), released within 500ms. Plus an ordering bug where a still-live previous gesture's `cancel()`
+  wiped the new gesture's flag. Each is pinned by a jsdom unit test in
+  `useDraggableElement.tap.test.tsx`, and each test was proven to fail with its fix removed.
+- **The offset comment's arithmetic was wrong.** The bar's 4px padding means a button's hit area overhangs
+  the bar by 4px, not 8px, so geometry alone should not reach the box. The red-to-green is real, so the
+  comment now states what was measured and names the likely mechanism - the browser's touch-target
+  adjustment - rather than an explanation that does not add up. Proving it on a device is MOBI-23.
+
+**A product decision, recorded rather than left in code.** One tap on a text box on touch selects it and
+opens it for typing; the ticket had sketched "first tap selects, second tap edits". Chosen because a
+two-tap sequence reads as a double-tap, which is the browser's zoom, and because it is how every mobile
+form behaves. The cost: a box that is open for typing cannot then be dragged, because its textarea owns the
+touch - to move a box on a phone, drag it directly, without tapping it first (which works, and is guarded).
+The gate is the coarse pointer, so a touchscreen laptop whose primary pointer is fine still uses
+double-click; deciding per gesture instead would cover hybrids and is a reasonable follow-up.

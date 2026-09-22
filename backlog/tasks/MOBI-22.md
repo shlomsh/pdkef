@@ -99,3 +99,22 @@ a band ending at 400. Long move, `1400 → 471`, travel 929, same arrival.
 At a phone viewport with a shrunken visual viewport, a field move is a single monotonic scroll -
 total travel equals net displacement - and the arrival rect is centred in the visible band, not
 behind the keyboard. Guarded by a Playwright spec that samples scroll position across the move.
+
+## Full screen, 2026-09-22 - caught in review before it shipped
+
+The single-scroll rewrite scrolled only the window. In full screen `.workspace` is what scrolls, and on an
+iPhone full screen is always that pseudo-fullscreen (Safari has no element `requestFullscreen`), so a field
+move there would have moved nothing - and with the textarea now focusing under `preventScroll`, nothing else
+would have brought the field in either. It now scrolls the nearest scrolling ancestor, and centres in the
+visual viewport clipped to that container. It also scrolls to an absolute target and abandons any earlier
+move still pending, so a second Next during the first move's glide cannot queue two scrolls measured at
+different moments.
+
+Guarded in `field-move-scroll.spec.js`, taking Safari's branch by hiding `requestFullscreen` before load, on a
+short screen so a one-page form gives the workspace real range. Proven red-to-green: with the old window-only
+scroll the workspace does not move at all.
+
+Still unproven, and stated plainly: a keyboard that opens *after* the scroll. A move made while the keyboard is
+closed is centred for the full screen, and iOS then scrolls again when the keyboard arrives. Next only appears
+on the compact bar, which only shows while a box is open - so the keyboard is normally already up - but a real
+device is the only honest check.

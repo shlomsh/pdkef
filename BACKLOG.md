@@ -369,6 +369,7 @@ _None._
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |
+| DEBT-22 | P2 | [DEBT-22](backlog/tasks/DEBT-22.md) · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else |
 
 ### In progress
 

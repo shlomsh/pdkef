@@ -27,3 +27,15 @@ a phone happens after a drag. A tap on it there starts a resize instead of openi
 At a phone viewport, after dragging a text box narrower than 46px, one tap opens it for typing. The 44px
 target on each handle stays where the box is wide enough to afford it; where it is not, the handles give way
 to the text rather than covering it. Guarded in `touch-edit-reentry.spec.js`.
+
+## Also here: two findings that must not be lost
+
+- **The textarea has no `onBlur`.** A blur with no accompanying state change - iOS's keyboard "Done" is one -
+  leaves `editingElementId` set with no caret and no keyboard, so the compact bar stays up over a box that
+  cannot be typed into until something else changes the selection. Found in MOBI-21's trace; not fixed there.
+- **Prove the element-bar clearance on a real device.** MOBI-21 raised the bar's coarse-pointer offset to 16px
+  on the strength of an engine measurement (a tap on a 5.8px box landed on Delete or Duplicate at 8px, and does
+  not at 16px). The geometry does not fully explain it, and the likely mechanism, the browser's touch-target
+  adjustment, scales with the finger's contact radius - which a real finger has more of than a test. Measure it
+  on an iPhone before trusting 16px. Redact's `RedactBox.tsx` positions the same bar at the plain offset and
+  has not been looked at.

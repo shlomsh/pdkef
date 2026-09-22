@@ -46,6 +46,7 @@ async function openPracticeForm(page) {
 }
 
 async function tapCentre(page, locator) {
+  await locator.scrollIntoViewIfNeeded();
   const box = await locator.boundingBox();
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
 }
@@ -74,7 +75,9 @@ test('fill two fields, put the keyboard away, then go back and fix the first', a
   const overlay = page.locator('[class*="page-overlay"]').first();
   const o = await overlay.boundingBox();
   await page.touchscreen.tap(o.x + 12, o.y + 12);
-  await page.waitForTimeout(250);
+  // Assert the session really closed - otherwise the "go back in" step below
+  // would pass without ever testing re-entry.
+  await expect(page.locator('[data-editor-text-input]:not([readonly])')).toHaveCount(0);
   expect(await elementCount(page), 'tapping the page to dismiss the keyboard adds nothing').toBe(2);
 
   // Go back to the first box and fix it. ONE tap has to be enough: a second tap
@@ -99,9 +102,12 @@ test('an empty box never tells a phone user to double-click', async ({ page }) =
   // Next creates a box on the next field; leave the first one empty and closed.
   await page.getByRole('button', { name: 'Next field' }).click();
 
+  // Two boxes: the empty closed one we left, and the one Next opened.
+  await expect(page.locator('[data-editor-element] textarea')).toHaveCount(2);
   const placeholders = await page.locator('[data-editor-element] textarea').evaluateAll(
     (inputs) => inputs.map((input) => input.getAttribute('placeholder') || ''),
   );
-  expect(placeholders.length).toBeGreaterThan(0);
   for (const text of placeholders) expect(text.toLowerCase(), `placeholder "${text}"`).not.toContain('double');
+  // And the closed one names the gesture that does work.
+  expect(placeholders, 'the closed box says how to open it on touch').toContain('Tap to type');
 });
