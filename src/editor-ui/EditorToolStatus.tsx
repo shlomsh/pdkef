@@ -67,9 +67,12 @@ import { formatMessage } from '../i18n/toolMessages';
  *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
  *   beside whichever row the stack is showing. When it comes and goes is the caller's policy, not
  *   this component's - Sign sends it for as long as somebody is filling fields in a document that
- *   has some (SignToolbar.tsx) - and within one such spell it stays put, so the control's own
- *   mount state never changes underfoot; only its two buttons' `disabled` does, as the person
- *   reaches either end of the order. Its `direction`
+ *   has some (SignToolbar.tsx) - and within one such spell it stays mounted with only its two
+ *   buttons' `disabled` changing, as the person reaches either end of the order. One exception,
+ *   added under MOBI-16's follow-up: on a touch device it un-mounts for the one spell where a text
+ *   box is actually being typed into, because `DraggableWrapper.tsx` grows its own Previous/Next
+ *   anchored to that element and this copy would just be redundant chrome over the identity row -
+ *   SignToolbar.tsx's `elementNavTakesOver` is the gate. Its `direction`
  *   is the document's, not this component's `dir`, and goes on the `.field-nav` element so the
  *   arrows point the way they travel even when the two disagree - see SignToolbar.module.css.
  */

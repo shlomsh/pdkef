@@ -13,10 +13,13 @@ import { test, expect } from '@playwright/test';
  * this proves and jsdom cannot: whether the bar is actually one row tall,
  * and whether `(pointer: coarse)` genuinely gates it off on desktop.
  *
- * `EditorToolStatus`'s own Previous/Next (the top status line, MOBI-06)
- * stays mounted throughout - this feature sits beside it, not instead of
- * it - so every query below is scoped to the active element's own
- * `[data-editor-actions]` bar to tell the two apart.
+ * MOBI-16 follow-up: `EditorToolStatus`'s own Previous/Next (the top status
+ * line, MOBI-06) steps aside for the one spell where a text box is actually
+ * in an edit session on a touch device - the element-anchored pair takes
+ * over the job then, and leaving both mounted was exactly the redundant
+ * chrome this ticket exists to remove. Outside an edit session (idle, a tool
+ * armed with nothing tapped yet, a box merely selected) the status-line copy
+ * is still the only one - every query below is scoped to tell the two apart.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -60,10 +63,22 @@ function activeActions(page) {
   return page.locator('[data-editor-element][data-editor-active] [data-editor-actions]');
 }
 
+/** EditorToolStatus's own Previous/Next, up in the identity row - excludes
+ * any button of the same name inside an element's own `[data-editor-actions]`
+ * bar, so the two copies can be told apart by where they render. */
+function statusLineFieldNav(page) {
+  return page.locator('button[aria-label="Previous field"]:not([data-editor-actions] button)');
+}
+
 test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
-  test('typing a detected field shows Previous/Next/Aa, one row, not the full wrapped toolbar', async ({ page }) => {
+  test('the status line owns Previous/Next before anything is opened, on a form with detected fields', async ({ page }) => {
+    await openWithFixture(page);
+    await expect(statusLineFieldNav(page)).toBeVisible();
+  });
+
+  test('typing a detected field shows Previous/Next/Aa, one row, not the full wrapped toolbar - and the status line steps aside', async ({ page }) => {
     await openWithFixture(page);
     const { hint, box: cell } = await widestCellHint(page);
     await hint.click({ position: { x: cell.width / 2, y: cell.height / 2 }, force: true });
@@ -75,17 +90,22 @@ test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
     // The full toolbar's own controls must not be present alongside it.
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toHaveCount(0);
     await expect(actions.getByRole('button', { name: 'Delete element' })).toHaveCount(0);
+    // The status-line copy of the same control has stepped aside - not two
+    // Previous/Next pairs fighting for the same job.
+    await expect(statusLineFieldNav(page)).toHaveCount(0);
 
     // One row: a button here is 28px tall, so a genuinely single-row bar
     // (padding included) stays well under a wrapped two-row bar's ~68px.
     const box = await actions.boundingBox();
     expect(box.height).toBeLessThan(44);
 
-    // Tap Aa: today's controls appear, and Previous/Next step aside.
+    // Tap Aa: today's controls appear, and Previous/Next step aside - the
+    // status line stays out of it too, since the same edit session is still open.
     await actions.getByRole('button', { name: 'Formatting options' }).click();
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toBeVisible();
     await expect(actions.getByRole('button', { name: 'Delete element' })).toBeVisible();
     await expect(actions.getByRole('button', { name: 'Previous field' })).toHaveCount(0);
+    await expect(statusLineFieldNav(page)).toHaveCount(0);
 
     // The same toggle folds it back.
     await actions.getByRole('button', { name: 'Formatting options' }).click();
@@ -128,5 +148,7 @@ test.describe('Sign per-element toolbar on desktop (MOBI-16)', () => {
     await expect(actions.getByRole('button', { name: 'Delete element' })).toBeVisible();
     await expect(actions.getByRole('button', { name: 'Previous field' })).toHaveCount(0);
     await expect(actions.getByRole('button', { name: 'Formatting options' })).toHaveCount(0);
+    // Desktop never loses the status-line copy - it is still the only one.
+    await expect(statusLineFieldNav(page)).toBeVisible();
   });
 });

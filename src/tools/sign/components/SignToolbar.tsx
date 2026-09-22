@@ -157,6 +157,18 @@ export default function SignToolbar({
 
   const blockedExportTitle = formatMessage(exportIssueCount === 1 ? t.exportBlockedTitleOne : t.exportBlockedTitleOther, { count: exportIssueCount });
 
+  // MOBI-16 follow-up: while a text box is actually in an edit session on a
+  // touch device, `DraggableWrapper.tsx` grows its own Previous/Next beside
+  // the element - this status-line pair would then be a second, redundant
+  // copy sitting over the identity row for no reason (Shlomi, on the shipped
+  // MOBI-16: "those buttons and the real estate they consume should have
+  // been gone"). Read once via matchMedia, same computed-once pattern
+  // ArmHint.tsx and DraggableWrapper.tsx already use for their own
+  // pointer/hover checks - not tracked with a listener, since pointer type is
+  // a device characteristic, not something that changes mid-session.
+  const [isCoarsePointer] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
+  );
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   // Which shape the Shapes button stands for once its menu has closed. The
@@ -308,16 +320,23 @@ export default function SignToolbar({
   // box is the same context under another name, and it is what the person is
   // holding for the whole of that loop.
   //
-  // Within that context the control still never blinks: `hasFields` and this
-  // gate both hold steady across a move, and only `disabled` changes as either
-  // end of the order is reached (FieldNavigation.hasFields, and the `fieldNav`
-  // prop doc in EditorToolStatus.tsx).
+  // Within that context the control still never blinks on desktop: `hasFields`
+  // and this gate both hold steady across a move, and only `disabled` changes
+  // as either end of the order is reached (FieldNavigation.hasFields, and the
+  // `fieldNav` prop doc in EditorToolStatus.tsx). On a touch device it blinks
+  // exactly once more, deliberately: it steps aside the moment an edit session
+  // opens (`state.editingElementId`), because that is the moment
+  // `DraggableWrapper.tsx`'s own Previous/Next, anchored to the element, takes
+  // over the job - see the `isCoarsePointer` comment above. Selecting a box
+  // without opening it (a tap that only activates, not edits) still shows this
+  // one, same as always.
   const activeElement = state.activeElementId
     ? state.elements.find((element) => element.id === state.activeElementId) ?? null
     : null;
   const fillingFields = selectedTool === 'text' || selectedTool === 'date' || activeElement?.type === 'text';
+  const elementNavTakesOver = isCoarsePointer && state.editingElementId !== null;
 
-  const fieldNav = fieldNavigation.hasFields && fillingFields ? {
+  const fieldNav = fieldNavigation.hasFields && fillingFields && !elementNavTakesOver ? {
     hasNext: fieldNavigation.hasNext,
     hasPrevious: fieldNavigation.hasPrevious,
     onNext: fieldNavigation.goToNext,

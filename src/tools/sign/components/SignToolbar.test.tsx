@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { render } from 'preact';
 import type { ComponentProps } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
@@ -1194,15 +1194,33 @@ describe('SignToolbar Component', () => {
     const noFields = { hasFields: false, hasNext: false, hasPrevious: false, direction: 'ltr' as const, goToNext: () => {}, goToPrevious: () => {} };
     const someFields = { ...noFields, hasFields: true, hasNext: true, hasPrevious: true };
 
+    let originalMatchMedia: typeof window.matchMedia;
+    beforeEach(() => { originalMatchMedia = window.matchMedia; });
+    afterEach(() => { window.matchMedia = originalMatchMedia; });
+
+    function setPointerCoarse(coarse: boolean) {
+      window.matchMedia = ((query: string) => ({
+        matches: query === '(pointer: coarse)' ? coarse : true,
+        media: query,
+        onchange: null,
+        addListener() {},
+        removeListener() {},
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() { return false; },
+      })) as unknown as typeof window.matchMedia;
+    }
+
     /**
      * Mounts the toolbar and then puts it into whatever filling context the
      * test needs, the way the app gets there: `tool` arms one, `activeText`
      * stands for the box a placement leaves selected once the one-shot tool
-     * has disarmed itself.
+     * has disarmed itself, `editingText` stands for actually having a caret in
+     * it (implies `activeText`).
      */
     const mountNav = (
       props: Partial<ComponentProps<typeof ProductionSignToolbar>> = {},
-      context: { tool?: 'text' | 'date' | 'symbol'; activeText?: boolean } = {},
+      context: { tool?: 'text' | 'date' | 'symbol'; activeText?: boolean; editingText?: boolean } = {},
     ) => {
       container = document.createElement('div');
       document.body.appendChild(container);
@@ -1221,11 +1239,14 @@ describe('SignToolbar Component', () => {
         );
       });
       if (context.tool) act(() => { dispatch({ type: 'SET_TOOL', payload: context.tool }); });
-      if (context.activeText) {
+      if (context.activeText || context.editingText) {
         act(() => {
           dispatch({ type: 'ADD_ELEMENT', payload: { id: 'typed', type: 'text', pageIndex: 0, left: 10, top: 10, text: '' } });
           dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: 'typed' });
         });
+      }
+      if (context.editingText) {
+        act(() => { dispatch({ type: 'SET_EDITING_ELEMENT_ID', payload: 'typed' }); });
       }
       return container.querySelector(`.${styles['field-nav']}`);
     };
@@ -1252,6 +1273,22 @@ describe('SignToolbar Component', () => {
     // would lose its Next on the very first field.
     it('stays for the box a disarmed tool left selected, which is the whole type-Next-type loop', () => {
       expect(mountNav({ fieldNavigation: someFields }, { activeText: true })).not.toBeNull();
+    });
+
+    // MOBI-16 follow-up: on a touch device, DraggableWrapper.tsx grows its own
+    // Previous/Next beside the element the moment an edit session opens - this
+    // status-line copy would be redundant chrome sitting over the identity row
+    // for no reason, the same complaint that originally gated the control on
+    // `fillingFields` in the first place.
+    it('steps aside on a touch device the moment an edit session opens, not merely a selection', () => {
+      setPointerCoarse(true);
+      expect(mountNav({ fieldNavigation: someFields }, { activeText: true })).not.toBeNull();
+      expect(mountNav({ fieldNavigation: someFields }, { editingText: true })).toBeNull();
+    });
+
+    it('never steps aside on a fine pointer (desktop), even with an edit session open', () => {
+      setPointerCoarse(false);
+      expect(mountNav({ fieldNavigation: someFields }, { editingText: true })).not.toBeNull();
     });
 
     it('disables each button by its own hasNext/hasPrevious', () => {
