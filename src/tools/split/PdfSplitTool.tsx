@@ -76,8 +76,6 @@ export default function PdfSplitTool({
   const [saved, setSaved] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
-  // Disables the hand-off buttons until the navigation happens, so it must
-  // not survive a back-navigation (lib/useNavigatingAway.ts).
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();

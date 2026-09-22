@@ -388,8 +388,6 @@ export default function PdfMergeTool({
   const [isRestoredWorkspace, setIsRestoredWorkspace] = useState(false);
   const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
-  // Disables the hand-off buttons until the navigation happens, so it must
-  // not survive a back-navigation (lib/useNavigatingAway.ts).
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
   /* MERGE-17 */

@@ -54,8 +54,8 @@ export default function FileDropzone({
   // here; the mount effect below is the only thing that may.
   const [recents, setRecents] = useState<RecentFileItem[] | null>(null);
   const [error, setError] = useState('');
-  // Every tile, the picker and the drop target are disabled while this is set,
-  // so it must not survive a back-navigation (useNavigatingAway.ts).
+  // Disables every tile, the picker and the drop target while it is set, so it
+  // is the hook's flag rather than a plain useState (../lib/useNavigatingAway.ts).
   const [busy, setBusy] = useNavigatingAway();
   const container = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -150,9 +150,6 @@ export default function FileDropzone({
     });
     return () => cleanups.forEach(cleanup => cleanup());
   }, [busy, final]);
-  // A restored page refreshes its recents here, and clears `busy` through
-  // useNavigatingAway above: in the 2026-09-22 report the list was up to date
-  // while every tile under it was still disabled from the way out.
   useEffect(() => {
     const refresh = () => setRecents(readHomeRecents());
     refresh();

@@ -192,15 +192,10 @@ describe('FileDropzone', () => {
       expect(loadRecentFile).not.toHaveBeenCalled();
     });
 
-    // Coming back is not a fresh load. The browser restores the page it froze
-    // when we navigated away, Preact state and all (bfcache), so the `busy`
-    // flag set on the way out came back with it: every tile and the picker
-    // disabled, the picker reading "Opening..." with nothing happening, and no
-    // second document openable (reported 2026-09-22 on iOS, exactly: open a
-    // document, go back, tap another one). jsdom cannot freeze and restore a
-    // page, but `pageshow` is what a restore fires and the only thing this
-    // component can act on, so the event is the contract worth pinning.
-    it('clears the busy state when the page is shown again, so the next document still opens', async () => {
+    // The wiring half of useNavigatingAway.ts: jsdom cannot restore a frozen
+    // page, so this pins that a restore re-enables every control `busy`
+    // disables. The restore itself is e2e/home/back-navigation.spec.js.
+    it('reopens after a restore, so the next document still opens', async () => {
       const savedAt = Date.now();
       readRecentFiles.mockReturnValue([
         { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt },
@@ -215,7 +210,11 @@ describe('FileDropzone', () => {
       expect(tiles()[1].disabled).toBe(true);
       expect(container.querySelector('[data-home-picker]').textContent).toContain('Opening');
 
-      await act(async () => { window.dispatchEvent(new Event('pageshow')); });
+      await act(async () => {
+        const restore = new Event('pageshow');
+        restore.persisted = true;
+        window.dispatchEvent(restore);
+      });
 
       expect(tiles()[1].disabled).toBe(false);
       expect(container.querySelector('[data-home-picker]').textContent).not.toContain('Opening');
