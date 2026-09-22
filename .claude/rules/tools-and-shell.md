@@ -70,6 +70,17 @@ that points at the sibling tool that solves it (an encrypted file linking to Unl
 draft to Compress). Every tool's done state should propose its own organic next-tool actions. See
 heading 13 of [docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md).
 
+**A flag that disables a control for the navigation it starts must be `useNavigatingAway()`
+(`src/lib/useNavigatingAway.ts`), never a plain `useState(false)`.** Pressing Back does not re-run the
+island: the browser restores the page it froze on the way out, island state and all (bfcache), so the
+flag comes back set and the control it disabled is dead for good. The home launcher came back with
+every recent tile, the picker and the drop target disabled, reading "Opening..." forever, so a second
+document could never be opened (reported 2026-09-22 on iOS); Merge's, Split's and Redact's
+"Compress it" / "Sign it" came back greyed out the same way. The hook clears the flag on `pageshow`,
+which is the whole fix, and the guards are unit tests on purpose: Chromium under Playwright serves
+`goBack()` from a fresh parse, so the e2e written for this passed with the bug still in place
+(measured 2026-09-22, with `--enable-features=BackForwardCache` too).
+
 ## UX design guidelines
 
 Before designing or reviewing any tool's loaded state, read

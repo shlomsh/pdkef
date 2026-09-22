@@ -192,6 +192,37 @@ describe('FileDropzone', () => {
       expect(loadRecentFile).not.toHaveBeenCalled();
     });
 
+    // Coming back is not a fresh load. The browser restores the page it froze
+    // when we navigated away, Preact state and all (bfcache), so the `busy`
+    // flag set on the way out came back with it: every tile and the picker
+    // disabled, the picker reading "Opening..." with nothing happening, and no
+    // second document openable (reported 2026-09-22 on iOS, exactly: open a
+    // document, go back, tap another one). jsdom cannot freeze and restore a
+    // page, but `pageshow` is what a restore fires and the only thing this
+    // component can act on, so the event is the contract worth pinning.
+    it('clears the busy state when the page is shown again, so the next document still opens', async () => {
+      const savedAt = Date.now();
+      readRecentFiles.mockReturnValue([
+        { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt },
+        { id: 'sha256:second', tool: 'sign', fileName: 'second.pdf', savedAt },
+      ]);
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      const tiles = () => Array.from(container.querySelectorAll('button[aria-label^="Open recent PDF"]'));
+
+      await act(async () => { tiles()[0].click(); });
+      expect(setCurrentEntry).toHaveBeenLastCalledWith('sign', 'sha256:first');
+      expect(tiles()[1].disabled).toBe(true);
+      expect(container.querySelector('[data-home-picker]').textContent).toContain('Opening');
+
+      await act(async () => { window.dispatchEvent(new Event('pageshow')); });
+
+      expect(tiles()[1].disabled).toBe(false);
+      expect(container.querySelector('[data-home-picker]').textContent).not.toContain('Opening');
+      await act(async () => { tiles()[1].click(); });
+      expect(setCurrentEntry).toHaveBeenLastCalledWith('sign', 'sha256:second');
+    });
+
     // MEM-01 folded Merge's entry into the same recency index every other
     // tool's work lives in, so a saved Merge set is an ordinary row from
     // readRecentFiles() now. Merge reached the pointer-only path first, because
