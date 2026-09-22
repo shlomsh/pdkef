@@ -332,4 +332,95 @@ describe('rows are scoped per column', () => {
     const cells = detectCellCandidates(mergeInk(row, panel), geometry, 0, []);
     expect(cells.map((c) => [c.left, c.width])).toEqual([[20, 30], [50, 30]]);
   });
+
+  it('keeps the row when a stray height sits just over 1pt from its own top or bottom', () => {
+    // Heights merge within 1pt, but a rule counts as bounding a row up to 1.5pt away. A stray
+    // height in that gap must not be read as the row's own top or bottom rule crossing it.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    for (const y of [81.2, 78.8, 61.2, 58.8]) {
+      const stray = {
+        horizontals: [{ y: 70, x0: 0, x1: 15 }, { y, x0: 0, x1: 15 }],
+        verticals: [],
+        rects: [],
+      };
+      const cells = detectCellCandidates(mergeInk(table, stray), geometry, 0, []);
+      expect(cells.map((c) => c.left), `stray height at ${y}`).toEqual([22, 48, 74]);
+      expect(cells.every((c) => Math.abs(c.height - 20) < 1e-9)).toBe(true);
+    }
+  });
+
+  it('does not close a row short on a height just inside it that only a box beside it has', () => {
+    // A radio square beside the row puts heights 1.3pt inside its top and bottom. A row rule is
+    // accepted up to 1.5pt off, so without looking at what is actually at those heights every
+    // column would close a second, shorter cell on them.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    const square = {
+      horizontals: [{ y: 78.7, x0: 110, x1: 117 }, { y: 61.3, x0: 110, x1: 117 }],
+      verticals: [{ x: 110, y0: 61.3, y1: 78.7 }, { x: 117, y0: 61.3, y1: 78.7 }],
+      rects: [],
+    };
+    const cells = detectCellCandidates(mergeInk(table, square), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.height])).toEqual([[22, 20], [48, 20], [74, 20]]);
+  });
+
+  it('drops only the column a rule in between actually crosses', () => {
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    // A short rule across the middle column, too short to close either half of it on its own.
+    const splitter = { horizontals: [{ y: 70, x0: 55, x1: 65 }], verticals: [], rects: [] };
+    const cells = detectCellCandidates(mergeInk(table, splitter), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.width, c.height])).toEqual([[22, 26, 20], [74, 26, 20]]);
+  });
+
+  it('drops a column whose wall is the side of a smaller box beside it', () => {
+    // The health declaration's sliver: the gap between a table's frame and a radio square,
+    // whose right wall is the square's side. The square's own top and bottom end against that
+    // wall mid-row, so the column is not one cell across the row.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    const square = {
+      horizontals: [{ y: 76, x0: 100, x1: 107 }, { y: 64, x0: 100, x1: 107 }],
+      verticals: [{ x: 107, y0: 64, y1: 76 }],
+      rects: [],
+    };
+    const cells = detectCellCandidates(mergeInk(table, square), geometry, 0, []);
+    expect(cells.map((c) => c.left)).toEqual([22, 48]);
+  });
+
+  it('does not close a column on a band when its real bottom rule sits just past it', () => {
+    // The right column's own bottom rule is 1.3pt below the others'. The others' rule clips its
+    // corner, so it does cross the column at the band's bottom, and the 1.3pt rule is inside
+    // the 1.5pt a bounding rule may sit off. The column still must not close on the band.
+    const ink = {
+      horizontals: [
+        { y: 80, x0: 22, x1: 100 },
+        { y: 60, x0: 22, x1: 80 },
+        { y: 58.7, x0: 74, x1: 100 },
+        { y: 70, x0: 0, x1: 15 },
+      ],
+      verticals: [
+        { x: 22, y0: 60, y1: 80 },
+        { x: 48, y0: 60, y1: 80 },
+        { x: 74, y0: 58.7, y1: 80 },
+        { x: 100, y0: 58.7, y1: 80 },
+      ],
+      rects: [],
+    };
+    const cells = detectCellCandidates(ink, geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.height])).toEqual([[22, 20], [48, 20]]);
+  });
+
+  it('stays cheap on a dense hatch of hundreds of page-wide rules', () => {
+    // 636 full-width rules at a 1.1pt pitch across 41 walls. Pairing every height with every
+    // height a row could reach, and re-scanning every rule per pair, took seconds here. The
+    // bound is loose on purpose: it catches that blow-up, not a slow machine.
+    const bigPage = createPageGeometry({ cropBox: { x: 0, y: 0, width: 800, height: 800 }, rotation: 0 });
+    const hatch = {
+      horizontals: Array.from({ length: 636 }, (_, n) => ({ y: 50 + n * 1.1, x0: 0, x1: 600 })),
+      verticals: Array.from({ length: 41 }, (_, n) => ({ x: n * 15, y0: 50, y1: 50 + 635 * 1.1 })),
+      rects: [],
+    };
+    const started = performance.now();
+    const cells = detectCellCandidates(hatch, bigPage, 0, []);
+    expect(performance.now() - started).toBeLessThan(500);
+    expect(cells).toEqual([]);
+  });
 });

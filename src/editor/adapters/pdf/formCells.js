@@ -117,6 +117,13 @@ const CLOSED_EDGE_COVERAGE = 0.7;
 /** Row bands outside this height range are not a single writable line/box. */
 const MIN_ROW_HEIGHT = 6;
 const MAX_ROW_HEIGHT = 45;
+/**
+ * A band may span at most this many page-wide rule heights between its top and bottom. A real
+ * row is crossed by a handful of stray heights from boxes beside it, not dozens; the cap keeps a
+ * dense hatch (hundreds of rules at a 1pt pitch) from pairing every height with every other.
+ * The busiest band that closes a cell on the scored corpus has 7.
+ */
+const MAX_HEIGHTS_BETWEEN = 12;
 /** A column narrower than this is a rule gap, not a cell anyone could write in. */
 const MIN_CELL_WIDTH = 15;
 
@@ -239,23 +246,43 @@ function verticalCoverage(edges, x, bottomY, topY) {
  *
  * Rows are scoped per column. Rule heights are collected page-wide, but a cell's top and bottom
  * are the nearest rules *that cross its own column*: a band may span several page-wide rule
- * heights, and a column in it yields a cell only when none of the heights in between crosses
- * that column. So a stray rule from a box off to the side (form 101's children table, whose rows
- * the boxes to their left cut at y=450.42 and friends) no longer splits a row it never touches,
- * and a cell is still atomic within its own column. For a band between adjacent heights nothing
- * is in between and this is the plain adjacent-pair walk. In a taller band the heights just
- * outside it count as in between too: `ruledCoverage` accepts a rule up to BAND_TOLERANCE off,
- * so a column whose real edge is a rule 1pt past the band would otherwise close on the wrong one
- * (the health declaration's sliver beside a radio square).
+ * heights, and a column in it yields a cell only when rules at the band's top and bottom heights
+ * cross it and no rule at a height in between reaches it. So a stray rule from a box off to the
+ * side (form 101's children table, whose rows the boxes to their left cut at y=450.42 and
+ * friends) no longer splits a row it never touches, and a cell is still atomic within its own
+ * column. For a band between adjacent heights nothing is in between and this is the plain
+ * adjacent-pair walk.
  *
- * Bands stop at MAX_ROW_HEIGHT, so the walk stays O(rules x heights-per-row x edges-per-band).
+ * Every test here looks at the rules *at* a height (within POS_TOLERANCE, the tolerance the
+ * heights were merged with), not at ruledCoverage's wider BAND_TOLERANCE window:
+ * - The band's own top and bottom must be crossed by a rule at that height. Otherwise a height
+ *   1.3pt inside a row (the top of a radio square beside it, on the health declaration) closes
+ *   the row's other columns short of their real rule, which the window would accept.
+ * - A rule in between vetoes a column it crosses or ends against (within POS_TOLERANCE of either
+ *   wall). One ending against a wall marks a junction there: the wall belongs to a smaller box
+ *   beside the column, and the column is not one cell at this band. On the health declaration
+ *   that is the sliver between the table's frame and each radio square, whose right wall is the
+ *   square's side.
+ * - In a taller band a rule at a height just outside it vetoes a column it crosses, so a column
+ *   whose real edge is a rule 1.3pt past the band does not close on the band instead. Only one
+ *   that crosses: a neighbour's row rule a little lower, ending against the shared wall, is an
+ *   ordinary misaligned row, not a split.
+ * - A rule within POS_TOLERANCE of the band's own top or bottom is that edge, never a veto. With
+ *   the window, a stray height 1.2pt from the top read the top rule itself as crossing every
+ *   column and dropped the whole row.
+ *
+ * Cost: rules are bucketed by height once, O(heights x rules). A top pairs with at most
+ * MAX_HEIGHTS_BETWEEN + 1 bottoms, and each band costs a pass over the vertical edges plus, per
+ * column, the rules at its own few heights, so the walk is O(heights x MAX_HEIGHTS_BETWEEN x
+ * (edges + columns x rules-at-the-band's-heights)), never every rule on the page per band.
  */
 function buildClosedCells(ink) {
   const edges = verticalEdgesAll(ink);
   const rules = horizontalRulesAll(ink);
   const ys = distinctPositions(rules.map((r) => r.y), POS_TOLERANCE).sort((a, b) => b - a);
-  const nearOutside = (y, top, bottom) => (y > top && y - top <= BAND_TOLERANCE)
-    || (y < bottom && bottom - y <= BAND_TOLERANCE);
+  // Per height: the rules close enough to bound a band there, and the rules actually at it.
+  const nearRules = ys.map((y) => rules.filter((rule) => Math.abs(rule.y - y) <= BAND_TOLERANCE));
+  const rulesAt = nearRules.map((near, m) => near.filter((rule) => Math.abs(rule.y - ys[m]) <= POS_TOLERANCE));
 
   const cells = [];
   for (let i = 0; i < ys.length - 1; i += 1) {
@@ -263,12 +290,25 @@ function buildClosedCells(ink) {
     for (let k = i + 1; k < ys.length; k += 1) {
       const bottom = ys[k];
       const height = top - bottom;
-      if (height > MAX_ROW_HEIGHT) break;
+      if (height > MAX_ROW_HEIGHT || k - i - 1 > MAX_HEIGHTS_BETWEEN) break;
       if (height < MIN_ROW_HEIGHT) continue;
-      const between = ys.slice(i + 1, k);
-      if (between.length > 0) between.push(...ys.filter((y) => nearOutside(y, top, bottom)));
 
-      const bandEdgeX = edges
+      // Rules that veto a column: those in between for any column they reach, those just
+      // outside for one they cross. ys is sorted, so the heights just outside are index
+      // neighbours.
+      const inside = [];
+      const outside = [];
+      if (k - i > 1) {
+        const ownEdge = (rule) => Math.abs(rule.y - top) <= POS_TOLERANCE
+          || Math.abs(rule.y - bottom) <= POS_TOLERANCE;
+        const collect = (list, m) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
+        for (let m = i + 1; m < k; m += 1) collect(inside, m);
+        for (let m = i - 1; m >= 0 && ys[m] - top <= BAND_TOLERANCE; m -= 1) collect(outside, m);
+        for (let m = k + 1; m < ys.length && bottom - ys[m] <= BAND_TOLERANCE; m += 1) collect(outside, m);
+      }
+
+      const bandEdges = edges.filter((edge) => edge.y1 > bottom - BAND_TOLERANCE && edge.y0 < top + BAND_TOLERANCE);
+      const bandEdgeX = bandEdges
         .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
         .map((edge) => edge.x);
       const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
@@ -284,14 +324,17 @@ function buildClosedCells(ink) {
         const right = xs[j + 1];
         const width = right - left;
         if (width < MIN_TICK_CELL_WIDTH) continue;
-        if (between.some((y) => ruledCoverage(rules, y, left, right) > 0)) continue;
+        const crosses = (rule) => rule.x0 < right && rule.x1 > left;
+        const reaches = (rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
+        if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
+        if (inside.some(reaches) || outside.some(crosses)) continue;
 
-        const topCoverage = ruledCoverage(rules, top, left, right);
-        const bottomCoverage = ruledCoverage(rules, bottom, left, right);
+        const topCoverage = ruledCoverage(nearRules[i], top, left, right);
+        const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right);
         if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
 
-        const leftCoverage = verticalCoverage(edges, left, bottom, top);
-        const rightCoverage = verticalCoverage(edges, right, bottom, top);
+        const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);
+        const rightCoverage = verticalCoverage(bandEdges, right, bottom, top);
         if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
 
         const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
