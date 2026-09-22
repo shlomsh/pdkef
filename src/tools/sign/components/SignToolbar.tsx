@@ -10,6 +10,7 @@ import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
 import { makeArmTool, useAutoArmHint } from '../../../editor-ui/hooks/toolArming.js';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
@@ -162,13 +163,9 @@ export default function SignToolbar({
   // the element - this status-line pair would then be a second, redundant
   // copy sitting over the identity row for no reason (Shlomi, on the shipped
   // MOBI-16: "those buttons and the real estate they consume should have
-  // been gone"). Read once via matchMedia, same computed-once pattern
-  // ArmHint.tsx and DraggableWrapper.tsx already use for their own
-  // pointer/hover checks - not tracked with a listener, since pointer type is
-  // a device characteristic, not something that changes mid-session.
-  const [isCoarsePointer] = useState(
-    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
-  );
+  // been gone"). The pointer question is asked in one place for both this and
+  // DraggableWrapper's side of the same hand-off - see useCoarsePointer.ts.
+  const isCoarsePointer = useCoarsePointer();
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   // Which shape the Shapes button stands for once its menu has closed. The

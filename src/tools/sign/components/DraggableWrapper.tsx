@@ -8,6 +8,7 @@ import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../co
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
@@ -84,14 +85,9 @@ export default function DraggableWrapper<T extends EditorElement>({
   // MOBI-16: on a phone, the full formatting bar for a text box in an edit
   // session wraps to two or three rows (a dozen buttons against a ~340px
   // page cap) and covers the fields just filled - measured on the practice
-  // form as ~84px of document. `isCoarsePointer` is read once via
-  // matchMedia, the same pattern ArmHint.tsx uses for its own hover check,
-  // rather than tracked with a resize listener: pointer type is a device
-  // characteristic, not something that changes mid-session. Desktop (a fine
-  // pointer) never sees this - the full toolbar renders exactly as before.
-  const [isCoarsePointer] = useState(
-    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
-  );
+  // form as ~84px of document. Desktop (a fine pointer) never sees this - the
+  // full toolbar renders exactly as before.
+  const isCoarsePointer = useCoarsePointer();
   // Starts collapsed on every fresh edit session (a new field reached by
   // Next/Previous mounts its own DraggableWrapper instance with this at its
   // default false; re-entering an edit session on the same box resets it via
