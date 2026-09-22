@@ -5,6 +5,7 @@ import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection, textAnchorsRightEdge } from '../../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';
+
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
@@ -19,6 +20,13 @@ import type { NodeResizeStart } from './nodeProps.ts';
 // Type-only import kept separate from the value import below for the same
 // non-cycle reasoning as nodeProps.ts's own.
 import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
+
+// How far a coarse-pointer `.element-button`'s 44px hit area overhangs the
+// button itself: `::before { inset: -8px }` in EditorControls.module.css. Kept
+// beside the offset it corrects rather than exported from the stylesheet,
+// because a CSS Module cannot export a number; if that inset ever changes,
+// this has to change with it.
+const COARSE_HIT_OVERHANG_PX = 8;
 
 type DraggableChildProps = {
   element?: EditorElement;
@@ -134,6 +142,19 @@ export default function DraggableWrapper<T extends EditorElement>({
     pageGeometry,
     onSelect,
     onChange,
+    // MOBI-21: on a phone, one tap on a text box selects it *and* opens its
+    // edit session, which is how every mobile form behaves (tap a field,
+    // type). It is also the only route there on touch: the wrapper
+    // `preventDefault()`s the `touchstart` to own the drag, which kills the
+    // synthesised click and with it the `dblclick` TextNode listens for, so
+    // once a session closed the box was unreachable by finger (the shipped
+    // bug). Nothing is lost by opening on the first tap: moving is a drag
+    // (movement, so not a tap), and delete/formatting stay one tap away on
+    // the element's own bar. Desktop is untouched on both counts - a fine
+    // pointer gets no `onTap` at all, and `useDraggableElement` only ever
+    // raises one for a touch gesture, so click-selects / double-click-edits
+    // exactly as before.
+    onTap: isCoarsePointer && element.type === 'text' && !isEditing ? onBeginEdit : null,
   });
 
   // Resize gesture logic (extracted into useElementResize - shared with Redact, E7.5).
@@ -177,7 +198,17 @@ export default function DraggableWrapper<T extends EditorElement>({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(TOOLBAR_FLOATING_OFFSET),
+      // On a coarse pointer every `.element-button` carries a 44px hit area from
+      // `::before { inset: -8px }` (EditorControls.module.css), so the bar's
+      // targets overhang its own bottom edge by 8px. At the plain 8px offset
+      // that overhang landed exactly on the element: on a short box (5.8px on
+      // the health-declaration form) a tap aimed at the text hit Duplicate
+      // instead, and each tap silently cloned the element into the document
+      // and the export - measured 1 -> 2 -> 3 -> 4 across three taps, no tool
+      // armed (MOBI-21). Adding the overhang to the offset puts the bottom of
+      // the bar's hit boxes at the element's top edge, touching and not
+      // covering. Desktop keeps 8px: a fine pointer has no halo to clear.
+      offset(isCoarsePointer ? TOOLBAR_FLOATING_OFFSET + COARSE_HIT_OVERHANG_PX : TOOLBAR_FLOATING_OFFSET),
       shift((state) => ({
         boundary: floatingBoundary(state),
         padding: TOOLBAR_FLOATING_OFFSET,

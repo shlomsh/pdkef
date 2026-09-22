@@ -115,6 +115,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 | MOBI-21 | P1 | [MOBI-21](backlog/tasks/MOBI-21.md) · There is no way back into a text box on touch once its edit session closes |
 | MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
+| MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
 
 
 ## Site quality: accessibility, CSS correctness and theming
