@@ -62,6 +62,12 @@ export interface SignMessages {
    * title, an icon button with no visible text of its own. */
   nextFieldLabel: string;
   previousFieldLabel: string;
+  /** MOBI-16: the "Aa" disclosure that opens (and folds back) the full
+   * per-element formatting toolbar, shown in its place of Previous/Next/Aa
+   * while typing a text box on a touch device (DraggableWrapper.tsx). Same
+   * title in both directions - the button's own `aria-expanded` carries the
+   * state, the same way FontPickerMenu's "Aa" trigger needs no dynamic label. */
+  formattingOptionsTitle: string;
   /** FORM-11: the form-field detector's own line in the status slot. Three
    * answers, kept apart on purpose - a count, an empty document, and a check
    * that did not finish, which used to be the same silence as the second. */

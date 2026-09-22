@@ -26,6 +26,11 @@
    shrink-to-fit against that folded the bar into a one-button column. */
 .actions { position: absolute; top: -44px; left: 0; display: flex; flex-wrap: wrap; width: max-content; align-items: center; gap: 4px; background: var(--color-text); color: var(--color-surface); padding: 4px 6px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 10; opacity: 0; pointer-events: none; transition: opacity .15s ease; white-space: nowrap; }
 .element.active .actions { opacity: 1; pointer-events: auto; }
+/* MOBI-16: the Previous/Next pair of the compact editing bar (DraggableWrapper.tsx),
+   grouped so `dir` can flip their visual order for an RTL document without
+   touching the Aa disclosure beside them - same technique EditorToolStatus's
+   own `.field-nav` uses for the top toolbar's copy of this control. */
+.quick-field-nav { display: inline-flex; align-items: center; gap: 4px; }
 .text-display { display: grid; position: relative; align-items: start; justify-items: start; color: #000; line-height: 1.05; }
 /* `pre`, not `pre-wrap`: a box only ever grows to fit its content (no width the
    user chose to wrap at), so a line should never auto-wrap - only an explicit

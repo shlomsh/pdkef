@@ -283,3 +283,146 @@ describe('DraggableWrapper RTL text positioning', () => {
     expect(measure.style.display).not.toBe('none');
   });
 });
+
+// MOBI-16: while typing a text box on a phone, the full formatting bar wraps
+// to two or three rows and covers the fields just filled. The one element
+// actually in an edit session gets a compact Previous/Next/Aa bar instead,
+// gated on a coarse pointer (desktop is never affected) and on a fieldNav
+// actually being supplied (a free-placed box in a document with no detected
+// fields keeps today's full toolbar).
+describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
+  let container: HTMLDivElement;
+  let originalMatchMedia: typeof window.matchMedia;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    originalMatchMedia = window.matchMedia;
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+    window.matchMedia = originalMatchMedia;
+  });
+
+  function setPointerCoarse(coarse: boolean) {
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(pointer: coarse)' ? coarse : true,
+      media: query,
+      onchange: null,
+      addListener() {},
+      removeListener() {},
+      addEventListener() {},
+      removeEventListener() {},
+      dispatchEvent() { return false; },
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  const fieldNav = {
+    hasNext: true,
+    hasPrevious: false,
+    onNext: vi.fn(),
+    onPrevious: vi.fn(),
+    direction: 'ltr' as const,
+  };
+
+  function mount(element: TextElement, props: { isEditing?: boolean; fieldNav?: typeof fieldNav | null } = {}) {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+
+    act(() => {
+      render(
+        <DraggableWrapper
+          element={element}
+          isActive
+          isEditing={props.isEditing ?? true}
+          onBeginEdit={() => {}}
+          onSelect={() => {}}
+          onChange={() => {}}
+          onDelete={() => {}}
+          onClone={() => {}}
+          pageWidthPoints={612}
+          fieldNav={'fieldNav' in props ? props.fieldNav : fieldNav}
+        >
+          {textNode(element)}
+        </DraggableWrapper>,
+        wrapper
+      );
+    });
+
+    return wrapper;
+  }
+
+  function baseElement(): TextElement {
+    return createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+  }
+
+  it('collapses to Previous/Next/Aa on a coarse pointer while editing, instead of the full toolbar', () => {
+    setPointerCoarse(true);
+    const wrapper = mount(baseElement());
+
+    expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[aria-label="Next field"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+  });
+
+  it('reveals the full toolbar on tapping Aa, and folds back on tapping it again', () => {
+    setPointerCoarse(true);
+    const wrapper = mount(baseElement());
+
+    act(() => {
+      requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Formatting options"]').click();
+    });
+
+    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
+
+    act(() => {
+      requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Formatting options"]').click();
+    });
+
+    expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+  });
+
+  it('never collapses on a fine pointer (desktop), even while editing with a fieldNav', () => {
+    setPointerCoarse(false);
+    const wrapper = mount(baseElement());
+
+    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
+  });
+
+  it('keeps the full toolbar when no fieldNav is supplied, even on a coarse pointer while editing', () => {
+    setPointerCoarse(true);
+    const wrapper = mount(baseElement(), { fieldNav: null });
+
+    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
+  });
+
+  it('keeps the full toolbar while merely selected (not editing), even on a coarse pointer with a fieldNav', () => {
+    setPointerCoarse(true);
+    const wrapper = mount(baseElement(), { isEditing: false });
+
+    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
+  });
+
+  it('disables Previous/Next per fieldNav.hasPrevious/hasNext, and wires their handlers', () => {
+    setPointerCoarse(true);
+    const wrapper = mount(baseElement());
+
+    const previous = requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Previous field"]');
+    const next = requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Next field"]');
+    expect(previous.disabled).toBe(true);
+    expect(next.disabled).toBe(false);
+
+    act(() => next.click());
+    expect(fieldNav.onNext).toHaveBeenCalledTimes(1);
+  });
+});

@@ -8,14 +8,16 @@ import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../co
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
+import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
 import type { NodeResizeStart } from './nodeProps.ts';
-// Type-only, same non-cycle reasoning as nodeProps.ts's own.
-import type { SignMessages } from '../../../i18n/toolMessages';
+// Type-only import kept separate from the value import below for the same
+// non-cycle reasoning as nodeProps.ts's own.
+import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
 
 type DraggableChildProps = {
   element?: EditorElement;
@@ -42,6 +44,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   pageGeometry,
   children,
   messages,
+  fieldNav = null,
 }: {
   element: T;
   isActive: boolean;
@@ -58,12 +61,54 @@ export default function DraggableWrapper<T extends EditorElement>({
    * English-default; Redact (which renders its own boxes, not this wrapper)
    * never supplies it. */
   messages?: Partial<SignMessages>;
+  /** MOBI-16: Next/Previous across the document's detected fields, supplied
+   * only for the element currently being typed into (PdfWorkspace.tsx passes
+   * `null` for every other element, so this never re-renders a wrapper that
+   * isn't the one in an edit session). Non-null is also the signal that a
+   * touch device may collapse the toolbar down to this control plus a
+   * disclosure - see `useCompactEditingBar` below. */
+  fieldNav?: {
+    hasNext: boolean;
+    hasPrevious: boolean;
+    onNext: () => void;
+    onPrevious: () => void;
+    direction: 'ltr' | 'rtl';
+  } | null;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
+  const t: SignMessages = { ...englishSignMessages, ...messages };
   // Font browsing is intentionally local and temporary. Hovering a picker row
   // must repaint the element without writing a draft/update or creating undo
   // history; only the picker's click flows through the real onChange callback.
   const [previewFontFamily, setPreviewFontFamily] = useState<string | null>(null);
+  // MOBI-16: on a phone, the full formatting bar for a text box in an edit
+  // session wraps to two or three rows (a dozen buttons against a ~340px
+  // page cap) and covers the fields just filled - measured on the practice
+  // form as ~84px of document. `isCoarsePointer` is read once via
+  // matchMedia, the same pattern ArmHint.tsx uses for its own hover check,
+  // rather than tracked with a resize listener: pointer type is a device
+  // characteristic, not something that changes mid-session. Desktop (a fine
+  // pointer) never sees this - the full toolbar renders exactly as before.
+  const [isCoarsePointer] = useState(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches
+  );
+  // Starts collapsed on every fresh edit session (a new field reached by
+  // Next/Previous mounts its own DraggableWrapper instance with this at its
+  // default false; re-entering an edit session on the same box resets it via
+  // the effect below), and the "Aa" button is the only way to open it - see
+  // the render branch this feeds.
+  const [showFormatting, setShowFormatting] = useState(false);
+  useEffect(() => {
+    if (!isEditing) setShowFormatting(false);
+  }, [isEditing]);
+  // Whether this element could show the one-row bar at all - typing on a
+  // touch device, on the one element actually in the edit session (fieldNav
+  // is null for every other DraggableWrapper - see the prop doc above).
+  const compactEditingEligible = element.type === 'text' && isEditing && isCoarsePointer && !!fieldNav;
+  // MOBI-16's proposed shape: Previous, Next, Aa replaces the full toolbar by
+  // default; tapping Aa reveals today's controls, and the same toggle folds
+  // back - see the collapse button beside the full toolbar below.
+  const useCompactEditingBar = compactEditingEligible && !showFormatting;
   const renderedElement = previewFontFamily && element.type === 'text'
     ? { ...element, fontFamily: previewFontFamily }
     : element;
@@ -246,15 +291,73 @@ export default function DraggableWrapper<T extends EditorElement>({
           pointerEvents: 'auto'
         } : { ...floatingStyles }}
       >
-        <ElementToolbar
-          element={element}
-          onChange={onChange}
-          onPreviewFont={setPreviewFontFamily}
-          onPreviewFontEnd={() => setPreviewFontFamily(null)}
-          onClone={onClone}
-          onDelete={onDelete}
-          messages={messages}
-        />
+        {useCompactEditingBar ? (
+          <>
+            <span className={elementStyles['quick-field-nav']} dir={fieldNav!.direction}>
+              <button
+                type="button"
+                className={controlStyles['element-button']}
+                onClick={fieldNav!.onPrevious}
+                disabled={!fieldNav!.hasPrevious}
+                aria-label={t.previousFieldLabel}
+                title={t.previousFieldLabel}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className={controlStyles['element-button']}
+                onClick={fieldNav!.onNext}
+                disabled={!fieldNav!.hasNext}
+                aria-label={t.nextFieldLabel}
+                title={t.nextFieldLabel}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </span>
+            <div className={controlStyles.divider} />
+            <button
+              type="button"
+              className={[controlStyles['element-button'], controlStyles['font-trigger']].join(' ')}
+              onClick={() => setShowFormatting(true)}
+              aria-expanded={false}
+              aria-label={t.formattingOptionsTitle}
+              title={t.formattingOptionsTitle}
+            >
+              Aa
+            </button>
+          </>
+        ) : (
+          <>
+            {compactEditingEligible && (
+              <button
+                type="button"
+                className={controlStyles['element-button']}
+                onClick={() => setShowFormatting(false)}
+                aria-expanded={true}
+                aria-label={t.formattingOptionsTitle}
+                title={t.formattingOptionsTitle}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+            )}
+            <ElementToolbar
+              element={element}
+              onChange={onChange}
+              onPreviewFont={setPreviewFontFamily}
+              onPreviewFontEnd={() => setPreviewFontFamily(null)}
+              onClone={onClone}
+              onDelete={onDelete}
+              messages={messages}
+            />
+          </>
+        )}
       </div>
 
       {/* Render element depending on type */}

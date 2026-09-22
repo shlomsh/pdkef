@@ -726,6 +726,7 @@ const englishSignMessages: SignMessages = {
   armHint: 'Double-click to keep {label} on',
   nextFieldLabel: 'Next field',
   previousFieldLabel: 'Previous field',
+  formattingOptionsTitle: 'Formatting options',
   // FORM-11: what the on-open detector found, said out loud. Plain counts, no
   // claim of completeness ("found", not "there are"), and a failure that says
   // the check did not finish rather than blaming the document - the detector
@@ -942,6 +943,7 @@ const hebrewSignMessages: SignMessages = {
   armHint: 'לחיצה כפולה כדי להשאיר את {label} פעיל',
   nextFieldLabel: 'שדה הבא',
   previousFieldLabel: 'שדה קודם',
+  formattingOptionsTitle: 'אפשרויות עיצוב',
   fieldsFoundOne: 'נמצא שדה טופס אחד',
   fieldsFoundOther: 'נמצאו {count} שדות טופס',
   fieldsFoundNone: 'לא נמצאו שדות טופס',

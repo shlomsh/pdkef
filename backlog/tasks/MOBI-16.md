@@ -1,12 +1,12 @@
 ---
 id: "MOBI-16"
 title: "On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: ["MOBI-06"]
-legacy_state: "Open"
+legacy_state: "Done 2026-09-22"
 ---
 
 # MOBI-16 · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar
@@ -105,3 +105,32 @@ While a text box is being typed into at a phone viewport, Next and Previous are 
 scrolling, and the chrome over the document is one row rather than two. The formatting controls are
 still reachable in one tap. Desktop behaviour is unchanged. Hit boxes stay at 44px and no two of them
 overlap.
+
+## Outcome (2026-09-22)
+
+Shipped the proposed shape as `DraggableWrapper.tsx`'s `useCompactEditingBar`: while the element
+actually in the edit session (`isEditing`) is a text box on a coarse pointer, `.actions` renders
+Previous, Next, and an `Aa` disclosure instead of `ElementToolbar`, gated on the same `hasFields` check
+`SignToolbar.tsx` already uses for the status-line copy - a free-placed box in a document with no
+detected field still gets today's full toolbar. Tapping `Aa` swaps in the full toolbar with a small
+collapse chevron beside it; the same toggle folds back. Pointer type is read once via
+`window.matchMedia('(pointer: coarse)')`, the same computed-once pattern `ArmHint.tsx` already uses for
+its own hover check, so desktop is untouched with no resize listener anywhere.
+
+**Resolved the "genuinely open" question: sit alongside, not replace.** `EditorToolStatus`'s
+status-line Previous/Next (MOBI-06) is unchanged - still the only copy a desktop or keyboard-only user
+sees, and still present the instant a tool is armed before anything is selected. The element-anchored
+pair is additive, mounted only for the one field actually being typed into. Both read from the same
+`fieldNavigation` hook result (`PdfWorkspace.tsx` threads it to the active `DraggableWrapper` alone, so
+every other element's wrapper never re-renders on a step), so they can never disagree about
+hasNext/hasPrevious or which field is next.
+
+Not attempted here: MOBI-17 (page zoom on focus, which can push the wrapped bar to three or five rows)
+is a different mechanism and stays open on its own ticket - a one-row bar just makes hitting it less
+likely, per the ticket text above.
+
+Guards: `DraggableWrapper.test.tsx`'s "compact editing toolbar (MOBI-16)" block (jsdom, gates by pointer
+type and by whether a `fieldNav` was supplied) and
+`src/tools/sign/e2e/mobile-compact-editing-toolbar.spec.js` (real touch input and rendered rects: one
+row under 44px tall on a phone viewport, the full toolbar on a fine pointer, Next actually stepping
+fields without losing the caret session).
