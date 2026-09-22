@@ -180,6 +180,9 @@ function scrollContainerOf(node: HTMLElement): HTMLElement | null {
   return null;
 }
 
+/** Breathing room a field needs inside the visible band to count as in view. */
+const FIELD_VIEW_MARGIN_PX = 8;
+
 function scrollFieldIntoView(elementId: string) {
   if (typeof document === 'undefined') return;
   const node = document.querySelector<HTMLElement>(`[data-editor-element-id="${elementId}"]`);
@@ -208,6 +211,20 @@ function scrollFieldIntoView(elementId: string) {
   // there is one: `block: 'center'` centres on the layout viewport, which iOS
   // does not shrink when the keyboard opens.
   const rect = node.getBoundingClientRect();
+  if (!Number.isFinite(rect.top) || !Number.isFinite(viewport.offsetTop) || !Number.isFinite(window.scrollY)) return;
+
+  // MOBI-25: pinch-zoomed, the arithmetic below is not safe to trust. It mixes
+  // layout-viewport rects with the visual viewport's offset and hands the sum to
+  // window.scrollTo, and iOS resolves that differently once the page is scaled:
+  // a Next on a zoomed-in iPhone, with the keyboard up and the next field already
+  // on screen, threw the page all the way to its top (reported in production
+  // 2026-09-22). The browser's own reveal knows both viewports and both axes, and
+  // `nearest` only moves as far as it must.
+  if (viewport.scale > 1.01) {
+    if (typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    return;
+  }
+
   const container = scrollContainerOf(node);
   let bandTop = viewport.offsetTop;
   let bandBottom = viewport.offsetTop + viewport.height;
@@ -216,6 +233,12 @@ function scrollFieldIntoView(elementId: string) {
     bandTop = Math.max(bandTop, box.top);
     bandBottom = Math.min(bandBottom, box.bottom);
   }
+  // MOBI-25: a field already in full view stays where it is. It compares a
+  // layout-viewport rect with the visual viewport's band, which only agree
+  // unzoomed - so it must stay below the zoom branch above. Moving to the
+  // neighbour you can see should be a hop, not a page movement - centring every
+  // move made even the box beside this one scroll.
+  if (rect.top >= bandTop + FIELD_VIEW_MARGIN_PX && rect.bottom <= bandBottom - FIELD_VIEW_MARGIN_PX) return;
   const target = bandTop + (bandBottom - bandTop) / 2 - rect.height / 2;
   const delta = rect.top - target;
   // Sub-pixel deltas are not worth an animation the browser rounds to nothing,

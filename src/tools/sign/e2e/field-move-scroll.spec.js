@@ -304,4 +304,61 @@ test.describe('a field move scrolls once', () => {
       `reversals in ${trace.samples.join(' ')}`,
     ).toBe(0);
   });
+
+  // MOBI-25: moving to a field you can already see is a hop, not a scroll.
+  // Every move used to re-centre, so even the box beside this one moved the
+  // page. Self-proving: an unmoved page with the field inside it afterwards
+  // means the field was already there before the press.
+  test('a neighbour already on screen does not move the page', async ({ page }) => {
+    await openWithFixture(page);
+    await tapFirstCellHint(page);
+    await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
+    await page.waitForTimeout(600);
+
+    const trace = await traceScroll(page, () => page.evaluate(() => {
+      document.querySelector(
+        '[data-editor-element][data-editor-active] [data-editor-actions] button[aria-label="Next field"]',
+      ).click();
+    }));
+    const viewport = page.viewportSize();
+    expect(trace.arrival.top, 'the field is on screen').toBeGreaterThanOrEqual(0);
+    expect(trace.arrival.bottom, 'the field is on screen').toBeLessThanOrEqual(viewport.height);
+    expect(trace.travel, `samples ${trace.samples.join(' ')}`).toBeLessThanOrEqual(1);
+  });
+
+  // MOBI-25: pinch-zoomed, the move hands the reveal to the browser rather than
+  // doing its own viewport arithmetic, which on a zoomed iPhone with the
+  // keyboard up threw the page to its top. Chromium cannot reproduce iOS's
+  // answer to that arithmetic, so this pins the branch: with a scale above 1,
+  // `scrollIntoView({ block: 'nearest' })` and no `window.scrollTo`.
+  test('pinch-zoomed, the move uses the browser reveal, not window.scrollTo', async ({ page }) => {
+    await openWithFixture(page);
+    await tapFirstCellHint(page);
+    await activeElement(page).locator('[data-editor-text-input]').fill('Shlomi');
+    await page.evaluate(() => { window.scrollTo(0, 1400); });
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => {
+      Object.defineProperty(window.visualViewport, 'scale', { configurable: true, get: () => 2 });
+      window.__reveals = [];
+      window.__windowScrolls = 0;
+      const reveal = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (options) {
+        window.__reveals.push(options);
+        return reveal.call(this, options);
+      };
+      const scrollTo = window.scrollTo;
+      window.scrollTo = function (...args) {
+        window.__windowScrolls += 1;
+        return scrollTo.apply(this, args);
+      };
+      document.querySelector(
+        '[data-editor-element][data-editor-active] [data-editor-actions] button[aria-label="Next field"]',
+      ).click();
+    });
+    await expect.poll(() => page.evaluate(() => window.__reveals.length)).toBeGreaterThan(0);
+    const result = await page.evaluate(() => ({ reveals: window.__reveals, windowScrolls: window.__windowScrolls }));
+    expect(result.reveals[0]).toMatchObject({ block: 'nearest', inline: 'nearest' });
+    expect(result.windowScrolls).toBe(0);
+  });
 });
