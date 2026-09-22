@@ -832,6 +832,10 @@ const englishSignMessages: SignMessages = {
   dragToSpanBoxesTitle: 'Drag to span the form’s boxes',
   typeYourTextPlaceholder: 'Type your text',
   doubleClickToEditPlaceholder: 'Double-click to edit',
+  // MOBI-21: the same placeholder on a coarse pointer. "Double-click" is the one
+  // gesture a phone cannot make (a double-tap is the browser's zoom), so on touch
+  // the empty box has to name the gesture that actually opens it.
+  tapToEditPlaceholder: 'Tap to type',
   exportReadinessBoldOne: '{count} text field needs attention',
   exportReadinessBoldOther: '{count} text fields need attention',
   exportReadinessSuffix: 'before download or sharing.',
@@ -1040,6 +1044,7 @@ const hebrewSignMessages: SignMessages = {
   dragToSpanBoxesTitle: 'גררו כדי לפרוש על תיבות הטופס',
   typeYourTextPlaceholder: 'הקלידו את הטקסט שלכם',
   doubleClickToEditPlaceholder: 'לחיצה כפולה לעריכה',
+  tapToEditPlaceholder: 'הקישו כדי להקליד',
   exportReadinessBoldOne: '{count} שדה טקסט דורש התייחסות',
   exportReadinessBoldOther: '{count} שדות טקסט דורשים התייחסות',
   exportReadinessSuffix: 'לפני הורדה או שיתוף.',
