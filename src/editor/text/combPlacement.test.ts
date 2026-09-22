@@ -163,7 +163,8 @@ describe('placeTextOnCell', () => {
     expect(placed.left).toBe(30);
     expect(placed.minWidth).toBe(26);
     expect(placed.fontSize).toBe(12);
-    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2, 5);
+    // Lowered by the box's bottom padding (0.12em), toward the cell's line.
+    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2 + (12 * 0.12 / PAGE_HEIGHT * 100), 5);
   });
 
   it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {
@@ -193,8 +194,8 @@ describe('placeTextOnCell', () => {
 
   it('re-centres on the shrunk box\'s own height, not the unshrunk one', () => {
     const placed = placeTextOnCell(shortCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
-    const shrunkTextHeight = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
-    expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - shrunkTextHeight / 2, 5);
+    const shrunkEm = (placed.fontSize / PAGE_HEIGHT) * 100;
+    expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - (shrunkEm * 1.29) / 2 + shrunkEm * 0.12, 5);
   });
 
   describe('on a cell whose printed caption hugs a wall', () => {
@@ -315,12 +316,13 @@ describe('placeCombOnRegion', () => {
   it('centres the digits in the cell drawn around open teeth, where the neighbouring cells\' text sits', () => {
     // The identity comb's 23pt cell on form 101, its label in the top corner
     // leaving a 14pt strip above the rule. A 12pt box (15.5pt) centred there
-    // puts the baseline ~3pt above the rule, like the name cells beside it.
+    // puts the baseline ~3pt above the rule, like the name cells beside it -
+    // lowered by the box's bottom padding, exactly as those cells' text is.
     const inCell: CombRegion = { ...IDENTITY_RUN, writable: { left: 73.597, top: 26.4, width: 17.152, height: 1.69 } };
     const placement = place(inCell);
     const strip = inCell.writable!;
-    const boxHeight = (placement.fontSize * 1.29 / PAGE_HEIGHT) * 100;
-    expect(placement.top + boxHeight / 2).toBeCloseTo(strip.top + strip.height / 2, 3);
+    const em = (placement.fontSize / PAGE_HEIGHT) * 100;
+    expect(placement.top + (em * 1.29) / 2).toBeCloseTo(strip.top + strip.height / 2 + em * 0.12, 3);
     expect(placement.top).toBeLessThan(place().top);
     expect(placement.fontSize).toBe(12);
   });
