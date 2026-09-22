@@ -303,3 +303,33 @@ describe('narrow tick columns', () => {
     expect(ticks.every((c) => c.left < 68)).toBe(true);
   });
 });
+
+describe('rows are scoped per column', () => {
+  // Rule heights are collected page-wide, so ink that never touches a table can still add a
+  // height inside its rows. Form 101's children table is the live case: the boxes to its left
+  // rule their own lines at heights that fall mid-row, and every row there came back empty.
+
+  it('keeps a row\'s cells when a stray rule off to the side lands at a height inside it', () => {
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    // A short rule well to the left of the table, halfway down its row. It crosses none of the
+    // table's columns, so it must not split the row into two 10pt halves that close on nothing.
+    const stray = { horizontals: [{ y: 70, x0: 0, x1: 15 }], verticals: [], rects: [] };
+    const cells = detectCellCandidates(mergeInk(table, stray), geometry, 0, []);
+    expect(cells).toHaveLength(3);
+    expect(cells.map((c) => c.left)).toEqual([22, 48, 74]);
+    expect(cells.every((c) => Math.abs(c.height - 20) < 1e-9)).toBe(true);
+  });
+
+  it('does not read a large filled, unstroked background panel\'s sides as walls', () => {
+    // Form 1040 tints its whole body with one unstroked fill. Its left side runs through the
+    // middle of the first cell here (x=35), which as a wall split that cell in two.
+    const row = rowBand({ top: 80, bottom: 60, columns: [20, 50, 80] });
+    const panel = {
+      horizontals: [],
+      verticals: [],
+      rects: [{ x: 35, y: 5, width: 60, height: 90, filled: true, stroked: false }],
+    };
+    const cells = detectCellCandidates(mergeInk(row, panel), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.width])).toEqual([[20, 30], [50, 30]]);
+  });
+});

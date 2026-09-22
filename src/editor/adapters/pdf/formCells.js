@@ -149,9 +149,20 @@ const HEADER_SEARCH_HEIGHT = 220;
 // cell can be drawn as a filled box, not just ruled).
 // ---------------------------------------------------------------------------
 
+/**
+ * A fill with no stroke that is larger than any row both ways is a tinted background panel, not
+ * a box: its sides are where the tint stops, not ruled walls. Form 1040 paints its whole body as
+ * one 492x666pt fill, and its left side at x=91.6 would otherwise split every field it crosses.
+ * Form 101's large frames are stroked, so they keep their walls.
+ */
+function isBackgroundPanel(rect) {
+  return rect.filled && !rect.stroked && rect.width > MAX_ROW_HEIGHT && rect.height > MAX_ROW_HEIGHT;
+}
+
 function verticalEdgesAll(ink) {
   const edges = ink.verticals.map((edge) => ({ ...edge }));
   for (const rect of ink.rects) {
+    if (isBackgroundPanel(rect)) continue;
     if (rect.width <= THIN_INK && rect.height > THIN_INK) {
       edges.push({ x: rect.x + rect.width / 2, y0: rect.y, y1: rect.y + rect.height });
     } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
@@ -165,6 +176,7 @@ function verticalEdgesAll(ink) {
 function horizontalRulesAll(ink) {
   const rules = ink.horizontals.map((rule) => ({ ...rule }));
   for (const rect of ink.rects) {
+    if (isBackgroundPanel(rect)) continue;
     if (rect.height <= THIN_INK && rect.width > THIN_INK) {
       rules.push({ y: rect.y + rect.height / 2, x0: rect.x, x1: rect.x + rect.width });
     } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
@@ -225,49 +237,66 @@ function verticalCoverage(edges, x, bottomY, topY) {
 /**
  * Closed cells on one page, in PDF points (origin bottom-left, y up).
  *
- * Walking only *adjacent* rule/edge pairs (not every pair) is deliberate: it finds atomic grid
- * cells the same way a table is actually drawn, and keeps the pass at O(rules x
- * edges-per-band) instead of O(rules^2 x edges^2).
+ * Rows are scoped per column. Rule heights are collected page-wide, but a cell's top and bottom
+ * are the nearest rules *that cross its own column*: a band may span several page-wide rule
+ * heights, and a column in it yields a cell only when none of the heights in between crosses
+ * that column. So a stray rule from a box off to the side (form 101's children table, whose rows
+ * the boxes to their left cut at y=450.42 and friends) no longer splits a row it never touches,
+ * and a cell is still atomic within its own column. For a band between adjacent heights nothing
+ * is in between and this is the plain adjacent-pair walk. In a taller band the heights just
+ * outside it count as in between too: `ruledCoverage` accepts a rule up to BAND_TOLERANCE off,
+ * so a column whose real edge is a rule 1pt past the band would otherwise close on the wrong one
+ * (the health declaration's sliver beside a radio square).
+ *
+ * Bands stop at MAX_ROW_HEIGHT, so the walk stays O(rules x heights-per-row x edges-per-band).
  */
 function buildClosedCells(ink) {
   const edges = verticalEdgesAll(ink);
   const rules = horizontalRulesAll(ink);
   const ys = distinctPositions(rules.map((r) => r.y), POS_TOLERANCE).sort((a, b) => b - a);
+  const nearOutside = (y, top, bottom) => (y > top && y - top <= BAND_TOLERANCE)
+    || (y < bottom && bottom - y <= BAND_TOLERANCE);
 
   const cells = [];
   for (let i = 0; i < ys.length - 1; i += 1) {
     const top = ys[i];
-    const bottom = ys[i + 1];
-    const height = top - bottom;
-    if (height < MIN_ROW_HEIGHT || height > MAX_ROW_HEIGHT) continue;
+    for (let k = i + 1; k < ys.length; k += 1) {
+      const bottom = ys[k];
+      const height = top - bottom;
+      if (height > MAX_ROW_HEIGHT) break;
+      if (height < MIN_ROW_HEIGHT) continue;
+      const between = ys.slice(i + 1, k);
+      if (between.length > 0) between.push(...ys.filter((y) => nearOutside(y, top, bottom)));
 
-    const bandEdgeX = edges
-      .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
-      .map((edge) => edge.x);
-    const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
-    // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
-    // box, not a form row - every observed instructional or explanatory panel on both spike
-    // forms has exactly this shape (one bordered paragraph, no internal rule), while every
-    // real labelled-field row has at least one more division alongside it. Requiring a genuine
-    // interior wall drops those panels without touching any table row in the misses.
-    if (xs.length < 3) continue;
+      const bandEdgeX = edges
+        .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
+        .map((edge) => edge.x);
+      const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
+      // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
+      // box, not a form row - every observed instructional or explanatory panel on both spike
+      // forms has exactly this shape (one bordered paragraph, no internal rule), while every
+      // real labelled-field row has at least one more division alongside it. Requiring a genuine
+      // interior wall drops those panels without touching any table row in the misses.
+      if (xs.length < 3) continue;
 
-    for (let j = 0; j < xs.length - 1; j += 1) {
-      const left = xs[j];
-      const right = xs[j + 1];
-      const width = right - left;
-      if (width < MIN_TICK_CELL_WIDTH) continue;
+      for (let j = 0; j < xs.length - 1; j += 1) {
+        const left = xs[j];
+        const right = xs[j + 1];
+        const width = right - left;
+        if (width < MIN_TICK_CELL_WIDTH) continue;
+        if (between.some((y) => ruledCoverage(rules, y, left, right) > 0)) continue;
 
-      const topCoverage = ruledCoverage(rules, top, left, right);
-      const bottomCoverage = ruledCoverage(rules, bottom, left, right);
-      if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
+        const topCoverage = ruledCoverage(rules, top, left, right);
+        const bottomCoverage = ruledCoverage(rules, bottom, left, right);
+        if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
 
-      const leftCoverage = verticalCoverage(edges, left, bottom, top);
-      const rightCoverage = verticalCoverage(edges, right, bottom, top);
-      if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
+        const leftCoverage = verticalCoverage(edges, left, bottom, top);
+        const rightCoverage = verticalCoverage(edges, right, bottom, top);
+        if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
 
-      const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-      cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
+        const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
+        cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
+      }
     }
   }
   return cells;

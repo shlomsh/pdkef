@@ -181,6 +181,23 @@ const PRINTED = [
     doc: { ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }] },
     expect: { ...none, cells: 3 },
   },
+  {
+    name: 'a painted checkbox square inside a printed ruled cell',
+    why: 'the painted twin of "a checkbox widget inside a printed ruled cell", and it must read '
+      + 'the same: the square once, and the two cells beside it. A painted rect publishes its own '
+      + 'top and bottom as horizontal rules (horizontalRulesAll), so the 20pt band has two rule '
+      + 'heights inside it. buildClosedCells scopes rows per column: a cell closes on the nearest '
+      + 'rules that cross its own column, so the square\'s rules drop only the cell holding it and '
+      + 'the other two close on the row\'s own rules. Before that, adjacent-rule walking cut the '
+      + 'whole row into 4/12/4 and it lost all three cells',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 },
+        { ink: 'paintedRect', x: 74, y: 204, width: 12, height: 12 },
+      ],
+    },
+    expect: { ...none, cells: 2, checkboxes: 1 },
+  },
   // The three rows below pin MIN_TICK_CELL_WIDTH/MIN_TICK_COLUMN_ROWS (form
   // 101's children table: 6-8pt tick columns that repeat down the page). Text
   // is out of scope here on purpose - the runner always passes `[]` (see
@@ -363,24 +380,6 @@ const KNOWN_GAPS = [
       + '(docs/mobi-10-field-map-spike.md). Fixing it should flip this row to 1.',
     doc: { ink: [{ ink: 'rect', ...SQUARE }] },
     expect: none,
-  },
-  {
-    name: 'a painted checkbox square inside a printed ruled cell',
-    why: 'the same page as "a checkbox widget inside a printed ruled cell", painted instead of '
-      + 'declared, and the row loses all three of its cells rather than the one holding the '
-      + 'square. A painted rect publishes its own top and bottom as horizontal rules '
-      + '(horizontalRulesAll), and buildClosedCells walks adjacent rules only: the square cuts '
-      + 'the 20pt band into 4/12/4, two of those are under MIN_ROW_HEIGHT, and the 12pt one '
-      + 'fails CLOSED_EDGE_COVERAGE because the square rules 12pt of an 80pt cell. So the '
-      + 'square still surfaces exactly once, but through geometry the claim test never gets '
-      + 'to see. Fixing it should make this row read cells: 2, the same as its widget twin.',
-    doc: {
-      ink: [
-        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 },
-        { ink: 'paintedRect', x: 74, y: 204, width: 12, height: 12 },
-      ],
-    },
-    expect: { ...none, checkboxes: 1 },
   },
   {
     name: 'a signature field',
