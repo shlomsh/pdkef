@@ -45,9 +45,9 @@ const HIT_INSET_PX = 8;
 const HIT_TARGET_PX = 28 + 2 * HIT_INSET_PX;
 
 // Subpixel slack for the anchoring check below. Floating UI positions the bar
-// a fixed `offset(TOOLBAR_FLOATING_OFFSET)` above the element (DraggableWrapper
-// .tsx); this only has to tell "hanging off the element" from "somewhere else
-// on the page".
+// a fixed offset above the element - 16px on a coarse pointer, 8px otherwise
+// (DraggableWrapper.tsx, MOBI-21) - and this only has to tell "hanging off the
+// element" from "somewhere else on the page".
 const ANCHOR_SLACK_PX = 4;
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });

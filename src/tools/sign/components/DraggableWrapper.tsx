@@ -5,7 +5,6 @@ import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection, textAnchorsRightEdge } from '../../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';
-
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
@@ -198,16 +197,18 @@ export default function DraggableWrapper<T extends EditorElement>({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
-      // On a coarse pointer every `.element-button` carries a 44px hit area from
-      // `::before { inset: -8px }` (EditorControls.module.css), so the bar's
-      // targets overhang its own bottom edge by 8px. At the plain 8px offset
-      // that overhang landed exactly on the element: on a short box (5.8px on
-      // the health-declaration form) a tap aimed at the text hit Duplicate
-      // instead, and each tap silently cloned the element into the document
-      // and the export - measured 1 -> 2 -> 3 -> 4 across three taps, no tool
-      // armed (MOBI-21). Adding the overhang to the offset puts the bottom of
-      // the bar's hit boxes at the element's top edge, touching and not
-      // covering. Desktop keeps 8px: a fine pointer has no halo to clear.
+      // Measured, not derived: at the plain 8px offset a tap aimed at a short text
+      // box (5.8px tall on the health-declaration form) landed on the bar above
+      // it instead - Delete in one run, destroying what had just been typed,
+      // Duplicate in another, cloning the element into the export on every tap.
+      // At 16px it does not (touch-edit-reentry.spec.js, proven red-to-green).
+      // The geometry alone does not explain it: the bar's 4px padding means a
+      // button's 44px hit area overhangs the bar by only 4px, which should stop
+      // short of the box. The likely mechanism is the browser's own touch-target
+      // adjustment, which moves a touch onto the nearest clickable element
+      // within the finger's radius - so a real finger, wider than a test's,
+      // may need more clearance still. MOBI-23 tracks proving that on a device.
+      // Desktop keeps 8px: a mouse is a point, and nothing is adjusted.
       offset(isCoarsePointer ? TOOLBAR_FLOATING_OFFSET + COARSE_HIT_OVERHANG_PX : TOOLBAR_FLOATING_OFFSET),
       shift((state) => ({
         boundary: floatingBoundary(state),

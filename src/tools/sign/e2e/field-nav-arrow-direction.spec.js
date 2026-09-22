@@ -87,6 +87,7 @@ for (const doc of DOCUMENTS) {
     await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).click();
     const field = page.locator('[class*="field-hint-cell"]').first();
     await expect(field).toBeVisible();
+    await field.scrollIntoViewIfNeeded();
     const box = await field.boundingBox();
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     await expect(page.locator('[data-editor-actions]').first().getByRole('button', { name: 'Next field' })).toBeVisible();
