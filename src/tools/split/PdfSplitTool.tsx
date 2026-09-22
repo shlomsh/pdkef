@@ -10,6 +10,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
@@ -75,7 +76,9 @@ export default function PdfSplitTool({
   const [saved, setSaved] = useState(false);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
-  const [handoffBusy, setHandoffBusy] = useState(false);
+  // Disables the hand-off buttons until the navigation happens, so it must
+  // not survive a back-navigation (lib/useNavigatingAway.ts).
+  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 

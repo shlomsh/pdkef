@@ -38,6 +38,7 @@ import {
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -234,7 +235,9 @@ export default function PdfRedactTool() {
   // hand-off and the Share sheet only ever carry an export of the boxes
   // currently on the page.
   const [exportedForHandoff, setExportedForHandoff] = useState<{ blob: Blob; name: string } | null>(null);
-  const [handoffBusy, setHandoffBusy] = useState(false);
+  // Disables the hand-off buttons until the navigation happens, so it must
+  // not survive a back-navigation (lib/useNavigatingAway.ts).
+  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
