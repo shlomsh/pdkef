@@ -187,6 +187,8 @@ export interface SignMessages {
   /** SignTool/nodes/TextNode.tsx's two placeholders. */
   typeYourTextPlaceholder: string;
   doubleClickToEditPlaceholder: string;
+  /** MOBI-21: the empty-box placeholder on a coarse pointer, where double-click does not exist. */
+  tapToEditPlaceholder: string;
   /** SignTool/ExportReadinessNotice.tsx. */
   exportReadinessBoldOne: string;
   exportReadinessBoldOther: string;
