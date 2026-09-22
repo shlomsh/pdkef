@@ -368,7 +368,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool-page visitor downloads and compiles both PDF libraries before opening a file |
+| DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
 
 ### Blocked
 

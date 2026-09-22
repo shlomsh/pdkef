@@ -82,6 +82,39 @@ export default defineConfig({
     // them yet — that migration is a separate ticket (E3.2), scoped to the
     // static/marketing surface only, per ARCHITECTURE.md §3.1.
     plugins: [tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Name the two PDF libraries after themselves.
+          //
+          // Rollup names a chunk after one of its constituent modules, which for
+          // a package means its entry file. `@cantoo/pdf-lib`'s entry is
+          // `es/index.js`, so 628 KiB of pdf-lib shipped as `es.<hash>.js` - a
+          // name that says nothing. It cost real time: a PageSpeed report was
+          // read as "pdf.js is eager" because a neighbouring chunk happened to
+          // be named after a two-line hook inside it, and the actual culprit
+          // was hiding behind `es.` (DEBT-20).
+          //
+          // These names are also what `scripts/check-lazy-modules.js` keys on.
+          // `/^es\./` would be a guard one unrelated package could collide
+          // with; `/^pdf-lib\./` cannot be anything else.
+          //
+          // This only names chunks. It does not decide what loads eagerly -
+          // that follows the static import graph, and is the guard's business.
+          // pdf-lib only, and pdf.js deliberately not. Naming a manual chunk
+          // for pdfjs-dist was tried and reverted: Rollup then folded Vite's
+          // `__vitePreload` helper into it, and since the island bootstrap
+          // imports that helper statically, all 421 KiB became eager on every
+          // page. `test:lazy-modules` caught it, which is the second time in
+          // this one change that the guard paid for itself. pdf.js already
+          // ships as `pdf.<hash>.js`, which is legible enough.
+          manualChunks(id) {
+            if (id.includes('node_modules/@cantoo/pdf-lib/')) return 'pdf-lib';
+            return undefined;
+          },
+        },
+      },
+    },
     // Every entry below must stay listed. The failure is not "one slow first
     // request" but a cascade: each dep Vite discovers late bumps the optimizer's
     // browserHash, and every module already resolved under the previous hash

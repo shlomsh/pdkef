@@ -1,6 +1,6 @@
 import type { ElementDefinition, LineResizeInput, LineResizePatch } from './types.ts';
 import type { LineElement } from '../model/editorModel.ts';
-import { rgb } from '@cantoo/pdf-lib';
+import { rgb } from '../../lib/pdfLiterals.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { hexToRgbFractions } from '../../lib/signHelpers.js';
 import { percentToPoints } from '../geometry/coords.js';

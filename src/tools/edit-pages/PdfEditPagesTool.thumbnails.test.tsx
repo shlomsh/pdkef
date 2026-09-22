@@ -69,12 +69,17 @@ describe('PdfEditPagesTool undo/redo vs. asynchronous thumbnails', () => {
     await act(async () => {
       setInputFiles(input, [makePdfFile('document.pdf')]);
     });
-    // Let the file-load microtasks settle; only page 1's thumbnail exists at
-    // this point, matching the reproduction in the defect report.
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
+    // Let the file-load microtasks settle. The island loads pdf-lib on demand
+    // before it can read the page count, so the number of ticks that takes is
+    // an implementation detail: poll for the grid instead of counting them.
+    // Only page 1's thumbnail exists once it appears, matching the
+    // reproduction in the defect report.
+    for (let i = 0; i < 20 && cards().length === 0; i += 1) {
+      await act(async () => {
+        await Promise.resolve();
+      });
+    }
+    expect(cards().length).toBe(3);
   }
 
   function cards() {
