@@ -192,6 +192,36 @@ describe('FileDropzone', () => {
       expect(loadRecentFile).not.toHaveBeenCalled();
     });
 
+    // The wiring half of useNavigatingAway.ts: jsdom cannot restore a frozen
+    // page, so this pins that a restore re-enables every control `busy`
+    // disables. The restore itself is e2e/home/back-navigation.spec.js.
+    it('reopens after a restore, so the next document still opens', async () => {
+      const savedAt = Date.now();
+      readRecentFiles.mockReturnValue([
+        { id: 'sha256:first', tool: 'sign', fileName: 'first.pdf', savedAt },
+        { id: 'sha256:second', tool: 'sign', fileName: 'second.pdf', savedAt },
+      ]);
+      mount();
+      await act(async () => { await Promise.resolve(); });
+      const tiles = () => Array.from(container.querySelectorAll('button[aria-label^="Open recent PDF"]'));
+
+      await act(async () => { tiles()[0].click(); });
+      expect(setCurrentEntry).toHaveBeenLastCalledWith('sign', 'sha256:first');
+      expect(tiles()[1].disabled).toBe(true);
+      expect(container.querySelector('[data-home-picker]').textContent).toContain('Opening');
+
+      await act(async () => {
+        const restore = new Event('pageshow');
+        restore.persisted = true;
+        window.dispatchEvent(restore);
+      });
+
+      expect(tiles()[1].disabled).toBe(false);
+      expect(container.querySelector('[data-home-picker]').textContent).not.toContain('Opening');
+      await act(async () => { tiles()[1].click(); });
+      expect(setCurrentEntry).toHaveBeenLastCalledWith('sign', 'sha256:second');
+    });
+
     // MEM-01 folded Merge's entry into the same recency index every other
     // tool's work lives in, so a saved Merge set is an ordinary row from
     // readRecentFiles() now. Merge reached the pointer-only path first, because

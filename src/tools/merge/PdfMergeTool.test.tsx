@@ -628,6 +628,37 @@ describe('PdfMergeTool UI flow', () => {
     expect(navigate).toHaveBeenCalledWith('/compress/');
   });
 
+  // Both hand-off buttons disable themselves for the navigation they start, so
+  // a restored page used to bring them back permanently greyed out
+  // (lib/useNavigatingAway.ts).
+  it('offers the hand-offs again after a restore, rather than coming back greyed out', async () => {
+    const navigate = vi.fn();
+    mount({ navigate });
+    await loadFiles(['a.pdf', 'b.pdf']);
+    await settle();
+    const handoff = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
+
+    await act(async () => {
+      handoff('Compress it').click();
+      await flush(10);
+    });
+    expect(navigate).toHaveBeenCalledWith('/compress/');
+    expect(handoff('Sign it').disabled).toBe(true);
+
+    await act(async () => {
+      const restore = new Event('pageshow');
+      restore.persisted = true;
+      window.dispatchEvent(restore);
+    });
+
+    expect(handoff('Sign it').disabled).toBe(false);
+    await act(async () => {
+      handoff('Sign it').click();
+      await flush(10);
+    });
+    expect(navigate).toHaveBeenLastCalledWith('/sign/');
+  });
+
   // MEM-01/02: this used to ask first, and on confirmation call
   // draftStore.deleteDraft('sign') before handing off - see PdfMergeTool.tsx's
   // performHandoff comment for why that was a holdover from the old

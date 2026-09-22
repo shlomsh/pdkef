@@ -21,6 +21,7 @@ import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { useToolShell } from '../../shell/ToolShell.tsx';
@@ -387,7 +388,7 @@ export default function PdfMergeTool({
   const [isRestoredWorkspace, setIsRestoredWorkspace] = useState(false);
   const draftOptions = useMemo(() => ({ addPageNumbers }), [addPageNumbers]);
   /* MERGE-14: hand the result to Compress or Sign without re-picking. */
-  const [handoffBusy, setHandoffBusy] = useState(false);
+  const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
   /* MERGE-17 */
   const [showInstallLine, setShowInstallLine] = useState(false);

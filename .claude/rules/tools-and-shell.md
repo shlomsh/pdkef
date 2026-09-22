@@ -70,6 +70,26 @@ that points at the sibling tool that solves it (an encrypted file linking to Unl
 draft to Compress). Every tool's done state should propose its own organic next-tool actions. See
 heading 13 of [docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md).
 
+**A flag that disables a control for the navigation it starts must be `useNavigatingAway()`
+(`src/lib/useNavigatingAway.ts`), never a plain `useState(false)`.** Pressing Back does not re-run the
+island: the browser restores the page it froze on the way out, island state and all (bfcache), so the
+flag comes back set and the control it disabled is dead for good. The home launcher came back with
+every recent tile, the picker and the drop target disabled, reading "Opening..." forever, so a second
+document could never be opened (reported 2026-09-22 on iOS); Merge's "Compress it" / "Sign it" and
+Split's and Redact's "Compress it" came back greyed out the same way. The hook clears the flag on a
+`pageshow` whose `persisted` is true, and only that one: an ordinary load fires `pageshow` after
+`load`, long after a `client:load` island is interactive, and clearing there would drop the flag out
+from under a hand-off still reading its file. No check enforces this yet (DEBT-21). **Two Playwright
+defaults hide the whole class, and each one on its own makes a guard pass against the bug**: the
+default headless `chromium` is chrome-headless-shell, which has no back/forward cache at all, and
+Playwright launches Chromium with `--disable-back-forward-cache` among its default switches (an
+`--enable-features=BackForwardCache` arg does not override it; `ignoreDefaultArgs` does). The first
+attempt at a guard here "proved" the bug was untestable in a browser when it had only proved that
+switch was on. `e2e/home/back-navigation.spec.js` sets `channel: 'chromium'`, drops the switch and
+blocks service workers: red 5 runs out of 5 without the fix, green 5 out of 5 with it. It also
+asserts that a value left on `window` survived the Back, so it fails loudly rather than passing
+silently if a restore ever stops happening.
+
 ## UX design guidelines
 
 Before designing or reviewing any tool's loaded state, read
