@@ -263,8 +263,9 @@ describe('detectCellCandidates -> placeTextOnCell: where the typed box goes', ()
     const placed = place(cell);
     expect(placed.left).toBeCloseTo(0, 5);
     expect(placed.minWidth).toBeCloseTo(50, 5);
-    // Under the caption, not on it.
-    expect(placed.top).toBeGreaterThanOrEqual(22.7 - 1e-9);
+    // The band under the caption (its baseline at percent 22.7), not on it.
+    expect(cell.writable.top).toBeCloseTo(22.7, 5);
+    expect(cell.writable.height).toBeCloseTo(17.3, 5);
   });
 });
 

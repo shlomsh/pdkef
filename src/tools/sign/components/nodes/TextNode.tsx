@@ -2,7 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { getEffectiveTextDirection, getTextAlign } from '../../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
@@ -166,6 +166,15 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const isRtl = textDirection === 'rtl';
   const comb = isComb(element);
   const spannedField = !comb && !!element.minWidth;
+  // That clipped placeholder takes its own script's direction, not the box's,
+  // so it loses its end rather than its start: in an RTL box the English copy
+  // overflowed leftward and a narrow cell showed "ype your text". Direction,
+  // not just alignment, because overflowing text ignores `text-align`. The
+  // first typed character hands both back to the box.
+  const placeholderDirection = spannedField && !element.text ? strongTextDirection(placeholder) : null;
+  const textAlign = placeholderDirection
+    ? (placeholderDirection === 'rtl' ? 'right' : 'left')
+    : getTextAlign(element);
   const handleInput = (event: Event) => {
     const text = (event.currentTarget as HTMLTextAreaElement).value;
     // A new text box starts with the app's neutral default, not a meaningful
@@ -286,7 +295,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         <textarea
           key="input"
           ref={textareaRef}
-          dir={textDirection}
+          dir={placeholderDirection ?? textDirection}
           rows={1}
           cols={1}
           className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
@@ -301,7 +310,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           onInput={handleInput}
           onFocus={onSelect}
           style={{
-            textAlign: getTextAlign(element),
+            textAlign,
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
             fontWeight: typography.weight,
