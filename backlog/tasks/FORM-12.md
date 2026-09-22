@@ -1,7 +1,7 @@
 ---
 id: "FORM-12"
 title: "Stray rules from neighbouring boxes split table rows on form 101"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"

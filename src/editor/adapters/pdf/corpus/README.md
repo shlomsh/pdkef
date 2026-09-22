@@ -150,15 +150,16 @@ exists to prevent.
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
-| `itc101` | 139 | 85.6% | 96.7% | Hebrew, flat, dense |
-| `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
+| `itc101` | 139 | 94.2% | 95.6% | Hebrew, flat, dense |
+| `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
 we find them. What those two rows really watch is the widget pass continuing to work and the ink
-pass not going greedy beside it: on the 1040's crowded page the detector emits 92 candidates for 88
-targets, and the 5 that do not match are printed-geometry cells the widgets do not corroborate. The
+pass not going greedy beside it: on the 1040's crowded page the detector emits 90 candidates for 88
+targets, and the 2 that do not match (one of them the line 6c amount box) are printed-geometry cells
+the widgets do not corroborate. The
 forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
 field is.
 
@@ -175,15 +176,18 @@ geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 4
 originals are committed in `scoring/forms/`, and when they first landed both forms reproduced the
 MOBI-10 spike's recorded figures *exactly, to the decimal* - 86.7%/94.2% and 69.1%/91.4%. That
 agreement is worth more than either number: it is the evidence that this committed instrument and
-the hand-run spike measure the same thing. `itc101` has since gone past the spike, to 85.6%/96.7%,
-because MOBI-11's tick-column fix landed on `main` in between.
+the hand-run spike measure the same thing. `itc101` has since gone past the spike, first to
+85.6%/96.7% because MOBI-11's tick-column fix landed on `main` in between, then to 94.2%/95.6% with
+FORM-12 (131 of 139 found, 6 false positives; the precision step down is deliberate and tracked as
+FORM-13, see its `baselines.json` note).
 
 Getting there took two fixes, not one, and the second was hidden behind the first:
 
 - **The text layer had to be in the file.** `collectCheckboxGlyphs` reads checkbox glyphs straight
   off the content stream, so the reduction cost `itc101` all 62 of its checkbox targets. Committing
-  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, leaving the
-  8 drawn squares that are the standing `known gap`.
+  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, and FORM-12
+  found the last 8: they were never drawn squares but tick cells in table rows that stray rules
+  from the boxes beside the table had split. Checkbox recall on `itc101` is now 62 of 62.
 - **And something has to read it.** `health` did not move at all when its original landed, because
   `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
   and which `detect.js` deliberately does not run. The fixture was never that number's cause. The
