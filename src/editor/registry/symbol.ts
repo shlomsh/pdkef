@@ -8,7 +8,19 @@ import type { SymbolElement, SymbolMark } from '../model/editorModel.ts';
 import { DESIGN_BOX, markGeometry, markInkExtent } from './symbolMarks.ts';
 
 export function applySymbolResize({ deltaWidth, minWidth, aspectRatio, page, start }: CenteredResizeInput): CenteredResizePatch {
-  const width = Math.max(minWidth, Math.min(MAX_SYMBOL_WIDTH_PCT, start.width + deltaWidth));
+  // The floor is meant to stop a resize shrinking a symbol past a legible
+  // size, not to grow one - but `placeSymbolOnRegion` fits a symbol to a
+  // detected printed checkbox exactly, and that box is routinely smaller
+  // than this floor (a real one measured 4.28px). Clamping to `minWidth`
+  // outright made the very first pixel of any resize gesture snap such a
+  // symbol up to the floor - reported live on income tax form 101, where a
+  // checkbox sized to its tiny printed square jumped to ~14px and no longer
+  // fit the box the moment its handle was touched. A floor already below the
+  // symbol's own committed size is never raised - it holds the symbol at
+  // that size instead, so the gesture still has a floor to bound growth
+  // against, just not one that jumps the symbol on its very first pixel.
+  const effectiveMinWidth = Math.min(minWidth, start.width);
+  const width = Math.max(effectiveMinWidth, Math.min(MAX_SYMBOL_WIDTH_PCT, start.width + deltaWidth));
   const height = width * aspectRatio * (page.width / page.height);
   return {
     width,

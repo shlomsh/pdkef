@@ -93,11 +93,13 @@
    width rather than the measure's, or `text-align: right` on RTL text would
    align it inside the text's own intrinsic width at the cell's left end. */
 .text-display[data-span="field"] { grid-template-columns: 100%; }
-/* And no side padding: the exporter sets a cell box's text against its span
-   with none (textPdf.ts, `lineStart`), and a fixed 4px each side is a real
-   share of a narrow cell on a phone - it pushed the last digit of a mobile
-   number past form 101's phone cell wall on screen while the export fit it. */
-.text-display[data-span="field"] .text-input, .text-display[data-span="field"] .text-measure { padding-inline: 0; }
+/* And not the fixed 4px sides: a cell box sets its text in by `--field-inset`,
+   the room the cell has to spare (TextNode.tsx, `fieldTextInset`), and the
+   exporter by the same number. A fixed 4px pushed the last digit of a mobile
+   number past form 101's phone cell wall; none at all crowded roomy cells.
+   The measure stays unpadded: it is the text's own width. */
+.text-display[data-span="field"] .text-input { padding-inline: var(--field-inset, 0px); }
+.text-display[data-span="field"] .text-measure { padding-inline: 0; }
 .text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 0; }
 /* Centred on the cell centre, which is the whole point: the printed pitch
    decides where the glyph goes, never the font's advance width. */
@@ -177,6 +179,47 @@
 .resizer.top-right { top: -4px; right: -4px; left: auto; cursor: nesw-resize; }
 .resizer.bottom-left { bottom: -4px; top: auto; left: -4px; cursor: nesw-resize; }
 .resizer.bottom-right { bottom: -4px; top: auto; right: -4px; left: auto; cursor: nwse-resize; }
+/* A symbol tapped onto a detected printed checkbox is sized to match the
+   print - a few px on a phone - and its four corner handles, fixed at 10px
+   each, rendered as one solid blob (reported live; a real checkbox measured
+   4.28x4.28px put every handle pair at roughly -7px of overlap - the same
+   class of bug `[data-editor-text] .resizer` above already fixed for text,
+   generalised to both axes since a symbol resizes in width and height
+   together rather than growing one line at a time). `--half-width`/
+   `--half-height` are set inline per element by SymbolNode.tsx from its own
+   measured size (`ResizeObserver`, same pattern as TextNode.tsx's own
+   measurement effects). `--handle-size` shrinks toward the same 5px floor,
+   using whichever half-dimension is smaller so a thin rectangle is covered
+   too; 10px stays the ceiling, so a normal-size symbol is pixel-identical to
+   before. The spread/offset pair repeats per axis - `--h-spread`/`left`/
+   `right` for the horizontal neighbours (top-left vs top-right, and their
+   bottom pair), `--v-spread`/`top`/`bottom` for the vertical ones (top-left
+   vs bottom-left, and their right pair) - each using the same "whichever is
+   bigger, the old natural spread or the handles' own minimum" formula as
+   text's `--corner-spread`. The diagonal pair (e.g. top-left vs
+   bottom-right) needs no formula of its own: its distance is the hypotenuse
+   of the other two, always at least as large as either leg. */
+.symbol .resizer {
+  --handle-size: clamp(5px, calc(min(var(--half-width, 10px), var(--half-height, 10px)) - 2px), 10px);
+  width: var(--handle-size, 10px);
+  height: var(--handle-size, 10px);
+}
+.symbol .resizer.top-left, .symbol .resizer.bottom-left {
+  --h-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-width, 10px) - 1px));
+  left: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
+}
+.symbol .resizer.top-right, .symbol .resizer.bottom-right {
+  --h-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-width, 10px) - 1px));
+  right: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
+}
+.symbol .resizer.top-left, .symbol .resizer.top-right {
+  --v-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
+  top: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
+}
+.symbol .resizer.bottom-left, .symbol .resizer.bottom-right {
+  --v-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
+  bottom: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
+}
 .line { pointer-events: none; }
 .line > svg { pointer-events: none; }
 .line .line-handle { opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility .2s ease; border-radius: 0; }
@@ -196,5 +239,5 @@
   .element::after { inset: -8px; }
   .element.active::after { inset: -16px; }
   .resizer::before { content: ''; position: absolute; inset: -18px; }
-  [data-editor-text] .resizer::before { inset: calc((var(--handle-size, 10px) - 44px) / 2); }
+  [data-editor-text] .resizer::before, .symbol .resizer::before { inset: calc((var(--handle-size, 10px) - 44px) / 2); }
 }

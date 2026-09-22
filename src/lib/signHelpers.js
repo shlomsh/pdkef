@@ -1,3 +1,5 @@
+import { FIELD_TEXT_INSET_EM } from '../constants/signGeometry.js';
+
 // "First strong character", per UAX #9: a run's direction comes from its first
 // character that has an inherent one, and *every* letter has one - not just the
 // Latin and Hebrew/Arabic ranges this used to list. Devanagari, Thai, Cyrillic,
@@ -75,6 +77,22 @@ export function getEffectiveTextDirection(element) {
   return detectTextDirection(element.text)
     || ((element.width || element.minWidth) && element.textDirection)
     || 'ltr';
+}
+
+/**
+ * How far a box on a detected form cell (`minWidth`) sets its text in from
+ * the wall it is aligned to, in whatever unit the three widths share: up to
+ * FIELD_TEXT_INSET_EM of the font, never more than half the span the text
+ * leaves free. A roomy cell gets its air, and a tight one - form 101's phone
+ * cell, where ten digits nearly fill it - gets none, which is what a person
+ * writing in it would do; a fixed inset there pushed the last digit past the
+ * wall (live report). The editor (TextNode's `--field-inset`) and the
+ * exporter (textPdf.ts) both call this, so the two insets are one number.
+ */
+export function fieldTextInset(spanWidth, textWidth, fontSize) {
+  const slack = spanWidth - textWidth;
+  if (!(slack > 0) || !(fontSize > 0)) return 0;
+  return Math.min(FIELD_TEXT_INSET_EM * fontSize, slack / 2);
 }
 
 /**
