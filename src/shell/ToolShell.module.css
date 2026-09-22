@@ -382,6 +382,22 @@
   padding: 0.35rem 0.75rem;
 }
 
+/* MOBI-19: coarse pointer only, not a width breakpoint - a landscape phone is
+   wider than any phone breakpoint and just as short of room. The sticky card's
+   own vertical padding is what MOBI-16's move left on the table. While a field
+   is being filled the 44px field-nav chevrons
+   (SignToolbar.module.css's `.field-nav-button`) are on the element rather
+   than in `.status` here, so `.status-action`'s 2rem/34px floor is the tallest
+   thing left in the row and this padding no longer has to clear a 44px
+   control. `.status-action` itself is untouched - its min-height is
+   a documented WCAG 2.5.5 inline exception (SignToolbar.module.css:190-199)
+   and carries the only exit from a locked tool on touch. */
+@media (pointer: coarse) {
+  .editor .identity {
+    padding-block: var(--space-1);
+  }
+}
+
 /* The identity states itself on one line at every width - name, pages, size,
    draft chip, reading as a single sentence the way a document editor's title bar
    does. Stacking the name over its metadata cost a second text line, and in this

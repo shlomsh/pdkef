@@ -55,6 +55,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
+| MOBI-19 | P3 | [MOBI-19](backlog/tasks/MOBI-19.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 
 ### Blocked
 
