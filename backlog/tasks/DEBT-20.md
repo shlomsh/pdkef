@@ -1,7 +1,7 @@
 ---
 id: "DEBT-20"
 title: "Every tool-page visitor downloads and compiles both PDF libraries before opening a file"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "architecture-debt"
 phase: "near-term"
