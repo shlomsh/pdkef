@@ -1,5 +1,5 @@
 ---
-id: "MOBI-20"
+id: "MOBI-27"
 title: "A symbol's resize handles overlap into a blob on a small detected checkbox"
 status: "done"
 priority: "P1"
@@ -9,7 +9,7 @@ depends_on: ["MOBI-19"]
 legacy_state: "Done 2026-09-22"
 ---
 
-# MOBI-20 · A symbol's resize handles overlap into a blob on a small detected checkbox
+# MOBI-27 · A symbol's resize handles overlap into a blob on a small detected checkbox
 
 ## What happened
 
