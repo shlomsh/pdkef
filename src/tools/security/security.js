@@ -1,4 +1,4 @@
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { getPdfLib } from '../../lib/pdfLib.js';
 
 export class SecurityError extends Error {
   constructor(message) {
@@ -18,6 +18,10 @@ export class WrongPasswordError extends SecurityError {
 export async function isPdfEncrypted(file) {
   const bytes = await file.arrayBuffer();
   try {
+    // The load sits inside the try as well: this runs the moment a file is
+    // picked, and its caller has no catch, so a rejection here would leave
+    // the tool stuck on "Checking file" with no way forward.
+    const { PDFDocument } = await getPdfLib();
     const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     return pdfDoc.isEncrypted;
   } catch (err) {
@@ -28,6 +32,9 @@ export async function isPdfEncrypted(file) {
 // Decrypts a password-protected PDF and returns an unencrypted copy as a Blob.
 export async function unlockPdf(file, password) {
   const bytes = await file.arrayBuffer();
+  // Outside the try below, whose catch means "wrong password": a failure to
+  // load pdf-lib itself must not be reported as a bad password.
+  const { PDFDocument } = await getPdfLib();
 
   let pdfDoc;
   try {
@@ -43,6 +50,9 @@ export async function unlockPdf(file, password) {
 // Encrypts a PDF with a password and returns it as a Blob.
 export async function protectPdf(file, password) {
   const bytes = await file.arrayBuffer();
+  // Outside the try below for the same reason as in unlockPdf: its catch
+  // blames an already-encrypted file, which a chunk-load failure is not.
+  const { PDFDocument } = await getPdfLib();
 
   let pdfDoc;
   try {

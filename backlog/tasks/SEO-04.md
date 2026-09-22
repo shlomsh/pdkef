@@ -419,3 +419,31 @@ overruled: the Redact toolbar now lists Blur first (`f48fcbd8`, island only) and
 it was. Google's snippet for this query family has been body copy, so the 10-08 CTR reading is of the
 reordered copy, crawled whenever Google next visits (it has been visiting every few days). Note it as a
 second variable in that read, not as a clean before/after.
+
+### Interim read 2026-09-22: AI impressions still climbing, AI share falling
+
+**Read off the Search Console UI, not an export** (Performance and Generative AI features, both 28
+days; the AI report's data ran 6.5 hours behind, Performance 20 hours). Treat the figures as scale, and
+replace them at the 10-08 pull.
+
+`/redact/` has **536** AI-feature impressions in 28 days, up from 363 on 09-17: **+48% in five days**,
+with the daily curve peaking near 72 against 58 on 09-15. The next page is the photo-size page at 34, a
+16x gap, so the AI footprint is still almost entirely this one page and the zero-click ceiling does not
+generalise to the site.
+
+**The share moved the other way.** Site-wide, the trailing quarter is 223 clicks / 5.5K impressions /
+4.1% CTR, and the last 28 days are 205 / 4.9K / 4.2%: 92% of the quarter's clicks and 89% of its
+impressions landed in those 28 days. Against the 09-10 export's 71 clicks / ~2,318 impressions, site
+impressions grew faster than AI impressions did, so the "about one in five" of 09-17 now overstates the
+share: the count rose and the proportion fell. Quarter CTR went 3.1% to 4.1% across the
+same period, so AI citation is not yet costing the site its conversion, whatever it costs this
+franchise. The exact share needs the export, since the UI shows only the top pages.
+
+**What prompted this read.** Shlomi saw a drop in the 28-day clicks chart on 09-22. It was the
+incomplete final day, and the Insights "trending down" panel beside it listed three blur queries that
+had each lost exactly one click, rendered as "down 100%". Both are artefacts of a base this young; the
+blur family's real problem is unchanged and still this ticket's. Recorded in the findings doc section 2
+so the next reader does not re-diagnose it.
+
+Nothing here changes the 10-08 plan: CTR on the thirteen, the 09-17 copy change as a second variable,
+and the AI features export pulled alongside.

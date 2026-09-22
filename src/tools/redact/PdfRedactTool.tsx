@@ -3,7 +3,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
-import { applyPageEdits } from '../../editor/adapters/pdf/applyPageEdits.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
@@ -754,6 +753,13 @@ export default function PdfRedactTool() {
     const sourceFile = file;
 
     try {
+      // DEBT-20: applyPageEdits pulls in @cantoo/pdf-lib, which is only needed
+      // to write the export. Importing it here instead of at module scope keeps
+      // it out of everything /redact/ downloads and compiles before a file is
+      // even open. A failed chunk load lands in the same catch as a failed
+      // export, which is the right outcome: the boxes stay, the message is
+      // "try again". Repeat exports reuse the module registry's copy.
+      const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
       const redactedBlob = await applyPageEdits(sourceFile, elements, (p) => {
         if (run.isCurrent()) setProgress(p);
       });

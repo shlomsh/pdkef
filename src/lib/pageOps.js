@@ -1,4 +1,4 @@
-import { StandardFonts, degrees as pdfDegrees, rgb } from '@cantoo/pdf-lib';
+import { HELVETICA, degrees as pdfDegrees, rgb } from './pdfLiterals.ts';
 
 /**
  * Per-page building blocks shared by every tool that assembles an output PDF
@@ -14,7 +14,7 @@ import { StandardFonts, degrees as pdfDegrees, rgb } from '@cantoo/pdf-lib';
 // A single shared instance is embedded once per output document (not once
 // per page) because embedFont() writes a font resource into the doc.
 export async function embedPageNumberFont(doc) {
-  return doc.embedFont(StandardFonts.Helvetica);
+  return doc.embedFont(HELVETICA);
 }
 
 // Applies an additive rotation delta on top of whatever rotation the page
