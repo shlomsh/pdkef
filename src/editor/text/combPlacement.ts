@@ -6,6 +6,7 @@ import {
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
   TEXT_BOX_LINE_HEIGHT_EM,
+  TEXT_BOX_PADDING_EM,
 } from '../../constants/signGeometry.js';
 import {
   FONT_VERTICAL_METRICS,
@@ -283,6 +284,19 @@ export function cellFontSize(
 }
 
 /**
+ * Where a one-line box's top goes in a cell's blank strip (page percent,
+ * `em` being the font size in page percent): centred, then lowered by the
+ * box's bottom padding. An answer is written down on the cell's line, and
+ * dead centre left form 101's phone number looking hung off the caption
+ * above it (live report). Only the padding crosses the strip's bottom, never
+ * the glyphs. One rule for a cell's text and for open comb teeth inside a
+ * cell, because they share a row and have to line up.
+ */
+function cellTextTop(strip: { top: number; height: number }, em: number): number {
+  return strip.top + strip.height / 2 - (em * TEXT_BOX_LINE_HEIGHT_EM) / 2 + em * TEXT_BOX_PADDING_EM;
+}
+
+/**
  * Where a freshly placed text box sits on a detected free-text cell.
  *
  * The box takes the cell's whole span as `minWidth` - never `width`, which
@@ -302,11 +316,11 @@ export function cellFontSize(
  * `left` is the cell's left edge whichever way the text reads: a box with a
  * span has no growing edge to anchor (see signHelpers' `textAnchorsRightEdge`),
  * so unlike a free RTL box its `left` is always the physical left. `top` is
- * the cell's middle less half the (possibly shrunk) box's own height, the
- * same re-centring a raw tap gets, so the vertical result is identical to a
- * tap landing exactly on the cell's middle. The box's own padding
- * (`textBoxPaddingEm`) keeps the glyphs off the printed rule, so no extra
- * inset is applied.
+ * the cell's middle less half the (possibly shrunk) box's own height - the
+ * same re-centring a raw tap gets - then lowered by the box's bottom padding,
+ * so the answer sits down toward the cell's line rather than hanging off a
+ * caption above it. Only that padding crosses the cell's bottom; the glyphs
+ * stay inside it, so no extra inset is applied.
  *
  * "The cell" here is the region's `writable` when it carries one and its own
  * bounds otherwise, because which of the two holds the blank strip depends on
@@ -332,10 +346,9 @@ export function placeTextOnCell(
   const area = region.writable ?? region;
   const size = cellFontSize(fontSize, area.height, pageHeightPoints);
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
-  const textHeight = em * TEXT_BOX_LINE_HEIGHT_EM;
   return {
     left: area.left,
-    top: Math.max(0, area.top + area.height / 2 - textHeight / 2),
+    top: Math.max(0, cellTextTop(area, em)),
     minWidth: area.width,
     fontSize: size,
   };
@@ -383,13 +396,13 @@ export function placeCombOnRegion(
     : region.top + region.height;
   let top = baselinePercent - em * baselineDropEm(fontFamily);
   // Open teeth inside a printed cell (`writable`, from fieldRegions.js): the
-  // digits sit where a cell's text sits, centred in the blank strip - the
+  // digits sit where a cell's text sits in the blank strip - the
   // identity number on form 101 shares a row with the name cells and stood
   // 5pt lower than them on the rule (live report). Never below the rule,
   // though, when the strip is shorter than the box.
   if (!region.boxed && region.writable) {
     const strip = region.writable;
-    top = Math.min(top, strip.top + strip.height / 2 - (em * TEXT_BOX_LINE_HEIGHT_EM) / 2);
+    top = Math.min(top, cellTextTop(strip, em));
   }
   return {
     left: region.left,

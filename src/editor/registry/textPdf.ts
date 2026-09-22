@@ -14,7 +14,7 @@ import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '.
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
-import { getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../../lib/signHelpers.js';
+import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../../lib/signHelpers.js';
 import { resolveTypography } from '../text/fonts.js';
 import { fontkitFont, shapedWidth, type BidiDirection } from '../text/textMetrics.ts';
 
@@ -158,10 +158,13 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
   const spanPoints = element.minWidth ? (element.minWidth / 100) * pdfWidth : 0;
   const boxWidth = Math.max(spanPoints, widestLine);
   const align = getTextAlign(element);
+  // Set in from the aligned wall only as far as the cell has room for - the
+  // same number TextNode pads the textarea with (`fieldTextInset`).
+  const inset = element.minWidth ? fieldTextInset(spanPoints, widestLine, fontSizeInPoints) : 0;
   const lineStart = (lineWidth: number) => {
     if (!element.minWidth) return isRtl ? pdfX - lineWidth : pdfX;
     if (align === 'center') return pdfX + (boxWidth - lineWidth) / 2;
-    return align === 'right' ? pdfX + boxWidth - lineWidth : pdfX;
+    return align === 'right' ? pdfX + boxWidth - lineWidth - inset : pdfX + inset;
   };
 
   measured.forEach(({ fallbackLine, lineWidth, runs, runWidths }, lineIndex) => {

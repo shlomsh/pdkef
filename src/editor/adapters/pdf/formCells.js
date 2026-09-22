@@ -75,10 +75,12 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
  * `/  /`, and a person writes the day, month and year *across* those marks,
  * not beside them - nothing in the cell is spoken for, and the typed box
  * wants all of it. `isPrintedSeparators` is that test, the same fact
- * `classifyKind` already calls such a cell a date by. Measured on form 101
- * page 1 (page-percent spans): the two phone cells' typed box goes from the
- * whole cell (w28.94, w26.13) back to the strip beside their captions (w6.72,
- * w5.60), while the three `/ /` date cells keep the whole w12.35 span.
+ * `classifyKind` already calls such a cell a date by, and the same test
+ * keeps a separator printed *beside* a caption out of the caption: form 101's
+ * two lower phone cells print an area-code `/` under theirs, and their typed
+ * box is the band under the caption at the cell's whole width (w28.94,
+ * w26.13), not the sliver left of the slash (`typingStrip`). The three `/ /`
+ * date cells keep the whole w12.35 span.
  *
  * The ruled box does not disappear either: it rides along as `enclosure`
  * whenever it differs from the bounds, and both of the questions asked about
@@ -366,6 +368,26 @@ function isPrintedSeparators(ownStr) {
   return ownStr.length > 0 && SLASH_DATE_RE.test(ownStr);
 }
 
+/**
+ * Where a typed box goes in a side-carved cell: the strip beside its caption,
+ * found from the caption alone, or null for the whole cell.
+ *
+ * The separators are left out of that hunt for the same reason a `/  /` cell
+ * keeps its whole span: a person writes across them. Form 101's two lower
+ * phone cells print `מספר טלפון` in the top corner and a lone `/` (the area
+ * code's) low in the middle; counting the slash as caption made it the
+ * caption's left edge and its bottom, so the carve went sideways and the
+ * typed box was the 40pt sliver left of the slash (w6.72, w5.60 of the page)
+ * where the cell is w28.94 and w26.13. On the caption alone the carve is a
+ * band, and the box takes the cell's whole width under the caption.
+ */
+function typingStrip(cell, ownText, sideStrip) {
+  const caption = ownText.filter((t) => t.str.trim() && !isPrintedSeparators(t.str.trim()));
+  if (caption.length === 0) return null;
+  if (caption.length === ownText.length) return sideStrip;
+  return writableArea(cell, caption)?.area ?? sideStrip;
+}
+
 function classifyKind(ownText, label) {
   const ownStr = ownText.map((t) => t.str).join(' ').trim();
   if (isPrintedSeparators(ownStr)) return 'date';
@@ -511,10 +533,9 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     // belongs: see "Where the typed box goes" in the module docstring. Printed
     // separators are not a caption - a person writes the date across `/  /` -
     // so that cell publishes no strip and keeps the whole span.
-    const writableBounds = writable.carve === 'side' && !isPrintedSeparators(ownStr)
-      ? toPagePercentBox(geometry, {
-        x0: writable.area.left, y0: writable.area.bottom, x1: writable.area.right, y1: writable.area.top,
-      })
+    const strip = writable.carve === 'side' ? typingStrip(cell, ownText, writable.area) : null;
+    const writableBounds = strip
+      ? toPagePercentBox(geometry, { x0: strip.left, y0: strip.bottom, x1: strip.right, y1: strip.top })
       : undefined;
     resolved.push({
       bounds, enclosureBounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,

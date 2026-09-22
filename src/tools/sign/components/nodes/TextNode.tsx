@@ -1,7 +1,8 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
+import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { getEffectiveTextDirection, getTextAlign } from '../../../../lib/signHelpers.js';
+import { fieldTextInset, getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
@@ -28,6 +29,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   messages?: Partial<SignMessages>;
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  const isCoarsePointer = useCoarsePointer();
   const [scaleFactor, setScaleFactor] = useState(1);
   const { getScaleFactor } = usePdfCoordinates();
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -82,7 +84,25 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     if (!isEditing || !textareaRef.current) return;
     if (document.activeElement === textareaRef.current) return;
 
-    textareaRef.current.focus();
+    // `preventScroll`, because the field move has already decided where this
+    // element should sit (bringFieldIntoView in useFieldNavigation.ts centres it
+    // on the visual viewport). A focus that scrolls too adds a second, browser-
+    // driven jump on top of ours, which on iOS is the one that yanks the page to
+    // put the caret above the keyboard. One deliberate scroll reads as a move;
+    // two read as a glitch: measured 2026-09-22 with this flag removed, a Next
+    // press from a page scrolled 929px away from the destination travelled
+    // 1367px - an instant 1400 -> 252 and then a smooth glide back down to 471,
+    // which is the reported "all the way up to the toolbar and then all the way
+    // down to the next element" exactly. `field-move-scroll.spec.js`'s second
+    // test is what holds it; that is the number it fails with.
+    //
+    // `setSelectionRange` below needs no such treatment, and an earlier attempt
+    // to snapshot and restore the scroll position around the pair has been
+    // removed: it was dead code. Measured on a bare page with a textarea 2000px
+    // down, in both WebKit and Chromium at an iPhone 15 viewport, neither
+    // `focus({ preventScroll: true })` nor `setSelectionRange` moved the page
+    // by a pixel.
+    textareaRef.current.focus({ preventScroll: true });
     const len = textareaRef.current.value.length;
     textareaRef.current.setSelectionRange(len, len);
   }, [
@@ -128,13 +148,33 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // a flat padding tight enough to clip Gveret Levin's loops or Heebo's Hebrew.
   const textPaddingEm = typography.paddingEm;
   // Shown in the empty box, and measured to size it. One string for both, so the
-  // box can never be sized against copy it isn't showing.
-  const placeholder = isEditing ? t.typeYourTextPlaceholder : t.doubleClickToEditPlaceholder;
+  // box can never be sized against copy it isn't showing - except in a box on a
+  // detected form cell, which is sized by the cell: measuring the placeholder
+  // there pushed an empty box past a cell narrower than the copy and across the
+  // next field (form 101's employer phone cell, live report). The placeholder
+  // is clipped at the cell's edge instead, and typed text still grows the box.
+  // An empty box that is not open names the gesture that opens it - and on a
+  // phone that is a single tap (MOBI-21), never a double-click: a double-tap is
+  // the browser's zoom, so "Double-click to edit" told touch users to make the
+  // one gesture that cannot work there.
+  const placeholder = isEditing
+    ? t.typeYourTextPlaceholder
+    : (isCoarsePointer ? t.tapToEditPlaceholder : t.doubleClickToEditPlaceholder);
   // Comb: the span is explicit and the characters are placed by cell, so the box
   // no longer measures itself from the text. Only its height still does, and it
   // is always exactly one line - a comb is a single row of boxes.
   const isRtl = textDirection === 'rtl';
   const comb = isComb(element);
+  const spannedField = !comb && !!element.minWidth;
+  // That clipped placeholder takes its own script's direction, not the box's,
+  // so it loses its end rather than its start: in an RTL box the English copy
+  // overflowed leftward and a narrow cell showed "ype your text". Direction,
+  // not just alignment, because overflowing text ignores `text-align`. The
+  // first typed character hands both back to the box.
+  const placeholderDirection = spannedField && !element.text ? strongTextDirection(placeholder) : null;
+  const textAlign = placeholderDirection
+    ? (placeholderDirection === 'rtl' ? 'right' : 'left')
+    : getTextAlign(element);
   const handleInput = (event: Event) => {
     const text = (event.currentTarget as HTMLTextAreaElement).value;
     // A new text box starts with the app's neutral default, not a meaningful
@@ -167,6 +207,24 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // writeDOM) is what reveals the cells once it has cleared the floor.
   const cells = comb || isSpanResizing ? combLayout(element, isRtl) : null;
 
+  // A box on a detected cell keeps its text off the wall only as far as the
+  // cell has room (`fieldTextInset`, which the exporter calls with the same
+  // widths in points). The measure is the text's own width, unpadded; the
+  // display is the box, at least the cell wide. Written straight to the node
+  // after layout, like any cosmetic measurement here - never through state.
+  useLayoutEffect(() => {
+    const display = textRef.current;
+    if (!display) return;
+    if (!spannedField) {
+      display.style.removeProperty('--field-inset');
+      return;
+    }
+    const measure = display.querySelector<HTMLElement>('[data-text-part="measure"]');
+    const textWidth = measure ? measure.getBoundingClientRect().width : 0;
+    const inset = fieldTextInset(display.getBoundingClientRect().width, textWidth, textFontSize);
+    display.style.setProperty('--field-inset', `${inset}px`);
+  });
+
   return (
     <>
       <div
@@ -175,7 +233,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         data-editor-text-display
         data-text-part="display"
         data-comb={comb ? 'on' : undefined}
-        data-span={!comb && element.minWidth ? 'field' : undefined}
+        data-span={spannedField ? 'field' : undefined}
         style={{ fontSize: `${textFontSize}px`, '--text-pad-em': `${textPaddingEm}em` }}
         onDblClick={onBeginEdit}
       >
@@ -204,7 +262,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
               is always there to fall back to - which is exactly what a
               span-handle drag paints the moment it crosses back below the comb
               floor, without waiting for a re-render to put the text back. */}
-          {(element.text || placeholder) + '\u200B'}
+          {(element.text || (spannedField ? '' : placeholder)) + '\u200B'}
         </div>
         {cells && (
           <div
@@ -255,7 +313,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         <textarea
           key="input"
           ref={textareaRef}
-          dir={textDirection}
+          dir={placeholderDirection ?? textDirection}
           rows={1}
           cols={1}
           className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
@@ -270,7 +328,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           onInput={handleInput}
           onFocus={onSelect}
           style={{
-            textAlign: getTextAlign(element),
+            textAlign,
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
             fontWeight: typography.weight,
