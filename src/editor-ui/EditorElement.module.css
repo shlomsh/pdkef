@@ -93,11 +93,13 @@
    width rather than the measure's, or `text-align: right` on RTL text would
    align it inside the text's own intrinsic width at the cell's left end. */
 .text-display[data-span="field"] { grid-template-columns: 100%; }
-/* And no side padding: the exporter sets a cell box's text against its span
-   with none (textPdf.ts, `lineStart`), and a fixed 4px each side is a real
-   share of a narrow cell on a phone - it pushed the last digit of a mobile
-   number past form 101's phone cell wall on screen while the export fit it. */
-.text-display[data-span="field"] .text-input, .text-display[data-span="field"] .text-measure { padding-inline: 0; }
+/* And not the fixed 4px sides: a cell box sets its text in by `--field-inset`,
+   the room the cell has to spare (TextNode.tsx, `fieldTextInset`), and the
+   exporter by the same number. A fixed 4px pushed the last digit of a mobile
+   number past form 101's phone cell wall; none at all crowded roomy cells.
+   The measure stays unpadded: it is the text's own width. */
+.text-display[data-span="field"] .text-input { padding-inline: var(--field-inset, 0px); }
+.text-display[data-span="field"] .text-measure { padding-inline: 0; }
 .text-comb { grid-area: 1 / 1; position: relative; width: 100%; height: 100%; pointer-events: none; font-size: inherit; line-height: inherit; padding: var(--text-pad-em, .12em) 0; }
 /* Centred on the cell centre, which is the whole point: the printed pitch
    decides where the glyph goes, never the font's advance width. */
