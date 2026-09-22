@@ -134,18 +134,56 @@ function positionOf(element: EditorElement): PlacedText {
  * browsers), the plain scroll is the whole answer.
  */
 function bringFieldIntoView(elementId: string) {
+  // Deferred to after paint, and that is load-bearing. Every caller runs this
+  // in the same tick as the dispatch that selects or creates the box, so on the
+  // create path the node does not exist in the DOM yet and a synchronous
+  // `querySelector` returned null - the move silently did no scrolling at all,
+  // and what actually brought the field into view was the browser's own scroll
+  // on focus. Two frames: the first lets Preact commit, the second lets layout
+  // settle so the rect we measure is the one the person will see.
+  if (typeof requestAnimationFrame !== 'function') {
+    scrollFieldIntoView(elementId);
+    return;
+  }
+  requestAnimationFrame(() => requestAnimationFrame(() => scrollFieldIntoView(elementId)));
+}
+
+function scrollFieldIntoView(elementId: string) {
   if (typeof document === 'undefined') return;
   const node = document.querySelector<HTMLElement>(`[data-editor-element-id="${elementId}"]`);
-  if (!node || typeof node.scrollIntoView !== 'function') return;
-  node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (!node) return;
   const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
-  if (!viewport) return;
+
+  // No visualViewport (jsdom, older browsers): there is nothing better to know,
+  // so the plain centred scroll is the whole answer.
+  if (!viewport || typeof window.scrollBy !== 'function') {
+    if (typeof node.scrollIntoView === 'function') node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+
+  // ONE scroll, not two. This used to call `scrollIntoView({ block: 'center' })`
+  // and then measure for a keyboard-aware nudge - but `scrollIntoView` is
+  // asynchronous when it is smooth, so `getBoundingClientRect()` on the next
+  // line still read the position the element had BEFORE it. The nudge was
+  // therefore computed against a stale rect and either no-opped (when the stale
+  // rect happened to sit inside the visible band) or double-counted the whole
+  // distance. Measured at a 390x844 phone viewport with the visual viewport
+  // shrunk to 400px the way an open keyboard shrinks it: the field landed at
+  // y=461 in a band that ends at 400, i.e. behind the keyboard, and iOS then
+  // scrolled again by itself to reveal the caret - the second, browser-driven
+  // move that reads as "all the way up and then all the way down" (2026-09-22).
+  //
+  // `scrollBy` is relative, so computing its delta from the current rect is
+  // correct and needs no second pass. Centring on the VISUAL viewport is the
+  // whole point: `block: 'center'` centres on the layout viewport, which iOS
+  // does not shrink when the keyboard opens.
   const rect = node.getBoundingClientRect();
-  const visibleTop = viewport.offsetTop;
-  const visibleBottom = viewport.offsetTop + viewport.height;
-  if (rect.top >= visibleTop && rect.bottom <= visibleBottom) return;
-  const target = visibleTop + viewport.height / 2 - rect.height / 2;
-  window.scrollBy({ top: rect.top - target, behavior: 'smooth' });
+  const target = viewport.offsetTop + viewport.height / 2 - rect.height / 2;
+  const delta = rect.top - target;
+  // Sub-pixel deltas are not worth an animation that the browser will round to
+  // nothing anyway, and firing one on every move is what makes a walk feel busy.
+  if (Math.abs(delta) < 1) return;
+  window.scrollBy({ top: delta, behavior: 'smooth' });
 }
 
 export default function useFieldNavigation({
