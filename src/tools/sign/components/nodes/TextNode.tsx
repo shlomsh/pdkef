@@ -1,5 +1,6 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
+import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
 import { getEffectiveTextDirection, getTextAlign } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
@@ -28,6 +29,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   messages?: Partial<SignMessages>;
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  const isCoarsePointer = useCoarsePointer();
   const [scaleFactor, setScaleFactor] = useState(1);
   const { getScaleFactor } = usePdfCoordinates();
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -87,24 +89,22 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     // on the visual viewport). A focus that scrolls too adds a second, browser-
     // driven jump on top of ours, which on iOS is the one that yanks the page to
     // put the caret above the keyboard. One deliberate scroll reads as a move;
-    // two read as a glitch.
-    // `preventScroll` stops `focus()` itself scrolling, but `setSelectionRange`
-    // below still brings the caret into view, and that one has no opt-out. Both
-    // together were the instant jump measured before the field move's own
-    // smooth scroll: 1400 -> 176 in a single frame at 90ms, then a glide from
-    // 176 to 441 - "scrolled all the way up and then all the way down to the
-    // next element" (2026-09-22). Snapshotting the scroll position around the
-    // pair and putting it back leaves exactly one deliberate move, the one
-    // bringFieldIntoView makes.
-    const scrolled = typeof window !== 'undefined' && typeof window.scrollTo === 'function'
-      ? { x: window.scrollX, y: window.scrollY }
-      : null;
+    // two read as a glitch: measured 2026-09-22 with this flag removed, a Next
+    // press from a page scrolled 929px away from the destination travelled
+    // 1367px - an instant 1400 -> 252 and then a smooth glide back down to 471,
+    // which is the reported "all the way up to the toolbar and then all the way
+    // down to the next element" exactly. `field-move-scroll.spec.js`'s second
+    // test is what holds it; that is the number it fails with.
+    //
+    // `setSelectionRange` below needs no such treatment, and an earlier attempt
+    // to snapshot and restore the scroll position around the pair has been
+    // removed: it was dead code. Measured on a bare page with a textarea 2000px
+    // down, in both WebKit and Chromium at an iPhone 15 viewport, neither
+    // `focus({ preventScroll: true })` nor `setSelectionRange` moved the page
+    // by a pixel.
     textareaRef.current.focus({ preventScroll: true });
     const len = textareaRef.current.value.length;
     textareaRef.current.setSelectionRange(len, len);
-    if (scrolled && (window.scrollX !== scrolled.x || window.scrollY !== scrolled.y)) {
-      window.scrollTo(scrolled.x, scrolled.y);
-    }
   }, [
     isEditing,
     element.fontFamily,
@@ -149,7 +149,13 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const textPaddingEm = typography.paddingEm;
   // Shown in the empty box, and measured to size it. One string for both, so the
   // box can never be sized against copy it isn't showing.
-  const placeholder = isEditing ? t.typeYourTextPlaceholder : t.doubleClickToEditPlaceholder;
+  // An empty box that is not open names the gesture that opens it - and on a
+  // phone that is a single tap (MOBI-21), never a double-click: a double-tap is
+  // the browser's zoom, so "Double-click to edit" told touch users to make the
+  // one gesture that cannot work there.
+  const placeholder = isEditing
+    ? t.typeYourTextPlaceholder
+    : (isCoarsePointer ? t.tapToEditPlaceholder : t.doubleClickToEditPlaceholder);
   // Comb: the span is explicit and the characters are placed by cell, so the box
   // no longer measures itself from the text. Only its height still does, and it
   // is always exactly one line - a comb is a single row of boxes.
