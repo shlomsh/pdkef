@@ -1,7 +1,7 @@
 ---
 id: "MOBI-21"
 title: "There is no way back into a text box on touch once its edit session closes"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "release-blocker"
@@ -70,3 +70,36 @@ At a phone viewport, a text box whose session has closed can be typed into again
 Next/Previous, in one gesture. Tapping an existing box never adds an element. A box under 46px wide
 has a tappable text area. Desktop behaviour is unchanged. Guarded by a Playwright spec, since jsdom
 can prove none of it.
+
+## Fixed, 2026-09-22
+
+**Bisected first, because it decided the response.** The lockout is on the morning's base 56b027a as well as
+on main, so it was not a regression from that day's merges and no revert could restore service; the forward
+fix was the incident remedy. It was a path nobody had walked, not a change that broke one.
+
+**One tap opens a text box on touch** (`useDraggableElement.js`, `DraggableWrapper.tsx`). The gesture layer
+now knows what a tap is: a touch gesture that releases within the browsers' own 8px touch slop. On a coarse
+pointer that tap selects the box and opens its edit session in one gesture, the way every mobile form works.
+Nothing is lost - a move is a drag, which is movement, and delete and formatting are on the element's bar
+while editing. Mouse input never sets the tap flag, so desktop click-selects / double-click-edits exactly as
+before. The empty-box placeholder says "Tap to type" on a coarse pointer instead of "Double-click to edit",
+which told phone users to make the one gesture that cannot work there.
+
+**The stray boxes were the element's own bar, not the arming model.** Found by logging every event target:
+on a 5.8px-tall box the bar floats 8px above it, and each coarse-pointer button's 44px hit area overhangs the
+button by 8px - onto the box. Taps aimed at the text hit the bar. Measured both ways depending on where the
+bar sits: **Duplicate**, cloning the element into the export on every tap (1 -> 2 -> 3 -> 4), and **Delete**,
+destroying what had just been typed (1 -> 0). The coarse-pointer offset now includes that overhang, so the
+bar's hit boxes end at the element's top edge. The earlier theory in this ticket, that a tap with no tool
+armed was creating elements, was wrong: nothing was created, something was cloned.
+
+**Guards**, each proven red-to-green against a real build:
+- `touch-edit-reentry.spec.js` - one tap reopens a closed box and typing lands in it; one tap opens a different
+  box; a drag moves without opening; and after a drag, a tap on a short box never lands on the bar (red
+  without the offset fix: the tap deleted the element).
+- `phone-fill-journey.spec.js` - the whole round trip on the practice form: fill two fields, tap the page to
+  dismiss the keyboard, go back and fix the first. Red on main before this, for exactly the reported reason.
+
+**Split out, so this can close:** a text box narrower than ~46px that is selected but not being edited is
+still covered edge to edge by its own resize-handle hit areas. One-tap entry makes it reachable from the
+deselected state, which is the common one; the selected-not-editing case after a drag is MOBI-23.

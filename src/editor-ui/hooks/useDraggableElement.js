@@ -7,6 +7,17 @@ import {
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
 } from '../../constants/signGeometry.js';
 
+// MOBI-21. How far a finger may travel and still have meant a tap rather than
+// a move. It is deliberately the browser's own touch slop (Chromium and
+// WebKit both use 8 CSS px to tell a tap from a scroll/drag), not a number
+// chosen here: below it the gesture is what a person reads as "I touched
+// that", above it they have started moving the box. There is no threshold in
+// `src/lib/gestures/controller.ts` to reuse - it commits whatever the last
+// move computed - so this is the one place that has to name it, and it is
+// read only to decide whether `onTap` fires. The drag itself still commits
+// exactly as before at any distance, tap or not.
+const TAP_MOVEMENT_TOLERANCE_PX = 8;
+
 /**
  * Encapsulates the complex drag-to-move gesture for a single element inside
  * a DraggableWrapper.
@@ -30,6 +41,12 @@ import {
  * @param {import('../../editor/geometry/coords.js').PageGeometry} [params.pageGeometry] - rotated/cropped page frame
  * @param {function} params.onSelect       - called on pointer down to activate the element
  * @param {function} params.onChange       - called on pointer up to commit the new position
+ * @param {function|null} [params.onTap]   - MOBI-21: called once on release when a TOUCH gesture
+ *                                           turned out to be a tap (no meaningful movement). The
+ *                                           caller decides what a tap means and whether this
+ *                                           element has one at all; passing nothing keeps the old
+ *                                           behaviour exactly. Never called for a mouse gesture,
+ *                                           so the desktop click/double-click model is untouched.
  */
 export default function useDraggableElement({
   element,
@@ -38,6 +55,7 @@ export default function useDraggableElement({
   pageGeometry,
   onSelect,
   onChange,
+  onTap = null,
 }) {
   const { getPointerCoords, getDeltaPercent, getElementPercentSize } = usePdfCoordinates();
 
@@ -45,6 +63,10 @@ export default function useDraggableElement({
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const cancelDragRef = useRef(null);
+  // MOBI-21: true while the gesture in flight could still turn out to be a
+  // tap. A ref, not state, for the same reason everything else in this hook
+  // is one - nothing about a live gesture may go through a render.
+  const tapCandidate = useRef(false);
 
   useEffect(() => () => cancelDragRef.current?.(), []);
 
@@ -67,6 +89,15 @@ export default function useDraggableElement({
     }
 
     e.preventDefault();
+
+    // MOBI-21. `preventDefault()` on a `touchstart` suppresses the whole
+    // synthesised mouse sequence, so on a finger there is no `click` and
+    // therefore no `dblclick` — the only route a text box had back into its
+    // edit session. The gesture itself is what decides now: a touch that
+    // releases without meaningful movement is a tap, and the caller's
+    // `onTap` runs on release. A mouse gesture never sets this, so
+    // click-to-select / double-click-to-edit on a desktop is unchanged.
+    tapCandidate.current = !!onTap && 'touches' in e && !!e.touches;
 
     // Captured once for the gesture — the page wrapper can't change while dragging.
     const pageWrapper = getPageWrapper();
@@ -111,6 +142,13 @@ export default function useDraggableElement({
 
       const dx = moveX - dragStartPos.current.x;
       const dy = moveY - dragStartPos.current.y;
+      // MOBI-21: once the finger has travelled past the browser's own touch
+      // slop this gesture is a move, not a tap, whatever it commits. Only a
+      // ref is written here — this stays a pure patch computation, and the
+      // golden rule's guard (no onChange/dispatch/setState) holds.
+      if (Math.abs(dx) > TAP_MOVEMENT_TOLERANCE_PX || Math.abs(dy) > TAP_MOVEMENT_TOLERANCE_PX) {
+        tapCandidate.current = false;
+      }
       if (element.type === 'line') {
         dragOffset.current = { x: dx, y: dy };
         return dragOffset.current;
@@ -179,10 +217,19 @@ export default function useDraggableElement({
       }
 
       dragOffset.current = { x: 0, y: 0 };
+
+      // MOBI-21: last, so the position this gesture committed is already in
+      // state before the tap's own meaning (opening a text edit session) is
+      // acted on.
+      if (tapCandidate.current) {
+        tapCandidate.current = false;
+        onTap();
+      }
       },
       cancel: () => {
       cancelDragRef.current = null;
       isDragging.current = false;
+      tapCandidate.current = false;
       if (elementRef.current) elementRef.current.style.transform = 'none';
       dragOffset.current = { x: 0, y: 0 };
       },
