@@ -248,6 +248,25 @@ describe('detectCellCandidates -> placeTextOnCell: where the typed box goes', ()
     // Which is what puts the day, month and year on top of the separators.
     expect(placed.left + placed.minWidth).toBeGreaterThan(88);
   });
+
+  it('gives a phone cell the width under its caption, writing across its area-code slash', () => {
+    // Form 101's lower phone cells: the caption in the top corner, a lone `/`
+    // low in the middle. Read as caption, the slash carved the cell sideways
+    // and left the box a sliver left of it.
+    const phoneInk = rowBand({ top: 80, bottom: 60, columns: [0, 50, 100] });
+    const phoneCaption = text('מספר טלפון', { left: 28, top: 20.5, width: 20, height: 2.2 });
+    const areaCodeSlash = text('/', { left: 25, top: 36, width: 1.5, height: 2.2 });
+    const [cell] = detectCellCandidates(phoneInk, geometry, 0, [phoneCaption, areaCodeSlash]);
+    expect(cell.label).toContain('מספר טלפון');
+    expect(cell.width).toBeCloseTo(50, 5);
+
+    const placed = place(cell);
+    expect(placed.left).toBeCloseTo(0, 5);
+    expect(placed.minWidth).toBeCloseTo(50, 5);
+    // The band under the caption (its baseline at percent 22.7), not on it.
+    expect(cell.writable.top).toBeCloseTo(22.7, 5);
+    expect(cell.writable.height).toBeCloseTo(17.3, 5);
+  });
 });
 
 describe('narrow tick columns', () => {

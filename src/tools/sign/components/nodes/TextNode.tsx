@@ -2,7 +2,7 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { getEffectiveTextDirection, getTextAlign } from '../../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
@@ -148,7 +148,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // a flat padding tight enough to clip Gveret Levin's loops or Heebo's Hebrew.
   const textPaddingEm = typography.paddingEm;
   // Shown in the empty box, and measured to size it. One string for both, so the
-  // box can never be sized against copy it isn't showing.
+  // box can never be sized against copy it isn't showing - except in a box on a
+  // detected form cell, which is sized by the cell: measuring the placeholder
+  // there pushed an empty box past a cell narrower than the copy and across the
+  // next field (form 101's employer phone cell, live report). The placeholder
+  // is clipped at the cell's edge instead, and typed text still grows the box.
   // An empty box that is not open names the gesture that opens it - and on a
   // phone that is a single tap (MOBI-21), never a double-click: a double-tap is
   // the browser's zoom, so "Double-click to edit" told touch users to make the
@@ -161,6 +165,16 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // is always exactly one line - a comb is a single row of boxes.
   const isRtl = textDirection === 'rtl';
   const comb = isComb(element);
+  const spannedField = !comb && !!element.minWidth;
+  // That clipped placeholder takes its own script's direction, not the box's,
+  // so it loses its end rather than its start: in an RTL box the English copy
+  // overflowed leftward and a narrow cell showed "ype your text". Direction,
+  // not just alignment, because overflowing text ignores `text-align`. The
+  // first typed character hands both back to the box.
+  const placeholderDirection = spannedField && !element.text ? strongTextDirection(placeholder) : null;
+  const textAlign = placeholderDirection
+    ? (placeholderDirection === 'rtl' ? 'right' : 'left')
+    : getTextAlign(element);
   const handleInput = (event: Event) => {
     const text = (event.currentTarget as HTMLTextAreaElement).value;
     // A new text box starts with the app's neutral default, not a meaningful
@@ -201,7 +215,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         data-editor-text-display
         data-text-part="display"
         data-comb={comb ? 'on' : undefined}
-        data-span={!comb && element.minWidth ? 'field' : undefined}
+        data-span={spannedField ? 'field' : undefined}
         style={{ fontSize: `${textFontSize}px`, '--text-pad-em': `${textPaddingEm}em` }}
         onDblClick={onBeginEdit}
       >
@@ -230,7 +244,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
               is always there to fall back to - which is exactly what a
               span-handle drag paints the moment it crosses back below the comb
               floor, without waiting for a re-render to put the text back. */}
-          {(element.text || placeholder) + '\u200B'}
+          {(element.text || (spannedField ? '' : placeholder)) + '\u200B'}
         </div>
         {cells && (
           <div
@@ -281,7 +295,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         <textarea
           key="input"
           ref={textareaRef}
-          dir={textDirection}
+          dir={placeholderDirection ?? textDirection}
           rows={1}
           cols={1}
           className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
@@ -296,7 +310,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           onInput={handleInput}
           onFocus={onSelect}
           style={{
-            textAlign: getTextAlign(element),
+            textAlign,
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
             fontWeight: typography.weight,
