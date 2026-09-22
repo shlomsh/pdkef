@@ -38,7 +38,7 @@ move today.
 | SEO-01 baseline, `lastmod`, indexing requests | done | 2026-09-11 | 27 URLs tracked, 11 indexed, 9 never crawled; `lastmod` shipped; **9 of the 11 indexed pages are stale** (crawled before their last content change); indexing requested for all 9 stale + all 9 never-crawled | **Recaptured 2026-09-17** from the Coverage -> Valid export: all nine requested URLs crawled 09-11 to 09-14; 21 indexed, up from 11; controls split (`/merge/` moved, `/unlock/` did not, SEO-28) | 2026-10-08: three-month export plus the Not-indexed export |
 | SEO-02 standings + refresh procedure | done | 2026-09-10 | `seo-refresh.mjs` reproduces section 3 from an export; procedure in section 6 | monthly |
 | SEO-03 external signals | open, in progress | 2026-09-11 | repo-side work done (description/homepage/topics fixed, README's language paragraph corrected from 11 to the real 20); referring-domain baseline captured at zero external mentions (proxy method, see caveat); one outreach submitted (pluja/awesome-privacy PR); two venues found ineligible on traction gates (awesome-selfhosted: no tagged release; openalternative.co: under 10 stars, confirmed by its own form); both PDF-specific awesome-lists submitted 2026-09-11 (abhi18av PR #68, OneOffTech issue #81); **first tagged release published**: [v1.0.0](https://github.com/shlomsh/pdkef/releases/tag/v1.0.0) at `038b5d7`, 2026-09-11 19:54 UTC (awesome-selfhosted becomes eligible 2027-01-12); Astro Showcase comment posted; PWA directories and Lissy93/awesome-privacy still queued | [section 8](#8-reference-seo-03-venue-list-and-outreach-log): watch #1103, #68, #81; submit awesome-selfhosted after 2027-01-12; revisit openalternative.co past 10 stars |
-| SEO-04 blur zero-click | open, recrawled, copy reordered 09-17 | 2026-09-17 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested; **interim 2026-09-17: `/redact/` crawled 09-11, the day of the request, and the site's clicks stepped from 36 to 86 a week the same day; `/redact/` at 6.93 (was 13.13), blur cluster 28 clicks in 7 days (was 22 in 3 months), 3 of the 13 zero-click queries now click** | **SERP captured 2026-09-17: the indexed title is the live one**, snippet is the steps copy not the meta, AI Overview now cites Smallpdf and argues against blur; **AI features report: `/redact/` 363 of 407 AI impressions in 28 days, 58 a day by 09-15, about a fifth of all impressions**; Blur moved first in the toolbar and in three body strings on 09-17 (Shlomi's call, freeze overruled) | 2026-10-08: CTR on the thirteen, read with the 09-17 copy change as a second variable; pull the AI features export too |
+| SEO-04 blur zero-click | open, recrawled, copy reordered 09-17 | 2026-09-17 | meta rewritten 09-10; real SERP captured 09-11 shows Google serving the pre-08-29 title, so the change has never been seen; AI Overview cites us on 2 of 3 queries (zero-click by design); recrawl requested; **interim 2026-09-17: `/redact/` crawled 09-11, the day of the request, and the site's clicks stepped from 36 to 86 a week the same day; `/redact/` at 6.93 (was 13.13), blur cluster 28 clicks in 7 days (was 22 in 3 months), 3 of the 13 zero-click queries now click** | **SERP captured 2026-09-17: the indexed title is the live one**, snippet is the steps copy not the meta, AI Overview now cites Smallpdf and argues against blur; **AI features report: `/redact/` 363 of 407 AI impressions in 28 days, 58 a day by 09-15, about a fifth of all impressions; re-read 09-22 (UI), `/redact/` 536 in 28 days, up 48%, but site impressions grew faster so the share fell**; Blur moved first in the toolbar and in three body strings on 09-17 (Shlomi's call, freeze overruled) | 2026-10-08: CTR on the thirteen, read with the 09-17 copy change as a second variable; pull the AI features export too |
 | SEO-05 compress CTR + honesty | open, recrawled 09-12 | 2026-09-17 | meta now leads with the honest miss ("if it can't hit the target, we say so"); rasterization + passthrough disclosed above the FAQ; interim signal 2026-09-11: `file compressor to 100kb` got its first clicks (4/95, 4.2% CTR) but this predates the fix being indexed, not a verdict yet; interim 2026-09-17: crawled 09-12, no movement on the 100KB cluster in the three days since (0 clicks on 84 for `compress pdf to 100kb`) | SERP captured 2026-09-17: not on page one, the field is exact-match titles plus Adobe/PDF24 stars, so this is a rank gap at the boundary and CTR cannot test the meta from position ten; **baseline reset: `/compress/` stepped from 42 to 365 impressions a week on 9/6 to 9/7, before its 09-12 recrawl, so the 10-08 read compares against ~350/week at position 10 and 2 to 3% CTR** | 2026-10-08 position, not CTR; authority (SEO-03) is the lever |
 | SEO-06 never-crawled nine | open | 2026-09-11 | nine linked from `/redact/` and `/compress/`; `/image-to-pdf/` and `/pdf-to-image/` leads differentiated; `/edit-pdf/` got no content work (descoped, not done); 2026-09-17: none of the nine in the Valid list, which cannot split crawled-not-indexed from never-crawled | 2026-10-08 coverage recheck = **the Week 4 gate**, needs the Not-indexed export |
 | SEO-07 `/sign/` language story | done | 2026-09-11 | language card leads with the claim; comb fields, RTL growth and refuse-while-typing now stated; title changed | 2026-10-08: `/sign/` CTR vs 2.38%, after recrawl |
@@ -84,6 +84,12 @@ move today.
 
 Durable lessons, one line each, newest first. The ticket has the evidence.
 
+- **At this growth rate every percentage-change view in Search Console misleads.** Read 2026-09-22:
+  205 of the trailing quarter's 223 clicks and 4.9K of its 5.5K impressions fell in the last 28 days.
+  So Insights renders a query that lost one click as "down 100%", Top countries shows every country
+  losing share against a denominator that roughly tripled, and the incomplete final day reads as a
+  cliff beside record highs. All three were mistaken for a ranking loss on 09-22. Read absolute clicks
+  over complete windows until the curve flattens. ([SEO-02](../backlog/tasks/SEO-02.md))
 - **An indexing request on a starved URL is acted on the same day, and the ranking re-score comes
   with it.** `/redact/` was crawled on 2026-09-11, the day it was requested after 65 days; site
   clicks stepped from 36 to 86 a week that day and `/redact/` moved from 13 to 7. The unrequested
@@ -103,10 +109,13 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
   the demonstrable behaviour (offline in devtools, the installable app) and the open source are not
   copyable in a snippet; positioning reviews (section 7) should lean on those. Reviewer spend on the
   Indonesian page is deferred to its read. ([LOC-15](../backlog/tasks/LOC-15.md))
-- **About a fifth of our impressions now come with an AI feature on the page, and Redact is 89% of
-  them.** The Generative AI features report (first pulled 2026-09-17, 28 days) shows 407 impressions
-  rising from single digits in August to 58 a day, tracking the recrawl. It exports impressions only.
-  Pull it with every refresh; it is the instrument for "cited but not clicked".
+- **AI-feature impressions concentrate on Redact, and the one-in-five share is now stale.** The
+  Generative AI features report (first pulled 2026-09-17, 28 days) showed 407 impressions site-wide,
+  `/redact/` 363 of them (89%), single digits in August to 58 a day, tracking the recrawl: about one in
+  five of our impressions, and growing faster than web impressions at that point. Re-read 2026-09-22
+  (28 days, UI not export): `/redact/` 536, up 48% in five days, next page 34. Site impressions grew
+  faster over the same days, so the count rose while the share fell; the 10-08 export settles it.
+  Impressions only. Pull it with every refresh; it is the instrument for "cited but not clicked".
   ([SEO-04](../backlog/tasks/SEO-04.md))
 - **At the page-one boundary a snippet cannot be tested.** `compress pdf to 100kb` is nine exact-match
   titles with Adobe and PDF24 stars, and we sit at ten. SEO-05's meta hypothesis is untestable from
@@ -257,6 +266,12 @@ Durable lessons, one line each, newest first. The ticket has the evidence.
 Source: Search Console, Web, last 3 months, **exported 2026-09-10** (data to 2026-09-07). 71 clicks,
 ~2,318 impressions site-wide. Impressions grew from 3-15/day in July to 100-196/day in early September,
 average position from the 30s to ~10.5: early and accelerating, not stalled.
+
+The tables below are that export, and they are not re-measured until the 10-08 refresh. Site-wide
+totals read off the UI on **2026-09-22**, for scale only: last 3 months 223 clicks, 5.5K impressions,
+4.1% CTR; last 28 days 205 clicks, 4.9K impressions, 4.2% CTR. The quarter's clicks therefore roughly
+tripled in the twelve days after the 09-10 export, and quarter CTR rose from 3.1% to 4.1% while
+AI-feature impressions grew, so being cited is not yet costing the site its conversion.
 
 ### 3.1 By intent cluster (lower bound - see section 6)
 
