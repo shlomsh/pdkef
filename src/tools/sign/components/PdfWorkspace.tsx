@@ -431,6 +431,25 @@ export default function PdfWorkspace({
                           pageWidthPoints={size.width}
                           pageGeometry={size}
                           messages={messages}
+                          /* MOBI-16: only the element actually in the edit
+                             session gets a fieldNav, and only when the
+                             document has a detected field to walk at all -
+                             same `hasFields` gate SignToolbar.tsx uses for
+                             the top toolbar's copy of this control, so a
+                             free-placed box in a document with no detected
+                             fields still gets today's full toolbar rather
+                             than a Previous/Next pair with nowhere to go.
+                             Every other wrapper's prop stays the stable
+                             `null` default, so this never re-renders a
+                             wrapper that isn't about to collapse its
+                             toolbar. */
+                          fieldNav={fieldNavigation.hasFields && editingElementId === el.id ? {
+                            hasNext: fieldNavigation.hasNext,
+                            hasPrevious: fieldNavigation.hasPrevious,
+                            onNext: fieldNavigation.goToNext,
+                            onPrevious: fieldNavigation.goToPrevious,
+                            direction: fieldNavigation.direction,
+                          } : null}
                         >
                           {ELEMENT_RENDERERS[el.type]({
                             element: el,
