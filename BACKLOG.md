@@ -85,6 +85,7 @@ _None._
 | MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
 | MOBI-24 | P1 | [MOBI-24](backlog/tasks/MOBI-24.md) · A tapped text box on an iPhone opens its session but never its keyboard |
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
+| MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
 
 ### Retired
 
