@@ -117,6 +117,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
 | MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
 | MOBI-24 | P1 | [MOBI-24](backlog/tasks/MOBI-24.md) · A tapped text box on an iPhone opens its session but never its keyboard |
+| MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
+| MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
 
 
 ## Site quality: accessibility, CSS correctness and theming
