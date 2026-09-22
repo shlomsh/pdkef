@@ -16,12 +16,18 @@ import { test, expect } from '@playwright/test';
  * its handle was touched. `centeredResize.test.ts` proves the arithmetic in
  * isolation; this proves the real gesture path (pointer events through
  * `useElementResize.js`) behaves the same way end to end.
+ *
+ * Runs against the real form itself (`income-tax-101-2024.pdf`, already the
+ * fixture `field-nav-arrow-direction.spec.js` uses), not a synthetic
+ * geometry-only fixture: the report was on this exact document, and its
+ * printed checkboxes are what the fix has to hold up against, not a
+ * best-case stand-in.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE = path.resolve(
-  here, '..', '..', '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
-  'health-declaration-page1-geometry.pdf',
+const root = path.resolve(here, '..', '..', '..', '..');
+const FIXTURE = path.join(
+  root, 'src', 'editor', 'adapters', 'pdf', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf',
 );
 
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
@@ -32,11 +38,11 @@ test('nudging a checkbox smaller than the resize floor does not snap it up to th
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({
-    name: 'health-declaration.pdf',
+    name: 'income-tax-101.pdf',
     mimeType: 'application/pdf',
     buffer: fs.readFileSync(FIXTURE),
   });
-  await expect(page.locator('[class*="page-overlay"]')).toBeVisible();
+  await expect(page.locator('[class*="page-overlay"]').first()).toBeVisible();
 
   const symbolTool = page
     .getByRole('toolbar', { name: 'PDF annotations' })
@@ -44,8 +50,8 @@ test('nudging a checkbox smaller than the resize floor does not snap it up to th
   if ((await symbolTool.getAttribute('aria-pressed')) !== 'true') await symbolTool.click();
 
   // A real detected checkbox, sized to the print itself - the case that
-  // used to jump. resizer-handle-spacing.spec.js already proves this
-  // fixture's first hint measures under 10px at this viewport.
+  // used to jump. Measured on this form at this viewport: under 10px, well
+  // under the 14px floor.
   const hint = page.locator('[class*="field-hint-checkbox"]').first();
   const hintBox = await hint.boundingBox();
   await hint.click({ position: { x: hintBox.width / 2, y: hintBox.height / 2 }, force: true });
