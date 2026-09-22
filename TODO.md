@@ -112,6 +112,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 | MOBI-19 | P1 | [MOBI-19](backlog/tasks/MOBI-19.md) · A text box's resize handles overlap into a blob on any short single-line field |
+| MOBI-20 | P1 | [MOBI-20](backlog/tasks/MOBI-20.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 
 
 ## Site quality: accessibility, CSS correctness and theming
