@@ -80,6 +80,7 @@ const flush = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 describe('PdfMergeTool UI flow', () => {
   let container;
   let originalCreateObjectURL;
+  let originalScrollTo;
 
   beforeEach(() => {
     pageCounts.clear();
@@ -102,6 +103,8 @@ describe('PdfMergeTool UI flow', () => {
     originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
     window.URL.revokeObjectURL = vi.fn();
+    originalScrollTo = window.scrollTo;
+    window.scrollTo = vi.fn();
   });
 
   afterEach(() => {
@@ -111,6 +114,7 @@ describe('PdfMergeTool UI flow', () => {
       container = null;
     }
     window.URL.createObjectURL = originalCreateObjectURL;
+    window.scrollTo = originalScrollTo;
     vi.restoreAllMocks();
     // Safety net: if a fake-timers test above threw before reaching its own
     // vi.useRealTimers(), don't leak the fake clock into the next test.
@@ -779,6 +783,7 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.textContent).toContain('Picked up where you left off');
     // Equivalent to settle() (pre-merge debounce + merge), advanced virtually.
     await act(async () => { await vi.advanceTimersByTimeAsync(30); });
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
     const [files, options] = mergeLib.mergePdfs.mock.calls.at(-1);
     expect(files.map((f) => f.name)).toEqual(['x.pdf', 'y.pdf']);
     expect(options.plan).toEqual([
