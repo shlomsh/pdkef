@@ -200,6 +200,7 @@ describe('PageStrip', () => {
     expect(thumbnailsLib.openThumbnailSource).toHaveBeenCalledTimes(2);
     const imgs = Array.from(container.querySelectorAll(`.${styles.thumb}`)).map((img) => img.getAttribute('src'));
     expect(imgs).toEqual(['data:image/png;base64,a.pdf-1', 'data:image/png;base64,b.pdf-0']);
+    expect(Array.from(container.querySelectorAll(`.${styles.thumb}`)).every((img) => img.draggable === false)).toBe(true);
 
     // Removing file 1 cancels its renders and destroys its document.
     rerender({ entries: [entries[1]], plan: planForFile(2, 2) });
@@ -386,7 +387,12 @@ describe('PageStrip', () => {
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy.mock.calls[0][0]).toBe(stripRef.current);
     const options = createSpy.mock.calls[0][1];
+    expect(options.forceFallback).toBe(true);
+    expect(options.fallbackTolerance).toBe(4);
+    options.onStart();
+    expect(document.documentElement.hasAttribute('data-merge-page-dragging')).toBe(true);
     options.onEnd({ oldIndex: 0, newIndex: 3 });
+    expect(document.documentElement.hasAttribute('data-merge-page-dragging')).toBe(false);
     expect(onPlanChange).toHaveBeenCalledTimes(1);
     expect(onPlanChange.mock.results[0].value.map((p) => p.key)).toEqual(['1:1', '2:0', '2:1', '1:0']);
     expect(onRegisterUndo).toHaveBeenCalledTimes(1);

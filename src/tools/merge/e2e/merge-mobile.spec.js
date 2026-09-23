@@ -83,6 +83,37 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     expect(downloadBox.y + downloadBox.height).toBeLessThanOrEqual(viewportSize.height + 1);
   });
 
+  test('touch reorder has an explicit gesture hint and suppresses native long-press targets', async ({ page, browser }, testInfo) => {
+    let work = page;
+    let touchContext;
+    if (testInfo.project.name === 'chromium') {
+      touchContext = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
+      work = await touchContext.newPage();
+    }
+
+    await work.goto('/merge/');
+    await work.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+    const files = await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
+      name,
+      mimeType: 'application/pdf',
+      buffer: await makePdfBuffer(name),
+    })));
+    await work.locator('input[type="file"]').setInputFiles(files);
+
+    await expect(work.getByText('Touch and hold a file or page, then drag to reorder.', { exact: true })).toBeVisible();
+
+    const chip = work.locator('ul[class*="chip-row"] > li').first();
+    await expect(chip).toHaveCSS('user-select', 'none');
+
+    const thumbnail = work.locator('li[data-key] img').first();
+    await expect(thumbnail).toBeVisible({ timeout: 10_000 });
+    await expect(thumbnail).toHaveCSS('pointer-events', 'none');
+    await expect(thumbnail).toHaveAttribute('draggable', 'false');
+
+    if (touchContext) await touchContext.close();
+  });
+
   test("a tap on a page reveals that page's 44px controls, and only that page's", async ({ page, browser }, testInfo) => {
     // There is no Edit pages mode any more (Shlomi, 2026-09-13): a tap on a
     // page cell reveals that cell's own rotate/skip/open cluster, and
