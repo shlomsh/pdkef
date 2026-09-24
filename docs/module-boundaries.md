@@ -36,7 +36,10 @@ site             src/pages, src/content, src/data, src/i18n, src/layouts, src/st
                  .astro components, as today
 ```
 
-This is ARCH-15's own text, unchanged; everything below is the working-out.
+This is ARCH-15's own text, unchanged; everything below is the working-out. One line is stale: the
+`editor-ui` row still lists `SignatureDialog` as "shared by Sign and Redact." It never was, on this
+checkout - Redact has no signature dialog - and ARCH-25 (2026-09-24) moved it into `src/tools/sign/`
+once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evidence sections below.
 
 ## Dependency rules
 
@@ -83,14 +86,37 @@ This is ARCH-15's own text, unchanged; everything below is the working-out.
    beside the script it tests, in `scripts/`, never under `src/test/`. Rules 1-7 only
    ever needed to walk `src/`; rule 8's own pass (`scriptsImportViolations()`) also walks `public/`
    and `e2e/`, since either could gain a real edge into `scripts/` that a `src/`-only walk would miss.
+9. **A module in a common layer (`shell`, `editor-ui`, `editor`, `lib`) needs two or more distinct
+   consumers, or it does not belong in a common layer** (ARCH-25). Plainly: "common" means used by
+   two. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no matter how many of its
+   own files import the module) or a qualifying site file (a page, a layout, an `.astro` component,
+   an `i18n`/`data` module, or a file a layout loads via `<script src>`) - each site file counts on
+   its own, since a page and the layout it renders through are two different files, not one "site"
+   bucket. A consumer reached only through a chain of other common-layer modules still counts,
+   credited to whichever tool or site file the chain eventually reaches: a `lib` module used only by
+   another `lib` module that two tools both import is fine, and the same holds across layers - an
+   `editor` module consumed only by `editor-ui` (or by another `editor` module) counts via the tools
+   that reach `editor-ui`. A module one tool uses lives in that tool's folder instead; a module
+   nothing uses is deleted. Enforced by `commonLayerConsumerViolations()`, with no ratcheting
+   allowlist (like rules 6 and 8) but a small, named `RULE9_EXCEPTIONS` list for files where the
+   measured count is correct and the module still belongs where it is - an intentionally single-tool
+   piece of the shared editor core (Sign-only form detection, Redact-only page-edit adapters, and
+   the like, each documented in `.claude/rules/editor.md`), or a file shipped under `src/` that the
+   running app never actually reaches (a generated report, a corpus fixture, something exercised only
+   by its own test or a `scripts/` generator). Each entry names its own reason; a new one needs the
+   same evidence bar, not a guess from the file's name. An `.astro` file's `<script src="...">` is
+   invisible to the main edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`,
+   solely to answer whether the site consumes a given module.
 
-`scripts/check-module-boundaries.mjs` enforces exactly these eight rules; its header comment is the
+`scripts/check-module-boundaries.mjs` enforces exactly these nine rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the
 script is data (an ordered list of path prefixes), so landing ARCH-16/17/18 is "add or edit one row,"
 never "teach the script a new rule." Rule 7 is a separate pass (`toolSpecRouteViolations()`,
 `specRouteViolation()`) rather than an edge in the same import graph, since it scans spec text for
 route mentions instead of import specifiers; rule 8 is likewise separate (`scriptsImportViolations()`,
-`scriptsImportViolation()`), since it walks `public/` and `e2e/` in addition to `src/`.
+`scriptsImportViolation()`), since it walks `public/` and `e2e/` in addition to `src/`; rule 9 is also
+separate (`commonLayerConsumerViolations()`, `commonLayerConsumers()`), since it asks a different
+question - how many consumers reach a module - than an edge-by-edge legality check.
 
 **DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
 `src/i18n/toolMessages.ts` - an `editor -> site-i18n` edge none of the seven rules above actually
@@ -99,6 +125,14 @@ depend on the site's message shape. The interface now lives in `src/editor/regis
 `i18n` imports and re-exports it, so the editor imports nothing from `i18n`.
 
 ## Evidence
+
+**This section is the ARCH-15 snapshot of 2026-09-13, kept as a historical record of what the tree
+looked like the day this design record was written. It is not current.** The file counts, edge
+counts and per-module consumer tables below describe `src/components/` before ARCH-16 through
+ARCH-20 moved anything; every one of those folders has since moved (see Status, at the end of this
+file) and the numbers have not been re-measured since. Later corrections (ARCH-25's rule 9, in
+particular) are noted inline where a specific claim below turned out to be stale, but the section as
+a whole is not re-verified against the current tree and should not be quoted as if it were.
 
 Measured on this checkout (`arch-15`, forked from `main` at `d9a689a`, four commits after the
 `4ca0e26` the ticket measured on; none of the four touch `src/lib/`, `src/editor/` or the flat
@@ -193,18 +227,22 @@ single tool owns them; they are consumed by the generic tool chrome or by more t
   `shell` is where multi-tool, non-editor chrome lives.
 - `PageGrid.module.css` - documented as split/edit-pages only, but the real import graph also reaches
   it from Compress and from Merge's `PageStrip.module.css`. Same reasoning as above: shell.
-- `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. It is imported
-  by one `.astro` site component (`CompareFigure.astro`, for blog-style content) and by one tool
-  (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js` perf budget measures).
-  At the time of this record it imported `src/editor/gestures/controller.ts` directly, so it needed
+- `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. At the time of
+  this record it was imported by one `.astro` site component (`CompareFigure.astro`, for blog-style
+  content) and by one tool (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js`
+  perf budget measures). It also imported `src/editor/gestures/controller.ts` directly, so it needed
   to land somewhere that may import `editor` - `shell` qualifies, `site` does not (rule 4 forbids the
   site importing a tool directly, and `PdfCompressTool.tsx` importing it back is `tool -> shell`,
   allowed). This is a gap in the ticket's shell list, not a contradiction of it: nothing in the
   target layout names a home for a component two different consumers (one site, one tool) both need,
   and shell is the closest fit already defined. **Since superseded (DEBT-04, part 2):** the gesture
-  controller itself moved to `src/lib/gestures/controller.ts`, so this is now a `shell -> lib` edge,
+  controller itself moved to `src/lib/gestures/controller.ts`, so this became a `shell -> lib` edge,
   not `shell -> editor` - the placement reasoning above is left as ARCH-16's own, at the time it was
-  true.
+  true. **Superseded again (ARCH-25, 2026-09-24):** LOC-15 (2026-09-13) rewrote `CompareFigure.astro`
+  to keep its CSS as a raw string and stopped importing `CompareSlider.tsx` at all, so by the time
+  rule 9 measured the tree, `CompareSlider` had exactly one consumer, `PdfCompressTool.tsx`. It moved
+  into `src/tools/compress/` in the same change that added rule 9; `shell` was the right call when
+  this record was written and stopped being one without anybody deciding that on purpose.
 
 None of these four additions are in the ticket's example list. Flagging them here is the point of
 this record: ARCH-16 should not have to rediscover them by running the mover and reading a build
@@ -216,14 +254,22 @@ error.
 `EditorControls.module.css`, `EditorExportActions.{tsx,test.tsx}`,
 `EditorPageHeader.{tsx,module.css}`, `EditorToolStatus.tsx`, `ElementResizers.tsx`,
 `ElementToolbar.{tsx,test.tsx}`, `FontPickerMenu.{tsx,test.tsx}`, `FullscreenButton.tsx`,
-`PdfPageCanvas.tsx`, `SignatureDialog.{tsx,test.tsx,module.css}`, `ThicknessPickerMenu.tsx`,
+`PdfPageCanvas.tsx`, `ThicknessPickerMenu.tsx`,
 `UndoHistoryModal.{tsx,module.css}`, `ViewControl.{tsx,test.tsx,module.css}` - the ticket's list,
-minus two files it landed differently, plus one addition:
+minus three files it landed differently, plus one addition:
 
 - `DeletableObjectOverlay.tsx` and `DeleteMark.tsx` were on the ticket's original list here, but
   ARCH-17 (`de31529`) put them in `src/tools/redact/` instead - they render Redact's own delete
   affordance, not a surface Sign shares, so `editor-ui` was the wrong call. Recorded here so a
   future reader does not go looking for them in the wrong folder.
+
+- `SignatureDialog.{tsx,test.tsx,module.css}` was also on the ticket's original list ("shared by
+  Sign and Redact," per this section's own heading), and landed here under ARCH-16. It never had a
+  Redact consumer on this checkout - Redact has no signature dialog - and ARCH-25 (2026-09-24), the
+  session that added rule 9's two-consumer check to `check-module-boundaries.mjs`, measured it as
+  `editor-ui`'s only single-consumer violation and moved it into `src/tools/sign/` in the same
+  change. Recorded here for the same reason as the bullet above: so a future reader looks for it in
+  the right folder instead of this one.
 
 - `src/lib/useViewDensity.js` is consumed only by `ViewControl.tsx`. It is not itself a component, so
   it was never going to appear in a "components that move" list, but its only consumer is moving to
@@ -303,7 +349,7 @@ because a *tool* importing `lib` is always legal regardless of who else uses it.
 | `dropFiles.js` | moved to `src/shell/` (DEBT-04) - `BasePdfTool` and `DropzoneEmptyState` were its only consumers, both already `shell` |
 | `sort.js` | `PdfImageToPdfTool`, `PdfMergeTool` |
 | `useHandoffIntake.ts` | `PdfCompressTool`, `PdfSplitTool` |
-| `gestures/controller.ts` | `CompareSlider` (shell), `PdfRedactTool`, `SignTool/useWorkspaceGestures`, `editor-ui/hooks/{useDraggableElement,useElementResize,usePdfCoordinates}` - moved from `src/editor/gestures/controller.ts` under DEBT-04 (part 2), since `CompareSlider` (shell) was a real non-editor consumer, the same shape as `pdfRender.js` above; `src/editor/gestures/pointer.ts` stayed put, `editor-ui`'s only consumer of it |
+| `gestures/controller.ts` | `CompareSlider` (shell at the time; moved to `src/tools/compress/` under ARCH-25), `PdfRedactTool`, `SignTool/useWorkspaceGestures`, `editor-ui/hooks/{useDraggableElement,useElementResize,usePdfCoordinates}` - moved from `src/editor/gestures/controller.ts` under DEBT-04 (part 2), since `CompareSlider` (shell) was a real non-editor consumer, the same shape as `pdfRender.js` above; `src/editor/gestures/pointer.ts` stayed put, `editor-ui`'s only consumer of it |
 | `history/useHistoryShortcuts.js` | `PdfRedactTool`, `PdfSignTool`, `PdfEditPagesTool` - the Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z listener (UNDO-01). It moved the other way to the table below: it was `editor-ui/hooks/useUndoShortcut.js` while Sign and Redact were its only consumers, and came back to `lib` the moment Edit Pages, which is not an editor tool, needed it too |
 
 ### Moved out of `src/lib/` to `src/editor-ui/hooks/` (DEBT-04)
