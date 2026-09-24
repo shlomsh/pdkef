@@ -27,7 +27,7 @@ async function makePdfBuffer(label) {
   return Buffer.from(await document.save());
 }
 
-test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
+async function loadReadyRowWithShare(page) {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
@@ -47,6 +47,11 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
 
   const handoffButtons = page.locator('[class*="handoff-row"] > button, [class*="handoff-row"] > a');
   await expect(handoffButtons).toHaveCount(3);
+  return handoffButtons;
+}
+
+test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
+  const handoffButtons = await loadReadyRowWithShare(page);
 
   const first = handoffButtons.nth(0);
   await expect(first).toBeVisible();
@@ -68,4 +73,23 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
   for (const count of svgCounts) {
     expect(count).toBeGreaterThanOrEqual(1);
   }
+});
+
+// The desktop rail is a fixed 320px, so with Share present each button is
+// about 93px wide. "Compress it" once overflowed its own border there and a
+// desktop-only font shrink papered over it; the labels are short enough now
+// to fit at the row's normal size, and this keeps them that way.
+test.describe('on the desktop rail', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('every hand-off label fits inside its own button', async ({ page }) => {
+    const handoffButtons = await loadReadyRowWithShare(page);
+    const overflows = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => ({
+      label: node.textContent.trim(),
+      overflow: node.scrollWidth - node.clientWidth,
+    })));
+    for (const { label, overflow } of overflows) {
+      expect(overflow, label).toBeLessThanOrEqual(0);
+    }
+  });
 });
