@@ -58,10 +58,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
-| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
-| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
-| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
 
 ### Blocked
 
@@ -83,6 +80,7 @@ _None._
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 | MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
 | MOBI-16 | P2 | [MOBI-16](backlog/tasks/MOBI-16.md) · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar |
+| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-19 | P1 | [MOBI-19](backlog/tasks/MOBI-19.md) · A text box's resize handles overlap into a blob on any short single-line field |
 | MOBI-21 | P1 | [MOBI-21](backlog/tasks/MOBI-21.md) · There is no way back into a text box on touch once its edit session closes |
 | MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
@@ -90,6 +88,8 @@ _None._
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
 | MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
+| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
+| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
 
 ### Retired
 

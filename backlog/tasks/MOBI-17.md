@@ -1,12 +1,12 @@
 ---
 id: "MOBI-17"
 title: "Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-24"
 ---
 
 # MOBI-17 · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it
@@ -147,3 +147,12 @@ back. The bar followed its box as far as the clamp allowed and got pinned to the
   on spec engines) is now the one source for the clamp and for field moves' band. Zoomed 1.5x with
   the bar's box at the left edge and no keyboard, the bar sits beside it. **Not yet measured on a
   device: zoomed about 3x with the keyboard up.**
+
+## Outcome (2026-09-24)
+
+The bar is counter-scaled by `1 / visualViewport.scale` (`useVisualViewportScale.ts`) and clamped into the
+visible slice (`visualViewportClamp.ts`, origin from `visualViewport.pageLeft/pageTop` minus scroll, since
+`offsetTop` is in another frame on iOS while the keyboard is up). Measured in Chromium: compact 129x36 and
+full 340x80 physical px at 1x, 1.8x and 2.5x, same rows. On the iOS Simulator, 3x zoom with the keyboard
+up puts the bar right above a box at the screen's left edge. The full bar can still cover its own box when
+there is no room above it: MOBI-32.

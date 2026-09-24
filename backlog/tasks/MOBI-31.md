@@ -1,12 +1,12 @@
 ---
 id: "MOBI-31"
 title: "Dragging a text box's side handle on a phone moves the box instead of resizing it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
+legacy_state: "Done 2026-09-24"
 ---
 
 # MOBI-31 · Dragging a text box's side handle on a phone moves the box instead of resizing it
