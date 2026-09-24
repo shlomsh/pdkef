@@ -383,7 +383,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
-| DEBT-23 | P2 | [DEBT-23](backlog/tasks/DEBT-23.md) · One page-range parser: PDF to Image reads ranges the way Split does |
 
 ### Blocked
 
@@ -407,6 +406,7 @@ _None._
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
 | DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
+| DEBT-23 | P2 | [DEBT-23](backlog/tasks/DEBT-23.md) · One page-range parser: PDF to Image reads ranges the way Split does |
 
 ### Retired
 

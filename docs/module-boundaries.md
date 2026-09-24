@@ -122,6 +122,11 @@ route mentions instead of import specifiers; rule 8 is likewise separate (`scrip
 separate (`commonLayerConsumerViolations()`, `commonLayerConsumers()`), since it asks a different
 question - how many consumers reach a module - than an edge-by-edge legality check.
 
+**Folders are the only definition of a boundary (DEBT-14, 2026-09-24).** There is no ESLint
+`@nx/enforce-module-boundaries` mirror and no Nx project tags: ESLint cannot see `.astro` files or
+`<script src>` consumers and cannot express rules 6, 8 or 9, so tags would be a second copy of every
+boundary kept in sync by hand. The checker runs in about 2s at the top of `check:fast`.
+
 **DEBT-04:** `src/editor/registry/types.ts` used to import the `SignMessages` type from
 `src/i18n/toolMessages.ts` - an `editor -> site-i18n` edge none of the seven rules above actually
 covers, so `check-module-boundaries.mjs` never flagged it even though it made the headless core
