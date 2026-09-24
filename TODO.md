@@ -41,6 +41,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-28 | P2 | [SIGN-28](backlog/tasks/SIGN-28.md) · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top |
 | SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
 | SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
+| SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
 
 
 ## Editor module boundaries (architecture)

@@ -69,6 +69,8 @@ export interface SignMessages {
   hintEsc: string;
   hintDoubleClick: string;
   armHint: string;
+  /** The touch form of `armHint`, shown once per device (ArmHint.tsx, SIGN-31). */
+  armHintTouch: string;
   /** EditorToolStatus's Next/Previous field control (MOBI-06) - aria-label and
    * title, an icon button with no visible text of its own. */
   nextFieldLabel: string;
