@@ -139,10 +139,30 @@ export default function visualViewportClamp({
       const left = x + deltaX + origin.x * (layoutWidth - visibleWidth);
       const top = y + deltaY + origin.y * (layoutHeight - visibleHeight);
 
-      let minLeft = vv.offsetLeft + margin;
-      const maxRight = vv.offsetLeft + vv.width - margin;
-      let minTop = vv.offsetTop + margin;
-      const maxBottom = vv.offsetTop + vv.height - margin;
+      // MOBI-17 (follow-up, measured on real iOS Safari): `visualViewport.
+      // offsetTop`/`offsetLeft` are the visual viewport's pan offset *from
+      // the layout viewport* - a frame that only agrees with
+      // `getBoundingClientRect()` (and so with `top`/`left` above, which is
+      // built from it) while `scale` is actually where a pinch put it. With
+      // the keyboard up and the page at rest (no pinch, `scale` ~1), iOS
+      // still reports a large nonzero `offsetTop` (measured 337 on a 402x874
+      // iPhone 17 simulator, form 101, employer-phone field) while
+      // `getBoundingClientRect()` keeps reporting the field's *on-screen*
+      // position as if the visible area's own top were 0 - the two frames
+      // disagree. Adding that `offsetTop` into `minTop` then pushed the
+      // bar's lower bound to 341, past the 148.5 `top` that was already
+      // correct and on screen, and clamped it down near the bottom of the
+      // visible slice - the reported regression. Only trust the pan offset
+      // once a real pinch is in effect; at rest, the visible area's top-left
+      // in this frame is simply (0, 0), which is what let `shift()`/`size()`
+      // alone place the bar correctly before this middleware existed.
+      const zoomed = scale > 1.01;
+      const originLeft = zoomed ? vv.offsetLeft : 0;
+      const originTop = zoomed ? vv.offsetTop : 0;
+      let minLeft = originLeft + margin;
+      const maxRight = originLeft + vv.width - margin;
+      let minTop = originTop + margin;
+      const maxBottom = originTop + vv.height - margin;
 
       const excluded = getExcludedRect ? getExcludedRect() : null;
       if (excluded && excluded.bottom > minTop) {
