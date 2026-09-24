@@ -291,12 +291,19 @@ export default function PageStrip({
   useEffect(() => {
     const grid = stripRef.current;
     if (!grid) return undefined;
+    const clearDraggingCursor = () => document.documentElement.removeAttribute('data-merge-page-dragging');
     const sortable = Sortable.create(grid, {
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       draggable: `.${styles.page}`,
       filter: `.${styles.caption}, .${styles.action}`,
       preventOnFilter: false,
+      // Native HTML drag owns the OS cursor and changes it back to an arrow
+      // once the drag image leaves the source card. The fallback path keeps
+      // the gesture in pointer events, so our grabbing cursor remains visible
+      // throughout the desktop drag and matches the touch implementation.
+      forceFallback: true,
+      fallbackTolerance: 4,
       // A swipe pans the page; a press-and-hold picks a page up. Without the
       // delay every vertical scroll on a phone would start a drag instead.
       delay: 150,
@@ -305,7 +312,11 @@ export default function PageStrip({
       ghostClass: styles['is-ghost'],
       chosenClass: styles['is-chosen'],
       dragClass: styles['is-dragging'],
+      onStart() {
+        document.documentElement.setAttribute('data-merge-page-dragging', '');
+      },
       onEnd(evt: Sortable.SortableEvent) {
+        clearDraggingCursor();
         if (evt.oldIndex == null || evt.newIndex == null || evt.oldIndex === evt.newIndex) return;
         const { oldIndex, newIndex } = evt;
         const snapshot = planRef.current;
@@ -314,7 +325,10 @@ export default function PageStrip({
         onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: newIndex + 1 }), () => onPlanChange(() => snapshot));
       },
     });
-    return () => sortable.destroy();
+    return () => {
+      clearDraggingCursor();
+      sortable.destroy();
+    };
   }, [stripRef, onPlanChange]);
 
   // Keep focus on the page that was just moved by keyboard, even though its
@@ -555,6 +569,7 @@ export default function PageStrip({
               class={styles.thumb}
               src={thumbnail}
               alt=""
+              draggable={false}
               loading="lazy"
               style={thumbStyle}
               onLoad={(event) => {
