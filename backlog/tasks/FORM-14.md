@@ -33,6 +33,9 @@ are exactly this ("שם פרטי", "שם משפחה", "שנת לידה", "עיס
 
 - Re-measure on top of FORM-13 (the two overlap on itc101) and on any form added since.
 - Decide whether 10 cells is enough evidence for a ratio, or wait for another RTL form.
+- The corpus's `known gap` row "a label hugging its wall over two identically ruled continuation
+  lines" is FORM-13's rule dropping a real label. A caption that hugs its wall is not a heading, so
+  gating FORM-13's rule on this test should flip that row from 5 cells to 6.
 
 ## Acceptance
 

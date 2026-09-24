@@ -1,7 +1,7 @@
 ---
 id: "FORM-13"
 title: "Tell a table's caption row from a writable row"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
@@ -38,10 +38,17 @@ caption to reach past the cell's midpoint. Two false positives, and itc101 preci
   amount box around it; the grey fill is the 21.6pt line-number cell beside it. `pageInk.js` does
   not keep fill colour at all, and no scored form has a non-white filled cell interior, true or
   false positive. The 1040's other false positive, line 1i, is the same shape. Both are FORM-15.
+- **Known gap, from independent review:** the rule reads one column, so a label hugging its wall
+  over identically ruled continuation lines (an address block) is dropped as a heading. No scored
+  form has that shape. It is pinned as a `known gap` corpus row that finds 5 of 6 cells; FORM-14's
+  hugging-versus-centred test is what separates the two.
 
 ## Acceptance
 
 - [x] itc101 precision back to at least 96.7 with recall held at 94.2 (now 97.8), and no scored
   form drops. Re-recorded in `corpus/scoring/baselines.json`.
-- [ ] An element-corpus row pins a caption row over repeating empty rows as not writable.
-- [ ] A `formCells.test.js` case fails without the rule.
+- [x] An element-corpus row pins a caption row over repeating empty rows as not writable ("a
+  captioned header row over three identical empty rows", with its one-row companion). The corpus
+  runner now forwards a case's own `text`, since a caption cannot be expressed without it.
+- [x] A `formCells.test.js` case fails without the rule (header over three identical empty rows:
+  8 cells instead of 6).

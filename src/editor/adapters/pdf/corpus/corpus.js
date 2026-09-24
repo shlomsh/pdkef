@@ -432,6 +432,26 @@ const KNOWN_GAPS = [
     doc: { widgets: [{ widget: 'signature', ...FIELD }] },
     expect: none,
   },
+  {
+    name: 'a label hugging its wall over two identically ruled continuation lines',
+    why: 'an address block: "כתובת" against the right wall of the first line, two more blank lines '
+      + 'ruled the same way under it. FORM-13\'s header rule reads the run of identical empty rows '
+      + 'below and drops the labelled line as a column heading, so this finds 5 of the 6 cells. No '
+      + 'scored form has this shape (independent review, 2026-09-24). What separates it from a '
+      + 'heading is where the caption sits - hugging, not centred - which is FORM-14\'s test; '
+      + 'combining the two should flip this row to 6.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 220, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 2 },
+      ],
+    },
+    // Page-percent on the 400x300 default page: x 250-278 against the right cell's wall at 280,
+    // pdf y 243-251, in the lower half of its 240-260 line, so a side carve rather than a band.
+    text: [{ str: 'כתובת', left: 62.5, top: 16.33, width: 7, height: 2.67 }],
+    expect: { ...none, cells: 5 },
+  },
 ];
 
 const tag = (group, cases) => cases.map((entry) => ({ group, ...entry }));

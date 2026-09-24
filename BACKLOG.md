@@ -491,7 +491,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
-| FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Blocked
@@ -504,6 +503,7 @@ _None._
 | --- | --- | --- |
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 | FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
+| FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 
 ### Retired
 
