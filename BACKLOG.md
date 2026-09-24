@@ -493,6 +493,10 @@ _None._
 | FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 | FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
 | FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |
+| FORM-17 | P2 | [FORM-17](backlog/tasks/FORM-17.md) · A comb with a divider before its last digits is one field, not two |
+| FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
+| FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
+| FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
 
 ### In progress
 
@@ -512,6 +516,7 @@ _None._
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 | FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
+| FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
 
 ### Retired
 

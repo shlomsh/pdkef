@@ -363,6 +363,11 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 | FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
 | FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |
+| FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
+| FORM-17 | P2 | [FORM-17](backlog/tasks/FORM-17.md) · A comb with a divider before its last digits is one field, not two |
+| FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
+| FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
+| FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 
