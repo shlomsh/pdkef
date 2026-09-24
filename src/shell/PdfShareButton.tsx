@@ -9,7 +9,7 @@ export default function PdfShareButton({ visible, onShare, label = 'Share PDF', 
 
   return (
     <button type="button" class={className ?? `${dialogStyles.button} ${dialogStyles.secondary} ${pdfToolStyles['pdf-share-button']}`} onClick={onShare}>
-      {/* Merge's hand-off row (2026-09-13): Share, Compress it and Sign it
+      {/* Merge's hand-off row (2026-09-13): Share, Compress and Sign
           all carry a 16px icon before the label - matched here rather than
           this button's own former 18px, so the three read as one row. */}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
+import { pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
+import { parsePageSelector } from '../../lib/pageSelector.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -721,7 +722,7 @@ export default function PdfSplitTool({
                       already in view - dropped (Shlomi, 2026-09-14).
                       Share appears the moment there is something to share
                       (PdfShareButton's own `visible` prop, not gated behind
-                      a first Download tap); Compress it stays in the row,
+                      a first Download tap); Compress stays in the row,
                       disabled until then, so the row doesn't jump in. */}
                   {selectedCount > 0 && status !== 'error' && (
                     <div class={styles['next-steps']}>
@@ -739,7 +740,7 @@ export default function PdfSplitTool({
                           onClick={() => { void handoffToCompress(); }}
                         >
                           <Shrink size={16} aria-hidden="true" />
-                          Compress it
+                          Compress
                         </button>
                       )}
                     </div>

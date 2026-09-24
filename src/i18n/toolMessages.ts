@@ -143,7 +143,7 @@ export interface MergeMessages {
    * quiet line after the first result in this browser. */
   handoffCompress: string;
   /** Direction A: the Share button in the rail's hand-off row; short, since
-   * it shares one row with Compress it, Sign it and Options on a phone. */
+   * it shares one row with Compress, Sign and Options on a phone. */
   shareLabel: string;
   handoffSign: string;
   handoffFailed: string;
@@ -239,8 +239,8 @@ const englishMergeMessages: MergeMessages = {
   skippedState: ', skipped',
   skippedBadge: 'Skipped',
   rotatePage: 'Rotate page {number}',
-  skipPage: 'Skip page {number}',
-  includePage: 'Include page {number} again',
+  skipPage: 'Hide page {number} from the merged PDF',
+  includePage: 'Show page {number} in the merged PDF',
   openPreview: 'Open page {number} larger',
   pageSkipped: 'Page {number} skipped. It stays here and is left out of the download.',
   pageIncluded: 'Page {number} included again.',
@@ -254,9 +254,9 @@ const englishMergeMessages: MergeMessages = {
   previewSkippedBanner: 'Excluded from the merged file',
   previewSkippedNote: 'Left out of the download.',
   previewIncludeAgain: 'Include it again',
-  handoffCompress: 'Compress it',
+  handoffCompress: 'Compress',
   shareLabel: 'Share',
-  handoffSign: 'Sign it',
+  handoffSign: 'Sign',
   // MEM-03: handoffConfirm* (the "Replace the saved draft?" warning) is gone
   // - MEM-02 dropped its last consumer in PdfMergeTool.tsx alongside the
   // same one-memory-space change this file's Replace-dialog copy reflects.
@@ -285,8 +285,8 @@ const englishMergeMessages: MergeMessages = {
   emptyHeading: 'Drop PDFs here, or paste',
   emptyBody: 'Your pages appear here, in order, before you download. Files never leave your device.',
   tipRotate: 'Rotate',
-  tipSkip: 'Skip',
-  tipBringBack: 'Bring back',
+  tipSkip: 'Hide',
+  tipBringBack: 'Show',
   tipOpen: 'Open',
 };
 
@@ -350,8 +350,8 @@ const hebrewMergeMessages: MergeMessages = {
   skippedState: ', מדולג',
   skippedBadge: 'מדולג',
   rotatePage: 'סיבוב עמוד {number}',
-  skipPage: 'דילוג על עמוד {number}',
-  includePage: 'החזרת עמוד {number}',
+  skipPage: 'הסתרת עמוד {number} מה-PDF המאוחד',
+  includePage: 'הצגת עמוד {number} ב-PDF המאוחד',
   openPreview: 'הגדלת עמוד {number}',
   pageSkipped: 'דילגנו על עמוד {number}. הוא נשאר כאן ולא ייכלל בהורדה.',
   pageIncluded: 'עמוד {number} הוחזר.',
@@ -365,9 +365,9 @@ const hebrewMergeMessages: MergeMessages = {
   previewSkippedBanner: 'לא ייכלל בקובץ המאוחד',
   previewSkippedNote: 'לא ייכלל בהורדה.',
   previewIncludeAgain: 'להחזיר אותו',
-  handoffCompress: 'לכווץ אותו',
+  handoffCompress: 'כיווץ',
   shareLabel: 'שיתוף',
-  handoffSign: 'לחתום עליו',
+  handoffSign: 'חתימה',
   handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   installLine: 'הדף הזה שמור עכשיו בדפדפן, אז האיחוד עובד גם בלי חיבור לאינטרנט.',
   installWithPrompt: 'אפשר גם {install} אותו כמו אפליקציה.',
@@ -395,8 +395,8 @@ const hebrewMergeMessages: MergeMessages = {
   emptyHeading: 'שחררו כאן קבצי PDF, או הדביקו',
   emptyBody: 'העמודים שלכם יופיעו כאן, לפי הסדר, לפני ההורדה. הקבצים לא עוזבים את המכשיר שלכם.',
   tipRotate: 'סיבוב',
-  tipSkip: 'דילוג',
-  tipBringBack: 'החזרה',
+  tipSkip: 'הסתרה',
+  tipBringBack: 'הצגה',
   tipOpen: 'פתיחה',
 };
 

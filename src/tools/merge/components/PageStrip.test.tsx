@@ -239,19 +239,21 @@ describe('PageStrip', () => {
   // not a visible tooltip - each action button carries its own short word in
   // the DOM (CSS shows it on hover/focus; jsdom cannot prove the CSS, only
   // that the text is actually there).
-  it('rotate, skip and open each carry a short tooltip word', () => {
+  it('rotate, hide/show and open each carry a short tooltip word', () => {
     const { rerender } = mount();
     const first = cards()[0];
     const [rotateButton, skipButton, openButton] = first.querySelectorAll(`.${styles.action}`);
     expect(rotateButton.querySelector(`.${styles.tip}`).textContent).toBe('Rotate');
-    expect(skipButton.querySelector(`.${styles.tip}`).textContent).toBe('Skip');
+    expect(skipButton.querySelector(`.${styles.tip}`).textContent).toBe('Hide');
+    expect(skipButton.getAttribute('aria-label')).toBe('Hide page 1 from the merged PDF');
     expect(openButton.querySelector(`.${styles.tip}`).textContent).toBe('Open');
 
     const plan = [...planForFile(1, 2), ...planForFile(2, 2)];
     plan[0] = { ...plan[0], skipped: true };
     rerender({ plan });
     const [, skipButtonAfter] = cards()[0].querySelectorAll(`.${styles.action}`);
-    expect(skipButtonAfter.querySelector(`.${styles.tip}`).textContent).toBe('Bring back');
+    expect(skipButtonAfter.querySelector(`.${styles.tip}`).textContent).toBe('Show');
+    expect(skipButtonAfter.getAttribute('aria-label')).toBe('Show page 1 in the merged PDF');
   });
 
   it('rotate and skip commit a new plan once per tap, announce it, and register one undo (MERGE-09)', async () => {
@@ -289,6 +291,11 @@ describe('PageStrip', () => {
     const card = cards()[2];
     expect(card.hasAttribute('data-skipped')).toBe(true);
     expect(card.textContent).toContain('skipped');
+    // The state line exists for every page, so toggling skipped never changes
+    // one card's flex height and shifts its thumbnail above its neighbours.
+    expect(cards().every((item) => item.querySelector(`.${styles['skipped-word']}`))).toBe(true);
+    expect(cards()[0].querySelector(`.${styles['skipped-word']}`).hasAttribute('data-visible')).toBe(false);
+    expect(card.querySelector(`.${styles['skipped-word']}`).hasAttribute('data-visible')).toBe(true);
     // Numbers are output positions: the skipped page shows the number it
     // would take, and the page after it takes that number for real.
     expect(cards().map((c) => c.querySelector(`.${styles.number}`).textContent)).toEqual(['1', '2', '3', '3']);

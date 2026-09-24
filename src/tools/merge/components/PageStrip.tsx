@@ -585,7 +585,16 @@ export default function PageStrip({
           ) : null}
         </span>
         <span class={styles.number}>{position}</span>
-        {entry.skipped && <span class={styles['skipped-word']}>{t.skippedBadge.toLowerCase()}</span>}
+        {/* Every card reserves the same state line. Previously only a skipped
+            card rendered this flex child, making that card taller; because
+            cards are bottom-aligned, its thumbnail jumped upward. */}
+        <span
+          class={styles['skipped-word']}
+          data-visible={entry.skipped || undefined}
+          aria-hidden={!entry.skipped}
+        >
+          {entry.skipped ? t.skippedBadge.toLowerCase() : '\u00a0'}
+        </span>
         <span class={styles.actions}>
           <button
             type="button"
@@ -621,8 +630,20 @@ export default function PageStrip({
             onClick={() => toggleSkip(entry.key, position)}
           >
             <span class={styles['action-glyph']} aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-                {entry.skipped ? <path d="M3 8.5l3 3 7-7" /> : <path d="M2 2l12 12M4 4.5h8M4 8h8M4 11.5h8" />}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                {entry.skipped ? (
+                  <>
+                    <path d="M2.1 12a10.8 10.8 0 0 1 19.8 0 10.8 10.8 0 0 1-19.8 0Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                ) : (
+                  <>
+                    <path d="m3 3 18 18" />
+                    <path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c4.2 0 7.8 2.6 9.5 7a11.6 11.6 0 0 1-1.2 2.2" />
+                    <path d="M6.7 6.7A11.4 11.4 0 0 0 2.5 12c1.7 4.4 5.3 7 9.5 7 1.5 0 3-.4 4.3-1" />
+                    <path d="M14.1 14.1a3 3 0 0 1-4.2-4.2" />
+                  </>
+                )}
               </svg>
             </span>
             <span class={styles.tip} aria-hidden="true">{entry.skipped ? t.tipBringBack : t.tipSkip}</span>

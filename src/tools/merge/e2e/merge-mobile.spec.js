@@ -7,7 +7,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    the rail's file list, sticky per-file captions, a tap on a page cell that
    reveals that cell's own 44px controls (there is no Edit pages mode any
    more), and the rail collapsing to a sticky bottom sheet (Download, then
-   Share/Compress it/Sign it/Options).
+   Share/Compress/Sign/Options).
    This spec runs under the `webkit` project (added to its testMatch in
    playwright.config.js) at iPhone 15, which is already this size; it also
    runs on `chromium` (the project every other Merge spec uses), where we
@@ -105,6 +105,16 @@ test.describe('Merge on a phone (MERGE-06)', () => {
 
     const chip = work.locator('ul[class*="chip-row"] > li').first();
     await expect(chip).toHaveCSS('user-select', 'none');
+    await expect(chip).toHaveCSS('cursor', 'grab');
+    await expect(chip).toHaveCSS('touch-action', 'pan-y');
+
+    // A chip is a drag target, not a navigation shortcut. Previously its
+    // click handler scrolled to the file caption, so a short/aborted drag
+    // jumped the document to an apparently random location.
+    const scrollBeforeTap = await work.evaluate(() => window.scrollY);
+    await chip.click();
+    await work.waitForTimeout(150);
+    expect(await work.evaluate(() => window.scrollY)).toBe(scrollBeforeTap);
 
     const thumbnail = work.locator('li[data-key] img').first();
     await expect(thumbnail).toBeVisible({ timeout: 10_000 });
@@ -204,11 +214,7 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     expect(download.suggestedFilename()).toBe('merged_a.pdf');
   });
 
-  /* Team-lead follow-up (2026-09-13): the phone "…" popover's entries, top
-     to bottom - Add files, Clear all, Sort (or Reset order once rearranged,
-     never both at once), Add page numbers. Nothing else in it (no
-     "Options"), and it stays inside the viewport. */
-  test('the "…" popover lists Add files, Clear all, Sort, Add page numbers, in that order', async ({ page }, testInfo) => {
+  test('file controls are directly visible and sorting still changes the merged output', async ({ page }, testInfo) => {
     await useMobileViewport(page, testInfo);
     await page.goto('/merge/');
     await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
@@ -220,70 +226,71 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     })));
     await page.locator('input[type="file"]').setInputFiles(files);
 
-    const more = page.locator('summary', { hasText: '⋯' }).first();
-    await expect(more).toBeVisible({ timeout: 10_000 });
-    await more.click();
-
-    const body = page.locator('[class*="chip-menu-body"]').first();
+    const body = page.locator('[data-merge-file-controls]');
     await expect(body).toBeVisible();
     const box = await body.boundingBox();
     const viewport = page.viewportSize();
-    if (!box || !viewport) throw new Error('Popover or viewport unavailable');
+    if (!box || !viewport) throw new Error('Controls or viewport unavailable');
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
 
-    const kinds = await body.evaluate((el) => Array.from(el.children).map((child) => {
-      if (child.matches('label[class*="sort-select-wrap"]')) return 'sort';
-      if (child.matches('[class*="rearranged-note"]')) return 'reset-order';
-      if (child.matches('label[class*="page-numbers-row"]')) return 'page-numbers';
-      if (child.tagName === 'BUTTON') return child.textContent.trim();
-      return child.textContent.trim();
-    }));
-    expect(kinds).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
-    expect(kinds).not.toContain('Options');
+    await expect(body.getByRole('button', { name: 'Add files', exact: true })).toBeVisible();
+    await expect(body.getByRole('button', { name: 'Clear all', exact: true })).toBeVisible();
+    await expect(body.locator('button[aria-haspopup="listbox"]')).toBeVisible();
+    await expect(body.getByRole('checkbox', { name: 'Add page numbers' })).toBeVisible();
+    await expect(page.locator('summary', { hasText: '⋯' })).toHaveCount(0);
+    const cards = page.locator('ul[class*="grid"] > li[data-key]');
+    await expect(cards).toHaveCount(3);
+    await body.locator('button[aria-haspopup="listbox"]').click();
+    await page.getByRole('option', { name: 'Reversed' }).click();
+    await expect(cards.first()).toHaveAttribute('aria-label', /three\.pdf/);
+    await body.getByRole('checkbox').check();
+    await expect(body.getByRole('checkbox')).toBeChecked();
   });
 
-  /* Review finding (2026-09-14): under coarse-pointer emulation the "…"
-     summary measured exactly 36x36 - its `li.chip[data-more]` parent's
-     44px min-height is not part of the summary's own hit box. It now
-     carries the same invisible ::before hit-area overlay as `.action`
-     (PageStrip.module.css) and `.quiet-button` (MergeRail.module.css): a
-     44x44 box centred on the 36px visual. */
-  test('the "…" chip menu summary carries a 44x44 hit-area overlay on touch', async ({ page, browser }, testInfo) => {
-    let work = page;
-    let touchContext;
-    if (testInfo.project.name === 'chromium') {
-      touchContext = await browser.newContext({ viewport: { width: 375, height: 667 }, hasTouch: true, isMobile: true });
-      work = await touchContext.newPage();
-    }
-
-    await work.goto('/merge/');
-    await work.locator('astro-island[client="load"]:not([ssr])').waitFor();
-
-    const files = await Promise.all(['one.pdf', 'two.pdf', 'three.pdf'].map(async (name) => ({
-      name,
-      mimeType: 'application/pdf',
-      buffer: await makePdfBuffer(name),
-    })));
-    await work.locator('input[type="file"]').setInputFiles(files);
-
-    const summary = work.locator('summary', { hasText: '⋯' }).first();
-    await expect(summary).toBeVisible({ timeout: 10_000 });
-    // The 36px visual is unchanged...
-    const visualBox = await summary.boundingBox();
-    if (!visualBox) throw new Error('Chip menu summary has no bounding box');
-    expect(Math.round(visualBox.height)).toBe(36);
-    // ...while the ::before overlay establishes the 44x44 hit area.
-    const overlay = await summary.evaluate((el) => {
-      const cs = getComputedStyle(el, '::before');
-      return { width: parseFloat(cs.width), height: parseFloat(cs.height), position: cs.position };
+  for (const route of ['/merge/', '/he/merge/']) {
+    test(`visible mobile file controls fit in ${route} and leave the desktop controls in place`, async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(route);
+      await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+      await page.locator('input[type="file"]').setInputFiles(await Promise.all(['one.pdf', 'two.pdf'].map(async (name) => ({
+        name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name),
+      }))));
+      const controls = page.locator('[data-merge-file-controls]');
+      for (const width of [320, 375, 768]) {
+        await page.setViewportSize({ width, height: 812 });
+        await expect(controls).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+        const cardBox = await page.locator('[data-hide-identity][data-tool-loaded]').boundingBox();
+        if (!cardBox) throw new Error('Loaded Merge card unavailable');
+        const expectedGutter = width < 560 ? 16 : 24;
+        expect(cardBox.x).toBeLessThanOrEqual(expectedGutter + 1);
+        expect(cardBox.width).toBeGreaterThanOrEqual(width - (expectedGutter * 2) - 1);
+        const controlsBox = await controls.boundingBox();
+        if (!controlsBox) throw new Error('Mobile controls unavailable');
+        expect(controlsBox.height).toBeLessThanOrEqual(56);
+        for (const control of await controls.locator('button, select, label').all()) {
+          await control.scrollIntoViewIfNeeded();
+          await expect(control).toBeVisible();
+          const controlBox = await control.boundingBox();
+          expect(controlBox.x).toBeGreaterThanOrEqual(0);
+          expect(controlBox.x + controlBox.width).toBeLessThanOrEqual(width);
+        }
+        await controls.locator('button[aria-haspopup="listbox"]').click();
+        await page.locator('[role="option"][data-value="reversed"]').click();
+        await expect(page.locator('ul[class*="grid"] > li[data-key]').first()).toHaveAttribute('aria-label', /two\.pdf/);
+        await controls.getByRole('checkbox').check();
+        await expect(controls.getByRole('checkbox')).toBeChecked();
+        await controls.locator('button[aria-haspopup="listbox"]').click();
+        await page.locator('[role="option"][data-value="added"]').click();
+      }
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await expect(controls).toBeHidden();
+      await expect(page.locator('ul[class*="file-list"]')).toBeVisible();
+      await expect(page.locator('[class*="rail-pinned"] a[download]')).toBeVisible();
+      await expect(page.locator('.trust-chips')).toBeVisible();
     });
-    expect(overlay.position).toBe('absolute');
-    expect(Math.round(overlay.width)).toBe(44);
-    expect(Math.round(overlay.height)).toBe(44);
-
-    if (touchContext) await touchContext.close();
-  });
+  }
 
   /* Review finding (2026-09-14): the caption's own negative bottom margin
      (visual tightening, PageStrip.module.css) pulls the first row of its

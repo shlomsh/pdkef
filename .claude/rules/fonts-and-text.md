@@ -6,7 +6,7 @@ paths:
   - "src/editor/text/fontCoverageTable*"
   - "src/tools/sign/signExportReadiness*"
   - "src/editor-ui/FontPickerMenu*"
-  - "src/editor-ui/SignatureDialog*"
+  - "src/tools/sign/components/SignatureDialog*"
   - "src/tools/sign/components/FontSupportNotice*"
   - "src/tools/sign/components/ExportReadinessNotice*"
   - "src/tools/sign/components/nodes/**"

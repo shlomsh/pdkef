@@ -206,14 +206,14 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   6+6+1 or 4+4+4+1, while nine, eleven and twelve all land evenly. That is what decides when an
   optional control stands down, not taste. The counted set is
   `:nth-child(N of :not(.desktop-download):not([role="radiogroup"]))`: Sign counts **twelve** (with
-  Share or without), Redact **nine** (ten once a redacted export exists and "Compress it" appears).
+  Share or without), Redact **nine** (ten once a redacted export exists and "Compress" appears).
   Both are counts that balance, so neither needs a stand-down until the very bottom. Measured
   2026-09-20, every integer viewport from 919px to 220px in headless Chromium: Sign holds one line
   to 694px, wraps 6+6 to 385px, 4+4+4 to 336px, 4+4+3 to 288px and 3+3+3+2 to 239px; **Feedback -
   now the only `[data-optional-control]` on either toolbar, since History and its dialog came out -
   stands down at 335px** (239px of content box), and nothing else does. Redact holds one line to
   544px, wraps 5+4 to 348px and 3+3+3 from 347px, and stands nothing down. Redact's tenth control
-  (the "Compress it" hand-off, which only exists once a redacted export does) puts it on the one
+  (the "Compress" hand-off, which only exists once a redacted export does) puts it on the one
   count that cannot balance: measured one line to 608px, 5+5 to 336px, then 4+4+2 from 335px down.
   That is the shape the file tolerates for ten - a full short row, never a lone control - and no cap
   improves it (three gives 3+3+3+1). It was an eleven, and balanced, until History left.

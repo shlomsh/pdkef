@@ -204,10 +204,12 @@
   color: var(--color-muted);
 }
 
-/* --- error: muted, not disabled --- */
+/* --- error: a status, not a disabled primary button. The palette's berry
+   treatment separates the problem from the surrounding mint and directs
+   attention back to the marked file row above. --- */
 .box[data-state='error'] {
-  background: var(--color-surface-sunken);
-  border-color: var(--color-border);
-  color: var(--color-muted);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 42%, var(--color-surface));
+  color: var(--color-danger);
   cursor: default;
 }

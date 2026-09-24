@@ -54,7 +54,7 @@ configure, so nothing is shown. A `<details>` around a single setting is ceremon
 checkbox row. A setting that changes the output sits directly above the primary control, because that
 is where the eye is when it matters.
 
-"Exists" means ready, not "the person already tapped the primary control." Share and Compress it are
+"Exists" means ready, not "the person already tapped the primary control." Share and Compress are
 gated on the output being prepared, the same instant the primary control's label changes from
 preparing to ready; gating them on `saved` instead (Split's first build did) hides them behind an
 action the person has not taken yet, which is the wrong order for something meant to sit next to
@@ -83,7 +83,7 @@ The rail order that came out of the review, top to bottom, each row a single kin
 3. commands on the list (Add files, Clear all);
 4. the setting that changes the output (Add page numbers);
 5. the primary control (Download);
-6. next steps (Share, Compress it, Sign it), each with its tool's icon.
+6. next steps (Share, Compress, Sign), each with its tool's icon.
 
 Do not mix a setting into a row of commands: a switch among buttons reads as a button. Do not put a
 "·" between buttons; that is link grammar. Reset order, Add files and Clear all are buttons and look
@@ -172,7 +172,7 @@ Three ghost page outlines, "Drop PDFs here, or paste", the privacy line, and Cho
 ## 13. Cross-tool hand-offs, and the reverse
 
 The done state asks "what does this person do with the result next?" and offers the one or two
-honest answers as quiet secondary verbs with the target tool's icon: Compress it, Sign it. Never in
+honest answers as quiet secondary verbs with the target tool's icon: Compress, Sign. Never in
 front of Download, never a sales row, always in the voice. Look for the reverse too: an error or
 empty state that points at the sibling tool that solves it (an encrypted file linking to Unlock, an
 oversized draft to Compress). Candidates already visible: Split → Compress, Merge these; Unlock →
