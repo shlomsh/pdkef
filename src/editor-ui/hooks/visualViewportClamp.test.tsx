@@ -148,16 +148,46 @@ describe('visualViewportClamp', () => {
   });
 
   it('clamps a bar overflowing the left edge back to the margin', () => {
-    installVisualViewport({ scale: 1, offsetLeft: 100, offsetTop: 0, width: 300, height: 900 });
+    // At rest (scale ~1) the visible area's own left edge is simply 0 in
+    // this frame - see the "ignores a stale offsetLeft/offsetTop" test
+    // below for why `offsetLeft` itself must NOT contribute here - so the
+    // overflow is built from the reference sitting left of it, not from a
+    // nonzero `offsetLeft`.
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 300, height: 900 });
     const scenario: Scenario = {
       x: 10, y: 50, floatingWidth: 80, floatingHeight: 30,
       referenceRect: { x: 10, y: 90 },
-      referenceViewportRect: { left: 10, top: 90, width: 10, height: 10 },
+      referenceViewportRect: { left: -40, top: 90, width: 10, height: 10 },
     };
     const result = runClamp(scenario);
     const after = visibleRect(scenario, result.x!, result.y ?? scenario.y, 1);
-    expect(after.left).toBeCloseTo(100 + 4, 5);
+    expect(after.left).toBeCloseTo(0 + 4, 5);
     expect(after.top, 'the vertical edge never overflowed, so it stays put').toBeCloseTo(50, 5);
+  });
+
+  it('ignores a stale offsetLeft/offsetTop while at rest (MOBI-17 follow-up: real iOS keyboard-up regression)', () => {
+    // Measured on a real iPhone 17 simulator, form 101, employer-phone
+    // field: with the keyboard up and the page not pinch-zoomed
+    // (`scale` ~1), `visualViewport.offsetTop` was still 337 even though
+    // `getBoundingClientRect()` kept reporting the field's on-screen
+    // position as if the visible area's own top were 0. Trusting that
+    // `offsetTop` pushed `minTop` to 341, past the bar's already-correct,
+    // already-on-screen `top` of 148.5, and clamped it down near the
+    // bottom of the visible slice - the reported regression. This bar's
+    // `top` must be left alone.
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 337, width: 402, height: 377 });
+    const scenario: Scenario = {
+      x: 148.5, y: 148.5, floatingWidth: 129, floatingHeight: 36,
+      referenceRect: { x: 111.6, y: 184.5 },
+      referenceViewportRect: { left: 111.6, top: 184.5, width: 8.3, height: 8.3 },
+    };
+    // Non-vacuity: this bar really is already inside [0, 377] before the
+    // clamp runs, so a real fix has something to leave alone.
+    const before = visibleRect(scenario, scenario.x, scenario.y, 1);
+    expect(before.top).toBeGreaterThanOrEqual(0);
+    expect(before.bottom).toBeLessThanOrEqual(377);
+
+    expect(runClamp(scenario)).toEqual({});
   });
 
   it('never lets the bar render under the sticky tool strip, pushing its top down to clear it', () => {
