@@ -3,7 +3,6 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "public/fonts",
-  "tags": ["scope:font-assets"],
   "targets": {
     "test": {
       "executor": "nx:run-commands",
