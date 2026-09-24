@@ -1,7 +1,7 @@
 ---
 id: "DEBT-23"
 title: "One page-range parser: PDF to Image reads ranges the way Split does"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "architecture-debt"
 phase: "quick-win"
@@ -30,3 +30,10 @@ different answer in two tools.
 
 - One `parsePageSelector` in the repo; PDF to Image accepts `8-` and `-4`; both tools' unit tests
   and e2e stay green.
+
+## Result (2026-09-24)
+
+`src/lib/pageSelector.js` is the one parser (Split's behaviour) with a `PageSelectorError` type;
+Split and PDF to Image both import it. PDF to Image now accepts `8-` and `-4` and bound-checks every
+page; it used to recognise selector errors by matching message text, which the shared messages
+would have silently broken, and now checks the error type. Placeholder and FAQ answer updated.
