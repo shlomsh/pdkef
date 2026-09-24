@@ -71,6 +71,19 @@ export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for th
 // down to a 12px slit first, whatever is written in it.
 export const COMB_MIN_CELL_EM = 0.6;
 export const MAX_COMB_CELLS = 60;                       // Upper bound on the cell stepper
+// MOBI-31: the cell-pitch floor above is a lower bound only. The real
+// collapse threshold is the comb's own text laid out plain (unspaced) at the
+// same font/size - measured at grab time from the hidden
+// `[data-text-part="measure"]` node (see useElementResize.js and
+// TextNode.tsx), not estimated - so a comb can never be narrowed to where its
+// characters stop fitting side by side without turning back into plain text
+// first (a 9-digit comb on real iOS Safari used to narrow well past that
+// point, with the digits overflowing both edges of the box). Subtracted from
+// the measured width before it becomes the floor, so a comb whose cells
+// equal the text's own glyph advance sits fractionally past the collapse
+// point rather than exactly on it, where sub-pixel drag jitter would flicker
+// collapsed/uncollapsed every other frame.
+export const COMB_NATURAL_WIDTH_TOLERANCE_PX = 1;
 // How tall a digit or capital stands above the baseline, as a fraction of the
 // font size - the cap height. ~0.72em for the text faces (Arimo is 0.716) and
 // close enough for the handwriting ones. Used to fit a comb's glyphs inside a

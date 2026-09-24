@@ -76,6 +76,51 @@ describe('combWidthFloor', () => {
     // return a garbage percentage derived from a zero width.
     expect(combWidthFloor({ element: text(), fontSizePx: 12, pageWidthPx: 0 })).toBe(2);
   });
+
+  describe('MOBI-31: the measured natural text width raises the floor past the cell-pitch minimum', () => {
+    // 9 digits, matching the ID-comb field verified on real iOS Safari: the
+    // cell-pitch floor alone (9 x 12px x 0.6em / 600px = 10.8%) let the box
+    // narrow well past where the digits themselves still fit, so they
+    // overflowed both edges of the box instead of the comb collapsing back
+    // to plain text.
+    const nineDigits = text({ text: '038212345' });
+
+    it('is ignored (falls back to the cell floor) when nothing was measured', () => {
+      expect(combWidthFloor({ element: nineDigits, fontSizePx: 12, pageWidthPx: 600 })).toBeCloseTo(10.8);
+      expect(combWidthFloor({ element: nineDigits, fontSizePx: 12, pageWidthPx: 600, naturalWidthPx: 0 })).toBeCloseTo(10.8);
+    });
+
+    it('wins over the cell floor once it measures wider, minus the flicker tolerance', () => {
+      // 90px of a 600px page is 15%, comfortably past the 10.8% cell floor.
+      expect(combWidthFloor({ element: nineDigits, fontSizePx: 12, pageWidthPx: 600, naturalWidthPx: 90 }))
+        .toBeCloseTo(14.8333, 3); // (90 - 1px tolerance) / 600 * 100
+    });
+
+    it('never beats the cell floor when it measures narrower (a short comb in a huge font)', () => {
+      expect(combWidthFloor({ element: nineDigits, fontSizePx: 12, pageWidthPx: 600, naturalWidthPx: 5 }))
+        .toBeCloseTo(10.8);
+    });
+  });
+});
+
+describe('MOBI-31: a comb collapses at its natural text width, not just the cell floor', () => {
+  // Same 9-digit field and page as above: natural width (90px = 15%, minus
+  // tolerance) is the higher, real floor.
+  const nineDigits = { id: 't', type: 'text', pageIndex: 0, left: 0, top: 0, text: '038212345', fontSize: 12 } as never;
+  const minWidth = combWidthFloor({ element: nineDigits, fontSizePx: 12, pageWidthPx: 600, naturalWidthPx: 90 });
+  const start = { left: 0, width: 20 };
+
+  it('narrowed to just below its natural width, it reports collapsed', () => {
+    const overshoot = start.width - minWidth + 0.1;
+    expect(applyCombWidth({ handle: 'right', delta: { x: -overshoot }, start, isRtl: false, minWidth }).collapsed)
+      .toBe(true);
+  });
+
+  it('narrowed to just above its natural width, it does not', () => {
+    const approach = start.width - minWidth - 0.1;
+    expect(applyCombWidth({ handle: 'right', delta: { x: -approach }, start, isRtl: false, minWidth }).collapsed)
+      .toBe(false);
+  });
 });
 
 describe('applyTextResize', () => {
