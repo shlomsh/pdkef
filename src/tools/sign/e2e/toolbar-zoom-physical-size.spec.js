@@ -354,6 +354,29 @@ async function pinchZoomToward(page, context, point, scaleFactor) {
   await page.waitForTimeout(300);
 }
 
+/**
+ * MOBI-17 (flake fix): `measure()`'s `insideViewport`, polled rather than
+ * read once. Floating UI's `autoUpdate` repositions the bar off a
+ * `ResizeObserver` on the floating element itself, so growing it from the
+ * compact bar to the full `ElementToolbar` (more buttons, more rows) can take
+ * more than one observer/rAF tick to fully converge - `toBeAttached()` on the
+ * new buttons only proves they exist in the DOM, not that `visualViewportClamp`
+ * has finished clamping their container into view. Confirmed by capturing the
+ * measured rect at the moment of a failing assertion and again 500ms later
+ * (repeat-each=20, `-g` narrowed to this suite): every failure had `anchorX`
+ * and `physicalGapPx` still visibly moving toward, and `insideViewport` always
+ * `true` by, the 500ms mark - a still-settling position, not a wrong one.
+ * Bounded well past that measured settle time, not a blind long sleep.
+ */
+async function assertEventuallyInsideViewport(page, scale, direction, label) {
+  await expect
+    .poll(async () => (await measure(page, scale, direction)).insideViewport, {
+      message: label,
+      timeout: 2000,
+    })
+    .toBe(true);
+}
+
 for (const doc of DOCUMENTS) {
   for (const edge of ['left', 'right']) {
     test(`${doc.name}, field near the ${edge} edge: the toolbar stays inside the visual viewport after a real pinch-zoom-and-pan`, async ({ page, context }) => {
@@ -368,8 +391,10 @@ for (const doc of DOCUMENTS) {
       const point = pinchCenterFor(fieldBox, edge);
       await pinchZoomToward(page, context, point, PINCH_SCALE);
 
-      const compact = await measure(page, PINCH_SCALE, doc.direction);
-      expect(compact.insideViewport, `compact bar: inside visualViewport after a ${PINCH_SCALE}x pinch+pan toward the ${edge} edge`).toBe(true);
+      await assertEventuallyInsideViewport(
+        page, PINCH_SCALE, doc.direction,
+        `compact bar: inside visualViewport after a ${PINCH_SCALE}x pinch+pan toward the ${edge} edge`,
+      );
 
       // force: true - the whole point of this test is a page whose visual
       // rendering is zoomed/panned; Playwright's own actionability checks
@@ -380,8 +405,10 @@ for (const doc of DOCUMENTS) {
       await activeActions(page).getByRole('button', { name: 'Formatting options' }).click({ force: true });
       await expect(activeActions(page).getByRole('button', { name: 'Delete element' })).toBeAttached();
 
-      const expanded = await measure(page, PINCH_SCALE, doc.direction);
-      expect(expanded.insideViewport, `full toolbar: inside visualViewport after a ${PINCH_SCALE}x pinch+pan toward the ${edge} edge`).toBe(true);
+      await assertEventuallyInsideViewport(
+        page, PINCH_SCALE, doc.direction,
+        `full toolbar: inside visualViewport after a ${PINCH_SCALE}x pinch+pan toward the ${edge} edge`,
+      );
     });
   }
 }
