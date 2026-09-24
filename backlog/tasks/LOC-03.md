@@ -223,3 +223,29 @@ months, web: `מיזוג pdf` averages about 60, `איחוד pdf` about 52, `צ�
   cluster and should not count toward this ticket's read.
 
 Shipped the same day; reviewedAt on the merge and home files is 2026-09-17.
+
+## 2026-09-24: /he/sign/ leads with filling a form, on the fill-form SERPs
+
+Shlomi searched `מילוי טופס pdf חינם` and `מילוי טופס pdf אונליין חינם`; we were absent. His SERP
+screenshots of `מילוי טופס PDF ללא אינטרנט` and `מילוי טופס PDF אונליין בחינם` (2026-09-24):
+
+- **Page one is tool pages only**, even for the offline phrasing: PDF24 (edit-pdf at #1 on both,
+  fill-out-pdf, create-fillable), Adobe fill-sign, Sejda, WPS sign-pdf, AvePDF, mFax, i2PDF, Zendocs,
+  simplesign.co.il. So the draft guide `/he/offline-pdf-form-filler/` is the wrong page type for these
+  queries; `/he/sign/` is the page that competes. The guide stays draft.
+- **The winning titles carry fill + form + PDF + online (+ free)**: `מילוי טופס PDF אונליין בעברית`,
+  `מלא וחתום על PDF באופן מקוון בחינם`, `מילוי טופס PDF: מלא את טופס ה-PDF שלך באינטרנט בחינם`.
+  Ours led with `חתימה על PDF` and had neither `טופס` nor `אונליין`.
+- **Capability is not the gap.** PDF24's edit-pdf (#1) overlays text on the page like Sign does; it
+  does not fill AcroForm fields (Shlomi tried it on our practice form).
+- **Small sites get in**: mFax (#7) with our own pitch ("הקובץ לא יוצא מהמכשיר, בלי העלאה") and
+  simplesign.co.il. "People also search for" includes `מילוי טופס pdf בעברית`.
+
+Changed on Shlomi's approval, nothing else in the file: `seoTitle` from
+`'חתימה על PDF בחינם - מילוי טפסים, בלי הרשמה | PDkef'` to
+`'מילוי וחתימה על טופס PDF אונליין בחינם, גם בעברית | PDkef'`; h1 from
+`'חתימה על PDF בחינם: מילוי וחתימה על טפסים בדפדפן'` to `'מילוי וחתימה על טופס PDF בחינם, בדפדפן'`;
+`seoDescription` now opens `מלאו וחתמו על טופס PDF אונליין בחינם`. `אונליין` means "in the browser,
+nothing to install", as mFax uses it; the file still never leaves the device. Accepted risk: the exact
+phrase `חתימה על PDF` leaves the title, where sign-family queries already sat at 46 to 79. The 11-06
+read counts sign-family and fill-family queries separately from this date.
