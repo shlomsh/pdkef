@@ -334,7 +334,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
 
 ### Blocked
 
@@ -383,6 +385,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
+| DEBT-23 | P2 | [DEBT-23](backlog/tasks/DEBT-23.md) · One page-range parser: PDF to Image reads ranges the way Split does |
 
 ### Blocked
 
