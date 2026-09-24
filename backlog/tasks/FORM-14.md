@@ -1,7 +1,7 @@
 ---
 id: "FORM-14"
 title: "A caption centred in its cell is a heading, not a label"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
