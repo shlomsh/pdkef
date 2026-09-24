@@ -158,13 +158,20 @@ exists to prevent.
 | `itc101` | 139 | 94.2% | 95.6% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
+| `thai-pnd90-2565` | 105 | 52.4% | 23.5% | Thai, live AcroForm, dense, dotted leaders |
+| `thai-lor-yor-01-2562` | 57 | 100% | 100% | Thai, live AcroForm, sparse |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
 we find them. What those two rows really watch is the widget pass continuing to work and the ink
 pass not going greedy beside it: on the 1040's crowded page the detector emits 90 candidates for 88
 targets, and the 2 that do not match (one of them the line 6c amount box) are printed-geometry cells
-the widgets do not corroborate. The
+the widgets do not corroborate. The two Thai forms are self-labelling the same way (FORM-16), and
+their two very different scores are what makes that visible: `thai-lor-yor-01-2562` is sparse enough
+that the widget pass alone gets it to a genuine 100%/100%, while `thai-pnd90-2565`'s dense page 3
+drops to 52.4%/23.5% because its answer combs carry an internal divider (between the whole-number
+group and its two-digit satang group) that the ink-based comb reader misreads as a field boundary -
+see that form's `baselines.json` note for the measured breakdown. The
 forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
 field is.
 
@@ -223,7 +230,9 @@ No new test code; a row and a file.
    though we report it as text today. A truth file written to match our output scores 100% and
    measures nothing.
    If the form is a live AcroForm, skip all of this - its widgets *are* the truth, and
-   `scripts/generate-practice-form-truth.mjs` shows how to derive it exactly.
+   `scripts/generate-live-form-truth.mjs` shows how to derive it exactly: one widget walker shared
+   by every live-AcroForm entry, each supplying only its own label source, kind rule and exclusion
+   rule.
 3. **Record the baseline.** `node scripts/score-form.mjs --pdf <file> --truth <truth.json>` prints
    the row to paste, the per-kind breakdown and what it missed. Read the numbers before you write
    them down. `--all` re-scores every form and exits non-zero on a drop.
