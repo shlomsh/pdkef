@@ -4,7 +4,11 @@
 // scan `npm run test:module-boundaries` runs. classify()/ruleViolation() are the
 // checker's own exported helpers - this file is not a reimplementation of them.
 import { describe, expect, it } from 'vitest';
-import { classify, ruleViolation, specRouteViolation, testImportViolation } from './check-module-boundaries.mjs';
+import {
+  classify, ruleViolation, specRouteViolation, testImportViolation,
+  scriptSrcSpecifiers, commonLayerConsumers, commonLayerConsumerViolations,
+  astroScriptSrcEdges, buildEdges,
+} from './check-module-boundaries.mjs';
 
 function check(from, to) {
   return ruleViolation(classify(from), classify(to), to);
@@ -231,5 +235,157 @@ describe('rule 7: a tool spec under src/tools/<t>/e2e/ may only reference its ow
       "await page.goto('/sign');",
     ].join('\n');
     expect(specRouteViolation('src/tools/sign/e2e/sign-editor.spec.js', source, routeMap)).toEqual([]);
+  });
+});
+
+describe('rule 9: scriptSrcSpecifiers() finds a layout\'s <script src="...">', () => {
+  it('finds a relative src', () => {
+    expect(scriptSrcSpecifiers('<script src="../shell/homeWorkspace.ts"></script>'))
+      .toEqual(['../shell/homeWorkspace.ts']);
+  });
+
+  it('finds a root-relative src', () => {
+    expect(scriptSrcSpecifiers('<script src="/js/foo.ts"></script>')).toEqual(['/js/foo.ts']);
+  });
+
+  it('ignores an external/absolute src', () => {
+    expect(scriptSrcSpecifiers('<script src="https://example.com/x.js"></script>')).toEqual([]);
+  });
+
+  it('ignores an inline script with no src', () => {
+    expect(scriptSrcSpecifiers('<script>console.log("hi");</script>')).toEqual([]);
+  });
+
+  it('finds more than one tag in the same file', () => {
+    const source = '<script src="./a.ts"></script>\n<div/>\n<script type="module" src="./b.ts"></script>';
+    expect(scriptSrcSpecifiers(source)).toEqual(['./a.ts', './b.ts']);
+  });
+});
+
+describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consumers', () => {
+  // Small literal reverse-edge maps ("who imports me", target -> Set of
+  // importers), the same "not the real src/pages/ derivation" style rule
+  // 7's routeMap uses above - classify() still does the real work, these
+  // paths are just real enough for it to recognize.
+  function reverseGraph(pairs) {
+    const map = new Map();
+    for (const [to, from] of pairs) {
+      if (!map.has(to)) map.set(to, new Set());
+      map.get(to).add(from);
+    }
+    return map;
+  }
+
+  it('a module nothing imports has zero consumers (the zero-consumer fixture)', () => {
+    const graph = reverseGraph([]);
+    expect(commonLayerConsumers('src/lib/orphan.js', graph)).toEqual(new Set());
+  });
+
+  it('a module one tool imports has exactly one consumer (the single-consumer fixture)', () => {
+    const graph = reverseGraph([
+      ['src/lib/single.js', 'src/tools/merge/PdfMergeTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/lib/single.js', graph)).toEqual(new Set(['tool:merge']));
+  });
+
+  it('two different tools both count, distinctly', () => {
+    const graph = reverseGraph([
+      ['src/lib/shared.js', 'src/tools/merge/PdfMergeTool.tsx'],
+      ['src/lib/shared.js', 'src/tools/sign/PdfSignTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/lib/shared.js', graph)).toEqual(new Set(['tool:merge', 'tool:sign']));
+  });
+
+  it('the same tool importing from two of its own files is still one consumer', () => {
+    const graph = reverseGraph([
+      ['src/lib/shared.js', 'src/tools/merge/PdfMergeTool.tsx'],
+      ['src/lib/shared.js', 'src/tools/merge/mergePlan.ts'],
+    ]);
+    expect(commonLayerConsumers('src/lib/shared.js', graph)).toEqual(new Set(['tool:merge']));
+  });
+
+  it('a chain through another common-layer module still counts, credited to the tool that reaches it (lib -> lib -> tool)', () => {
+    const graph = reverseGraph([
+      ['src/lib/inner.js', 'src/lib/outer.js'],
+      ['src/lib/outer.js', 'src/tools/merge/PdfMergeTool.tsx'],
+      ['src/lib/outer.js', 'src/tools/sign/PdfSignTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/lib/inner.js', graph)).toEqual(new Set(['tool:merge', 'tool:sign']));
+  });
+
+  it('editor is special: an editor module reached only through editor-ui counts via the tools that reach editor-ui', () => {
+    const graph = reverseGraph([
+      ['src/editor/registry/renderers.ts', 'src/editor-ui/ElementToolbar.tsx'],
+      ['src/editor-ui/ElementToolbar.tsx', 'src/tools/sign/PdfSignTool.tsx'],
+      ['src/editor-ui/ElementToolbar.tsx', 'src/tools/redact/PdfRedactTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/editor/registry/renderers.ts', graph))
+      .toEqual(new Set(['tool:sign', 'tool:redact']));
+  });
+
+  it('two different site files reached through a chain both count, distinctly (a page importing a layout)', () => {
+    const graph = reverseGraph([
+      ['src/shell/homeWorkspace.ts', 'src/layouts/HomePageLayout.astro'],
+      ['src/layouts/HomePageLayout.astro', 'src/pages/index.astro'],
+    ]);
+    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', graph))
+      .toEqual(new Set(['src/layouts/HomePageLayout.astro', 'src/pages/index.astro']));
+  });
+
+  it('one site file plus one tool is two distinct consumers', () => {
+    const graph = reverseGraph([
+      ['src/lib/maintenanceTelemetry.ts', 'src/layouts/BaseLayout.astro'],
+      ['src/lib/maintenanceTelemetry.ts', 'src/tools/sign/PdfSignTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/lib/maintenanceTelemetry.ts', graph))
+      .toEqual(new Set(['src/layouts/BaseLayout.astro', 'tool:sign']));
+  });
+
+  it('i18n and data modules count as site too', () => {
+    const graph = reverseGraph([
+      ['src/lib/platform.ts', 'src/i18n/toolMessages.ts'],
+      ['src/lib/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
+    ]);
+    expect(commonLayerConsumers('src/lib/platform.ts', graph))
+      .toEqual(new Set(['src/i18n/toolMessages.ts', 'tool:merge']));
+  });
+
+  it('a dead end (components, test-support, unclassified) is not counted and not walked past', () => {
+    const graph = reverseGraph([
+      ['src/lib/onlyComponents.js', 'src/components/HeroDemo/ScrollDriver.tsx'],
+      ['src/components/HeroDemo/ScrollDriver.tsx', 'src/tools/merge/PdfMergeTool.tsx'], // would count if walked past
+      ['src/lib/onlyTest.js', 'src/test/setup.js'],
+      ['src/test/setup.js', 'src/tools/sign/PdfSignTool.tsx'], // would count if walked past
+    ]);
+    expect(commonLayerConsumers('src/lib/onlyComponents.js', graph)).toEqual(new Set());
+    expect(commonLayerConsumers('src/lib/onlyTest.js', graph)).toEqual(new Set());
+  });
+});
+
+describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
+  it('is green: every shell/editor-ui/editor/lib module not in RULE9_EXCEPTIONS has two or more consumers', () => {
+    expect(commonLayerConsumerViolations()).toEqual([]);
+  });
+
+  it('SignatureDialog.tsx is no longer in editor-ui to check (ARCH-25 moved it into src/tools/sign/)', () => {
+    const stillThere = commonLayerConsumerViolations().some((v) => v.file.includes('SignatureDialog'));
+    expect(stillThere).toBe(false);
+  });
+
+  it('the <script src="..."> pass is load-bearing: without it, src/shell/homeWorkspace.ts would read as zero-consumer', () => {
+    const { edges } = buildEdges();
+    const withoutScriptSrc = new Map();
+    for (const { from, to } of edges) {
+      if (!withoutScriptSrc.has(to)) withoutScriptSrc.set(to, new Set());
+      withoutScriptSrc.get(to).add(from);
+    }
+    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', withoutScriptSrc)).toEqual(new Set());
+
+    const withScriptSrc = new Map();
+    for (const { from, to } of [...edges, ...astroScriptSrcEdges()]) {
+      if (!withScriptSrc.has(to)) withScriptSrc.set(to, new Set());
+      withScriptSrc.get(to).add(from);
+    }
+    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', withScriptSrc).size).toBeGreaterThanOrEqual(2);
   });
 });
