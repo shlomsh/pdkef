@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import EditorToolStatus from './EditorToolStatus.tsx';
+import EditorToolStatus, { type ToolCopy } from './EditorToolStatus.tsx';
 import styles from './SignToolbar.module.css';
 
 /* The per-tool behaviour of the status line (which sentence, what the switch
@@ -11,9 +11,9 @@ import styles from './SignToolbar.module.css';
    state so the row's height never depends on which state it is in. */
 describe('EditorToolStatus', () => {
   let container: HTMLDivElement;
-  const TOOLS = [
-    { action: 'Click and drag on a page to draw a blackout box.', button: 'Blackout' },
-    { action: 'Click a highlighted image or text run to delete it from the file.', button: 'Delete' },
+  const TOOLS: ToolCopy[] = [
+    { action: 'Click and drag on a page to draw a blackout box.', actionTouch: 'Tap and drag to black out an area.', button: 'Blackout' },
+    { action: 'Click a highlighted image or text run to delete it from the file.', actionTouch: 'Tap something highlighted to delete it.', button: 'Delete' },
   ];
 
   beforeEach(() => {
@@ -89,6 +89,14 @@ describe('EditorToolStatus', () => {
 
   // Both labels are in the switch and CSS picks by width, so the accessible
   // name is settled by the stylesheet and never by a resize listener.
+  // The touch sentence rides in the same row as the mouse one, so a reservation
+  // row carries both too and measures whichever one CSS shows on this device.
+  it('renders the mouse and the touch sentence side by side, for CSS to pick one', () => {
+    mount({ copy: TOOLS[0] });
+    expect(shown().querySelector(`.${styles['action-long']}`)?.textContent).toBe(TOOLS[0].action);
+    expect(shown().querySelector(`.${styles['action-touch']}`)?.textContent).toBe(TOOLS[0].actionTouch);
+  });
+
   it('renders the long and the short keep-on label in the switch', () => {
     mount({ copy: TOOLS[0], keepOnLabel: 'Keep {button} on', keepOnShort: 'Keep on' });
     const toggle = container.querySelector<HTMLButtonElement>('[role="switch"]')!;
@@ -174,12 +182,28 @@ describe('EditorToolStatus', () => {
       expect(host.querySelector(`.${styles['field-nav']}`)).toBeNull();
     });
 
-    it('is present and active even while idle, unlike the armed-row stack', () => {
+    it('is present and active when the caller passes one, unlike the armed-row stack', () => {
       const host = mount({ fieldNav });
       expect(host.querySelector(`.${styles['field-nav']}`)).not.toBeNull();
       expect(host.hasAttribute('data-status-active')).toBe(true);
       // Not one of the stack's own rows.
       expect(rows()).toHaveLength(1 + TOOLS.length);
+    });
+
+    // SIGN-30, regressed by e114c8c: `fieldNav` still mounts only while
+    // somebody is filling fields; what must not move is the row's height.
+    // The reservation holds while the arrows are absent and steps aside once
+    // they are there to take the space themselves (jsdom applies no CSS, so
+    // the heights are e2e/tool-toolbars/toolbar-arm-no-shift.spec.js's job).
+    it('reserves the arrows\' footprint while they are absent, and only then', () => {
+      const idle = mount({ reserveFieldNav: true });
+      expect(idle.className).toContain(styles['help-reserve-nav']);
+      expect(idle.querySelector(`.${styles['field-nav']}`)).toBeNull();
+
+      const armed = mount({ fieldNav, reserveFieldNav: true });
+      expect(armed.className).not.toContain(styles['help-reserve-nav']);
+
+      expect(mount().className).not.toContain(styles['help-reserve-nav']);
     });
 
     it("disables each button by its own hasNext/hasPrevious, independently of the other", () => {
