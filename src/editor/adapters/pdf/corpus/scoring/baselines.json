@@ -115,6 +115,36 @@
         "checkbox": 100
       },
       "sha256": "780f348c34df694bb0b4dbbfaf9f22b99b9757b80d16a37ba89aadf069597281"
+    },
+    "thai-sso-1-10": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/thai-sso-1-10.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/thai-sso-1-10-page1.json",
+      "pageIndex": 0,
+      "note": "Social Security Office form สปส.1-10 part 1 (monthly contribution list), landscape, page 1 of 4. The first flat Thai form (FORM-16): no widgets, so its 46 targets were annotated by eye from a render, snapped to the page's own ink and glyph positions, and checked by Shlomi against the overlay (2026-09-24). Its legacy Thai fonts have no ToUnicode and swap ำ and า in extraction, so the text pass reads slightly wrong words; labels in the truth are read from the page, not the extraction. Decided while annotating: the employer account number is one 10-digit comb although the print groups it 2-7-1 with dashes, and the postcode/phone/fax parts and the day/month/year parts are separate fields because each has its own printed label. Today the detector sees only the item table: 8 of its ruled amount cells match, and the one false positive merges items 3 and 4's baht cells into one box. Everything else is missed: the two combs, the four checkboxes (printed as Wingdings glyphs, so there is no ink square to find), and every dotted-leader field (text, date, signature), because a dotted leader is text, not ruled ink. Source: https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/918a5ffc639945c7890f199112922f09.pdf.",
+      "recall": 17.4,
+      "precision": 88.9,
+      "byKind": {
+        "text": 26.7,
+        "date": 0,
+        "comb": 0,
+        "checkbox": 0,
+        "signature": 0
+      },
+      "sha256": "71881457c8f488e1957135c5d6dd657f6d2a6b9666c5d3e6b6954ffe99890234"
+    },
+    "hmrc-sa100-2026": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/hmrc-sa100-2026.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/hmrc-sa100-2026-page6.json",
+      "pageIndex": 5,
+      "note": "HMRC SA100 (2026) Self Assessment tax return, page TR 4 (tax reliefs, charitable giving, Blind Person's Allowance; 0-based pageIndex 5 of 10). Crown copyright, Open Government Licence v3.0. The first flat English form (FORM-16): annotated by eye, snapped to the page's ink, and checked by Shlomi against the overlay (2026-09-24). This page was picked because it carries all three of the form's answer shapes (amount boxes, tick boxes, a text box) and none of its 4 widgets. Each amount box is 11 separately painted squares: a '£' cell, 8 digit cells and 2 pre-printed '0' pence cells; the target is the 8 digit cells a person writes in. The detector reports no comb at all here: it emits 88 checkbox candidates, 8 per amount box, consistent with reading each digit square as a tick box, so all 11 amount targets are missed and those 88 squares are the false positives (plus one text cell). The 3 tick boxes and the text box are found. Source: https://assets.publishing.service.gov.uk/media/69c14d07cfa346b9d4704a8d/SA100-2026.pdf.",
+      "recall": 26.7,
+      "precision": 4.3,
+      "byKind": {
+        "comb": 0,
+        "checkbox": 100,
+        "text": 100
+      },
+      "sha256": "53841ec2138b5d1ccd8e69ae402b35e6e3a04f17556bb3b0829f55b47f51b506"
     }
   }
 }
