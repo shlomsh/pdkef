@@ -81,7 +81,7 @@ describe('ownerOf', () => {
   // now for every project, derived from directory ownership instead of a
   // hand-kept regex list.
   it.each([
-    ['src/shell/FileDropzone.tsx', 'shell'],
+    ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor/workspace/useEditorDraftPersistence.ts', 'editor'],
     ['src/editor-ui/ElementToolbar.tsx', 'editor-ui'],
     ['src/lib/format.js', 'lib'],
@@ -484,7 +484,7 @@ describe('deriveScope', () => {
 
   it('still widens to everything on a shell change', () => {
     const scope = deriveScope({
-      files: ['src/shell/FileDropzone.tsx'],
+      files: ['src/shell/BasePdfTool.tsx'],
       affected: ['shell', 'tool-merge'],
       roots: ROOTS,
     });

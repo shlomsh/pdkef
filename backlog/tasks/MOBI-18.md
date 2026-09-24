@@ -53,7 +53,7 @@ The form is pinned by hash into the detector corpus, so this is not a drawing ch
   than baselined down.
 - `src/tools/redact/practiceFormContent.test.js` and anything asserting on the header band
   geometry (`generate-practice-form.mjs:94` draws it at the page's full 680 width).
-- `src/shell/FileDropzone.tsx` draws a page-shaped placeholder (`viewBox="0 0 64 84"`, ~3:4) beside
+- `src/site-lib/FileDropzone.tsx` draws a page-shaped placeholder (`viewBox="0 0 64 84"`, ~3:4) beside
   the offer. A portrait A4 finally matches it.
 
 ## The benchmark, stated
