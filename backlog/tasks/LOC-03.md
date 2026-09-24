@@ -256,3 +256,7 @@ impressions at 65.5, so the exact phrase leaving the title was costing nothing m
 3 impressions: `מילוי קובץ pdf` 1 at 18, `חתימה על טופס במחשב` 1 at 46, `מילוי טופס מקוון` 1 at 79; the
 queries Shlomi searched have no row. Pages: `/he/sign/` 3 clicks / 124 at 47.7, `/he/merge/` 2 / 149 at
 26.3, `/he/compress/` 0 / 47 at 45.5.
+Same export by country: Israel is second by clicks (22 clicks, 369 impressions, position 32.8, CTR
+6.0%) after India (119 / 2,500). The `/he/` pages account for 5 of those clicks, so most Israeli
+clicks land on English pages or come through anonymized queries; some may be our own testing. Next
+instrument: the same export filtered to Israel (Pages and Queries tabs).
