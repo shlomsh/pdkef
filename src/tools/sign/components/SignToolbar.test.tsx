@@ -366,6 +366,66 @@ describe('SignToolbar Component', () => {
       expect(shapesBtn.className).toContain(styles.locked);
     });
 
+    // SIGN-30: picking a different shape from the menu is re-arming the same
+    // Shapes family, not switching tools - a locked Shapes must stay locked
+    // when the person then picks Rectangle instead of Ellipse. It used to
+    // drop the lock: chooseShape dispatched a bare SET_TOOL, which always
+    // clears `toolLocked` (SignToolContext.tsx).
+    it('stays locked when a different shape is picked from the menu after locking', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+
+      const shapesBtn = findButton('Shapes');
+      await act(async () => {
+        shapesBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+      expect(state.selectedTool).toBe('rectangle');
+      expect(state.toolLocked).toBe(true);
+
+      await act(async () => {
+        shapesBtn.click();
+      });
+      const ellipse = findExactButton(document.body, 'Ellipse');
+      await act(async () => {
+        ellipse.click();
+      });
+
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(true);
+    });
+
+    // The lock-leak case a reviewer caught: `toolLocked` describes whichever
+    // tool is CURRENTLY locked, not "Shapes" specifically. If Text was the
+    // locked tool when the Shapes menu happened to be opened, picking Ellipse
+    // must arm it unlocked - carrying Text's lock over would lock a tool
+    // nobody double-clicked.
+    it('does not carry another tool\'s lock onto a shape picked from the menu', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+
+      const textBtn = findButton('Text');
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+      expect(state.selectedTool).toBe('text');
+      expect(state.toolLocked).toBe(true);
+
+      const shapesBtn = findButton('Shapes');
+      await act(async () => {
+        shapesBtn.click();
+      });
+      const ellipse = findExactButton(document.body, 'Ellipse');
+      await act(async () => {
+        ellipse.click();
+      });
+
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(false);
+    });
+
     it('locks the last shape picked even after its one placement disarmed the tool', async () => {
       let state!: SignToolState;
       let dispatch!: SignDispatch;
@@ -429,6 +489,38 @@ describe('SignToolbar Component', () => {
 
       expect(state.selectedTool).toBe('rectangle');
       expect(state.toolLocked).toBe(true);
+    });
+
+    // SIGN-31: on touch (the test setup's matchMedia reports a coarse pointer)
+    // a phone sends no dependable dblclick, so two quick taps lock instead.
+    // `click()` is a tap here: the clicks land well inside DOUBLE_TAP_MS.
+    it('on touch, one tap opens the Shapes menu and a second quick tap locks the last shape', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+      const shapesBtn = findButton('Shapes');
+
+      await act(async () => { shapesBtn.click(); });
+      expect(document.body.querySelector('[role="menu"]')).not.toBeNull();
+      expect(state.toolLocked).toBe(false);
+
+      await act(async () => { shapesBtn.click(); });
+      expect(state.selectedTool).toBe('rectangle');
+      expect(state.toolLocked).toBe(true);
+      expect(document.body.querySelector('[role="menu"]')).toBeNull();
+    });
+
+    it('on touch, tap, pick a shape, tap again reopens the menu without locking', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+      const shapesBtn = findButton('Shapes');
+
+      await act(async () => { shapesBtn.click(); });
+      await act(async () => { findExactButton(document.body, 'Ellipse').click(); });
+      await act(async () => { shapesBtn.click(); });
+
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(false);
+      expect(document.body.querySelector('[role="menu"]')).not.toBeNull();
     });
 
     // Sign is a dropdown-trigger button too, so it needs the same real-dblclick
@@ -506,6 +598,79 @@ describe('SignToolbar Component', () => {
       expect(state.selectedTool).toBe('signature');
       expect(state.toolLocked).toBe(true);
       expect(sigBtn.className).toContain(styles.locked);
+    });
+
+    // SIGN-30: picking a saved signature from the menu re-arms the same
+    // `signature` tool, not a tool switch, so a locked Sign must stay locked.
+    // It used to drop the lock: handleSelectSavedSignature dispatched a bare
+    // SET_TOOL, which always clears `toolLocked` (SignToolContext.tsx).
+    it('on touch, two quick taps on Sign lock the active signature', async () => {
+      let state!: SignToolState;
+      renderToolbarWithSignature((s) => { state = s; });
+      const signBtn = findButton('Sign');
+
+      await act(async () => { signBtn.click(); });
+      expect(document.body.querySelector('[data-editor-signature-item]')).not.toBeNull();
+      await act(async () => { signBtn.click(); });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+      expect(document.body.querySelector('[data-editor-signature-item]')).toBeNull();
+    });
+
+    it('stays locked when a saved signature is picked from the menu after locking', async () => {
+      let state!: SignToolState;
+      renderToolbarWithSignature((s) => { state = s; });
+
+      const sigBtn = findButton('Sign');
+      await act(async () => {
+        sigBtn.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+
+      await act(async () => {
+        sigBtn.click();
+      });
+      const item = document.body.querySelector('[data-editor-signature-item]');
+      await act(async () => {
+        item.click();
+      });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+    });
+
+    // The lock-leak case a reviewer caught: `toolLocked` describes whichever
+    // tool is CURRENTLY locked, not "Sign" specifically. If Text was the
+    // locked tool when the Sign menu happened to be opened, picking a saved
+    // signature must arm it unlocked - carrying Text's lock over would lock a
+    // tool nobody double-clicked.
+    it('does not carry another tool\'s lock onto a signature picked from the menu', async () => {
+      let state!: SignToolState;
+      renderToolbarWithSignature((s) => { state = s; });
+
+      const textBtn = findButton('Text');
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+      });
+      await act(async () => {
+        textBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+      });
+      expect(state.selectedTool).toBe('text');
+      expect(state.toolLocked).toBe(true);
+
+      const sigBtn = findButton('Sign');
+      await act(async () => {
+        sigBtn.click();
+      });
+      const item = document.body.querySelector('[data-editor-signature-item]');
+      await act(async () => {
+        item.click();
+      });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(false);
     });
 
     it('locks the Sign tool even after its one placement disarmed it, as long as a signature is chosen', async () => {
@@ -620,13 +785,16 @@ describe('SignToolbar Component', () => {
     it.each<SignToolType>(['whiteout', 'ellipse', 'rectangle', 'line'])(
       'tells you the %s gesture starts on the page, not at the toolbar',
       (tool) => {
-        expect(armAndRead(tool)).toContain('Click and drag on a page');
+        const text = armAndRead(tool);
+        expect(text).toContain('Click and drag on a page');
+        expect(text).toContain('Tap and drag to'); // the touch form, same reason
       }
     );
 
     it.each<SignToolType>(['text', 'date', 'symbol', 'signature'])('tells you to click a page to place a %s', (tool) => {
       const text = armAndRead(tool);
       expect(text).toContain('Click on a page to place');
+      expect(text).toContain('Tap to add');
       expect(text).not.toContain('drag');
     });
 
@@ -1255,9 +1423,23 @@ describe('SignToolbar Component', () => {
       expect(mountNav({}, { tool: 'text' })).toBeNull();
     });
 
-    // The complaint that prompted the gate: on a form full of detected fields,
-    // with nothing armed and nothing selected, two arrows sat there for a job
-    // that had not been started.
+    // SIGN-30, regressed by e114c8c: the row must already reserve the
+    // arrows' footprint (`reserveFieldNav`) the moment the document has any
+    // field, idle included, or arming Text is what grows the row.
+    it('reserves the row height for field-nav as soon as the document has fields, even idle', () => {
+      mountNav({ fieldNavigation: noFields });
+      expect(container.querySelector(`.${styles.help}`)?.className).not.toContain(styles['help-reserve-nav']);
+
+      mountNav({ fieldNavigation: someFields });
+      expect(container.querySelector(`.${styles.help}`)?.className).toContain(styles['help-reserve-nav']);
+    });
+
+    // The complaint that prompted the gate (e114c8c): on a form full of
+    // detected fields, with nothing armed and nothing selected, two arrows
+    // sat there for a job that had not been started. This product call
+    // stands - SIGN-30's fix is `reserveFieldNav`, a reservation on `.help`
+    // (see EditorToolStatus.tsx and SignToolbar.module.css), not a change to
+    // when this control mounts.
     it('stays away while the document is merely open, however many fields it has', () => {
       expect(mountNav({ fieldNavigation: someFields })).toBeNull();
     });

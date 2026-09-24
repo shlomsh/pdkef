@@ -1,10 +1,10 @@
 import { Shrink } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
-import EditorToolStatus from '../../editor-ui/EditorToolStatus.tsx';
+import EditorToolStatus, { type ToolCopy } from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../shell/ToolShell.tsx';
-import { makeArmTool, useAutoArmHint } from '../../editor-ui/hooks/toolArming.js';
+import { useArmTool, useAutoArmHint } from '../../editor-ui/hooks/toolArming.js';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import styles from '../../editor-ui/SignToolbar.module.css';
@@ -24,11 +24,11 @@ import redactStyles from './PdfRedactTool.module.css';
 // switch beside it, sized by the longest of them - the extra clause was a
 // third line that every tool's row then paid for (e2e/tool-toolbars/
 // toolbar-phone-row.spec.js).
-const TOOL_COPY: Record<RedactToolType, { action: string; button: string }> = {
-  delete:   { action: 'Click a highlighted image or text run to delete it.', button: 'Delete' },
-  blackout: { action: 'Click and drag on a page to draw a blackout box.',                  button: 'Blackout' },
-  whiteout: { action: 'Click and drag on a page to draw a whiteout box.',                  button: 'Whiteout' },
-  blur:     { action: 'Click and drag on a page to blur an area.',                         button: 'Blur' },
+const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
+  delete:   { action: 'Click a highlighted image or text run to delete it.', actionTouch: 'Tap something highlighted to delete it.', button: 'Delete' },
+  blackout: { action: 'Click and drag on a page to draw a blackout box.',    actionTouch: 'Tap and drag to black out an area.',       button: 'Blackout' },
+  whiteout: { action: 'Click and drag on a page to draw a whiteout box.',    actionTouch: 'Tap and drag to white out an area.',       button: 'Whiteout' },
+  blur:     { action: 'Click and drag on a page to blur an area.',           actionTouch: 'Tap and drag to blur an area.',            button: 'Blur' },
 };
 
 const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
@@ -106,7 +106,7 @@ export default function RedactToolbar({
   // a style stayed selected forever, which on a phone meant every drag on the
   // document drew a box and the page could not be scrolled at all.
   const { autoShowTool, noteArmed } = useAutoArmHint();
-  const armTool = makeArmTool({
+  const armTool = useArmTool({
     selectedTool: activeStyle,
     arm: (next: string | null) => {
       if (next !== null && !isRedactToolType(next)) return;

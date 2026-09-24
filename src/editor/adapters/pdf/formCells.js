@@ -117,8 +117,32 @@ const CLOSED_EDGE_COVERAGE = 0.7;
 /** Row bands outside this height range are not a single writable line/box. */
 const MIN_ROW_HEIGHT = 6;
 const MAX_ROW_HEIGHT = 45;
+/**
+ * A band may span at most this many page-wide rule heights between its top and bottom. A real
+ * row is crossed by a handful of stray heights from boxes beside it, not dozens; the cap keeps a
+ * dense hatch (hundreds of rules at a 1pt pitch) from pairing every height with every other.
+ * The busiest band that closes a cell on the scored corpus has 7.
+ */
+const MAX_HEIGHTS_BETWEEN = 12;
 /** A column narrower than this is a rule gap, not a cell anyone could write in. */
 const MIN_CELL_WIDTH = 15;
+
+/**
+ * A captioned cell sitting directly above this many identical, empty rows in
+ * its own column is a table's header, not a field - see `emptyRowRunBelow`.
+ * Two is the smallest number that is a repeat rather than a coincidence: one
+ * blank cell below a caption is exactly the ordinary "label above a blank
+ * answer" shape the detector is supposed to find (`headerAbove`'s whole
+ * job), and only a *second* identical blank row beneath the first rules that
+ * out. Measured (FORM-13) over every page of every scored form, it drops
+ * five cells and all five are headings: on itc101's first page the children
+ * table's "מספר זהות" and "שם" (a 13-row run below) and the letter-spaced
+ * "השינויים בפרטי" title, on its second page the "כתובת" and "שם" column
+ * captions. 2 and 3 drop the same five.
+ */
+const MIN_HEADER_RUN = 2;
+/** Bounds `emptyRowRunBelow`'s walk down a column; no scored table has close to this many rows. */
+const MAX_HEADER_RUN_WALK = 60;
 
 /**
  * A ruled cell narrower than `MIN_CELL_WIDTH` is a tick target rather than a
@@ -149,9 +173,20 @@ const HEADER_SEARCH_HEIGHT = 220;
 // cell can be drawn as a filled box, not just ruled).
 // ---------------------------------------------------------------------------
 
+/**
+ * A fill with no stroke that is larger than any row both ways is a tinted background panel, not
+ * a box: its sides are where the tint stops, not ruled walls. Form 1040 paints its whole body as
+ * one 492x666pt fill, and its left side at x=91.6 would otherwise split every field it crosses.
+ * Form 101's large frames are stroked, so they keep their walls.
+ */
+function isBackgroundPanel(rect) {
+  return rect.filled && !rect.stroked && rect.width > MAX_ROW_HEIGHT && rect.height > MAX_ROW_HEIGHT;
+}
+
 function verticalEdgesAll(ink) {
   const edges = ink.verticals.map((edge) => ({ ...edge }));
   for (const rect of ink.rects) {
+    if (isBackgroundPanel(rect)) continue;
     if (rect.width <= THIN_INK && rect.height > THIN_INK) {
       edges.push({ x: rect.x + rect.width / 2, y0: rect.y, y1: rect.y + rect.height });
     } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
@@ -165,6 +200,7 @@ function verticalEdgesAll(ink) {
 function horizontalRulesAll(ink) {
   const rules = ink.horizontals.map((rule) => ({ ...rule }));
   for (const rect of ink.rects) {
+    if (isBackgroundPanel(rect)) continue;
     if (rect.height <= THIN_INK && rect.width > THIN_INK) {
       rules.push({ y: rect.y + rect.height / 2, x0: rect.x, x1: rect.x + rect.width });
     } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
@@ -225,49 +261,102 @@ function verticalCoverage(edges, x, bottomY, topY) {
 /**
  * Closed cells on one page, in PDF points (origin bottom-left, y up).
  *
- * Walking only *adjacent* rule/edge pairs (not every pair) is deliberate: it finds atomic grid
- * cells the same way a table is actually drawn, and keeps the pass at O(rules x
- * edges-per-band) instead of O(rules^2 x edges^2).
+ * Rows are scoped per column. Rule heights are collected page-wide, but a cell's top and bottom
+ * are the nearest rules *that cross its own column*: a band may span several page-wide rule
+ * heights, and a column in it yields a cell only when rules at the band's top and bottom heights
+ * cross it and no rule at a height in between reaches it. So a stray rule from a box off to the
+ * side (form 101's children table, whose rows the boxes to their left cut at y=450.42 and
+ * friends) no longer splits a row it never touches, and a cell is still atomic within its own
+ * column. For a band between adjacent heights nothing is in between and this is the plain
+ * adjacent-pair walk.
+ *
+ * Every test here looks at the rules *at* a height (within POS_TOLERANCE, the tolerance the
+ * heights were merged with), not at ruledCoverage's wider BAND_TOLERANCE window:
+ * - The band's own top and bottom must be crossed by a rule at that height. Otherwise a height
+ *   1.3pt inside a row (the top of a radio square beside it, on the health declaration) closes
+ *   the row's other columns short of their real rule, which the window would accept.
+ * - A rule in between vetoes a column it crosses or ends against (within POS_TOLERANCE of either
+ *   wall). One ending against a wall marks a junction there: the wall belongs to a smaller box
+ *   beside the column, and the column is not one cell at this band. On the health declaration
+ *   that is the sliver between the table's frame and each radio square, whose right wall is the
+ *   square's side.
+ * - In a taller band a rule at a height just outside it vetoes a column it crosses, so a column
+ *   whose real edge is a rule 1.3pt past the band does not close on the band instead. Only one
+ *   that crosses: a neighbour's row rule a little lower, ending against the shared wall, is an
+ *   ordinary misaligned row, not a split.
+ * - A rule within POS_TOLERANCE of the band's own top or bottom is that edge, never a veto. With
+ *   the window, a stray height 1.2pt from the top read the top rule itself as crossing every
+ *   column and dropped the whole row.
+ *
+ * Cost: rules are bucketed by height once, O(heights x rules). A top pairs with at most
+ * MAX_HEIGHTS_BETWEEN + 1 bottoms, and each band costs a pass over the vertical edges plus, per
+ * column, the rules at its own few heights, so the walk is O(heights x MAX_HEIGHTS_BETWEEN x
+ * (edges + columns x rules-at-the-band's-heights)), never every rule on the page per band.
  */
 function buildClosedCells(ink) {
   const edges = verticalEdgesAll(ink);
   const rules = horizontalRulesAll(ink);
   const ys = distinctPositions(rules.map((r) => r.y), POS_TOLERANCE).sort((a, b) => b - a);
+  // Per height: the rules close enough to bound a band there, and the rules actually at it.
+  const nearRules = ys.map((y) => rules.filter((rule) => Math.abs(rule.y - y) <= BAND_TOLERANCE));
+  const rulesAt = nearRules.map((near, m) => near.filter((rule) => Math.abs(rule.y - ys[m]) <= POS_TOLERANCE));
 
   const cells = [];
   for (let i = 0; i < ys.length - 1; i += 1) {
     const top = ys[i];
-    const bottom = ys[i + 1];
-    const height = top - bottom;
-    if (height < MIN_ROW_HEIGHT || height > MAX_ROW_HEIGHT) continue;
+    for (let k = i + 1; k < ys.length; k += 1) {
+      const bottom = ys[k];
+      const height = top - bottom;
+      if (height > MAX_ROW_HEIGHT || k - i - 1 > MAX_HEIGHTS_BETWEEN) break;
+      if (height < MIN_ROW_HEIGHT) continue;
 
-    const bandEdgeX = edges
-      .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
-      .map((edge) => edge.x);
-    const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
-    // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
-    // box, not a form row - every observed instructional or explanatory panel on both spike
-    // forms has exactly this shape (one bordered paragraph, no internal rule), while every
-    // real labelled-field row has at least one more division alongside it. Requiring a genuine
-    // interior wall drops those panels without touching any table row in the misses.
-    if (xs.length < 3) continue;
+      // Rules that veto a column: those in between for any column they reach, those just
+      // outside for one they cross. ys is sorted, so the heights just outside are index
+      // neighbours.
+      const inside = [];
+      const outside = [];
+      if (k - i > 1) {
+        const ownEdge = (rule) => Math.abs(rule.y - top) <= POS_TOLERANCE
+          || Math.abs(rule.y - bottom) <= POS_TOLERANCE;
+        const collect = (list, m) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
+        for (let m = i + 1; m < k; m += 1) collect(inside, m);
+        for (let m = i - 1; m >= 0 && ys[m] - top <= BAND_TOLERANCE; m -= 1) collect(outside, m);
+        for (let m = k + 1; m < ys.length && bottom - ys[m] <= BAND_TOLERANCE; m += 1) collect(outside, m);
+      }
 
-    for (let j = 0; j < xs.length - 1; j += 1) {
-      const left = xs[j];
-      const right = xs[j + 1];
-      const width = right - left;
-      if (width < MIN_TICK_CELL_WIDTH) continue;
+      const bandEdges = edges.filter((edge) => edge.y1 > bottom - BAND_TOLERANCE && edge.y0 < top + BAND_TOLERANCE);
+      const bandEdgeX = bandEdges
+        .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
+        .map((edge) => edge.x);
+      const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
+      // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
+      // box, not a form row - every observed instructional or explanatory panel on both spike
+      // forms has exactly this shape (one bordered paragraph, no internal rule), while every
+      // real labelled-field row has at least one more division alongside it. Requiring a genuine
+      // interior wall drops those panels without touching any table row in the misses.
+      if (xs.length < 3) continue;
 
-      const topCoverage = ruledCoverage(rules, top, left, right);
-      const bottomCoverage = ruledCoverage(rules, bottom, left, right);
-      if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
+      for (let j = 0; j < xs.length - 1; j += 1) {
+        const left = xs[j];
+        const right = xs[j + 1];
+        const width = right - left;
+        if (width < MIN_TICK_CELL_WIDTH) continue;
+        const crosses = (rule) => rule.x0 < right && rule.x1 > left;
+        const reaches = (rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
+        if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
+        if (inside.some(reaches) || outside.some(crosses)) continue;
 
-      const leftCoverage = verticalCoverage(edges, left, bottom, top);
-      const rightCoverage = verticalCoverage(edges, right, bottom, top);
-      if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
+        const topCoverage = ruledCoverage(nearRules[i], top, left, right);
+        const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right);
+        if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
 
-      const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-      cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
+        const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);
+        const rightCoverage = verticalCoverage(bandEdges, right, bottom, top);
+        if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
+
+        const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
+        cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
+      }
     }
   }
   return cells;
@@ -335,6 +424,46 @@ function headerAbove(cell, textItems) {
     }
   }
   return best;
+}
+
+/**
+ * How many contiguous, identical, empty rows sit directly beneath `cell` in
+ * its own column - FORM-13's header signal.
+ *
+ * A table column header and a one-off labelled field print the same shape
+ * (a caption, then blank space to write in): what tells them apart is not
+ * the caption, it is what continues below it. Walks down from `cell`,
+ * requiring at each step a closed cell whose left and right walls match
+ * `cell`'s own (`POS_TOLERANCE`, the same window `buildClosedCells` used to
+ * decide they are one column), whose top meets the running bottom
+ * (`BAND_TOLERANCE`, stacked with no gap), whose height matches the row
+ * before it (also `BAND_TOLERANCE` - a table's rows are cut from the same
+ * ruling, a coincidence of adjacent unrelated boxes is not), and which holds
+ * no own text at all. The walk stops at the first row that fails any of
+ * these, or at `MAX_HEADER_RUN_WALK`.
+ *
+ * "Empty" is deliberately just "no own text" here, not "not narrow": a
+ * narrow tick column's header is already dropped before this runs (a narrow
+ * cell with any own text is rejected outright, see the `cell.narrow` branch
+ * in `detectCellCandidates`), so this only ever walks the free-text columns
+ * a table like itc101's children table prints beside its tick columns.
+ */
+function emptyRowRunBelow(cell, closedCells, textItems) {
+  let run = 0;
+  let cursorBottom = cell.bottom;
+  let refHeight = null;
+  for (let i = 0; i < MAX_HEADER_RUN_WALK; i += 1) {
+    const next = closedCells.find((c) => c !== cell
+      && Math.abs(c.left - cell.left) <= POS_TOLERANCE
+      && Math.abs(c.right - cell.right) <= POS_TOLERANCE
+      && Math.abs(c.top - cursorBottom) <= BAND_TOLERANCE
+      && (refHeight === null || Math.abs(c.height - refHeight) <= BAND_TOLERANCE));
+    if (!next || textInsideCell(next, textItems).length > 0) break;
+    run += 1;
+    refHeight = next.height;
+    cursorBottom = next.bottom;
+  }
+  return run;
 }
 
 // The 4-letter root, not the dictionary form: Hebrew construct state turns חתימה (signature)
@@ -514,6 +643,15 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
 
     const writable = writableArea(cell, ownText);
     if (!writable) continue;
+
+    // A side-carved caption over a run of identical empty rows is the column's heading, not a
+    // label beside a blank (FORM-13, `emptyRowRunBelow`). Only the side carve: a band carve
+    // already publishes the blank under its caption as the field. A printed `/  /` is not a
+    // caption, for the same reason `typingStrip` ignores it.
+    if (writable.carve === 'side' && !isPrintedSeparators(ownStr)
+      && emptyRowRunBelow(cell, closedCells, textItemsPoints) >= MIN_HEADER_RUN) {
+      continue;
+    }
 
     const header = headerAbove(cell, textItemsPoints);
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();

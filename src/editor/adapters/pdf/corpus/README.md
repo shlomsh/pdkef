@@ -82,12 +82,17 @@ the failure message should tell you whether the change was wrong or the expectat
 
 ## Two things to know before you trust a number
 
-**The runner leaves out the pdf.js text pass.** `useFormFieldRegions` feeds real text runs to
-`formCells.js`, which uses them for label lookup and for its "this cell is explanatory, drop it"
-filter. The corpus passes `[]`. The geometry the corpus is about does not read text at all, and
-including it would make every row depend on a second parser and on whatever prose a fixture happens
-to carry. The cost is that a few cells a real page would filter out survive here. If `detectPage` in
-the runner ever drifts from the hook, the corpus is measuring something the product does not do.
+**The runner leaves text out by default.** `useFormFieldRegions` feeds real text runs to
+`formCells.js`, which uses them for label lookup, for its "this cell is explanatory, drop it" filter,
+and for its "a caption over a repeating empty run is a header, not a field" filter (FORM-13). Most
+rows pass no text: the geometry the corpus is about does not read text at all, and including it
+would make every row depend on a second parser and on whatever prose a fixture happens to carry, so
+the default stays none. A row may declare `text` - the same page-percent shape `detectPage`'s
+`textRuns` takes - when the element it is pinning *is* text-plus-geometry and cannot be expressed
+without it; a captioned header row over a repeating empty run is the first of these. The cost of
+leaving text out by default is that a few cells a real page would filter out survive here. If
+`detectPage` in the runner ever drifts from the hook, the corpus is measuring something the product
+does not do.
 
 **pdf-lib never emits the `re` operator.** It builds every rectangle as `m/l/l/l/h`, so a
 `drawRectangle` lands in `ink.verticals`/`ink.horizontals` and never in `ink.rects` - which is the
@@ -114,10 +119,10 @@ one shows up as a failing row to update rather than as a silent change, and so n
 the same limit from scratch. Each row's `why` names where the evidence lives.
 
 Today: a checkbox square stroked as a path is never a checkbox candidate (the miss behind "none of
-the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); a painted square inside a ruled
-row costs that row every one of its cells, because the square's own top and bottom become rules and
-`buildClosedCells` walks adjacent rules only; and a real `/Sig` field is invisible because signature
-placement is a different creation mode.
+the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); and a real `/Sig` field is
+invisible because signature placement is a different creation mode. A painted square inside a ruled
+row used to be a third, costing the row every one of its cells; since `buildClosedCells` scopes rows
+per column it reads like its widget twin, and that row now lives in the printed group.
 
 ## The real documents
 
@@ -150,15 +155,16 @@ exists to prevent.
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
-| `itc101` | 139 | 85.6% | 96.7% | Hebrew, flat, dense |
-| `irs-1040-2024` | 88 | 98.9% | 94.6% | Latin, the first real live AcroForm |
+| `itc101` | 139 | 94.2% | 95.6% | Hebrew, flat, dense |
+| `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
 we find them. What those two rows really watch is the widget pass continuing to work and the ink
-pass not going greedy beside it: on the 1040's crowded page the detector emits 92 candidates for 88
-targets, and the 5 that do not match are printed-geometry cells the widgets do not corroborate. The
+pass not going greedy beside it: on the 1040's crowded page the detector emits 90 candidates for 88
+targets, and the 2 that do not match (one of them the line 6c amount box) are printed-geometry cells
+the widgets do not corroborate. The
 forms that measure recall honestly are the flat ones, where nothing in the file tells us where a
 field is.
 
@@ -175,15 +181,18 @@ geometry-only fixtures built for the comb e2e tests and scored 86.7%/80.2% and 4
 originals are committed in `scoring/forms/`, and when they first landed both forms reproduced the
 MOBI-10 spike's recorded figures *exactly, to the decimal* - 86.7%/94.2% and 69.1%/91.4%. That
 agreement is worth more than either number: it is the evidence that this committed instrument and
-the hand-run spike measure the same thing. `itc101` has since gone past the spike, to 85.6%/96.7%,
-because MOBI-11's tick-column fix landed on `main` in between.
+the hand-run spike measure the same thing. `itc101` has since gone past the spike, first to
+85.6%/96.7% because MOBI-11's tick-column fix landed on `main` in between, then to 94.2%/95.6% with
+FORM-12 (131 of 139 found, 6 false positives; the precision step down is deliberate and tracked as
+FORM-13, see its `baselines.json` note).
 
 Getting there took two fixes, not one, and the second was hidden behind the first:
 
 - **The text layer had to be in the file.** `collectCheckboxGlyphs` reads checkbox glyphs straight
   off the content stream, so the reduction cost `itc101` all 62 of its checkbox targets. Committing
-  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, leaving the
-  8 drawn squares that are the standing `known gap`.
+  the original brought 36 of them back. The tick-column fix then took it to 54 of 62, and FORM-12
+  found the last 8: they were never drawn squares but tick cells in table rows that stray rules
+  from the boxes beside the table had split. Checkbox recall on `itc101` is now 62 of 62.
 - **And something has to read it.** `health` did not move at all when its original landed, because
   `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
   and which `detect.js` deliberately does not run. The fixture was never that number's cause. The

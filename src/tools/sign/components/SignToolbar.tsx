@@ -4,12 +4,12 @@ import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignFeedbackButton from './SignFeedbackButton.tsx';
 import ViewControl from '../../../editor-ui/ViewControl.tsx';
 import Popover from '../../../shell/Popover.tsx';
-import EditorToolStatus from '../../../editor-ui/EditorToolStatus.tsx';
+import EditorToolStatus, { type ToolCopy } from '../../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../../editor-ui/ArmHint.tsx';
 import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
-import { makeArmTool, useAutoArmHint } from '../../../editor-ui/hooks/toolArming.js';
+import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hooks/toolArming.js';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
@@ -145,15 +145,15 @@ export default function SignToolbar({
   // a Hebrew catalogue reaches it the same way the English default does. Not
   // memoized: `t` is a fresh object every render (the spread above), so a
   // memo keyed on it would recompute every render anyway.
-  const TOOL_COPY: Record<SignToolType, { action: string; button: string }> = {
-    text:      { action: t.textAction,      button: t.textButton },
-    date:      { action: t.dateAction,      button: t.dateButton },
-    symbol:    { action: t.symbolAction,    button: t.symbolsButton },
-    signature: { action: t.signatureAction, button: t.signButton },
-    whiteout:  { action: t.whiteoutAction,  button: t.whiteoutButton },
-    ellipse:   { action: t.ellipseAction,   button: t.shapesButton },
-    rectangle: { action: t.rectangleAction, button: t.shapesButton },
-    line:      { action: t.lineAction,      button: t.shapesButton },
+  const TOOL_COPY: Record<SignToolType, ToolCopy> = {
+    text:      { action: t.textAction,      actionTouch: t.textActionTouch,      button: t.textButton },
+    date:      { action: t.dateAction,      actionTouch: t.dateActionTouch,      button: t.dateButton },
+    symbol:    { action: t.symbolAction,    actionTouch: t.symbolActionTouch,    button: t.symbolsButton },
+    signature: { action: t.signatureAction, actionTouch: t.signatureActionTouch, button: t.signButton },
+    whiteout:  { action: t.whiteoutAction,  actionTouch: t.whiteoutActionTouch,  button: t.whiteoutButton },
+    ellipse:   { action: t.ellipseAction,   actionTouch: t.ellipseActionTouch,   button: t.shapesButton },
+    rectangle: { action: t.rectangleAction, actionTouch: t.rectangleActionTouch, button: t.shapesButton },
+    line:      { action: t.lineAction,      actionTouch: t.lineActionTouch,      button: t.shapesButton },
   };
 
   const blockedExportTitle = formatMessage(exportIssueCount === 1 ? t.exportBlockedTitleOne : t.exportBlockedTitleOther, { count: exportIssueCount });
@@ -205,15 +205,26 @@ export default function SignToolbar({
     };
   }, []);
 
-  const handleSignatureBtnClick = () => {
+  const handleSignatureBtnClick = (e: MouseEvent) => {
     if (savedSignatures.length === 0) {
       setDialogOpen(true);
+      return;
     }
+    if (isDoubleTap('signature', e, showSigDropdown)) lockSignature();
   };
 
   const handleSelectSavedSignature = (sig: SavedSignature) => {
     setActiveSignature(sig);
-    dispatch({ type: 'SET_TOOL', payload: 'signature' });
+    // Preserve the lock only if Sign itself was already the locked tool: this
+    // re-arms `signature` from a menu rather than switching tools, so a
+    // locked Sign that was double-clicked before picking a different saved
+    // signature must stay locked. But if some OTHER tool was locked (Text,
+    // say) when this menu happened to be opened, `toolLocked` describes THAT
+    // tool, not this one - carrying it over would lock Sign nobody asked to
+    // lock. A bare SET_TOOL always clears `toolLocked` (SignToolContext.tsx),
+    // which is right for switching tools but wrong for a same-family re-arm -
+    // see SIGN-30.
+    dispatch({ type: 'SET_TOOL', payload: { tool: 'signature', locked: toolLocked && selectedTool === 'signature' } });
     setShowSigDropdown(false);
     setAnnouncement(formatMessage(t.signToolActive, { action: TOOL_COPY.signature.action }));
     noteArmed('signature');
@@ -234,7 +245,7 @@ export default function SignToolbar({
   // One-shot arming, double-click to lock. The gesture itself lives in
   // editor-ui/hooks/toolArming.js so this toolbar and Redact's cannot drift on it.
   const { autoShowTool, noteArmed } = useAutoArmHint();
-  const armTool = makeArmTool({
+  const armTool = useArmTool({
     selectedTool,
     arm: (next: string | null) => {
       if (next !== null && !isSignToolType(next)) return;
@@ -264,7 +275,15 @@ export default function SignToolbar({
   };
 
   const chooseShape = (tool: ShapeTool) => {
-    setSelectedTool(tool);
+    // Preserve the lock only if Shapes itself was already the locked tool:
+    // picking a different shape from the menu re-arms the Shapes family, not
+    // a tool switch, so a Shapes double-clicked locked before opening the
+    // menu must stay locked on the newly chosen shape. But if some OTHER
+    // tool was locked (Text, say) when this menu happened to be opened,
+    // `toolLocked` describes THAT tool, not Shapes - carrying it over would
+    // lock the newly chosen shape nobody asked to lock. Same reasoning as
+    // handleSelectSavedSignature, and SIGN-30.
+    dispatch({ type: 'SET_TOOL', payload: { tool, locked: toolLocked && isShapeTool(selectedTool) } });
     setLastShape(tool);
     setShowShapesDropdown(false);
     setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[tool].button, action: TOOL_COPY[tool].action }));
@@ -303,6 +322,16 @@ export default function SignToolbar({
     lockTool('signature');
     setShowSigDropdown(false);
   };
+
+  // A phone sends no dependable dblclick, so on touch the same two buttons
+  // lock on two quick taps instead (SIGN-31, toolArming.js's useDoubleTap),
+  // and only while the menu the first tap opened is still open: a pick from
+  // the menu closes it, so "tap, pick, tap to reopen" can never lock.
+  // Their menus open by tap alone there: the hover opener below would fire on
+  // the same tap as the click that toggles the menu, opening and shutting it
+  // at once, so the first tap looked like it did nothing.
+  const isDoubleTap = useDoubleTap();
+  const hoverMenu = <T,>(handler: T) => (isCoarsePointer ? undefined : handler);
 
   // The chevrons keep typing's company: they exist to move between fields you
   // are filling, so standing over an idle document they were two controls for
@@ -391,6 +420,7 @@ export default function SignToolbar({
       reserveCopies={Object.values(TOOL_COPY)}
       fieldSummary={fieldSummary}
       fieldNav={fieldNav}
+      reserveFieldNav={fieldNavigation.hasFields}
       keepOnLabel={t.keepOn}
       keepOnShort={t.keepOnShort}
       keepOnTitleOn={t.keepOnTitleOn}
@@ -419,7 +449,7 @@ export default function SignToolbar({
               (Share/Download) stays at the far edge. One kind of thing per
               group; the two-anchor comment at the end of
               SignToolbar.module.css says where labels show. */}
-          <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+          <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -435,7 +465,7 @@ export default function SignToolbar({
             </button>
           </ArmHint>
 
-          <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+          <ArmHint tool="date" label={t.dateButton} action={TOOL_COPY.date.action} locked={selectedTool === 'date' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'date' ? ` ${styles.active}` : ''}${selectedTool === 'date' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -460,7 +490,7 @@ export default function SignToolbar({
             </button>
           </ArmHint>
 
-          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+          <ArmHint tool="symbol" label={t.symbolsButton} action={TOOL_COPY.symbol.action} locked={selectedTool === 'symbol' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'symbol' ? ` ${styles.active}` : ''}${selectedTool === 'symbol' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -498,11 +528,11 @@ export default function SignToolbar({
               to - the div is already position:relative and already sized to
               match the button exactly (`.toolbar .dropdown > .button { width:
               100% }`), so anchoring here costs nothing visually. */}
-          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+          <ArmHint tool="shapes" label={t.shapesButton} action={t.shapesHintAction} locked={isShapeTool(selectedTool) && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <div
               className={styles.dropdown}
-              onMouseEnter={openShapes}
-              onMouseLeave={scheduleCloseShapes}
+              onMouseEnter={hoverMenu(openShapes)}
+              onMouseLeave={hoverMenu(scheduleCloseShapes)}
               onDblClick={lockShape}
             >
               <Popover
@@ -513,6 +543,7 @@ export default function SignToolbar({
                   <button
                     type="button"
                     className={`${styles.button}${isShapeTool(selectedTool) ? ` ${styles.active}` : ''}${isShapeTool(selectedTool) && toolLocked ? ` ${styles.locked}` : ''}`}
+                    onClick={(e: MouseEvent) => { if (isDoubleTap('shapes', e, showShapesDropdown)) lockShape(); }}
                     aria-pressed={isShapeTool(selectedTool)}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -574,7 +605,7 @@ export default function SignToolbar({
             </div>
           </ArmHint>
 
-          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint}>
+          <ArmHint tool="whiteout" label={t.whiteoutButton} action={TOOL_COPY.whiteout.action} locked={selectedTool === 'whiteout' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
               className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
@@ -602,12 +633,12 @@ export default function SignToolbar({
             action={TOOL_COPY.signature.action}
             locked={!activeSignature || (selectedTool === 'signature' && toolLocked)}
             autoShowTool={autoShowTool}
-            hintTemplate={t.armHint}
+            hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}
           >
             <div
               className={styles.dropdown}
-              onMouseEnter={openSig}
-              onMouseLeave={scheduleCloseSig}
+              onMouseEnter={hoverMenu(openSig)}
+              onMouseLeave={hoverMenu(scheduleCloseSig)}
               onDblClick={lockSignature}
             >
               <Popover

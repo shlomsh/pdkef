@@ -13,7 +13,10 @@
    phone. The height floor is enforced here; the width floor is the flex-basis
    every control shares below 920px, where the labels come off (see that media
    query). */
-.toolbar { display: flex; align-items: center; flex-wrap: nowrap; container-type: inline-size; container-name: toolbar; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); }
+/* touch-action: two quick taps on a tool are the lock gesture
+   (toolArming.js), not Safari's double-tap zoom, which otherwise swallows the
+   second tap. Pinch-zoom still works. */
+.toolbar { display: flex; align-items: center; flex-wrap: nowrap; touch-action: manipulation; container-type: inline-size; container-name: toolbar; --toolbar-gap: var(--space-2); --toolbar-padding: 0.5rem 0.75rem; --btn-padding: 0.6rem; --btn-min-size: 2.75rem; width: 100%; gap: var(--toolbar-gap); padding: var(--toolbar-padding); }
 /* Every top-level control is sized by this one rule, whether it is a bare
    `<button>` or a `<div class=dropdown>` wrapping a popover trigger. The wrapper
    deliberately has no `flex` of its own: a `.toolbar .dropdown` declaration
@@ -147,6 +150,16 @@
 /* The phone label of the keep-on switch, swapped in by width below; on a wider
    screen it is the long one that shows. Both are always in the DOM. */
 .keep-short { display: none; }
+/* The armed sentence's touch form ("Tap to add text."), swapped by pointer
+   rather than width because the verb is about the gesture: a phone has no
+   click, and on it this sentence shares the row with the switch and, in Sign,
+   the field arrows, so the long form wrapped to three lines. display:none
+   keeps the unused one out of layout and out of what `role="status"` reads. */
+.action-touch { display: none; }
+@media (pointer: coarse) {
+  .action-long { display: none; }
+  .action-touch { display: inline; }
+}
 /* Phones (ToolShell.module.css's phone block is the other half of this): the
    status shares one fixed-height row with the filename, so it has to be
    compact in *every* armed state, since the tallest of them is what the row
@@ -259,8 +272,35 @@
    sentence beside them, so they hold the same floor the tool buttons do.
    `flex: none` keeps them their own fixed size regardless of how much the
    idle tip or armed sentence next to them wraps. */
-.field-nav { display: flex; align-items: center; gap: .3rem; flex: none; }
-.field-nav-button { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; flex: none; padding: 0; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out); }
+/* One source for the control's footprint: the arrows below and the
+   reservation after them both read these, so the two cannot drift apart. */
+.help { --field-nav-size: 2.75rem; --field-nav-gap: .3rem; }
+.field-nav { display: flex; align-items: center; gap: var(--field-nav-gap); flex: none; }
+/* SIGN-30, regressed by e114c8c. `fieldNav` mounts only while somebody is
+   filling fields (an idle document shows no arrows, and that call stands),
+   and arming Text or Date is the instant it mounts. So what has to hold still
+   is the row's HEIGHT across that mount, and the arrows cost height twice:
+   their own 44px, and the width they take from `.help-stack`, which rewraps
+   every sentence beside them. On a phone that second cost was the real one -
+   "Click on a page to place a text box." went from 2 lines to 3 and the
+   toolbar dropped 28px between the two taps of a double-tap.
+
+   `.help-reserve-nav` is on `.help` only while the document has fields AND
+   the arrows are not mounted (EditorToolStatus.tsx). It reserves both costs
+   without showing or squeezing anything: the min-height is the arrows' own
+   height, and the hidden reservation rows (never the shown one) give up the
+   arrows' width, so they wrap exactly as every row does once the arrows are
+   there. Grid takes the max, so idle and armed are one height in every
+   language at every width. Once the arrows mount, the class goes and the
+   narrower stack does the same job on its own.
+
+   Rejected, do not retry: keeping the arrows mounted-but-hidden (took width
+   from the idle sentence too, 40px to 94px on phones, MOBI-16/MOBI-20) and
+   narrowing `.help-stack` at rest (squeezed the SHOWN sentence into wrapping
+   it did not need). */
+.help-reserve-nav { min-height: var(--field-nav-size); }
+.help-reserve-nav .help-spare { margin-inline-end: calc(2 * var(--field-nav-size) + var(--field-nav-gap)); }
+.field-nav-button { display: inline-flex; align-items: center; justify-content: center; width: var(--field-nav-size); height: var(--field-nav-size); flex: none; padding: 0; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background-color .15s var(--ease-out), border-color .15s var(--ease-out); }
 .field-nav-button:hover:not(:disabled) { background: var(--color-primary-soft); border-color: var(--color-primary); }
 .field-nav-button:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 .field-nav-button:disabled { opacity: .4; cursor: not-allowed; }
