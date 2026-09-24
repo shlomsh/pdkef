@@ -1,15 +1,15 @@
 ---
 id: "FORM-03"
-title: "A column header the last row of a tall table can still reach"
+title: "Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach"
 status: "open"
-priority: "P2"
+priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
 depends_on: []
 legacy_state: "Open"
 ---
 
-# FORM-03 · A column header the last row of a tall table can still reach
+# FORM-03 · Label association to the gate; first, the header a tall table's last row cannot reach
 
 ## Why
 
@@ -21,6 +21,24 @@ Measured: MOBI-11's tick-column change added 18 correct candidates and label ass
 **83.3% -> 80.7%** on that form, entirely because of this. The fields are right; the names are
 missing. Label association is a gate criterion in its own right (85%), so this is not cosmetic.
 
+## Label association now lives here (2026-09-25)
+
+FORM-01 closed on form 101's recall and precision gate (94.2 / 97.8 after FORM-12 and FORM-13) and
+handed this ticket the one gate criterion still short: **label association, last measured at 83.2%
+against 85** on 2026-09-20. It has not been measured since. FORM-12 found 12 more cells in the
+children table and FORM-13 dropped three captions, and both change what is labelled, so 83.2 is a
+starting guess, not a baseline. The `headerAbove` reach below is the biggest known cause, not the
+only one: FORM-14 (a caption centred in its cell is a heading, not a label) is another.
+
+- [ ] **Measure first.** Re-score labels on both forms on today's code with the
+  `scripts/spike/mobi-10/` chain (extract -> cells + label -> union -> score), not `score-form.mjs`,
+  which runs `formCells` with no text and prints no label figure (FORM-01's caution).
+- [ ] **Stop it drifting unseen.** Record a label figure per form in
+  `corpus/scoring/baselines.json` as a ratchet like recall and precision, so the scored corpus fails
+  when label association drops.
+- [ ] Form 101 reaches 85% label association with recall and precision held, and the health form
+  stays at or above its measured figure.
+
 ## Scope and acceptance
 
 - [ ] Raising the constant is the obvious move and probably the wrong one on its own: 300pt of
@@ -30,4 +48,5 @@ missing. Label association is a gate criterion in its own right (85%), so this i
 - [ ] Whatever the rule, it must not lower label association on the health form, which is at
   96.9%.
 - [ ] Unit fixture in `formCells.test.js` with a tall stack of row bands and one header above it.
-- [ ] Re-score both forms and record the label numbers in `docs/mobi-10-field-map-spike.md`.
+- [ ] Re-score both forms and record the label numbers in `docs/mobi-10-field-map-spike.md`, adding
+  the FORM-12 and FORM-13 rows its score table is missing.
