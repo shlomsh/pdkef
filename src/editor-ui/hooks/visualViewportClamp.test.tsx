@@ -41,6 +41,10 @@ function setScrollY(y: number) {
   Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true });
 }
 
+function setScrollX(x: number) {
+  Object.defineProperty(window, 'scrollX', { value: x, configurable: true, writable: true });
+}
+
 function removeVisualViewport() {
   Object.defineProperty(window, 'visualViewport', { value: undefined, configurable: true, writable: true });
 }
@@ -113,6 +117,7 @@ describe('originFromPlacement / toolbarScaleOriginCss', () => {
 describe('visualViewportClamp', () => {
   afterEach(() => {
     removeVisualViewport();
+    setScrollX(0);
     setScrollY(0);
     document.body.innerHTML = '';
   });
@@ -196,6 +201,29 @@ describe('visualViewportClamp', () => {
     const before = visibleRect(scenario, scenario.x, scenario.y, 1);
     expect(before.top).toBeGreaterThanOrEqual(0);
     expect(before.bottom).toBeLessThanOrEqual(377);
+
+    expect(runClamp(scenario)).toEqual({});
+  });
+
+  it('reads the origin from pageLeft when zoomed as well, never from offsetLeft', () => {
+    // Pins the formula, not a device measurement: once pinched, the origin is
+    // still `pageLeft - scrollX`, so an `offsetLeft` that disagrees with it is
+    // ignored. The previous rule trusted `offsetLeft` whenever `scale > 1.01`,
+    // and would have shoved this bar - already beside its box at the visible
+    // slice's left edge - out to 79. The on-device reading behind it (1.5x,
+    // iPhone 17): `offsetLeft` 75 with the box on screen at a rect left of
+    // 12, which only an origin near 0 explains; `pageLeft` itself was not
+    // captured.
+    const scale = 1.5;
+    setScrollX(75);
+    installVisualViewport({ scale, offsetLeft: 75, offsetTop: 0, pageLeft: 75, pageTop: 0, width: 268, height: 476 });
+    const scenario: Scenario = {
+      x: 12, y: 300, floatingWidth: 129, floatingHeight: 36,
+      referenceRect: { x: 12, y: 389.8 },
+      referenceViewportRect: { left: 12, top: 389.8, width: 12, height: 8.3 },
+    };
+    const before = visibleRect(scenario, scenario.x, scenario.y, scale);
+    expect(before.left, 'non-vacuity: the old offsetLeft rule would have moved this bar').toBeLessThan(75 + 4);
 
     expect(runClamp(scenario)).toEqual({});
   });

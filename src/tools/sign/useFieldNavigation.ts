@@ -276,9 +276,9 @@ function scrollFieldIntoView(elementId: string) {
  * The timeout covers a keyboard that was already up (tapping a second box),
  * where no resize comes.
  *
- * One pending reveal at a time, like `bringFieldIntoView`'s frame, and a field
- * move cancels it: a Next pressed before the keyboard settled must not be
- * followed by a scroll back to the box it left. For the same reason the reveal
+ * One pending move at a time, shared with `bringFieldIntoView`: whichever came
+ * last wins. A Next pressed before the keyboard settled must not be followed
+ * by a scroll back to the box it left, and vice versa. For the same reason the reveal
  * only runs if that box still holds the focus - a session closed in the
  * meantime has nothing left to reveal.
  */
@@ -286,6 +286,10 @@ const KEYBOARD_SETTLE_TIMEOUT_MS = 800;
 
 export function revealFieldAfterKeyboard(elementId: string) {
   cancelPendingReveal();
+  // And the other way round: a tap landing during a field move's two frames
+  // is the newer intent, so that move is dropped too.
+  if (pendingFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pendingFrame);
+  pendingFrame = 0;
   const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
   if (!viewport) return;
   const cancel = () => {
