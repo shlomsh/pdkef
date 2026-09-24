@@ -51,6 +51,7 @@ _None._
 | MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 | MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
 | MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
+| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 ### In progress
 

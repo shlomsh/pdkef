@@ -126,6 +126,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
 | MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
 | MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
+| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 
 ## Site quality: accessibility, CSS correctness and theming
