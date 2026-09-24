@@ -483,7 +483,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FORM-02 | P1 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |
-| FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · A column header the last row of a tall table can still reach |
+| FORM-03 | P1 | [FORM-03](backlog/tasks/FORM-03.md) · Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach |
 | FORM-04 | P2 | [FORM-04](backlog/tasks/FORM-04.md) · A Latin-script form in the ground-truth corpus |
 | FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |
 | FORM-06 | P1 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |
@@ -502,9 +502,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
+_None._
 
 ### Blocked
 
@@ -514,6 +512,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 | FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |

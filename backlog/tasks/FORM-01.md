@@ -1,7 +1,7 @@
 ---
 id: "FORM-01"
 title: "Tell a caption from a field, and take form 101 to the 90% gate"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
@@ -40,15 +40,17 @@ checkbox (`reconcileFields`); a caption cell sits *beside* one and survives. A c
 carries a checkbox in an adjacent column, and whose own text is short, is that checkbox's caption,
 not a field.
 
-- [ ] Add the caption rule and measure it, both forms, IoU >= 0.5, with `score.mjs`. Precision on
-  `text` has to move materially off 36.4% without costing checkbox or comb, which are at 100%.
-- [ ] Attack the 14 `text` recall misses separately from precision; they are not the same cells.
+- [ ] ~~Add the caption rule and measure it, both forms, IoU >= 0.5, with `score.mjs`. Precision on
+  `text` has to move materially off 36.4% without costing checkbox or comb, which are at 100%.~~
+  **Tried and measured 2026-09-20: it removes 0 false positives and 9 true positives. Not done,
+  and must not be retried; see below.**
+- [x] Attack the 14 `text` recall misses separately from precision; they are not the same cells.
   Failure classes 4, 5 and 6 (a field with no ink at all, an inline blank mid-sentence, a dotted
   leader read as many small cells) are **out of scope here** and need different signals, not
   tuning. Say which of the 14 fall into them rather than chasing all 14.
-- [ ] Unit fixtures for every rule added, in `formCells.test.js`, in the style of the tick-column
+- [x] Unit fixtures for every rule added, in `formCells.test.js`, in the style of the tick-column
   tests: a synthetic ink page, not a real form.
-- [ ] Re-score and put the numbers in `docs/mobi-10-field-map-spike.md`.
+- [x] Re-score and put the numbers in `docs/mobi-10-field-map-spike.md`.
 
 **Reproducing the score needs the two source PDFs**, which are not committed and cannot be (no
 reuse grant; see `scripts/generate-form-grid-fixtures.mjs`). Their URLs and sha256 are in the spike
@@ -129,3 +131,28 @@ text-dependent number.
 
 The source PDFs: this ticket said they can never be committed. MOBI-13 records the owner choosing
 to commit the originals on 2026-09-20, so check MOBI-13 before repeating the constraint.
+
+## Closed (2026-09-25)
+
+Closed on the recall and precision gate, which form 101 now clears. The two figures above were
+the state on 2026-09-20; the band fix this entry calls "written and measured but not landed"
+shipped as **FORM-12** (2026-09-22, rows scoped per column), and **FORM-13** (2026-09-24) won back
+the precision it cost:
+
+| form 101 | recall | precision | labels |
+| --- | --- | --- | --- |
+| gate | 90 | 90 | 85 |
+| this ticket's last entry | 85.6 | 96.7 | 83.2 |
+| `corpus/scoring/baselines.json`, 2026-09-24 | **94.2** | **97.8** | not recorded |
+
+The acceptance boxes: the caption rule is struck, not done (it was the wrong signal); the recall
+misses were classified from ink rather than chased; the writing-strip rule carries its unit cases
+(`1a692b3`, `8591cb0`); the numbers up to 2026-09-20 are in the spike record, and FORM-12's and
+FORM-13's are in `baselines.json`.
+
+**Label association, the one gate criterion still under 85, moves to FORM-03**, which was already
+the ticket for the biggest known label loss on this form. Nothing has worked on labels since
+`fieldLabels.js` landed on 2026-09-17, and the scored corpus does not record a label figure, so
+FORM-03 starts by measuring one. The health form (86.7% recall) is also under the recall gate but
+was never in this ticket's scope.
+
