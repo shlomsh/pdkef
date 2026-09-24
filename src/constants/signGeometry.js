@@ -98,6 +98,10 @@ export const COMB_BOX_FILL = 0.8;
 
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning
+// MOBI-17: how much of the visual viewport's edge the element toolbar's
+// visualViewportClamp middleware leaves as breathing room - small on
+// purpose, this is a "must be reachable" floor, not a layout gutter.
+export const VISUAL_VIEWPORT_CLAMP_MARGIN_PX = 4;
 export const LINE_TOOLBAR_MARGIN_TOP_PX = -10;         // Margin top offset in pixels for line toolbar positioning
 export const TEXT_RESIZE_SCALE_FACTOR = 0.2;          // Font size scaling rate relative to drag offset
 export const LINE_HIT_TARGET_STOKE_WIDTH = 20;        // Interactive stroke thickness for easier clicking (px)

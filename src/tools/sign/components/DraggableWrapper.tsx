@@ -10,6 +10,7 @@ import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
+import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 
 import { cloneElement, toChildArray } from 'preact';
@@ -96,12 +97,6 @@ export default function DraggableWrapper<T extends EditorElement>({
   // form as ~84px of document. Desktop (a fine pointer) never sees this - the
   // full toolbar renders exactly as before.
   const isCoarsePointer = useCoarsePointer();
-  // MOBI-17: subscribes this element's toolbar to the shared, ref-counted
-  // `--vv-scale` publisher (see the hook's own header). Every DraggableWrapper
-  // on the page calls this - up to 81 on the income-tax-101 fixture - but only
-  // one `visualViewport` listener is ever live for all of them, and none of
-  // them re-render when it fires.
-  useVisualViewportScale();
   // Starts collapsed on every fresh edit session (a new field reached by
   // Next/Previous mounts its own DraggableWrapper instance with this at its
   // default false; re-entering an edit session on the same box resets it via
@@ -231,15 +226,12 @@ export default function DraggableWrapper<T extends EditorElement>({
   // cap that no longer moves means both the wrap point (row count) and the
   // physical on-screen size stay constant under zoom - the two halves of the
   // acceptance criterion - without needing to recompute anything in JS on
-  // every pinch step. The known gap this does not close: at extreme zoom the
+  // every pinch step. The gap this alone does not close: at extreme zoom the
   // page wrapper can be wider than what is currently panned into view, so a
   // toolbar shifted to sit within the *whole* wrapper is not guaranteed to
-  // sit within the currently visible slice of it. In practice the anchor
-  // element itself must be on screen for a tap to have reached it, and
-  // `shift()` only moves the bar as far as its own placement demands - see
-  // the ticket for the fuller reasoning; a `platform.getDimensions` override
-  // pinned to `visualViewport`'s live pan offset would close it precisely,
-  // and is future work if a real device shows it in practice.
+  // sit within the currently visible slice of it - `visualViewportClamp`
+  // below is the middleware that closes it, reading `window.visualViewport`
+  // directly after `shift()`/`size()` have done their own zoom-invariant job.
   const getFloatingBoundary = (reference: Element | null) =>
     reference?.closest?.(`.${workspaceStyles['page-wrapper']}`) || 'clippingAncestors';
   const floatingBoundary = ({ elements }: { elements: { reference: unknown } }) =>
@@ -257,7 +249,7 @@ export default function DraggableWrapper<T extends EditorElement>({
   // may need more clearance still. MOBI-23 tracks proving that on a device.
   // Desktop keeps 8px: a mouse is a point, and nothing is adjusted.
   const toolbarOffsetPx = isCoarsePointer ? TOOLBAR_FLOATING_OFFSET + COARSE_HIT_OVERHANG_PX : TOOLBAR_FLOATING_OFFSET;
-  const { refs, floatingStyles } = useFloating({
+  const { refs, floatingStyles, update } = useFloating({
     placement: textDirection === 'rtl' ? 'top-end' : 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
@@ -294,15 +286,38 @@ export default function DraggableWrapper<T extends EditorElement>({
           elements.floating.style.maxWidth = `${Math.max(0, availableWidth)}px`;
         },
       })),
+      // MOBI-17: `shift()`/`size()` above hold the bar's physical size and
+      // row count constant by measuring against the page wrapper's own
+      // static rect, which is deliberately zoom-invariant - but that means
+      // they can place the bar anywhere within the *whole* wrapper, not only
+      // within whatever slice of it a pinch-zoomed, panned phone currently
+      // shows. This middleware is the missing containment check: it reads
+      // `window.visualViewport` directly and clamps into it, after
+      // `shift()`/`size()` have already done their own job. Full reasoning
+      // in visualViewportClamp.ts's own header.
+      visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
     ]
   });
+  // MOBI-17: subscribes this element's toolbar to the shared, ref-counted
+  // `--vv-scale` publisher (see the hook's own header) and to its
+  // visualViewport change broadcast, which calls this bar's own Floating UI
+  // `update()` so `visualViewportClamp` above (and the physical-size cap) are
+  // recomputed on every pinch/pan step - `autoUpdate` has no `visualViewport`
+  // listener of its own. Every DraggableWrapper on the page calls this - up
+  // to 81 on the income-tax-101 fixture - but only one `visualViewport`
+  // listener is ever live for all of them, and none of them re-render when
+  // it fires (this hook writes CSSOM/calls `update()` directly, never Preact
+  // state).
+  useVisualViewportScale(update);
   // MOBI-17: the corner of the bar that actually touches the element, so
   // `scale()` below shrinks the bar *away* from that corner rather than from
   // its own center - the placement never flips vertically here (see the
   // comment above `useFloating`), so it is always the bar's bottom edge, and
   // horizontally it is whichever edge `placement` anchors: left for LTR
-  // (`top-start`), right for RTL (`top-end`).
-  const toolbarScaleOrigin = textDirection === 'rtl' ? '100% 100%' : '0% 100%';
+  // (`top-start`), right for RTL (`top-end`). Shared with
+  // `visualViewportClamp`'s own origin math (`visualViewportClamp.ts`) so the
+  // two can never disagree about which corner is fixed.
+  const toolbarScaleOrigin = toolbarScaleOriginCss(textDirection === 'rtl' ? 'top-end' : 'top-start');
   // `scale` is last in the transform list, so per the CSS Transforms
   // composition order every translate listed before it (Floating UI's own
   // placement `translate(...)`, and the offset translate added here) is a
