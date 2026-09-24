@@ -7,7 +7,7 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    the rail's file list, sticky per-file captions, a tap on a page cell that
    reveals that cell's own 44px controls (there is no Edit pages mode any
    more), and the rail collapsing to a sticky bottom sheet (Download, then
-   Share/Compress it/Sign it/Options).
+   Share/Compress/Sign/Options).
    This spec runs under the `webkit` project (added to its testMatch in
    playwright.config.js) at iPhone 15, which is already this size; it also
    runs on `chromium` (the project every other Merge spec uses), where we

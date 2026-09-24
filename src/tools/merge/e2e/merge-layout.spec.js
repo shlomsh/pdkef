@@ -73,7 +73,7 @@ test('keeps the Merge card full width and spaces the native-share icon', async (
   await expect(page.locator('[data-state]')).toHaveCount(1);
   await expect(downloadLink).toHaveAttribute('data-state', 'ready');
 
-  // Share sits in the rail's hand-off row alongside Compress it / Sign it,
+  // Share sits in the rail's hand-off row alongside Compress / Sign,
   // with the row's own button class (PdfShareButton's `className`), so it is
   // found by name. E2.6's contract holds through that class: a real flex
   // row with a visible, tokenized gap between the icon and the label.

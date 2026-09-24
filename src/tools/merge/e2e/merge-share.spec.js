@@ -4,9 +4,9 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 /* MERGE-11 / Direction A hand-off row (2026-09-13): PdfShareButton only
    renders once `navigator.share`/`canShare` exist, so a real device without
    the Web Share API never gets a dead Share button - it is simply absent,
-   and the hand-off row is Compress it / Sign it only. This guard supplies
+   and the hand-off row is Compress / Sign only. This guard supplies
    the API (the same `addInitScript` pattern merge-layout.spec.js uses) so
-   the row's shape - Share first, then Compress it, then Sign it, all on one
+   the row's shape - Share first, then Compress, then Sign, all on one
    line even at phone width - can be asserted at all.
 
    Run against the production build with `npx playwright test
@@ -15,10 +15,10 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    report for the measured numbers) since the preview on 4173 serves
    whatever was last built, which does not yet include this change. */
 
-// Phone width regardless of which project's own default viewport runs this
-// (chromium's project default is a 1600px desktop size) - the one-line
-// requirement is specifically about the phone hand-off row.
-test.use({ viewport: { width: 375, height: 812 } });
+// The narrowest phone width regardless of which project's own default
+// viewport runs this (chromium's project default is a 1600px desktop size) -
+// the one-line, labels-fit requirement is specifically about the phone row.
+test.use({ viewport: { width: 320, height: 720 } });
 
 async function makePdfBuffer(label) {
   const document = await PDFDocument.create();
@@ -27,7 +27,7 @@ async function makePdfBuffer(label) {
   return Buffer.from(await document.save());
 }
 
-test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
+async function loadReadyRowWithShare(page) {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     Object.defineProperty(navigator, 'share', { configurable: true, value: async () => {} });
@@ -47,6 +47,43 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
 
   const handoffButtons = page.locator('[class*="handoff-row"] > button, [class*="handoff-row"] > a');
   await expect(handoffButtons).toHaveCount(3);
+  return handoffButtons;
+}
+
+// Measures the icon and label's own extent against the button's border box
+// on both sides. scrollWidth cannot do this: a centred label that overflows
+// spills out of both edges, and scrollWidth only reports the inline-end one.
+// The labels are in the system font stack, so no fixed number of pixels
+// holds on every machine (a 6px and then a 4px floor both failed on CI's
+// Linux fonts, runs 36051842433 and 36053109356). Two checks that do:
+// every label stays inside its border, and, where the row has room, the
+// spare width is shared evenly, so every button has the same clearance.
+// Equal-width buttons fail the second with any font (3px for Compress
+// against 22px for Sign on macOS).
+async function readClearances(handoffButtons) {
+  return handoffButtons.evaluateAll((nodes) => nodes.map((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const content = range.getBoundingClientRect();
+    const box = node.getBoundingClientRect();
+    return { label: node.textContent.trim(), clearance: Math.min(content.left - box.left, box.right - content.right) };
+  }));
+}
+
+async function expectEveryLabelInsideItsBorder(handoffButtons) {
+  for (const { label, clearance } of await readClearances(handoffButtons)) {
+    expect(clearance, label).toBeGreaterThan(0);
+  }
+}
+
+async function expectSpareWidthSharedEvenly(handoffButtons) {
+  const clearances = await readClearances(handoffButtons);
+  const values = clearances.map(({ clearance }) => clearance);
+  expect(Math.max(...values) - Math.min(...values), JSON.stringify(clearances)).toBeLessThanOrEqual(1);
+}
+
+test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
+  const handoffButtons = await loadReadyRowWithShare(page);
 
   const first = handoffButtons.nth(0);
   await expect(first).toBeVisible();
@@ -63,9 +100,26 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
   }
 
   // Every hand-off button carries an icon before its label (Share keeps its
-  // own glyph; Compress it and Sign it use their launcher icons).
+  // own glyph; Compress and Sign use their launcher icons).
   const svgCounts = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => node.querySelectorAll('svg').length));
   for (const count of svgCounts) {
     expect(count).toBeGreaterThanOrEqual(1);
   }
+
+  // At the row's own size, with no font shrink, even at 320px.
+  await expectEveryLabelInsideItsBorder(handoffButtons);
+});
+
+// The desktop rail is a fixed 320px, so with Share present each button is
+// about 93px wide. "Compress it" once overflowed its own border there and a
+// desktop-only font shrink papered over it; the labels are short enough now
+// to fit at the row's normal size, and this keeps them that way.
+test.describe('on the desktop rail', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('every hand-off label fits inside its own button, with the spare width shared evenly', async ({ page }) => {
+    const handoffButtons = await loadReadyRowWithShare(page);
+    await expectEveryLabelInsideItsBorder(handoffButtons);
+    await expectSpareWidthSharedEvenly(handoffButtons);
+  });
 });

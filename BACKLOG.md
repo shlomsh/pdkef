@@ -330,9 +330,8 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
-| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
 
 ### In progress
 
@@ -354,6 +353,7 @@ _None._
 | ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
 | ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
 | ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
+| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
@@ -361,7 +361,10 @@ _None._
 
 ### Retired
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
 
 ## Architecture debt
 
@@ -370,7 +373,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | DEBT-07 | P2 | [DEBT-07](backlog/tasks/DEBT-07.md) · editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers |
-| DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |
@@ -405,10 +407,13 @@ _None._
 | DEBT-13 | P3 | [DEBT-13](backlog/tasks/DEBT-13.md) · Trim the e2e specs that re-prove what a unit test already proves under jsdom |
 | DEBT-16 | P2 | [DEBT-16](backlog/tasks/DEBT-16.md) · Flaky CLS assertion in tool-layout.spec.js's stale-restore test |
 | DEBT-18 | P1 | [DEBT-18](backlog/tasks/DEBT-18.md) · Four tools commit async results that their inputs already invalidated |
+| DEBT-23 | P2 | [DEBT-23](backlog/tasks/DEBT-23.md) · One page-range parser: PDF to Image reads ranges the way Split does |
 
 ### Retired
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEBT-14 | P3 | [DEBT-14](backlog/tasks/DEBT-14.md) · Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx |
 
 ## Undo and redo
 
@@ -484,6 +489,10 @@ _None._
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
 | FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 | FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |
+| FORM-17 | P2 | [FORM-17](backlog/tasks/FORM-17.md) · A comb with a divider before its last digits is one field, not two |
+| FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
+| FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
+| FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
 
 ### In progress
 
@@ -504,6 +513,7 @@ _None._
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 | FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
+| FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
 
 ### Retired
 

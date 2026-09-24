@@ -143,7 +143,7 @@ export interface MergeMessages {
    * quiet line after the first result in this browser. */
   handoffCompress: string;
   /** Direction A: the Share button in the rail's hand-off row; short, since
-   * it shares one row with Compress it, Sign it and Options on a phone. */
+   * it shares one row with Compress, Sign and Options on a phone. */
   shareLabel: string;
   handoffSign: string;
   handoffFailed: string;
@@ -254,9 +254,9 @@ const englishMergeMessages: MergeMessages = {
   previewSkippedBanner: 'Excluded from the merged file',
   previewSkippedNote: 'Left out of the download.',
   previewIncludeAgain: 'Include it again',
-  handoffCompress: 'Compress it',
+  handoffCompress: 'Compress',
   shareLabel: 'Share',
-  handoffSign: 'Sign it',
+  handoffSign: 'Sign',
   // MEM-03: handoffConfirm* (the "Replace the saved draft?" warning) is gone
   // - MEM-02 dropped its last consumer in PdfMergeTool.tsx alongside the
   // same one-memory-space change this file's Replace-dialog copy reflects.
@@ -365,9 +365,9 @@ const hebrewMergeMessages: MergeMessages = {
   previewSkippedBanner: 'לא ייכלל בקובץ המאוחד',
   previewSkippedNote: 'לא ייכלל בהורדה.',
   previewIncludeAgain: 'להחזיר אותו',
-  handoffCompress: 'לכווץ אותו',
+  handoffCompress: 'כיווץ',
   shareLabel: 'שיתוף',
-  handoffSign: 'לחתום עליו',
+  handoffSign: 'חתימה',
   handoffFailed: 'לא הצלחנו להעביר את הקובץ. הורידו אותו במקום.',
   installLine: 'הדף הזה שמור עכשיו בדפדפן, אז האיחוד עובד גם בלי חיבור לאינטרנט.',
   installWithPrompt: 'אפשר גם {install} אותו כמו אפליקציה.',

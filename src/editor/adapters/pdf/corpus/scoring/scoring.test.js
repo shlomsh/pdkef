@@ -41,6 +41,10 @@ beforeAll(async () => {
     scored.set(form.name, await scoreForm({
       pdf: path.join(repoRoot, form.pdf),
       truth: path.join(repoRoot, form.truth),
+      // Case-agnostic: most forms score page 0 and leave this undefined, so scoreForm's own
+      // default applies. A form scored on a later page (FORM-16's ภ.ง.ด.90, page 3) says so in
+      // its own baselines.json row rather than needing a special case here.
+      pageIndex: form.pageIndex,
     }));
   }
   // Always visible, not only on failure: a passing run that silently improved

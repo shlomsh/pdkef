@@ -7,12 +7,15 @@ paths:
   - "scripts/change-scope.mjs"
   - "scripts/*.test.mjs"
   - "docs/nx-affected-ci.md"
+  - "e2e/**"
+  - "src/tools/*/e2e/**"
 ---
 
-Loaded when working on shared test infrastructure: `src/test/`, the Vitest and Playwright configs, or
-the affected-scope scripts that narrow CI to what a change actually touches. Each tool's own unit and
-`e2e/` tests live under `src/tools/<tool>/` and load that tool's own rule instead; this file is about
-the environments and scope those tests run in, not their content.
+Loaded when working on shared test infrastructure (`src/test/`, the Vitest and Playwright configs, the
+affected-scope scripts that narrow CI to what a change actually touches) and on any Playwright spec.
+Each tool's own tests live under `src/tools/<tool>/` and load that tool's own rule too; this file is
+about the environments and scope those tests run in, and what a browser assertion can rely on across
+platforms, not their content.
 
 ## Test environments and E2E scope
 
@@ -40,6 +43,27 @@ tool's page belongs under `e2e/` instead, enforced statically by rule 7 in `docs
 `signPdf` in-browser and rasterises the PDF with pdf.js against per-case baselines: one rasteriser only
 (poppler vs Chromium noise measured at 80-88%), and never "is there ink" as a pass condition, since
 `.notdef` often draws more ink than the glyph it replaced.
+
+## Rendered text width is per-platform: assert layout properties, not pixels
+
+UI labels use `--font-sans`, the system font stack, so the same label draws at a different width on
+macOS (SF), CI's Linux (a fallback face), Windows (Segoe UI) and Android (Roboto). A pixel threshold
+measured on a Mac says nothing about CI: on 2026-09-24 a clearance floor in
+`src/tools/merge/e2e/merge-share.spec.js` turned `main` red three times in a row (6px, then 4px;
+runs 36051842433 and 36053109356), because Merge's "Compress" had 7.4px of clearance at 320px on macOS
+and 3.09px on CI. One of those runs also under-reported the problem: the assertion looped over the
+buttons and stopped at the first failure, so the worst button's number never printed.
+
+- Assert what holds for any font: a label stays inside its border (`> 0`), spare width is shared
+  evenly (equal clearance within 1px), controls sit on one line. The Merge spec's
+  `expectEveryLabelInsideItsBorder` / `expectSpareWidthSharedEvenly` are the model. Measure a label's
+  extent with a `Range` against the border box on both sides; `scrollWidth` only reports the
+  inline-end half of a centred label's overflow.
+- Proxy Linux locally by forcing Arial, DejaVu Sans and Verdana on the element through
+  `element.style.setProperty(..., 'important')` (the CSP blocks `page.addStyleTag`). Verdana at 320px
+  came closest to CI's numbers. Docker is not installed on the dev machine.
+- A spec whose number came only from macOS gets a Linux run before it reaches `main`: push its branch
+  and `gh workflow run ci.yml --ref <branch>` (`ci.yml` runs automatically only on `main` and PRs).
 
 ## `src/test/cross-tool/`
 

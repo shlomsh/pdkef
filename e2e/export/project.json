@@ -3,7 +3,6 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "e2e/export",
-  "tags": ["scope:export-guards"],
   "implicitDependencies": ["font-assets", "editor", "lib", "tool-sign"],
   "targets": {
     "e2e": {
