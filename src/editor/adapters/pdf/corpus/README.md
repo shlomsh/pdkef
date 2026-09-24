@@ -155,12 +155,14 @@ exists to prevent.
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
 | `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
-| `itc101` | 139 | 94.2% | 95.6% | Hebrew, flat, dense |
+| `itc101` | 139 | 94.2% | 97.8% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 | `thai-pnd90-2565` | 105 | 52.4% | 23.5% | Thai, live AcroForm, dense, dotted leaders |
 | `thai-lor-yor-01-2562` | 57 | 100% | 100% | Thai, live AcroForm, sparse |
 | `uscis-i9-2025-01-20` | 52 | 98.1% | 92.7% | Latin, live AcroForm, Section 1 + 2 on one page |
+| `thai-sso-1-10` | 46 | 17.4% | 88.9% | Thai, flat, dotted leaders, legacy fonts |
+| `hmrc-sa100-2026` | 15 | 26.7% | 4.3% | Latin, flat, amount boxes drawn as separate squares |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
