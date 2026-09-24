@@ -381,6 +381,7 @@ export default function PdfMergeTool({
     () => ({ isRestoring: hasMergeDraftHint(), draftSaveState: 'idle' }),
   );
   const clearDraftRef = useRef<(() => Promise<boolean>) | null>(null);
+  const restoreScrollPendingRef = useRef(false);
   const [restoreHydrationComplete, setRestoreHydrationComplete] = useState(true);
   // Persists for this mounted workspace after a valid restore. The page shell
   // uses it to retain the first-paint geometry that a fresh picker is allowed
@@ -534,6 +535,18 @@ export default function PdfMergeTool({
     if (entries.length === 0 || workspaceReady) document.documentElement.removeAttribute('data-merge-restore');
   }, [draftState.isRestoring, entries.length, workspaceReady]);
 
+  // WebKit intermittently ignores history.scrollRestoration during a reload.
+  // Wait until the asynchronously restored grid is really in the document,
+  // then reset the stale offset once for that restore. The second pass lands
+  // after the restore marker above reveals the completed workspace.
+  useEffect(() => {
+    if (!workspaceReady || !restoreScrollPendingRef.current) return undefined;
+    restoreScrollPendingRef.current = false;
+    window.scrollTo(0, 0);
+    const frame = requestAnimationFrame(() => window.scrollTo(0, 0));
+    return () => cancelAnimationFrame(frame);
+  }, [workspaceReady]);
+
   useEffect(() => {
     let cancelled = false;
     import('./components/MergeDraftPersistence.tsx')
@@ -546,6 +559,7 @@ export default function PdfMergeTool({
   // the id, which is what the stored plan's fileId already is), then the same
   // inspection a fresh pick gets, for thumbnails and to re-check each file.
   const onDraftRestore = useCallback((restored: MergeDraftRestore) => {
+    restoreScrollPendingRef.current = true;
     const restoredEntries = restored.files.map((file) => toEntry(file));
     const idByIndex = restoredEntries.map((e) => e.id);
     const plan = restored.plan.map((p) => ({ ...p, fileId: idByIndex[p.fileId], key: `${idByIndex[p.fileId]}:${p.pageIndex}` }));
@@ -1126,9 +1140,9 @@ export default function PdfMergeTool({
   // grows by a whole document; the browser keeps retrying that offset as the
   // page grows. Measured at 375px it landed below the grid, where nothing was
   // near enough to render, and the merge looked like it had no thumbnails.
-  // The mode travels with the history entry, so it is set while files are on
-  // the page, ahead of any reload, not on the reloaded page (too late there
-  // for the first reload; verified on Chromium).
+  // Set the mode while files are on the page, ahead of any reload. WebKit
+  // does not apply it reliably, so a restored workspace also resets the
+  // stale offset once its async grid has mounted (the effect above).
   useEffect(() => {
     if (typeof history === 'undefined' || !('scrollRestoration' in history)) return;
     history.scrollRestoration = hasFiles ? 'manual' : 'auto';
