@@ -516,7 +516,7 @@
   }
 }
 
-/* MERGE-14 hand-off row: "Compress it", "Sign it", "Split it" as quiet links
+/* MERGE-14 hand-off row: "Compress", "Sign", "Split" as quiet links
    under Download. Three plain verbs, no icons competing with Download - see
    backlog/tasks/MERGE-14.md's voice note. */
 .action-row-secondary {

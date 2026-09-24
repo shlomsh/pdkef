@@ -1,0 +1,560 @@
+{
+  "form": "thai-sso-1-10",
+  "sha256": "71881457c8f488e1957135c5d6dd657f6d2a6b9666c5d3e6b6954ffe99890234",
+  "sourceUrl": "https://www.sso.go.th/wpr/assets/upload/files_storage/sso_th/918a5ffc639945c7890f199112922f09.pdf",
+  "pageIndex": 0,
+  "pageSize": {
+    "width": 841.92,
+    "height": 595.32
+  },
+  "render": {
+    "file": "sso1-10-1.png",
+    "width": 2339,
+    "height": 1654
+  },
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1941,
+        "y": 0.1507,
+        "width": 0.2636,
+        "height": 0.0311
+      },
+      "label": "ชื่อสถานประกอบการ"
+    },
+    {
+      "id": "t002",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1585,
+        "y": 0.1869,
+        "width": 0.2981,
+        "height": 0.0311
+      },
+      "label": "ชื่อสาขา (ถ้ามี)"
+    },
+    {
+      "id": "t003",
+      "kind": "text",
+      "bounds": {
+        "x": 0.0842,
+        "y": 0.2232,
+        "width": 0.3748,
+        "height": 0.0674
+      },
+      "label": "ที่ตั้งสำนักงานใหญ่/สาขา",
+      "notes": "two ruled lines (address wraps); bbox spans both; dots on line 1 start only around x=208pt, so this box includes some of line 1's own label text on its left"
+    },
+    {
+      "id": "t004",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1545,
+        "y": 0.2958,
+        "width": 0.0533,
+        "height": 0.0311
+      },
+      "label": "รหัสไปรษณีย์"
+    },
+    {
+      "id": "t005",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2542,
+        "y": 0.2958,
+        "width": 0.0973,
+        "height": 0.0311
+      },
+      "label": "โทรศัพท์"
+    },
+    {
+      "id": "t006",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3933,
+        "y": 0.2958,
+        "width": 0.0659,
+        "height": 0.0311
+      },
+      "label": "โทรสาร"
+    },
+    {
+      "id": "t007",
+      "kind": "date",
+      "bounds": {
+        "x": 0.255,
+        "y": 0.3365,
+        "width": 0.1124,
+        "height": 0.0266
+      },
+      "label": "เดือน",
+      "notes": "wage-period month, written as text (month name), not digits"
+    },
+    {
+      "id": "t008",
+      "kind": "date",
+      "bounds": {
+        "x": 0.3844,
+        "y": 0.3365,
+        "width": 0.0685,
+        "height": 0.0266
+      },
+      "label": "พ.ศ",
+      "notes": "wage-period Buddhist year"
+    },
+    {
+      "id": "t009",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.6722,
+        "y": 0.1833,
+        "width": 0.155,
+        "height": 0.0302
+      },
+      "label": "เลขที่บัญชี",
+      "cells": 10,
+      "notes": "the employer account number, one 10-digit field: printed dashes group it 2-7-1 but a person writes one number (decided 2026-09-24); snapped to pageInk rects"
+    },
+    {
+      "id": "t012",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.6722,
+        "y": 0.2225,
+        "width": 0.0802,
+        "height": 0.0302
+      },
+      "label": "ลำดับที่สาขา",
+      "cells": 6,
+      "notes": "branch sequence number; snapped to pageInk rects"
+    },
+    {
+      "id": "t013",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7104,
+        "y": 0.2595,
+        "width": 0.0815,
+        "height": 0.0311
+      },
+      "label": "อัตราเงินสมทบร้อยละ"
+    },
+    {
+      "id": "t014",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3194,
+        "y": 0.4254,
+        "width": 0.1069,
+        "height": 0.0366
+      },
+      "label": "เงินค่าจ้างทั้งสิ้น",
+      "notes": "บาท (baht) column of the ruled dashed row"
+    },
+    {
+      "id": "t015",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4263,
+        "y": 0.4254,
+        "width": 0.0321,
+        "height": 0.0366
+      },
+      "label": "เงินค่าจ้างทั้งสิ้น",
+      "notes": "สต. (satang) column of the ruled dashed row"
+    },
+    {
+      "id": "t016",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3194,
+        "y": 0.462,
+        "width": 0.1069,
+        "height": 0.0353
+      },
+      "label": "เงินสมทบผู้ประกันตน",
+      "notes": "บาท (baht) column of the ruled dashed row"
+    },
+    {
+      "id": "t017",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4263,
+        "y": 0.462,
+        "width": 0.0321,
+        "height": 0.0353
+      },
+      "label": "เงินสมทบผู้ประกันตน",
+      "notes": "สต. (satang) column of the ruled dashed row"
+    },
+    {
+      "id": "t018",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3194,
+        "y": 0.4973,
+        "width": 0.1069,
+        "height": 0.0277
+      },
+      "label": "เงินสมทบนายจ้าง",
+      "notes": "บาท (baht) column of the ruled dashed row"
+    },
+    {
+      "id": "t019",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4263,
+        "y": 0.4973,
+        "width": 0.0321,
+        "height": 0.0277
+      },
+      "label": "เงินสมทบนายจ้าง",
+      "notes": "สต. (satang) column of the ruled dashed row"
+    },
+    {
+      "id": "t020",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3194,
+        "y": 0.525,
+        "width": 0.1069,
+        "height": 0.0339
+      },
+      "label": "รวมเงินสมทบที่นำส่งทั้งสิ้น",
+      "notes": "บาท (baht) column of the ruled dashed row"
+    },
+    {
+      "id": "t021",
+      "kind": "text",
+      "bounds": {
+        "x": 0.4263,
+        "y": 0.525,
+        "width": 0.0321,
+        "height": 0.0339
+      },
+      "label": "รวมเงินสมทบที่นำส่งทั้งสิ้น",
+      "notes": "สต. (satang) column of the ruled dashed row"
+    },
+    {
+      "id": "t022",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1069,
+        "y": 0.5589,
+        "width": 0.3326,
+        "height": 0.0302
+      },
+      "label": "",
+      "notes": "parenthetical amount-in-words line under item 4; no printed label beside it, only '(' ')'"
+    },
+    {
+      "id": "t023",
+      "kind": "text",
+      "bounds": {
+        "x": 0.3194,
+        "y": 0.5892,
+        "width": 0.1069,
+        "height": 0.0413
+      },
+      "label": "จำนวนผู้ประกันตนที่ส่งเงินสมทบ",
+      "notes": "headcount (unit 'คน' is pre-printed where the สต. column would be, so this row has one cell, not two)"
+    },
+    {
+      "id": "t024",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.0842,
+        "y": 0.7132,
+        "width": 0.0117,
+        "height": 0.0247
+      },
+      "label": "รายละเอียดการนำส่งเงินสมทบ"
+    },
+    {
+      "id": "t025",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2872,
+        "y": 0.7113,
+        "width": 0.0743,
+        "height": 0.0274
+      },
+      "label": "จำนวน...แผ่น",
+      "notes": "page count for the 'รายละเอียดการนำส่งเงินสมทบ' attachment"
+    },
+    {
+      "id": "t026",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.0842,
+        "y": 0.7448,
+        "width": 0.0117,
+        "height": 0.0247
+      },
+      "label": "สื่อข้อมูลอิเล็กทรอนิกส์"
+    },
+    {
+      "id": "t027",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2872,
+        "y": 0.743,
+        "width": 0.0743,
+        "height": 0.0274
+      },
+      "label": "จำนวน...แผ่น",
+      "notes": "page count for the 'สื่อข้อมูลอิเล็กทรอนิกส์' attachment"
+    },
+    {
+      "id": "t028",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.0842,
+        "y": 0.7767,
+        "width": 0.0117,
+        "height": 0.0247
+      },
+      "label": "อินเตอร์เน็ต"
+    },
+    {
+      "id": "t029",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.0842,
+        "y": 0.8085,
+        "width": 0.0117,
+        "height": 0.0247
+      },
+      "label": "อื่นๆ"
+    },
+    {
+      "id": "t030",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1227,
+        "y": 0.8067,
+        "width": 0.0712,
+        "height": 0.0274
+      },
+      "label": "อื่นๆ",
+      "notes": "free text after the 'อื่นๆ' (other) checkbox label"
+    },
+    {
+      "id": "t031",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.2804,
+        "y": 0.8067,
+        "width": 0.203,
+        "height": 0.0274
+      },
+      "label": "ลงชื่อ...นายจ้าง"
+    },
+    {
+      "id": "t032",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2803,
+        "y": 0.8383,
+        "width": 0.2062,
+        "height": 0.0274
+      },
+      "label": "",
+      "notes": "printed name below the employer's signature, in parens"
+    },
+    {
+      "id": "t033",
+      "kind": "text",
+      "bounds": {
+        "x": 0.2937,
+        "y": 0.8702,
+        "width": 0.2257,
+        "height": 0.0274
+      },
+      "label": "ตำแหน่ง",
+      "notes": "employer's title/position"
+    },
+    {
+      "id": "t034",
+      "kind": "date",
+      "bounds": {
+        "x": 0.3094,
+        "y": 0.9018,
+        "width": 0.0354,
+        "height": 0.0274
+      },
+      "label": "ยื่นแบบวันที่",
+      "notes": "submission day"
+    },
+    {
+      "id": "t035",
+      "kind": "date",
+      "bounds": {
+        "x": 0.3687,
+        "y": 0.9018,
+        "width": 0.0876,
+        "height": 0.0274
+      },
+      "label": "เดือน",
+      "notes": "submission month"
+    },
+    {
+      "id": "t036",
+      "kind": "date",
+      "bounds": {
+        "x": 0.4732,
+        "y": 0.9018,
+        "width": 0.0411,
+        "height": 0.0274
+      },
+      "label": "พ.ศ",
+      "notes": "submission year"
+    },
+    {
+      "id": "t037",
+      "kind": "date",
+      "bounds": {
+        "x": 0.5992,
+        "y": 0.3698,
+        "width": 0.3128,
+        "height": 0.0274
+      },
+      "label": "ชำระเงินวันที่",
+      "notes": "SSO staff: payment date"
+    },
+    {
+      "id": "t038",
+      "kind": "text",
+      "bounds": {
+        "x": 0.601,
+        "y": 0.4016,
+        "width": 0.1541,
+        "height": 0.0274
+      },
+      "label": "เงินเพิ่ม (ถ้ามี) ... บาท",
+      "notes": "late-fee amount, baht"
+    },
+    {
+      "id": "t039",
+      "kind": "text",
+      "bounds": {
+        "x": 0.7776,
+        "y": 0.4016,
+        "width": 0.1045,
+        "height": 0.0274
+      },
+      "label": "... สตางค์",
+      "notes": "late-fee amount, satang"
+    },
+    {
+      "id": "t040",
+      "kind": "text",
+      "bounds": {
+        "x": 0.626,
+        "y": 0.4335,
+        "width": 0.2849,
+        "height": 0.0274
+      },
+      "label": "ใบเสร็จรับเงินเลขที่",
+      "notes": "SSO staff: receipt number"
+    },
+    {
+      "id": "t041",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.5644,
+        "y": 0.497,
+        "width": 0.3457,
+        "height": 0.0274
+      },
+      "label": "ลงชื่อ",
+      "notes": "SSO officer signature"
+    },
+    {
+      "id": "t042",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5648,
+        "y": 0.5288,
+        "width": 0.3429,
+        "height": 0.0274
+      },
+      "label": "",
+      "notes": "SSO officer printed name, in parens"
+    },
+    {
+      "id": "t043",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5843,
+        "y": 0.5605,
+        "width": 0.324,
+        "height": 0.0274
+      },
+      "label": "ตำแหน่ง",
+      "notes": "SSO officer title/position"
+    },
+    {
+      "id": "t044",
+      "kind": "date",
+      "bounds": {
+        "x": 0.5992,
+        "y": 0.6478,
+        "width": 0.3128,
+        "height": 0.0274
+      },
+      "label": "ชำระเงินวันที่",
+      "notes": "bank/unit staff: payment date"
+    },
+    {
+      "id": "t045",
+      "kind": "text",
+      "bounds": {
+        "x": 0.626,
+        "y": 0.6794,
+        "width": 0.2821,
+        "height": 0.0274
+      },
+      "label": "ใบเสร็จรับเงินเลขที่",
+      "notes": "bank/unit staff: receipt number"
+    },
+    {
+      "id": "t046",
+      "kind": "signature",
+      "bounds": {
+        "x": 0.5671,
+        "y": 0.8067,
+        "width": 0.343,
+        "height": 0.0274
+      },
+      "label": "ลงชื่อ",
+      "notes": "bank/unit officer signature"
+    },
+    {
+      "id": "t047",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5675,
+        "y": 0.8383,
+        "width": 0.3406,
+        "height": 0.0274
+      },
+      "label": "",
+      "notes": "bank/unit officer printed name, in parens"
+    },
+    {
+      "id": "t048",
+      "kind": "text",
+      "bounds": {
+        "x": 0.5873,
+        "y": 0.8702,
+        "width": 0.3179,
+        "height": 0.0274
+      },
+      "label": "ตำแหน่ง",
+      "notes": "bank/unit officer title/position"
+    }
+  ]
+}

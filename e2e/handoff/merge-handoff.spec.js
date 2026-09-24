@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument } from '@cantoo/pdf-lib';
 
-/* MERGE-14: the quiet hand-off row under Download. "Compress it" saves the
+/* MERGE-14: the quiet hand-off row under Download. "Compress" saves the
    merged blob as a hand-off (draftStore.saveHandoff) and navigates to
    /compress/, which reads it back on mount via useHandoffIntake. Confirmed
    present in this build (both PdfMergeTool.tsx's hand-off controls and
@@ -10,10 +10,10 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 
    Direction A (2026-09-13): the row lives in the rail's pinned footer
    (MergeRail.module.css's `.handoff-row`, `.handoff-button`), under the
-   Download element, alongside Share (when available) - "Compress it" and
-   "Sign it" are BUTTONS (role button), not links; they navigate via
+   Download element, alongside Share (when available) - "Compress" and
+   "Sign" are BUTTONS (role button), not links; they navigate via
    `navigate()` (window.location.href) after saving the hand-off, just
-   without an <a href> to assert against - and "Split it" was dropped
+   without an <a href> to assert against - and "Split" was dropped
    entirely on Shlomi's decision, so it is not covered here. */
 
 async function makePdfBuffer(label) {
@@ -23,7 +23,7 @@ async function makePdfBuffer(label) {
   return Buffer.from(await document.save());
 }
 
-test('Compress it hands the merged file to Compress with the identity row naming it', async ({ page }) => {
+test('Compress hands the merged file to Compress with the identity row naming it', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
 
@@ -37,7 +37,7 @@ test('Compress it hands the merged file to Compress with the identity row naming
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
 
-  const compressButton = page.getByRole('button', { name: 'Compress it', exact: true });
+  const compressButton = page.getByRole('button', { name: 'Compress', exact: true });
   await expect(compressButton).toBeVisible();
   await compressButton.click();
 

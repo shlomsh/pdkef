@@ -310,8 +310,8 @@ export default function RedactToolbar({
         />
 
         {/* Finding #4: the quiet next-tool hand-off, right beside the
-            Download/Share pair it depends on - Merge's own "Compress it" /
-            "Sign it" row (docs/ux-design-guidelines.md §13) is the model,
+            Download/Share pair it depends on - Merge's own "Compress" /
+            "Sign" row (docs/ux-design-guidelines.md §13) is the model,
             reused through draftStore.js's saveHandoff rather than copied
             (module boundaries forbid importing another tool). Only ever
             visible once a redacted export actually exists, so it never
@@ -327,7 +327,7 @@ export default function RedactToolbar({
             title="Hand the redacted PDF to Compress"
           >
             <Shrink size={18} aria-hidden="true" />
-            <span className={styles.label}>Compress it</span>
+            <span className={styles.label}>Compress</span>
           </button>
         )}
       </div>

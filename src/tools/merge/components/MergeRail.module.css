@@ -61,7 +61,7 @@
    width) carries the file list, Sort, Add files and Clear all instead, so
    `.rail-scroll` (the part that held them) drops out entirely; what remains
    of `.rail` - `.rail-pinned` alone - becomes the sticky bottom sheet: the
-   Download element and one row of Share / Compress it / Sign it, nothing
+   Download element and one row of Share / Compress / Sign, nothing
    else competing, pinned to the bottom edge the way the editor toolbars
    already stretch full width on mobile. One mechanism for tablet and phone
    alike (2026-09-14 tablet fix); only the edge-bleed amount below differs,
@@ -436,8 +436,8 @@
   /* Shlomi (2026-09-13): Add files, Clear all, Reset order and Start fresh
      are buttons and look like buttons: one quiet secondary style, no fill,
      a 1px strong border, 36px tall with a 44px hit area (the ::before), text
-     colour. Underline is for links that navigate. Share, Compress it and
-     Sign it keep their own row style; "Draft saved" stays plain text. */
+     colour. Underline is for links that navigate. Share, Compress and
+     Sign keep their own row style; "Draft saved" stays plain text. */
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -512,51 +512,20 @@
   gap: 0.5rem;
 }
 
-/* Every child of the row is an equal button, the Share button included
-   (it keeps PdfShareButton's own classes, so the rule is on the row). On a
-   phone the four of them (Share, Compress it, Sign it, Options) stay on one
-   line at 393px: no wrapping, no label wrapping, a smaller face. */
+/* Every child of the row is a hand-off button, the Share button included
+   (it keeps PdfShareButton's own classes, so the rule is on the row). The
+   three of them (Share, Compress, Sign) stay on one line at every width, at
+   the row's own size: no wrapping, no label wrapping. Each starts from its
+   own label's width and they share what is left: equal widths gave
+   "Compress" 3px of clearance in the 320px desktop rail while "Sign" had
+   22px, and pushed it past its border on a 320px phone. */
 .handoff-row > * {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   white-space: nowrap;
 }
 
-/* Shlomi's screenshot: "Compress it" overflowing its own border on desktop.
-   The rail is a fixed 320px there (see .rail below), so with Share present
-   the row is three 93px buttons; "Compress it" alone measures ~79px at the
-   default 0.85rem/600, more than the button has room for once the icon,
-   gap, padding and border are added. The two-button row (no Share) already
-   fits at full size, so this only tightens the three-button case, the same
-   `:has(> :nth-child(N))` pattern the editor toolbars use to size themselves
-   off their own control count - reusing the exact font-size/padding the 393px phone
-   row below already proved fits "Compress it" in a tighter 79px button. */
-@media (min-width: 1024px) {
-  .handoff-row:has(> :nth-child(3)) {
-    gap: 0.2rem;
-  }
-
-  .handoff-row:has(> :nth-child(3)) > * {
-    padding-inline: 0.15rem;
-    font-size: 0.76rem;
-  }
-}
-
-@media (max-width: 767px) {
-  .handoff-row {
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-  }
-
-  /* Four 79px buttons at 393px: "Compress it" bold measures about 70px at
-     this size, so the padding is the minimum that still reads as a button. */
-  .handoff-row > * {
-    padding-inline: 0.15rem;
-    font-size: 0.76rem;
-  }
-}
-
-/* Review P3: Compress it / Sign it (and Share, Options on the phone) read
+/* Review P3: Share, Compress and Sign read
    as peers of Download - same solid surface, same weight. Quieter now: a
    transparent fill and a primary-text label say "secondary", the way a
    filled Download and a bordered-only hand-off row read as one primary
@@ -566,9 +535,13 @@
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  flex: 1;
   min-height: 44px;
-  padding: 0.5rem 0.6rem;
+  /* The side padding is only a floor. The row shares its spare width
+     evenly (see .handoff-row > *), so wherever it fits every label gets
+     the same clearance, however wide the platform's system font draws it;
+     padding in the flex basis only brings forward the width where the row
+     runs out and starts squeezing the widest label first. */
+  padding: 0.5rem 0.25rem;
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;

@@ -154,14 +154,18 @@ test.describe('A real double-click (with a human-scale gap) locks the tool, on b
 test.describe('A double-tap on a phone locks the tool', () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-  test('Redact: Blur, two taps 250ms apart', async ({ page }) => {
+  // The taps go back to back, with no sleep between them: a fixed 250ms wait
+  // plus a loaded CI runner's round trip reached 401ms, past both Chromium's
+  // tap-count window and DOUBLE_TAP_MS, and the second tap disarmed instead
+  // (1 run in 12 on main; 1 in 30 locally at 6x CPU throttle). The gap between
+  // real taps is toolArming.test.js's job, not this smoke test's.
+  test('Redact: Blur, two quick taps', async ({ page }) => {
     const toolbar = await openTool(page, '/redact', 'PDF redaction', '.redact-draw-area');
     const btn = toolbar.getByRole('button', { name: 'Blur', exact: true });
     const box = await btn.boundingBox();
     const x = box.x + box.width / 2;
     const y = box.y + box.height / 2;
     await page.touchscreen.tap(x, y);
-    await page.waitForTimeout(250);
     await page.touchscreen.tap(x, y);
     await expect(lockSwitch(page)).toHaveAttribute('aria-checked', 'true');
     await expect(btn).toHaveClass(/locked/);
