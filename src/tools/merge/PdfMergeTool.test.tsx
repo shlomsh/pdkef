@@ -474,22 +474,22 @@ describe('PdfMergeTool UI flow', () => {
     expect(fileNames()).toEqual(['dup.pdf', 'other.pdf', 'dup.pdf']);
   });
 
-  it('sorts with one select, Reverse folded in as its own option, and regroups the plan to match', async () => {
+  it('sorts with the styled menu, Reverse folded in as its own option, and regroups the plan to match', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf', 'c.pdf']);
-    const select = container.querySelector(`select.${railStyles['sort-select']}`);
-    expect(select).not.toBeNull();
+    const trigger = () => container.querySelector(`button.${railStyles['sort-trigger']}`);
+    const choose = async (label) => {
+      await act(async () => { trigger().click(); });
+      const option = Array.from(document.body.querySelectorAll('[role="option"]')).find((item) => item.textContent.trim() === label);
+      expect(option).not.toBeUndefined();
+      await act(async () => { option.click(); });
+    };
+    expect(trigger()).not.toBeNull();
 
-    await act(async () => {
-      select.value = 'nameAsc';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await choose('Name A to Z');
     expect(fileNames()).toEqual(['a.pdf', 'b.pdf', 'c.pdf']);
 
-    await act(async () => {
-      select.value = 'reversed';
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    await choose('Reversed');
     expect(fileNames()).toEqual(['c.pdf', 'b.pdf', 'a.pdf']);
 
     await settle();
@@ -519,31 +519,26 @@ describe('PdfMergeTool UI flow', () => {
     expect(container.querySelector(`.${railStyles['page-numbers-row']} input`).checked).toBe(true);
   });
 
-  it('shows the Add page numbers checkbox row directly, above Download, with no disclosure to open (Options removed, 2026-09-13)', async () => {
+  it('shows the Add page numbers checkbox directly in the visible mobile file controls (Options removed, 2026-09-13)', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
-    // The only <details> left anywhere is the phone "⋯" popover itself -
-    // Options had one of its own, opened from a <summary> reading "Options".
-    const detailsList = Array.from(container.querySelectorAll('details'));
-    expect(detailsList).toHaveLength(1);
-    expect(detailsList[0].className).toContain(docStyles['chip-menu']);
+    expect(container.querySelectorAll('details')).toHaveLength(0);
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
     expect(buttons).not.toContain('Options');
-    // The checkbox row is always in the DOM once there are two files - two
-    // copies (the rail's own, and the phone "⋯" popover's), CSS-toggled by
-    // breakpoint rather than a JS open/closed state.
+    const mobileControls = container.querySelector('[data-merge-file-controls]');
+    expect(mobileControls).not.toBeNull();
+    // The checkbox row is always in the DOM once there are two files: the
+    // exposed mobile copy and the desktop rail's breakpoint-gated copy.
     const rows = container.querySelectorAll(`.${railStyles['page-numbers-row']}`);
     expect(rows.length).toBe(2);
+    expect(mobileControls.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
   });
 
-  // Team-lead follow-up (2026-09-13): the phone "…" popover's entries, top
-  // to bottom - Add files, Clear all, Sort (or Reset order once rearranged,
-  // never both), Add page numbers - nothing else.
-  it('phone popover order: Add files, Clear all, Sort, Reset order (rearranged adds it, never replaces Sort), Add page numbers', async () => {
+  it('exposes mobile file controls in order: Add files, Clear all, Sort, Reset order, Add page numbers', async () => {
     mount();
     await loadFiles(['b.pdf', 'a.pdf']);
     await settle();
-    const popoverBody = () => container.querySelector(`.${docStyles['chip-menu-body']}`);
+    const controls = () => container.querySelector('[data-merge-file-controls]');
     const describe = (el) => {
       if (el.matches(`.${railStyles['sort-select-wrap']}`)) return 'sort';
       if (el.matches(`.${railStyles['rearranged-note']}`)) return 'reset-order';
@@ -551,7 +546,9 @@ describe('PdfMergeTool UI flow', () => {
       if (el.tagName === 'BUTTON') return el.textContent.trim();
       return el.textContent.trim();
     };
-    expect(Array.from(popoverBody().children).map(describe)).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
+    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
+      ? Array.from(el.children).map(describe)
+      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'page-numbers']);
 
     // Force the rearranged state (a plan interleaved across files) the same
     // way the draft-restore test above does, rather than fighting a real
@@ -569,10 +566,12 @@ describe('PdfMergeTool UI flow', () => {
       });
       await flush(10);
     });
-    // Unlike the desktop rail, Sort stays in the popover even once
+    // Unlike the desktop rail, Sort stays in the mobile controls even once
     // rearranged - it regroups the plan and would itself resolve the
     // rearrangement, same as Reset order (team lead, second follow-up).
-    expect(Array.from(popoverBody().children).map(describe)).toEqual(['Add files', 'Clear all', 'sort', 'reset-order', 'page-numbers']);
+    expect(Array.from(controls().children).flatMap((el) => el.matches(`.${railStyles['quiet-row']}`)
+      ? Array.from(el.children).map(describe)
+      : [describe(el)])).toEqual(['Add files', 'Clear all', 'sort', 'reset-order', 'page-numbers']);
   });
 
   it('names an encrypted file, links to Unlock, and merges the rest on the one offered action (MERGE-04)', async () => {
@@ -810,20 +809,15 @@ describe('PdfMergeTool UI flow', () => {
     expect(fileNames()).toEqual([]);
   });
 
-  // Review P2, item 2: the "⋯" menu and the draft chip used to be the last
-  // two items of the same scrolling `<ul>` as the file chips, so a long
-  // enough file list could scroll them out of reach. They now live outside
-  // the scrolling list entirely, pinned at the row's end.
-  it('pins the "⋯" menu outside the scrolling chip list', async () => {
+  it('keeps visible mobile controls outside the sortable chip list', async () => {
     mount();
     await loadFiles(['a.pdf', 'b.pdf']);
     const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
-    const pinned = container.querySelector(`.${docStyles['chip-pinned']}`);
+    const controls = container.querySelector('[data-merge-file-controls]');
     expect(chipRow).not.toBeNull();
-    expect(pinned).not.toBeNull();
-    expect(chipRow.contains(pinned)).toBe(false);
-    expect(chipRow.querySelector('[data-more]')).toBeNull();
-    expect(pinned.querySelector('[data-more]')).not.toBeNull();
+    expect(controls).not.toBeNull();
+    expect(chipRow.contains(controls)).toBe(false);
+    expect(chipRow.querySelector('button, select, input')).toBeNull();
   });
 
   // Review P2, item 3: "Picked up where you left off · Start fresh" lived
@@ -870,7 +864,48 @@ describe('PdfMergeTool UI flow', () => {
     expect(chipRow).not.toBeNull();
     expect(createSpy).toHaveBeenCalledTimes(2);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
-    expect(createSpy).toHaveBeenCalledWith(chipRow, expect.any(Object));
+    expect(createSpy).toHaveBeenCalledWith(chipRow, expect.objectContaining({
+      draggable: `.${docStyles.chip}`,
+      delay: 100,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 10,
+    }));
+  });
+
+  it('keeps whole-file drag enabled after pages are rearranged and regroups on drop', async () => {
+    const createSpy = vi.spyOn(Sortable, 'create');
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+
+    const list = container.querySelector(`ul.${railStyles['file-list']}`);
+    const railCallIndex = createSpy.mock.calls.findIndex(([element]) => element === list);
+    const railOptions = createSpy.mock.calls[railCallIndex][1];
+    const railSortable = createSpy.mock.results[railCallIndex].value;
+
+    await act(async () => {
+      draftProbe.props.onRestore({
+        files: [makePdfFile('x.pdf'), makePdfFile('y.pdf')],
+        plan: [
+          { key: '0:0', fileId: 0, pageIndex: 0, rotation: 0, skipped: false },
+          { key: '1:0', fileId: 1, pageIndex: 0, rotation: 0, skipped: false },
+          { key: '0:1', fileId: 0, pageIndex: 1, rotation: 0, skipped: false },
+        ],
+        options: { addPageNumbers: false },
+        outputName: null,
+      });
+      await flush(10);
+    });
+
+    expect(container.textContent).toContain('Pages were rearranged');
+    expect(container.querySelectorAll(`.${railStyles.grip}`)).toHaveLength(2);
+    expect(railSortable.option('disabled')).toBe(false);
+
+    await act(async () => {
+      railOptions.onEnd({ oldIndex: 0, newIndex: 1 });
+      await flush(0);
+    });
+    expect(fileNames()).toEqual(['y.pdf', 'x.pdf']);
+    expect(container.textContent).not.toContain('Pages were rearranged');
   });
 
   // MERGE-11 (2026-09-13, Shlomi's WYSIWYG rebuild): the document heading's
@@ -952,7 +987,7 @@ describe('PdfMergeTool UI flow', () => {
 
       await beginEdit();
       await type('   ');
-      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      await act(async () => { nameEl().blur(); });
 
       expect(nameEl().textContent).toBe(original);
     });
@@ -964,7 +999,7 @@ describe('PdfMergeTool UI flow', () => {
 
       await beginEdit();
       await type('  ../evil\\name  ' + 'x'.repeat(200));
-      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      await act(async () => { nameEl().blur(); });
 
       const committed = nameEl().textContent;
       expect(committed).not.toContain('/');
@@ -983,7 +1018,7 @@ describe('PdfMergeTool UI flow', () => {
       // blur in its own act(): dispatching it in the same tick as the text
       // change would read the pre-update DOM from onBlur's stale closure,
       // which no real typing-then-tabbing-away sequence can actually produce.
-      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      await act(async () => { nameEl().blur(); });
       expect(nameEl().textContent).toBe('My renamed merge');
 
       // Adding a file would normally change the automatic "merged_<first>"
@@ -1017,7 +1052,7 @@ describe('PdfMergeTool UI flow', () => {
 
       await beginEdit();
       await type('Persisted name');
-      await act(async () => { nameEl().dispatchEvent(new Event('blur')); });
+      await act(async () => { nameEl().blur(); });
       expect(draftProbe.props.outputName).toBe('Persisted name');
 
       // A restore that carries an outputName brings the renamed heading back,

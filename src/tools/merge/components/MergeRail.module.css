@@ -39,20 +39,13 @@
     flex: 0 0 320px;
     position: sticky;
     top: var(--space-3);
-    max-height: calc(100vh - var(--space-6));
-    overflow: hidden;
   }
 
   .rail-scroll {
-    overflow-y: auto;
-    min-height: 0;
     /* Shlomi (2026-09-13): the focused Sort select lost its left ring. The
-       global 2px focus outline is painted outside the border box, and this
-       scroll container (overflow-y: auto makes overflow-x auto too) clipped
-       it wherever a control sits flush with its edge - Sort, Add files and
-       the list rows all start at x = 0. Two pixels of padding, taken back
-       with the same negative margin so nothing else moves, give every ring
-       room on all four sides. */
+       global 2px focus outline is painted outside the border box. Two pixels
+       of padding, taken back with the same negative margin so nothing else
+       moves, give every ring room on all four sides. */
     padding: 2px;
     margin: -2px;
   }
@@ -84,8 +77,8 @@
        measurement): the closed sheet is padding-top 8px + padding-bottom 8px
        (+ safe-area) + the hand-off row (44px) + the Download element - the
        Options disclosure this once made room for is gone entirely
-       (2026-09-13, see `.page-numbers-row` above), replaced in the sheet by
-       the "⋯" popover's own copy of the checkbox. */
+       (2026-09-13, see `.page-numbers-row` above); its mobile copy now
+       lives with the visible file controls above the sheet. */
     padding-top: 0.5rem;
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
     background: var(--color-surface);
@@ -257,12 +250,18 @@
   flex-wrap: wrap;
 }
 
-.sort-select {
+.sort-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 8.5rem;
   min-height: 36px;
   padding: 0.4rem 0.6rem;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 600;
+  text-align: start;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -270,20 +269,80 @@
   cursor: pointer;
 }
 
-/* Shlomi (2026-09-13): the select's own coarse-pointer 44px override is gone
-   - one 36px height for every bordered secondary control. `.sort-select-wrap`
-   (the label that wraps it below) is only a layout wrapper: it carries NO
-   ::before hit-area overlay. Shlomi (2026-09-13, phone): with the overlay,
-   a tap on "As added" in the popover did nothing - the label's generated
-   box sat on top of the <select>, and while a label forwards activation to
-   its control, no browser opens a native select's picker from that; it only
-   focuses it. So the select takes taps directly, at its 36px face. */
+.sort-trigger:hover,
+.sort-trigger[data-open] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.sort-trigger:focus-visible {
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.sort-chevron {
+  flex: none;
+  transition: transform 150ms var(--ease-out);
+}
+
+.sort-trigger[data-open] .sort-chevron {
+  transform: rotate(180deg);
+}
+
+.sort-menu {
+  box-sizing: border-box;
+  display: grid;
+  gap: 2px;
+  min-width: 13rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.35rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg), 0 8px 24px rgb(0 70 70 / 12%);
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 0.65rem;
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: start;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.sort-option:hover,
+.sort-option:focus-visible {
+  outline: none;
+  background: var(--color-primary-soft);
+}
+
+.sort-option[aria-selected='true'] {
+  color: var(--color-primary-text);
+  background: var(--color-primary-tint);
+  font-weight: 700;
+}
+
+.sort-check {
+  flex: none;
+  color: var(--color-primary);
+}
+
+/* Layout wrapper only: the visible label and custom trigger remain one row. */
 .sort-select-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  cursor: pointer;
 }
 
 /* Shlomi (2026-09-13): a visible lead-in before the select, on desktop and
@@ -419,10 +478,7 @@
 }
 
 /* Shlomi (2026-09-13): the Options disclosure is gone entirely - a plain
-   checkbox row, no summary, no chevron, nothing to open. Kept as its own
-   class since the same row also renders inside the phone "⋯" popover
-   (MergeDocument.module.css's `.chip-menu-body`), where `.page-numbers-pinned`
-   does not apply. */
+   checkbox row, no summary, no chevron, nothing to open. */
 .page-numbers-row {
   display: flex;
   align-items: center;
@@ -440,10 +496,10 @@
   cursor: pointer;
 }
 
-/* The rail-pinned copy only: below 768px the same row lives in the phone
-   popover instead (there is no room for it in the sticky sheet at that
-   width), so this copy steps out of the way rather than doubling it. */
-@media (max-width: 767px) {
+/* The rail-pinned copy is desktop-only. Below 1024px the same row lives in
+   the visible file controls above the sticky sheet, preventing a duplicate
+   at phone and tablet widths alike. */
+@media (max-width: 1023px) {
   .page-numbers-pinned {
     display: none;
   }
@@ -570,7 +626,6 @@
    own light border, with the rail's tint showing between. For the rail's
    bordered controls the ring hugs the box and the border takes the same
    colour, so keyboard focus is one ring, not a target. */
-.sort-select:focus-visible,
 .handoff-button:focus-visible {
   outline-offset: 0;
   border-color: var(--color-primary);

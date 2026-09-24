@@ -244,6 +244,41 @@ test('rail acceptance at 1280x900: item order, no Options/Saves-as text, 16x16 h
   }
 });
 
+test('desktop rail uses page scrolling for a long file list, without a nested scrollbar', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  const files = await Promise.all(Array.from({ length: 12 }, async (_, index) => {
+    const name = `document-${String(index + 1).padStart(2, '0')}.pdf`;
+    return { name, mimeType: 'application/pdf', buffer: await makePdfBuffer(name) };
+  }));
+  await page.locator('input[type="file"]').setInputFiles(files);
+  await page.locator('[data-state="ready"]').waitFor({ timeout: 15_000 });
+
+  const rail = page.locator('div[class*="_rail_"]:not([class*="rail-scroll"]):not([class*="rail-pinned"])').first();
+  const fileList = rail.locator('ul[class*="file-list"]');
+  const addFiles = rail.getByRole('button', { name: 'Add files', exact: true });
+  const clearAll = rail.getByRole('button', { name: 'Clear all', exact: true });
+  const download = rail.getByRole('link', { name: /Download merged PDF/ });
+
+  const listMetrics = await fileList.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    overflowY: getComputedStyle(element).overflowY,
+  }));
+  expect(listMetrics.scrollHeight).toBe(listMetrics.clientHeight);
+  expect(listMetrics.overflowY).toBe('hidden');
+
+  // The rail grows with its rows. The browser's page scroll, rather than a
+  // second scrollbar inside the rail, reaches the actions at the bottom.
+  await download.scrollIntoViewIfNeeded();
+  await expect(addFiles).toBeVisible();
+  await expect(clearAll).toBeVisible();
+  await expect(download).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+});
+
 /* Review finding (2026-09-14, tablet): between 768 and 1023px the rail used
    to fall through to the un-mediaed `.rail` rule (no `position`, no sheet),
    so scrolling a 9-page grid to its last row at 820x1180 put the Download

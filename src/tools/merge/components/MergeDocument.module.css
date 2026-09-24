@@ -288,10 +288,8 @@
    leaving 768-1023 with neither the chip row nor a sheet - the bare, static
    rail from MergeRail.module.css's un-mediaed `.rail` rule.
 
-   Review P2, item 2: the "⋯" menu and the draft chip are pinned OUTSIDE the
-   scrolling list (`.chip-pinned`, a flex sibling of `.chip-row`) so they are
-   always reachable, however many files scroll past; only the file chips
-   themselves scroll, under a right-edge fade that says there is more. --- */
+   Only file chips live in this horizontally scrolling list. The controls
+   which accompany it remain a separate, compact horizontal toolbar below. --- */
 .chip-bar {
   position: relative;
   display: flex;
@@ -337,13 +335,6 @@
   display: none;
 }
 
-.chip-pinned {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 /* The 44px hit area lives on the <li> itself (via min-height, centring its
    content), never inflating the pill's own 36px visual (Shlomi, browser
    check: the pill measured 49px before this split). */
@@ -352,13 +343,21 @@
   display: flex;
   align-items: center;
   min-height: 44px;
-  cursor: pointer;
+  cursor: grab;
+  /* Keep vertical page scrolling native, but reserve a horizontal gesture on
+     the chip for Sortable. Without this, iOS Chrome/WebKit claims the move for
+     the overflow row before the delayed drag can begin. */
+  touch-action: pan-y;
   /* A long press belongs to SortableJS. On iOS, allowing the chip's file
      name to remain selectable makes the same gesture select text instead
      of picking the file up. */
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+
+.chip:active {
+  cursor: grabbing;
 }
 
 .chip-pill {
@@ -390,70 +389,39 @@
   font-size: 12px;
 }
 
-/* Deliberately not positioned: `.chip-menu-body` anchors to `.chip-bar`
-   (see there), so the popover spans the card's content width rather than
-   hanging off this 36px chip. */
-.chip-menu {
-  width: 100%;
-}
-
-.chip-menu-summary {
-  position: relative;
+.mobile-file-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  min-height: 36px;
-  list-style: none;
-  cursor: pointer;
-  font-weight: 700;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  padding: 0.25rem 0.1rem 0.4rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
 
-/* Review finding (2026-09-14): under coarse-pointer emulation the summary
-   measured exactly 36x36 - its `li.chip[data-more]` parent carries a 44px
-   min-height, but that is not part of the summary's own hit box. Same
-   invisible-overlay mechanism as `.action` (PageStrip.module.css) and
-   `.quiet-button`/`.start-fresh` (MergeRail.module.css / above): a centred
-   44x44 pseudo-element, the 36px visual untouched. */
-.chip-menu-summary::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 44px;
-  height: 44px;
-  transform: translate(-50%, -50%);
-}
-
-.chip-menu-summary::-webkit-details-marker {
+.mobile-file-controls::-webkit-scrollbar {
   display: none;
 }
 
-.chip-menu-body {
-  position: absolute;
-  /* Anchored to `.chip-bar` (the card's full content width), not to the
-     "⋯" chip: end edge on LTR, start edge on the Hebrew edition (a logical
-     property), and never wider than the bar itself. Two earlier anchors
-     each ran off one side of a 375px screen (Shlomi's screenshots,
-     2026-09-13): flush with the chip and sized by its content it cropped on
-     the right; flush with the chip and sized `100vw - 2rem` it cropped on
-     the left, because the chip sits inside the card's padding, so the
-     viewport is not the space actually to its start side. `min-width` is
-     deliberately absent: it beats `max-width` when they conflict, which is
-     how the one-line rearranged note used to force the overflow. */
-  inset-inline-end: 0;
-  width: min(100%, 22rem);
-  box-sizing: border-box;
-  z-index: 4;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-  padding: 0.6rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
+/* One toolbar row at every mobile/tablet width. On the smallest phones the
+   row scrolls horizontally instead of turning four controls into four lines;
+   each command remains explicit and keeps its existing label and hit target. */
+.mobile-file-controls > * {
+  flex: 0 0 auto;
+  max-width: none;
+  white-space: nowrap;
+}
+
+.mobile-file-controls > :first-child {
+  flex-wrap: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .mobile-file-controls {
+    display: none;
+  }
 }
 
 /* Coarse-pointer-only hint, same width cutoff as `.chip-bar` above it: the

@@ -287,6 +287,11 @@
   margin-top: -0.25rem;
   font-size: 0.7rem;
   color: var(--color-danger);
+  visibility: hidden;
+}
+
+.skipped-word[data-visible] {
+  visibility: visible;
 }
 
 /* The per-page tag dot: always in the DOM (a sibling of the number, never
