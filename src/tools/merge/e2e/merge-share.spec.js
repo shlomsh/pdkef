@@ -53,6 +53,10 @@ async function loadReadyRowWithShare(page) {
 // Measures the icon and label's own extent against the button's border box
 // on both sides. scrollWidth cannot do this: a centred label that overflows
 // spills out of both edges, and scrollWidth only reports the inline-end one.
+// The labels are in the system font stack, so their width depends on the
+// platform: at 320px Share measured 8.5px of clearance on macOS and 5.5px on
+// CI's Linux (run 36051842433). 4px leaves room for that spread and still
+// fails the equal-width row this replaced (3px on desktop, -3px at 320px).
 async function expectEveryLabelToFit(handoffButtons) {
   const clearances = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => {
     const range = document.createRange();
@@ -62,7 +66,7 @@ async function expectEveryLabelToFit(handoffButtons) {
     return { label: node.textContent.trim(), clearance: Math.min(content.left - box.left, box.right - content.right) };
   }));
   for (const { label, clearance } of clearances) {
-    expect(clearance, label).toBeGreaterThanOrEqual(6);
+    expect(clearance, label).toBeGreaterThanOrEqual(4);
   }
 }
 
