@@ -249,3 +249,10 @@ Changed on Shlomi's approval, nothing else in the file: `seoTitle` from
 nothing to install", as mFax uses it; the file still never leaves the device. Accepted risk: the exact
 phrase `חתימה על PDF` leaves the title, where sign-family queries already sat at 46 to 79. The 11-06
 read counts sign-family and fill-family queries separately from this date.
+
+Baseline at the change, from Shlomi's GSC export of 2026-09-24 (web, last 3 months): Hebrew 94 query
+rows, 201 impressions, 0 attributed clicks, weighted position 52.5. Sign family (15 rows) 83
+impressions at 65.5, so the exact phrase leaving the title was costing nothing measurable. Fill family
+3 impressions: `מילוי קובץ pdf` 1 at 18, `חתימה על טופס במחשב` 1 at 46, `מילוי טופס מקוון` 1 at 79; the
+queries Shlomi searched have no row. Pages: `/he/sign/` 3 clicks / 124 at 47.7, `/he/merge/` 2 / 149 at
+26.3, `/he/compress/` 0 / 47 at 45.5.
