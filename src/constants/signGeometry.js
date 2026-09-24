@@ -75,7 +75,8 @@ export const MAX_COMB_CELLS = 60;                       // Upper bound on the ce
 // collapse threshold is the comb's own text laid out plain (unspaced) at the
 // same font/size - measured at grab time from the hidden
 // `[data-text-part="measure"]` node (see useElementResize.js and
-// TextNode.tsx), not estimated - so a comb can never be narrowed to where its
+// TextNode.tsx), not estimated. An empty box's measure node holds its
+// placeholder, so an empty comb collapses at the placeholder's width. So a comb can never be narrowed to where its
 // characters stop fitting side by side without turning back into plain text
 // first (a 9-digit comb on real iOS Safari used to narrow well past that
 // point, with the digits overflowing both edges of the box). Subtracted from

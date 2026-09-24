@@ -22,3 +22,13 @@ handle to narrow it, and the drag moved the whole element left instead of resizi
 At a touch phone viewport, press-dragging any visible side handle of a text box, comb or plain,
 resizes it and never moves it, including a box near the page edge. There is a way back from a comb
 element to a plain text box that a person can find on a phone.
+
+## Known limits, from review (2026-09-24)
+
+- A pinch that starts after one finger is already dragging or resizing is cancelled cleanly (nothing
+  moves, nothing commits) but does not zoom: iOS has already had `preventDefault()` for that touch
+  sequence. Only a pinch whose fingers land together is handed to the browser.
+- `restoreSubtreeAttributes` in `useElementResize.js` reverts the element's subtree to its grab-time
+  attributes with raw DOM writes. The only render inside that window is the `isSpanResizing` preview,
+  which the next render cleans up; an unrelated Preact attribute write during a cancelled resize would
+  be lost until that attribute next changes.
