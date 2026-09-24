@@ -200,11 +200,12 @@ const PRINTED = [
   },
   // The three rows below pin MIN_TICK_CELL_WIDTH/MIN_TICK_COLUMN_ROWS (form
   // 101's children table: 6-8pt tick columns that repeat down the page). Text
-  // is out of scope here on purpose - the runner always passes `[]` (see
-  // README's "Two things to know" - `detectPage` never even takes a
-  // `textRuns` argument) - so none of these rows can exercise the "a tick
-  // cell holding printed text is disqualified" half of the rule; that half is
-  // proven in formCells.test.js's `narrow tick columns` block instead.
+  // is out of scope here on purpose - a row may declare `text` (README's "Two
+  // things to know") when the element it pins is text-plus-geometry, and none
+  // of these three are: a tick cell's own geometry is the whole point. So
+  // none of these rows can exercise the "a tick cell holding printed text is
+  // disqualified" half of the rule; that half is proven in
+  // formCells.test.js's `narrow tick columns` block instead.
   {
     name: 'a narrow column repeating down three ruled rows',
     why: 'form 101 rules its children table this way - columns too narrow for a written answer, '
@@ -249,6 +250,48 @@ const PRINTED = [
       ],
     },
     expect: none,
+  },
+  {
+    name: 'a captioned header row over three identical empty rows',
+    why: 'FORM-13: form 101\'s children table prints its column captions ("מספר זהות", "שם") in a '
+      + '12.4pt row whose own text side-carves it exactly like a labelled field - `writableArea` '
+      + 'cannot tell them apart. What does is the three identical, empty, ruled rows underneath: '
+      + 'only the header\'s two cells are headings, and dropping them must not cost the data rows '
+      + 'a single cell. Needs its own captions as `text` (README\'s "Two things to know"), since a '
+      + 'caption is the whole thing being pinned.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 260, width: 240, height: 12.4, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 220, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 2 },
+      ],
+    },
+    // Page-percent, hugging each header cell's right wall with its baseline in the row's lower
+    // half (pdf y0=261, row midpoint 266.2) - a side carve, not a band carve.
+    text: [
+      { str: 'מספר זהות', left: 22.5, top: 12, width: 5, height: 1 },
+      { str: 'שם', left: 52.5, top: 12, width: 5, height: 1 },
+    ],
+    expect: { ...none, cells: 6 },
+  },
+  {
+    name: 'a captioned row over one empty row',
+    why: 'FORM-13\'s companion: one blank row under a caption is the ordinary label-over-blank '
+      + 'shape (MIN_HEADER_RUN is 2, not 1), so both captioned cells are counted here - a change '
+      + 'that drops every side-carved caption regardless of what repeats below it goes red on this '
+      + 'row instead of only showing up as a lost itc101 point.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 260, width: 240, height: 12.4, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
+      ],
+    },
+    text: [
+      { str: 'מספר זהות', left: 22.5, top: 12, width: 5, height: 1 },
+      { str: 'שם', left: 52.5, top: 12, width: 5, height: 1 },
+    ],
+    expect: { ...none, cells: 4 },
   },
   {
     name: 'an undivided decorative panel',
