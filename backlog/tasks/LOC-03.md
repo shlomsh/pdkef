@@ -260,3 +260,4 @@ Same export by country: Israel is second by clicks (22 clicks, 369 impressions, 
 6.0%) after India (119 / 2,500). The `/he/` pages account for 5 of those clicks, so most Israeli
 clicks land on English pages or come through anonymized queries; some may be our own testing. Next
 instrument: the same export filtered to Israel (Pages and Queries tabs).
+Indexing requested for `/he/sign/` on 2026-09-24 after the deploy.
