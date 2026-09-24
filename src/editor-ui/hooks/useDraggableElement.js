@@ -81,6 +81,19 @@ export default function useDraggableElement({
   useEffect(() => () => cancelDragRef.current?.(), []);
 
   const handlePointerDown = (e) => {
+    // MOBI-31: a touchstart that already carries a second touch (both
+    // fingers already down - e.g. this one interrupts a still-live previous
+    // gesture, see the `cancelDragRef.current?.()` call below) means the
+    // gesture that is starting is a pinch, not a drag. Do nothing - no
+    // select, no preventDefault - so the browser is free to read it as a
+    // native pinch-zoom (see `.element`'s `touch-action: pinch-zoom` in
+    // EditorElement.module.css). A second finger joining mid-drag, after
+    // this handler has already returned, is instead caught centrally by
+    // `startGesture`'s own onMove guard (src/lib/gestures/controller.ts).
+    if ('touches' in e && e.touches && e.touches.length > 1) {
+      return;
+    }
+
     if (
       e.target.closest('[data-editor-actions]') ||
       e.target.closest('[data-editor-resizer]')
@@ -176,11 +189,12 @@ export default function useDraggableElement({
       if (Math.abs(dx) > TAP_MOVEMENT_TOLERANCE_PX || Math.abs(dy) > TAP_MOVEMENT_TOLERANCE_PX) {
         tapCandidate.current = false;
       }
-      // MOBI-21 review fix: a second finger joining mid-gesture (a pinch
-      // that started with one finger on the box) is never a tap either.
-      if (moveEvent.touches && moveEvent.touches.length > 1) {
-        tapCandidate.current = false;
-      }
+      // MOBI-21 review fix (a second finger joining mid-gesture is never a
+      // tap either) is now enforced one layer up: MOBI-31 made
+      // startGesture's own onMove cancel the whole gesture the moment a
+      // `touchmove` carries more than one touch, before computePatch ever
+      // runs, and this hook's own `cancel` below already clears
+      // tapCandidate - so a multi-touch moveEvent can no longer reach here.
       if (element.type === 'line') {
         dragOffset.current = { x: dx, y: dy };
         return dragOffset.current;
