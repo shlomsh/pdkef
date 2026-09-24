@@ -189,9 +189,10 @@ test('the phone subhead has no clipped last line at 375x812', async ({ page }) =
    Two causes, both fixed in this build. The browser restores the scroll
    offset the page had before the reload, measured against a layout the
    draft restore then grows by a whole document, so the page opened below
-   the grid where nothing was near enough to render; the island now sets
-   history.scrollRestoration to manual while files are loaded, so a reload
-   opens at the top. And the IntersectionObserver only reports on a rendering
+   the grid where nothing was near enough to render; the island sets
+   history.scrollRestoration to manual while files are loaded and, because
+   WebKit applies that unreliably, resets a restored document once its async
+   grid has mounted. And the IntersectionObserver only reports on a rendering
    frame, so a hidden document never rendered a thing; the grid now scans
    the cells near the viewport itself when it mounts and when the document
    becomes visible. This guard covers the first: reload from the bottom of
