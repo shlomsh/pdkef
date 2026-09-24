@@ -194,30 +194,47 @@
    before. The spread/offset pair repeats per axis - `--h-spread`/`left`/
    `right` for the horizontal neighbours (top-left vs top-right, and their
    bottom pair), `--v-spread`/`top`/`bottom` for the vertical ones (top-left
-   vs bottom-left, and their right pair) - each using the same "whichever is
-   bigger, the old natural spread or the handles' own minimum" formula as
-   text's `--corner-spread`. The diagonal pair (e.g. top-left vs
-   bottom-right) needs no formula of its own: its distance is the hypotenuse
-   of the other two, always at least as large as either leg. */
+   vs bottom-left, and their right pair).
+
+   The floor term is *half* of text's `handle-size + 3px`, not the same
+   value - reported live, again, on a real checkbox: correctly non-overlapping,
+   but floating a visible 5px+ away from the box it was sized to, on a form
+   dense enough that a stray dot several px off its corner reads as wrong.
+   Text's floor guards a corner handle against a *side* handle sitting at the
+   box's own centre, so the full `handle-size + 3px` is the real distance
+   between them; a symbol has no side handles, only its own diagonal
+   neighbour, which sits the *same* distance out on the opposite side of
+   centre - so the two corners' combined spread only needs to clear that gap
+   once between them, not once each. Halving it keeps the identical
+   guarantee (still >=3px of true edge-to-edge clearance between adjacent
+   corners - `resizer-handle-spacing.spec.js` proves it in a real browser)
+   while pulling every below-floor symbol's handles back to within ~2px of
+   its own edge instead of ~5px past it. A normal-size symbol is still
+   unaffected: the natural `half-dimension - 1px` branch already exceeds
+   either floor there, so nothing here changes above roughly a 30px box (the
+   same crossover text and the pre-MOBI-19 fixed design both used). The
+   diagonal pair (e.g. top-left vs bottom-right) needs no formula of its
+   own: its distance is the hypotenuse of the other two, always at least as
+   large as either leg. */
 .symbol .resizer {
   --handle-size: clamp(5px, calc(min(var(--half-width, 10px), var(--half-height, 10px)) - 2px), 10px);
   width: var(--handle-size, 10px);
   height: var(--handle-size, 10px);
 }
 .symbol .resizer.top-left, .symbol .resizer.bottom-left {
-  --h-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-width, 10px) - 1px));
+  --h-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-width, 10px) - 1px));
   left: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
 }
 .symbol .resizer.top-right, .symbol .resizer.bottom-right {
-  --h-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-width, 10px) - 1px));
+  --h-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-width, 10px) - 1px));
   right: calc(var(--half-width, 10px) - var(--h-spread) - var(--handle-size, 10px) / 2);
 }
 .symbol .resizer.top-left, .symbol .resizer.top-right {
-  --v-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
+  --v-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-height, 10px) - 1px));
   top: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
 }
 .symbol .resizer.bottom-left, .symbol .resizer.bottom-right {
-  --v-spread: max(calc(var(--handle-size, 10px) + 3px), calc(var(--half-height, 10px) - 1px));
+  --v-spread: max(calc((var(--handle-size, 10px) + 3px) / 2), calc(var(--half-height, 10px) - 1px));
   bottom: calc(var(--half-height, 10px) - var(--v-spread) - var(--handle-size, 10px) / 2);
 }
 .line { pointer-events: none; }

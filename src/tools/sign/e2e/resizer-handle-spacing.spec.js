@@ -23,6 +23,16 @@ import { test, expect } from '@playwright/test';
  * `--half-height` and `.symbol .resizer`'s own `clamp()`/`max()` arithmetic
  * fix it the same way, generalised to both axes since a symbol resizes in
  * width and height together rather than growing one line at a time.
+ *
+ * MOBI-28 follow-up: fixing the blob overshot on a real form dense with tiny
+ * checkboxes - reported live, again: "the handles are too far away from the
+ * element now." The first fix borrowed text's `handle-size + 3px` floor
+ * unchanged, but a symbol's two opposing corners each push out by that floor
+ * from centre, doubling it into the *gap between them* where text has only
+ * one corner to clear a fixed side handle at centre. Halving the floor keeps
+ * the same non-overlap guarantee while pulling a below-floor symbol's
+ * handles back to within a couple of px of its own edge instead of five-plus
+ * - `expectHandlesNearBox` below is what would have caught the overshoot.
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -82,6 +92,28 @@ function expectNoOverlap(handles) {
   expect(tooClose, `Handle pairs with under ${MIN_CLEARANCE_PX}px clearance:\n${tooClose.join('\n')}`).toEqual([]);
 }
 
+// Non-overlap alone is not the bar either: a formula can clear every pair by
+// pushing handles arbitrarily far from the element they belong to, which
+// reads as just as broken as a blob (MOBI-28 follow-up - a checkbox's
+// handles floated 5px+ past its own edge on a real form, still passing the
+// clearance check above). Require every handle to stay within a couple of
+// px of the box's own edge, on the axis it sits on.
+const MAX_BOX_GAP_PX = 3;
+
+/** Fails with every handle sitting more than MAX_BOX_GAP_PX past the
+ * element's own edge on its axis. */
+function expectHandlesNearBox(handles, elementBox) {
+  const tooFar = [];
+  for (const h of handles) {
+    const gapX = Math.max(elementBox.x - h.cx, h.cx - (elementBox.x + elementBox.width), 0);
+    const gapY = Math.max(elementBox.y - h.cy, h.cy - (elementBox.y + elementBox.height), 0);
+    if (gapX > MAX_BOX_GAP_PX || gapY > MAX_BOX_GAP_PX) {
+      tooFar.push(`${h.handle}: ${gapX.toFixed(2)}px/${gapY.toFixed(2)}px past the box's edge`);
+    }
+  }
+  expect(tooFar, `Handles more than ${MAX_BOX_GAP_PX}px from the element:\n${tooFar.join('\n')}`).toEqual([]);
+}
+
 test('a text box\'s resize handles never overlap, however short the field is', async ({ page }) => {
   await openWithFixture(page);
   const textTool = page
@@ -138,4 +170,5 @@ test('a symbol\'s resize handles never overlap, however small the checkbox is', 
   const handles = await readHandles(element);
   expect(handles.length).toBe(4);
   expectNoOverlap(handles);
+  expectHandlesNearBox(handles, elementBox);
 });
