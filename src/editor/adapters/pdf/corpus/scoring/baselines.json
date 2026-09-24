@@ -75,6 +75,33 @@
         "signature": 0
       },
       "sha256": "8d9b89b6966313ada1cf15f9e51fee18f110bfac63ab85b4623ee53255305811"
+    },
+    "thai-pnd90-2565": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/thai-pnd90-2565.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/thai-pnd90-2565-page3.json",
+      "pageIndex": 2,
+      "note": "Revenue Department form ภ.ง.ด.90 (personal income tax return), tax year 2565 BE (2022), page 3 of 5 (0-based pageIndex 2). The first Thai forms in the corpus (FORM-16): Thai runs left to right like the 1040 but stacks vowel and tone marks the way Hebrew stacks niqqud, and this form draws its comb boxes with dotted leaders rather than the ruled boxes the Hebrew forms use. A live AcroForm with 353 fields across the whole document, so the widgets are the truth; page 3 was picked over the other four because it carries the most widgets (105 of 398 total) and the widest mix on one page. Recall on the mutually-exclusive-choice fields is partly structural in the same way the 1040's is: all 18 radio targets match (100%), because those squares are drawn as one clean box each with nothing to split. Text also holds 100% (13/13). Comb is the one that suffers: 24 of 74 (32.4%), because this form's answer combs use a bold internal divider between the whole-number group and its two-digit satang (cents) group - and, on the repeating right-hand sub-tables, sometimes a second divider further left - which the ink-based comb reader (pageInk/formGrid) reads as a full comb boundary rather than as texture inside one field. One AcroForm widget therefore surfaces as two or three ink-based candidates: a wide left/middle fragment still labelled comb (most of the 100 comb false positives) and a narrow trailing fragment close to one cell wide, square enough that the detector calls it checkbox instead (79 of the 97 checkbox-kind candidates it emits, since only 18 are real - checked directly: the detector never emits a literal 'radio' kind here, only 'checkbox', which the matcher treats as compatible). Every one of the 50 missed comb targets and effectively all 179 false positives trace back to this one splitting behaviour, verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs), not to 50 independent misses. The 24 matched combs are the ones drawn with no internal divider (the plain 13-digit tax-ID combs and the short percentage-deduction boxes). Source: https://www.rd.go.th/fileadmin/tax_pdf/pit/2565/271265PIT90.pdf.",
+      "recall": 52.4,
+      "precision": 23.5,
+      "byKind": {
+        "comb": 32.4,
+        "radio": 100,
+        "text": 100
+      },
+      "sha256": "af17a77db1a145d29bcf4173a5ed0374e21a5c75bd4443950377d475a536ed8e"
+    },
+    "thai-lor-yor-01-2562": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/thai-lor-yor-01-2562.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/thai-lor-yor-01-2562-page1.json",
+      "note": "Revenue Department form ล.ย.01 (personal allowances and deductions declaration for withholding tax), issued 2562 BE (2019), one page. The second Thai form added under FORM-16, alongside ภ.ง.ด.90. Left-to-right, no XFA packet, drawn with far less ink than ภ.ง.ด.90's dense page 3: almost every answer location is a bare comb or radio square with no ruled box, dotted leader or internal divider under it. A live AcroForm, so its 47 widgets (58 minus one excluded push button, the 'ล้างข้อมูล' / clear-data button) are the truth. Every target matches: 100%/100%, text 37/37, comb 2/2, radio 18/18. That is a genuine full pass rather than a structural one dressed up as one: unlike ภ.ง.ด.90's page, nothing here has an internal divider for the ink-based comb reader to misread as a boundary, so there is nothing to split. Almost none of its 57 targets carry a label: only one widget on the whole page has a /TU tooltip at all (the excluded clear button), and every other field has an auto-generated name only (Text1, Radio Button3, ...), so a label-lookup regression on this form would have nothing to catch - worth recording, not a gap to fix. Source: https://www.rd.go.th/fileadmin/tax_pdf/withhold/loryor01_290362.pdf.",
+      "recall": 100.0,
+      "precision": 100.0,
+      "byKind": {
+        "text": 100,
+        "comb": 100,
+        "radio": 100
+      },
+      "sha256": "5bde6321f7f53a4cfdf07ca9ab2637f7b6718561a6bae4a738c92adea42e40ab"
     }
   }
 }
