@@ -331,6 +331,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
 
 ### In progress
 
