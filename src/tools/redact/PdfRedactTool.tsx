@@ -221,7 +221,7 @@ export default function PdfRedactTool() {
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redact design-review finding #4: the exported (redacted) bytes an
-  // in-toolbar "Compress it" hand-off can act on, set once a save actually
+  // in-toolbar "Compress" hand-off can act on, set once a save actually
   // succeeds and cleared - same as usePdfShare's own prepared file - whenever
   // the source or the boxes change under it (see the clearPrepared effect
   // below).
@@ -341,7 +341,7 @@ export default function PdfRedactTool() {
   });
 
   // A generated PDF must match the current source and redaction boxes - the
-  // "Compress it" hand-off's own prepared bytes go stale on exactly the same
+  // "Compress" hand-off's own prepared bytes go stale on exactly the same
   // change, so it is cleared alongside usePdfShare's own prepared file.
   useEffect(() => {
     clearPrepared();
@@ -768,7 +768,7 @@ export default function PdfRedactTool() {
       run.settle();
       const filename = `redacted_${sourceFile.name}`;
       // Finding #4: a successful export (either export path - Download or
-      // Share - counts) is what unlocks the "Compress it" hand-off below.
+      // Share - counts) is what unlocks the "Compress" hand-off below.
       setExportedForHandoff({ blob: redactedBlob, name: filename });
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {

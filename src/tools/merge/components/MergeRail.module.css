@@ -61,7 +61,7 @@
    width) carries the file list, Sort, Add files and Clear all instead, so
    `.rail-scroll` (the part that held them) drops out entirely; what remains
    of `.rail` - `.rail-pinned` alone - becomes the sticky bottom sheet: the
-   Download element and one row of Share / Compress it / Sign it, nothing
+   Download element and one row of Share / Compress / Sign, nothing
    else competing, pinned to the bottom edge the way the editor toolbars
    already stretch full width on mobile. One mechanism for tablet and phone
    alike (2026-09-14 tablet fix); only the edge-bleed amount below differs,
@@ -436,8 +436,8 @@
   /* Shlomi (2026-09-13): Add files, Clear all, Reset order and Start fresh
      are buttons and look like buttons: one quiet secondary style, no fill,
      a 1px strong border, 36px tall with a 44px hit area (the ::before), text
-     colour. Underline is for links that navigate. Share, Compress it and
-     Sign it keep their own row style; "Draft saved" stays plain text. */
+     colour. Underline is for links that navigate. Share, Compress and
+     Sign keep their own row style; "Draft saved" stays plain text. */
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -514,7 +514,7 @@
 
 /* Every child of the row is an equal button, the Share button included
    (it keeps PdfShareButton's own classes, so the rule is on the row). On a
-   phone the four of them (Share, Compress it, Sign it, Options) stay on one
+   phone the four of them (Share, Compress, Sign, Options) stay on one
    line at 393px: no wrapping, no label wrapping, a smaller face. */
 .handoff-row > * {
   flex: 1 1 0;
@@ -556,7 +556,7 @@
   }
 }
 
-/* Review P3: Compress it / Sign it (and Share, Options on the phone) read
+/* Review P3: Compress / Sign (and Share, Options on the phone) read
    as peers of Download - same solid surface, same weight. Quieter now: a
    transparent fill and a primary-text label say "secondary", the way a
    filled Download and a bordered-only hand-off row read as one primary

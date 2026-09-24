@@ -601,7 +601,7 @@
 }
 
 /* Tablet: the setting and the primary control share one row in the sheet;
-   next steps (Share, Compress it) wrap onto their own full-width row below
+   next steps (Share, Compress) wrap onto their own full-width row below
    rather than squeezing into it as a third column. */
 @media (min-width: 768px) and (max-width: 1023px) {
   .sheet {
