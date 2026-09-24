@@ -124,6 +124,15 @@ export default function useElementResize({
     const textStartSizePercent = element.type === 'text' && elementRef.current
       ? getElementPercentSize(elementRef.current, pageWrapper)
       : null;
+    // MOBI-31: the comb collapse threshold is the text's own natural (plain,
+    // unspaced) rendered width, measured - not estimated - once at grab time,
+    // before any resize paint touches the subtree. TextNode.tsx already keeps
+    // a hidden `[data-text-part="measure"]` node in the DOM for exactly this
+    // reason (see its own comment); read it through the real font/size via
+    // fonts.js rather than duplicating that resolution here.
+    const naturalTextWidthPx = element.type === 'text' && elementRef.current
+      ? (elementRef.current.querySelector('[data-text-part="measure"]')?.getBoundingClientRect().width || 0)
+      : 0;
     let pendingResize = null;
     // Fixed for the gesture's whole duration (the handle never changes
     // mid-drag), so decided once rather than re-derived every frame.
@@ -221,6 +230,7 @@ export default function useElementResize({
             element,
             fontSizePx: startFontSize * getScaleFactor(pageWrapper, pageWidthPoints),
             pageWidthPx: pageWrapper.getBoundingClientRect().width,
+            naturalWidthPx: naturalTextWidthPx,
           })
           : MIN_COMB_WIDTH_PCT;
         // The box's actual rendered width, not `element.width || a default` -

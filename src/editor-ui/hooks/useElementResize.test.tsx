@@ -157,6 +157,51 @@ describe('useElementResize MOBI-31 pinch cancellation', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('MOBI-31: raises the comb floor to the measured natural text width, past the cell-pitch minimum', () => {
+    const onChange = vi.fn();
+    const nineDigits = { id: 't2', type: 'text', pageIndex: 0, left: 20, top: 10, text: '038212345', fontSize: 12, textDirection: 'ltr' };
+    const { el, handleNode } = mount({ element: nineDigits, handle: 'right', onChange });
+
+    // Start wide enough to clear both floors: 120px of a 600px page is 20%.
+    el.getBoundingClientRect = () => new DOMRect(260, 380, 120, 20);
+    // The hidden measure node TextNode.tsx keeps for exactly this purpose:
+    // 90px of a 600px page (15%) is past the 9-cell pitch floor (10.8%), so
+    // it must be this measured width, not the cell count, that decides where
+    // the comb collapses back to plain text.
+    const measure = document.createElement('div');
+    measure.setAttribute('data-text-part', 'measure');
+    measure.getBoundingClientRect = () => new DOMRect(0, 0, 90, 14);
+    el.appendChild(measure);
+
+    dispatchTouchStart(handleNode, [touch(300, 400)]);
+    // 120px -> 75px (12.5%): past the 10.8% cell floor, but still short of
+    // the ~14.83% natural-width floor (90px minus the 1px tolerance).
+    dispatchTouchMove([touch(255, 400)]);
+    expect(el.style.width).toBe(''); // collapsed: writeDOM clears width, back to intrinsic sizing
+    dispatchTouchEnd(touch(255, 400));
+    expect(onChange).toHaveBeenCalledWith({ width: 0 });
+  });
+
+  it('MOBI-31: does not collapse a comb still at or above its measured natural text width', () => {
+    const onChange = vi.fn();
+    const nineDigits = { id: 't3', type: 'text', pageIndex: 0, left: 20, top: 10, text: '038212345', fontSize: 12, textDirection: 'ltr' };
+    const { el, handleNode } = mount({ element: nineDigits, handle: 'right', onChange });
+
+    el.getBoundingClientRect = () => new DOMRect(260, 380, 120, 20);
+    const measure = document.createElement('div');
+    measure.setAttribute('data-text-part', 'measure');
+    measure.getBoundingClientRect = () => new DOMRect(0, 0, 90, 14);
+    el.appendChild(measure);
+
+    dispatchTouchStart(handleNode, [touch(300, 400)]);
+    // 120px -> 90px (15%): at the natural width, above the tolerance-adjusted
+    // floor, so the comb stays a comb.
+    dispatchTouchMove([touch(270, 400)]);
+    expect(el.style.width).toBe('15%');
+    dispatchTouchEnd(touch(270, 400));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ width: 15 }));
+  });
+
   it('ignores a touchstart that already carries two touches - no resize starts', () => {
     const onChange = vi.fn();
     const rectangle = { id: 'r2', type: 'rectangle', pageIndex: 0, left: 20, top: 10, width: 30, height: 15, color: '#000', strokeWidth: 1 };
