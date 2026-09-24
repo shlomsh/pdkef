@@ -25,8 +25,20 @@ type Scenario = {
   placement?: string;
 };
 
-function installVisualViewport(rect: { scale: number; offsetLeft: number; offsetTop: number; width: number; height: number }) {
-  Object.defineProperty(window, 'visualViewport', { value: rect, configurable: true, writable: true });
+/** `pageLeft`/`pageTop` default to what the spec says they are - the offset
+ * plus the page's scroll (0 in jsdom) - so only a test about an engine that
+ * breaks that rule (iOS with the keyboard up) passes them explicitly. */
+function installVisualViewport(rect: { scale: number; offsetLeft: number; offsetTop: number; width: number; height: number; pageLeft?: number; pageTop?: number }) {
+  const value = {
+    ...rect,
+    pageLeft: rect.pageLeft ?? rect.offsetLeft + window.scrollX,
+    pageTop: rect.pageTop ?? rect.offsetTop + window.scrollY,
+  };
+  Object.defineProperty(window, 'visualViewport', { value, configurable: true, writable: true });
+}
+
+function setScrollY(y: number) {
+  Object.defineProperty(window, 'scrollY', { value: y, configurable: true, writable: true });
 }
 
 function removeVisualViewport() {
@@ -101,6 +113,7 @@ describe('originFromPlacement / toolbarScaleOriginCss', () => {
 describe('visualViewportClamp', () => {
   afterEach(() => {
     removeVisualViewport();
+    setScrollY(0);
     document.body.innerHTML = '';
   });
 
@@ -148,11 +161,8 @@ describe('visualViewportClamp', () => {
   });
 
   it('clamps a bar overflowing the left edge back to the margin', () => {
-    // At rest (scale ~1) the visible area's own left edge is simply 0 in
-    // this frame - see the "ignores a stale offsetLeft/offsetTop" test
-    // below for why `offsetLeft` itself must NOT contribute here - so the
-    // overflow is built from the reference sitting left of it, not from a
-    // nonzero `offsetLeft`.
+    // At rest (scale ~1) the visible area's own left edge is 0 in this
+    // frame, so the overflow is built from the reference sitting left of it.
     installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 300, height: 900 });
     const scenario: Scenario = {
       x: 10, y: 50, floatingWidth: 80, floatingHeight: 30,
@@ -165,17 +175,17 @@ describe('visualViewportClamp', () => {
     expect(after.top, 'the vertical edge never overflowed, so it stays put').toBeCloseTo(50, 5);
   });
 
-  it('ignores a stale offsetLeft/offsetTop while at rest (MOBI-17 follow-up: real iOS keyboard-up regression)', () => {
+  it('reads the visible slice from pageTop, not the offsetTop iOS misreports with the keyboard up (MOBI-17 follow-up)', () => {
     // Measured on a real iPhone 17 simulator, form 101, employer-phone
-    // field: with the keyboard up and the page not pinch-zoomed
-    // (`scale` ~1), `visualViewport.offsetTop` was still 337 even though
-    // `getBoundingClientRect()` kept reporting the field's on-screen
-    // position as if the visible area's own top were 0. Trusting that
-    // `offsetTop` pushed `minTop` to 341, past the bar's already-correct,
-    // already-on-screen `top` of 148.5, and clamped it down near the
-    // bottom of the visible slice - the reported regression. This bar's
-    // `top` must be left alone.
-    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 337, width: 402, height: 377 });
+    // field: keyboard up, no pinch, page scrolled to 401. `offsetTop` read
+    // 337 (the keyboard's height) while `pageTop` read 401 and the field
+    // was on screen at a rect top of 184.5 - the visible slice starts at
+    // `pageTop - scrollY` = 0 in this frame. Trusting `offsetTop` pushed
+    // `minTop` to 341, past the bar's already-correct `top` of 148.5, and
+    // clamped it down near the bottom of the visible slice - the reported
+    // regression. This bar's `top` must be left alone.
+    setScrollY(401);
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 337, pageLeft: 0, pageTop: 401, width: 402, height: 377 });
     const scenario: Scenario = {
       x: 148.5, y: 148.5, floatingWidth: 129, floatingHeight: 36,
       referenceRect: { x: 111.6, y: 184.5 },

@@ -12,6 +12,7 @@ import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
+import { revealFieldAfterKeyboard } from '../useFieldNavigation.ts';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
@@ -166,7 +167,10 @@ export default function DraggableWrapper<T extends EditorElement>({
   // (reported in production after MOBI-21 shipped; WebKit under Playwright
   // does not enforce the rule, which is why every e2e passed). So the textarea
   // takes focus here, synchronously, before the state change; TextNode's
-  // effect then finds it already focused and leaves it alone.
+  // effect then finds it already focused and leaves it alone. The focus does
+  // not scroll (that is what keeps iOS from auto-zooming), so the keyboard it
+  // raises can land on top of the box; `revealFieldAfterKeyboard` lifts it
+  // back into view once the keyboard is up.
   function beginEditFromTap() {
     const input = elementRef.current?.querySelector<HTMLTextAreaElement>('[data-editor-text-input]');
     if (input) {
@@ -174,6 +178,7 @@ export default function DraggableWrapper<T extends EditorElement>({
       input.focus({ preventScroll: true });
       const end = input.value.length;
       input.setSelectionRange(end, end);
+      revealFieldAfterKeyboard(element.id);
     }
     onBeginEdit();
   }
