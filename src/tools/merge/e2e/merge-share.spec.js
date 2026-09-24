@@ -4,9 +4,9 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 /* MERGE-11 / Direction A hand-off row (2026-09-13): PdfShareButton only
    renders once `navigator.share`/`canShare` exist, so a real device without
    the Web Share API never gets a dead Share button - it is simply absent,
-   and the hand-off row is Compress it / Sign it only. This guard supplies
+   and the hand-off row is Compress / Sign only. This guard supplies
    the API (the same `addInitScript` pattern merge-layout.spec.js uses) so
-   the row's shape - Share first, then Compress it, then Sign it, all on one
+   the row's shape - Share first, then Compress, then Sign, all on one
    line even at phone width - can be asserted at all.
 
    Run against the production build with `npx playwright test
@@ -63,7 +63,7 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
   }
 
   // Every hand-off button carries an icon before its label (Share keeps its
-  // own glyph; Compress it and Sign it use their launcher icons).
+  // own glyph; Compress and Sign use their launcher icons).
   const svgCounts = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => node.querySelectorAll('svg').length));
   for (const count of svgCounts) {
     expect(count).toBeGreaterThanOrEqual(1);

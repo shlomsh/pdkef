@@ -191,8 +191,8 @@ describe('PdfMergeTool UI flow', () => {
     // state, and its "Choose files" button (not a disabled-looking box) is
     // the one way to add a second file from here.
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
-    expect(buttons).not.toContain('Compress it');
-    expect(buttons).not.toContain('Sign it');
+    expect(buttons).not.toContain('Compress');
+    expect(buttons).not.toContain('Sign');
     expect(buttons).not.toContain('Options');
     expect(container.querySelector(`details.${railStyles.options}`)).toBeNull();
     expect(container.querySelector(`.${railStyles['handoff-row']}`)).toBeNull();
@@ -217,8 +217,8 @@ describe('PdfMergeTool UI flow', () => {
     // row directly above Download, no summary to open.
     expect(container.querySelector(`.${railStyles['page-numbers-row']}`)).not.toBeNull();
     const buttons = Array.from(container.querySelectorAll('button')).map((b) => b.textContent.trim());
-    expect(buttons).toContain('Compress it');
-    expect(buttons).toContain('Sign it');
+    expect(buttons).toContain('Compress');
+    expect(buttons).toContain('Sign');
     expect(buttons).not.toContain('Options');
   });
 
@@ -617,7 +617,7 @@ describe('PdfMergeTool UI flow', () => {
     // Buttons, not links, and no Split: the row is Compress and Sign only.
     expect(container.querySelector('a[href="/compress/"]')).toBeNull();
     expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent === 'Split it')).toBe(false);
-    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Compress it');
+    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Compress');
     await act(async () => {
       button.click();
       await flush(10);
@@ -642,11 +642,11 @@ describe('PdfMergeTool UI flow', () => {
     const handoff = (label) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent === label);
 
     await act(async () => {
-      handoff('Compress it').click();
+      handoff('Compress').click();
       await flush(10);
     });
     expect(navigate).toHaveBeenCalledWith('/compress/');
-    expect(handoff('Sign it').disabled).toBe(true);
+    expect(handoff('Sign').disabled).toBe(true);
 
     await act(async () => {
       const restore = new Event('pageshow');
@@ -654,9 +654,9 @@ describe('PdfMergeTool UI flow', () => {
       window.dispatchEvent(restore);
     });
 
-    expect(handoff('Sign it').disabled).toBe(false);
+    expect(handoff('Sign').disabled).toBe(false);
     await act(async () => {
-      handoff('Sign it').click();
+      handoff('Sign').click();
       await flush(10);
     });
     expect(navigate).toHaveBeenLastCalledWith('/sign/');
@@ -681,7 +681,7 @@ describe('PdfMergeTool UI flow', () => {
     await loadFiles(['a.pdf', 'b.pdf']);
     await settle();
 
-    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Sign it');
+    const button = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Sign');
     await act(async () => {
       button.click();
       await flush(10);
