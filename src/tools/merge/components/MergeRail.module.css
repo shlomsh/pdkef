@@ -512,12 +512,15 @@
   gap: 0.5rem;
 }
 
-/* Every child of the row is an equal button, the Share button included
+/* Every child of the row is a hand-off button, the Share button included
    (it keeps PdfShareButton's own classes, so the rule is on the row). The
    three of them (Share, Compress, Sign) stay on one line at every width, at
-   the row's own size: no wrapping, no label wrapping. */
+   the row's own size: no wrapping, no label wrapping. Each starts from its
+   own label's width and they share what is left: equal widths gave
+   "Compress" 3px of clearance in the 320px desktop rail while "Sign" had
+   22px, and pushed it past its border on a 320px phone. */
 .handoff-row > * {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
   white-space: nowrap;
 }
@@ -532,7 +535,6 @@
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  flex: 1;
   min-height: 44px;
   padding: 0.5rem 0.6rem;
   font: inherit;
