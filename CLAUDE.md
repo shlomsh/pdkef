@@ -169,7 +169,7 @@ to raise a limit.** Page-weight budgets are budgets, not ratchets.
 | --- | --- | --- |
 | `editor.md` | `src/editor/**`, `src/editor-ui/**`, `src/tools/sign/**`, `src/tools/redact/**` | design standard, arming/selection model, toolbar layout, editor hazards |
 | `tools-and-shell.md` | `src/tools/**`, `src/shell/**`, `src/lib/**`, `docs/ux-design-guidelines.md` | draft persistence, other tools, cross-tool hand-offs, UX guideline |
-| `tests.md` | `src/test/**`, `vitest.config.js`, `playwright.config.js`, `scripts/affected-scope.mjs` | DOM test scope, cross-tool test folder, affected-scope narrowing |
+| `tests.md` | `src/test/**`, any e2e spec, `vitest.config.js`, `playwright.config.js`, `scripts/affected-scope.mjs` | DOM test scope, per-platform text width, cross-tool test folder, affected-scope narrowing |
 | `fonts-and-text.md` | `src/editor/text/**`, `public/fonts/**`, shaping guards | screening protocol, per-script guards, subsetting, the five text stages |
 | `styling.md` | `src/styles/**`, any `.css`, CSS guard scripts | palette, per-family utility sheets, CSS Modules boundary, ratchets |
 | `csp-scripts-pwa.md` | `astro.config.mjs`, `vercel.json`, layouts, `public/sw.js`, `package.json` | CSP layers and incidents, service worker invariants, version pinning |
