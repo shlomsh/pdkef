@@ -17,31 +17,31 @@ and is not part of this history - its `project.json` files name folders that no 
 Twenty `project.json` files, no workspace conversion, no per-project `package.json`, `nx.json` at
 the repo root, `.nx/` gitignored:
 
-| Project | Root | Tags | `test` | `e2e` |
-| --- | --- | --- | --- | --- |
-| `shell` | `src/shell` | `scope:shell` | ✓ | - |
-| `editor` | `src/editor` | `scope:editor` | ✓ | - |
-| `editor-ui` | `src/editor-ui` | `scope:editor-ui` | ✓ | - |
-| `lib` | `src/lib` | `scope:lib` | ✓ | - |
-| `site` | `src` (not the repo root - see below) | `scope:site` | ✓ | - |
-| `i18n` | `src/i18n` | `scope:i18n` | ✓ | - |
-| `tool-merge` | `src/tools/merge` | `scope:tool`, `tool:merge` | ✓ | ✓ |
-| `tool-sign` | `src/tools/sign` | `scope:tool`, `tool:sign` | ✓ | ✓ |
-| `tool-redact` | `src/tools/redact` | `scope:tool`, `tool:redact` | ✓ | ✓ |
-| `tool-compress` | `src/tools/compress` | `scope:tool`, `tool:compress` | ✓ | ✓ |
-| `tool-security` | `src/tools/security` | `scope:tool`, `tool:security` | ✓ | ✓ |
-| `tool-split` | `src/tools/split` | `scope:tool`, `tool:split` | ✓ | - (no `e2e/` folder yet) |
-| `tool-edit-pages` | `src/tools/edit-pages` | `scope:tool`, `tool:edit-pages` | ✓ | - |
-| `tool-to-image` | `src/tools/to-image` | `scope:tool`, `tool:to-image` | ✓ | - |
-| `tool-image-to-pdf` | `src/tools/image-to-pdf` | `scope:tool`, `tool:image-to-pdf` | ✓ | - |
-| `font-assets` | `public/fonts` | `scope:font-assets` | ✓ (`test:fonts`) | - |
-| `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | `scope:fonts` | - | ✓ |
-| `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | `scope:export-guards` | - | ✓ |
-| `site-e2e` | `e2e` | `scope:site` | - | ✓ |
-| `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | `scope:tests` | ✓ | - |
-| `form-corpus` | `src/editor/adapters/pdf/corpus` (nested inside `editor`'s root, same shape as `cross-tool-tests` inside `site-test`) | `scope:tests` | ✓ | - |
-| `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | `scope:site-test` | ✓ | - |
-| `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | `scope:tests` | ✓ | - |
+| Project | Root | `test` | `e2e` |
+| --- | --- | --- | --- |
+| `shell` | `src/shell` | ✓ | - |
+| `editor` | `src/editor` | ✓ | - |
+| `editor-ui` | `src/editor-ui` | ✓ | - |
+| `lib` | `src/lib` | ✓ | - |
+| `site` | `src` (not the repo root - see below) | ✓ | - |
+| `i18n` | `src/i18n` | ✓ | - |
+| `tool-merge` | `src/tools/merge` | ✓ | ✓ |
+| `tool-sign` | `src/tools/sign` | ✓ | ✓ |
+| `tool-redact` | `src/tools/redact` | ✓ | ✓ |
+| `tool-compress` | `src/tools/compress` | ✓ | ✓ |
+| `tool-security` | `src/tools/security` | ✓ | ✓ |
+| `tool-split` | `src/tools/split` | ✓ | - (no `e2e/` folder yet) |
+| `tool-edit-pages` | `src/tools/edit-pages` | ✓ | - |
+| `tool-to-image` | `src/tools/to-image` | ✓ | - |
+| `tool-image-to-pdf` | `src/tools/image-to-pdf` | ✓ | - |
+| `font-assets` | `public/fonts` | ✓ (`test:fonts`) | - |
+| `fonts` | `e2e/sign` (nested inside `site-e2e`'s own root) | - | ✓ |
+| `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | - | ✓ |
+| `site-e2e` | `e2e` | - | ✓ |
+| `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | ✓ | - |
+| `form-corpus` | `src/editor/adapters/pdf/corpus` (nested inside `editor`'s root, same shape as `cross-tool-tests` inside `site-test`) | ✓ | - |
+| `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | ✓ | - |
+| `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | ✓ | - |
 
 `fonts`' `implicitDependencies` **as this record originally landed**: `font-assets`, `editor`, `lib`,
 `tool-sign` - the export pipeline the 27 font screening guards actually exercised at the time. **ARCH-23
@@ -268,9 +268,9 @@ fate, after DEBT-04.
 
 `@nx/enforce-module-boundaries` is an ESLint rule; this repo has no ESLint, and none of the five
 prose rules in `docs/module-boundaries.md` map cleanly onto `depConstraints` syntax without a second,
-custom rule for "a tool's own island is the only legal entry point." Nx's tags (`scope:tool`,
-`tool:merge`, ...) exist purely so `nx show projects --affected` can be asked "which tool is this,"
-not for enforcement - `check-module-boundaries.mjs` is unchanged by ARCH-20 and remains green (249
+custom rule for "a tool's own island is the only legal entry point." The project tags this record originally landed (`scope:tool`, `tool:merge`, ...) were read by
+nothing and were deleted on 2026-09-24 (DEBT-14): projects are identified by name (`tool-*`), and
+folders are the one definition of a boundary. `check-module-boundaries.mjs` is unchanged by ARCH-20 and remains green (249
 files scanned, 815 edges, 0 allowlisted violations, matching ARCH-18/19's empty allowlist).
 
 Cross-checked once: every inferred edge in `nx graph --file` runs in a direction the five rules allow

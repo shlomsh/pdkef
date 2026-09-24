@@ -1,7 +1,7 @@
 ---
 id: "DEBT-14"
 title: "Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries on the existing project tags, or retire the idea with Nx"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "architecture-debt"
 phase: "later"
@@ -54,3 +54,15 @@ Decide together with DEBT-07, since the answer depends on whether Nx stays:
   inside `src/tools/merge/`, in the same commit that documents which of the two tools is the oracle;
   or this ticket closed as retired with the decision recorded in `docs/module-boundaries.md`.
 - `check:fast` stays under 30s locally.
+
+## Retired (2026-09-24)
+
+Decision: the checker is the boundary; editor-time feedback is not worth a linter. ESLint cannot see
+`.astro` files or `<script src>` consumers, and cannot express rule 6 (test laundering), rule 8
+(nothing imports `scripts/`) or ARCH-25's two-consumer rule, so `check-module-boundaries.mjs` would
+have to stay and the tags would become a second definition of every boundary, kept in sync by hand.
+The check runs in about 2s at the top of `check:fast`, so a forbidden import is still caught before a
+push. The Nx project tags were read by nothing (not the checker, not `affected-scope.mjs`, which
+names projects `tool-*`) and were deleted from all 23 `project.json` files in the same change;
+`affected-scope.mjs` resolves the same projects without them. Recorded in
+`docs/module-boundaries.md` and `docs/nx-affected-ci.md`.
