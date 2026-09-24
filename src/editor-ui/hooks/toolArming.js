@@ -65,17 +65,63 @@ export function useArmTool(params) {
 }
 
 /**
- * Teaches the double-click shortcut once, at the button it belongs to, instead
- * of leaving it to a `title` attribute that needs a hover and a wait to find.
- * The first time any tool arms this session, its button's hint bubble (see
- * `ArmHint.tsx`) is forced open for a few seconds; after that it reverts to
- * ordinary hover/focus, same as any tooltip.
+ * The same double-tap window for the menu tools (Shapes, Sign; SIGN-31), whose
+ * single tap opens a menu rather than arming, so `makeArmTool`'s "the first
+ * tap armed it" test cannot apply. Returns whether this click is the second of
+ * two taps on `key` within DOUBLE_TAP_MS; always false with a mouse, where
+ * those buttons lock through a real `ondblclick`. A hit consumes the pair, so
+ * a third quick tap starts over. `canLock` is the caller's own condition (the
+ * menu from the first tap still open); when it fails, this tap starts a new
+ * pair rather than spending the old one.
  *
- * Gated on `(hover: hover) and (pointer: fine)` before ever starting the timer,
- * not just in the CSS that shows the bubble: double-click and hover both do not
- * exist on touch, so auto-showing "double-click to keep this on" there would be
- * advice a phone cannot act on, and would cost a repaint for nothing every time
- * a tool arms on a device that will never see it.
+ * @param {{key: string|null, at: number}} lastTap - mutated
+ * @param {() => boolean} [isTouch]
+ * @returns {(key: string, event: MouseEvent, canLock?: boolean) => boolean}
+ */
+export function makeDoubleTap(lastTap, isTouch = isCoarsePointer) {
+  return (key, e, canLock = true) => {
+    const hit = canLock && lastTap.key === key && e.timeStamp - lastTap.at < DOUBLE_TAP_MS && isTouch();
+    lastTap.key = hit ? null : key;
+    lastTap.at = e.timeStamp;
+    return hit;
+  };
+}
+
+export function useDoubleTap() {
+  const lastTap = useRef({ key: null, at: 0 }).current;
+  return makeDoubleTap(lastTap);
+}
+
+/** Set the first time the touch bubble shows, so a phone sees it once, ever. */
+const TOUCH_HINT_KEY = 'pdf-toolkit:double-tap-hint-seen';
+
+function touchHintSeen() {
+  try {
+    return localStorage.getItem(TOUCH_HINT_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+function markTouchHintSeen() {
+  try {
+    localStorage.setItem(TOUCH_HINT_KEY, '1');
+  } catch {
+    // Blocked storage only means the bubble can show again on a later visit.
+  }
+}
+
+/**
+ * Teaches the lock shortcut once, at the button it belongs to, instead of
+ * leaving it to a `title` attribute that needs a hover and a wait to find.
+ * The first time any tool arms, its button's hint bubble (see `ArmHint.tsx`)
+ * is forced open for a few seconds, then it reverts to ordinary hover/focus.
+ *
+ * With a mouse that is once per session and says "double-click". On touch it
+ * says "double-tap" (SIGN-31: a double-tap locks there too since SIGN-30) and
+ * shows once per device, remembered in localStorage: a phone has no hover to
+ * find it again, and a bubble that returned on every visit would be nagging.
+ * It floats, so it costs the phone's row no space.
  *
  * `shownRef`, not state, for "has this fired yet" - flipping it must not itself
  * cause a render, only the timer's two edges (show, then hide) should.
@@ -91,8 +137,12 @@ export function useAutoArmHint() {
 
   const noteArmed = useCallback((tool) => {
     if (!tool || shownRef.current) return;
-    if (!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) return;
+    const canHover = Boolean(globalThis.matchMedia?.('(hover: hover) and (pointer: fine)').matches);
     shownRef.current = true;
+    if (!canHover) {
+      if (touchHintSeen()) return;
+      markTouchHintSeen();
+    }
     setAutoShowTool(tool);
     timerRef.current = setTimeout(() => setAutoShowTool(null), 2600);
   }, []);

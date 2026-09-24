@@ -491,6 +491,38 @@ describe('SignToolbar Component', () => {
       expect(state.toolLocked).toBe(true);
     });
 
+    // SIGN-31: on touch (the test setup's matchMedia reports a coarse pointer)
+    // a phone sends no dependable dblclick, so two quick taps lock instead.
+    // `click()` is a tap here: the clicks land well inside DOUBLE_TAP_MS.
+    it('on touch, one tap opens the Shapes menu and a second quick tap locks the last shape', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+      const shapesBtn = findButton('Shapes');
+
+      await act(async () => { shapesBtn.click(); });
+      expect(document.body.querySelector('[role="menu"]')).not.toBeNull();
+      expect(state.toolLocked).toBe(false);
+
+      await act(async () => { shapesBtn.click(); });
+      expect(state.selectedTool).toBe('rectangle');
+      expect(state.toolLocked).toBe(true);
+      expect(document.body.querySelector('[role="menu"]')).toBeNull();
+    });
+
+    it('on touch, tap, pick a shape, tap again reopens the menu without locking', async () => {
+      let state!: SignToolState;
+      renderToolbar((s) => { state = s; });
+      const shapesBtn = findButton('Shapes');
+
+      await act(async () => { shapesBtn.click(); });
+      await act(async () => { findExactButton(document.body, 'Ellipse').click(); });
+      await act(async () => { shapesBtn.click(); });
+
+      expect(state.selectedTool).toBe('ellipse');
+      expect(state.toolLocked).toBe(false);
+      expect(document.body.querySelector('[role="menu"]')).not.toBeNull();
+    });
+
     // Sign is a dropdown-trigger button too, so it needs the same real-dblclick
     // treatment as Shapes rather than counting e.detail on the button.
     const mockSignature = { id: 'sig-lock-test', dataUrl: 'data:image/png;base64,iVBORw0KGgoAAAANS...', aspectRatio: 1 };
@@ -572,6 +604,20 @@ describe('SignToolbar Component', () => {
     // `signature` tool, not a tool switch, so a locked Sign must stay locked.
     // It used to drop the lock: handleSelectSavedSignature dispatched a bare
     // SET_TOOL, which always clears `toolLocked` (SignToolContext.tsx).
+    it('on touch, two quick taps on Sign lock the active signature', async () => {
+      let state!: SignToolState;
+      renderToolbarWithSignature((s) => { state = s; });
+      const signBtn = findButton('Sign');
+
+      await act(async () => { signBtn.click(); });
+      expect(document.body.querySelector('[data-editor-signature-item]')).not.toBeNull();
+      await act(async () => { signBtn.click(); });
+
+      expect(state.selectedTool).toBe('signature');
+      expect(state.toolLocked).toBe(true);
+      expect(document.body.querySelector('[data-editor-signature-item]')).toBeNull();
+    });
+
     it('stays locked when a saved signature is picked from the menu after locking', async () => {
       let state!: SignToolState;
       renderToolbarWithSignature((s) => { state = s; });

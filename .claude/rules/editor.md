@@ -100,7 +100,11 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   tool the first tap armed, within `DOUBLE_TAP_MS`, locks it; `touch-action: manipulation` on
   `.toolbar` keeps Safari from reading the two taps as zoom. Chromium's touch emulation counts taps
   as `detail: 2`, so no Playwright spec can reproduce the iOS failure: `toolArming.test.js` is the
-  guard. Menu-armed tools (Shapes, Sign) still lock only by `ondblclick`.
+  guard. The menu tools (Shapes, Sign) lock on touch through `useDoubleTap`, only while the menu the
+  first tap opened is still open, and on touch their menus open by tap alone, never by the emulated
+  hover (it opened and shut the menu on one tap) (SIGN-31). The shortcut is taught once: a floating
+  bubble on first arm, once per session with a mouse and once per device on touch
+  (`useAutoArmHint`), never as text in the phone's status row.
 - **Arming must not move the toolbar** (SIGN-30): the second click of a double-click lands where the
   button was. The status row reserves every state's height (`.help-stack`), and in Sign on a form it
   also reserves the field arrows' footprint while they are absent (`reserveFieldNav`,
