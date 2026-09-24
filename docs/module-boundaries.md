@@ -86,25 +86,29 @@ once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evi
    beside the script it tests, in `scripts/`, never under `src/test/`. Rules 1-7 only
    ever needed to walk `src/`; rule 8's own pass (`scriptsImportViolations()`) also walks `public/`
    and `e2e/`, since either could gain a real edge into `scripts/` that a `src/`-only walk would miss.
-9. **A module in a common layer (`shell`, `editor-ui`, `editor`, `lib`) needs two or more distinct
-   consumers, or it does not belong in a common layer** (ARCH-25). Plainly: "common" means used by
-   two. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no matter how many of its
-   own files import the module) or a qualifying site file (a page, a layout, an `.astro` component,
-   an `i18n`/`data` module, or a file a layout loads via `<script src>`) - each site file counts on
-   its own, since a page and the layout it renders through are two different files, not one "site"
-   bucket. A consumer reached only through a chain of other common-layer modules still counts,
-   credited to whichever tool or site file the chain eventually reaches: a `lib` module used only by
-   another `lib` module that two tools both import is fine, and the same holds across layers - an
-   `editor` module consumed only by `editor-ui` (or by another `editor` module) counts via the tools
-   that reach `editor-ui`. A module one tool uses lives in that tool's folder instead; a module
-   nothing uses is deleted. Enforced by `commonLayerConsumerViolations()`, with no ratcheting
-   allowlist (like rules 6 and 8) but a small, named `RULE9_EXCEPTIONS` list for files where the
-   measured count is correct and the module still belongs where it is - an intentionally single-tool
-   piece of the shared editor core (Sign-only form detection, Redact-only page-edit adapters, and
-   the like, each documented in `.claude/rules/editor.md`), or a file shipped under `src/` that the
-   running app never actually reaches (a generated report, a corpus fixture, something exercised only
-   by its own test or a `scripts/` generator). Each entry names its own reason; a new one needs the
-   same evidence bar, not a guess from the file's name. An `.astro` file's `<script src="...">` is
+9. **A module in a common layer (`shell`, `editor-ui`, `lib`) needs two or more distinct consumers,
+   or it does not belong in a common layer** (ARCH-25). Plainly: "common" means used by two.
+   `editor` is out of scope for this rule: it is a layered headless core whose per-tool adapters
+   (Sign-only form detection and export, Redact-only page-edit and delete adapters, and the like)
+   serve one tool by design, not by oversight, and its shape is already governed by
+   `check-editor-dependency-directions.mjs` and, for field detection specifically, by ARCH-24 - a
+   module a mechanical count would flag stays right where it is, no exception needed, because the
+   rule never reaches it. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no
+   matter how many of its own files import the module) or a qualifying site file (a page, a layout,
+   an `.astro` component, an `i18n`/`data` module, or a file a layout loads via `<script src>`) -
+   each site file counts on its own, since a page and the layout it renders through are two
+   different files, not one "site" bucket. A consumer reached only through a chain of other
+   common-layer modules still counts, credited to whichever tool or site file the chain eventually
+   reaches: a `lib` module used only by another `lib` module that two tools both import is fine, and
+   the same holds when the chain passes through `editor` or `editor-ui` on its way to a tool - the
+   walk keeps going through those layers even though `editor` files are never themselves checked.
+   A module one tool uses lives in that tool's folder instead; a module nothing uses is deleted.
+   `SignatureDialog.tsx` was the one module this genuinely miscategorized, moved into
+   `src/tools/sign/` in the same change that added this rule, alongside `useCoarsePointer.ts` (moved
+   from `src/editor-ui/hooks/` into `src/tools/sign/`, its only real consumer). Enforced by
+   `commonLayerConsumerViolations()`, with no ratcheting allowlist and no exception list of any kind
+   (like rules 6 and 8): it holds at zero violations, so a module that fails it moves into the tool
+   that actually uses it, or is deleted if nothing does. An `.astro` file's `<script src="...">` is
    invisible to the main edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`,
    solely to answer whether the site consumes a given module.
 

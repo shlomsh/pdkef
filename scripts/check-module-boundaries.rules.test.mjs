@@ -363,8 +363,32 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 });
 
 describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
-  it('is green: every shell/editor-ui/editor/lib module not in RULE9_EXCEPTIONS has two or more consumers', () => {
+  it('is green: every shell/editor-ui/lib module has two or more consumers', () => {
     expect(commonLayerConsumerViolations()).toEqual([]);
+  });
+
+  it('never flags an editor module: editor is out of rule 9\'s scope entirely', () => {
+    const flaggedEditorFiles = commonLayerConsumerViolations().filter((v) => v.module === 'editor');
+    expect(flaggedEditorFiles).toEqual([]);
+  });
+
+  it('a real single-consumer editor module is not flagged (editor is out of scope, not merely allowed a pass)', () => {
+    // src/editor/adapters/pdf/sign.js is Sign's own PDF export/signing
+    // adapter: genuinely one tool's worth of consumer (tool:sign), the same
+    // shape rule 9 would flag in shell/editor-ui/lib. It stays unflagged
+    // because classify() puts it in 'editor', which commonLayerConsumerViolations()
+    // no longer checks at all - not because of a per-file exception.
+    const { edges } = buildEdges();
+    const allEdges = [...edges, ...astroScriptSrcEdges()];
+    const reverseEdges = new Map();
+    for (const { from, to } of allEdges) {
+      if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
+      reverseEdges.get(to).add(from);
+    }
+    const target = 'src/editor/adapters/pdf/sign.js';
+    expect(classify(target)).toBe('editor');
+    expect(commonLayerConsumers(target, reverseEdges).size).toBe(1);
+    expect(commonLayerConsumerViolations().some((v) => v.file === target)).toBe(false);
   });
 
   it('SignatureDialog.tsx is no longer in editor-ui to check (ARCH-25 moved it into src/tools/sign/)', () => {
