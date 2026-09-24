@@ -30,6 +30,38 @@ function cards(page) {
   return grid(page).locator('> li[data-key]');
 }
 
+test('desktop page drag keeps the grabbing cursor for the whole gesture', async ({ page }) => {
+  await page.goto('/merge/');
+  await page.locator('astro-island[client="load"]:not([ssr])').waitFor();
+
+  const buffer = await makePdfBuffer('cursor-check', 2, 300);
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'cursor-check.pdf',
+    mimeType: 'application/pdf',
+    buffer,
+  });
+
+  const first = cards(page).first();
+  await expect(first).toBeVisible();
+  const box = await first.boundingBox();
+  if (!box) throw new Error('First page has no bounding box');
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 12, y + 12, { steps: 3 });
+
+  await expect.poll(() => page.locator('html').getAttribute('data-merge-page-dragging')).toBe('');
+  expect(await page.evaluate(({ x: px, y: py }) => {
+    const beneathPointer = document.elementFromPoint(px, py);
+    return beneathPointer ? getComputedStyle(beneathPointer).cursor : null;
+  }, { x: x + 12, y: y + 12 })).toBe('grabbing');
+
+  await page.mouse.up();
+  await expect(page.locator('html')).not.toHaveAttribute('data-merge-page-dragging', '');
+});
+
 test('the assembled grid: every page, rotate, skip and keyboard reorder land in the export (MERGE-08/09)', async ({ page }) => {
   await page.goto('/merge/');
   await page.locator('astro-island[client="load"]:not([ssr])').waitFor();

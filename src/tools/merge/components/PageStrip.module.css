@@ -123,6 +123,8 @@
   gap: 0.3rem;
   cursor: grab;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* The reserved strip (item 1): every cell carries this, at the same fixed
@@ -191,6 +193,16 @@
   cursor: grabbing;
 }
 
+/* Sortable's fallback clone does not receive pointer events, so the cursor is
+   resolved from whichever element happens to sit beneath it. Lock the whole
+   document to the active drag cursor until onEnd clears this short-lived
+   marker. Native HTML drag cannot honor this consistently, which is why the
+   page Sortable uses forceFallback. */
+:global(html[data-merge-page-dragging]),
+:global(html[data-merge-page-dragging]) * {
+  cursor: grabbing !important;
+}
+
 /* A skipped page stays visible, dimmed, dashed, its number struck, with the
    word "skipped" under it (never an overlay hidden by the thumbnail), so one
    tap brings it back. Nothing is deleted from the source. */
@@ -232,6 +244,11 @@
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+  /* The thumbnail is decorative inside the draggable page card. Keeping it
+     out of hit testing prevents iOS from opening its Share / Save / Copy
+     image sheet while the user is holding the page to reorder it. */
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 /* A rotated (90/270) thumbnail's inline width/height (PageStrip.tsx

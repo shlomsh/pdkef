@@ -353,6 +353,12 @@
   align-items: center;
   min-height: 44px;
   cursor: pointer;
+  /* A long press belongs to SortableJS. On iOS, allowing the chip's file
+     name to remain selectable makes the same gesture select text instead
+     of picking the file up. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .chip-pill {
@@ -462,13 +468,8 @@
   margin: 0;
   padding: 0 0.1rem;
   font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--color-muted);
-  /* One row even at the narrowest iPhone width (375px) - the copy is kept
-     short enough to fit, and this is the safety net for a locale whose
-     translation runs longer than English/Hebrew do. */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 @media (hover: none) and (max-width: 1023px) {
