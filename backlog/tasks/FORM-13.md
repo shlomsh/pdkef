@@ -1,7 +1,7 @@
 ---
 id: "FORM-13"
 title: "Tell a table's caption row from a writable row"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
