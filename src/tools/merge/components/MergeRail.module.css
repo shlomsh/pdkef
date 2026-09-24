@@ -513,30 +513,16 @@
 }
 
 /* Every child of the row is an equal button, the Share button included
-   (it keeps PdfShareButton's own classes, so the rule is on the row). On a
-   phone the four of them (Share, Compress, Sign, Options) stay on one
-   line at 393px: no wrapping, no label wrapping, a smaller face. */
+   (it keeps PdfShareButton's own classes, so the rule is on the row). The
+   three of them (Share, Compress, Sign) stay on one line at every width, at
+   the row's own size: no wrapping, no label wrapping. */
 .handoff-row > * {
   flex: 1 1 0;
   min-width: 0;
   white-space: nowrap;
 }
 
-@media (max-width: 767px) {
-  .handoff-row {
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-  }
-
-  /* Four 79px buttons at 393px: "Compress it" bold measures about 70px at
-     this size, so the padding is the minimum that still reads as a button. */
-  .handoff-row > * {
-    padding-inline: 0.15rem;
-    font-size: 0.76rem;
-  }
-}
-
-/* Review P3: Compress / Sign (and Share, Options on the phone) read
+/* Review P3: Share, Compress and Sign read
    as peers of Download - same solid surface, same weight. Quieter now: a
    transparent fill and a primary-text label say "secondary", the way a
    filled Download and a bordered-only hand-off row read as one primary

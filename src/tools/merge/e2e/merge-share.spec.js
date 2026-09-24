@@ -50,6 +50,16 @@ async function loadReadyRowWithShare(page) {
   return handoffButtons;
 }
 
+async function expectEveryLabelToFit(handoffButtons) {
+  const overflows = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => ({
+    label: node.textContent.trim(),
+    overflow: node.scrollWidth - node.clientWidth,
+  })));
+  for (const { label, overflow } of overflows) {
+    expect(overflow, label).toBeLessThanOrEqual(0);
+  }
+}
+
 test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
   const handoffButtons = await loadReadyRowWithShare(page);
 
@@ -73,6 +83,9 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
   for (const count of svgCounts) {
     expect(count).toBeGreaterThanOrEqual(1);
   }
+
+  // At the row's own size: the labels fit a 375px phone without shrinking.
+  await expectEveryLabelToFit(handoffButtons);
 });
 
 // The desktop rail is a fixed 320px, so with Share present each button is
@@ -83,13 +96,6 @@ test.describe('on the desktop rail', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test('every hand-off label fits inside its own button', async ({ page }) => {
-    const handoffButtons = await loadReadyRowWithShare(page);
-    const overflows = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => ({
-      label: node.textContent.trim(),
-      overflow: node.scrollWidth - node.clientWidth,
-    })));
-    for (const { label, overflow } of overflows) {
-      expect(overflow, label).toBeLessThanOrEqual(0);
-    }
+    await expectEveryLabelToFit(await loadReadyRowWithShare(page));
   });
 });
