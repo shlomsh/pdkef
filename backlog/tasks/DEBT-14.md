@@ -63,6 +63,6 @@ Decision: the checker is the boundary; editor-time feedback is not worth a linte
 have to stay and the tags would become a second definition of every boundary, kept in sync by hand.
 The check runs in about 2s at the top of `check:fast`, so a forbidden import is still caught before a
 push. The Nx project tags were read by nothing (not the checker, not `affected-scope.mjs`, which
-names projects `tool-*`) and were deleted from all 23 `project.json` files in the same change;
+names projects `tool-*`) and were deleted from all 27 `project.json` files in the same change;
 `affected-scope.mjs` resolves the same projects without them. Recorded in
 `docs/module-boundaries.md` and `docs/nx-affected-ci.md`.
