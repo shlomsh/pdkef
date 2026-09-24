@@ -36,10 +36,12 @@ site             src/pages, src/content, src/data, src/i18n, src/layouts, src/st
                  .astro components, as today
 ```
 
-This is ARCH-15's own text, unchanged; everything below is the working-out. One line is stale: the
-`editor-ui` row still lists `SignatureDialog` as "shared by Sign and Redact." It never was, on this
-checkout - Redact has no signature dialog - and ARCH-25 (2026-09-24) moved it into `src/tools/sign/`
-once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evidence sections below.
+This is ARCH-15's own text, unchanged; everything below is the working-out. Two rows are stale. The
+`src/shell/` row still lists `FileDropzone`, `RecentFiles`, `homeWorkspace` and `sampleDocument`: only
+the home page uses them, so ARCH-26 (2026-09-25) moved them to `src/site-lib/` once rule 9 counted the
+site as one consumer. The `editor-ui` row still lists `SignatureDialog` as "shared by Sign and
+Redact." It never was, on this checkout - Redact has no signature dialog - and ARCH-25 (2026-09-24)
+moved it into `src/tools/sign/` once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evidence sections below.
 
 ## Dependency rules
 
@@ -94,23 +96,30 @@ once rule 9 made that measurable instead of assumed. See the `editor-ui` and Evi
    `check-editor-dependency-directions.mjs` and, for field detection specifically, by ARCH-24 - a
    module a mechanical count would flag stays right where it is, no exception needed, because the
    rule never reaches it. A consumer is a tool (`src/tools/<name>/` - one identity per tool, no
-   matter how many of its own files import the module) or a qualifying site file (a page, a layout,
-   an `.astro` component, an `i18n`/`data` module, or a file a layout loads via `<script src>`) -
-   each site file counts on its own, since a page and the layout it renders through are two
-   different files, not one "site" bucket. A consumer reached only through a chain of other
-   common-layer modules still counts, credited to whichever tool or site file the chain eventually
-   reaches: a `lib` module used only by another `lib` module that two tools both import is fine, and
-   the same holds when the chain passes through `editor` or `editor-ui` on its way to a tool - the
-   walk keeps going through those layers even though `editor` files are never themselves checked.
-   A module one tool uses lives in that tool's folder instead; a module nothing uses is deleted.
-   `SignatureDialog.tsx` was the one module this genuinely miscategorized, moved into
-   `src/tools/sign/` in the same change that added this rule, alongside `useCoarsePointer.ts` (moved
-   from `src/editor-ui/hooks/` into `src/tools/sign/`, its only real consumer). Enforced by
-   `commonLayerConsumerViolations()`, with no ratcheting allowlist and no exception list of any kind
-   (like rules 6 and 8): it holds at zero violations, so a module that fails it moves into the tool
-   that actually uses it, or is deleted if nothing does. An `.astro` file's `<script src="...">` is
-   invisible to the main edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`,
-   solely to answer whether the site consumes a given module.
+   matter how many of its own files import the module) **or the site, counted once** (ARCH-26): a
+   page, a layout, an `.astro` component, an `i18n`/`data` module, a `src/site-lib/` helper, and a
+   file a layout loads via `<script src>` all credit one single "site" identity, the same way a tool
+   is one identity no matter how many of its own files import the module - a page and the layout it
+   renders through are two different files, but one consumer, not two. A consumer reached only
+   through a chain of other common-layer modules still counts, credited to whichever tool or the
+   site the chain eventually reaches: a `lib` module used only by another `lib` module that two
+   tools both import is fine, and the same holds when the chain passes through `editor` or
+   `editor-ui` on its way to a tool - the walk keeps going through those layers even though `editor`
+   files are never themselves checked. A module one tool uses lives in that tool's folder instead; a
+   module nothing uses is deleted. `SignatureDialog.tsx` was the one module ARCH-25 genuinely
+   miscategorized, moved into `src/tools/sign/` in the same change that added this rule, alongside
+   `useCoarsePointer.ts` (moved from `src/editor-ui/hooks/` into `src/tools/sign/`, its only real
+   consumer). ARCH-26 then found the landed rule counted each site file as its own consumer, so a
+   module reached only through a layout's `<script src>` passed with `{layout, page}` credited as
+   two real uses when it was one; the fix credits a fixed `SITE_CONSUMER` identity for every
+   site-classified node instead of the node's own path, and moved the shell modules that reading
+   now correctly flagged as site-only (`FileDropzone.tsx`, `homeWorkspace.ts`, `RecentFiles.tsx`,
+   `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
+   ratcheting allowlist and no exception list of any kind (like rules 6 and 8): it holds at zero
+   violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
+   nothing does. An `.astro` file's `<script src="...">` is invisible to the main edge scan below,
+   so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
+   consumes a given module.
 
 `scripts/check-module-boundaries.mjs` enforces exactly these nine rules; its header comment is the
 canonical copy; keep this section and that comment in sync by hand; the classification table in the

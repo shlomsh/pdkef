@@ -1,7 +1,7 @@
 ---
 id: "ARCH-26"
 title: "Rule 9 counts the site once; site-only shell modules move to src/site-lib/"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "module-boundaries"
 phase: "near-term"
@@ -36,3 +36,17 @@ index.astro}`: one real use, counted as two. The rules test pins that behaviour
 
 - Rule 9 counts the site once, zero violations, no exception list; the moved modules live in
   `src/site-lib/`; the full `ci.yml` chain is green.
+
+## Result (2026-09-25)
+
+- `commonLayerConsumers()` credits every site file (pages, layouts, `.astro` components, i18n, data,
+  `src/site-lib/`, `<script src>` targets) to one `SITE_CONSUMER` identity. No exception list.
+- The re-measure flagged exactly the four modules the audit named, nothing in `lib` or `editor-ui`.
+  `FileDropzone`, `RecentFiles` (each with its CSS Module and test), `homeWorkspace` and
+  `sampleDocument` moved from `src/shell/` to `src/site-lib/`; `HomePageLayout.astro`'s import and
+  `<script src>` follow them, and so do `.claude/rules/home-page.md`'s paths and the open tickets that
+  named them (MOBI-18, DEBT-21).
+- The rules test pins site-once counting: two site files are one consumer, a tool plus the site are
+  two, and `homeWorkspace.ts` resolves to `{site}`.
+- Checker: 0 violations. Full `ci.yml` chain green locally (chromium 206, webkit 27, perf 5, fonts
+  133 passed / 2 skipped, export-guards 1 passed / 1 skipped).

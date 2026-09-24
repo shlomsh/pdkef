@@ -240,8 +240,8 @@ describe('rule 7: a tool spec under src/tools/<t>/e2e/ may only reference its ow
 
 describe('rule 9: scriptSrcSpecifiers() finds a layout\'s <script src="...">', () => {
   it('finds a relative src', () => {
-    expect(scriptSrcSpecifiers('<script src="../shell/homeWorkspace.ts"></script>'))
-      .toEqual(['../shell/homeWorkspace.ts']);
+    expect(scriptSrcSpecifiers('<script src="../site-lib/homeWorkspace.ts"></script>'))
+      .toEqual(['../site-lib/homeWorkspace.ts']);
   });
 
   it('finds a root-relative src', () => {
@@ -323,31 +323,43 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
       .toEqual(new Set(['tool:sign', 'tool:redact']));
   });
 
-  it('two different site files reached through a chain both count, distinctly (a page importing a layout)', () => {
+  it('two different site files reached through a chain both credit the same "site" identity, not two (ARCH-26)', () => {
     const graph = reverseGraph([
-      ['src/shell/homeWorkspace.ts', 'src/layouts/HomePageLayout.astro'],
+      ['src/site-lib/homeWorkspace.ts', 'src/layouts/HomePageLayout.astro'],
       ['src/layouts/HomePageLayout.astro', 'src/pages/index.astro'],
     ]);
-    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', graph))
-      .toEqual(new Set(['src/layouts/HomePageLayout.astro', 'src/pages/index.astro']));
+    const consumers = commonLayerConsumers('src/site-lib/homeWorkspace.ts', graph);
+    expect(consumers).toEqual(new Set(['site']));
+    expect(consumers.size).toBe(1);
   });
 
-  it('one site file plus one tool is two distinct consumers', () => {
+  it('two site files directly importing a common module still count as one consumer, so the module fails the two-consumer rule alone (ARCH-26)', () => {
+    const graph = reverseGraph([
+      ['src/lib/siteOnly.js', 'src/pages/index.astro'],
+      ['src/lib/siteOnly.js', 'src/layouts/BaseLayout.astro'],
+    ]);
+    const consumers = commonLayerConsumers('src/lib/siteOnly.js', graph);
+    expect(consumers).toEqual(new Set(['site']));
+    expect(consumers.size).toBeLessThan(2);
+  });
+
+  it('one site file plus one tool is two distinct consumers (site counts once, the tool counts once, together they pass)', () => {
     const graph = reverseGraph([
       ['src/lib/maintenanceTelemetry.ts', 'src/layouts/BaseLayout.astro'],
       ['src/lib/maintenanceTelemetry.ts', 'src/tools/sign/PdfSignTool.tsx'],
     ]);
-    expect(commonLayerConsumers('src/lib/maintenanceTelemetry.ts', graph))
-      .toEqual(new Set(['src/layouts/BaseLayout.astro', 'tool:sign']));
+    const consumers = commonLayerConsumers('src/lib/maintenanceTelemetry.ts', graph);
+    expect(consumers).toEqual(new Set(['site', 'tool:sign']));
+    expect(consumers.size).toBeGreaterThanOrEqual(2);
   });
 
-  it('i18n and data modules count as site too', () => {
+  it('i18n and data modules count as site too, crediting the same single identity', () => {
     const graph = reverseGraph([
       ['src/lib/platform.ts', 'src/i18n/toolMessages.ts'],
       ['src/lib/platform.ts', 'src/tools/merge/PdfMergeTool.tsx'],
     ]);
     expect(commonLayerConsumers('src/lib/platform.ts', graph))
-      .toEqual(new Set(['src/i18n/toolMessages.ts', 'tool:merge']));
+      .toEqual(new Set(['site', 'tool:merge']));
   });
 
   it('a dead end (components, test-support, unclassified) is not counted and not walked past', () => {
@@ -396,20 +408,25 @@ describe('rule 9: commonLayerConsumerViolations() on the real tree', () => {
     expect(stillThere).toBe(false);
   });
 
-  it('the <script src="..."> pass is load-bearing: without it, src/shell/homeWorkspace.ts would read as zero-consumer', () => {
+  it('the <script src="..."> pass is load-bearing: without it, src/site-lib/homeWorkspace.ts would read as zero-consumer; with it, the site counts once (ARCH-26, not "counted as two")', () => {
     const { edges } = buildEdges();
     const withoutScriptSrc = new Map();
     for (const { from, to } of edges) {
       if (!withoutScriptSrc.has(to)) withoutScriptSrc.set(to, new Set());
       withoutScriptSrc.get(to).add(from);
     }
-    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', withoutScriptSrc)).toEqual(new Set());
+    expect(commonLayerConsumers('src/site-lib/homeWorkspace.ts', withoutScriptSrc)).toEqual(new Set());
 
     const withScriptSrc = new Map();
     for (const { from, to } of [...edges, ...astroScriptSrcEdges()]) {
       if (!withScriptSrc.has(to)) withScriptSrc.set(to, new Set());
       withScriptSrc.get(to).add(from);
     }
-    expect(commonLayerConsumers('src/shell/homeWorkspace.ts', withScriptSrc).size).toBeGreaterThanOrEqual(2);
+    // Before ARCH-26 this pinned "counted as two" (the layout and the page it
+    // renders through each credited their own path). Now every site file -
+    // the layout, the page, and homeWorkspace.ts's own new home in
+    // src/site-lib/ once the chain reaches it - shares the single `site`
+    // identity, so the real tree gives exactly one consumer, not two.
+    expect(commonLayerConsumers('src/site-lib/homeWorkspace.ts', withScriptSrc)).toEqual(new Set(['site']));
   });
 });
