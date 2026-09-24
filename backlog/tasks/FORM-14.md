@@ -29,6 +29,21 @@ are exactly this ("שם פרטי", "שם משפחה", "שנת לידה", "עיס
   lower phone cells). Only 10 side-carved cells exist across the scored pages, all on two Hebrew
   forms, and no LTR form produces a side carve at all.
 
+## Measured on top of FORM-13 (2026-09-24)
+
+- health 86.7/94.2 -> 86.7/100, every other scored form unchanged. Also drops itc101 page 2's
+  "ה ת ל ו ש י ם ( ) ל פ י" heading, which FORM-13 cannot see because the rows under it hold text.
+- Across every page of all five PDFs: 18 side-carved cells. 12 headings at ratio 0.90-1.35, 3 real
+  labels at 9.08-13.74, 3 `/ /` date cells exempt at 1.00.
+- With this rule in place FORM-13's rule changes nothing on any real page: keeping it (a backstop
+  for a heading that hugs its wall) and removing it (flips the address-block known gap to 6) give
+  identical candidates everywhere. Undecided.
+- Two corpus fixtures use centred captions to mean "label" ("a captioned row over one empty row",
+  and the FORM-13 unit test's captions sit at exactly 3.0) and need hugging captions so each rule is
+  pinned on its own.
+- On hold for more reference forms (Shlomi, 2026-09-24): 18 cells from two Hebrew forms is a thin
+  base for a ratio, and the next forms are the check against overfitting.
+
 ## Before landing
 
 - Re-measure on top of FORM-13 (the two overlap on itc101) and on any form added since.
