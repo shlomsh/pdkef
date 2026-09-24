@@ -11,6 +11,38 @@ import {
   MIN_COMB_WIDTH_PCT
 } from '../../constants/signGeometry.js';
 
+// MOBI-31. A generic, per-type-agnostic undo for whatever a resize gesture
+// painted directly onto the DOM (elementRef.current.style for a box/centered
+// type, but also whatever a registry `writeDOM` reached into on the type's
+// behalf - text.ts's font-size/comb/span nodes, line.ts's SVG endpoint
+// attributes). This hook has no business knowing any of that per-type detail
+// (it would duplicate what only the registry module owns), so instead of
+// replaying the inverse of each patch it snapshots every attribute on the
+// element's whole subtree once, at grab time, before any paint, and restores
+// exactly those attributes verbatim on cancel. Node identity is stable across
+// a resize gesture (nothing is mounted/unmounted mid-drag, only style/data
+// attributes are mutated in place), so this is safe and exact, not a heuristic.
+function snapshotSubtreeAttributes(root) {
+  if (!root) return [];
+  const nodes = [root, ...root.querySelectorAll('*')];
+  return nodes.map((node) => ({
+    node,
+    attributes: Array.from(node.attributes).map((attr) => [attr.name, attr.value]),
+  }));
+}
+
+function restoreSubtreeAttributes(snapshot) {
+  snapshot.forEach(({ node, attributes }) => {
+    const original = new Map(attributes);
+    Array.from(node.attributes).forEach((attr) => {
+      if (!original.has(attr.name)) node.removeAttribute(attr.name);
+    });
+    original.forEach((value, name) => {
+      if (node.getAttribute(name) !== value) node.setAttribute(name, value);
+    });
+  });
+}
+
 /**
  * Encapsulates the resize gesture for a single element, dispatching per-type
  * geometry math and DOM paint through the registry (line/box/text/centered -
@@ -56,6 +88,15 @@ export default function useElementResize({
   useEffect(() => () => cancelResizeRef.current?.(), []);
 
   const handleResizeStart = (e, handle = 'right') => {
+    // MOBI-31: a touchstart that already carries a second touch is a pinch
+    // starting on a resize handle, not a resize - see the matching guard and
+    // comment in useDraggableElement.js's handlePointerDown. Nothing is
+    // prevented or stopped, so the browser is free to read it as a native
+    // pinch-zoom.
+    if ('touches' in e && e.touches && e.touches.length > 1) {
+      return;
+    }
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -232,6 +273,9 @@ export default function useElementResize({
       return null;
     };
 
+    // Grab-time-only, read by `cancel` below - see the function doc above.
+    const domSnapshot = snapshotSubtreeAttributes(elementRef.current);
+
     cancelResizeRef.current?.();
     cancelResizeRef.current = startGesture({
       computePatch: handleResizeMove,
@@ -261,6 +305,7 @@ export default function useElementResize({
         cancelResizeRef.current = null;
         pendingResize = null;
         setIsSpanResizing(false);
+        restoreSubtreeAttributes(domSnapshot);
       },
     });
   };
