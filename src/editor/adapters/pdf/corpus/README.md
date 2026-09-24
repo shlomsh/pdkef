@@ -85,7 +85,7 @@ the failure message should tell you whether the change was wrong or the expectat
 **The runner leaves text out by default.** `useFormFieldRegions` feeds real text runs to
 `formCells.js`, which uses them for label lookup, for its "this cell is explanatory, drop it" filter,
 and for its "a caption over a repeating empty run is a header, not a field" filter (FORM-13). Most
-rows pass no text at all: the geometry the corpus is about does not read text at all, and including it
+rows pass no text: the geometry the corpus is about does not read text at all, and including it
 would make every row depend on a second parser and on whatever prose a fixture happens to carry, so
 the default stays none. A row may declare `text` - the same page-percent shape `detectPage`'s
 `textRuns` takes - when the element it is pinning *is* text-plus-geometry and cannot be expressed
