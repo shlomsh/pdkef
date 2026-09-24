@@ -160,6 +160,7 @@ exists to prevent.
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 | `thai-pnd90-2565` | 105 | 52.4% | 23.5% | Thai, live AcroForm, dense, dotted leaders |
 | `thai-lor-yor-01-2562` | 57 | 100% | 100% | Thai, live AcroForm, sparse |
+| `uscis-i9-2025-01-20` | 52 | 98.1% | 92.7% | Latin, live AcroForm, Section 1 + 2 on one page |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
 `irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course

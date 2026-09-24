@@ -102,6 +102,19 @@
         "radio": 100
       },
       "sha256": "5bde6321f7f53a4cfdf07ca9ab2637f7b6718561a6bae4a738c92adea42e40ab"
+    },
+    "uscis-i9-2025-01-20": {
+      "pdf": "src/editor/adapters/pdf/corpus/scoring/forms/uscis-i9-2025-01-20.pdf",
+      "truth": "src/editor/adapters/pdf/corpus/scoring/ground-truth/uscis-i9-2025-01-20-page1.json",
+      "note": "USCIS Form I-9 (Employment Eligibility Verification), edition 01/20/25, page 1 of 4. The 2023 redesign put Section 1 (Employee Information and Attestation) and Section 2 (Employer Review and Verification, including the List A / List B / List C acceptable-documents table) on one page, so page 1 is the whole form a person fills; page 2 is a non-fillable List of Acceptable Documents reference table (0 widgets) and pages 3-4 are Supplement A (preparer/translator) and Supplement B (reverification/rehire), used only in edge cases. The second English form added under FORM-16 and the first outside the 1040 family: like both 1040 rows, it is self-labelling (its truth is the widgets formWidgets.js itself reads), so a high recall is partly structural - what it actually tests is the ink pass staying quiet beside the widget pass on a dense page. A live AcroForm with 130 widgets across the document, 52 on page 1: 46 text, 1 comb (the 9-digit SSN, the only field that sets the Comb flag with MaxLen > 1 - the ZIP, USCIS A-Number and Form I-94 boxes all carry a MaxLen but not the flag, so they score text, measured not assumed) and 5 checkboxes, each its own field with no Radio flag, exactly like the 1040's filing-status boxes. Page 1's /Annots also holds 3 /Link entries (URIs to uscis.gov/I-9); collectWidgetTargets otherwise assumes every annotation is a widget, so this form's own excuse rule drops them, and among the 52 real widgets nothing else is excluded. Scores 98.1%/92.7%, 51 of 52 targets found. The 1 miss and 1 of the 4 false positives are one real cell read two ways: 'Signature of Employee' and \"Today's Date\" share one unbroken ruled row with no internal rule, and the Date widget's own /Rect (x 0.609-0.775 of the page) covers only part of that visual cell, while the ink reader publishes the whole visual date cell (x 0.598-0.941) as its candidate - IoU 0.48, just under the 0.5 threshold. That is the same class of near-miss as the 1040's line 6c box and itc101's uncorroborated cells: a widget narrower than the ink it sits inside. The other 3 false positives are a new class: the List A / List B / List C column headings print in their own thin ruled row above the Document Title / Issuing Authority / Document Number / Expiration Date rows, not sharing a cell with a blank the way FORM-13's drop rule expects - that rule only fires on a side-carved caption sharing one cell with its own blank, and a caption that is a whole separate header cell is untouched by it. So the header row reads as three candidates with no matching target: 'List A' on its own (kind text), 'List B AND List C' as one candidate since nothing marks the boundary between them (kind text), and the narrow 'OR' divider between List A and List B, square enough to read as a checkbox - the same shape thai-pnd90's internal comb dividers take. Verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs). Source: https://www.uscis.gov/sites/default/files/document/forms/i-9.pdf. US federal work, public domain (17 U.S.C. 105).",
+      "recall": 98.1,
+      "precision": 92.7,
+      "byKind": {
+        "text": 97.8,
+        "comb": 100,
+        "checkbox": 100
+      },
+      "sha256": "780f348c34df694bb0b4dbbfaf9f22b99b9757b80d16a37ba89aadf069597281"
     }
   }
 }
