@@ -128,6 +128,23 @@ const MAX_HEIGHTS_BETWEEN = 12;
 const MIN_CELL_WIDTH = 15;
 
 /**
+ * A captioned cell sitting directly above this many identical, empty rows in
+ * its own column is a table's header, not a field - see `emptyRowRunBelow`.
+ * Two is the smallest number that is a repeat rather than a coincidence: one
+ * blank cell below a caption is exactly the ordinary "label above a blank
+ * answer" shape the detector is supposed to find (`headerAbove`'s whole
+ * job), and only a *second* identical blank row beneath the first rules that
+ * out. Measured (FORM-13) over every page of every scored form, it drops
+ * five cells and all five are headings: on itc101's first page the children
+ * table's "מספר זהות" and "שם" (a 13-row run below) and the letter-spaced
+ * "השינויים בפרטי" title, on its second page the "כתובת" and "שם" column
+ * captions. 2 and 3 drop the same five.
+ */
+const MIN_HEADER_RUN = 2;
+/** Bounds `emptyRowRunBelow`'s walk down a column; no scored table has close to this many rows. */
+const MAX_HEADER_RUN_WALK = 60;
+
+/**
  * A ruled cell narrower than `MIN_CELL_WIDTH` is a tick target rather than a
  * place to write a word - form 101 rules its children table as 13 rows of
  * 6.3pt and 8.1pt columns a person ticks, and a width floor written for
@@ -409,6 +426,46 @@ function headerAbove(cell, textItems) {
   return best;
 }
 
+/**
+ * How many contiguous, identical, empty rows sit directly beneath `cell` in
+ * its own column - FORM-13's header signal.
+ *
+ * A table column header and a one-off labelled field print the same shape
+ * (a caption, then blank space to write in): what tells them apart is not
+ * the caption, it is what continues below it. Walks down from `cell`,
+ * requiring at each step a closed cell whose left and right walls match
+ * `cell`'s own (`POS_TOLERANCE`, the same window `buildClosedCells` used to
+ * decide they are one column), whose top meets the running bottom
+ * (`BAND_TOLERANCE`, stacked with no gap), whose height matches the row
+ * before it (also `BAND_TOLERANCE` - a table's rows are cut from the same
+ * ruling, a coincidence of adjacent unrelated boxes is not), and which holds
+ * no own text at all. The walk stops at the first row that fails any of
+ * these, or at `MAX_HEADER_RUN_WALK`.
+ *
+ * "Empty" is deliberately just "no own text" here, not "not narrow": a
+ * narrow tick column's header is already dropped before this runs (a narrow
+ * cell with any own text is rejected outright, see the `cell.narrow` branch
+ * in `detectCellCandidates`), so this only ever walks the free-text columns
+ * a table like itc101's children table prints beside its tick columns.
+ */
+function emptyRowRunBelow(cell, closedCells, textItems) {
+  let run = 0;
+  let cursorBottom = cell.bottom;
+  let refHeight = null;
+  for (let i = 0; i < MAX_HEADER_RUN_WALK; i += 1) {
+    const next = closedCells.find((c) => c !== cell
+      && Math.abs(c.left - cell.left) <= POS_TOLERANCE
+      && Math.abs(c.right - cell.right) <= POS_TOLERANCE
+      && Math.abs(c.top - cursorBottom) <= BAND_TOLERANCE
+      && (refHeight === null || Math.abs(c.height - refHeight) <= BAND_TOLERANCE));
+    if (!next || textInsideCell(next, textItems).length > 0) break;
+    run += 1;
+    refHeight = next.height;
+    cursorBottom = next.bottom;
+  }
+  return run;
+}
+
 // The 4-letter root, not the dictionary form: Hebrew construct state turns חתימה (signature)
 // into חתימת (e.g. "חתימת העובד/ת", signature-of-the-employee), which does not contain the
 // literal string "חתימה" - matching the root instead of the lemma is what actually catches
@@ -586,6 +643,15 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
 
     const writable = writableArea(cell, ownText);
     if (!writable) continue;
+
+    // A side-carved caption over a run of identical empty rows is the column's heading, not a
+    // label beside a blank (FORM-13, `emptyRowRunBelow`). Only the side carve: a band carve
+    // already publishes the blank under its caption as the field. A printed `/  /` is not a
+    // caption, for the same reason `typingStrip` ignores it.
+    if (writable.carve === 'side' && !isPrintedSeparators(ownStr)
+      && emptyRowRunBelow(cell, closedCells, textItemsPoints) >= MIN_HEADER_RUN) {
+      continue;
+    }
 
     const header = headerAbove(cell, textItemsPoints);
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();
