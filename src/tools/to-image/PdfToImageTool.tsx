@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { convertPdfToImages } from './toImage.js';
+import { PageSelectorError } from '../../lib/pageSelector.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfToImageTool.module.css';
 import fileListStyles from '../../shell/FileList.module.css';
@@ -125,7 +126,7 @@ export default function PdfToImageTool() {
       // 'error' (or a page-selector error) onto the one that is.
       if (!run.isCurrent()) return;
       run.settle();
-      if (err.message?.startsWith('Invalid page selector') || err.message === 'No valid pages in range') {
+      if (err instanceof PageSelectorError) {
         setPageSelectorError(err.message);
         setStatus('idle');
       } else {
@@ -239,7 +240,7 @@ export default function PdfToImageTool() {
               id="page-selector-input"
               type="text"
               class={`${pdfToolStyles['page-selector-input']}${pageSelectorError ? ` ${pdfToolStyles['has-error']}` : ''}`}
-              placeholder="All pages, or e.g. 1-3,5,8"
+              placeholder="All pages, or e.g. 1-3, 5, 8-"
               value={pageSelector}
               onInput={(e) => handlePageSelectorChange(e.currentTarget.value)}
               aria-invalid={!!pageSelectorError}

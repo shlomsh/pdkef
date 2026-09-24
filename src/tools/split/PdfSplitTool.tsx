@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { Shrink } from 'lucide-preact';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
+import { pageNumbersToRangeString, splitPdf, outputBaseName } from './split.js';
+import { parsePageSelector } from '../../lib/pageSelector.js';
 import { useHandoffIntake } from '../../lib/useHandoffIntake.ts';
 import styles from './PdfSplitTool.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
