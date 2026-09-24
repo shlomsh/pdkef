@@ -32,6 +32,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadElement, { type DownloadElementState } from './components/DownloadElement.tsx';
 import FileName from './components/FileName.tsx';
+import SortMenu from './components/SortMenu.tsx';
 import { usePreparedMerge } from './components/usePreparedMerge.ts';
 import type { PageStripProps } from './components/PageStrip.tsx';
 import type { MergeDraftPersistenceProps } from './components/MergeDraftPersistence.tsx';
@@ -402,6 +403,7 @@ export default function PdfMergeTool({
   const workspaceReady = Boolean(PageStrip) && plan.length > 0;
 
   const grouped = useMemo(() => isGrouped(plan), [plan]);
+  const canReorderFiles = entries.length >= 2;
   // Keyed on what the merge reads, not on the entries array itself: a
   // thumbnail arriving late replaces an entry object and must not cancel and
   // restart a pre-merge that is already running.
@@ -493,12 +495,11 @@ export default function PdfMergeTool({
     return () => sortableRef.current?.destroy();
   }, [entries.length > 0, applyFileReorder]);
 
-  // The phone chip row: the same whole-file reorder, but a press-and-hold
-  // (delay, touch only) instead of a drag handle, since a chip has no grip
-  // of its own - the whole chip is the handle. Review P2, item 2: the
-  // "more" menu and the draft chip now live outside this list entirely (in
-  // `.chip-pinned`, a sibling of this `<ul>`), so there is nothing left to
-  // filter out.
+  // The phone chip row: the same whole-file reorder, but a short press-and-hold
+  // (touch only) instead of a drag handle, since a chip has no grip of its
+  // own - the whole chip is the handle. Give a finger enough movement before
+  // cancelling the delayed pickup; the old 5px threshold made an ordinary
+  // thumb drift turn into a click before Sortable could start.
   useEffect(() => {
     if (!chipListRef.current) return undefined;
     chipSortableRef.current?.destroy();
@@ -506,9 +507,9 @@ export default function PdfMergeTool({
       animation: 220,
       easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
       draggable: `.${docStyles.chip}`,
-      delay: 150,
+      delay: 100,
       delayOnTouchOnly: true,
-      touchStartThreshold: 5,
+      touchStartThreshold: 10,
       onEnd(evt: Sortable.SortableEvent) {
         if (evt.oldIndex == null || evt.newIndex == null) return;
         applyFileReorder(evt.oldIndex, evt.newIndex);
@@ -584,13 +585,13 @@ export default function PdfMergeTool({
     return () => { cancelled = true; };
   }, [entries.length > 0, PageStrip]);
 
-  // Once pages have been rearranged across files the rail list can no longer
-  // be dragged as whole files; SortableJS is told so rather than the handles
-  // being hidden, so the rows keep their shape (aria-disabled instead).
+  // Whole-file reorder remains available after individual pages have crossed
+  // file boundaries. Dropping a file deliberately regroups its pages (the
+  // same recovery behaviour as choosing a file sort order or Reset order).
   useEffect(() => {
-    sortableRef.current?.option('disabled', !grouped);
-    chipSortableRef.current?.option('disabled', !grouped);
-  }, [grouped, entries.length > 0]);
+    sortableRef.current?.option('disabled', !canReorderFiles);
+    chipSortableRef.current?.option('disabled', !canReorderFiles);
+  }, [canReorderFiles]);
 
   const inspectEntry = useCallback((entry: FileEntry) => {
     const inspection = inspectPdf(entry.file)
@@ -775,7 +776,7 @@ export default function PdfMergeTool({
 
   const onRowKeyDown = useCallback(
     (event: KeyboardEvent, id: number) => {
-      if (!grouped) return;
+      if (!canReorderFiles) return;
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         moveFileEntry(id, -1);
@@ -784,11 +785,11 @@ export default function PdfMergeTool({
         moveFileEntry(id, 1);
       }
     },
-    [moveFileEntry, grouped],
+    [moveFileEntry, canReorderFiles],
   );
 
-  const onSortChange = useCallback((event: Event) => {
-    const mode = (event.currentTarget as HTMLSelectElement).value as SortMode;
+  const onSortChange = useCallback((value: string) => {
+    const mode = value as SortMode;
     setSortMode(mode);
     const sorted = mode === 'nameAsc'
       ? sortByName(entries, 'asc')
@@ -1183,6 +1184,14 @@ export default function PdfMergeTool({
   // P2, item 3), which in turn wins over the once-only shortcuts hint.
   const pickedUpHintVisible = !undoAction && showPickedUpSentence;
   const shortcutsHintVisible = !undoAction && !pickedUpHintVisible && showShortcutsHint;
+  const sortOptions = [
+    { value: 'added', label: t.sortAsAdded },
+    { value: 'reversed', label: t.sortReversed },
+    { value: 'nameAsc', label: t.sortNameAsc },
+    { value: 'nameDesc', label: t.sortNameDesc },
+    { value: 'dateAsc', label: t.sortDateAsc },
+    { value: 'dateDesc', label: t.sortDateDesc },
+  ];
 
   return (
     <BasePdfTool
@@ -1244,14 +1253,9 @@ export default function PdfMergeTool({
             >
           <p class="sr-only" id="reorder-hint">{t.reorderHint}</p>
 
-          {/* Phone chip row (Shlomi's reduction, wave 2): replaces the add
-              bar and stands in for the rail's file list, Sort/Clear all/Add
-              files below 768px (CSS-hidden at 1024px and up alongside the
-              rail's own chip-row twin visibility rule). Review P2, item 2:
-              the "⋯" menu (and the draft chip beside it) are pinned OUTSIDE
-              the scrolling list, at the row's end, so they are always
-              reachable - only the file chips themselves scroll, under a
-              right-edge fade that says so. */}
+          {/* Phone and tablet chip row: replaces the rail's file list below
+              1024px. The controls that used to sit behind "⋯" remain
+              visible in the compact toolbar below. */}
           <div class={docStyles['chip-bar']}>
             <ul class={docStyles['chip-row']} ref={chipListRef}>
               {entries.map((entry, index) => (
@@ -1259,7 +1263,6 @@ export default function PdfMergeTool({
                   key={entry.id}
                   class={docStyles.chip}
                   data-id={entry.id}
-                  onClick={() => scrollToCaption(entry.id)}
                 >
                   <span class={docStyles['chip-pill']}>
                     <span class={docStyles['chip-tag']} style={{ '--tag-color': `var(--color-tag-${(index % 6) + 1})` } as any} aria-hidden="true" />
@@ -1269,63 +1272,33 @@ export default function PdfMergeTool({
                 </li>
               ))}
             </ul>
-            <div class={docStyles['chip-pinned']}>
-              <div class={docStyles.chip} data-more>
-                <details class={docStyles['chip-menu']}>
-                  <summary class={docStyles['chip-menu-summary']} aria-label={t.moreOptions}>⋯</summary>
-                  {/* Team lead follow-up (2026-09-13): Add files, Clear all,
-                      Sort, Reset order (only while rearranged, with its own
-                      note), Add page numbers - in that order, nothing else
-                      in the popover. Team lead (2026-09-13, second
-                      follow-up): unlike the desktop rail, Sort and the
-                      rearranged note are NOT mutually exclusive here - Sort
-                      stays available (it regroups the plan and would itself
-                      resolve the rearrangement, same as Reset order), so
-                      this popover's Sort renders whenever there are two or
-                      more files, never gated on `!rearranged` the way the
-                      desktop rail's `showSortControls` is. */}
-                  <div class={docStyles['chip-menu-body']}>
-                    <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
-                    <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
-                    {entries.length >= 2 && (
-                      <label class={railStyles['sort-select-wrap']}>
-                        {/* Shlomi (2026-09-13): "As added" alone did not say
-                            what it was the order OF - here and, later the
-                            same day, in the desktop rail too. */}
-                        <span class={railStyles['sort-label']}>{t.sortFilesLabel}</span>
-                        <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                          <option value="added">{t.sortAsAdded}</option>
-                          <option value="reversed">{t.sortReversed}</option>
-                          <option value="nameAsc">{t.sortNameAsc}</option>
-                          <option value="nameDesc">{t.sortNameDesc}</option>
-                          <option value="dateAsc">{t.sortDateAsc}</option>
-                          <option value="dateDesc">{t.sortDateDesc}</option>
-                        </select>
-                      </label>
-                    )}
-                    {entries.length >= 2 && rearranged && (
-                      <div class={railStyles['rearranged-note']} role="status">
-                        <span>{t.pagesRearranged}</span>
-                        <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
-                          {t.resetOrder}
-                        </button>
-                      </div>
-                    )}
-                    {entries.length >= 2 && (
-                      <label class={railStyles['page-numbers-row']}>
-                        <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
-                        <span>{t.addPageNumbers}</span>
-                      </label>
-                    )}
-                  </div>
-                </details>
-              </div>
-              {/* No draft chip here (2026-09-13): a phone's restore sentence
-                  is the header's `.header-draft-chip` below, and "Draft
-                  saved" stays a desktop-rail affordance. Measured with both:
-                  the pinned block grew to 301px of 317 and the file chips
-                  were left 6px wide. */}
+          </div>
+          {/* These use the rail's existing control styles and handlers in one
+              horizontally scrollable toolbar. Sort stays visible after a
+              page-level rearrangement: sorting files regroups the plan,
+              while Reset order explicitly restores it. */}
+          <div class={docStyles['mobile-file-controls']} data-merge-file-controls>
+            <div class={railStyles['quiet-row']}>
+              <button type="button" class={railStyles['quiet-button']} onClick={requestReplace}>{sm.addLabel}</button>
+              <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{sm.clearLabel}</button>
             </div>
+            {entries.length >= 2 && (
+              <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} />
+            )}
+            {entries.length >= 2 && rearranged && (
+              <div class={railStyles['rearranged-note']} role="status">
+                <span>{t.pagesRearranged}</span>
+                <button type="button" class={railStyles['reset-order']} onClick={resetPageOrder}>
+                  {t.resetOrder}
+                </button>
+              </div>
+            )}
+            {entries.length >= 2 && (
+              <label class={railStyles['page-numbers-row']}>
+                <input type="checkbox" checked={addPageNumbers} onChange={onPageNumbersChange} />
+                <span>{t.addPageNumbers}</span>
+              </label>
+            )}
           </div>
 
           {/* Coarse pointer only (CSS-gated, MergeDocument.module.css): the
@@ -1461,11 +1434,10 @@ export default function PdfMergeTool({
                       data-error={entry.error || undefined}
                       onClick={() => scrollToCaption(entry.id)}
                     >
-                      {/* Shlomi (2026-09-13): the handle hides outright once
-                          file drag is disabled (pages have crossed files),
-                          rather than rendering muted with aria-disabled -
-                          there is nothing it can do at that point. */}
-                      {grouped && (
+                      {/* A whole-file move is also the quickest way back from
+                          an interleaved page plan: it regroups that file's
+                          pages in the newly selected file order. */}
+                      {canReorderFiles && (
                         <span
                           class={railStyles.grip}
                           tabIndex={0}
@@ -1510,17 +1482,7 @@ export default function PdfMergeTool({
                   </div>
                 ) : showSortControls && (
                   <div class={railStyles['list-controls']}>
-                    <label class={railStyles['sort-select-wrap']}>
-                      <span class={railStyles['sort-label']}>{t.sortFilesLabel}</span>
-                      <select class={railStyles['sort-select']} aria-label={t.sortLabel} value={sortMode} onChange={onSortChange}>
-                        <option value="added">{t.sortAsAdded}</option>
-                        <option value="reversed">{t.sortReversed}</option>
-                        <option value="nameAsc">{t.sortNameAsc}</option>
-                        <option value="nameDesc">{t.sortNameDesc}</option>
-                        <option value="dateAsc">{t.sortDateAsc}</option>
-                        <option value="dateDesc">{t.sortDateDesc}</option>
-                      </select>
-                    </label>
+                    <SortMenu label={t.sortFilesLabel} ariaLabel={t.sortLabel} value={sortMode} options={sortOptions} onChange={onSortChange} />
                   </div>
                 )}
 

@@ -239,8 +239,8 @@ const englishMergeMessages: MergeMessages = {
   skippedState: ', skipped',
   skippedBadge: 'Skipped',
   rotatePage: 'Rotate page {number}',
-  skipPage: 'Skip page {number}',
-  includePage: 'Include page {number} again',
+  skipPage: 'Hide page {number} from the merged PDF',
+  includePage: 'Show page {number} in the merged PDF',
   openPreview: 'Open page {number} larger',
   pageSkipped: 'Page {number} skipped. It stays here and is left out of the download.',
   pageIncluded: 'Page {number} included again.',
@@ -285,8 +285,8 @@ const englishMergeMessages: MergeMessages = {
   emptyHeading: 'Drop PDFs here, or paste',
   emptyBody: 'Your pages appear here, in order, before you download. Files never leave your device.',
   tipRotate: 'Rotate',
-  tipSkip: 'Skip',
-  tipBringBack: 'Bring back',
+  tipSkip: 'Hide',
+  tipBringBack: 'Show',
   tipOpen: 'Open',
 };
 
@@ -350,8 +350,8 @@ const hebrewMergeMessages: MergeMessages = {
   skippedState: ', מדולג',
   skippedBadge: 'מדולג',
   rotatePage: 'סיבוב עמוד {number}',
-  skipPage: 'דילוג על עמוד {number}',
-  includePage: 'החזרת עמוד {number}',
+  skipPage: 'הסתרת עמוד {number} מה-PDF המאוחד',
+  includePage: 'הצגת עמוד {number} ב-PDF המאוחד',
   openPreview: 'הגדלת עמוד {number}',
   pageSkipped: 'דילגנו על עמוד {number}. הוא נשאר כאן ולא ייכלל בהורדה.',
   pageIncluded: 'עמוד {number} הוחזר.',
@@ -395,8 +395,8 @@ const hebrewMergeMessages: MergeMessages = {
   emptyHeading: 'שחררו כאן קבצי PDF, או הדביקו',
   emptyBody: 'העמודים שלכם יופיעו כאן, לפי הסדר, לפני ההורדה. הקבצים לא עוזבים את המכשיר שלכם.',
   tipRotate: 'סיבוב',
-  tipSkip: 'דילוג',
-  tipBringBack: 'החזרה',
+  tipSkip: 'הסתרה',
+  tipBringBack: 'הצגה',
   tipOpen: 'פתיחה',
 };
 
