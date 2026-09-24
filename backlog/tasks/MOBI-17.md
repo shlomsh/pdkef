@@ -1,7 +1,7 @@
 ---
 id: "MOBI-17"
 title: "Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"

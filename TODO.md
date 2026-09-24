@@ -124,6 +124,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
 | MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
+| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
+| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
 
 
 ## Site quality: accessibility, CSS correctness and theming

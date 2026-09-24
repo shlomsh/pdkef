@@ -47,7 +47,6 @@ _None._
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 | MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
-| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 | MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 | MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
@@ -58,7 +57,10 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
+| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
+| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
+| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
 
 ### Blocked
 
