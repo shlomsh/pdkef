@@ -522,26 +522,6 @@
   white-space: nowrap;
 }
 
-/* Shlomi's screenshot: "Compress it" overflowing its own border on desktop.
-   The rail is a fixed 320px there (see .rail below), so with Share present
-   the row is three 93px buttons; "Compress it" alone measures ~79px at the
-   default 0.85rem/600, more than the button has room for once the icon,
-   gap, padding and border are added. The two-button row (no Share) already
-   fits at full size, so this only tightens the three-button case, the same
-   `:has(> :nth-child(N))` pattern the editor toolbars use to size themselves
-   off their own control count - reusing the exact font-size/padding the 393px phone
-   row below already proved fits "Compress it" in a tighter 79px button. */
-@media (min-width: 1024px) {
-  .handoff-row:has(> :nth-child(3)) {
-    gap: 0.2rem;
-  }
-
-  .handoff-row:has(> :nth-child(3)) > * {
-    padding-inline: 0.15rem;
-    font-size: 0.76rem;
-  }
-}
-
 @media (max-width: 767px) {
   .handoff-row {
     flex-wrap: nowrap;
