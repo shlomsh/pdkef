@@ -82,12 +82,17 @@ the failure message should tell you whether the change was wrong or the expectat
 
 ## Two things to know before you trust a number
 
-**The runner leaves out the pdf.js text pass.** `useFormFieldRegions` feeds real text runs to
-`formCells.js`, which uses them for label lookup and for its "this cell is explanatory, drop it"
-filter. The corpus passes `[]`. The geometry the corpus is about does not read text at all, and
-including it would make every row depend on a second parser and on whatever prose a fixture happens
-to carry. The cost is that a few cells a real page would filter out survive here. If `detectPage` in
-the runner ever drifts from the hook, the corpus is measuring something the product does not do.
+**The runner leaves text out by default.** `useFormFieldRegions` feeds real text runs to
+`formCells.js`, which uses them for label lookup, for its "this cell is explanatory, drop it" filter,
+and for its "a caption over a repeating empty run is a header, not a field" filter (FORM-13). Most
+rows pass no text at all: the geometry the corpus is about does not read text at all, and including it
+would make every row depend on a second parser and on whatever prose a fixture happens to carry, so
+the default stays none. A row may declare `text` - the same page-percent shape `detectPage`'s
+`textRuns` takes - when the element it is pinning *is* text-plus-geometry and cannot be expressed
+without it; a captioned header row over a repeating empty run is the first of these. The cost of
+leaving text out by default is that a few cells a real page would filter out survive here. If
+`detectPage` in the runner ever drifts from the hook, the corpus is measuring something the product
+does not do.
 
 **pdf-lib never emits the `re` operator.** It builds every rectangle as `m/l/l/l/h`, so a
 `drawRectangle` lands in `ink.verticals`/`ink.horizontals` and never in `ink.rects` - which is the

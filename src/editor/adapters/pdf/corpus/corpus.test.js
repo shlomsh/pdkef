@@ -25,7 +25,12 @@ describe.each(ELEMENT_CASES)('$group: $name', (testCase) => {
     expect(doc.getPageCount()).toBe(expected.length);
 
     expected.forEach((expectation, pageIndex) => {
-      const found = detectPage(doc.getPage(pageIndex), pageIndex);
+      // A case may declare `text` - page-percent runs in the same shape `detectPage`'s `textRuns`
+      // takes - when the element it pins is text-plus-geometry (README's "Two things to know").
+      // Every other case leaves it undefined and gets `[]`, same as before. Only page 0 reads it:
+      // no case needs multi-page text yet, and the corpus stays case-agnostic either way.
+      const textRuns = pageIndex === 0 ? (testCase.text ?? []) : [];
+      const found = detectPage(doc.getPage(pageIndex), pageIndex, textRuns);
       expect(counts(found), `page ${pageIndex}`).toEqual(expectation);
       // Whatever a page reports carries that page's index, always. A region
       // that lands on the wrong page puts a hint on a document someone is not

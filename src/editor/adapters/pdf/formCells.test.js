@@ -424,3 +424,77 @@ describe('rows are scoped per column', () => {
     expect(cells).toEqual([]);
   });
 });
+
+describe('FORM-13: a caption over a run of identical empty rows is a header, not a field', () => {
+  // Mirrors form 101's children-table header: a 12.4pt-tall row whose two cells each hold a
+  // short caption hugging the right wall (RTL). The caption's baseline sits in the row's lower
+  // half, so `writableArea` side-carves it - the same shape as an ordinary labelled field - and
+  // only the run of identical, empty, ruled rows directly underneath tells the two apart.
+  const HEADER_TOP = 92.4;
+  const HEADER_BOTTOM = 80; // 12.4pt tall, matching form 101's own header row.
+  const HEADER_COLUMNS = [0, 50, 100];
+  // Baseline (y0) at pdf y=83, well below the row's midpoint (86.2): the lower half, so this is
+  // NOT a band carve.
+  const CAPTION = { top: 14.8, height: 2.2 }; // percent top 14.8 -> pdf y1 85.2, y0 83.
+  const idCaption = text('מספר זהות', { left: 30, width: 10, ...CAPTION });
+  const nameCaption = text('שם', { left: 80, width: 10, ...CAPTION });
+  const idSeparator = text('/ /', { left: 30, width: 10, ...CAPTION });
+  const nameSeparator = text('/ /', { left: 80, width: 10, ...CAPTION });
+  // Percent top of the header's own bottom wall (pdf y=80 -> 100-80=20): a real header
+  // candidate's `top` is always less than this, a data row's never is.
+  const HEADER_PERCENT_FLOOR = 20;
+
+  function header() {
+    return rowBand({ top: HEADER_TOP, bottom: HEADER_BOTTOM, columns: HEADER_COLUMNS });
+  }
+
+  /** `count` identical 20pt rows, stacked directly under the header with no gap. */
+  function emptyRows(count) {
+    const bands = [];
+    for (let i = 0; i < count; i += 1) {
+      bands.push(rowBand({
+        top: HEADER_BOTTOM - i * 20,
+        bottom: HEADER_BOTTOM - (i + 1) * 20,
+        columns: HEADER_COLUMNS,
+      }));
+    }
+    return mergeInk(...bands);
+  }
+
+  it('drops a captioned header row above three identical empty rows, keeping the data rows', () => {
+    const ink = mergeInk(header(), emptyRows(3));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(6); // only the 3 data rows x 2 columns
+    expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
+  });
+
+  it('keeps the header above exactly one empty row (MIN_HEADER_RUN is 2, not 1)', () => {
+    const ink = mergeInk(header(), emptyRows(1));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(4); // the header's 2 cells, plus the one data row's 2
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+    expect(headerCells.every((c) => c.kind === 'text')).toBe(true);
+  });
+
+  it('keeps the header over rows whose heights differ from each other (not a repeating table)', () => {
+    const ink = mergeInk(
+      header(),
+      rowBand({ top: 80, bottom: 60, columns: HEADER_COLUMNS }), // 20pt
+      rowBand({ top: 60, bottom: 45, columns: HEADER_COLUMNS }), // 15pt - breaks the run at two
+    );
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(6);
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+  });
+
+  it('keeps a printed "/ /" cell above a run of empty rows - it is written across, not captioned', () => {
+    const ink = mergeInk(header(), emptyRows(3));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idSeparator, nameSeparator]);
+    expect(candidates).toHaveLength(8);
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+    expect(headerCells.every((c) => c.kind === 'date')).toBe(true);
+  });
+});
