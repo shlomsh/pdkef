@@ -45,6 +45,24 @@ export function getStickyToolShellRect(): DOMRect | null {
 }
 
 /**
+ * Where the visible slice of the page starts, in the frame
+ * `getBoundingClientRect()` reports in. By the spec that is simply
+ * `visualViewport.offsetLeft`/`offsetTop`, and `pageLeft`/`pageTop` are those
+ * plus the page's scroll - so `page* - scroll*` is the same number on any
+ * engine that follows it (Chromium does, which is why no e2e can see this).
+ *
+ * iOS 26 Safari does not, once the keyboard is up. Measured on an iPhone 17
+ * simulator, form 101, keyboard up, no pinch: with the page scrolled to 401,
+ * `offsetTop` read 337 (the keyboard's height) while `pageTop` read 401 and
+ * the field sat on screen at a rect top of 185 - the visible slice started at
+ * 0 in this frame, as `pageTop - scrollY` says and `offsetTop` does not.
+ * `pageTop` is the one iOS keeps consistent with what it draws.
+ */
+export function visibleViewportOrigin(vv: VisualViewport): { left: number; top: number } {
+  return { left: vv.pageLeft - window.scrollX, top: vv.pageTop - window.scrollY };
+}
+
+/**
  * MOBI-17: keeps the element toolbar's actual on-screen rect inside
  * `window.visualViewport` - the slice of the page a pinch-zoomed, panned
  * phone can actually show - while staying anchored as close as possible to
@@ -139,26 +157,13 @@ export default function visualViewportClamp({
       const left = x + deltaX + origin.x * (layoutWidth - visibleWidth);
       const top = y + deltaY + origin.y * (layoutHeight - visibleHeight);
 
-      // MOBI-17 (follow-up, measured on real iOS Safari): `visualViewport.
-      // offsetTop`/`offsetLeft` are the visual viewport's pan offset *from
-      // the layout viewport* - a frame that only agrees with
-      // `getBoundingClientRect()` (and so with `top`/`left` above, which is
-      // built from it) while `scale` is actually where a pinch put it. With
-      // the keyboard up and the page at rest (no pinch, `scale` ~1), iOS
-      // still reports a large nonzero `offsetTop` (measured 337 on a 402x874
-      // iPhone 17 simulator, form 101, employer-phone field) while
-      // `getBoundingClientRect()` keeps reporting the field's *on-screen*
-      // position as if the visible area's own top were 0 - the two frames
-      // disagree. Adding that `offsetTop` into `minTop` then pushed the
-      // bar's lower bound to 341, past the 148.5 `top` that was already
-      // correct and on screen, and clamped it down near the bottom of the
-      // visible slice - the reported regression. Only trust the pan offset
-      // once a real pinch is in effect; at rest, the visible area's top-left
-      // in this frame is simply (0, 0), which is what let `shift()`/`size()`
-      // alone place the bar correctly before this middleware existed.
-      const zoomed = scale > 1.01;
-      const originLeft = zoomed ? vv.offsetLeft : 0;
-      const originTop = zoomed ? vv.offsetTop : 0;
+      // MOBI-17 (follow-up, measured on real iOS Safari): the visible slice's
+      // origin comes from `visibleViewportOrigin`, never `offsetTop`/
+      // `offsetLeft` directly. With the keyboard up iOS reported an
+      // `offsetTop` of 337 while the field sat on screen at a rect top of
+      // 148.5; adding it into `minTop` pushed the bar down to the bottom of
+      // the visible slice - the reported regression. See that function.
+      const { left: originLeft, top: originTop } = visibleViewportOrigin(vv);
       let minLeft = originLeft + margin;
       const maxRight = originLeft + vv.width - margin;
       let minTop = originTop + margin;

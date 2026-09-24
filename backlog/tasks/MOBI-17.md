@@ -129,3 +129,21 @@ field on a phone does not change the apparent size of the editor's own chrome.
 Whatever zoom the page ends up at, the floating toolbar holds the same physical size and the same
 number of rows. Recorded with the measured numbers above, so a regression is visible as a table
 row that no longer matches.
+
+## Follow-up: the keyboard hid a tapped box, and `offsetTop` is in the wrong frame (2026-09-24)
+
+Measured on an iPhone 17 simulator (iOS 26.2), form 101 restored from a draft at `scrollY` 0, no
+tool armed, tapping an existing box. The sticky card's rect (bottom 444.9) was **not stale**: at
+scroll 0 it really sits under the hero, and the clamp re-measured on every scroll. What went wrong
+was the box itself: at a rect top of 586 it was under the keyboard (visible height 377), because the
+tap focuses with `preventScroll` (which is what keeps iOS from auto-zooming) and nothing lifted it
+back. The bar followed its box as far as the clamp allowed and got pinned to the keyboard's edge.
+
+- `revealFieldAfterKeyboard` (useFieldNavigation.ts) now makes the same one deliberate move a field
+  move makes, once `visualViewport` resizes for the keyboard. Measured after: page scrolled to 469,
+  box at 185 above the keyboard, bar just above it.
+- With the keyboard up iOS reported `offsetTop` 337 (the keyboard's height) while `pageTop` stayed
+  consistent with what is drawn. `visibleViewportOrigin` (`pageTop - scrollY`, equal to `offsetTop`
+  on spec engines) is now the one source for the clamp and for field moves' band. Zoomed 1.5x with
+  the bar's box at the left edge and no keyboard, the bar sits beside it. **Not yet measured on a
+  device: zoomed about 3x with the keyboard up.**
