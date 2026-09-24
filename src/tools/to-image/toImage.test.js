@@ -98,4 +98,20 @@ describe('convertPdfToImages library integration with real fixtures', () => {
     expect(images[0].blob).toBeInstanceOf(Blob);
     expect(images[0].filename).toBe('num-5.png');
   });
+
+  // DEBT-23: parsePageSelector is shared with Split now, so PDF to Image
+  // accepts the same open-ended ranges Split always did.
+  it('accepts an open-ended end range like "3-" (page 3 to the end)', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const images = await convertPdfToImages(file, { format: 'image/png', pages: '3-' });
+
+    expect(images.map((image) => image.pageNumber)).toEqual([3, 4, 5]);
+  });
+
+  it('accepts an open-ended start range like "-2" (the start through page 2)', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const images = await convertPdfToImages(file, { format: 'image/png', pages: '-2' });
+
+    expect(images.map((image) => image.pageNumber)).toEqual([1, 2]);
+  });
 });

@@ -92,7 +92,8 @@ test('a mid-prepare reorder cancels the running merge and delivers the new order
   // is waiting out - this cancels it and restarts against the reversed
   // order. Scoped to the rail: the phone chip row's "⋯" menu carries the
   // same select, CSS-hidden at this (desktop) viewport but still in the DOM.
-  await page.locator('[class*="rail"] select[aria-label="Sort"]').selectOption('reversed');
+  await page.locator('[class*="rail"] button[aria-label^="Sort:"]').click();
+  await page.getByRole('option', { name: 'Reversed' }).click();
 
   const downloadLink = page.getByRole('link', { name: /Download merged PDF/ });
   await expect(downloadLink).toHaveAttribute('href', /^blob:/, { timeout: 5_000 });

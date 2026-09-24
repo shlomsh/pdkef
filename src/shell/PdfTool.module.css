@@ -38,6 +38,11 @@
    its own comment) so every other tool's phone padding is untouched. */
 @media (max-width: 767px) {
   .tool-card[data-hide-identity][data-tool-loaded] {
+    /* Loaded Merge used to shrink-wrap to its controls below the generic
+       768px full-width breakpoint. On wider phones that left a ~320px card
+       floating in the middle of a 500-760px viewport. Keep the normal page
+       gutter, but let the workspace consume everything inside it. */
+    width: 100%;
     padding: 12px;
   }
 }
@@ -511,7 +516,7 @@
   }
 }
 
-/* MERGE-14 hand-off row: "Compress it", "Sign it", "Split it" as quiet links
+/* MERGE-14 hand-off row: "Compress", "Sign", "Split" as quiet links
    under Download. Three plain verbs, no icons competing with Download - see
    backlog/tasks/MERGE-14.md's voice note. */
 .action-row-secondary {

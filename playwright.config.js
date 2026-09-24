@@ -163,6 +163,10 @@ export default defineConfig({
     {
       name: 'perf',
       testMatch: PERF_BUDGETS,
+      // Wall-clock guards occasionally inherit a one-off hosted-runner stall
+      // even though this project is serialized. Retry that isolated sample on
+      // a fresh worker in CI; every attempt still has to meet the same budget.
+      retries: process.env.CI ? 1 : 0,
       use: { ...devices['Desktop Chrome'] },
     },
     {

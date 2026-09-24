@@ -2,6 +2,5 @@
   "name": "editor-dependency-directions-fixtures",
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
-  "sourceRoot": "scripts/fixtures/editor-dependency-directions",
-  "tags": ["scope:tooling"]
+  "sourceRoot": "scripts/fixtures/editor-dependency-directions"
 }

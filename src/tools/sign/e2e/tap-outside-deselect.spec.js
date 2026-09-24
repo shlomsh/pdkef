@@ -17,7 +17,7 @@ import { test, expect } from '@playwright/test';
  * of a pan, fires `pointercancel` and suppresses the synthesised `click`
  * entirely - but still delivers `touchstart`/`touchend`. `PdfWorkspace.tsx`
  * now recognises the tap from those two events directly
- * (`src/lib/gestures/tapOutsideDeselect.ts`), so this suite drives raw touch
+ * (`src/tools/sign/tapOutsideDeselect.ts`), so this suite drives raw touch
  * input through CDP `Input.dispatchTouchEvent` rather than the high-level
  * `touchscreen.tap()`, which cannot express jitter, a slow pan, or a second
  * finger. CDP touch injection is Chromium-only (see touch-edit-reentry.spec.js,

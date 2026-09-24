@@ -183,3 +183,32 @@ font-coverage script ran the whole suite), not a large wall-clock rescue on its 
 - Still forces a full run, correctly: root config in `nx.json`'s `sharedGlobals`, `.github/`, a hand
   edit to `THIRD_PARTY_LICENSES.md` alone (deliberately not docs-only, `change-scope.mjs` explains).
 
+
+## Post-landing check (2026-09-24, scheduled task `arch-22-narrowing-check`)
+
+`node scripts/ci-narrowing-report.mjs --since 19dca856 --events push` over 75 push runs on `main`.
+
+**Verdict: inconclusive, leaning pass.** No push in the window touched only `scripts/`, so a clean
+narrow-to-`tooling` case has not happened yet. No failure either: no run reported
+`unowned files: scripts/...`, and none needed the "CI oracle changed" rule.
+
+| bucket | this window | QUAL-08 baseline |
+| --- | --- | --- |
+| docs-only | 13% (10) | 18% |
+| narrow | 29% (22) | 24% |
+| everything | 57% (43) | 58% |
+
+Every `everything` run has a documented cause: 36 core-project reach, 6 unowned root config or
+`.github/`, 1 unowned `ANALYTICS.md` (a root doc with no owner, not a scripts/ issue). The share is
+flat, as the measured ceiling above predicted: most wide runs are core reach, not ownership.
+
+Positive evidence: two pushes changed non-oracle `scripts/` files and still narrowed, where before
+ARCH-22 both would have gone wide on ownership alone:
+- run 35502929247 (`e8b4676f`): `scripts/generate-practice-form-truth.mjs`,
+  `scripts/spike/mobi-10/score.mjs` plus `src/editor/adapters/pdf/corpus/**`.
+- run 35503754634 (`74145046`): `scripts/score-form.mjs` plus corpus files.
+
+The criterion "tooling among affected projects" cannot be read from the report: the narrow reason at
+`scripts/affected-scope.mjs:315` names only `tool-*` projects, so both runs read "(no tool project;
+site-e2e/fonts only)". Naming non-tool affected projects there would make this check answerable.
+Re-check in a week.

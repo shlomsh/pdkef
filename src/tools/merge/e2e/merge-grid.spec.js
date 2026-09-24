@@ -97,9 +97,18 @@ test('the assembled grid: every page, rotate, skip and keyboard reorder land in 
 
   // Skip card 3 (index 2: file1's second page).
   const card3 = cards(page).nth(2);
+  const card2ThumbBefore = await card2.locator('[class*="thumb-box"]').boundingBox();
+  const card3ThumbBefore = await card3.locator('[class*="thumb-box"]').boundingBox();
   await card3.hover();
-  await card3.getByRole('button', { name: 'Skip page 3', exact: true }).click({ force: true });
+  await card3.getByRole('button', { name: 'Hide page 3 from the merged PDF', exact: true }).click({ force: true });
   await expect(card3).toHaveAttribute('data-skipped', 'true');
+  await expect(card3.getByRole('button', { name: 'Show page 3 in the merged PDF', exact: true })).toBeVisible();
+  const card2ThumbAfter = await card2.locator('[class*="thumb-box"]').boundingBox();
+  const card3ThumbAfter = await card3.locator('[class*="thumb-box"]').boundingBox();
+  if (!card2ThumbBefore || !card3ThumbBefore || !card2ThumbAfter || !card3ThumbAfter) throw new Error('Thumbnail box unavailable');
+  expect(Math.abs(card2ThumbBefore.y - card3ThumbBefore.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(card2ThumbAfter.y - card3ThumbAfter.y)).toBeLessThanOrEqual(1);
+  expect(Math.abs(card3ThumbAfter.y - card3ThumbBefore.y)).toBeLessThanOrEqual(1);
   await expect(page.locator('[class*="doc-heading-count"]', { hasText: '9 pages' })).toBeVisible();
   // "1 page skipped" - the count uses the same singular/plural pageCountOne
   // string as everywhere else, not a bare number.

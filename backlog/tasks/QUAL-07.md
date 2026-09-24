@@ -1,7 +1,7 @@
 ---
 id: "QUAL-07"
 title: "Skip the second product-e2e shard when the affected set is small enough for one"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "module-boundaries"
 phase: "quick-win"
@@ -41,3 +41,10 @@ runner is 2-3 minutes of billed time per narrowed run for nothing.
 - A tool-only commit shows one shard doing the work and the other finishing in under 20s (or not
   starting), with every narrowed test still run once; an `everything` commit is unchanged.
 - The run's wall time on a narrowed commit is not worse than before this ticket.
+
+## Retired (2026-09-24)
+
+Not worth the matrix complexity. The wall does not move (the shards are parallel), so the only gain
+is billed runner minutes on narrowed runs, which are under a third of pushes. The ROI review on
+2026-09-24 (ARCH-22's post-landing check) recommended no further narrowing work. Reopen if runner
+minutes become a cost that matters.

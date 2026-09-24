@@ -11,7 +11,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
-import CompareSlider from '../../shell/CompareSlider.tsx';
+import CompareSlider from './CompareSlider.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { describeFile } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';

@@ -64,7 +64,7 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
 ## Cross-tool hand-offs, and the reverse
 
 Merge's done state is the model: quiet secondary verbs next to the result, each with the target
-tool's icon ("Compress it", "Sign it"), never in front of Download, never a sales row, always in the
+tool's icon ("Compress", "Sign"), never in front of Download, never a sales row, always in the
 app's voice (`e2e/handoff/merge-handoff.spec.js`). Look for the reverse too: an error or empty state
 that points at the sibling tool that solves it (an encrypted file linking to Unlock, an oversized
 draft to Compress). Every tool's done state should propose its own organic next-tool actions. See
@@ -75,8 +75,8 @@ heading 13 of [docs/ux-design-guidelines.md](../../docs/ux-design-guidelines.md)
 island: the browser restores the page it froze on the way out, island state and all (bfcache), so the
 flag comes back set and the control it disabled is dead for good. The home launcher came back with
 every recent tile, the picker and the drop target disabled, reading "Opening..." forever, so a second
-document could never be opened (reported 2026-09-22 on iOS); Merge's "Compress it" / "Sign it" and
-Split's and Redact's "Compress it" came back greyed out the same way. The hook clears the flag on a
+document could never be opened (reported 2026-09-22 on iOS); Merge's "Compress" / "Sign" and
+Split's and Redact's "Compress" came back greyed out the same way. The hook clears the flag on a
 `pageshow` whose `persisted` is true, and only that one: an ordinary load fires `pageshow` after
 `load`, long after a `client:load` island is interactive, and clearing there would drop the flag out
 from under a hand-off still reading its file. No check enforces this yet (DEBT-21). **Two Playwright

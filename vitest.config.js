@@ -41,6 +41,8 @@ const DOM_TESTS = [
   // src/tools/sign/components/*.contract.test.ts/*.undo.test.ts files are
   // pure-logic and stay under node (proven by running them there).
   'src/tools/sign/useWorkspaceGestures.test.js',
+  // MOBI-30: isBlankAreaTarget walks real elements with closest().
+  'src/tools/sign/tapOutsideDeselect.test.ts',
   'src/editor/workspace/**/*.{test,spec}.{js,jsx,ts,tsx}',
   // DEBT-04 (part 2): the gesture controller moved to src/lib/gestures/ (shell's
   // CompareSlider needed it too), taking its DOM-driving test with it.

@@ -3,7 +3,6 @@
   "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "projectType": "library",
   "sourceRoot": "src/test/cross-tool",
-  "tags": ["scope:tests"],
   "targets": {
     "test": {
       "executor": "nx:run-commands",

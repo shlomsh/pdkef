@@ -73,13 +73,10 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
   // data-id but is display:none at this width, so the rail row is named.
   const row = page.locator('li[class*="file-row"][data-id]').first();
   await expect(row).toBeVisible();
-  const handle = await row.locator('[role="button"]').boundingBox();
-  const remove = await row.locator('button').last().boundingBox();
-  expect(handle.x, 'drag handle should be right of the remove button in RTL').toBeGreaterThan(remove.x);
 
-  // The island is localized, not just the shell around it: with one file the
-  // Download element asks for one more in Hebrew; Sort only renders once
-  // there are two files, as one select with Reversed folded in.
+  // A one-file list has nothing to reorder, so its drag handle is correctly
+  // absent. The Download element still asks for one more in Hebrew.
+  await expect(row.locator('[role="button"]')).toHaveCount(0);
   await expect(page.locator('[data-state="one-file"]')).toContainText('הוסיפו עוד PDF אחד כדי לאחד');
   await page.setInputFiles('input[type=file]', {
     name: 'second.pdf',
@@ -87,7 +84,13 @@ test('a loaded file lists its row mirrored: handle at the inline start, remove a
     buffer: Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>'),
   });
   await expect(page.locator('li[class*="file-row"][data-id]')).toHaveCount(2);
-  await expect(page.locator('[class*="rail"] select').first()).toHaveAttribute('aria-label', 'מיון');
+  const handle = await row.locator('[role="button"]').boundingBox();
+  const remove = await row.locator('button').last().boundingBox();
+  if (!handle || !remove) throw new Error('RTL file row controls are unavailable');
+  expect(handle.x, 'drag handle should be right of the remove button in RTL').toBeGreaterThan(remove.x);
+
+  // Sort is now a styled listbox trigger rather than a native select.
+  await expect(page.locator('[class*="sort-trigger"]').first()).toHaveAttribute('aria-label', /^מיון:/);
 });
 
 test('a localized page raises no CSP violation', async ({ page }) => {

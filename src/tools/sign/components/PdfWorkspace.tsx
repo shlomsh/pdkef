@@ -42,7 +42,7 @@ import {
   classifyTouchTap,
   isBlankAreaTarget,
   type TapGestureSample,
-} from '../../../lib/gestures/tapOutsideDeselect.ts';
+} from '../tapOutsideDeselect.ts';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
