@@ -5,6 +5,7 @@
 // fetched from a CDN.
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
+import { parsePageSelector } from '../../lib/pageSelector.js';
 
 let pdfjsLib;
 
@@ -20,46 +21,6 @@ async function getPdfjs() {
 }
 
 const EXTENSION_BY_FORMAT = { 'image/png': 'png', 'image/jpeg': 'jpg' };
-
-// Parses a printer-style page range string (e.g. "1-3,5,8") into a sorted,
-// deduped array of 1-indexed page numbers clamped to [1, pageCount]. An
-// empty/blank selector means "all pages". Throws on malformed input so the
-// caller can surface a validation error instead of silently converting the
-// wrong pages.
-export function parsePageSelector(selector, pageCount) {
-  const trimmed = (selector ?? '').trim();
-  if (!trimmed) {
-    return Array.from({ length: pageCount }, (_, i) => i + 1);
-  }
-
-  const pages = new Set();
-  for (const rawPart of trimmed.split(',')) {
-    const part = rawPart.trim();
-    if (!part) continue;
-
-    const rangeMatch = part.match(/^(\d+)\s*-\s*(\d+)$/);
-    if (rangeMatch) {
-      let start = Number(rangeMatch[1]);
-      let end = Number(rangeMatch[2]);
-      if (start > end) [start, end] = [end, start];
-      for (let n = start; n <= end; n += 1) pages.add(n);
-      continue;
-    }
-
-    if (/^\d+$/.test(part)) {
-      pages.add(Number(part));
-      continue;
-    }
-
-    throw new Error(`Invalid page selector: "${part}"`);
-  }
-
-  const inRange = [...pages].filter((n) => n >= 1 && n <= pageCount);
-  if (inRange.length === 0) {
-    throw new Error('No valid pages in range');
-  }
-  return inRange.sort((a, b) => a - b);
-}
 
 function canvasToBlob(canvas, type, quality) {
   return new Promise((resolve, reject) => {

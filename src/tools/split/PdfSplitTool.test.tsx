@@ -3,7 +3,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import PdfSplitTool from './PdfSplitTool.tsx';
-import { parsePageSelector, pageNumbersToRangeString } from './split.js';
+import { pageNumbersToRangeString } from './split.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import styles from './PdfSplitTool.module.css';
@@ -11,24 +11,9 @@ import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import * as pdfjsDist from 'pdfjs-dist';
 
-// Test split.js library
+// Test split.js library. parsePageSelector's own cases moved to
+// src/lib/pageSelector.test.js (DEBT-23: it's shared with PDF to Image now).
 describe('split.js library helpers', () => {
-  it('parses page ranges correctly', () => {
-    expect(parsePageSelector('', 5)).toEqual([1, 2, 3, 4, 5]);
-    expect(parsePageSelector('1-3', 5)).toEqual([1, 2, 3]);
-    expect(parsePageSelector('1-3, 5', 5)).toEqual([1, 2, 3, 5]);
-    expect(parsePageSelector(' 3-1,  4 ', 5)).toEqual([1, 2, 3, 4]);
-    expect(parsePageSelector('8-', 10)).toEqual([8, 9, 10]);
-    expect(parsePageSelector('-3', 5)).toEqual([1, 2, 3]);
-  });
-
-  it('throws errors on invalid ranges', () => {
-    expect(() => parsePageSelector('6', 5)).toThrow();
-    expect(() => parsePageSelector('1-6', 5)).toThrow();
-    expect(() => parsePageSelector('abc', 5)).toThrow();
-    expect(() => parsePageSelector('1-2-3', 5)).toThrow();
-  });
-
   it('converts page numbers back to range strings', () => {
     expect(pageNumbersToRangeString([])).toBe('');
     expect(pageNumbersToRangeString([1, 2, 3])).toBe('1-3');
