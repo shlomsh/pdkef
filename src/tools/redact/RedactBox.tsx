@@ -8,6 +8,7 @@ import type { ElementType } from '../../editor/model/editorModel.ts';
 import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../editor-ui/hooks/useElementResize.js';
 import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale.ts';
+import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
 
@@ -15,13 +16,10 @@ import styles from './PdfRedactTool.module.css';
 // the counter-scale below shrinks it away from that corner rather than its
 // own center. Generalised over `placement` (not fixed LTR/RTL like Sign's
 // DraggableWrapper) because this bar's own `flip()` can resolve to plain
-// 'bottom' (centered, no start/end) when it does not fit above.
-function toolbarScaleOrigin(placement: string): string {
-  const [side, align] = placement.split('-');
-  const x = align === 'end' ? '100%' : align === 'start' ? '0%' : '50%';
-  const y = side === 'bottom' ? '0%' : '100%';
-  return `${x} ${y}`;
-}
+// 'bottom' (centered, no start/end) when it does not fit above. Shared with
+// `visualViewportClamp`'s own origin math (`visualViewportClamp.ts`) so the
+// two can never disagree about which corner is fixed.
+const toolbarScaleOrigin = toolbarScaleOriginCss;
 
 // Redact never renders a registered node component - its whiteout/blackout/
 // blur elements always take the `renderTarget: 'redact'` branch inside
@@ -71,12 +69,7 @@ export default function RedactBox({
   onClone: (...args: any[]) => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
-  // MOBI-17: same publisher DraggableWrapper.tsx uses, ref-counted across
-  // every mounted box on the page - see that file's comment on the hook call
-  // and the hook's own header for the full reasoning (module-level CSSOM
-  // write, never Preact state, so a pinch never re-renders a redaction box).
-  useVisualViewportScale();
-  const { refs, floatingStyles, placement } = useFloating({
+  const { refs, floatingStyles, placement, update } = useFloating({
     placement: 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
@@ -90,9 +83,24 @@ export default function RedactBox({
       // fixed to "up".
       offset(0),
       flip({ fallbackPlacements: ['bottom'] }),
-      shift({ padding: TOOLBAR_FLOATING_OFFSET })
+      shift({ padding: TOOLBAR_FLOATING_OFFSET }),
+      // MOBI-17: the missing containment check - see DraggableWrapper.tsx's
+      // own comment beside its `visualViewportClamp` call, and
+      // visualViewportClamp.ts's header, for the full reasoning. `flip()`
+      // above already handles "does not fit above the box" by trying
+      // 'bottom'; this handles "the whole page is zoomed and panned so
+      // neither placement is currently visible".
+      visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
     ]
   });
+  // MOBI-17: same publisher DraggableWrapper.tsx uses, ref-counted across
+  // every mounted box on the page - see that file's comment on the hook call
+  // and the hook's own header for the full reasoning (module-level CSSOM
+  // write, never Preact state, so a pinch never re-renders a redaction box).
+  // Also feeds this bar's own `update()` into the shared visualViewport
+  // change broadcast, so `visualViewportClamp` above is recomputed on every
+  // pinch/pan step - `autoUpdate` alone never listens for one.
+  useVisualViewportScale(update);
   // Floating UI's placement list is always exactly 'top-start' or plain
   // 'bottom' here (the two options fed to `useFloating`/`flip` above), so the
   // gap always sits on the main (vertical) axis: negative to push the bar up

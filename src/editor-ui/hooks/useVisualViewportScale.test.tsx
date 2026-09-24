@@ -10,6 +10,11 @@ function Harness() {
   return null;
 }
 
+function HarnessWithCallback({ onViewportChange }: { onViewportChange?: () => void }) {
+  useVisualViewportScale(onViewportChange);
+  return null;
+}
+
 type Listener = () => void;
 
 /** A controllable stand-in for `window.visualViewport`. */
@@ -121,6 +126,42 @@ describe('useVisualViewportScale', () => {
     unmountB();
     expect(viewport.listenerCount('resize'), 'last consumer gone').toBe(0);
     expect(viewport.listenerCount('scroll')).toBe(0);
+  });
+
+  it('calls the optional onViewportChange callback on every republish (resize and scroll)', () => {
+    const viewport = installVisualViewport({ scale: 1 });
+    const onViewportChange = vi.fn();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<HarnessWithCallback onViewportChange={onViewportChange} />, host));
+    expect(onViewportChange, 'called once on mount, for the initial publish').toHaveBeenCalledTimes(1);
+
+    act(() => viewport.emit('resize', 2.5));
+    expect(onViewportChange).toHaveBeenCalledTimes(2);
+    act(() => viewport.emit('scroll'));
+    expect(onViewportChange).toHaveBeenCalledTimes(3);
+
+    act(() => render(null, host));
+    act(() => viewport.emit('resize', 1));
+    expect(onViewportChange, 'unsubscribed on unmount').toHaveBeenCalledTimes(3);
+  });
+
+  it('never calls onViewportChange for a consumer that did not ask for it', () => {
+    const viewport = installVisualViewport({ scale: 1 });
+    const onViewportChange = vi.fn();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    // A plain Harness (no callback) shares the same singleton listener.
+    act(() => render(<Harness />, host));
+    const host2 = document.createElement('div');
+    document.body.appendChild(host2);
+    act(() => render(<HarnessWithCallback onViewportChange={onViewportChange} />, host2));
+
+    act(() => viewport.emit('resize', 1.8));
+    expect(onViewportChange).toHaveBeenCalledTimes(1);
+
+    act(() => render(null, host));
+    act(() => render(null, host2));
   });
 
   it('reattaches cleanly for a later, unrelated mount after a full detach', () => {
