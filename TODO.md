@@ -281,6 +281,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
 | ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
+| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
@@ -314,6 +316,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file |
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |
 | DEBT-22 | P2 | [DEBT-22](backlog/tasks/DEBT-22.md) · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else |
+| DEBT-23 | P2 | [DEBT-23](backlog/tasks/DEBT-23.md) · One page-range parser: PDF to Image reads ranges the way Split does |
 
 
 ## Undo and redo across the tools (2026-09-20)

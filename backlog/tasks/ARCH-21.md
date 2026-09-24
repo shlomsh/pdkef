@@ -1,7 +1,7 @@
 ---
 id: "ARCH-21"
 title: "Split the site project so a page-only or content-only commit narrows instead of running everything"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "module-boundaries"
 phase: "longer-term"
@@ -47,3 +47,11 @@ island it hosts is invisible and would have to be declared by hand.
   `site-e2e`, and nothing else; a commit touching `src/pages/sign.astro` also runs `tool-sign`'s e2e.
 - A commit touching `src/i18n/` or `src/data/` still runs everything.
 - The share of `everything` runs on QUAL-08's table drops by the page-only share it measured.
+
+## Retired (2026-09-24)
+
+Not worth doing. QUAL-08 measured page-only pushes at 2% of real CI runs, far under the one-in-ten
+bar this ticket set, and a narrowed run saves only about 24s of wall time over a full one (166s vs
+142s median, 75 push runs since ARCH-22). The CI speedup came from sharding, the WebKit job and
+browser caching, which every run gets; the ROI review on 2026-09-24 (ARCH-22's post-landing check)
+recommended no further narrowing work. Reopen only if page-only pushes become a real share.
