@@ -14,7 +14,7 @@ import { SignToolProvider, useSignTool } from './components/SignToolContext.tsx'
 import { SignDefaultsContext } from './components/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
-import SignatureDialog from '../../editor-ui/SignatureDialog.tsx';
+import SignatureDialog from './components/SignatureDialog.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
