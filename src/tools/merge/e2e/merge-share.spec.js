@@ -15,10 +15,10 @@ import { PDFDocument } from '@cantoo/pdf-lib';
    report for the measured numbers) since the preview on 4173 serves
    whatever was last built, which does not yet include this change. */
 
-// Phone width regardless of which project's own default viewport runs this
-// (chromium's project default is a 1600px desktop size) - the one-line
-// requirement is specifically about the phone hand-off row.
-test.use({ viewport: { width: 375, height: 812 } });
+// The narrowest phone width regardless of which project's own default
+// viewport runs this (chromium's project default is a 1600px desktop size) -
+// the one-line, labels-fit requirement is specifically about the phone row.
+test.use({ viewport: { width: 320, height: 720 } });
 
 async function makePdfBuffer(label) {
   const document = await PDFDocument.create();
@@ -50,13 +50,19 @@ async function loadReadyRowWithShare(page) {
   return handoffButtons;
 }
 
+// Measures the icon and label's own extent against the button's border box
+// on both sides. scrollWidth cannot do this: a centred label that overflows
+// spills out of both edges, and scrollWidth only reports the inline-end one.
 async function expectEveryLabelToFit(handoffButtons) {
-  const overflows = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => ({
-    label: node.textContent.trim(),
-    overflow: node.scrollWidth - node.clientWidth,
-  })));
-  for (const { label, overflow } of overflows) {
-    expect(overflow, label).toBeLessThanOrEqual(0);
+  const clearances = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const content = range.getBoundingClientRect();
+    const box = node.getBoundingClientRect();
+    return { label: node.textContent.trim(), clearance: Math.min(content.left - box.left, box.right - content.right) };
+  }));
+  for (const { label, clearance } of clearances) {
+    expect(clearance, label).toBeGreaterThanOrEqual(6);
   }
 }
 
@@ -84,7 +90,7 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
     expect(count).toBeGreaterThanOrEqual(1);
   }
 
-  // At the row's own size: the labels fit a 375px phone without shrinking.
+  // At the row's own size: the labels fit a 320px phone without shrinking.
   await expectEveryLabelToFit(handoffButtons);
 });
 
