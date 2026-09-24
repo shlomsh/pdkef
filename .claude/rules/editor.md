@@ -88,15 +88,27 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - **Tools are one-shot.** An armed tool disarms after one committed placement (`DISARM_TOOL` from
   every creation path in Sign's `useWorkspaceGestures`; `disarmTool()` from Redact's box-commit and
   mark-for-deletion paths), so the click after a placement means "deselect". Both toolbars arm through
-  `src/editor-ui/hooks/toolArming.js`'s `makeArmTool`, so they cannot drift. Tell of the old bug: clicking empty
+  `src/editor-ui/hooks/toolArming.js`'s `useArmTool`, so they cannot drift. Tell of the old bug: clicking empty
   space to get out of a tool placed a stray element, and with a drag tool `ENSURE_MINIMUM_SIZE`
   promoted a zero-size drag into a default box; Redact used to arrive with `'delete'` armed forever.
 - **Repeat placement is opt-in by double-click** (`SET_TOOL` with `{ tool, locked: true }` in Sign;
   `setTool(tool, true)` in Redact). Toggle buttons read `e.detail >= 2` off `onClick`, not
   `ondblclick`, because the second click of a real dblclick would disarm before the lock landed. Shapes
   locks from its own button with a real `ondblclick`, since a menu item unmounts on first click.
+- **A double-tap locks too, by time, not by `detail`** (SIGN-30). iOS Safari reports every tap as
+  `detail: 1` (and the click as `pointerType: "mouse"`), so on a coarse pointer a second tap on the
+  tool the first tap armed, within `DOUBLE_TAP_MS`, locks it; `touch-action: manipulation` on
+  `.toolbar` keeps Safari from reading the two taps as zoom. Chromium's touch emulation counts taps
+  as `detail: 2`, so no Playwright spec can reproduce the iOS failure: `toolArming.test.js` is the
+  guard. Menu-armed tools (Shapes, Sign) still lock only by `ondblclick`.
+- **Arming must not move the toolbar** (SIGN-30): the second click of a double-click lands where the
+  button was. The status row reserves every state's height (`.help-stack`), and in Sign on a form it
+  also reserves the field arrows' footprint while they are absent (`reserveFieldNav`,
+  `.help-reserve-nav`). Touch gets short "Tap"/"Tap and drag" sentences (`ToolCopy.actionTouch`) so the armed
+  row stays within two lines beside the switch and arrows. Guard:
+  `e2e/tool-toolbars/toolbar-arm-no-shift.spec.js`, every tool, phone and desktop.
 - **The "Stop" chip in `EditorToolStatus` is the only exit from a locked tool on touch.** No Escape key
-  on a phone; double-tap is the browser's zoom. Never remove it as redundant.
+  on a phone, and a double-tap only locks. Never remove it as redundant.
 - **Redact's page `touch-action` is armed with the tool**: `activeStyle && activeStyle !== 'delete' ?
   'none' : 'auto'`. Drawing tools own the touch; Delete taps a highlighted run and leaves panning to
   the browser. Unconditional `none` once made the document unscrollable on a phone from the moment it
@@ -110,7 +122,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
 - **`TOOL_COPY` owns every tool-facing string**, visible and announced; `SignToolbar` and
   `RedactToolbar` each keep one under the same contract and `EditorToolStatus` reads only through it.
   Never interpolate a raw tool id into copy. Keep "click and" on the drag tools ("drag on a page" reads
-  as dragging from the toolbar). Guarded in `SignToolbar.test.tsx`.
+  as dragging from the toolbar), and "tap and" in their touch forms for the same reason. Guarded in `SignToolbar.test.tsx`.
 
 ## Undo and redo
 

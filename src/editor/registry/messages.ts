@@ -47,6 +47,17 @@ export interface SignMessages {
   ellipseAction: string;
   rectangleAction: string;
   lineAction: string;
+  /** Touch-only short forms of the eight actions above, shown on a coarse pointer in place of
+   * them (EditorToolStatus.tsx's `ToolCopy.actionTouch`). "Tap" and "Tap and drag" rather than "Click" and "Click and drag",
+   * and short enough for two lines beside the keep-on switch and the field arrows on a phone. */
+  textActionTouch: string;
+  dateActionTouch: string;
+  symbolActionTouch: string;
+  signatureActionTouch: string;
+  whiteoutActionTouch: string;
+  ellipseActionTouch: string;
+  rectangleActionTouch: string;
+  lineActionTouch: string;
   shapesHintAction: string;
   tipIdle: string;
   /** No leading space - EditorToolStatus's idle tip composes `${tipIdle} ${tipEditText}` itself. */
