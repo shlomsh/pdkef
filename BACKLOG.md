@@ -86,6 +86,7 @@ _None._
 | MOBI-24 | P1 | [MOBI-24](backlog/tasks/MOBI-24.md) · A tapped text box on an iPhone opens its session but never its keyboard |
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
+| MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
 
 ### Retired
 
@@ -482,6 +483,8 @@ _None._
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
 | FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
+| FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
+| FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |
 
 ### In progress
 
@@ -499,6 +502,8 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
+| FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
+| FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 
 ### Retired
 
@@ -541,6 +546,8 @@ Every task in these epics is done or retired. They collapse here so the board ab
 | SIGN-26 | P2 | [SIGN-26](backlog/tasks/SIGN-26.md) · Establish dependency vulnerability and update governance |
 | SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
 | SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
+| SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
+| SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
 
 ### Retired
 

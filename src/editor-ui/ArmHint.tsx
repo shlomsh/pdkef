@@ -31,6 +31,7 @@ import { formatMessage } from '../i18n/toolMessages';
 export const HOVER_OPEN_DELAY_MS = 1000;
 
 const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
+const DEFAULT_TOUCH_HINT_TEMPLATE = 'Double-tap to keep {label} on';
 
 /**
  * The one hover tooltip an armable tool button gets - the button's name first,
@@ -61,11 +62,12 @@ const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
  * `useHover`'s delay governs only its own open calls, so the forced-open state
  * never fights it here.
  *
- * Gated on `(hover: hover) and (pointer: fine)`, computed once: double-click
- * and hover both do not exist on touch, so this must never be triggerable by
- * any path there, and the whole floating subtree is skipped rather than merely
- * hidden - keeping it out of the DOM and the accessibility tree on a device
- * that cannot act on it.
+ * Hover and focus are gated on `(hover: hover) and (pointer: fine)`, computed
+ * once: there is no hover on touch. The one path that does reach a touch
+ * device is the auto-show below, and there the bubble is only the double-tap
+ * line (`touchHintTemplate`, SIGN-31): the tool's name and sentence are
+ * already in the status row, and a phone's bubble should be as small as it
+ * can be.
  *
  * `useRole(context, { role: 'tooltip' })` wires `aria-describedby` on the
  * trigger to the bubble's id, present only while the bubble is open, which is
@@ -76,8 +78,9 @@ const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
  * nothing left to teach - the gesture that got it there is done - and its
  * action line is already in the always-visible status line above.
  *
- * `autoShowTool` (from `useAutoArmHint`) forces the bubble open once per
- * session, for the tool that was just armed, independent of hover.
+ * `autoShowTool` (from `useAutoArmHint`) forces the bubble open for the tool
+ * that was just armed, independent of hover: once per session with a mouse,
+ * once per device on touch.
  *
  * Every armable button gets this, Shapes and Sign included, with no special
  * case for the two that own a dropdown. Their menus open downward while this
@@ -98,15 +101,18 @@ const DEFAULT_HINT_TEMPLATE = 'Double-click to keep {label} on';
  *   placeholder - defaults to the English "Double-click to keep {label} on"
  *   (LOC-09 stage 1: SignToolbar.tsx passes its own catalogue's `armHint`;
  *   Redact does not, and keeps this exact default).
+ * @param {string} [props.touchHintTemplate] - the same for touch, defaulting to
+ *   "Double-tap to keep {label} on"; Sign passes its catalogue's `armHintTouch`.
  * @param {import('preact').VNode} props.children - the single button (or wrapper) this hint belongs to
  */
-export default function ArmHint({ tool, label, action, locked, autoShowTool, hintTemplate = DEFAULT_HINT_TEMPLATE, children }: {
+export default function ArmHint({ tool, label, action, locked, autoShowTool, hintTemplate = DEFAULT_HINT_TEMPLATE, touchHintTemplate = DEFAULT_TOUCH_HINT_TEMPLATE, children }: {
   tool: string;
   label: string;
   action: string;
   locked: boolean;
   autoShowTool: string | null;
   hintTemplate?: string;
+  touchHintTemplate?: string;
   children?: import('preact').ComponentChildren;
 }) {
   const [canHover] = useState(
@@ -114,8 +120,9 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, hin
   );
 
   const [hoverOpen, setHoverOpen] = useState(false);
+  const autoShown = !locked && autoShowTool === tool;
   const inert = locked || !canHover;
-  const open = !inert && (hoverOpen || autoShowTool === tool);
+  const open = autoShown || (!inert && hoverOpen);
 
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -158,7 +165,7 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, hin
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, []);
 
-  if (inert) return children;
+  if (inert && !autoShown) return children;
 
   return (
     <>
@@ -174,10 +181,14 @@ export default function ArmHint({ tool, label, action, locked, autoShowTool, hin
             style={{ ...floatingStyles, zIndex: 9999 }}
             {...getFloatingProps()}
           >
-            <strong className={styles['hint-title']}>{label}</strong>
-            {action}
-            <br />
-            {formatMessage(hintTemplate, { label })}
+            {canHover ? (
+              <>
+                <strong className={styles['hint-title']}>{label}</strong>
+                {action}
+                <br />
+                {formatMessage(hintTemplate, { label })}
+              </>
+            ) : formatMessage(touchHintTemplate, { label })}
           </div>,
           portalTarget
         )}

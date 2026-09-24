@@ -40,6 +40,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-27 | P2 | [SIGN-27](backlog/tasks/SIGN-27.md) · One context row over the editor toolbar on phones |
 | SIGN-28 | P2 | [SIGN-28](backlog/tasks/SIGN-28.md) · Export moves to a sticky bottom sheet on phones, leaving one row of tools on top |
 | SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
+| SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
+| SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
 
 
 ## Editor module boundaries (architecture)
@@ -121,6 +123,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
+| MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
 
 
 ## Site quality: accessibility, CSS correctness and theming
@@ -350,6 +353,10 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-09 | P2 | [FORM-09](backlog/tasks/FORM-09.md) · Ask the person what the form asks, and fill only what they confirm |
 | FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
+| FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
+| FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
+| FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
+| FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 

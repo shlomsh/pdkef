@@ -2,6 +2,13 @@ import type { ComponentChildren } from 'preact';
 import styles from './SignToolbar.module.css';
 import { formatMessage } from '../i18n/toolMessages';
 
+/** What an armed tool says, in each toolbar's TOOL_COPY. `actionTouch` is the same instruction
+ * for a coarse pointer: "Tap" and "Tap and drag" instead of "Click" and "Click and drag", and short enough to stay within two
+ * lines beside the keep-on switch (and Sign's field arrows) on a phone. Both are rendered and CSS
+ * shows one (`.action-touch`, SignToolbar.module.css), so the hidden reservation rows measure
+ * whichever one this device actually shows. */
+export type ToolCopy = { action: string; actionTouch: string; button: string };
+
 /**
  * The editor hint line, shared by the Sign and Redact toolbars: what the armed
  * tool is waiting for, and the one control that turns repeat placement on and
@@ -46,7 +53,7 @@ import { formatMessage } from '../i18n/toolMessages';
  * @param {boolean} props.locked - whether the armed tool stays on across placements
  * @param {function} props.onToggleKeepOn - flip that setting, leaving the tool armed either way
  * @param {any} props.idle - what to say when no tool is armed
- * @param {Array<{action: string, button: string}>} [props.reserveCopies] - every other tool
+ * @param {ToolCopy[]} [props.reserveCopies] - every other tool
  *   this toolbar can arm, rendered hidden purely to hold the row's height steady - see the
  *   comment on `.help` in SignToolbar.module.css for why arming needs this at all.
  * @param {any} [props.override] - something that takes the slot over for a while (Redact's
@@ -65,16 +72,21 @@ import { formatMessage } from '../i18n/toolMessages';
  *   whether the slot counts as live (see `.help-fields` and the row itself).
  * @param {object|null} [props.fieldNav] - Sign's Next/Previous across detected fields
  *   (MOBI-06), null for Redact. Unlike `override` it is not part of the stack at all: it sits
- *   beside whichever row the stack is showing. When it comes and goes is the caller's policy, not
- *   this component's - Sign sends it for as long as somebody is filling fields in a document that
- *   has some (SignToolbar.tsx) - and within one such spell it stays mounted with only its two
- *   buttons' `disabled` changing, as the person reaches either end of the order. One exception,
- *   added under MOBI-16's follow-up: on a touch device it un-mounts for the one spell where a text
- *   box is actually being typed into, because `DraggableWrapper.tsx` grows its own Previous/Next
- *   anchored to that element and this copy would just be redundant chrome over the identity row -
- *   SignToolbar.tsx's `elementNavTakesOver` is the gate. Its `direction`
- *   is the document's, not this component's `dir`, and goes on the `.field-nav` element so the
- *   arrows point the way they travel even when the two disagree - see SignToolbar.module.css.
+ *   beside whichever row the stack is showing. When it mounts is entirely the caller's policy -
+ *   Sign mounts it for as long as somebody is filling fields in a document that has some
+ *   (SignToolbar.tsx's `fillingFields`), and within one such spell it stays mounted with only its
+ *   two buttons' `disabled` changing, as the person reaches either end of the order. It un-mounts
+ *   again on a touch device for the one spell where a text box is actually being typed into
+ *   (MOBI-16's follow-up), because `DraggableWrapper.tsx` grows its own Previous/Next anchored to
+ *   that element and this copy would just be redundant chrome over the identity row -
+ *   SignToolbar.tsx's `elementNavTakesOver` is the gate. It is never mounted over an idle document
+ *   (e114c8c); `reserveFieldNav` below keeps the mount from moving anything. Its `direction` is the document's,
+ *   not this component's `dir`, and goes on the `.field-nav` element so the arrows point the way
+ *   they travel even when the two disagree - see SignToolbar.module.css.
+ * @param {boolean} [props.reserveFieldNav] - true while the document has any detected field
+ *   (SignToolbar.tsx's `fieldNavigation.hasFields`). While `fieldNav` is absent, the row reserves
+ *   its height and width so arming Text or Date cannot move the toolbar (SIGN-30; the reason and
+ *   the rejected alternatives are on `.help-reserve-nav` in SignToolbar.module.css).
  */
 export default function EditorToolStatus({
   copy,
@@ -99,14 +111,15 @@ export default function EditorToolStatus({
   hintDoubleClick = 'or double-click {button}',
   fieldSummary,
   fieldNav = null,
+  reserveFieldNav = false,
   lang = 'en',
   dir = 'ltr',
 }: {
-  copy: any;
+  copy: ToolCopy | null;
   locked: boolean;
   onToggleKeepOn: () => void;
   idle: string;
-  reserveCopies?: Array<{ action: string; button: string }>;
+  reserveCopies?: ToolCopy[];
   override?: ComponentChildren;
   keepOnLabel?: string;
   keepOnShort?: string;
@@ -121,11 +134,7 @@ export default function EditorToolStatus({
   fieldSummary?: { text: string | null; problem: boolean };
   /** MOBI-06: Next/Previous across the document's own detected fields - Sign's
    * only caller, so Redact gets its current behaviour by leaving this null.
-   * Present (non-null) for the whole session once the document has any
-   * detected field at all, same as the "Keep on" switch is always in the DOM
-   * either way - only the two buttons' own `disabled` moves as the person
-   * reaches either end of the order, so the control itself never mounts or
-   * unmounts under a finger that is about to tap it again. */
+   * Mounted only while somebody is filling fields; see the prop doc above. */
   fieldNav?: {
     hasNext: boolean;
     hasPrevious: boolean;
@@ -135,6 +144,7 @@ export default function EditorToolStatus({
     previousLabel: string;
     direction: 'ltr' | 'rtl';
   } | null;
+  reserveFieldNav?: boolean;
   lang?: string;
   dir?: 'ltr' | 'rtl';
 }) {
@@ -152,14 +162,17 @@ export default function EditorToolStatus({
   // The interactive row for whichever tool is actually armed. Pulled out so the
   // hidden reservations below (real copy text, no live handlers) can share its
   // markup instead of drifting from it.
-  const armedRow = (rowCopy: { action: string; button: string }, interactive: boolean) => (
+  const armedRow = (rowCopy: ToolCopy, interactive: boolean) => (
     <>
       <svg className={styles['help-icon']} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="16" x2="12" y2="12" />
         <line x1="12" y1="8" x2="12.01" y2="8" />
       </svg>
-      <span className={styles['help-text']}>{rowCopy.action}</span>
+      <span className={styles['help-text']}>
+        <span className={styles['action-long']}>{rowCopy.action}</span>
+        <span className={styles['action-touch']}>{rowCopy.actionTouch}</span>
+      </span>
       {/* aria-checked, not a second sentence: the knob says "on" to the eye and
           this says it to a screen reader, so the line does not have to spend a
           phone's scarce vertical space stating a state the control is already
@@ -230,7 +243,12 @@ export default function EditorToolStatus({
     // share a single fixed-height row, and that attribute is what swaps the
     // filename out for the armed row. It is an attribute rather than a class
     // because the two live in different CSS modules.
-    <div className={styles.help} dir={dir} lang={lang} data-status-active={copy || override || fieldNav || (fieldsShown && fieldSummary?.problem) ? '' : undefined}>
+    <div
+      className={`${styles.help}${reserveFieldNav && !fieldNav ? ` ${styles['help-reserve-nav']}` : ''}`}
+      dir={dir}
+      lang={lang}
+      data-status-active={copy || override || fieldNav || (fieldsShown && fieldSummary?.problem) ? '' : undefined}
+    >
       {/* Everything this toolbar could ever show lives here at once - the idle
           tip, whichever tool is actually armed, and a hidden copy of every other
           tool's row - stacked in one grid cell (`.help-stack`/`.help-row` in
@@ -297,10 +315,12 @@ export default function EditorToolStatus({
       {/* Outside the stack on purpose: the stack's job is picking one of
           several mutually-exclusive rows and reserving room for the tallest,
           and this is neither - it is a fixed-size control that sits beside
-          whichever row the stack is showing, present for the whole document
-          (see the prop doc above) rather than swapped per tool. Sitting here,
-          after the stack, means it never counts toward the stack's own
-          reserved-row bookkeeping and is never duplicated into a reservation. */}
+          whichever row the stack is showing, mounted only while `fieldNav` is
+          given (see the prop doc above for exactly when that is). Sitting
+          here, after the stack, means it never counts toward the stack's own
+          reserved-row bookkeeping and is never duplicated into a reservation.
+          `reserveFieldNav` (the `.help` className above) is what keeps
+          this mount/unmount from moving the row - see its own prop doc. */}
       {fieldNav && (
         <div className={styles['field-nav']} dir={fieldNav.direction}>
           <button

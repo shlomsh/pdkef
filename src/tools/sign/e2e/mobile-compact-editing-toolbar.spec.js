@@ -91,7 +91,11 @@ test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toHaveCount(0);
     await expect(actions.getByRole('button', { name: 'Delete element' })).toHaveCount(0);
     // The status-line copy of the same control has stepped aside - not two
-    // Previous/Next pairs fighting for the same job.
+    // Previous/Next pairs fighting for the same job. It genuinely unmounts
+    // here (SignToolbar.tsx's `elementNavTakesOver`), unchanged by SIGN-30:
+    // that ticket's fix is `reserveFieldNav`, which reserves this control's
+    // footprint on `.help` while it is absent, not a change to when it
+    // mounts (EditorToolStatus.tsx, SignToolbar.module.css).
     await expect(statusLineFieldNav(page)).toHaveCount(0);
 
     // One row: a button here is 28px tall, so a genuinely single-row bar

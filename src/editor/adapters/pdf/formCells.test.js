@@ -303,3 +303,198 @@ describe('narrow tick columns', () => {
     expect(ticks.every((c) => c.left < 68)).toBe(true);
   });
 });
+
+describe('rows are scoped per column', () => {
+  // Rule heights are collected page-wide, so ink that never touches a table can still add a
+  // height inside its rows. Form 101's children table is the live case: the boxes to its left
+  // rule their own lines at heights that fall mid-row, and every row there came back empty.
+
+  it('keeps a row\'s cells when a stray rule off to the side lands at a height inside it', () => {
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    // A short rule well to the left of the table, halfway down its row. It crosses none of the
+    // table's columns, so it must not split the row into two 10pt halves that close on nothing.
+    const stray = { horizontals: [{ y: 70, x0: 0, x1: 15 }], verticals: [], rects: [] };
+    const cells = detectCellCandidates(mergeInk(table, stray), geometry, 0, []);
+    expect(cells).toHaveLength(3);
+    expect(cells.map((c) => c.left)).toEqual([22, 48, 74]);
+    expect(cells.every((c) => Math.abs(c.height - 20) < 1e-9)).toBe(true);
+  });
+
+  it('does not read a large filled, unstroked background panel\'s sides as walls', () => {
+    // Form 1040 tints its whole body with one unstroked fill. Its left side runs through the
+    // middle of the first cell here (x=35), which as a wall split that cell in two.
+    const row = rowBand({ top: 80, bottom: 60, columns: [20, 50, 80] });
+    const panel = {
+      horizontals: [],
+      verticals: [],
+      rects: [{ x: 35, y: 5, width: 60, height: 90, filled: true, stroked: false }],
+    };
+    const cells = detectCellCandidates(mergeInk(row, panel), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.width])).toEqual([[20, 30], [50, 30]]);
+  });
+
+  it('keeps the row when a stray height sits just over 1pt from its own top or bottom', () => {
+    // Heights merge within 1pt, but a rule counts as bounding a row up to 1.5pt away. A stray
+    // height in that gap must not be read as the row's own top or bottom rule crossing it.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    for (const y of [81.2, 78.8, 61.2, 58.8]) {
+      const stray = {
+        horizontals: [{ y: 70, x0: 0, x1: 15 }, { y, x0: 0, x1: 15 }],
+        verticals: [],
+        rects: [],
+      };
+      const cells = detectCellCandidates(mergeInk(table, stray), geometry, 0, []);
+      expect(cells.map((c) => c.left), `stray height at ${y}`).toEqual([22, 48, 74]);
+      expect(cells.every((c) => Math.abs(c.height - 20) < 1e-9)).toBe(true);
+    }
+  });
+
+  it('does not close a row short on a height just inside it that only a box beside it has', () => {
+    // A radio square beside the row puts heights 1.3pt inside its top and bottom. A row rule is
+    // accepted up to 1.5pt off, so without looking at what is actually at those heights every
+    // column would close a second, shorter cell on them.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    const square = {
+      horizontals: [{ y: 78.7, x0: 110, x1: 117 }, { y: 61.3, x0: 110, x1: 117 }],
+      verticals: [{ x: 110, y0: 61.3, y1: 78.7 }, { x: 117, y0: 61.3, y1: 78.7 }],
+      rects: [],
+    };
+    const cells = detectCellCandidates(mergeInk(table, square), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.height])).toEqual([[22, 20], [48, 20], [74, 20]]);
+  });
+
+  it('drops only the column a rule in between actually crosses', () => {
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    // A short rule across the middle column, too short to close either half of it on its own.
+    const splitter = { horizontals: [{ y: 70, x0: 55, x1: 65 }], verticals: [], rects: [] };
+    const cells = detectCellCandidates(mergeInk(table, splitter), geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.width, c.height])).toEqual([[22, 26, 20], [74, 26, 20]]);
+  });
+
+  it('drops a column whose wall is the side of a smaller box beside it', () => {
+    // The health declaration's sliver: the gap between a table's frame and a radio square,
+    // whose right wall is the square's side. The square's own top and bottom end against that
+    // wall mid-row, so the column is not one cell across the row.
+    const table = rowBand({ top: 80, bottom: 60, columns: [22, 48, 74, 100] });
+    const square = {
+      horizontals: [{ y: 76, x0: 100, x1: 107 }, { y: 64, x0: 100, x1: 107 }],
+      verticals: [{ x: 107, y0: 64, y1: 76 }],
+      rects: [],
+    };
+    const cells = detectCellCandidates(mergeInk(table, square), geometry, 0, []);
+    expect(cells.map((c) => c.left)).toEqual([22, 48]);
+  });
+
+  it('does not close a column on a band when its real bottom rule sits just past it', () => {
+    // The right column's own bottom rule is 1.3pt below the others'. The others' rule clips its
+    // corner, so it does cross the column at the band's bottom, and the 1.3pt rule is inside
+    // the 1.5pt a bounding rule may sit off. The column still must not close on the band.
+    const ink = {
+      horizontals: [
+        { y: 80, x0: 22, x1: 100 },
+        { y: 60, x0: 22, x1: 80 },
+        { y: 58.7, x0: 74, x1: 100 },
+        { y: 70, x0: 0, x1: 15 },
+      ],
+      verticals: [
+        { x: 22, y0: 60, y1: 80 },
+        { x: 48, y0: 60, y1: 80 },
+        { x: 74, y0: 58.7, y1: 80 },
+        { x: 100, y0: 58.7, y1: 80 },
+      ],
+      rects: [],
+    };
+    const cells = detectCellCandidates(ink, geometry, 0, []);
+    expect(cells.map((c) => [c.left, c.height])).toEqual([[22, 20], [48, 20]]);
+  });
+
+  it('stays cheap on a dense hatch of hundreds of page-wide rules', () => {
+    // 636 full-width rules at a 1.1pt pitch across 41 walls. Pairing every height with every
+    // height a row could reach, and re-scanning every rule per pair, took seconds here. The
+    // bound is loose on purpose: it catches that blow-up, not a slow machine.
+    const bigPage = createPageGeometry({ cropBox: { x: 0, y: 0, width: 800, height: 800 }, rotation: 0 });
+    const hatch = {
+      horizontals: Array.from({ length: 636 }, (_, n) => ({ y: 50 + n * 1.1, x0: 0, x1: 600 })),
+      verticals: Array.from({ length: 41 }, (_, n) => ({ x: n * 15, y0: 50, y1: 50 + 635 * 1.1 })),
+      rects: [],
+    };
+    const started = performance.now();
+    const cells = detectCellCandidates(hatch, bigPage, 0, []);
+    expect(performance.now() - started).toBeLessThan(500);
+    expect(cells).toEqual([]);
+  });
+});
+
+describe('FORM-13: a caption over a run of identical empty rows is a header, not a field', () => {
+  // Mirrors form 101's children-table header: a 12.4pt-tall row whose two cells each hold a
+  // short caption hugging the right wall (RTL). The caption's baseline sits in the row's lower
+  // half, so `writableArea` side-carves it - the same shape as an ordinary labelled field - and
+  // only the run of identical, empty, ruled rows directly underneath tells the two apart.
+  const HEADER_TOP = 92.4;
+  const HEADER_BOTTOM = 80; // 12.4pt tall, matching form 101's own header row.
+  const HEADER_COLUMNS = [0, 50, 100];
+  // Baseline (y0) at pdf y=83, well below the row's midpoint (86.2): the lower half, so this is
+  // NOT a band carve.
+  const CAPTION = { top: 14.8, height: 2.2 }; // percent top 14.8 -> pdf y1 85.2, y0 83.
+  const idCaption = text('מספר זהות', { left: 30, width: 10, ...CAPTION });
+  const nameCaption = text('שם', { left: 80, width: 10, ...CAPTION });
+  const idSeparator = text('/ /', { left: 30, width: 10, ...CAPTION });
+  const nameSeparator = text('/ /', { left: 80, width: 10, ...CAPTION });
+  // Percent top of the header's own bottom wall (pdf y=80 -> 100-80=20): a real header
+  // candidate's `top` is always less than this, a data row's never is.
+  const HEADER_PERCENT_FLOOR = 20;
+
+  function header() {
+    return rowBand({ top: HEADER_TOP, bottom: HEADER_BOTTOM, columns: HEADER_COLUMNS });
+  }
+
+  /** `count` identical 20pt rows, stacked directly under the header with no gap. */
+  function emptyRows(count) {
+    const bands = [];
+    for (let i = 0; i < count; i += 1) {
+      bands.push(rowBand({
+        top: HEADER_BOTTOM - i * 20,
+        bottom: HEADER_BOTTOM - (i + 1) * 20,
+        columns: HEADER_COLUMNS,
+      }));
+    }
+    return mergeInk(...bands);
+  }
+
+  it('drops a captioned header row above three identical empty rows, keeping the data rows', () => {
+    const ink = mergeInk(header(), emptyRows(3));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(6); // only the 3 data rows x 2 columns
+    expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
+  });
+
+  it('keeps the header above exactly one empty row (MIN_HEADER_RUN is 2, not 1)', () => {
+    const ink = mergeInk(header(), emptyRows(1));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(4); // the header's 2 cells, plus the one data row's 2
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+    expect(headerCells.every((c) => c.kind === 'text')).toBe(true);
+  });
+
+  it('keeps the header over rows whose heights differ from each other (not a repeating table)', () => {
+    const ink = mergeInk(
+      header(),
+      rowBand({ top: 80, bottom: 60, columns: HEADER_COLUMNS }), // 20pt
+      rowBand({ top: 60, bottom: 45, columns: HEADER_COLUMNS }), // 15pt - breaks the run at two
+    );
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    expect(candidates).toHaveLength(6);
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+  });
+
+  it('keeps a printed "/ /" cell above a run of empty rows - it is written across, not captioned', () => {
+    const ink = mergeInk(header(), emptyRows(3));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idSeparator, nameSeparator]);
+    expect(candidates).toHaveLength(8);
+    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
+    expect(headerCells).toHaveLength(2);
+    expect(headerCells.every((c) => c.kind === 'date')).toBe(true);
+  });
+});
