@@ -236,7 +236,7 @@ the false-refusal case - `String.fromCodePoint(0xfb1d)` is required.
 ## 1.5 The app already ships the opposite answer, on purpose
 
 A typed signature is not text. `SignatureDialog.tsx` renders the typed name to a canvas with
-`ctx.fillText` and stores a PNG ([line 349](../src/editor-ui/SignatureDialog.tsx#L349)); the signature
+`ctx.fillText` and stores a PNG ([line 349](../src/tools/sign/components/SignatureDialog.tsx#L349)); the signature
 element embeds that image ([signature.ts](../src/editor/registry/signature.ts)).
 
 That is the rasterisation option, taken deliberately, in the one place where losing selectability,

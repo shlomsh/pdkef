@@ -61,14 +61,34 @@
 //      allowlist, and deliberately covers test files too: a checker's own
 //      unit test (e.g. `check-editor-dependency-directions.test.mjs`) lives
 //      beside the script it tests, in `scripts/`, never under `src/test/`.
+//   9. A module in a common layer (`shell`, `editor-ui`, `lib`) needs two or
+//      more distinct consumers (ARCH-25): a tool (`src/tools/<name>/`, one
+//      identity per tool) or a qualifying site file (a page, a layout, an
+//      `.astro` component, an `i18n`/`data` module, or a file a layout loads
+//      via `<script src>`), each site file counted on its own. A consumer
+//      reached only through a chain of other common-layer modules still
+//      counts, credited to whichever tool or site file the chain eventually
+//      reaches. `editor` is out of scope for this rule: it is a layered
+//      headless core whose adapters serve one tool by design, and its shape
+//      is already governed by `check-editor-dependency-directions.mjs` and,
+//      for field detection, by ARCH-24. `SignatureDialog.tsx` was the one
+//      module this genuinely miscategorized, moved into `src/tools/sign/`
+//      in the same change that added this rule, alongside `useCoarsePointer.ts`
+//      (its only real consumer was always Sign). No exception list of any
+//      kind: unlike the allowlist in rules 1-5, this holds at zero
+//      violations like rules 6 and 8, so a module that fails it moves into
+//      the tool that actually uses it, or is deleted if nothing does.
 //
-// An `.astro` file's own `<script src="...">` tag is an edge this scan does
-// not see (`src/layouts/HomePageLayout.astro:464` loads `../shell/homeWorkspace.ts`
-// this way): the import graph below only follows `import`/`export ... from`/
-// dynamic `import()`, not markup attributes, and DEBT-10 deliberately left it
-// unparsed rather than teaching this file HTML.
+// An `.astro` file's own `<script src="...">` tag is an edge the main scan
+// (buildEdges(), rules 1-8 and the allowlist) does not see
+// (`src/layouts/HomePageLayout.astro:479` loads `../shell/homeWorkspace.ts`
+// this way): that graph only follows `import`/`export ... from`/dynamic
+// `import()`, not markup attributes, and DEBT-10 deliberately left it
+// unparsed rather than teaching that pass HTML. Rule 9 alone reads it, in
+// its own separate astroScriptSrcEdges() pass below, since otherwise a
+// module loaded only this way would misread as having no site consumer.
 //
-// Anything not covered by these eight rules is not checked here (test
+// Anything not covered by these nine rules is not checked here (test
 // infrastructure under src/test/ importing a tool gets one narrower rule of
 // its own, below, because it is not part of the target layout
 // docs/module-boundaries.md describes); this file is deliberately narrower
@@ -303,7 +323,7 @@ function relOf(absPath) {
   return path.relative(ROOT, absPath).split(path.sep).join('/');
 }
 
-function buildEdges() {
+export function buildEdges() {
   const files = collectSourceFiles(SRC);
   const seen = new Set();
   const edges = [];
@@ -358,10 +378,11 @@ function main() {
   const testViolations = testImportViolations();
   const specRouteIssues = toolSpecRouteViolations();
   const scriptsViolations = scriptsImportViolations();
+  const consumerViolations = commonLayerConsumerViolations();
 
   if (
     unallowed.length > 0 || stale.length > 0 || testViolations.length > 0
-    || specRouteIssues.length > 0 || scriptsViolations.length > 0
+    || specRouteIssues.length > 0 || scriptsViolations.length > 0 || consumerViolations.length > 0
   ) {
     console.error('Module boundary check failed:');
     if (unallowed.length > 0) {
@@ -386,6 +407,13 @@ function main() {
       console.error('\nsrc/, public/ or e2e/ importing scripts/ (rule 8, no allowlist):');
       for (const v of scriptsViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
     }
+    if (consumerViolations.length > 0) {
+      console.error('\nCommon-layer module with fewer than two consumers (rule 9, shell/editor-ui/lib, no exceptions):');
+      for (const v of consumerViolations) {
+        const named = v.consumers.length > 0 ? v.consumers.join(', ') : 'none';
+        console.error(`  ${v.file} (${v.module}): ${v.consumers.length} consumer(s) - ${named}`);
+      }
+    }
     process.exitCode = 1;
     return;
   }
@@ -395,7 +423,8 @@ function main() {
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
     + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
     + `${testFileCount} test files scanned for rule 6, every tool e2e spec for rule 7, `
-    + `and src/, public/, e2e/ scanned for rule 8, 0 violations.`,
+    + `src/, public/, e2e/ scanned for rule 8, and every shell/editor-ui/lib module `
+    + `checked for two or more consumers (rule 9, editor out of scope), 0 violations.`,
   );
 }
 
@@ -568,6 +597,157 @@ export function scriptsImportViolations() {
         violations.push({ from, to, reason });
       }
     }
+  }
+  return violations;
+}
+
+// --- rule 9: a common-layer module needs two or more consumers ---------------
+// ARCH-25: docs/module-boundaries.md defines "common" - a shell/editor-ui/lib
+// module earns its place only when two or more distinct consumers use it.
+// `editor` is out of scope for this rule: it is a layered headless core whose
+// per-tool adapters (form detection, the signing adapter, the redaction
+// adapter, and the like) serve one tool by design, not by oversight, and its
+// shape is already governed by `check-editor-dependency-directions.mjs` and,
+// for field detection specifically, by ARCH-24 - a second "two consumers"
+// check on top of that one would only be fighting the same layer with two
+// rules. `editor` modules are still walked when computing another layer's
+// consumers (see the CORE_MODULES chain-walk below): an `editor` module is
+// simply never itself checked for a consumer count.
+//
+// A consumer is a tool (`src/tools/<name>/`: one identity per tool, no
+// matter how many of its own files import the module) or a qualifying site
+// file (a page, a layout, an `.astro` component, an `i18n`/`data` module, or
+// a file a layout loads via `<script src>`) - each site file counts on its
+// own, since "the site" is many different files sharing one classification,
+// not one consumer. A consumer reached only through a chain of other
+// common-layer modules still counts, credited to whichever tool or site file
+// the chain eventually reaches: a `lib` module consumed only by `shell` (or
+// another `lib` module) counts via the tools that reach `shell`, and the
+// same holds when the chain passes through `editor` or `editor-ui` on its
+// way to a tool. Test files never count (TEST_FILE already excludes them
+// from collectSourceFiles()'s default walk, the same exclusion every rule
+// above but rule 6/8 relies on).
+//
+// DEBT-10 deliberately left `.astro` `<script src="...">` unparsed for the
+// main edge scan above (buildEdges()), and that decision stands: rules 1-8
+// and the allowlist still see only the plain-import graph. This rule reads
+// `<script src="...">` in a separate pass (astroScriptSrcEdges(), below)
+// solely to answer "does the site consume this module" - without it,
+// `src/shell/homeWorkspace.ts` (loaded only by `HomePageLayout.astro`'s
+// `<script src>`, no ordinary import anywhere) would misread as consumed by
+// nobody, when the site genuinely depends on it.
+const SCRIPT_SRC = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
+
+// Same relative-only stance as importSpecifiers/resolveRelativeImport: a
+// bare specifier or an absolute/protocol URL is not a src/ edge.
+export function scriptSrcSpecifiers(source) {
+  const specifiers = [];
+  let match;
+  SCRIPT_SRC.lastIndex = 0;
+  while ((match = SCRIPT_SRC.exec(source)) !== null) {
+    const specifier = match[1];
+    if (specifier.startsWith('.') || specifier.startsWith('/')) specifiers.push(specifier);
+  }
+  return specifiers;
+}
+
+// One edge per (astro file, script target) pair, over every `.astro` file in
+// src/ - not only layouts, since a page or component could carry its own
+// `<script src>` too and this pass has no reason to assume otherwise.
+// Exported so a test can prove the wiring end to end against the real tree
+// (a module like `src/shell/homeWorkspace.ts`, loaded only this way, needs
+// this pass to be reachable at all) rather than only against a fixture.
+export function astroScriptSrcEdges() {
+  const edges = [];
+  for (const file of collectSourceFiles(SRC).filter((f) => f.endsWith('.astro'))) {
+    const from = relOf(file);
+    const source = fs.readFileSync(file, 'utf8');
+    for (const specifier of scriptSrcSpecifiers(source)) {
+      const resolved = resolveRelativeImport(file, specifier);
+      if (!resolved) continue;
+      const to = relOf(resolved);
+      if (to === from) continue;
+      edges.push({ from, to });
+    }
+  }
+  return edges;
+}
+
+// The pure graph algorithm: given the reverse ("who imports me") adjacency
+// built from every (from, to) edge - the ordinary import graph plus
+// astroScriptSrcEdges() - find which tools and site files ultimately
+// consume `target`. Walks backwards from `target` and keeps walking through
+// any core-module node (shell/editor-ui/editor/lib) it reaches, the
+// "common-layer-internal chain" the doc describes - `editor` included, even
+// though rule 9 never checks an `editor` file's own consumer count (see the
+// rule 9 header comment above), because a chain can still legitimately pass
+// through it on the way to a tool; a tool or a qualifying site file stops
+// that branch and is recorded (by `tool:<name>`, or by the site file's own
+// path, so two different site files count as two distinct consumers);
+// anything else (`components`, `test-support`, an unclassified path) is a
+// dead end - recorded as nothing, walked no further. Exported and given a
+// plain `Map` so a test can hand it a small literal graph, the same style
+// rule 7's specRouteViolation() uses a literal route map.
+export function commonLayerConsumers(target, reverseEdges) {
+  const consumers = new Set();
+  const visited = new Set([target]);
+  const stack = [...(reverseEdges.get(target) || [])];
+  while (stack.length) {
+    const node = stack.pop();
+    if (visited.has(node)) continue;
+    visited.add(node);
+    const nodeModule = classify(node);
+    if (isTool(nodeModule)) {
+      // A tool is one identity regardless of which of its own files
+      // reaches back here, and nothing legitimately imports further past
+      // a tool boundary (rule 1 forbids tool-to-tool, rule 4 forbids site
+      // reaching past a tool's entry point), so this branch stops here.
+      consumers.add(nodeModule);
+      continue;
+    }
+    if (isSite(nodeModule)) {
+      // A site file is its own identity - two different pages sharing a
+      // layout are two consumers, not one "site" bucket - but the site is
+      // itself a graph (a page imports a layout imports a component), so
+      // keep walking past it too, the same as a common-layer node, to
+      // find every distinct site file in the chain, not just the nearest.
+      consumers.add(node);
+    }
+    if (CORE_MODULES.has(nodeModule) || isSite(nodeModule)) {
+      for (const next of reverseEdges.get(node) || []) stack.push(next);
+    }
+    // `components`, `test-support`, or unclassified (null): dead end.
+  }
+  return consumers;
+}
+
+// The file-walking wrapper main() calls: every non-test file classified
+// shell/editor-ui/lib (RULE9_LAYERS - editor is out of scope, see the header
+// comment above), checked against the combined reverse graph (ordinary
+// imports plus `<script src>`). No allowlist, like rules 6 and 8, and no
+// exception list either: ARCH-25 measured the tree at exactly one violation
+// once editor was taken out of scope, `SignatureDialog.tsx`, moved into
+// `src/tools/sign/` in the same change that added this rule, so it holds at
+// zero from the start. A module that later fails this check belongs in a
+// tool instead, or should be deleted if nothing uses it - not exempted.
+const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'lib']);
+
+export function commonLayerConsumerViolations() {
+  const { edges } = buildEdges();
+  const allEdges = [...edges, ...astroScriptSrcEdges()];
+  const reverseEdges = new Map();
+  for (const { from, to } of allEdges) {
+    if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
+    reverseEdges.get(to).add(from);
+  }
+
+  const violations = [];
+  for (const file of collectSourceFiles(SRC)) {
+    const rel = relOf(file);
+    const moduleOf = classify(rel);
+    if (!RULE9_LAYERS.has(moduleOf)) continue;
+    const consumers = commonLayerConsumers(rel, reverseEdges);
+    if (consumers.size < 2) violations.push({ file: rel, module: moduleOf, consumers: [...consumers] });
   }
   return violations;
 }

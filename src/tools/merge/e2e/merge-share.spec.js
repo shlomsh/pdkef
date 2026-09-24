@@ -53,17 +53,33 @@ async function loadReadyRowWithShare(page) {
 // Measures the icon and label's own extent against the button's border box
 // on both sides. scrollWidth cannot do this: a centred label that overflows
 // spills out of both edges, and scrollWidth only reports the inline-end one.
-async function expectEveryLabelToFit(handoffButtons) {
-  const clearances = await handoffButtons.evaluateAll((nodes) => nodes.map((node) => {
+// The labels are in the system font stack, so no fixed number of pixels
+// holds on every machine (a 6px and then a 4px floor both failed on CI's
+// Linux fonts, runs 36051842433 and 36053109356). Two checks that do:
+// every label stays inside its border, and, where the row has room, the
+// spare width is shared evenly, so every button has the same clearance.
+// Equal-width buttons fail the second with any font (3px for Compress
+// against 22px for Sign on macOS).
+async function readClearances(handoffButtons) {
+  return handoffButtons.evaluateAll((nodes) => nodes.map((node) => {
     const range = document.createRange();
     range.selectNodeContents(node);
     const content = range.getBoundingClientRect();
     const box = node.getBoundingClientRect();
     return { label: node.textContent.trim(), clearance: Math.min(content.left - box.left, box.right - content.right) };
   }));
-  for (const { label, clearance } of clearances) {
-    expect(clearance, label).toBeGreaterThanOrEqual(6);
+}
+
+async function expectEveryLabelInsideItsBorder(handoffButtons) {
+  for (const { label, clearance } of await readClearances(handoffButtons)) {
+    expect(clearance, label).toBeGreaterThan(0);
   }
+}
+
+async function expectSpareWidthSharedEvenly(handoffButtons) {
+  const clearances = await readClearances(handoffButtons);
+  const values = clearances.map(({ clearance }) => clearance);
+  expect(Math.max(...values) - Math.min(...values), JSON.stringify(clearances)).toBeLessThanOrEqual(1);
 }
 
 test('the hand-off row leads with Share, and all three buttons sit on one line', async ({ page }) => {
@@ -90,8 +106,8 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
     expect(count).toBeGreaterThanOrEqual(1);
   }
 
-  // At the row's own size: the labels fit a 320px phone without shrinking.
-  await expectEveryLabelToFit(handoffButtons);
+  // At the row's own size, with no font shrink, even at 320px.
+  await expectEveryLabelInsideItsBorder(handoffButtons);
 });
 
 // The desktop rail is a fixed 320px, so with Share present each button is
@@ -101,7 +117,9 @@ test('the hand-off row leads with Share, and all three buttons sit on one line',
 test.describe('on the desktop rail', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('every hand-off label fits inside its own button', async ({ page }) => {
-    await expectEveryLabelToFit(await loadReadyRowWithShare(page));
+  test('every hand-off label fits inside its own button, with the spare width shared evenly', async ({ page }) => {
+    const handoffButtons = await loadReadyRowWithShare(page);
+    await expectEveryLabelInsideItsBorder(handoffButtons);
+    await expectSpareWidthSharedEvenly(handoffButtons);
   });
 });

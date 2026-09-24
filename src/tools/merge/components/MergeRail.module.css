@@ -536,7 +536,12 @@
   justify-content: center;
   gap: 0.3rem;
   min-height: 44px;
-  padding: 0.5rem 0.6rem;
+  /* The side padding is only a floor. The row shares its spare width
+     evenly (see .handoff-row > *), so wherever it fits every label gets
+     the same clearance, however wide the platform's system font draws it;
+     padding in the flex basis only brings forward the width where the row
+     runs out and starts squeezing the widest label first. */
+  padding: 0.5rem 0.25rem;
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;

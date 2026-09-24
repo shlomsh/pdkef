@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { startGesture } from '../lib/gestures/controller.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
 import styles from './CompareSlider.module.css';
 
 interface CompareSliderProps {
