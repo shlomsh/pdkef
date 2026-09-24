@@ -5,7 +5,7 @@ status: "open"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
-depends_on: ["MOBI-11"]
+depends_on: []
 ---
 
 # ARCH-24 · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles
@@ -50,15 +50,26 @@ detectFormFields(document, { textRuns, sources? }) -> { combs, cells, checkboxes
 - **The corpus tests the capability through its entry point,** which removes the duplicated
   `detectPage` and makes a source addable as corpus rows rather than as a new test harness.
 
-Then the Nx question answers itself: the capability plus its corpus is a project, tools depend on it,
-and `test:module-boundaries` can state the direction as a rule instead of a convention.
+Then the boundary is a folder: the capability plus its corpus sit together inside Sign, and the hook
+reaches them only through the entry point. (The Nx-project framing this line first had is moot:
+the tags were deleted under DEBT-14, and folders are the one definition of a boundary.)
+
+## Decided (2026-09-25)
+
+- **Sign is the only consumer.** Redact does not use detection at all; detection exists for form
+  filling, which is Sign's. There is no second ticket for Redact.
+- **So it lives in Sign, not in `src/editor/`.** Under rule 9 (ARCH-25), code with one consumer
+  belongs to that consumer: the capability and its corpus move to a folder under `src/tools/sign/`
+  (for example `src/tools/sign/fields/`), out of `src/editor/adapters/pdf/`. Keeping it in `editor`
+  would only be using the fact that rule 9 does not look there. The "new source" acceptance below
+  reads accordingly: a third source is added without touching the hook, not without touching Sign.
+- **When to start.** MOBI-11 closed 2026-09-25, so it no longer blocks this. What does is the
+  form-understanding epic: FORM tickets edit the same detector modules this restructures, and each
+  branch in flight would have to rebase onto the new entry point. Start it in a window with no
+  FORM branch open (FORM-01 was in progress when this was written).
 
 ## Open questions
 
-- Where it lives. `src/editor/adapters/pdf/` is the pdf-lib adapter layer and OCR is not that; a
-  sibling (`src/editor/fields/`) is probably right, but that is a move of shipped files and should be
-  decided against `docs/module-boundaries.md`, not by feel.
-- Whether Redact should consume it too, or whether that is a second ticket.
 - Whether `pageDirections` belongs in the same return value - it is text-derived, not geometry, and
   it is here only because the hook already had the text runs in hand.
 
@@ -110,7 +121,7 @@ guarded.
 - [ ] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
 - [ ] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
 - [ ] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
-- [ ] A third source can be added without touching `src/tools/sign/` - demonstrated by a stub source
+- [ ] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
       in the corpus, not asserted in prose.
 - [ ] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
