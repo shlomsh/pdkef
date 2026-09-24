@@ -1,7 +1,7 @@
 ---
 id: "ARCH-25"
 title: "Define common: shared code needs two consumers, and the checker says so"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
@@ -50,3 +50,27 @@ every tool shares, `lib` framework-free helpers.
 - `npm run test:module-boundaries` enforces the rule, green on main, red on a throwaway
   single-consumer module.
 - `SignatureDialog` lives in `src/tools/sign/`; `check:fast` and the Sign e2e stay green.
+
+## Result
+
+Landed 2026-09-24. Rule 9 covers `lib`, `shell` and `editor-ui` only; `editor` is explicitly out of
+scope, stated in both `docs/module-boundaries.md` and the checker's header comment, one sentence of
+reason: the editor is a layered core whose adapters serve one tool by design, already governed by
+`check-editor-dependency-directions.mjs` and, for field detection, by ARCH-24. The `RULE9_EXCEPTIONS`
+Map (27 entries, 26 of them under `src/editor/`) was deleted entirely, along with its lookup and the
+"not in RULE9_EXCEPTIONS" message text - no exception list of any kind remains.
+
+Two files moved out of the common layers into the one tool that actually uses them:
+`SignatureDialog.tsx` (Sign only) and `useCoarsePointer.ts` (also Sign only, verified by grep of its
+production importers before moving; it landed flat in `src/tools/sign/`, matching that folder's own
+convention of flat hook files rather than a `hooks/` subfolder). `CompareSlider.tsx` had already moved
+into `src/tools/compress/` earlier in this same session, once `CompareFigure.astro` stopped importing
+it and left it with a single consumer; `docs/module-boundaries.md`'s own evidence section records that
+move under the `src/shell/` heading.
+
+`scripts/check-module-boundaries.rules.test.mjs` lost the exception-related test title/wording and
+gained one proving an `editor` module with a single real consumer
+(`src/editor/adapters/pdf/sign.js`, consumed only by `tool:sign`) is never flagged, because
+`commonLayerConsumerViolations()` no longer walks `editor` files at all - not because of a per-file
+allowance. The red fixture cases for `lib`/`shell`/`editor-ui` single- and zero-consumer modules were
+kept unchanged.

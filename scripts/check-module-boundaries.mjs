@@ -61,22 +61,23 @@
 //      allowlist, and deliberately covers test files too: a checker's own
 //      unit test (e.g. `check-editor-dependency-directions.test.mjs`) lives
 //      beside the script it tests, in `scripts/`, never under `src/test/`.
-//   9. A module in a common layer (`shell`, `editor-ui`, `editor`, `lib`)
-//      needs two or more distinct consumers (ARCH-25): a tool
-//      (`src/tools/<name>/`, one identity per tool) or a qualifying site
-//      file (a page, a layout, an `.astro` component, an `i18n`/`data`
-//      module, or a file a layout loads via `<script src>`), each site file
-//      counted on its own. A consumer reached only through a chain of other
-//      common-layer modules still counts, credited to whichever tool or
-//      site file the chain eventually reaches. `SignatureDialog.tsx` was
-//      the one module this genuinely miscategorized, moved into
-//      `src/tools/sign/` in the same change that added this rule; a
-//      further `RULE9_EXCEPTIONS` list (near `commonLayerConsumerViolations()`,
-//      below) names every file the mechanical count still catches that is
-//      not miscategorized - an intentionally single-tool piece of the
-//      shared editor core, or a dev/build-time-only artifact never reached
-//      by the running app - each with the evidence for why it stays,
-//      unlike rules 6 and 8's zero-tolerance, no-exceptions shape.
+//   9. A module in a common layer (`shell`, `editor-ui`, `lib`) needs two or
+//      more distinct consumers (ARCH-25): a tool (`src/tools/<name>/`, one
+//      identity per tool) or a qualifying site file (a page, a layout, an
+//      `.astro` component, an `i18n`/`data` module, or a file a layout loads
+//      via `<script src>`), each site file counted on its own. A consumer
+//      reached only through a chain of other common-layer modules still
+//      counts, credited to whichever tool or site file the chain eventually
+//      reaches. `editor` is out of scope for this rule: it is a layered
+//      headless core whose adapters serve one tool by design, and its shape
+//      is already governed by `check-editor-dependency-directions.mjs` and,
+//      for field detection, by ARCH-24. `SignatureDialog.tsx` was the one
+//      module this genuinely miscategorized, moved into `src/tools/sign/`
+//      in the same change that added this rule, alongside `useCoarsePointer.ts`
+//      (its only real consumer was always Sign). No exception list of any
+//      kind: unlike the allowlist in rules 1-5, this holds at zero
+//      violations like rules 6 and 8, so a module that fails it moves into
+//      the tool that actually uses it, or is deleted if nothing does.
 //
 // An `.astro` file's own `<script src="...">` tag is an edge the main scan
 // (buildEdges(), rules 1-8 and the allowlist) does not see
@@ -407,7 +408,7 @@ function main() {
       for (const v of scriptsViolations) console.error(`  ${v.from} -> ${v.to} (${v.reason})`);
     }
     if (consumerViolations.length > 0) {
-      console.error('\nCommon-layer module with fewer than two consumers (rule 9; not in RULE9_EXCEPTIONS):');
+      console.error('\nCommon-layer module with fewer than two consumers (rule 9, shell/editor-ui/lib, no exceptions):');
       for (const v of consumerViolations) {
         const named = v.consumers.length > 0 ? v.consumers.join(', ') : 'none';
         console.error(`  ${v.file} (${v.module}): ${v.consumers.length} consumer(s) - ${named}`);
@@ -422,8 +423,8 @@ function main() {
     `Module boundary check passed: ${files.length} files scanned, ${edges.length} relative import edges, `
     + `${allowlist.length} allowlisted violation(s) remaining (all still real, none new); `
     + `${testFileCount} test files scanned for rule 6, every tool e2e spec for rule 7, `
-    + `src/, public/, e2e/ scanned for rule 8, and every shell/editor-ui/editor/lib module `
-    + `checked for two or more consumers (rule 9), 0 violations.`,
+    + `src/, public/, e2e/ scanned for rule 8, and every shell/editor-ui/lib module `
+    + `checked for two or more consumers (rule 9, editor out of scope), 0 violations.`,
   );
 }
 
@@ -601,21 +602,31 @@ export function scriptsImportViolations() {
 }
 
 // --- rule 9: a common-layer module needs two or more consumers ---------------
-// ARCH-25: docs/module-boundaries.md defines "common" - a shell/editor-ui/
-// editor/lib module earns its place only when two or more distinct consumers
-// use it. A consumer is a tool (`src/tools/<name>/`: one identity per tool,
-// no matter how many of its own files import the module) or a qualifying
-// site file (a page, a layout, an `.astro` component, an `i18n`/`data`
-// module, or a file a layout loads via `<script src>`) - each site file
-// counts on its own, since "the site" is many different files sharing one
-// classification, not one consumer. A consumer reached only through a chain
-// of other common-layer modules still counts, credited to whichever tool or
-// site file the chain eventually reaches: an `editor` module consumed only
-// by `editor-ui` (or another `editor` module) counts via the tools that
-// reach `editor-ui`, the same shape as a `lib` module used only by another
-// `lib` module two tools both import. Test files never count (TEST_FILE
-// already excludes them from collectSourceFiles()'s default walk, the same
-// exclusion every rule above but rule 6/8 relies on).
+// ARCH-25: docs/module-boundaries.md defines "common" - a shell/editor-ui/lib
+// module earns its place only when two or more distinct consumers use it.
+// `editor` is out of scope for this rule: it is a layered headless core whose
+// per-tool adapters (form detection, the signing adapter, the redaction
+// adapter, and the like) serve one tool by design, not by oversight, and its
+// shape is already governed by `check-editor-dependency-directions.mjs` and,
+// for field detection specifically, by ARCH-24 - a second "two consumers"
+// check on top of that one would only be fighting the same layer with two
+// rules. `editor` modules are still walked when computing another layer's
+// consumers (see the CORE_MODULES chain-walk below): an `editor` module is
+// simply never itself checked for a consumer count.
+//
+// A consumer is a tool (`src/tools/<name>/`: one identity per tool, no
+// matter how many of its own files import the module) or a qualifying site
+// file (a page, a layout, an `.astro` component, an `i18n`/`data` module, or
+// a file a layout loads via `<script src>`) - each site file counts on its
+// own, since "the site" is many different files sharing one classification,
+// not one consumer. A consumer reached only through a chain of other
+// common-layer modules still counts, credited to whichever tool or site file
+// the chain eventually reaches: a `lib` module consumed only by `shell` (or
+// another `lib` module) counts via the tools that reach `shell`, and the
+// same holds when the chain passes through `editor` or `editor-ui` on its
+// way to a tool. Test files never count (TEST_FILE already excludes them
+// from collectSourceFiles()'s default walk, the same exclusion every rule
+// above but rule 6/8 relies on).
 //
 // DEBT-10 deliberately left `.astro` `<script src="...">` unparsed for the
 // main edge scan above (buildEdges()), and that decision stands: rules 1-8
@@ -666,14 +677,17 @@ export function astroScriptSrcEdges() {
 // built from every (from, to) edge - the ordinary import graph plus
 // astroScriptSrcEdges() - find which tools and site files ultimately
 // consume `target`. Walks backwards from `target` and keeps walking through
-// any common-layer node (shell/editor-ui/editor/lib) it reaches, the
-// "common-layer-internal chain" the doc describes; a tool or a qualifying
-// site file stops that branch and is recorded (by `tool:<name>`, or by the
-// site file's own path, so two different site files count as two distinct
-// consumers); anything else (`components`, `test-support`, an unclassified
-// path) is a dead end - recorded as nothing, walked no further. Exported and
-// given a plain `Map` so a test can hand it a small literal graph, the same
-// style rule 7's specRouteViolation() uses a literal route map.
+// any core-module node (shell/editor-ui/editor/lib) it reaches, the
+// "common-layer-internal chain" the doc describes - `editor` included, even
+// though rule 9 never checks an `editor` file's own consumer count (see the
+// rule 9 header comment above), because a chain can still legitimately pass
+// through it on the way to a tool; a tool or a qualifying site file stops
+// that branch and is recorded (by `tool:<name>`, or by the site file's own
+// path, so two different site files count as two distinct consumers);
+// anything else (`components`, `test-support`, an unclassified path) is a
+// dead end - recorded as nothing, walked no further. Exported and given a
+// plain `Map` so a test can hand it a small literal graph, the same style
+// rule 7's specRouteViolation() uses a literal route map.
 export function commonLayerConsumers(target, reverseEdges) {
   const consumers = new Set();
   const visited = new Set([target]);
@@ -708,65 +722,15 @@ export function commonLayerConsumers(target, reverseEdges) {
 }
 
 // The file-walking wrapper main() calls: every non-test file classified
-// shell/editor-ui/editor/lib, checked against the combined reverse graph
-// (ordinary imports plus `<script src>`). No allowlist, like rules 6 and 8:
-// ARCH-25 measured the tree at exactly one violation (SignatureDialog.tsx),
-// which part 1 of that ticket moved into src/tools/sign/ before this rule
-// landed, so it holds at zero from the start.
-// Measured on this tree (ARCH-25 session, 2026-09-24; see that session's
-// report for the full per-file audit): every one of these fails the
-// mechanical "two or more consumers" count, and every one was checked by
-// hand against its real (non-test) importers rather than assumed. None is
-// a miscategorized SignatureDialog - each is either an intentional
-// single-tool piece of the shared `editor`/`editor-ui` core, or a
-// dev/build-time-only artifact that ships in `src/` but is never reached by
-// the runtime import graph at all. A new entry here needs the same bar:
-// the file's real importers checked, not guessed from a name.
-const RULE9_EXCEPTIONS = new Map([
-  // Sign-only pieces of the shared editor/editor-ui core. editor.md
-  // documents this as deliberate, not accidental: "Field detection is
-  // Sign-only and stays behind a dynamic import()... Measured: /redact/
-  // and /merge/ cannot reach them at all." The rest of this group is the
-  // same shape - form-filling and export machinery Redact has no feature
-  // that would ever call.
-  ['src/editor/adapters/pdf/fieldRegions.js', 'Sign-only form-field detection (editor.md)'],
-  ['src/editor/adapters/pdf/formCells.js', 'Sign-only form-field detection (editor.md)'],
-  ['src/editor/adapters/pdf/formGrid.js', 'Sign-only form-field detection (editor.md)'],
-  ['src/editor/adapters/pdf/textRuns.js', 'Sign-only form-field detection (editor.md)'],
-  ['src/editor/adapters/pdf/sign.js', "Sign's own PDF export/signing adapter"],
-  ['src/editor/geometry/minimumSize.ts', 'resize-floor geometry, used only by Sign today'],
-  ['src/editor/text/combPlacement.ts', 'comb-field (form-fill) placement, a Sign-only feature'],
-  ['src/editor/text/fieldOrder.ts', 'form-field tab order, a Sign-only feature'],
-  ['src/editor/text/textCoverage.js', 'export-side font-coverage refusal; only Sign creates typed text'],
-  ['src/editor/workspace/signatureImagePolicy.ts', 'signature image encoding, used only by the signature dialog'],
-  ['src/editor-ui/hooks/useCoarsePointer.ts', 'coarse-pointer hook; only Sign components use it today'],
-  // Redact-only pieces of the shared editor core, the same shape as the
-  // Sign group above but for Redact's own delete/redact pipeline.
-  ['src/editor/adapters/pdf/applyPageEdits.js', "Redact's own page-edit adapter"],
-  ['src/editor/adapters/pdf/deleteObjects.js', "Redact's own delete-objects adapter"],
-  ['src/editor/adapters/pdf/redact.js', "Redact's own redaction PDF adapter"],
-  // Dev/build-time-only: shipped under src/editor/ but reached only by
-  // their own tests and/or a scripts/ generator or spike, never by the
-  // running app - the corpus files editor.md itself describes ("a corpus...
-  // each built into a real PDF and run through the whole pipeline") are
-  // exercised by scripts/score-form.mjs and friends, and the two font
-  // tables are GENERATED FILEs a test regenerates in memory and diffs.
-  ['src/editor/adapters/pdf/corpus/corpus.js', 'form-detection corpus harness, exercised by its test and scripts/'],
-  ['src/editor/adapters/pdf/corpus/detect.js', 'corpus-only detection re-run'],
-  ['src/editor/adapters/pdf/corpus/documents.js', 'corpus fixture documents, test-only'],
-  ['src/editor/adapters/pdf/corpus/scoring/candidates.js', 'corpus scoring internals'],
-  ['src/editor/adapters/pdf/corpus/scoring/match.js', 'corpus scoring internals'],
-  ['src/editor/adapters/pdf/corpus/scoring/score.js', 'corpus scoring entry, exercised by its own test'],
-  ['src/editor/adapters/pdf/fieldLabels.js', 'exercised only by its test and a scripts/ spike'],
-  ['src/editor/text/displayOnlyFonts.js', 'exercised only by tests and scripts/generate-font-coverage.mjs'],
-  ['src/editor/text/fontCoverageReport.js', 'GENERATED FILE, regenerated and diffed only by its own test'],
-  ['src/editor/text/hebrewCombiningCorpus.js', 'shaping-guard corpus data'],
-  ['src/editor/text/languageAlphabets.js', 'feeds the generated coverage report; exercised only by tests/scripts'],
-  ['src/editor/text/liveFontCoverage.js', 'exercised only by its own test'],
-  // A single, unavoidable site consumer: font licensing data has exactly
-  // one legitimate place to render today (the licenses page).
-  ['src/editor/text/fontLicenses.js', 'single site consumer - only the licenses page renders attribution'],
-]);
+// shell/editor-ui/lib (RULE9_LAYERS - editor is out of scope, see the header
+// comment above), checked against the combined reverse graph (ordinary
+// imports plus `<script src>`). No allowlist, like rules 6 and 8, and no
+// exception list either: ARCH-25 measured the tree at exactly one violation
+// once editor was taken out of scope, `SignatureDialog.tsx`, moved into
+// `src/tools/sign/` in the same change that added this rule, so it holds at
+// zero from the start. A module that later fails this check belongs in a
+// tool instead, or should be deleted if nothing uses it - not exempted.
+const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'lib']);
 
 export function commonLayerConsumerViolations() {
   const { edges } = buildEdges();
@@ -780,9 +744,8 @@ export function commonLayerConsumerViolations() {
   const violations = [];
   for (const file of collectSourceFiles(SRC)) {
     const rel = relOf(file);
-    if (RULE9_EXCEPTIONS.has(rel)) continue;
     const moduleOf = classify(rel);
-    if (!CORE_MODULES.has(moduleOf)) continue;
+    if (!RULE9_LAYERS.has(moduleOf)) continue;
     const consumers = commonLayerConsumers(rel, reverseEdges);
     if (consumers.size < 2) violations.push({ file: rel, module: moduleOf, consumers: [...consumers] });
   }
