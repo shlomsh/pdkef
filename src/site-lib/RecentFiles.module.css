@@ -36,6 +36,26 @@
   .name { font-size: 0.72rem; line-height: 1.18; min-height: 2.36em; }
   .sub { font-size: 0.64rem; }
 }
+/* Two rows reserved from first paint so real recents land in place; the
+   picker never shrinks; tiles scale with the row so two rows fit at
+   1280x720. */
+@media (min-width: 1024px) and (min-height: 561px) {
+  .list {
+    height: 100%;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+  .document {
+    min-height: 0;
+    height: 100%;
+    container-type: size;
+    container-name: home-recent-tile;
+  }
+  .preview {
+    height: clamp(40px, calc(100cqh - 96px), 84px);
+    width: auto;
+    aspect-ratio: 16 / 21;
+  }
+}
 /* The same compaction, keyed on height instead of width, for a phone held in
    landscape: ~390px of viewport, of which the app bar, the headline and the
    tool dock already claim more than half. At the full 180px a single row of

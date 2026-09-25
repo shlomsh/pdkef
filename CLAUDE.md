@@ -59,7 +59,10 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - **Team-lead mode.** For anything with independent pieces, delegate to Sonnet subagents instead of
   doing it all on the main thread; brief each one precisely and verify its report yourself — a
   subagent's summary describes intent, not necessarily what happened.
-- **One subagent, one task.** Research and exploration never happen on the main thread. A harder
+- **One subagent, one task, and small ones.** Research and exploration never happen on the main thread.
+  The lead makes the design call, then splits the work into narrow briefs (one change, one guard, one
+  doc edit, one measurement) run in parallel; a brief names the concrete shape, not a goal to search
+  for. No fire-and-forget: read each agent's diff while it runs and stop one that drifts. A harder
   problem gets more subagents working in parallel, not more patience from one.
 - **Review is a separate subagent with zero shared context.** Self-review confirms assumptions, it
   doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact
