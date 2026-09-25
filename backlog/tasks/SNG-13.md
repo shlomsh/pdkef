@@ -1,7 +1,7 @@
 ---
 id: "SNG-13"
 title: "A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: []
 ---
 
 # SNG-13 · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name
+
+*Retired 2026-09-25:* no field names are shown under the raster-first premise. Revisit only if fillable PDFs get their own path (guidelines §12 #20).
 
 *Filed 2026-09-25.* Under the next generation's rules, a field name is shown only when the file itself says
 it (`docs/sign-next-gen-guidelines.md` §1). That covers:

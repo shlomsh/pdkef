@@ -1,6 +1,6 @@
 ---
 id: "SNG-09"
-title: "On a scan, a tapped text box snaps to the printed line under the finger, found locally, with no whole-page detection"
+title: "Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document"
 status: "open"
 priority: "P1"
 epic: "sign-next-gen"
@@ -8,7 +8,9 @@ phase: "near-term"
 depends_on: ["SNG-03"]
 ---
 
-# SNG-09 · On a scan, a tapped text box snaps to the printed line under the finger, found locally, with no whole-page detection
+# SNG-09 · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document
+
+*Widened 2026-09-25:* under the owner's raster-first premise, this ticket's scope grew from text on scans to every mark (text, ticks, crosses, circles, strikes) on every document, not scans alone.
 
 *Filed 2026-09-25* from Shlomi's point that many forms are scans and recall will never reach 100%
 (`docs/sign-next-gen.md` §5.6).

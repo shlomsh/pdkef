@@ -249,12 +249,11 @@ inherits:
   moves. A second finger always cancels a one-finger gesture.
 - **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
   arrow must not change meaning with the language.
-- **Detection speeds the work up. It never gates it, never claims completeness, and never costs more
-  than it saves.** A scan finds nothing, so tapping anywhere to write is always the first-class path. A
-  missed field costs nothing, because a tap writes there anyway. A wrong guess costs one tap to dismiss
-  or correct. A guessed count or field name is never shown, and the copy says "the spots we found".
-  Until a model reads forms reliably, every tool assumes only reasonable precision and recall (owner,
-  2026-09-25; the Sign guidelines §1 hold the error budget).
+- **The app never claims what a form needs.** Even perfect detection cannot know which blanks are yours:
+  an employer's section, an optional box. So no walk over fields, no counts, and no "you missed this".
+  The person chooses what to write, and the app helps only with where, at the fingertip, declining when
+  unsure. Every page is treated as an image, so a scan works like any PDF (owner, 2026-09-25; the Sign
+  guidelines §1).
 - **Every committed change is one undo step**, moves and typing included (UNDO-04). How undo announces
   itself on a phone is decided in the Sign guidelines §6.
 
@@ -280,5 +279,5 @@ Every tool review answers these.
     preview did, checked with a fixture that has real content near an edge, not a blank or centred one?
 13. On a phone, can anything cover what the person is editing, can a swipe on the page move something
     they had not selected, and does the tool still work on a scan where nothing is detected (§17)?
-14. Wherever the tool guesses, what does a wrong guess cost the person, and is it one tap to dismiss
-    or correct? Does anything count, name or promise what was only guessed (§17)?
+14. Does anything claim what the form needs (a gap, a count, a next field), and does every tap do
+    exactly what the person chose?

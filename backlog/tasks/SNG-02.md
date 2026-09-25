@@ -14,8 +14,8 @@ Three genuinely different phone directions, drawn on a design canvas. Each one a
 `docs/sign-next-gen.md` §5:
 - the app owns zoom;
 - no chrome inside the page;
-- ∧ ∨ stepping through the spots found (a count only on a fillable PDF);
-- a review of empty fields at the end;
+- nothing in the UI comes from whole-page detection;
+- the finish shows what was added, never what was missed;
 - free placement stays first-class.
 
 Each sketch covers the same moments:
@@ -44,6 +44,7 @@ Each sketch covers the same moments:
     field, review, a scan, and a fillable PDF where a count is a fact.
   - C's question cards wait for the model step (SNG-12).
   - Shlomi's note: the sketches' Employee details form becomes the app's own example form (SNG-10).
+- **2026-09-25, final:** Shlomi set the premise: "impeccable ux based on raster with user guidance assuming low precision and recall". Even perfect detection cannot tell which blanks are the person's (an employer's section, an optional box), so walks, counts and "you missed" reviews are out, and marks (ticks, crosses, circles, strike-outs) are first-class. Row F and the detection-based paths are superseded; new low-fidelity directions follow.
 
 ## Acceptance
 
