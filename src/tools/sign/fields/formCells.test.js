@@ -63,6 +63,20 @@ describe('detectCellCandidates', () => {
     expect(cell.height).toBeCloseTo(20, 5);
   });
 
+  it('drops an empty lone box whose nearest text is a long heading, not a short caption', () => {
+    // A photo or stamp box under a section heading: text above it, but not a label.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
+    const heading = text('Section 4: For office use only, do not write', { left: 0, top: 10, width: 100 });
+    expect(detectCellCandidates(ink, geometry, 0, [heading])).toEqual([]);
+  });
+
+  it('drops an empty lone box whose short caption sits too far above it', () => {
+    // "Full name" ~18pt above the box: past LONE_CAPTION_GAP, so it labels something else.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
+    const far = text('Full name', { left: 0, top: 0, width: 100 });
+    expect(detectCellCandidates(ink, geometry, 0, [far])).toEqual([]);
+  });
+
   it('drops a lone undivided box that holds its own paragraph, labelled or not', () => {
     // The instructional-panel case the interior-wall rule was written for: a bordered box full
     // of prose. Own text inside a lone box drops it outright, before the label test is even
