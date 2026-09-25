@@ -58,6 +58,18 @@ export const FIELD_TEXT_INSET_EM = 0.25;
 // click point instead of hanging it below the pointer.
 export const TEXT_BOX_LINE_HEIGHT_EM = DEFAULT_LINE_HEIGHT_EM + TEXT_BOX_PADDING_EM * 2;
 
+// A single-line field's font grows toward a legible share of its own detected
+// height, not just shrinks a remembered size down to fit (SNG-10 follow-up):
+// a generously tall lone box ("Full name" on the practice form, 22pt) left a
+// 12pt remembered font filling barely half of it, because `cellFontSize` used
+// to only ever cap a size from above. Chosen so the box (fontSize *
+// TEXT_BOX_LINE_HEIGHT_EM) clears the field at the cap without touching its
+// walls: 14 * 1.29 = 18.06pt inside a field that must be at least
+// FIELD_FONT_MAX_PT / FIELD_FONT_FILL_RATIO = ~21.5pt tall for the cap to
+// engage at all, comfortably under 22pt.
+export const FIELD_FONT_FILL_RATIO = 0.65;   // Share of a detected field's own height its font grows to fill
+export const FIELD_FONT_MAX_PT = 14;         // Cap so a very tall field doesn't render oversized single-line text
+
 // Comb layout (one character per cell, for pre-printed form boxes)
 export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for the side-handle drag, so the box stays grabbable
 // Narrowest cell pitch (in em) a comb is still a comb at. The real floor for
