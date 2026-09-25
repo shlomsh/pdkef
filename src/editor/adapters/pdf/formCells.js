@@ -1,5 +1,6 @@
 import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
+import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
 /**
  * Closed table/box cells from vector ink (`pageInk.js`) that `formGrid.js`'s comb/checkbox
@@ -18,9 +19,11 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
  *
  * 1. Rebuild the page's own grid from its ink: every vertical edge (`verticals` plus rectangle
  *    side walls) and every horizontal rule (`horizontals` plus rectangle top/bottom) `pageInk.js`
- *    reports. This is the same normalization `formGrid.js` does internally (its own
- *    `verticalEdges`/`horizontalRules`, not exported, so duplicated here for a general-purpose
- *    cell rather than a comb/checkbox-specific one).
+ *    reports. This is the same normalization `formGrid.js` uses, both through `inkEdges.js`
+ *    (FORM-24): a general-purpose cell needs two things a comb/checkbox reader does not - a large
+ *    unstroked fill excluded as a background panel rather than a box wall, and a fully-drawn box's
+ *    own top/bottom folded in as rules too, not just its side walls - and those are `inkEdges.js`'s
+ *    `excludeRect` and `includeRectSides` options, not a second copy of the fold itself.
  * 2. Snap rule/edge coordinates, walk adjacent horizontal-rule pairs as row bands, and within
  *    each band walk adjacent vertical-edge pairs as columns. A cell is only kept when real ink
  *    closes all four sides above a coverage threshold - nothing is invented, same discipline as
@@ -106,8 +109,6 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
  */
 
 // Tunables, in PDF points (pageInk.js's native unit).
-/** A rect thinner than this on one axis is a drawn rule, not a box wall. */
-const THIN_INK = 1.5;
 /** Positions within this many points are the same wall (mirrors formGrid.js's PITCH_TOLERANCE). */
 const POS_TOLERANCE = 1.0;
 /** How far a wall may sit from a row band and still count as bounding it. */
@@ -151,47 +152,20 @@ const FULL_TEXT_COVERAGE = 0.4;
 const HEADER_SEARCH_HEIGHT = 220;
 
 // ---------------------------------------------------------------------------
-// Ink normalization - the same folding formGrid.js does (rect sides publish as vertical
-// edges, rect top/bottom as horizontal rules), extended to full rectangles too (a table
-// cell can be drawn as a filled box, not just ruled).
+// Ink normalization - `inkEdges.js`'s `verticalEdges`/`horizontalRules`, called below with the two
+// options this file needs and `formGrid.js` does not: background panels excluded, full rects'
+// top/bottom folded in as rules too (a table cell can be drawn as a filled box, not just ruled).
 // ---------------------------------------------------------------------------
 
 /**
  * A fill with no stroke that is larger than any row both ways is a tinted background panel, not
  * a box: its sides are where the tint stops, not ruled walls. Form 1040 paints its whole body as
  * one 492x666pt fill, and its left side at x=91.6 would otherwise split every field it crosses.
- * Form 101's large frames are stroked, so they keep their walls.
+ * Form 101's large frames are stroked, so they keep their walls. Passed to `inkEdges.js` as
+ * `excludeRect`.
  */
 function isBackgroundPanel(rect) {
   return rect.filled && !rect.stroked && rect.width > MAX_ROW_HEIGHT && rect.height > MAX_ROW_HEIGHT;
-}
-
-function verticalEdgesAll(ink) {
-  const edges = ink.verticals.map((edge) => ({ ...edge }));
-  for (const rect of ink.rects) {
-    if (isBackgroundPanel(rect)) continue;
-    if (rect.width <= THIN_INK && rect.height > THIN_INK) {
-      edges.push({ x: rect.x + rect.width / 2, y0: rect.y, y1: rect.y + rect.height });
-    } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
-      edges.push({ x: rect.x, y0: rect.y, y1: rect.y + rect.height });
-      edges.push({ x: rect.x + rect.width, y0: rect.y, y1: rect.y + rect.height });
-    }
-  }
-  return edges;
-}
-
-function horizontalRulesAll(ink) {
-  const rules = ink.horizontals.map((rule) => ({ ...rule }));
-  for (const rect of ink.rects) {
-    if (isBackgroundPanel(rect)) continue;
-    if (rect.height <= THIN_INK && rect.width > THIN_INK) {
-      rules.push({ y: rect.y + rect.height / 2, x0: rect.x, x1: rect.x + rect.width });
-    } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
-      rules.push({ y: rect.y, x0: rect.x, x1: rect.x + rect.width });
-      rules.push({ y: rect.y + rect.height, x0: rect.x, x1: rect.x + rect.width });
-    }
-  }
-  return rules;
 }
 
 function distinctPositions(values, tolerance) {
@@ -201,25 +175,6 @@ function distinctPositions(values, tolerance) {
     if (out.length === 0 || value - out[out.length - 1] > tolerance) out.push(value);
   }
   return out;
-}
-
-/** Share of `[left, right]` at height `y` that horizontal ink actually covers. */
-function ruledCoverage(rules, y, left, right) {
-  const span = right - left;
-  if (!(span > 0)) return 0;
-  const parts = rules
-    .filter((rule) => Math.abs(rule.y - y) <= BAND_TOLERANCE)
-    .map((rule) => [Math.max(rule.x0, left), Math.min(rule.x1, right)])
-    .filter(([from, to]) => to > from)
-    .sort((a, b) => a[0] - b[0]);
-  let covered = 0;
-  let cursor = left;
-  for (const [from, to] of parts) {
-    if (to <= cursor) continue;
-    covered += to - Math.max(from, cursor);
-    cursor = to;
-  }
-  return covered / span;
 }
 
 /** Share of `[bottom, top]` at position `x` that vertical ink actually covers. */
@@ -277,8 +232,8 @@ function verticalCoverage(edges, x, bottomY, topY) {
  * (edges + columns x rules-at-the-band's-heights)), never every rule on the page per band.
  */
 function buildClosedCells(ink) {
-  const edges = verticalEdgesAll(ink);
-  const rules = horizontalRulesAll(ink);
+  const edges = verticalEdges(ink, { excludeRect: isBackgroundPanel });
+  const rules = horizontalRules(ink, { excludeRect: isBackgroundPanel, includeRectSides: true });
   const ys = distinctPositions(rules.map((r) => r.y), POS_TOLERANCE).sort((a, b) => b - a);
   // Per height: the rules close enough to bound a band there, and the rules actually at it.
   const nearRules = ys.map((y) => rules.filter((rule) => Math.abs(rule.y - y) <= BAND_TOLERANCE));
@@ -329,8 +284,8 @@ function buildClosedCells(ink) {
         if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
         if (inside.some(reaches) || outside.some(crosses)) continue;
 
-        const topCoverage = ruledCoverage(nearRules[i], top, left, right);
-        const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right);
+        const topCoverage = ruledCoverage(nearRules[i], top, left, right, BAND_TOLERANCE);
+        const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right, BAND_TOLERANCE);
         if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
 
         const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);

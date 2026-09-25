@@ -185,8 +185,9 @@ const PRINTED = [
     name: 'a painted checkbox square inside a printed ruled cell',
     why: 'the painted twin of "a checkbox widget inside a printed ruled cell", and it must read '
       + 'the same: the square once, and the two cells beside it. A painted rect publishes its own '
-      + 'top and bottom as horizontal rules (horizontalRulesAll), so the 20pt band has two rule '
-      + 'heights inside it. buildClosedCells scopes rows per column: a cell closes on the nearest '
+      + 'top and bottom as horizontal rules (formCells.js\'s horizontalRules(ink, { includeRectSides: '
+      + 'true }), from inkEdges.js), so the 20pt band has two rule heights inside it. buildClosedCells '
+      + 'scopes rows per column: a cell closes on the nearest '
       + 'rules that cross its own column, so the square\'s rules drop only the cell holding it and '
       + 'the other two close on the row\'s own rules. Before that, adjacent-rule walking cut the '
       + 'whole row into 4/12/4 and it lost all three cells',
