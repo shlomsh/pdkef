@@ -1,7 +1,7 @@
 # MOBI-10 spike: `cells.mjs`, the combined ink+text heuristic
 
 > **Update, MOBI-11 step 1 (2026-09-17):** the algorithm below now lives in product code as
-> `src/editor/adapters/pdf/formCells.js`; `cells.mjs` is a thin CLI wrapper over it. Porting it
+> `src/tools/sign/fields/formCells.js`; `cells.mjs` is a thin CLI wrapper over it. Porting it
 > and writing its unit tests found a real bug: a closed cell's own shape
 > (`{left, right, bottom, top}`) didn't match what `rectIntersectArea` expected
 > (`{x0, y0, x1, y1}`), so a cell's own printed text was never actually found and the "own text

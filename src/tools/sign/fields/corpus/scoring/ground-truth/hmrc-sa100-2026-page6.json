@@ -1,0 +1,209 @@
+{
+  "form": "hmrc-sa100-2026",
+  "sha256": "53841ec2138b5d1ccd8e69ae402b35e6e3a04f17556bb3b0829f55b47f51b506",
+  "sourceUrl": "https://assets.publishing.service.gov.uk/media/69c14d07cfa346b9d4704a8d/SA100-2026.pdf",
+  "pageIndex": 5,
+  "pageSize": {
+    "width": 595.276,
+    "height": 841.89
+  },
+  "render": {
+    "file": "hmrc-sa100-2026-page6.png",
+    "width": 1241,
+    "height": 1754
+  },
+  "notes": "Page 6 of 10 (printed 'Page TR 4', the fourth of eight numbered return pages; pages 1-2 are an unnumbered info sheet). Chosen over TR3 (page 5, 21 currency combs but no checkbox) and TR6 (page 8, richer mix but its sort code/account number/building-society combs are not the currency-comb shape and it adds a signature field this pass leaves for a page picked to show one) as the page with the SA100's three core answer shapes together: 11 currency combs, 3 tick boxes and 1 free-text area, all with numbered captions above-left, none of the 4 AcroForm widgets (all on page 3), and no narrative/notes-only content. Every bound is the real vector ink from collectPageInk (src/tools/sign/fields/pageInk.js) on this exact page, not eyeballed from the render: each currency box is drawn as 11 separate painted rects (1 unfilled '£' cell + 8 filled writable digit cells + 2 unfilled pre-set '.00' pence cells), each tick box and digit cell share one 13.673x16.508pt footprint, and box 14's two answer lines paint as a single 216.351x33.516pt rect. The small unfilled 19.34x11.5pt rects beside each caption are the printed box-number badges (e.g. the '1', '13') and are excluded as caption, not field.",
+  "targets": [
+    {
+      "id": "t001",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.2398,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "1 Payments to registered pension schemes where basic rate tax relief will be claimed by your pension provider (called ‘relief at source’). Enter the payments and basic rate tax",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t002",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.2928,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "1.1 Total of any ‘one-off’ payments in box 1",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t003",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.367,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "2 Payments to a retirement annuity contract where basic rate tax relief will not be claimed by your provider",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t004",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.5718,
+        "y": 0.225,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "3 Payments to your employer’s scheme which were not deducted from your pay before tax – this will be unusual - read the notes",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t005",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.5718,
+        "y": 0.314,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "4 Payments to an overseas pension scheme, which is not UK-registered, which are eligible for tax relief and were not deducted from your pay before tax",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t006",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.4628,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "5 Gift Aid payments made in the year to 5 April 2026",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t007",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.5222,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "6 Total of any ‘one-off’ payments in box 5",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t008",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.137,
+        "y": 0.5964,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "7 Gift Aid payments made in the year to 5 April 2026 but treated as if made in the year to 5 April 2025",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t009",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.5718,
+        "y": 0.4776,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "8 Gift Aid payments made after 5 April 2026 but to be treated as if made in the year to 5 April 2026",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t010",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.5718,
+        "y": 0.537,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "9 Value of qualifying shares or securities gifted to charity",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t011",
+      "kind": "comb",
+      "bounds": {
+        "x": 0.5718,
+        "y": 0.5964,
+        "width": 0.2063,
+        "height": 0.0196
+      },
+      "label": "10 Value of qualifying land and buildings gifted to charity",
+      "cells": 8,
+      "notes": "8-cell whole-pound comb, ink-verified; excludes the leading unfilled currency-symbol cell and the two unfilled, pre-filled '.00' pence cells (this form is filled in whole pounds only, per the TR1 instructions), which are not user-writable."
+    },
+    {
+      "id": "t012",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.1108,
+        "y": 0.7586,
+        "width": 0.023,
+        "height": 0.0196
+      },
+      "label": "13 If you’re registered blind, or severely sight impaired, and your name is on a local authority or other register, put ‘X’ in the box",
+      "notes": "single tick cell, same footprint as a comb digit box; ink-verified."
+    },
+    {
+      "id": "t013",
+      "kind": "text",
+      "bounds": {
+        "x": 0.1108,
+        "y": 0.8179,
+        "width": 0.3634,
+        "height": 0.0398
+      },
+      "label": "14 Enter the name of the local authority or other register",
+      "notes": "two-line answer area drawn as one rect; a horizontal rule likely separates the two printed lines but is not its own painted ink, so the whole area is one target."
+    },
+    {
+      "id": "t014",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.5457,
+        "y": 0.7437,
+        "width": 0.023,
+        "height": 0.0196
+      },
+      "label": "15 If you want your spouse’s, or civil partner’s, surplus allowance, put ‘X’ in the box",
+      "notes": "single tick cell, same footprint as a comb digit box; ink-verified."
+    },
+    {
+      "id": "t015",
+      "kind": "checkbox",
+      "bounds": {
+        "x": 0.5457,
+        "y": 0.8179,
+        "width": 0.023,
+        "height": 0.0196
+      },
+      "label": "16 If you want your spouse, or civil partner, to have your surplus allowance, put ‘X’ in the box",
+      "notes": "single tick cell, same footprint as a comb digit box; ink-verified."
+    }
+  ]
+}

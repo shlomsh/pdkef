@@ -3,7 +3,7 @@
  * MOBI-10 spike CLI: closed table/box cells from vector ink + text, the "combined heuristic"
  * source.
  *
- * The algorithm itself lives in `src/editor/adapters/pdf/formCells.js` (lifted into product
+ * The algorithm itself lives in `src/tools/sign/fields/formCells.js` (lifted into product
  * code for MOBI-11). This is a thin wrapper: it converts between that module's page-percent
  * candidate/text-item shape and CONTRACT.md's 0..1-fraction JSON files, so the spike's scoring
  * pipeline (`score.mjs`, the committed `ground-truth/*.json`) keeps working unchanged and stays
@@ -25,8 +25,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { detectPageCellCandidates } from '../../../src/editor/adapters/pdf/formCells.js';
-import { reconcileFields } from '../../../src/editor/adapters/pdf/fieldRegions.js';
+import { detectPageCellCandidates } from '../../../src/tools/sign/fields/formCells.js';
+import { reconcileFields } from '../../../src/tools/sign/fields/fieldRegions.js';
 
 function parseArgs(argv) {
   const args = { page: 1 };

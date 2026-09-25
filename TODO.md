@@ -90,6 +90,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
 | DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
 | DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
+| DEMO-08 | P3 | [DEMO-08](backlog/tasks/DEMO-08.md) · The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open |
+| DEMO-09 | P1 | [DEMO-09](backlog/tasks/DEMO-09.md) · Hero demo shows both stories stacked until ScrollDriver hydrates |
 
 
 ## Mobile round trip: fill a form from a chat and send it back
@@ -133,6 +135,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| MOBI-35 | P2 | [MOBI-35](backlog/tasks/MOBI-35.md) · Home launcher: pin the picker when recents load |
+| MOBI-36 | P3 | [MOBI-36](backlog/tasks/MOBI-36.md) · Home launcher: tablet picker still moves when recents load |
 | QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
 | QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
@@ -286,6 +290,9 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
 | ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
 | ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
+| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
+| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
+| ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
@@ -368,6 +375,11 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
 | FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
 | FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
+| FORM-21 | P1 | [FORM-21](backlog/tasks/FORM-21.md) · The scored corpus locks in gains and names every regression |
+| FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
+| FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
+| FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
+| FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |

@@ -21,9 +21,12 @@
   background: color-mix(in srgb, var(--color-primary) 7%, transparent);
 }
 
-/* A comb run's ink is a row of teeth only a few points tall, so an outline at
-   its true height is a hairline. Grown upward to the strip a person would write
-   in, which is also the band the tap test accepts. */
+/* An OPEN comb run's ink is a row of teeth only a few points tall, so an
+   outline at its true height is a hairline. Grown upward to the strip a
+   person would write in, which is also the band the tap test accepts. Never
+   applied to a boxed comb (FormFieldHints.tsx checks `region.boxed`): its
+   detected region is already the printed cells, and growing it the same way
+   doubled it upward into whatever sits above the field. */
 .field-hint-comb {
   padding-top: 1.1em;
   margin-top: -1.1em;

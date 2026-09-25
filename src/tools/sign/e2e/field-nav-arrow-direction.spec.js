@@ -32,7 +32,7 @@ const root = path.resolve(here, '..', '..', '..', '..');
 const DOCUMENTS = [
   {
     name: 'a right-to-left form (income tax form 101)',
-    file: path.join(root, 'src', 'editor', 'adapters', 'pdf', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf'),
+    file: path.join(root, 'src', 'tools', 'sign', 'fields', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf'),
     direction: 'rtl',
     forwardOnThe: 'left',
   },

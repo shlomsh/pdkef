@@ -212,3 +212,30 @@ The criterion "tooling among affected projects" cannot be read from the report: 
 `scripts/affected-scope.mjs:315` names only `tool-*` projects, so both runs read "(no tool project;
 site-e2e/fonts only)". Naming non-tool affected projects there would make this check answerable.
 Re-check in a week.
+
+## Post-landing check (2026-09-25, scheduled task `arch-22-narrowing-check`)
+
+Same report over 97 push runs on `main` since `19dca856`.
+
+**Verdict: pass.** No run reported `unowned files: scripts/...`. The report's narrow reason still
+names only `tool-*` projects, so "tooling was affected" is read from each run's `checks` job instead:
+three pushes that changed non-oracle `scripts/` files narrowed and ran
+`vitest run scripts/ scripts/spike/mobi-10/ src/editor/adapters/pdf/corpus/ src/test/`, which is
+the `tooling` and `sign-spike-mobi10` projects in scope:
+- run 35502929247 (`e8b4676f`) and run 35503754634 (`74145046`), as above.
+- run 36058669668 (`9ee3c195`): three `scripts/generate-*-truth.mjs` files plus corpus files.
+
+None was a pure `scripts/`-only push (each also touched the corpus), but before ARCH-22 all three
+would have gone wide on ownership alone.
+
+| bucket | this window | QUAL-08 baseline |
+| --- | --- | --- |
+| docs-only | 15% (15) | 18% |
+| narrow | 30% (29) | 24% |
+| everything | 55% (53) | 58% |
+
+Median wall: everything 169s, narrow 143s, docs-only 12s. Of the 53 wide runs, 46 are core-project
+reach (editor, shell, site, lib), 6 are root config or `.github/`, 1 is `ANALYTICS.md`. Every
+`scripts/`-touching push that went wide also changed a core project, except `5b5d7ba1`, which
+changed the oracle itself. The 11 failed runs since 2026-09-18 all failed in e2e jobs; `scope`
+never failed. No further re-check scheduled.

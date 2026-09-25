@@ -138,6 +138,27 @@
 }
 .launcher > .error { grid-column: 1 / -1; }
 
+/* Two rows reserved from first paint so real recents land in place; the
+   picker never shrinks; tiles scale with the row so two rows fit at
+   1280x720. */
+@media (min-width: 1024px) and (min-height: 561px) {
+  .launcher {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: flex-end;
+    /* Stretches the recents section to fill the cell's cross axis. */
+    align-items: stretch;
+  }
+  .launcher > [data-home-recents] {
+    flex: 0 1 376px;
+    min-height: 0;
+  }
+  .launcher > .tile {
+    flex: 0 0 auto;
+  }
+}
+
 /* Landscape phone (see the matching block in RecentFiles.module.css): the
    picker keeps its full-width row and its touch target, and gives back the
    vertical padding the screen no longer has. After the unconditional
