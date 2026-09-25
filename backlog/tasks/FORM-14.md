@@ -1,7 +1,7 @@
 ---
 id: "FORM-14"
 title: "A caption centred in its cell is a heading, not a label"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
@@ -66,7 +66,7 @@ separators (`isPrintedSeparators`) as before:
    one and leaves its blank on the right, the opposite shape from the side carve's own `right:
    textLeft`, so an LTR caption reaching the midpoint is never a label in that shape to begin with.
    `RTL_RE` covers Hebrew (U+0590-05FF) and Arabic with its supplements and presentation forms
-   (U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB1D-FDFF, U+FE70-FEFF).
+   (U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB1D-FDFF, U+FE70-FEFC; the range stops short of U+FEFF, the byte-order mark).
 2. **`HEADER_GAP_RATIO` (3): an RTL caption side-carves only when its blank-side gap reaches at least
    3x its hugged-side gap.** Unchanged from the exploration above - measured again on every page of
    every scored PDF (2026-09-25): every RTL heading reaches at most ratio 1.35 (itc101's "שם" column
@@ -91,3 +91,7 @@ and thai-sso-1-10 did produce LTR side carves before this landed, and no longer 
 ## Acceptance
 
 - health precision above 94.2 with recall held, and no scored form drops.
+
+Closed 2026-09-25: met (health 86.7/100, no scored form dropped). An independent review found each
+rule's own test was also caught by the other gate; the tests now fail when only their rule is
+disabled (mutation-checked), and `RTL_RE` no longer matches the byte-order mark.

@@ -317,21 +317,24 @@ const PRINTED = [
     expect: { ...none, cells: 6 },
   },
   {
-    name: 'an English caption centred over an empty row: no side carve',
-    why: 'FORM-14: the LTR counterpart to the two RTL heading rows above - the I-9\'s own "List A" '
-      + '/ "List B" column headings, centred the same way (leftGap 40pt, rightGap 40pt each, ratio '
-      + '1.0) and reaching each cell\'s midpoint just like a hugging label would. RTL_RE rejects '
-      + 'them before HEADER_GAP_RATIO is even asked - an LTR caption never side-carves, hugging or '
-      + 'not - so only the blank data row survives.',
+    name: 'an English caption hugging its right wall over an empty row',
+    why: 'FORM-14: the LTR counterpart to the hugging-wall address block above, translated to '
+      + 'English - a "List A" / "List B" pair set against each cell\'s right wall (leftGap 100pt, '
+      + 'rightGap 10pt, ratio 10 - well past HEADER_GAP_RATIO\'s own boundary of 3), the same shape '
+      + 'a real hugging label takes and, on an RTL caption, would carve and keep. RTL_RE rejects a '
+      + 'side carve outright when the caption is not RTL, before HEADER_GAP_RATIO is even asked, so '
+      + 'only the blank data row survives.',
     doc: {
       ink: [
         { ink: 'cellRow', x: 40, y: 260, width: 240, height: 12.4, columns: 2 },
         { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
       ],
     },
+    // Page-percent on the 400x300 default page: each 120pt cell (x 40-160, 160-280) holds a
+    // 10pt caption 10pt off its own right wall - leftGap 100pt vs rightGap 10pt.
     text: [
-      { str: 'List A', left: 20, top: 12, width: 10, height: 1 },
-      { str: 'List B', left: 50, top: 12, width: 10, height: 1 },
+      { str: 'List A', left: 35, top: 12, width: 2.5, height: 1 },
+      { str: 'List B', left: 65, top: 12, width: 2.5, height: 1 },
     ],
     expect: { ...none, cells: 2 },
   },
