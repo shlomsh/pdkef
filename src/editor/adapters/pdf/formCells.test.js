@@ -442,8 +442,12 @@ describe('FORM-14: a caption\'s own shape decides label vs heading, not what rep
   // boundary, matching form 101's real children-table captions.
   const idCaptionHugging = text('מספר זהות', { left: 30, width: 10, ...CAPTION });
   const nameCaptionHugging = text('שם', { left: 80, width: 10, ...CAPTION });
-  // Centred in its cell: leftGap 20 vs rightGap 20, ratio 1.0 - health's own four column headings
-  // measure 0.94-1.02, itc101's least-centred one 1.35.
+  // Centred in its cell: ratio 1.0 - health's own four column headings measure 0.94-1.02,
+  // itc101's least-centred one 1.35. Same percent numbers as everywhere else in this block, but
+  // 'drops a centred RTL caption...' below renders them against a page double this one's width,
+  // so each 50pt half-cell becomes a 100pt one and the gap on both sides clears MIN_BLANK_WIDTH
+  // (25pt) - on this page's own 50pt cells a 20pt leftGap is already under that floor, so the
+  // case would pass even with HEADER_GAP_RATIO disabled and pin nothing.
   const idCaptionCentred = text('מספר זהות', { left: 20, width: 10, ...CAPTION });
   const nameCaptionCentred = text('שם', { left: 70, width: 10, ...CAPTION });
   const idSeparator = text('/ /', { left: 30, width: 10, ...CAPTION });
@@ -470,8 +474,17 @@ describe('FORM-14: a caption\'s own shape decides label vs heading, not what rep
   }
 
   it('drops a centred RTL caption as a heading, keeping the data row', () => {
-    const ink = mergeInk(header(), emptyRows(1));
-    const candidates = detectCellCandidates(ink, geometry, 0, [idCaptionCentred, nameCaptionCentred]);
+    // Cells doubled to 100pt wide (page 200x100pt, header cols [0, 100, 200]) so
+    // idCaptionCentred/nameCaptionCentred - unchanged percent numbers - land with a 40pt gap on
+    // both sides: clearly past MIN_BLANK_WIDTH (25pt) with ratio 1.0, so only HEADER_GAP_RATIO,
+    // not the width floor, is what has to reject them.
+    const wideGeometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 200, height: 100 }, rotation: 0 });
+    const wideColumns = [0, 100, 200];
+    const ink = mergeInk(
+      rowBand({ top: HEADER_TOP, bottom: HEADER_BOTTOM, columns: wideColumns }),
+      rowBand({ top: HEADER_BOTTOM, bottom: HEADER_BOTTOM - 20, columns: wideColumns }),
+    );
+    const candidates = detectCellCandidates(ink, wideGeometry, 0, [idCaptionCentred, nameCaptionCentred]);
     expect(candidates).toHaveLength(2); // only the one data row's 2 columns
     expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
   });
@@ -493,6 +506,26 @@ describe('FORM-14: a caption\'s own shape decides label vs heading, not what rep
     const idLatin = text('ID number', { left: 30, width: 10, ...CAPTION });
     const nameLatin = text('Name', { left: 80, width: 10, ...CAPTION });
     const candidates = detectCellCandidates(ink, geometry, 0, [idLatin, nameLatin]);
+    expect(candidates).toHaveLength(2); // only the one data row's 2 columns - the caption row is gone
+    expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
+  });
+
+  it('never side-carves a Latin caption whose own text carries a U+FEFF (BOM)', () => {
+    // RTL_RE used to run to ﻿, so a byte-order-mark left behind by a PDF's own text
+    // extraction (not RTL script) could still register as an RTL character and let a plain
+    // English caption side-carve. A BOM that leads the caption's *own joined string* is not a
+    // real case here: writableArea trims that string before testing it, and trim() already
+    // treats ﻿ as whitespace, so a genuinely leading/trailing BOM is stripped before RTL_RE
+    // ever sees it - proven harmless independently of this regex. The real case is a BOM a PDF
+    // leaves at the start of one of several text runs making up a caption (a common decoding
+    // artefact), which survives the trim because it is not at the joined string's own edge - so
+    // this caption is split into two runs, 'ID' then the BOM-prefixed 'number', same hugging
+    // geometry (leftGap 30 vs rightGap 10) as idCaptionHugging above.
+    const ink = mergeInk(header(), emptyRows(1));
+    const idPart1 = text('ID', { left: 30, width: 5, ...CAPTION });
+    const idPart2 = text('﻿number', { left: 35, width: 5, ...CAPTION });
+    const nameLatin = text('Name', { left: 80, width: 10, ...CAPTION });
+    const candidates = detectCellCandidates(ink, geometry, 0, [idPart1, idPart2, nameLatin]);
     expect(candidates).toHaveLength(2); // only the one data row's 2 columns - the caption row is gone
     expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
   });

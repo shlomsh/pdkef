@@ -439,7 +439,7 @@ const MAX_LABEL_CHARS = 25;
  * way `HEBREW_SIGNATURE`/`HEBREW_DATE` already read the page's own text -
  * no threshold, no corpus fitting.
  */
-const RTL_RE = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+const RTL_RE = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFC]/;
 /**
  * How much further a side-carved caption's blank-side gap must reach than
  * its hugged-side gap before the carve is trusted (FORM-14, previously
