@@ -1,7 +1,7 @@
 ---
 id: "ARCH-24"
 title: "Field detection is a capability with one entry point, not a pipeline the Sign tool assembles"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
