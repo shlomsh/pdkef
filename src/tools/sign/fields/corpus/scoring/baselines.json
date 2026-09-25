@@ -7,25 +7,33 @@
     "pdkef-practice-form": {
       "pdf": "public/images/redaction-guide/sample.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json",
-      "note": "Self-labelling: the nine AcroForm widgets are the truth, exact to the point. The one miss is the signature field, which collectTextFieldWidgets does not read by design (MOBI-11) - so this form reports a real scope line rather than a flattering 100%. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
-      "targets": 9,
-      "candidates": 9,
-      "matched": 8,
-      "recall": 88.9,
-      "precision": 88.9,
+      "note": "SNG-10 (2026-09-25): v2, our own flat vector form (no AcroForm, no widgets), replacing the v1 permission-slip AcroForm this row used to score. Its ground truth is generated straight from its own layout by scripts/generate-practice-form.mjs, not eyeballed - see that truth file's own notes. Recall and precision are both 100% for the first time: the two misses v1 always carried (a signature field collectTextFieldWidgets never read, and a scope line for open signature/date lines with no box) are both gone, the second one because a sibling SNG-10 change taught formLines.js to read a bare captioned rule as a field. v1 stays committed at src/tools/sign/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry.",
+      "targets": 13,
+      "candidates": 13,
+      "matched": 13,
+      "recall": 100,
+      "precision": 100,
       "byKind": {
         "text": {
           "recall": 100,
-          "targets": 4,
-          "found": 4,
-          "precision": 83.3,
-          "candidates": 6,
-          "matchedCandidates": 5
+          "targets": 5,
+          "found": 5,
+          "precision": 100,
+          "candidates": 7,
+          "matchedCandidates": 7
         },
         "comb": {
           "recall": 100,
-          "targets": 1,
-          "found": 1,
+          "targets": 2,
+          "found": 2,
+          "precision": 100,
+          "candidates": 2,
+          "matchedCandidates": 2
+        },
+        "date": {
+          "recall": 100,
+          "targets": 3,
+          "found": 3,
           "precision": 100,
           "candidates": 1,
           "matchedCandidates": 1
@@ -39,23 +47,15 @@
           "matchedCandidates": 2
         },
         "signature": {
-          "recall": 0,
-          "targets": 1,
-          "found": 0,
-          "precision": null,
-          "candidates": 0,
-          "matchedCandidates": 0
-        },
-        "date": {
           "recall": 100,
           "targets": 1,
           "found": 1,
-          "precision": null,
-          "candidates": 0,
-          "matchedCandidates": 0
+          "precision": 100,
+          "candidates": 1,
+          "matchedCandidates": 1
         }
       },
-      "sha256": "95ab7e747d3a7796571326248252a342210b7001ec1d1832f2b2c28a4b626992"
+      "sha256": "acd827078d45051c640ab62fdfafee5bde8fc981fbe591f1fa64f0a9dd5f0610"
     },
     "health": {
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf",

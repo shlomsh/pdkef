@@ -160,7 +160,7 @@ a note saying why.
 
 | Form | targets | recall | precision | |
 | --- | --- | --- | --- | --- |
-| `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
+| `pdkef-practice-form` | 13 | 100% | 100% | our own, Latin, flat, truth generated from its own layout, exact to the point |
 | `health` | 75 | 86.7% | 100% | Hebrew, flat |
 | `itc101` | 139 | 94.2% | 97.8% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
@@ -171,12 +171,17 @@ a note saying why.
 | `thai-sso-1-10` | 46 | 17.4% | 100% | Thai, flat, dotted leaders, legacy fonts |
 | `hmrc-sa100-2026` | 15 | 26.7% | 4.3% | Latin, flat, amount boxes drawn as separate squares |
 
-**A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
-`irs-1040-2024` both derive their truth from the widgets `formWidgets.js` itself reads, so of course
-we find them. What those two rows really watch is the widget pass continuing to work and the ink
-pass not going greedy beside it: on the 1040's crowded page the detector emits 90 candidates for 88
-targets, and the 2 that do not match (one of them the line 6c amount box) are printed-geometry cells
-the widgets do not corroborate. The two Thai forms are self-labelling the same way (FORM-16), and
+**A self-labelling form's recall is structural, not earned.** `irs-1040-2024` derives its truth
+from the widgets `formWidgets.js` itself reads, so of course we find them. What that row really
+watches is the widget pass continuing to work and the ink pass not going greedy beside it: on the
+1040's crowded page the detector emits 90 candidates for 88 targets, and the 2 that do not match
+(one of them the line 6c amount box) are printed-geometry cells the widgets do not corroborate.
+`pdkef-practice-form` used to be self-labelling the same way, when v1 was a live AcroForm; SNG-10
+replaced it with v2, a flat vector form with no widgets at all, whose ground truth is generated
+straight from its own layout (`scripts/practice-form-content.mjs`, `scripts/generate-practice-form.mjs`)
+rather than derived from anything the detector itself reads - its 100%/100% is not structural the
+way the AcroForm rows' recall is, since nothing about the truth comes from the same code path being
+scored. The two Thai forms are self-labelling the same way (FORM-16), and
 their two very different scores are what makes that visible: `thai-lor-yor-01-2562` is sparse enough
 that the widget pass alone gets it to a genuine 100%/100%, while `thai-pnd90-2565`'s dense page 3
 drops to 52.4%/23.5% because its answer combs carry an internal divider (between the whole-number

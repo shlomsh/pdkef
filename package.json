@@ -37,6 +37,7 @@
     "generate:licenses": "node scripts/runtime-license-inventory.mjs --write",
     "generate:language-acceptance": "node scripts/generate-language-acceptance.mjs",
     "generate:backlog": "node scripts/generate-backlog.mjs",
+    "generate:practice-form": "node scripts/generate-practice-form.mjs",
     "sync:pdfjs-wasm": "node scripts/sync-pdfjs-wasm.mjs",
     "check:fast": "npm run check:backlog && npm run check:guidance && npm run test:editor-dependency-directions && npm run test:module-boundaries && npm run test:gesture-golden-rule && npm run test:detection-purity && node scripts/check-class-resolution.js && npm run test:changed && npm run typecheck",
     "check:push": "node scripts/check-push.mjs",
