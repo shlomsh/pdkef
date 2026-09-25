@@ -3,6 +3,7 @@ import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { collectCheckboxGlyphs } from './pdfObjects.js';
 import { collectCheckboxWidgets } from './formWidgets.js';
+import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
 /**
  * Recovers fillable geometry from a flat form's own vector content.
@@ -49,8 +50,6 @@ const TOOTH_MAX_HEIGHT = 14;
 const BOXED_COMB_MAX_HEIGHT = 28;
 /** Ink shorter than this is a dot or an artefact rather than a deliberate mark. */
 const TOOTH_MIN_HEIGHT = 1.5;
-/** A rect narrower (or shorter) than this is a drawn rule, not a box. */
-const THIN_INK = 1.5;
 /** Teeth of one row hang from the same rule; this is how far their feet may differ. */
 const BASELINE_TOLERANCE = 1.5;
 /** How far a separator may sit from where the pitch predicts it (PDF points). */
@@ -72,65 +71,11 @@ const DUPLICATE_TOLERANCE = 0.5;
 const CLOSED_EDGE_COVERAGE = 0.7;
 
 /**
- * Every vertical edge the page draws, normalized to `{x, y0, y1}`.
- *
- * A thin rect is one edge down its middle - that is how a producer that has no
- * stroke draws a rule. A rect with real area contributes its two side walls,
- * which is where form 101's identity comb gets its right-hand boundary.
+ * Comb runs never took a background-panel exclusion or a full rect's top/bottom as a rule - see
+ * `inkEdges.js`'s module doc comment for what each option means and who else wants it. `edges` and
+ * `rules` here are this file's local names for `verticalEdges(ink)`/`horizontalRules(ink)`'s
+ * defaults, used throughout `findCombRuns` and `findRunsFromWalls` below.
  */
-function verticalEdges({ verticals, rects }) {
-  const edges = verticals.map((edge) => ({ ...edge }));
-  for (const rect of rects) {
-    if (rect.width <= THIN_INK && rect.height > THIN_INK) {
-      edges.push({ x: rect.x + rect.width / 2, y0: rect.y, y1: rect.y + rect.height });
-    } else if (rect.width > THIN_INK && rect.height > THIN_INK) {
-      edges.push({ x: rect.x, y0: rect.y, y1: rect.y + rect.height });
-      edges.push({ x: rect.x + rect.width, y0: rect.y, y1: rect.y + rect.height });
-    }
-  }
-  return edges;
-}
-
-/**
- * Every horizontal rule the page draws, normalized to `{y, x0, x1}`.
- *
- * A producer with no stroke draws a rule as a very short filled rect, exactly
- * as it draws a vertical one, so both sources are folded together here.
- */
-function horizontalRules({ horizontals, rects }) {
-  const rules = horizontals.map((rule) => ({ ...rule }));
-  for (const rect of rects) {
-    if (rect.height <= THIN_INK && rect.width > THIN_INK) {
-      rules.push({ y: rect.y + rect.height / 2, x0: rect.x, x1: rect.x + rect.width });
-    }
-  }
-  return rules;
-}
-
-/**
- * The share of `[left, right]` that horizontal ink covers at height `y`.
- *
- * Measured as coverage rather than as one spanning rule because a table drawn
- * cell by cell rules each cell separately: the health declaration's comb is
- * closed along its whole top, but by nine abutting segments rather than one.
- */
-function ruledCoverage(rules, y, left, right) {
-  const span = right - left;
-  if (!(span > 0)) return 0;
-  const parts = rules
-    .filter((rule) => Math.abs(rule.y - y) <= BASELINE_TOLERANCE)
-    .map((rule) => [Math.max(rule.x0, left), Math.min(rule.x1, right)])
-    .filter(([from, to]) => to > from)
-    .sort((a, b) => a[0] - b[0]);
-  let covered = 0;
-  let cursor = left;
-  for (const [from, to] of parts) {
-    if (to <= cursor) continue;
-    covered += to - Math.max(from, cursor);
-    cursor = to;
-  }
-  return covered / span;
-}
 
 /** Groups teeth into rows by the baseline their feet share. */
 function rowsByBaseline(teeth) {
@@ -246,8 +191,8 @@ function findRunsFromWalls(walls, rules, edges, { requireCompactBoxes = false } 
       if (cells < MIN_CELLS || cells > MAX_COMB_CELLS) continue;
       const left = separators[0];
       const right = separators[separators.length - 1];
-      const boxed = ruledCoverage(rules, row.top, left, right) >= CLOSED_EDGE_COVERAGE
-        && ruledCoverage(rules, row.bottom, left, right) >= CLOSED_EDGE_COVERAGE;
+      const boxed = ruledCoverage(rules, row.top, left, right, BASELINE_TOLERANCE) >= CLOSED_EDGE_COVERAGE
+        && ruledCoverage(rules, row.bottom, left, right, BASELINE_TOLERANCE) >= CLOSED_EDGE_COVERAGE;
       // Short walls are the usual teeth hanging from a writing rule. Taller
       // walls are only safe to treat as a comb when they close a compact row
       // of boxes: that admits real, full-height digit cells without turning a
