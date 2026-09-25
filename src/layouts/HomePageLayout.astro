@@ -563,8 +563,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   }
   .home-header { grid-area: header; }
   /* Fills its row rather than centring (MOBI-35): recents arrive after mount,
-     so FileDropzone/RecentFiles reserve two rows inside this fixed box and pin
-     the picker to its bottom; nothing moves when the real tiles land. */
+     so FileDropzone/RecentFiles reserve two rows inside this fixed box, top
+     first, with the picker under them; nothing moves when the real tiles land. */
   .workspace-launcher { grid-area: launcher; align-self: stretch; }
   .demo-track { grid-area: demo; align-self: center; }
   .home-dock { grid-area: dock; }
@@ -643,6 +643,11 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      tour speeds both stories up silently. */
   .home-tour { height: calc(100svh + 1116svh); }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
+  /* The first thumbnail's top (10px + the tile's 6px padding) lines up with the
+     demo phone's, which sits on HeroDemo's 16px stage padding (MOBI-37). */
+  @media (min-width: 1024px) and (min-height: 561px) {
+    .workspace-launcher { padding-top: 10px; }
+  }
   [data-working-area][data-drag-over] { outline: 3px dashed var(--color-primary); outline-offset: -10px; background: var(--color-success-soft); }
   #home-information { position: relative; padding-top: 24px; }
   .card-stack {

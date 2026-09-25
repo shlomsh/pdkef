@@ -4,7 +4,9 @@ import { test, expect } from '@playwright/test';
 // reserves two rows of recents (up to 6 files) from first paint, so neither
 // the picker (`[data-home-picker]`) nor the recents list
 // (`[data-home-recents] ul`) moves or resizes once real recents replace the
-// one server-rendered placeholder tile. See .claude/rules/home-page.md.
+// one server-rendered placeholder tile. Also guards MOBI-37: the reserved
+// rows are top-aligned with the hero demo's phone, and the picker sits
+// directly under them. See .claude/rules/home-page.md.
 
 async function seedRecentFiles(page, entries) {
   await page.addInitScript((recentFiles) => {
@@ -70,12 +72,17 @@ async function readRects(page) {
     const list = document.querySelector('[data-home-recents] ul');
     const hero = document.querySelector('header.hero-header');
     const dock = document.querySelector('nav.home-dock');
+    const thumb = document.querySelector('[data-home-recents] li [class*="_preview_"]');
+    const phone = document.querySelector('[data-hero-track="sign"] [class*="_phone_"]');
     return {
       firstRects: window.__firstRects,
       settledRects: { picker: box(picker), list: box(list), tile: box(list.querySelector('li')) },
       clsSum: window.__clsSum,
       heroBottom: hero ? hero.getBoundingClientRect().bottom : null,
       dockTop: dock ? dock.getBoundingClientRect().top : null,
+      thumbTop: thumb ? thumb.getBoundingClientRect().top : null,
+      phoneTop: phone ? phone.getBoundingClientRect().top : null,
+      rowGap: picker ? parseFloat(getComputedStyle(picker.parentElement).rowGap) : null,
     };
   });
 }
@@ -127,6 +134,12 @@ test.describe('home launcher picker and recents stay pinned as recents load', ()
         // picker must clear the tool dock below.
         expect(result.settledRects.list.y).toBeGreaterThanOrEqual(result.heroBottom);
         expect(result.dockTop - (result.settledRects.picker.y + result.settledRects.picker.height)).toBeGreaterThanOrEqual(16);
+
+        // The first recents thumbnail's top lines up with the demo phone's
+        // (MOBI-37), and the picker sits directly under the reserved rows.
+        expect(Math.abs(result.thumbTop - result.phoneTop)).toBeLessThanOrEqual(1);
+        const listBottom = result.settledRects.list.y + result.settledRects.list.height;
+        expect(Math.abs(result.settledRects.picker.y - (listBottom + result.rowGap))).toBeLessThanOrEqual(1);
       });
     }
   }
