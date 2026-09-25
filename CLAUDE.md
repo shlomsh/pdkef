@@ -60,6 +60,9 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
   subagent's summary describes intent, not necessarily what happened.
 - **One subagent, one task.** Research and exploration never happen on the main thread. A harder
   problem gets more subagents working in parallel, not more patience from one.
+- **Small tasks, in parallel, hands-on.** Never hand a whole build to one agent and wait. Write the
+  contract between the pieces first, split the work into tasks of a few minutes on disjoint files, run
+  them together, and integrate and test each piece yourself as it lands.
 - **Review is a separate subagent with zero shared context.** Self-review confirms assumptions, it
   doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact
   line it applies to.
