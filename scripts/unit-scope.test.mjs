@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { selectUnitTests, runUnitByImpact, WIDEN_RULES, ORACLE_FILE } from './unit-scope.mjs';
+import { selectUnitTests, runUnitByImpact, WIDEN_RULES, ORACLE_FILES } from './unit-scope.mjs';
+const ORACLE_FILE = 'scripts/unit-scope.mjs';
 
 /* scripts/unit-scope.mjs (ARCH-28) selects unit tests by file impact
    (Vitest's own `vitest related` module graph) instead of by Nx project.
@@ -47,6 +48,16 @@ describe('selectUnitTests: fail-open cases', () => {
   it('an oracle change wins even alongside an otherwise-narrow file', () => {
     const scope = selectUnitTests({ files: [file('src/tools/merge/PdfMergeTool.tsx'), file(ORACLE_FILE)] });
     expect(scope.all).toBe(true);
+  });
+
+  it.each([...ORACLE_FILES])('widens to the whole suite when %s changed (it computes the diff or the scope)', (oracle) => {
+    expect(selectUnitTests({ files: [file(oracle)] }).all).toBe(true);
+  });
+
+  it('widens to the whole suite for a CI workflow change (run 34890208527: ci.yml broke gitLastModified.test.js)', () => {
+    const scope = selectUnitTests({ files: [file('.github/workflows/ci.yml'), file('docs/troubleshooting.md')] });
+    expect(scope.all).toBe(true);
+    expect(scope.reasons[0]).toMatch(/ci-workflows/);
   });
 
   it('widens to the whole suite for an unpaired deletion, even mixed with a real narrow change', () => {

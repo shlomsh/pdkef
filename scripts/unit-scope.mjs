@@ -54,8 +54,9 @@ function isTestFile(f) {
 
 // This file is the oracle deciding what narrows for units - never trust a
 // narrowed run to validate the code that decided to narrow it, the same
-// reasoning scripts/affected-scope.mjs's ORACLE_FILES gives for itself.
-export const ORACLE_FILE = 'scripts/unit-scope.mjs';
+// reasoning scripts/affected-scope.mjs's ORACLE_FILES gives for itself. The
+// two scripts it computes the diff and the Nx scope with count too.
+export const ORACLE_FILES = new Set(['scripts/unit-scope.mjs', 'scripts/change-scope.mjs', 'scripts/affected-scope.mjs']);
 
 // The one pure, exported, unit-tested table every blind spot in the ARCH-28
 // inventory turned into a rule. `tests: 'all'` widens the whole push to the
@@ -65,6 +66,12 @@ export const ORACLE_FILE = 'scripts/unit-scope.mjs';
 // list alongside the changed files themselves (see the file header for why
 // that's enough - no second merge step is needed here).
 export const WIDEN_RULES = [
+  {
+    id: 'ci-workflows',
+    reason: 'a workflow change alters the environment every CI test runs in (checkout depth, Node, env); run 34890208527 broke gitLastModified.test.js this way',
+    match: (f) => f.startsWith('.github/workflows/'),
+    tests: 'all',
+  },
   {
     id: 'vitest-config',
     reason: 'vitest.config.js defines what "related" means; a change here can silently narrow, widen or misconfigure everything',
@@ -234,8 +241,9 @@ export function selectUnitTests({ files, exists = () => true }) {
 
   const paths = files.map((f) => f.path);
 
-  if (paths.includes(ORACLE_FILE)) {
-    return { all: true, seeds: [], reasons: [`CI oracle changed: ${ORACLE_FILE}`] };
+  const oracleHits = paths.filter((p) => ORACLE_FILES.has(p));
+  if (oracleHits.length > 0) {
+    return { all: true, seeds: [], reasons: [`CI oracle changed: ${oracleHits.join(', ')}`] };
   }
 
   for (const rule of WIDEN_RULES) {
