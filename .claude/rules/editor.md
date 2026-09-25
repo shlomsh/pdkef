@@ -27,6 +27,12 @@ the evidence behind both are in
 [docs/module-boundaries.md](../../docs/module-boundaries.md) (ARCH-15); read it before moving a file
 into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
 
+**Next generation (2026-09-25).** Sign is being redesigned, phone first, with desktop on the same
+architecture. The plan of record is [docs/sign-next-gen.md](../../docs/sign-next-gen.md), under the SNG
+epic. Local mobile fixes are frozen by Shlomi's decision. Read its §3 (iOS learnings) before touching any
+touch, zoom, focus or keyboard code. The floating-toolbar rules below govern the current editor only, and
+retire with SNG-06.
+
 ## Shape of the editor (landed, do not re-migrate)
 
 - `src/editor/` is meant to be plain TS with no Preact: the document model (`model/editorModel.ts`,

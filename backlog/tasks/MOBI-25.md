@@ -1,7 +1,7 @@
 ---
 id: "MOBI-25"
 title: "Next on a pinch-zoomed iPhone throws the page to its top"
-status: "in_progress"
+status: "retired"
 priority: "P1"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -31,3 +31,9 @@ Guards: `field-move-scroll.spec.js`'s last two tests, each red without the chang
 - The exact iOS mechanism was not reproduced: Playwright cannot pinch-zoom WebKit or raise its keyboard, so
   the zoomed branch is pinned by what it calls, not by where iOS lands. Confirm on a real iPhone, zoomed and
   not, with the keyboard up, both for a visible neighbour and for a field a page away.
+
+## Retired 2026-09-25 into the next-generation Sign
+
+Retired, not fixed. Shlomi stopped local mobile fixes on 2026-09-25, because each one was locally right and
+created the next edge. This ticket is a symptom of a cause the new editor removes by design. Its failure
+case is carried into SNG-05's acceptance. See `docs/sign-next-gen.md` §1-2 and the SNG epic.
