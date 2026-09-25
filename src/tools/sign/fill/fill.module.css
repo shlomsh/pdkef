@@ -67,3 +67,29 @@
     display: none;
   }
 }
+
+/* FocusProxy.tsx: focused inside the touch handler so iOS raises the keyboard
+   before the real slot exists (MOBI-24). 16px so iOS never zooms the page to
+   focus it; fixed position, 1px and fully transparent so it is never seen. */
+.proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* On the page overlay while a tool other than Text is armed (docs/sign-fill-mode.md,
+   "What each tool reaches"): fill inputs stop taking taps, so a tap on a field
+   reaches that tool (Date lands in the field, a mark in its box) instead of
+   focusing the field for typing. The attribute is every fill input's own
+   (fillTypes.ts, FILL_INPUT_ATTR); it outranks .slot and .text-input-fill. */
+.taps-go-to-tool [data-fill-input] {
+  pointer-events: none;
+}
