@@ -253,16 +253,10 @@ export default function useFormFieldRegions(
       try {
         const [
           { PDFDocument },
-          { detectFormFields },
-          { createPageGeometry },
-          { pageCropBox },
-          { toPageTextRuns },
+          { detectFormFields, pageGeometry, toPageTextRuns },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
           import('../../editor/adapters/pdf/detectFormFields.ts'),
-          import('../../editor/geometry/coords.ts'),
-          import('../../editor/adapters/pdf/pageInk.js'),
-          import('../../editor/adapters/pdf/textRuns.js'),
         ]);
         detectorLoaded = true;
         const document = await PDFDocument.load(sourceBytes.slice(0), {
@@ -281,14 +275,10 @@ export default function useFormFieldRegions(
         const pageDirections: TextDirection[] = [];
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
           const pdfLibPage = document.getPage(pageIndex);
-          // Own geometry walk, independent of whatever the detector computes
-          // internally for the same page: reusing its private state isn't
-          // worth the coupling risk to a shipped, tested feature for what is,
-          // per page, one more (cheap) computation from the same crop box.
-          const geometry = createPageGeometry({
-            cropBox: pageCropBox(pdfLibPage),
-            rotation: pdfLibPage.getRotation().angle,
-          });
+          // `pageGeometry` is the same function `detectFormFields` calls
+          // internally for this same page - see its own docstring - so this
+          // walk cannot drift from what the entry point uses.
+          const geometry = pageGeometry(pdfLibPage);
           const pdfjsPage = await sourceDocument.getPage(pageIndex + 1);
           if (!current) return;
           const items = await pageTextRuns(pdfjsPage, geometry, toPageTextRuns);

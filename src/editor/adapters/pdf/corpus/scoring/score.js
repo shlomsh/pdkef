@@ -3,11 +3,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { greedyMatch } from './match.js';
-import { detectFormFields } from '../../detectFormFields.ts';
+import { detectFormFields, pageGeometry, toPageTextRuns } from '../../detectFormFields.ts';
 import { toCandidates } from './candidates.js';
-import { toPageTextRuns } from '../../textRuns.js';
-import { createPageGeometry } from '../../../../geometry/coords.ts';
-import { pageCropBox } from '../../pageInk.js';
 
 /**
  * Scores the product detector against a form's reviewed ground truth.
@@ -106,10 +103,7 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
   const bytes = fs.readFileSync(pdf);
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const page = doc.getPage(pageIndex);
-  const runs = await pageTextRuns(bytes, pageIndex, createPageGeometry({
-    cropBox: pageCropBox(page),
-    rotation: page.getRotation().angle,
-  }));
+  const runs = await pageTextRuns(bytes, pageIndex, pageGeometry(page));
   // detectFormFields detects a whole document at once (ARCH-24), and this
   // harness only has real text for the one page it scores - every other page
   // gets `[]`, same as the element corpus does for a page a case has nothing

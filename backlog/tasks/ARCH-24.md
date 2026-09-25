@@ -125,8 +125,8 @@ guarded.
       in the corpus, not asserted in prose.
 - [x] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
-- [x] `test:lazy-modules` still passes, with its list reduced (5 rows -> 2: the new entry point plus
-      `pageInk`, which stays real - see "Step A landed" below for why).
+- [x] `test:lazy-modules` still passes, with its list reduced to the new entry point alone (`pageInk`
+      no longer builds as a separate chunk either - see "Step A follow-up" below).
 
 ## Step A landed (2026-09-25)
 
@@ -171,3 +171,16 @@ forms, including `itc101`'s signature candidate, held exactly); `npx vitest run 
 src/tools/sign` is 882 tests green; `npm run typecheck` is clean; the three detection e2e specs
 (`form-grid-fill`, `form-cell-fill`, `form-field-nav-phone`) are 17/17 green against a fresh build.
 `npm run check:fast` is green.
+
+## Step A follow-up (2026-09-25)
+
+The one remaining gap in step A: the hook still built page geometry and text runs via its own dynamic
+imports of `coords.ts`, `pageInk.js` and `textRuns.js`, relying on convention that its geometry matched
+the entry point's. `detectFormFields.ts` now exports `pageGeometry(page)` (what it already computed
+internally, unchanged) and re-exports `toPageTextRuns`, so both the hook and `scoring/score.js` call
+through the entry point instead of duplicating the computation; `useFormFieldRegions.ts` now dynamically
+imports only `@cantoo/pdf-lib` and `detectFormFields.ts`. With `pageInk.js`'s only production importers
+now behind that one entry point, it stops building as a chunk of its own (confirmed on the built
+output), so `LAZY_ONLY` drops to one row. Sabotage-checked twice: a renamed `pageGeometry` export fails
+the wiring test with a clear diff; a static import of the entry point from `PdfWorkspace.tsx` fails
+`test:lazy-modules` (missing chunk, plus `pdf-lib` going eager on `/sign/`). Both restored, green again.
