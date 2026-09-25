@@ -88,7 +88,10 @@ export function fileCannotReachDist(file) {
   return false;
 }
 
+// No resolvable base or no changed files means we cannot tell what the diff
+// touched, so fail open, the same direction affected-scope.mjs's wide() takes.
 export function reachesDist(files) {
+  if (files.length === 0) return true;
   return files.some((file) => !fileCannotReachDist(file));
 }
 
@@ -119,9 +122,12 @@ export const DIST_GUARD_STEPS = ['test:csp', 'test:seo', 'test:redirects', 'test
 // e2e_paths, fonts, export_guards) and the two this file adds (docsOnly,
 // reachesDist) - see scripts/check-push.test.mjs for the scenarios this
 // covers.
+// A docs-only diff runs what ci.yml's `scope` job runs for one, nothing more.
+export const DOCS_ONLY_STEPS = ['check:backlog', 'check:guidance'];
+
 export function planSteps({ docsOnly, everything, e2e_paths, fonts, export_guards, reachesDist: build }) {
+  if (docsOnly) return [...DOCS_ONLY_STEPS];
   const steps = [...ALWAYS_GUARD_STEPS];
-  if (docsOnly) return steps;
 
   steps.push('unit', 'typecheck');
 
@@ -195,6 +201,11 @@ function printScope({ base, dirty, scope }) {
   console.error(lines.join('\n'));
 }
 
+function previewAlreadyRunning() {
+  const r = spawnSync('lsof', ['-ti', 'tcp:4173', '-sTCP:LISTEN'], { encoding: 'utf8' });
+  return r.status === 0 && r.stdout.trim() !== '';
+}
+
 function main() {
   const startAll = Date.now();
   const base = resolveBase(undefined);
@@ -210,6 +221,10 @@ function main() {
   const steps = planSteps(scope);
   const timings = [];
   let failed = null;
+
+  if (steps.some((id) => id.startsWith('e2e:')) && previewAlreadyRunning()) {
+    console.error('check:push: something is already listening on 4173. Playwright reuses it locally, so it may test an older build; stop it unless it serves this worktree\'s dist/.');
+  }
 
   for (const id of steps) {
     const t0 = Date.now();

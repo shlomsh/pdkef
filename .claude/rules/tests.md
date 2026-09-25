@@ -114,4 +114,7 @@ all - `fileCannotReachDist()`'s allowlist (docs/backlog, `.github/`, `*.test.*`,
 specs, and `scripts/` other than the handful `npm run build` itself invokes) gates the build and its
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
-`dist/` on its own - Playwright cannot run against a stale one.
+`dist/` on its own - Playwright cannot run against a stale one. A docs-only diff runs only `check:backlog` and
+`check:guidance`, as CI does; no resolvable base or an empty diff fails open (build and every dist
+guard). Before Playwright it warns when something already listens on 4173, since Playwright reuses
+it locally and may test an older build.
