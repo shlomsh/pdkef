@@ -483,7 +483,7 @@ src/lib/drafts/draftStore.js            old: everything=true (193 files)   new: 
 src/editor/model/editorModel.ts         old: everything=true (193 files)   new: 4 seeds, vitest related -> 3 test files, ~1.9s
 src/shell/BasePdfTool.tsx               old: everything=true (193 files)   new: 5 seeds, vitest related -> 18 test files, ~9.5s
 src/tools/sign/PdfSignTool.tsx          old: 63 files (5 Nx projects)      new: 5 seeds, vitest related -> 7 test files, ~8.7s
-src/pages/pdf-to-image.astro            old: everything=true (193 files)   new: 1 seed, vitest related -> 0 test files ("No test files found", exit 0)
+src/pages/pdf-to-image.astro            old: everything=true (193 files)   new: 2 seeds (the file + the import-scan guard, rule whole-src-import-scan, added after review) -> 1 test file
 vitest.config.js                        old: everything=true (193 files)   new: widen rule "vitest-config" -> everything (193 files) - unchanged, correctly
 src/lib/__fixtures__/num-1.pdf          old: everything=true (193 files)   new: widen rule "lib-pdf-fixtures" -> 12 seeds, vitest related -> 11 test files, ~9.3s
 ```

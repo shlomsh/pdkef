@@ -54,6 +54,18 @@ describe('selectUnitTests: fail-open cases', () => {
     expect(selectUnitTests({ files: [file(oracle)] }).all).toBe(true);
   });
 
+  it.each([
+    ['src/components/OtherGuides.astro', 'scripts/check-module-boundaries.import-scan.test.mjs'],
+    ['src/lib/some-module.mjs', 'scripts/check-module-boundaries.import-scan.test.mjs'],
+    ['THIRD_PARTY_LICENSES.md', 'src/editor/text/fontAttribution.test.js'],
+    ['src/pages/licenses.astro', 'src/editor/text/fontAttribution.test.js'],
+    ['public/fonts/Heebo-Regular.ttf', 'src/tools/sign/PdfSignTool.test.tsx'],
+  ])('a change to %s seeds %s (review findings: read by path, not imported)', (changed, test) => {
+    const scope = selectUnitTests({ files: [file(changed)] });
+    expect(scope.all).toBe(false);
+    expect(scope.seeds).toContain(test);
+  });
+
   it('widens to the whole suite for a CI workflow change (run 34890208527: ci.yml broke gitLastModified.test.js)', () => {
     const scope = selectUnitTests({ files: [file('.github/workflows/ci.yml'), file('docs/troubleshooting.md')] });
     expect(scope.all).toBe(true);
@@ -74,11 +86,11 @@ describe('selectUnitTests: fail-open cases', () => {
     // changedFilesWithStatus() never emits an 'A' entry with a status of 'D'
     // for the same path - this just confirms selectUnitTests only reacts to
     // an actual 'D' status, not to the mere fact that a path is new. Picked a
-    // path no widen rule matches (an .astro file - the whole-src scan rules
-    // only match .js/.jsx/.ts/.tsx) so the seed list is exactly the one file.
-    const scope = selectUnitTests({ files: [file('src/pages/about.astro', 'A')], exists: () => true });
+    // path no widen rule matches (a public/ image) so the seed list is
+    // exactly the one file.
+    const scope = selectUnitTests({ files: [file('public/images/moved.png', 'A')], exists: () => true });
     expect(scope.all).toBe(false);
-    expect(scope.seeds).toEqual(['src/pages/about.astro']);
+    expect(scope.seeds).toEqual(['public/images/moved.png']);
   });
 
   it('widens when every changed path matches no rule and none survives on disk', () => {
@@ -182,6 +194,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
       'public/hero-demo-noscript.css',
       'src/components/HeroDemo/HeroDemo.module.css',
       'public/llms.txt',
+      'THIRD_PARTY_LICENSES.md',
       'src/styles/global.css',
       'src/layouts/HomePageLayout.astro',
       'src/content/content-pages/sign-pdf-in-your-language.yaml',
