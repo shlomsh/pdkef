@@ -62,7 +62,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | --- | --- | --- |
 | `fillTypes.ts` | types | the contract (lead) |
 | `fillMode.ts` | pure | `isFillMode(search)`: `?next=1` |
-| `fillOrder.ts` | pure | `fillOrder(items, directionOfPage)`, `enterKeyHint(index, count)` |
+| `fillOrder.ts` | pure | `fillOrder(items, boxOf, directionOfPage)` over `inReadingOrder` (shared with `orderTypableFields`), `enterKeyHint(index, count)` |
 | `fillSlots.ts` | pure | `detectedSlots(order, textElements, placementFor)`, `freeSlot(at, placement)`, `slotKey(field)` |
 | `slotElement.ts` | pure | `elementForSlot(slot, text, defaults)`: the `TextElement` a filled slot becomes |
 | `fillReach.ts` | pure | `reachTarget(point, targets, pxPerPercent, options?)` |
