@@ -1,7 +1,7 @@
 ---
 id: "ARCH-27"
 title: "Replay real pushes through a path map and decide whether Nx still earns its place"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "module-boundaries"
 phase: "near-term"
@@ -54,3 +54,43 @@ inferred, not measured. This ticket measures it.
 ## Out of scope
 
 Removing Nx in this ticket. Changing what counts as a core project.
+
+## Result (2026-09-25)
+
+The goal this serves is CI, and the chain agents run locally, running only what a change touches or
+impacts. Nx is one tactic toward that. Three measurements, spikes committed under
+`scripts/spike/arch-27/`:
+
+**1. Replay (`path-map-replay.mjs`).** 98 push runs since `19dca856`; 15 docs-only, 83 compared. Nx
+was re-run at each push's own sha (detached checkout, `nx show projects --affected`), and matched the
+CI verdict on all 83. A hand-written dependents table fed into the same `deriveScope()` gave identical
+`everything`, `fonts`, `export_guards`, `unit_paths` and `e2e_paths` on **83 of 83**: 0 narrower,
+0 wider. The only difference is the reason text on 25 wide runs (the map names one more core
+project). The one edge that matters for narrowing is `editor-ui -> {tool-sign, tool-redact}`.
+
+**2. Graph drift (`graph-drift.mjs`).** All 156 first-parent commits graphed. The project graph
+changed 4 times: 3 folder or `project.json` moves (a map edit in the same commit anyway) and 1
+ordinary import (`src/lib/signHelpers.js` importing `src/constants/signGeometry.js`, adding
+`lib -> site`) between two core projects, so no verdict could change. A hand map missed zero
+verdicts in the window.
+
+**3. Where the time goes (measured on the Mac, not CI).** The non-Playwright chain is 48s alone,
+104s while sibling worktrees run tests, which is the normal state with parallel agents.
+`check:fast` is 24s. Only the unit run is narrowed today; `typecheck` (17-30s), `build` (7-16s) and
+the dist guards run in full on every non-docs push. At file level the gap is large: for real
+`editor`, `lib` and `shell` pushes the oracle ran all 193 unit files because they are core projects,
+while `vitest related <changed files>` selected 2, 13 and 1. On CI, per-job setup (checkout, `npm ci`
+~10s, Playwright system deps 14-26s, build ~12s) is a floor narrowing cannot touch.
+
+## Decision
+
+- **Nx does not earn its place, but removing it is not the win.** It adds nothing over a small map,
+  and costs `nx` + `@nx/js` in every job's install and a few seconds of graph per job. Its removal
+  is DEBT-07's second branch; do it as part of ARCH-28, which rewrites the oracle anyway, not as its
+  own project.
+- **The win is file-level impact instead of project-level.** 46 of 53 wide runs in the ARCH-22
+  window were core reach, and no project graph can narrow those. ARCH-28 takes unit tests to
+  `vitest related`, with the caveats measured here (`.astro`, moved files, tests that read fixtures
+  by path, config files) handled as explicit widen rules.
+- **Locally, agents should run the oracle's scope, not the whole chain.** ARCH-29 gives them one
+  command that runs exactly what CI would run for their diff.
