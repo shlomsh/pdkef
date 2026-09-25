@@ -249,8 +249,12 @@ inherits:
   moves. A second finger always cancels a one-finger gesture.
 - **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
   arrow must not change meaning with the language.
-- **Detection speeds the work up. It never gates it, and it never claims completeness.** A scan finds
-  nothing, so tapping anywhere to write is always the first-class path, and the copy says "the fields we found".
+- **Detection speeds the work up. It never gates it, never claims completeness, and never costs more
+  than it saves.** A scan finds nothing, so tapping anywhere to write is always the first-class path. A
+  missed field costs nothing, because a tap writes there anyway. A wrong guess costs one tap to dismiss
+  or correct. A guessed count or field name is never shown, and the copy says "the spots we found".
+  Until a model reads forms reliably, every tool assumes only reasonable precision and recall (owner,
+  2026-09-25; the Sign guidelines §1 hold the error budget).
 - **Every committed change is one undo step**, moves and typing included (UNDO-04). How undo announces
   itself on a phone is decided in the Sign guidelines §6.
 
@@ -276,3 +280,5 @@ Every tool review answers these.
     preview did, checked with a fixture that has real content near an edge, not a blank or centred one?
 13. On a phone, can anything cover what the person is editing, can a swipe on the page move something
     they had not selected, and does the tool still work on a scan where nothing is detected (§17)?
+14. Wherever the tool guesses, what does a wrong guess cost the person, and is it one tap to dismiss
+    or correct? Does anything count, name or promise what was only guessed (§17)?
