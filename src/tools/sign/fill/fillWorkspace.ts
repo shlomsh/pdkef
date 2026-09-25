@@ -10,8 +10,13 @@ import {
   TEXT_BOX_LINE_HEIGHT_EM,
 } from '../../../constants/signGeometry.js';
 import { elementIsOnField } from '../../../editor/text/fieldOrder.ts';
-import type { PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
-import type { FillItem } from './fillTypes.ts';
+import type { FieldRegion, PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
+import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
+import { detectedSlots, freeSlot, placementForField, placementForFree } from './fillSlots.ts';
+import { fillOrder } from './fillOrder.ts';
+import { boxKey } from './fillDom.ts';
+import { textFillKey } from './fillTypes.ts';
+import type { FillItem, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
 
 /**
  * A fill item's box in page percent, for `fillOrder.ts`'s reading-order sort
@@ -43,7 +48,7 @@ export function boxOf(
   const { element } = item;
   const field = order.find((candidate) => elementIsOnField(element, candidate));
   if (field) {
-    return { ...field.region, pageIndex: field.region.pageIndex };
+    return { ...field.region };
   }
   const heightPoints = pageHeightPointsOf(element.pageIndex);
   const fontSize = element.fontSize ?? DEFAULT_FONT_SIZE_PT;
@@ -67,4 +72,87 @@ export function boxOf(
  */
 export function fillItemIndex(items: FillItem[], key: string): number {
   return items.findIndex((item) => item.key === key);
+}
+
+/**
+ * What `documentFillItems` builds a document's fill items from:
+ * `PdfWorkspace`'s own state (the detected fields in reading order, the
+ * placed text elements, the open free slot) plus what a fresh slot's
+ * placement needs - the remembered typography and each page's size in PDF
+ * points.
+ */
+export interface DocumentFillInput {
+  /** orderTypableFields' output: every detected comb and cell, in reading order. */
+  order: TypableField[];
+  /** Every text element in the document. */
+  textElements: TextElement[];
+  /** Where a tap opened the one free slot (FillContext.freeAt), or null. */
+  freeAt: PagePoint | null;
+  /** The remembered font (lastFont, lastFontSize): slots never follow the selected element's. */
+  typography: { fontFamily: string; fontSize: number };
+  /** A page's size in PDF points. */
+  pageSizeOf: (pageIndex: number) => { width: number; height: number };
+  directionOfPage: (pageIndex: number) => TextDirection;
+}
+
+/**
+ * Every fill item in the document, in reading order: each detected field
+ * still empty as a slot, the free slot, and every text element.
+ */
+export function documentFillItems(input: DocumentFillInput): FillItem[] {
+  const { order, textElements, freeAt, typography, pageSizeOf, directionOfPage } = input;
+  const pageContext = (pageIndex: number) => {
+    const size = pageSizeOf(pageIndex);
+    return { ...typography, pageWidthPoints: size.width, pageHeightPoints: size.height };
+  };
+  const slots = detectedSlots(order, textElements, (field) => placementForField(field, pageContext(field.region.pageIndex)));
+  const withFree = freeAt
+    ? [...slots, freeSlot(freeAt, placementForFree(freeAt, pageContext(freeAt.pageIndex)))]
+    : slots;
+  const items: FillItem[] = [
+    ...withFree.map((slot) => ({ kind: 'slot' as const, key: slot.key, slot })),
+    ...textElements.map((element) => ({ kind: 'text' as const, key: textFillKey(element.id), element })),
+  ];
+  return fillOrder(items, (item) => boxOf(item, order, (pageIndex) => pageSizeOf(pageIndex).height), directionOfPage);
+}
+
+/** What a tap or hover can reach for the armed tool (docs/sign-fill-mode.md, "Taps"). */
+export function fillReachTargets(
+  tool: FillTool,
+  items: FillItem[],
+  checkboxes: FieldRegion[],
+  boxOfItem: (item: FillItem) => PercentBox & { pageIndex: number },
+): ReachTarget[] {
+  const fillTarget = (item: FillItem): ReachTarget => {
+    const { pageIndex, left, top, width, height } = boxOfItem(item);
+    return { kind: 'fill', key: item.key, pageIndex, box: { left, top, width, height } };
+  };
+  switch (tool) {
+    case 'text':
+      return items.map(fillTarget);
+    case 'date':
+      return items.filter((item) => item.kind === 'slot' && item.slot.field !== null).map(fillTarget);
+    case 'mark':
+      return checkboxes.map((region): ReachTarget => ({
+        kind: 'box',
+        key: boxKey(region),
+        pageIndex: region.pageIndex,
+        box: { left: region.left, top: region.top, width: region.width, height: region.height },
+      }));
+    case 'other':
+      return [];
+  }
+}
+
+/**
+ * Items grouped by page, each page's list keeping the given order; items on
+ * a page at or past `numPages` are dropped.
+ */
+export function fillItemsByPage(items: FillItem[], numPages: number): FillItem[][] {
+  const pages: FillItem[][] = Array.from({ length: numPages }, () => []);
+  for (const item of items) {
+    const pageIndex = item.kind === 'slot' ? item.slot.pageIndex : item.element.pageIndex;
+    if (pageIndex >= 0 && pageIndex < numPages) pages[pageIndex].push(item);
+  }
+  return pages;
 }
