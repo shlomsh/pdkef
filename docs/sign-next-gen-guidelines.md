@@ -29,7 +29,7 @@ Detection is good on most typed forms, bad on some, and blind on scans; labels a
 |---|---|---|
 | misses a field | a tap writes there anyway, lined up with the printed line | none |
 | marks a non-field | a quiet dashed mark; "Not a field" at that stop removes it for good | one tap |
-| guesses the wrong kind | a text box, with the guessed kind offered in the bar | one tap |
+| guesses the wrong kind | where the guess is only offered in the bar ("Today", "Sign"), a text box as if there were no guess; where it acts (a found checkbox ticks, a signature stop arrives with no keyboard), one tap corrects it: "Text instead", or a tap on the line | none, or one tap |
 | guesses a wrong label | nothing: a guessed label is never shown | none |
 | finds only part of the form | nothing counts or promises; review asks you to check each page | none |
 
@@ -148,7 +148,7 @@ The rules:
   - comb/cell and text: open for typing, keyboard up (the ∨ tap focuses synchronously, §4);
   - a checkbox: framed, no keyboard; a tap or Space ticks it (MOBI-05);
   - a date: opens for typing into its printed cells;
-  - a signature spot: framed, no keyboard, and the bar's primary action is "Sign". Arriving never opens the sheet, so a wrong guess costs nothing.
+  - a signature spot: framed, no keyboard, and the bar's primary action is "Sign". Arriving never opens the sheet. If it is not a signature line, a tap on it writes text there (the one rule), so a wrong guess costs one tap.
   - Today's walk skips checkboxes and signatures (`fieldOrder.ts:16-19`). The next generation includes them (proposed, open #6).
   - `detectFormFields` (`src/tools/sign/fields/detectFormFields.ts`, d7f8c817) already returns every checkbox, and every cell including the signature kind. Only `useFormFieldRegions.ts` filters signature cells today. So the walk reads the detection result directly, through the floor (SNG-11), with kinds from `fields/fieldTypes.ts`.
 - **"Not a field"** is in the bar at every found spot that is still empty (§1).
@@ -372,7 +372,7 @@ Builds on UX§9.
 | **Drafts and reload mid-walk** | Elements persist as today. The walk position is saved in the draft (proposed, open #14). After a reload the field is re-selected but not focused: iOS allows no keyboard without a tap, so one tap resumes typing. |
 | **A pinch during a text session** | Allowed. Editing is a state, not a gesture, so the session and the keyboard stay open, zoom changes around the fingers, and the camera does not move afterwards (§4). |
 | **The signature sheet's typed name** | Its input follows every keyboard rule here: at least 16px, focused synchronously on the tap that opens "Type", and the sheet stays above the keyboard. |
-| **A form detection reads badly** (HMRC SA100 at 4.3% precision, ภ.ง.ด.90 at 23.5%) | The floor removes the marks (SNG-11), so the page behaves as a scan does: tap to write, lined up, with §1's "We didn't mark anything on this form" line. Nothing apologises. |
+| **A form detection reads badly** (HMRC SA100 at 4.3% precision, ภ.ง.ด.90 at 23.5%) | The floor removes the marks, the stops and any count (SNG-11). The snap still runs, since the print is there to line up with, so tap to write works as everywhere. §1's "We didn't mark anything on this form" line shows once. Nothing apologises. |
 | **A stray tap** | It writes a box and raises the keyboard. Tapping away, or Done, closes the empty box and it disappears, with no undo step. |
 
 ## Sources
