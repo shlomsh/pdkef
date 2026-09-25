@@ -529,9 +529,9 @@ function confidenceOf(resolved, kind) {
 }
 
 /**
- * @typedef {{left: number, top: number, width: number, height: number}} PercentBox
- * @typedef {PercentBox & {str: string}} PageTextRun
- * @typedef {PercentBox & {kind: string, enclosure?: PercentBox, writable?: PercentBox}} FieldCandidate
+ * @typedef {import('./fieldTypes.ts').PercentBox} PercentBox
+ * @typedef {import('./fieldTypes.ts').PageTextRun} PageTextRun
+ * @typedef {import('./fieldTypes.ts').FieldCandidate} FieldCandidate
  */
 
 /**

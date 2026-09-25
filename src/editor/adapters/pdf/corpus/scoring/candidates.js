@@ -11,20 +11,23 @@
  * (0..100) and the contract wants page fractions (0..1).
  *
  * Kinds are mapped, not invented. The detector's vocabulary (`comb`, `text`,
- * `date`, `table-cell`, `checkbox`) is a subset of the contract's, and
- * anything it does not recognise stays `unknown` rather than being guessed at
- * - `unknown` matches any target kind, so guessing would inflate the score.
+ * `date`, `table-cell`, `checkbox`, `signature`) is a subset of the
+ * contract's, and anything it does not recognise stays `unknown` rather than
+ * being guessed at - `unknown` matches any target kind, so guessing would
+ * inflate the score.
  */
 
-/** Detector kind -> contract kind. Anything absent is reported `unknown`. */
-const KINDS = {
-  comb: 'comb',
-  text: 'text',
-  date: 'date',
-  'table-cell': 'table-cell',
-  checkbox: 'checkbox',
-  signature: 'signature',
-};
+import { DETECTOR_FIELD_KINDS } from '../../fieldTypes.ts';
+
+/**
+ * Detector kind -> contract kind, identity by construction: every kind a
+ * detector can produce (`fieldTypes.ts`'s `DETECTOR_FIELD_KINDS`, FORM-23) is
+ * already a contract kind, so there is nothing to remap, only to recognise.
+ * A kind absent from this (an entry `DETECTOR_FIELD_KINDS` does not carry,
+ * which today is none) falls through to `fallbackKind` below and is reported
+ * `unknown`.
+ */
+const KINDS = Object.fromEntries(DETECTOR_FIELD_KINDS.map((kind) => [kind, kind]));
 
 /**
  * @param {{left: number, top: number, width: number, height: number}} region
