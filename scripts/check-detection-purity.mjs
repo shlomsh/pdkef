@@ -98,6 +98,7 @@ export const DETECTION_MODULES = [
   'src/tools/sign/fields/pageInk.js',
   'src/tools/sign/fields/formGrid.js',
   'src/tools/sign/fields/formCells.js',
+  'src/tools/sign/fields/formLines.js',
   'src/tools/sign/fields/inkEdges.js',
   'src/tools/sign/fields/formWidgets.js',
   'src/tools/sign/fields/fieldRegions.js',

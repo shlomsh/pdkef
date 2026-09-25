@@ -368,8 +368,10 @@ function headerAbove(cell, textItems) {
 // into חתימת (e.g. "חתימת העובד/ת", signature-of-the-employee), which does not contain the
 // literal string "חתימה" - matching the root instead of the lemma is what actually catches
 // every signature label on both spike forms.
-const HEBREW_SIGNATURE = 'חתימ';
-const HEBREW_DATE = 'תאריך';
+// Exported so `formLines.js` reads the same two constants for its own signature/date keyword
+// table rather than redeclaring them - one Hebrew root per kind, one owner.
+export const HEBREW_SIGNATURE = 'חתימ';
+export const HEBREW_DATE = 'תאריך';
 const SLASH_DATE_RE = /^[\s/.]{1,6}$/;
 /** One or more bare 1-3 letter Latin runs - almost always checkbox glyphs (Wingdings-style
  * symbol fonts decode to ASCII letters), never real words on these Hebrew forms, including

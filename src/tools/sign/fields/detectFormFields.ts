@@ -11,6 +11,7 @@ import type {
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { detectPageRegions } from './formGrid.js';
 import { detectCellCandidates } from './formCells.js';
+import { detectLineCandidates } from './formLines.js';
 import { detectWidgetRegions } from './formWidgets.js';
 import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 
@@ -64,18 +65,25 @@ export type { PageTextRun, DetectionContext, SourceRegions, FieldSource };
 
 /**
  * The page's own drawn ink: comb teeth, checkbox squares and glyphs, ruled
- * cells. Wraps `detectPageRegions` (combs + checkboxes, which already folds
- * in checkbox widgets read straight off `/Annots` - see its own docstring)
- * and `detectCellCandidates` (closed cells, which needs the page's ink,
- * geometry and text runs for label lookup) - the two calls
- * `useFormFieldRegions.ts` made directly before this file existed.
+ * cells, and open signature/date lines. Wraps `detectPageRegions` (combs +
+ * checkboxes, which already folds in checkbox widgets read straight off
+ * `/Annots` - see its own docstring), `detectCellCandidates` (closed cells,
+ * which needs the page's ink, geometry and text runs for label lookup) - the
+ * two calls `useFormFieldRegions.ts` made directly before this file existed -
+ * and `detectLineCandidates` (SNG-10: a bare, captioned rule neither of the
+ * other two ever looks at), appended to the same `cells` array. Both cell
+ * sources run against the one `ink` this source already collected, and the
+ * line pass is handed the other two's regions so it never re-reports ground
+ * either of them already explains (`formLines.js`'s own module doc).
  */
 const inkSource: FieldSource = {
   name: 'ink',
   async detect(page, { geometry, pageIndex, textRuns }) {
     const { combs, checkboxes } = detectPageRegions(page, pageIndex);
-    const cells = detectCellCandidates(collectPageInk(page), geometry, pageIndex, textRuns);
-    return { combs, checkboxes, cells };
+    const ink = collectPageInk(page);
+    const cells = detectCellCandidates(ink, geometry, pageIndex, textRuns);
+    const lines = detectLineCandidates(ink, geometry, pageIndex, textRuns, [...combs, ...checkboxes, ...cells]);
+    return { combs, checkboxes, cells: [...cells, ...lines] };
   },
 };
 
