@@ -81,14 +81,52 @@ tool's own routes, plus `/`; a spec that genuinely needs another tool's page liv
 `e2e/` instead. Read both rules' exact wording in `docs/module-boundaries.md` before adding a test that
 touches more than one tool.
 
-## Affected-scope rules (`scripts/affected-scope.mjs`, `docs/nx-affected-ci.md`)
+## Unit-by-impact selection (`scripts/unit-scope.mjs`, ARCH-28)
+
+Unit tests are selected by Vitest's own module graph, not by which Nx project a changed file's folder
+belongs to: `resolveUnitScope()` feeds the changed files to `vitest related <files> --run
+--passWithNoTests`, so a change picks up exactly the test files that actually import it (or import
+something that imports it), transitively. `WIDEN_RULES` is the one pure, exported, unit-tested table
+for what that import graph cannot see - a file a test reads with `node:fs`/`readdirSync` instead of
+`import` (PDF fixtures, font binaries, a handful of one-off text reads), a test that walks the whole
+repository at run time (`pdfRender.test.js`, `noCamelCaseSvgAttrs.test.js`, the import-scan guard,
+`backlog-data.test.mjs`), or global config that changes what "related" even means
+(`vitest.config.js`, `astro.config.mjs`, `tsconfig*.json`, `package*.json`) - each row backed by the
+ARCH-28 blind-spot inventory. A matching row either adds specific test files to the seed list (passing
+a test file's own path as a `related` seed selects exactly that file - Vitest seeds its "affected" set
+with the `related` list itself before walking import edges) or widens the whole push to the full suite.
+Also fail-open, same direction as every rule below: no usable base, an empty changed-file list, an
+unpaired deletion (`vitest related` on a path that no longer exists silently selects zero tests, and a
+git-grep-based fallback was rejected as too unreliable to trust - see the file's own comment), or a
+`vitest related` process that could not even be spawned all widen to the whole suite. A **core-folder**
+change (`src/lib/`, `src/editor/`, `src/shell/`, `src/pages/`) no longer forces the whole suite for
+units - only `WIDEN_RULES` or the fail-open cases above do; Nx's `CORE_PROJECTS` rule (below) still
+forces `everything` for e2e/font/export scope, which is unrelated and unaffected by this. One code
+path, three callers - CI's `checks` job (`affected-scope.mjs --run unit`, which now delegates here),
+`check:push` (`runUnitByImpact` on its own once-resolved `resolveUnitScope()`), and `check:fast`
+(`test:changed` is `node scripts/unit-scope.mjs --run`) - so none of them can select a different test
+set for the same diff.
+
+Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
+`unit-scope.mjs`) leaves git's rename detection on (`-M`), unlike `changedFiles()`'s own deliberate
+`--no-renames` (kept there for Nx *ownership*, DEBT-03 - a rename must affect both its source and
+destination folder). A real move reports only its destination (status `A`) since the same import edges
+still exist there; only a genuine, unpaired deletion keeps status `D` and triggers the whole-suite
+widen.
+
+## Nx-decided scope (`scripts/affected-scope.mjs`, `docs/nx-affected-ci.md`) - e2e, fonts, export guards
+
+`scripts/affected-scope.mjs`'s own `deriveScope()`/`unit_paths` computation below is unchanged and
+still backs `e2e_paths` narrowing (a tool project's own root) - it is simply no longer read to decide
+which unit test files run; see the section above for that.
 
 - The Nx project graph is the oracle: `affected-scope.mjs` asks `nx show projects --affected` for the
-  changed files, then CI runs one narrowed `vitest run` and one narrowed `playwright test` per shard.
-- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`) widen to everything: every tool depends on all
-  four, so a change to any of them can affect every tool's behavior and nothing narrows anyway.
-- An affected `tool-<name>` project narrows unit and e2e paths to that tool's own
-  `src/tools/<name>/` and `src/tools/<name>/e2e/`; `src/test/` always runs alongside a narrowed set.
+  changed files, then CI runs one narrowed `playwright test` per shard (and, historically, the now-
+  retired `vitest run <unit_paths>` line - see above for what replaced it).
+- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`) widen e2e/font/export scope to everything: every
+  tool depends on all four, so a change to any of them can affect every tool's behavior and nothing
+  narrows anyway.
+- An affected `tool-<name>` project narrows e2e paths to that tool's own `src/tools/<name>/e2e/`.
 - The 25 font screening guards (`fonts` Playwright project, `e2e/sign/`) run per-push only when a
   font-registry file, a guard spec/fixture, or the toolchain around them changed - a hand-written
   file-glob rule in `affected-scope.mjs` (`matchesFontsGlob`, ARCH-23), not whether Nx's `fonts`
@@ -106,10 +144,11 @@ touches more than one tool.
 
 The local pre-push command: computes the same scope as CI, once, then runs only the steps that scope
 needs, stopping at the first failure. It never re-derives the scope itself - it calls
-`affected-scope.mjs`'s own exported `resolveScope`/`runUnit`/`runE2eProduct`/`runE2ePerf`/`runFonts`/
-`runExportGuards` against one base (the merge-base of `origin/main` and `HEAD`) and one file list (the
-working tree against that base, uncommitted and untracked files included, so it works before a commit
-too). The one question it adds that the oracle doesn't answer is whether the diff reaches `dist/` at
+`affected-scope.mjs`'s own exported `resolveScope`/`runE2eProduct`/`runE2ePerf`/`runFonts`/
+`runExportGuards` and `unit-scope.mjs`'s `resolveUnitScope`/`runUnitByImpact` against one base (the
+merge-base of `origin/main` and `HEAD`) and one file list (the working tree against that base,
+uncommitted and untracked files included, so it works before a commit too). The one question it adds
+that the oracle doesn't answer is whether the diff reaches `dist/` at
 all - `fileCannotReachDist()`'s allowlist (docs/backlog, `.github/`, `*.test.*`, `src/test/`, `e2e/`
 specs, and `scripts/` other than the handful `npm run build` itself invokes) gates the build and its
 dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
