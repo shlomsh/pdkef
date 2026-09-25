@@ -11,31 +11,51 @@
 
 ## 0. North star
 
-Open a form on a phone. Walk its fields one at a time, or tap anywhere to write. Sign it, look over the whole page, and share it. The page never jumps, no control covers what you are filling, nothing moves unless you meant it, and every change can be undone. The file never leaves the phone.
+Open a form on a phone. Tap where you want to write, or step through the spots we found, one at a time. Sign it, look over the whole page, and share it. The page never jumps, no control covers what you are filling, nothing moves unless you meant it, a wrong guess costs one tap at most, and every change can be undone. The file never leaves the phone.
 
 ## 1. Documents, detection and honesty
 
-Recall will never reach 100% (P6). There is one editor, and three document classes:
+Detection is good on most typed forms, bad on some, and blind on scans; labels are weaker still (P6 has the measurements). Short term the editor assumes only reasonable precision and recall, not a model that reads forms (owner, 2026-09-25; the model step is SNG-12). So no detection error may cost the person more than it saves. There is one editor, one rule, and three document classes:
 
-| Document | What we know | Walk | Review |
-|---|---|---|---|
-| Fillable PDF (AcroForm) | every field | exact | "N empty" is exact |
-| Vector flat form | detected fields | walks what was found, as suggestions | counts only what was found, and says so |
-| Scan, or 0 fields found | nothing | none | every page zoomed out, to check yourself |
+| Document | What we know | ∧ ∨ step through | Count | Review |
+|---|---|---|---|---|
+| Fillable PDF (AcroForm) | every field, from the file | its fields | "2 of 12" | "N empty", exact |
+| Vector flat form | the spots found above the floor | the spots found, plus what you wrote | none | the found spots still empty, and "check each page" |
+| Scan, or nothing found | nothing | what you wrote | none | every page zoomed out, to check yourself |
+
+**The error budget** (P6). Every UI that shows detection is checked against it:
+
+| When detection... | the person meets | cost |
+|---|---|---|
+| misses a field | a tap writes there anyway, lined up with the printed line | none |
+| marks a non-field | a quiet dashed mark; "Not a field" at that stop removes it for good | one tap |
+| guesses the wrong kind | a text box, with the guessed kind offered in the bar | one tap |
+| guesses a wrong label | nothing: a guessed label is never shown | none |
+| finds only part of the form | nothing counts or promises; review asks you to check each page | none |
 
 Rules:
-- **Tap to write is the primary path on every document.**
-  - On a scan, the tapped box snaps to the printed line or box under the finger, found locally (SNG-09).
-  - The snap declines rather than guesses. When nothing credible is found, the box lands exactly at the tap.
-- **A field detection missed becomes a field** the moment a box is placed on it, and it must join the walk in reading order.
+- **One rule: tap where you want to write** (§2.2). It behaves the same on a found spot, a missed one and a scan.
+  - The new box lines up with the printed line or box under the finger, found locally (SNG-09). The snap declines rather than guesses: with nothing credible, the box lands exactly at the tap.
+  - On a found spot, the box takes the spot's bounds.
+- **The precision floor.** A found spot is marked, walked or highlighted only when detection clears 95% precision per corpus form, scored the way the person meets it (SNG-11, proposed, open #17). Below the floor, detection only snaps. Recall is never a UI promise.
+- **Labels are never ours.** On a flat form or a scan, nothing names a field: not the bar, not review, not a toast. The walk frames the printed label with the field instead (§4). A fillable PDF's own tooltip may be shown, because the file says it (SNG-13). Accessible names state position, not meaning (§7).
+- **Counts only come from the file.** "2 of 12" appears only on a fillable PDF. Found spots are never totalled (open #16).
+- **Under doubt, the cheapest error.**
+  - A tap makes a text box. The one exception is a found checkbox above the floor, which a tap ticks; the bar then offers "Text instead".
+  - The kind detection guessed is offered, never applied: "Today" in the bar beside a printed "Date", "Sign" at a found signature line. Ignoring it costs nothing.
+  - A text keyboard, never a guessed number pad (§3).
+- **A field detection missed becomes a stop** the moment a box is placed on it, and it must join the walk in reading order.
   - This is new work (SNG-04/05), not existing behaviour. Today the walk is built only from detected regions (`useFieldNavigation.ts:326-330`).
   - `fieldPosition` (`fieldOrder.ts:236-246`) only navigates *from* an off-field box, never *through* it.
-- **A false detection can be dismissed** from the walk and from review (proposed). The person's verdict becomes one more input to the one pure `reconcile` in `src/tools/sign/fields/fieldRegions.js`, where source and kind precedence are already data (`SOURCE_ORDER`, `KIND_PRECEDENCE`). It goes there, not into a UI-side filter.
+- **"Not a field."** At a found spot, the bar offers it (proposed, open #12). The mark disappears for good in this file, saved with the draft. The verdict becomes one more input to the one pure `reconcile` in `src/tools/sign/fields/fieldRegions.js`, where source and kind precedence are already data (`SOURCE_ORDER`, `KIND_PRECEDENCE`). It goes there, not into a UI-side filter.
 - **Copy never claims completeness.**
-  - Review ends with "All the fields we found are filled. Check each page for anything we missed."
-  - Never "All done", and never "0 of 0".
-- **With 0 fields found, say why and what to do:** "We couldn't find fields on this page. It may be a scan. Tap where you want to write."
-- **The FORM-09 question flow stays gated** on the 90/90/85 detection bar.
+  - Review: "1 spot we found is still empty. We can miss fields, so check each page too." With every found spot filled: "All the spots we found are filled. We can miss fields, so check each page too."
+  - Never "All done", "12 fields" or "0 of 0". "Spot" is what we found; "field" is what the form has.
+- **First open states the rule once,** in a dismissible line under the bar:
+  - where something is marked: "Tap anywhere to write. We've marked the spots we found."
+  - on a scan: "This page is a scan, so nothing is marked. Tap anywhere to write."
+  - on a typed form with nothing above the floor: "We didn't mark anything on this form. Tap anywhere to write."
+- **The FORM-09 question flow, and anything that speaks a field's meaning, waits for the model step** (SNG-12): per document, on the 90/90/85 bar.
 
 ## 2. Interaction grammar
 
@@ -50,7 +70,7 @@ Rules:
 | editing text | Always implies selected. The caret is live. |
 | gesture | Exactly one of drag, resize, create or pinch at a time, DOM-owned, committed once on release through `controller.ts`. |
 | signature sheet | Modal to the workspace until dismissed. |
-| review | The zoomed-out check; a tap on a highlighted field returns to the walk there. |
+| review | The zoomed-out check; a tap on a highlight returns to the walk there. |
 
 **Illegal, and unrepresentable in the machine (P4):**
 - editing without that element selected;
@@ -62,8 +82,9 @@ Rules:
 
 | Input | Outcome |
 |---|---|
-| Tap, blank page | Idle: nothing. Selected or editing: deselect. Armed: place at the point (on a scan, snapped per §1) and disarm unless locked. |
-| Tap, empty detected field | Create a box on the field and open it, in one tap, armed or not (proposed, open #3). |
+| Tap, the page, idle | **Write** (the one rule, §1; proposed, open #3): a text box at the tap, lined up with the printed line or taking a found spot's bounds, opened with the keyboard up. On a found checkbox, a tick. The same whether or not detection found anything there. |
+| Tap, the page, something selected or editing | Deselect: one level per tap, as Escape. A box left empty closes and disappears, with no undo step. |
+| Tap, the page, a tool armed | Place at the point, lined up the same way, and disarm unless locked. |
 | Tap, unselected element | Select it. A text element also opens for editing in the same tap (MOBI-21). |
 | Tap, the selected element | Text re-opens editing. Anything else is acted on through the bar. |
 | One-finger drag, blank page or an **unselected** element | Native scroll. The element ignores the touch (owner, 2026-09-25). |
@@ -79,7 +100,7 @@ Rules:
 
 | Input | Outcome |
 |---|---|
-| Click | Blank: deselect. Element: select. Second click of a double-click on text: edit. Second click on a tool: lock. |
+| Click | Blank page: with something selected, deselect; otherwise write, as a tap does (proposed, open #3; SNG-06 confirms it on desktop). Element: select. Second click of a double-click on text: edit. Second click on a tool: lock. |
 | Drag | Any element: select and move in one gesture (desktop convention; the touch-only rule is scoped to coarse pointers, open #4). A handle resizes. |
 | Wheel | Native scroll. |
 | Ctrl/Cmd + wheel | App zoom in steps, around the pointer; browser zoom is prevented inside the surface. |
@@ -89,8 +110,8 @@ Rules:
 | Input | Outcome |
 |---|---|
 | Tab / Shift+Tab | Walk Next/Previous while a field or element is selected (`PdfSignTool.tsx` keydown). Otherwise native tab order. |
-| Return, in a walked field | Commit and go to the next field. `enterkeyhint="next"` (`"done"` on the last) only relabels the key. The interception is separate (proposed, spike (f)): walked single-line fields are an `<input>`; Return is a `keydown` Enter that is not `isComposing`; and a `beforeinput` guard catches `insertLineBreak`/`insertParagraph`. |
-| Return, in a free-placed text box | New line. |
+| Return, in a box on a printed line or a found spot | Commit and go to the next stop. `enterkeyhint="next"` (`"done"` on the last) only relabels the key. The interception is separate (proposed, spike (f)): these boxes are a single-line `<input>`; Return is a `keydown` Enter that is not `isComposing`; and a `beforeinput` guard catches `insertLineBreak`/`insertParagraph`. |
+| Return, in a box on open space | New line. The page decides: a printed line holds one line, open space holds a paragraph. |
 | Escape | One level per press: editing, then selected, then idle; armed, then idle. |
 | Delete / Backspace | Deletes the selected element unless focus is in a text input. |
 | Arrows, Shift+Arrows | Nudge the selected element 1 / 10 screen px (proposed; WCAG 2.5.7, §7). |
@@ -114,7 +135,7 @@ The machine owns these. No listener defines its own threshold.
 
 ### 2.6 The bar has a measured budget
 
-One contextual bar holds the tools, the walk (∧ ∨ with a count), Review, zoom, Undo/Redo and Download. That is more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen.
+One contextual bar holds the tools, the walk (∧ ∨, with a count only on a fillable PDF), Review, zoom, Undo/Redo and Download. Row F on the canvas draws one version of each context. That is more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen.
 
 The rules:
 - Each context shows at most what fits one row of 44px targets at 375px. Undo, and the walk while filling, are always in it.
@@ -123,33 +144,38 @@ The rules:
 
 ## 3. The field walk
 
-- **Stops.** Every detected kind is a stop:
-  - comb/cell and text fields open for typing;
-  - a checkbox toggles, with no keyboard (MOBI-05);
-  - a date opens for typing into its printed cells;
-  - a signature field opens the signature sheet.
+- **Stops**, in reading order, are: the spots detection found above the floor (§1), every element the person placed, and on a fillable PDF, the file's own fields. Every kind is a stop:
+  - comb/cell and text: open for typing, keyboard up (the ∨ tap focuses synchronously, §4);
+  - a checkbox: framed, no keyboard; a tap or Space ticks it (MOBI-05);
+  - a date: opens for typing into its printed cells;
+  - a signature spot: framed, no keyboard, and the bar's primary action is "Sign". Arriving never opens the sheet, so a wrong guess costs nothing.
   - Today's walk skips checkboxes and signatures (`fieldOrder.ts:16-19`). The next generation includes them (proposed, open #6).
-  - `detectFormFields` (`src/tools/sign/fields/detectFormFields.ts`, d7f8c817) already returns every checkbox, and every cell including the signature kind. Only `useFormFieldRegions.ts` filters signature cells today. So the walk reads the detection result directly, with kinds from `fields/fieldTypes.ts`.
+  - `detectFormFields` (`src/tools/sign/fields/detectFormFields.ts`, d7f8c817) already returns every checkbox, and every cell including the signature kind. Only `useFormFieldRegions.ts` filters signature cells today. So the walk reads the detection result directly, through the floor (SNG-11), with kinds from `fields/fieldTypes.ts`.
+- **"Not a field"** is in the bar at every found spot that is still empty (§1).
 - **Order** is a document property and never depends on the UI's language:
   - rows cluster by top edge (`ROW_TOLERANCE_PERCENT`, `fieldOrder.ts:41`);
   - within a row, the walk starts at the page's printed start edge (`fieldOrder.ts:47-51`);
   - pages go in ascending order.
 - **Arrows are ∧ ∨:** up is Previous, down is Next, everywhere. `arrowDirection`'s document vote (`useFieldNavigation.ts:92-113`) retires with the left/right chevrons.
-- **Next never skips a filled field**, so field 7 never depends on the path taken. The count reads "2 of 12". Review alone lists what is empty.
+- **Next never skips a filled stop**, so stop 7 never depends on the path taken.
+- **A count appears only on a fillable PDF** ("2 of 12", from the file). Elsewhere there is none: the stops are what we found, and a total would promise completeness. Review alone lists what is empty.
 - **The boundaries.** Every press has one obvious destination:
 
 | State | Next | Previous |
 |---|---|---|
-| nothing selected | field 1 | **disabled** (this fixes regression 1 by design) |
-| first field | field 2 | disabled |
-| last field | Review | field N-1 |
-| in Review | not offered | the last field |
-| a free-placed box selected | the nearest field after it | the nearest field before it |
+| nothing selected | the first stop | **disabled** (this fixes regression 1 by design) |
+| the first stop | the second | disabled |
+| the last stop | Review | the one before |
+| in Review | the first empty stop, leaving Review there | the last empty stop, likewise; both disabled when none is empty |
+| no stops yet (a scan, before anything is written) | disabled | disabled |
 | after a deletion | selection clears; "nothing selected" applies | the same |
 | during a gesture | inert (the machine refuses the event) | inert |
 
-- **The keyboard per field:**
-  - `inputmode` is `numeric` for ID, comb and postal code, `decimal` for amounts, `tel` for phone, `email` for email, and `text` otherwise.
+An element placed anywhere is a stop like any other, so it needs no row of its own.
+
+- **The keyboard per stop.** `inputmode` follows the file, never a guess (open #18):
+  - A fillable field whose format or `MaxLen` says digits gets `numeric`. `decimal`, `tel` and `email` likewise come only from the file.
+  - A found spot is always `text`. iOS's number pad has no way back to letters, while the text keyboard is one tap from digits: the cheapest error (§1).
   - Dates are typed into the printed cells, not picked in iOS's date wheel (proposed, open #7). One model for every comb, and the digit order stays a fact of the document.
 
 ## 4. The viewport and the reveal
@@ -162,9 +188,10 @@ The rules:
 **Who moves the camera.** The app moves or zooms the view only on:
 - a Next/Previous step;
 - a jump from Review;
-- entering or leaving Review.
+- entering or leaving Review;
+- a tap that writes at a zoom where the new text would render under 17px. It is revealed like a walk step, because typing what you cannot read is not a choice anyone made (open #19). This is also how a person at fit width sees at once which line the box landed on.
 
-A plain tap on a field opens it where it is, at the zoom the person chose. The person's own zoom wins everywhere else (proposed, open #11).
+Any other tap opens what it touches where it is, at the zoom the person chose. The person's own zoom wins everywhere else (proposed, open #11).
 
 **The reveal:**
 - The walked field lands in the upper third of the visible band, below the bar and clear of the keyboard, so its printed label above it stays in view.
@@ -187,13 +214,13 @@ A plain tap on a field opens it where it is, at the zoom the person chose. The p
 
 ## 5. The review
 
-- **Empty** means a detected field with nothing on it.
+- **Empty** means a stop with nothing on it: a found spot above the floor, or a fillable field. An unticked checkbox is an answer, not a gap, and is never highlighted.
 - **How it looks:**
-  - a citron highlight on the field;
-  - a tag with the field's label: its canonical type once FORM-02 lands, the detected kind until then;
-  - a count ("2 empty"). It is never marked with colour alone (WCAG 3.3.1).
+  - a citron highlight with a small "empty" glyph at its start edge, so it is never marked with colour alone (WCAG 1.4.1, 3.3.1);
+  - no label tag on a flat form or a scan: the page's own printed label sits beside it. A fillable PDF may tag it with the file's own name (SNG-13);
+  - the panel's line, from §1: "1 spot we found is still empty. We can miss fields, so check each page too."
 - **Jumping back:**
-  - One tap returns to the walk at that field, with §4's reveal and synchronous focus.
+  - One tap on a highlight, or ∧ ∨, returns to the walk at that stop, with §4's reveal and synchronous focus.
   - Nothing is filled from the overview, where a checkbox is too small to hit.
 - **Ending:** Download and Share, using the file MOBI-07 already pre-generates. Share leads on a phone (UX§8).
 - **On a scan**, review shows every page, zoomed out, with what the person added, and the §1 copy.
@@ -218,8 +245,8 @@ A plain tap on a field opens it where it is, at the zoom the person chose. The p
 
 **Must, and testable:**
 - **Focus order is DOM order:** the bar, then the page, then the fields in walk order.
-- **One polite live region** announces "Field 2 of 12, ID number", undo, and review counts. Numbers inside RTL copy are isolated (`<bdi>`, UX§9).
-- **Every field and element has an accessible name:** the detected label, or "Text field N". Never blank, and never an id.
+- **One polite live region** announces the walk, undo, and review counts. On a fillable PDF: "Field 2 of 12, ID number", from the file. On a found spot: "Spot 2, beside "ID number"", a fact about position, with no total. Numbers inside RTL copy are isolated (`<bdi>`, UX§9).
+- **Every stop and element has an accessible name.** On a fillable PDF, the file's own tooltip or readable name (SNG-13). On a found spot, its kind and the nearest printed text as a position ("Text, beside "ID number""), never a guessed meaning. Never blank, and never an id.
 - **Contrast.** Every field state (empty, current, filled, empty-in-review, selected) reaches 3:1 against the page (WCAG 1.4.11).
   - **Blocked by QUAL-04:** `--color-border-strong` (`#6fbeb2`, the empty-field outline in the sketches) is 2.07:1. The chosen direction's polish must use a darker outline.
 
@@ -298,7 +325,7 @@ Builds on UX§9.
 12. Can anything fully cover the focused field?
 13. Is reduced motion respected?
 14. Are accessible names and roles verified?
-15. Does it work on a scan with 0 fields found, and does no copy claim completeness?
+15. Does it behave the same where detection found nothing (a scan, a missed field), and does nothing count, name or promise what detection only guessed?
 
 **Done means:**
 - all 15 answered in the commit or ticket;
@@ -313,22 +340,26 @@ Builds on UX§9.
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 0 | Direction A, B or C (SNG-02 canvas) | Pending. See the canvas and row E (scans). |
+| 0 | The direction (SNG-02 canvas) | Row F, "Tap to write": B's top bar, built for reasonable detection (§1). C's question cards wait for the model step (SNG-12); A's composer stays spike (c)'s fallback. |
 | 1 | Double-tap on the page | Leave it unbound: double-tap already locks a tool, and no competitor zooms on it |
 | 2 | Long-press | Leave it unbound until a real need is named |
-| 3 | A tap on an empty detected field, with no tool armed | Creates and opens it, in one tap |
+| 3 | A tap on the page, with nothing selected and no tool armed | Writes there, found spot or not: the one rule (§1). An empty box that loses focus disappears |
 | 4 | "Only a selected element moves" | Touch only; the mouse keeps select-and-drag |
 | 5 | Previous with nothing selected | Disabled |
-| 6 | Checkboxes, dates and signatures in the walk; Next never skips a filled field | Yes |
+| 6 | Checkboxes, dates and signatures in the walk; Next never skips a filled stop | Yes; a signature stop offers "Sign" and never opens the sheet on arrival |
 | 7 | Dates | Typed into the printed cells, not the iOS date wheel |
 | 8 | Undo feedback (row D) | A chip for a delete; a named Undo for moves, resizes and typing |
 | 9 | The non-drag path for move and resize on touch (WCAG 2.5.7) | A move/resize stepper in the selected element's bar controls; decide with the direction |
 | 10 | Handle hit areas | 44px, shrinking toward a 24px floor, never overlapping |
 | 11 | When the app may move the camera | Only on a walk step, a jump from Review, and entering or leaving Review |
-| 12 | Dismissing a false detection | Yes, from the walk and from review |
+| 12 | Dismissing a false detection | "Not a field" in the bar at that stop; it sticks for the file and feeds `reconcile` |
 | 13 | What each bar context holds at 375px (§2.6) | Decide with the direction, and measure in SNG-03 |
 | 14 | Saving the walk position in the draft | Yes, re-selected but not focused after a reload |
 | 15 | `interactive-widget=resizes-content` on the editor page | Yes. Android honours it and iOS ignores it (WebKit bug 259770) |
+| 16 | Counts and field names | Only from a fillable PDF's own fields; never for found spots |
+| 17 | The precision floor for a mark, a stop or a highlight | 95% per corpus form, scored as shown (SNG-11) |
+| 18 | The keyboard on a found spot | Text, always; digits only when the file says so |
+| 19 | A tap that writes below the readable zoom | The camera reveals the new box, like a walk step (§4) |
 
 ## 13. Cases the rules must also cover
 
@@ -341,6 +372,8 @@ Builds on UX§9.
 | **Drafts and reload mid-walk** | Elements persist as today. The walk position is saved in the draft (proposed, open #14). After a reload the field is re-selected but not focused: iOS allows no keyboard without a tap, so one tap resumes typing. |
 | **A pinch during a text session** | Allowed. Editing is a state, not a gesture, so the session and the keyboard stay open, zoom changes around the fingers, and the camera does not move afterwards (§4). |
 | **The signature sheet's typed name** | Its input follows every keyboard rule here: at least 16px, focused synchronously on the tap that opens "Type", and the sheet stays above the keyboard. |
+| **A form detection reads badly** (HMRC SA100 at 4.3% precision, ภ.ง.ด.90 at 23.5%) | The floor removes the marks (SNG-11), so the page behaves as a scan does: tap to write, lined up, with §1's "We didn't mark anything on this form" line. Nothing apologises. |
+| **A stray tap** | It writes a box and raises the keyboard. Tapping away, or Done, closes the empty box and it disappears, with no undo step. |
 
 ## Sources
 
