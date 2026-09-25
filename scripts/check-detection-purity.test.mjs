@@ -40,6 +40,17 @@ describe('detection purity guard: forbidden imports (rule 1)', () => {
     expect(imports("import { PDFName } from '@cantoo/pdf-lib';\n")).toHaveLength(1);
   });
 
+  it('passes a type-only import, which is erased and loads nothing', () => {
+    const TS_FILE = 'src/editor/adapters/pdf/detectFormFields.ts';
+    expect(imports("import type { PDFPage } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(0);
+    expect(imports("import { type PDFPage, type PDFDocument } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(0);
+  });
+
+  it('fails an import mixing a type with a runtime binding', () => {
+    const TS_FILE = 'src/editor/adapters/pdf/detectFormFields.ts';
+    expect(imports("import { type PDFPage, PDFName } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(1);
+  });
+
   it('fails a static import of preact', () => {
     expect(imports("import { useState } from 'preact/hooks';\n")).toHaveLength(1);
   });
