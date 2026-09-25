@@ -1,7 +1,7 @@
 ---
 id: "SNG-10"
 title: "Practice form v2: the sketches' Employee details form becomes the app's own example form"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -49,6 +49,25 @@ Why it matters beyond looks:
 ## Acceptance
 
 - [x] Shlomi answers the three questions; the answers are recorded above.
-- [ ] v2 is generated from its content module as a flat form, and detection scores it 100/100 in the corpus, every spot above the precision floor (SNG-11).
-- [ ] The home page's sample loads it, and every e2e spec is green, including `field-nav-arrow-direction.spec.js`, which loads `sample.pdf` today.
-- [ ] The content pages' screenshots show v2.
+- [x] v2 is generated from its content module as a flat form, and detection scores it 100/100 in the corpus, every spot above the precision floor (SNG-11).
+- [x] The home page's sample loads it, and every e2e spec is green, including `field-nav-arrow-direction.spec.js`, which loads `sample.pdf` today.
+- [x] The content pages' screenshots show v2.
+
+## Done (2026-09-25)
+
+- **The form.** `scripts/practice-form-content.mjs` holds the words and the layout; `npm run generate:practice-form`
+  writes `sample.pdf`, its ground truth and the home page's thumbnail from it, byte-deterministic, and
+  `scripts/generate-practice-form.test.mjs` fails if the committed files drift. A4, flat, no `/AcroForm`.
+  Branded from `global.css`'s own tokens (read at generation time, never copied) with the logo and wordmark.
+- **Detection: 13/13, 100% recall and precision**, with no drawing tricks. Two detector changes earned it, and
+  no other corpus form moved: `formLines.js` reads an open signature or date line by its caption, and
+  `formCells.js` accepts a lone box when it is empty and a short caption sits right on it. SNG-11's floor is
+  not built yet; at 100% raw precision every spot clears it.
+- **The current editor counts 12**, not 13: MOBI-11 keeps signature cells out of Sign, so the signature line is
+  found but not marked. `useFormFieldRegions.practiceForm.test.tsx` pins that. How a found signature line is
+  offered is SNG-05's to decide.
+- **v1** is frozen at `src/tools/sign/fields/__fixtures__/practice-form-v1.pdf`, the corpus's live-AcroForm
+  case. Every e2e spec that loads the sample holds on v2 unchanged.
+- **Screenshots**: all three how-to-sign images re-shot on the current build (English and Hebrew pages).
+- **Follow-ups:** MOBI-18 retired as superseded; DEMO-08 closed (the hero demo keeps its field-trip story).
+  The review's other point, a caption to the right of a line on an RTL form, is not read yet.
