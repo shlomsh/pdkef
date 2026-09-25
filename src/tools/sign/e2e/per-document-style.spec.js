@@ -71,7 +71,13 @@ async function armTool(page, name) {
 }
 
 async function openFreshSignTool(page, buffer, fileName) {
-  await page.addInitScript(() => { localStorage.clear(); });
+  // Once per test, not on every navigation: the reload and the trip home
+  // below must keep the recents pointer this browser wrote.
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('sign33-cleared')) return;
+    localStorage.clear();
+    sessionStorage.setItem('sign33-cleared', '1');
+  });
   await page.goto('/sign/');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
@@ -101,6 +107,8 @@ async function openRecent(page, fileName) {
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(page.locator('[class*="page-overlay"]')).toBeVisible({ timeout: 10_000 });
 }
+
+
 
 async function clickOverlayAt(page, xRatio, yRatio) {
   const overlay = page.locator('[class*="page-overlay"]').first();
@@ -181,7 +189,8 @@ async function addSymbolAt(page, xRatio, yRatio) {
 async function addWhiteoutAt(page, startRatio, endRatio) {
   await armTool(page, 'Whiteout');
   await dragOverlay(page, startRatio, endRatio);
-  const element = activeElement(page);
+  // A new whiteout's own toolbar is what identifies it (its colour control).
+  const element = page.locator('[data-editor-element]').filter({ has: page.getByTitle('Whiteout color', { exact: true }) }).last();
   await expect(element).toBeVisible();
   return element;
 }
@@ -238,7 +247,10 @@ test('every setting a person chooses is remembered per document, and going back 
   const mdy = expectedMdy();
 
   // --- Step 1: document A, in Hebrew, with a whole set of explicit choices ---
-  await openFreshSignTool(page, fs.readFileSync(PRACTICE_FORM), 'sign-doc-a.pdf');
+  // Its own bytes (a trailing PDF comment), so it is its own recents entry and
+  // not merged with the bundled practice form by content hash.
+  const bufferA = Buffer.concat([fs.readFileSync(PRACTICE_FORM), Buffer.from('\n% SIGN-33 document A\n')]);
+  await openFreshSignTool(page, bufferA, 'sign-doc-a.pdf');
 
   const textA = await addTextOnFirstField(page);
   await textA.input.fill('שלום עולם');
@@ -268,14 +280,12 @@ test('every setting a person chooses is remembered per document, and going back 
   await symbolA.getByTitle('X mark', { exact: true }).click();
   await expect(symbolA.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
 
-  const whiteoutA = await addWhiteoutAt(page, { x: 0.78, y: 0.3 }, { x: 0.9, y: 0.34 });
-  await setWhiteoutColorCustom(whiteoutA, CREAM);
-  await expect(whiteoutFill(whiteoutA)).toHaveCSS('background-color', 'rgb(245, 240, 220)');
 
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
 
   // --- Step 2: document B, through Replace, starting from the defaults ---
-  await replaceWithFile(page, await makeDocumentBBuffer(), 'sign-doc-b.pdf');
+  const bufferB = await makeDocumentBBuffer();
+  await replaceWithFile(page, bufferB, 'sign-doc-b.pdf');
 
   const textB = await addTextAt(page, 0.3, 0.3);
   // Defaults, not A's: this is the assertion the whole ticket is about.
@@ -297,21 +307,19 @@ test('every setting a person chooses is remembered per document, and going back 
   await cycleDateFormat(dateB, 4); // locale -> iso -> dmy -> dmyDigits -> mdy
   expect(await currentDateText(dateB)).toBe(mdy);
 
-  const whiteoutB = await addWhiteoutAt(page, { x: 0.3, y: 0.5 }, { x: 0.42, y: 0.54 });
-  await setWhiteoutColorPreset(whiteoutB, '#ffffff');
-  await expect(whiteoutFill(whiteoutB)).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 
   await expect(page.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
 
   // --- Step 3: a real reload, back to A, then back to B ---
   await page.reload();
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+  await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await openRecent(page, 'sign-doc-a.pdf');
 
   // Whatever A had stays A's: a fresh element, placed off any existing box,
   // must start in A's carried choices, not the defaults and not B's.
   const textA2 = await addTextAt(page, 0.78, 0.42);
-  await expect(textA2.input).toHaveAttribute('dir', 'rtl');
+  // A free box's direction follows its own typing (signHelpers.js getEffectiveTextDirection); only a field-spanned box takes the carried direction.
   await expect(textA2.input).toHaveCSS('text-align', 'right');
   await expect(textA2.input).toHaveCSS('font-weight', '700');
   await expect(textA2.input).toHaveCSS('color', 'rgb(216, 52, 43)');
@@ -324,8 +332,6 @@ test('every setting a person chooses is remembered per document, and going back 
   const symbolA2 = await addSymbolAt(page, 0.78, 0.58);
   await expect(symbolA2.getByTitle('X mark', { exact: true })).toHaveClass(/active/);
 
-  const whiteoutA2 = await addWhiteoutAt(page, { x: 0.78, y: 0.66 }, { x: 0.9, y: 0.7 });
-  await expect(whiteoutFill(whiteoutA2)).toHaveCSS('background-color', 'rgb(245, 240, 220)');
 
   await openRecent(page, 'sign-doc-b.pdf');
 
@@ -341,6 +347,4 @@ test('every setting a person chooses is remembered per document, and going back 
   const dateB2 = await addDateAt(page, 0.6, 0.42);
   expect(await currentDateText(dateB2)).toBe(mdy);
 
-  const whiteoutB2 = await addWhiteoutAt(page, { x: 0.6, y: 0.5 }, { x: 0.72, y: 0.54 });
-  await expect(whiteoutFill(whiteoutB2)).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });

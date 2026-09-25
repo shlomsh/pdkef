@@ -4,14 +4,11 @@ import type {
   EditorElement,
   SignatureElement,
   SignToolType,
-  SymbolMark,
-  TextDirection,
 } from '../../editor/model/editorModel.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
 import { SignToolProvider, useSignTool } from './components/SignToolContext.tsx';
-import { SignDefaultsContext } from './components/SignDefaultsContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
@@ -19,7 +16,7 @@ import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
-import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
@@ -27,11 +24,8 @@ import useFieldNavigation from './useFieldNavigation.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
-  getEditorPreference,
   getSavedSignatures,
-  setEditorPreference,
   setSavedSignatures as persistSavedSignatures,
-  subscribeToEditorPreference,
   subscribeToSavedSignatures,
 } from '../../editor/workspace/preferenceStore.ts';
 import {
@@ -131,39 +125,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
 
-  // Last color picked for any element, remembered across new placements
-  const [lastColor, setLastColor] = useState('#000000');
-
-  // Last whiteout color picked, remembered across new placements
-  const [lastWhiteoutColor, setLastWhiteoutColor] = useState('#ffffff');
-
-  // The document's carried style (SIGN-33) lives in the SignTool reducer, not
-  // here - `carried` above - because it belongs to the document (round-
-  // tripped through its draft) rather than the browser. See rememberFont/
-  // rememberFontSize/rememberDirection below for the explicit-change path and
-  // useEditorDraftPersistence's `extra.carried` for the draft round-trip.
-
-  // Last chosen stroke thickness, remembered across new placements
-  const [lastThickness, setLastThickness] = useState(3);
-
-  // Last symbol size (width as a % of page width), remembered across new
-  // placements so repeated check marks on the same form keep the size the
-  // user already dialed in instead of resetting to the default each time.
-  const [lastSymbolWidth, setLastSymbolWidth] = useState(DEFAULT_SYMBOL_WIDTH_PCT);
-
-  // Last symbol mark (check/x/dot) picked, remembered across new placements so
-  // switching to X for one field doesn't silently reset to check for the next
-  const [lastSymbolMark, setLastSymbolMark] = useState<SymbolMark>('check');
-
-  // Last signature size (width as a % of page width), remembered across new
-  // placements so dropping the same signature repeatedly on a form keeps the
-  // size the user already dialed in instead of resetting to the default each time.
-  const [lastSignatureWidth, setLastSignatureWidth] = useState(DEFAULT_START_WIDTH_PCT);
-
-  // Last date format chosen (dateFormat.ts's DateFormatId), remembered across
-  // new placements so switching the format on one field doesn't reset for the
-  // next 'date' tool placement.
-  const [lastDateFormat, setLastDateFormat] = useState('locale');
+  // Every setting a person chooses while filling (colour, font, size,
+  // direction, alignment, bold, italic, date format, symbol mark and size,
+  // line thickness, whiteout colour, signature width) is this document's
+  // carried style (SIGN-33): `carried` in the SignTool reducer, round-tripped
+  // through the draft's `extra.carried`, never a browser-wide preference.
+  // PdfWorkspace's makeOnChange writes it (editor/model/carriedPatch.ts), and
+  // every placement path reads it.
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
@@ -305,42 +273,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     }
   }, []);
 
-  // Load last-used element color from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastColor');
-    if (stored) setLastColor(stored);
-  }, []);
-
-  // Load last-used whiteout color from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastWhiteoutColor');
-    if (stored) setLastWhiteoutColor(stored);
-  }, []);
-
-  // Load last-used symbol width from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastSymbolWidth');
-    if (stored) setLastSymbolWidth(stored);
-  }, []);
-
-  // Load last-used symbol mark from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastSymbolMark');
-    if (stored) setLastSymbolMark(stored);
-  }, []);
-
-  // Load last-used signature width from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastSignatureWidth');
-    if (stored) setLastSignatureWidth(stored);
-  }, []);
-
-  // Load last-used date format from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('dateFormat');
-    if (stored) setLastDateFormat(stored);
-  }, []);
-
   // Storage events are only delivered to the *other* same-user tabs. Local
   // interactions update state directly; these subscriptions apply the store's
   // revision-ordered last-writer-wins result everywhere else.
@@ -351,77 +283,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         setSavedSignatures(next);
         setActiveSignature((current) => next.find((signature) => signature.id === current?.id) ?? next[0] ?? null);
       }),
-      subscribeToEditorPreference('lastColor', ({ value }) => { if (value) setLastColor(value); }),
-      subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => { if (value) setLastWhiteoutColor(value); }),
-      subscribeToEditorPreference('lastSymbolWidth', ({ value }) => { if (value) setLastSymbolWidth(value); }),
-      subscribeToEditorPreference('lastSymbolMark', ({ value }) => { if (value) setLastSymbolMark(value); }),
-      subscribeToEditorPreference('lastSignatureWidth', ({ value }) => { if (value) setLastSignatureWidth(value); }),
-      subscribeToEditorPreference('dateFormat', ({ value }) => { if (value) setLastDateFormat(value); }),
     ];
     return () => stops.forEach((stop) => stop());
   }, []);
-
-  // Remember the color last picked, shared across text/symbol/signature, for future placements
-  const rememberColor = (color: string) => {
-    setLastColor(color);
-    setEditorPreference('lastColor', color);
-  };
-
-  // Remember the whiteout color last picked for future placements
-  const rememberWhiteoutColor = (color: string) => {
-    setLastWhiteoutColor(color);
-    setEditorPreference('lastWhiteoutColor', color);
-  };
-
-  // The document's carried style (SIGN-33): an explicit A-/A+ press or font
-  // pick (PdfWorkspace's makeOnChange) sets font/fontSize for everything
-  // placed after, on this document only - never a browser-wide preference.
-  const rememberFont = (fontFamily: string) => {
-    dispatch({ type: 'SET_CARRIED', payload: { font: fontFamily } });
-  };
-
-  const rememberFontSize = (fontSize: number) => {
-    dispatch({ type: 'SET_CARRIED', payload: { fontSize } });
-  };
-
-  // Remember the stroke thickness last picked for a shape, for future placements
-  const rememberThickness = (strokeWidth: number) => {
-    setLastThickness(strokeWidth);
-  };
-
-  // Remember the size a symbol was last resized to, for future placements
-  const rememberSymbolWidth = (width: number) => {
-    if (!Number.isFinite(width) || width <= 0) return;
-    setLastSymbolWidth(width);
-    setEditorPreference('lastSymbolWidth', width);
-  };
-
-  // Remember the mark last chosen for a symbol, for future placements
-  const rememberSymbolMark = (mark: SymbolMark) => {
-    setLastSymbolMark(mark);
-    setEditorPreference('lastSymbolMark', mark);
-  };
-
-  // Remember the size a signature was last resized to, for future placements
-  const rememberSignatureWidth = (width: number) => {
-    if (!Number.isFinite(width) || width <= 0) return;
-    setLastSignatureWidth(width);
-    setEditorPreference('lastSignatureWidth', width);
-  };
-
-  // The document's carried direction (SIGN-33): whatever direction an
-  // element's typing or an explicit direction toggle (PdfWorkspace's
-  // makeOnChange) ends up in, on this document only - never a browser-wide
-  // preference.
-  const rememberDirection = (textDirection: TextDirection) => {
-    dispatch({ type: 'SET_CARRIED', payload: { direction: textDirection } });
-  };
-
-  // Remember the date format last chosen, for future 'date' tool placements
-  const rememberDateFormat = (formatId: string) => {
-    setLastDateFormat(formatId);
-    setEditorPreference('dateFormat', formatId);
-  };
 
   // Save new signature to list & localStorage
   const saveNewSignature = (dataUrl: string, aspectRatio: number) => {
@@ -604,7 +468,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     pageSizes,
     logAction,
     setAnnouncement,
-    initialColor: lastColor,
+    initialColor: carried.color ?? DEFAULT_INK_COLOR,
     carried,
     messages: t,
   });
@@ -651,7 +515,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // Width defaults to whatever the last placed/resized signature used, so
     // consecutive placements of the same signature keep its size instead of
     // resetting to the default every time.
-    const widthPercent = lastSignatureWidth;
+    const widthPercent = carried.signatureWidth ?? DEFAULT_START_WIDTH_PCT;
 
     // Calculate page wrapper dimension
     let pageWrapperHeight = 800;
@@ -1007,12 +871,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       showIosFilesHint
     >
       {hasFiles && status !== 'loading' && (
-        <SignDefaultsContext.Provider
-          value={{
-            lastColor, lastWhiteoutColor, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
-            rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
-          }}
-        >
           <SavedSignaturesContext.Provider
             value={{ savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature: deleteSavedSignature }}
           >
@@ -1044,7 +902,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
               messages={t}
             />
           </SavedSignaturesContext.Provider>
-        </SignDefaultsContext.Provider>
       )}
 
       {/* No loading-state message: pdf.js parses fast enough that a text block

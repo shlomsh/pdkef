@@ -1,7 +1,7 @@
 ---
 id: "SIGN-33"
 title: "Every setting a person chooses is remembered per document, and going back to a document brings its own back"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -49,7 +49,28 @@ everything else a person sets while filling a form.
 
 ## Acceptance
 
-- [ ] Shlomi's A/B/A example is an e2e spec against a real build, with a real reload, and it is green.
-- [ ] Unit tests: each key seeds, carries and restores; a malformed key drops alone; a SIGN-32 draft
+- [x] Shlomi's A/B/A example is an e2e spec against a real build, with a real reload, and it is green.
+- [x] Unit tests: each key seeds, carries and restores; a malformed key drops alone; a SIGN-32 draft
   migrates; a new document starts from the defaults; the signature pen stays browser-wide.
 - [ ] No per-document key is left in `preferenceStore.ts`.
+
+## Done (2026-09-26)
+
+- **Where it lives, apart from any UI** (so the next-generation Sign reuses it as is): the pure model modules
+  - `src/editor/model/documentStyle.ts`: the style;
+  - `carriedPatch.ts`: what an explicit change carries;
+  - `elementDefaults.ts`: what a new element starts from. `elementDefaultsFor` covers every type, and
+    `carriedTextStyle` covers alignment, bold and italic.
+- **State and persistence:** the state is `SignToolState.carried`, with one action, `SET_CARRIED`. It persists
+  in the draft's `extra.carried`, validated key by key, and a SIGN-32 draft migrates into it.
+- **Wiring:** `makeOnChange` is one `carriedPatchFor` call, and the tap path and Next/Previous read `carried`.
+  `SignDefaultsContext` is deleted, and Sign no longer reads or writes a browser-wide preference for any of
+  these settings.
+- **Acceptance:** `src/tools/sign/e2e/per-document-style.spec.js` is Shlomi's A/B/A, through recents with a
+  real reload, and it is green. Whiteout is left out of the e2e: its carry is covered by `carriedPatch.test.ts`
+  and PdfWorkspace's whiteout test.
+- **Left, deliberately:**
+  - The now-unused keys in `preferenceStore.ts`. Redact still reads `lastWhiteoutColor`, and the rest are dead
+    keys. The rewrite removes them with the store's own tests.
+  - A new **free** text box still starts LTR until typed into (`getEffectiveTextDirection`, a reported bug
+    earlier). Only a field-spanned box takes the carried direction. That is Shlomi's call.

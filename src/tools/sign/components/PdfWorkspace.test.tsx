@@ -8,7 +8,6 @@ import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
 import { SignToolContext, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
-import { SignDefaultsContext, type SignDefaultsContextValue } from './SignDefaultsContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
 
 const pageSize = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -59,33 +58,7 @@ function mount(vnode: ComponentChildren): HTMLDivElement {
 }
 
 // A Provider's `value` replaces the context's own default outright rather than
-// merging with it, so these mirror the real default values PdfWorkspace's
-// props used to fall back to (see SignDefaultsContext.tsx /
-// SavedSignaturesContext.tsx) - a test only needs to override the one or two
-// fields it actually asserts on.
-function defaultDefaults(overrides: Partial<SignDefaultsContextValue> = {}): SignDefaultsContextValue {
-  return {
-    lastColor: '#000000',
-    lastWhiteoutColor: '#ffffff',
-    lastThickness: 3,
-    lastSymbolWidth: 5,
-    lastSymbolMark: 'check',
-    lastSignatureWidth: 20,
-    lastDateFormat: 'locale',
-    rememberColor: vi.fn(),
-    rememberWhiteoutColor: vi.fn(),
-    rememberFont: vi.fn(),
-    rememberFontSize: vi.fn(),
-    rememberDirection: vi.fn(),
-    rememberThickness: vi.fn(),
-    rememberSymbolWidth: vi.fn(),
-    rememberSymbolMark: vi.fn(),
-    rememberSignatureWidth: vi.fn(),
-    rememberDateFormat: vi.fn(),
-    ...overrides
-  };
-}
-
+// merging with it, so this mirrors SavedSignaturesContext.tsx's real default.
 function defaultSavedSignatures(overrides: Partial<SavedSignaturesContextValue> = {}): SavedSignaturesContextValue {
   return {
     savedSignatures: [],
@@ -131,18 +104,15 @@ interface WorkspaceTreeOptions {
   state: SignToolState;
   dispatch?: (action: SignToolAction) => void;
   props?: Partial<ComponentProps<typeof PdfWorkspace>>;
-  defaults?: Partial<SignDefaultsContextValue>;
   savedSignatures?: Partial<SavedSignaturesContextValue>;
 }
 
-function workspaceTree({ state, dispatch = vi.fn<(action: SignToolAction) => void>(), props = {}, defaults = {}, savedSignatures = {} }: WorkspaceTreeOptions) {
+function workspaceTree({ state, dispatch = vi.fn<(action: SignToolAction) => void>(), props = {}, savedSignatures = {} }: WorkspaceTreeOptions) {
   return (
     <SignToolContext.Provider value={{ state, dispatch }}>
-      <SignDefaultsContext.Provider value={defaultDefaults(defaults)}>
         <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
           <PdfWorkspace {...defaultProps(props)} />
         </SavedSignaturesContext.Provider>
-      </SignDefaultsContext.Provider>
     </SignToolContext.Provider>
   );
 }
@@ -300,13 +270,12 @@ describe('PdfWorkspace Component', () => {
 
   it('remembers a resized symbol size for the next placed symbol', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberSymbolWidth = vi.fn();
     const state = testState({
       elements: [symbolElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })],
       activeElementId: 'symbol-1',
     });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberSymbolWidth } });
+    host = mountWorkspace({ state, dispatch });
 
     const pageWrapper = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-wrapper']}`), 'page wrapper');
     pageWrapper.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
@@ -326,15 +295,14 @@ describe('PdfWorkspace Component', () => {
 
     // Bug: a resized symbol must set the size for the next one placed, so
     // repeated check marks don't each need re-sizing by hand.
-    expect(rememberSymbolWidth).toHaveBeenCalledWith(15);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ symbolWidth: 15 }) });
   });
 
   it('remembers a switched symbol mark for the next placed symbol', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberSymbolMark = vi.fn();
     const state = testState({ elements: [symbolElement('symbol-1', { left: 20, top: 20, mark: 'check', color: '#000000' })], activeElementId: 'symbol-1' });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberSymbolMark } });
+    host = mountWorkspace({ state, dispatch });
 
     const xButton = required(host.querySelector<HTMLButtonElement>('button[title="X mark"]'), 'X mark button');
 
@@ -344,14 +312,14 @@ describe('PdfWorkspace Component', () => {
 
     // Bug: switching a placed symbol from check to X must set the mark for the
     // next one placed, so it doesn't silently reset to check.
-    expect(rememberSymbolMark).toHaveBeenCalledWith('x');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ symbolMark: 'x' }) });
   });
 
   it('places a new symbol with the last remembered mark, not always a check mark', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const state = testState({ selectedTool: 'symbol' });
+    const state = testState({ selectedTool: 'symbol', carried: { symbolMark: 'x' } });
 
-    host = mountWorkspace({ state, dispatch, defaults: { lastSymbolMark: 'x' } });
+    host = mountWorkspace({ state, dispatch });
 
     const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
@@ -371,19 +339,16 @@ describe('PdfWorkspace Component', () => {
 
   it('remembers edited text size, color, and typed direction for the next text element', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberColor = vi.fn();
-    const rememberFontSize = vi.fn();
-    const rememberDirection = vi.fn();
     const state = testState({ elements: [textElement('text-1', { left: 20, top: 20, text: 'hey', fontSize: 16, fontFamily: 'Arimo', color: '#000000', textDirection: 'ltr' })], activeElementId: 'text-1' });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberColor, rememberFontSize, rememberDirection } });
+    host = mountWorkspace({ state, dispatch });
 
     const increaseFont = required(host.querySelector<HTMLButtonElement>('button[title="Increase font size"]'), 'increase font button');
     act(() => {
       increaseFont.click();
     });
 
-    expect(rememberFontSize).toHaveBeenCalledWith(17);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ fontSize: 17 }) });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'UPDATE_ELEMENT',
       payload: { id: 'text-1', changes: { fontSize: 17 } }
@@ -399,7 +364,7 @@ describe('PdfWorkspace Component', () => {
       redSwatch.click();
     });
 
-    expect(rememberColor).toHaveBeenCalledWith('#d8342b');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ color: '#d8342b' }) });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'UPDATE_ELEMENT',
       payload: { id: 'text-1', changes: { color: '#d8342b' } }
@@ -410,13 +375,13 @@ describe('PdfWorkspace Component', () => {
       textarea.value = 'שלום';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    expect(rememberDirection).toHaveBeenCalledWith('rtl');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ direction: 'rtl' }) });
 
     act(() => {
       textarea.value = 'hello';
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    expect(rememberDirection).toHaveBeenCalledWith('ltr');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ direction: 'ltr' }) });
   });
 
   // SIGN-33 (formerly SIGN-32 reopened): the document's carried direction
@@ -471,15 +436,13 @@ describe('PdfWorkspace Component', () => {
   // than a font that already happens to cover both scripts.
   it('typing a script switch remembers both the resolved font and the detected direction', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberFont = vi.fn();
-    const rememberDirection = vi.fn();
     const state = testState({
       elements: [textElement('text-1', { left: 20, top: 20, text: '', fontFamily: 'Caveat', fontFamilyExplicit: false })],
       activeElementId: 'text-1',
       editingElementId: 'text-1',
     });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberFont, rememberDirection } });
+    host = mountWorkspace({ state, dispatch });
 
     const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
     act(() => {
@@ -487,14 +450,12 @@ describe('PdfWorkspace Component', () => {
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
-    expect(rememberFont).toHaveBeenCalledWith('Gveret Levin');
-    expect(rememberDirection).toHaveBeenCalledWith('rtl');
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ font: 'Gveret Levin' }) });
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ direction: 'rtl' }) });
   });
 
   it('switching back to Latin text in a later element carries its own resulting direction', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberFont = vi.fn();
-    const rememberDirection = vi.fn();
     // Already mid-Hebrew, from an earlier element's typing (fontFamilyExplicit
     // stays false: nothing has been explicitly picked on this one either).
     const state = testState({
@@ -504,7 +465,7 @@ describe('PdfWorkspace Component', () => {
       carried: { font: 'Gveret Levin', direction: 'rtl' },
     });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberFont, rememberDirection } });
+    host = mountWorkspace({ state, dispatch });
 
     const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
     act(() => {
@@ -517,8 +478,8 @@ describe('PdfWorkspace Component', () => {
     // typing here never touches fontFamily and rememberFont is never called
     // for it - resolveFontSubstitution only fires on a real substitution),
     // but the detected direction still switches back to LTR.
-    expect(rememberFont).not.toHaveBeenCalled();
-    expect(rememberDirection).toHaveBeenCalledWith('ltr');
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'font' in action.payload)).toBe(false);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ direction: 'ltr' }) });
   });
 
   it('coordinates both export locations from one blocking-field preflight and reviews the first field', () => {
@@ -552,10 +513,9 @@ describe('PdfWorkspace Component', () => {
 
   it('remembers edited shape thickness for the next placed shape', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const rememberThickness = vi.fn();
     const state = testState({ elements: [rectangleElement('rect-1', { left: 20, top: 20, width: 12, height: 6, color: '#1463ff', strokeWidth: 3 })], activeElementId: 'rect-1' });
 
-    host = mountWorkspace({ state, dispatch, defaults: { rememberThickness } });
+    host = mountWorkspace({ state, dispatch });
 
     const thicknessTrigger = required(host.querySelector<HTMLButtonElement>('button[title="Line thickness"]'), 'line thickness button');
     act(() => {
@@ -569,7 +529,7 @@ describe('PdfWorkspace Component', () => {
 
     // Bug: editing an existing shape's thickness must be remembered for the
     // next shape placement, same as color/font/direction already are.
-    expect(rememberThickness).toHaveBeenCalledWith(12);
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: expect.objectContaining({ strokeWidth: 12 }) });
     expect(dispatch).toHaveBeenCalledWith({
       type: 'UPDATE_ELEMENT',
       payload: { id: 'rect-1', changes: { strokeWidth: 12 } }
@@ -578,9 +538,9 @@ describe('PdfWorkspace Component', () => {
 
   it('keeps whiteout color independent from the active text/shape color defaults', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const state = testState({ selectedTool: 'whiteout', elements: [textElement('text-1', { left: 20, top: 20, text: 'red text', fontSize: 16, fontFamily: 'Arimo', color: '#d8342b', textDirection: 'ltr' })], activeElementId: 'text-1' });
+    const state = testState({ selectedTool: 'whiteout', elements: [textElement('text-1', { left: 20, top: 20, text: 'red text', fontSize: 16, fontFamily: 'Arimo', color: '#d8342b', textDirection: 'ltr' })], activeElementId: 'text-1', carried: { color: '#1463ff', whiteoutColor: '#ffffff' } });
 
-    host = mountWorkspace({ state, dispatch, defaults: { lastColor: '#1463ff', lastWhiteoutColor: '#ffffff' } });
+    host = mountWorkspace({ state, dispatch });
 
     const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 600, 800);
