@@ -13,7 +13,7 @@ import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
 import { useSignTool } from './SignToolContext.tsx';
-import { useSignDefaults } from './SignDefaultsContext.tsx';
+import { carriedPatchFor } from '../../../editor/model/carriedPatch.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
@@ -180,10 +180,6 @@ export default function PdfWorkspace({
     dispatch,
   } = useSignTool();
   useAutoFontProvisioning(elements);
-  const {
-    lastColor, lastWhiteoutColor, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
-    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
-  } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
@@ -204,9 +200,9 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
-    initialColor: activeTextElement?.color || lastColor,
-    initialWhiteoutColor: lastWhiteoutColor,
-    initialStrokeWidth: lastThickness,
+    initialColor: activeTextElement?.color || carried.color,
+    initialWhiteoutColor: carried.whiteoutColor,
+    initialStrokeWidth: carried.strokeWidth,
     // The document's carried style (SIGN-33), never the currently selected
     // element's own - a comb shrunk to fit its own cell must not leak that
     // shrink into the next, unrelated placement. See useWorkspaceGestures.ts's
@@ -216,9 +212,9 @@ export default function PdfWorkspace({
     // placed after takes it, the same "whatever it ends up in carries" rule
     // every carried key follows.
     carried,
-    initialDateFormat: lastDateFormat,
-    initialSymbolWidth: lastSymbolWidth,
-    initialSymbolMark: lastSymbolMark,
+    initialDateFormat: carried.dateFormat,
+    initialSymbolWidth: carried.symbolWidth,
+    initialSymbolMark: carried.symbolMark,
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
@@ -259,41 +255,16 @@ export default function PdfWorkspace({
       ? { ...fields, dateFormatId: undefined, dateValue: undefined }
       : fields;
     updateElement(id, patch);
-    if (fields.color) {
-      if (element?.type === 'whiteout') {
-        rememberWhiteoutColor(fields.color);
-      } else {
-        rememberColor(fields.color);
-      }
+    // SIGN-33: whatever the person sets on an element (colour, font, A-/A+ or
+    // a resize drag, direction, alignment, bold, italic, date format, symbol
+    // mark and size, line thickness, whiteout colour, signature width) becomes
+    // this document's carried style, so the next element starts in it. A
+    // placement's own fit-shrink never comes through here, so it never carries.
+    if (element) {
+      const carriedPatch = carriedPatchFor(element, fields, detectTextDirection);
+      if (Object.keys(carriedPatch).length > 0) dispatch({ type: 'SET_CARRIED', payload: carriedPatch });
     }
-    if ('fontFamily' in fields && fields.fontFamily) rememberFont(fields.fontFamily);
-    // SIGN-32: every size the person sets carries to the next field - A-/A+,
-    // and a text box's resize drag too (`applyTextResize` patches `fontSize`),
-    // since that is the person correcting the size by hand. A placement's own
-    // fit-shrink never comes through here, so it never carries.
-    if ('fontSize' in fields && fields.fontSize) rememberFontSize(fields.fontSize);
-    if ('strokeWidth' in fields && fields.strokeWidth) rememberThickness(fields.strokeWidth);
-    // A resized symbol sets the size for the next one placed, so repeated marks
-    // (check, x, dot) don't have to be re-sized one by one.
-    if (element?.type === 'symbol' && 'width' in fields && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
-    // A switched symbol mark (check/x/dot) sets the mark for the next one
-    // placed, so it doesn't silently reset to the check mark default.
-    if (element?.type === 'symbol' && 'mark' in fields && fields.mark !== undefined) rememberSymbolMark?.(fields.mark);
-    // A resized signature sets the size for the next one placed, so signing
-    // multiple fields on the same form doesn't require re-sizing every time.
-    if (element?.type === 'signature' && 'width' in fields && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
-    if (element?.type === 'text') {
-      if ('textDirection' in fields && fields.textDirection) {
-        rememberDirection(fields.textDirection);
-      } else if ('text' in fields && fields.text !== undefined) {
-        const typedDirection = detectTextDirection(fields.text);
-        if (typedDirection) rememberDirection(typedDirection);
-      }
-      // A format switched on one date field (ElementToolbar's cycling control)
-      // sets the format for the next 'date' tool placement, same as font/color.
-      if ('dateFormatId' in fields && fields.dateFormatId) rememberDateFormat(fields.dateFormatId);
-    }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat]);
+  }, [updateElement, elements, dispatch]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();

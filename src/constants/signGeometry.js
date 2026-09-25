@@ -5,6 +5,7 @@
 
 // Colors & Formatting Fallbacks
 export const DEFAULT_COLOR_BLUE = '#1463ff';
+export const DEFAULT_INK_COLOR = '#000000';           // A new document's text/shape colour until the person picks one (SIGN-33)
 export const DEFAULT_WHITEOUT_COLOR = '#ffffff';
 
 // Sizing Defaults & Limits

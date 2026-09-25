@@ -2,6 +2,7 @@ import { createElementId } from '../../editor/model/ids.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
+import { carriedTextStyle } from '../../editor/model/elementDefaults.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { placeTextOnField } from '../../editor/text/combPlacement.ts';
@@ -399,7 +400,7 @@ export default function useFieldNavigation({
       fontSize: snapped.fontSize,
       direction,
     });
-    const placed = { ...newEl, ...snapped };
+    const placed = { ...newEl, ...snapped, ...(newEl.type === 'text' ? carriedTextStyle(carried) : {}) };
 
     // Seeded only by an actual placement - `existing` above already returned
     // for a field that already has a box, so reaching here always means one

@@ -14,6 +14,7 @@ import type {
   SymbolMark,
 } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
+import { carriedTextStyle } from '../../editor/model/elementDefaults.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
@@ -321,6 +322,7 @@ export default function useWorkspaceGestures({
     if (field && newEl.type === 'text') {
       newEl.textDirection = carriedDirection ?? formRegions.pageDirections?.[pageIndex] ?? 'ltr';
     }
+    if (newEl.type === 'text') Object.assign(newEl, carriedTextStyle(carried));
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;

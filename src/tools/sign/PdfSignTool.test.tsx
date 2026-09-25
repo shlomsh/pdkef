@@ -877,10 +877,9 @@ describe('PdfSignTool UI flow', () => {
       await Promise.resolve();
     });
 
-    expect(localStorage.getItem('pdf-toolkit:lastColor')).toBe('#d8342b');
-    // The increased font size is carried with the document now (SIGN-32),
-    // not written to a browser-wide preference - see the fontSize assertion
-    // below, once a second box is placed, for where that carry is proven.
+    // Colour and size are carried with the document (SIGN-33), never a
+    // browser-wide preference: the second box placed below proves the carry.
+    expect(localStorage.getItem('pdf-toolkit:lastColor')).toBeNull();
     expect(query<HTMLTextAreaElement>(container, '[data-editor-text-input]').style.color).toBe('rgb(216, 52, 43)');
 
     await act(async () => {

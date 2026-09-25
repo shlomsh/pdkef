@@ -39,6 +39,20 @@ export interface ElementCreationDefaults {
   strokeWidth?: number;
 }
 
+/**
+ * The text styling a document carries that an element never has on its own
+ * until someone sets it (SIGN-33): alignment, bold, italic. Only the keys the
+ * document actually carries come back, so an unset alignment still follows
+ * the text's direction (getTextAlign) and an unset weight stays the default.
+ */
+export function carriedTextStyle(carried: Partial<DocumentStyle>): Pick<ElementCreationDefaults, 'textAlign' | 'fontWeight' | 'fontStyle'> {
+  const style: Pick<ElementCreationDefaults, 'textAlign' | 'fontWeight' | 'fontStyle'> = {};
+  if (carried.textAlign) style.textAlign = carried.textAlign;
+  if (carried.bold !== undefined) style.fontWeight = carried.bold ? 'bold' : 'normal';
+  if (carried.italic !== undefined) style.fontStyle = carried.italic ? 'italic' : 'normal';
+  return style;
+}
+
 function carriedOrDefault<K extends keyof DocumentStyle>(
   carried: Partial<DocumentStyle>,
   defaults: DocumentStyle,
