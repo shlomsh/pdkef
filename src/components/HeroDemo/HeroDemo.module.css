@@ -49,6 +49,31 @@
   transform: translateX(calc(var(--hero-dir) * var(--story-slide, 0%)));
   will-change: transform;
 }
+/* --story-slide/--caption-opacity/--story-opacity's var() fallbacks above and
+   on .caption/.progress-rail/.phone below (0%, 1, 1) are exactly what
+   ScrollDriver.tsx's update() writes onto the *first* (sign) track at scroll
+   position 0 - crossfade is 0 there, so storySlide is -100*0 and storyVisible
+   is Number(0 < 1). They are not a real default for the second track, only a
+   coincidence that happened to look like one: the second track's own
+   progress-0 values are different (crossfade > 0 is false there too, but the
+   formula flips - see computeTrackVisibility). With no default of its own,
+   [data-hero-track="blur"] rendered stacked directly on top of the sign
+   track, fully visible, for every visitor until ScrollDriver hydrated and
+   overwrote it - both captions printing over each other and the second
+   phone covering the first (DEMO-09). These three values are exactly what
+   computeTrackVisibility('blur', 0) returns (heroDemoStageDefaults.test.js
+   pins it against the real function), so hydration changes nothing a
+   visitor can see, the same fix already applied to .stage's own defaults
+   below. A true no-JS visitor never runs ScrollDriver at all, so this also
+   is the no-JS behaviour: the second story stays off-slide and invisible,
+   never the finished-story override the <noscript> stylesheet gives
+   [data-hero-stage] - see hero-demo-noscript.css for why that override only
+   needs to cover the beats, not this. */
+.track[data-hero-track='blur'] {
+  --story-slide: 100%;
+  --caption-opacity: 0;
+  --story-opacity: 0;
+}
 .stage {
   display: grid;
   grid-template-columns: minmax(150px, 250px) auto;
@@ -884,7 +909,7 @@
  * `will-change: filter/transform`) creates a new containing block for every
  * descendant, which silently kills `position: sticky` on anything beneath
  * it - with no console warning anywhere. The sticky stage that this entire
- * demo depends on lives far above this subtree (.stage / .stage-first), so
+ * demo depends on lives far above this subtree (.stage), so
  * nothing in the share sheet may ever reach for filter or transform on a
  * wrapper. .share-sheet below uses `transform: translateY(...)` for the
  * slide - that is safe *only* because .share-sheet itself has no sticky
