@@ -79,6 +79,7 @@ describe('SignToolContext Reducer', () => {
     documentRevision: 0,
     carriedFont: null,
     carriedFontSize: null,
+    carriedDirection: null,
   };
 
   it('SET_TOOL sets selectedTool', () => {
@@ -148,6 +149,47 @@ describe('SignToolContext Reducer', () => {
       });
       expect(restored.carriedFont).toBeNull();
       expect(restored.carriedFontSize).toBeNull();
+    });
+  });
+
+  // SIGN-32 reopened: one carried text direction per document, same rule as
+  // carried font/size - set by whatever direction typing or an explicit
+  // toggle ends up in, belongs to the document, never the browser.
+  describe('carried direction', () => {
+    it('SET_CARRIED_DIRECTION sets the carried direction and bumps documentRevision', () => {
+      const rtlState = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
+      expect(rtlState.carriedDirection).toBe('rtl');
+      expect(rtlState.documentRevision).toBe(1);
+
+      // Switching to a later Latin element carries whatever it ends up in too.
+      const ltrState = reducer(rtlState, { type: 'SET_CARRIED_DIRECTION', payload: 'ltr' });
+      expect(ltrState.carriedDirection).toBe('ltr');
+      expect(ltrState.documentRevision).toBe(2);
+    });
+
+    it('LOAD_DOCUMENT restores a draft\'s carried direction', () => {
+      const loaded = reducer(initialState, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carriedDirection: 'rtl' },
+      });
+      expect(loaded.carriedDirection).toBe('rtl');
+    });
+
+    it('LOAD_DOCUMENT resets to no carried direction for a fresh document (new document starts from the default)', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
+      expect(withCarry.carriedDirection).toBe('rtl');
+
+      const fresh = reducer(withCarry, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
+      expect(fresh.carriedDirection).toBeNull();
+    });
+
+    it('LOAD_DOCUMENT resets to no carried direction for a draft written before this existed (field present but undefined)', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
+      const restored = reducer(withCarry, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carriedDirection: undefined },
+      });
+      expect(restored.carriedDirection).toBeNull();
     });
   });
 

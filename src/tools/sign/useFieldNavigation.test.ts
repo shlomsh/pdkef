@@ -129,6 +129,21 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
     expect((addedElement(dispatch) as TextElement).textDirection).toBe('ltr');
   });
 
+  // SIGN-32 reopened: once the document has a carried direction, a field
+  // reached by Next takes it, the same priority useWorkspaceGestures.ts's tap
+  // path gives it - a fresher signal than the page's own printed convention.
+  it('takes the document\'s carried direction over the page\'s printed direction, once the document has one', () => {
+    const { goToNext, dispatch } = makeHook({ formRegions, carriedDirection: 'ltr' });
+    goToNext();
+    expect((addedElement(dispatch) as TextElement).textDirection).toBe('ltr');
+  });
+
+  it('falls back to the page\'s printed direction when the document has nothing carried yet', () => {
+    const { goToNext, dispatch } = makeHook({ formRegions, carriedDirection: null });
+    goToNext();
+    expect((addedElement(dispatch) as TextElement).textDirection).toBe('rtl');
+  });
+
   it('applies the given font/size/color, same knobs useWorkspaceGestures exposes', () => {
     const { goToNext, dispatch } = makeHook({
       formRegions,
