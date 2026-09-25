@@ -226,18 +226,36 @@ Per-kind recall and precision are ratcheted too, not just the whole-form numbers
 overall recall can hold while one kind collapses and another improves, and its overall precision can
 hold while one kind starts producing false positives and another's gain covers for it - both trades
 are exactly what a single number hides. `byKind` in `baselines.json` records both per kind, in one
-object each: `{ "text": { "recall": 83.3, "precision": 91.4 }, ... }`. The two sides are read from
-opposite ends of the match and can disagree on purpose: recall reads from the *target* side ("of the N
-text targets, how many did some compatible candidate find?"), precision from the *candidate* side ("of
-the N candidates the detector itself called `text`, how many matched a target?"). A `date` candidate
-matching a `text` target counts toward `text`'s recall and toward `date`'s precision, not the other way
-round. That candidate-side reading is also why `byKind` sometimes carries a kind with `"recall": null`:
-the detector's own vocabulary is a little wider than the ground truth's (`table-cell` is never a truth
-kind, and a form whose truth calls something `radio` can still see the detector candidate it
-`checkbox`), so a kind can show up with candidates but no matching truth kind. There is nothing to hold
-for a kind with no targets, so recall is `null` there rather than a manufactured zero - and, mirroring
-the form-level convention below, precision is `null` wherever a kind has no candidates at all, because
-with nothing emitted there is nothing to be precise about.
+object each: `{ "text": { "recall": 83.3, "targets": 6, "found": 5, "precision": 91.4, "candidates": 8,
+"matchedCandidates": 7 }, ... }`. The two sides are read from opposite ends of the match and can
+disagree on purpose: recall reads from the *target* side ("of the N text targets, how many did some
+compatible candidate find?"), precision from the *candidate* side ("of the N candidates the detector
+itself called `text`, how many matched a target?"). A `date` candidate matching a `text` target counts
+toward `text`'s recall and toward `date`'s precision, not the other way round. That candidate-side
+reading is also why `byKind` sometimes carries a kind with `"recall": null`: the detector's own
+vocabulary is a little wider than the ground truth's (`table-cell` is never a truth kind, and a form
+whose truth calls something `radio` can still see the detector candidate it `checkbox`), so a kind can
+show up with candidates but no matching truth kind. There is nothing to hold for a kind with no targets,
+so recall is `null` there rather than a manufactured zero - and, mirroring the form-level convention
+below, precision is `null` wherever a kind has no candidates at all, because with nothing emitted there
+is nothing to be precise about.
+
+**The percentages are read; the counts behind them are checked exactly (FORM-21 review).** `targets`,
+`candidates` and `matched` sit beside `recall`/`precision` at the form level, and `targets`/`found`
+(the recall side) and `candidates`/`matchedCandidates` (the precision side) sit beside `recall`/
+`precision` in every `byKind` row - the same four raw integers `score.js` already computes on the way
+to each percentage. `scoring.test.js` asserts them with `toBe`, no `SLACK`, because a percentage that
+rounds the same can still sit on different counts (targets and matched both scaling together, say),
+which is a real change a rounded number alone cannot show. `score-form.mjs` prints and diffs them the
+same way it does the percentages.
+
+**Every per-kind check reads the union of the baseline's kinds and the actual run's, not the
+baseline's alone (FORM-21 review).** A kind the baseline recorded that the detector no longer produces
+at all - not a low score, an *absent* one - used to pass silently, because iterating
+`Object.entries(form.byKind)` only ever visits keys the baseline already knew about. It is reported as
+vanished, and counts as a regression. The opposite case, a kind the detector now produces that no
+baseline row mentions at all, is reported as appeared, and counts as an unrecorded change needing a
+re-record - the same treatment as a plain rise past `SLACK`.
 
 ### Adding a scored form
 
@@ -258,16 +276,21 @@ No new test code; a row and a file.
    by every live-AcroForm entry, each supplying only its own label source, kind rule and exclusion
    rule.
 3. **Record the baseline.** `node scripts/score-form.mjs --pdf <file> --truth <truth.json>` prints
-   the row to paste, the per-kind recall/precision breakdown and what it missed. Read the numbers
-   before you write them down. `--all` (FORM-21) re-scores every form in `baselines.json` and, for
-   each, prints the same row plus a signed delta against its recorded baseline - `Δ form` for the
-   whole-form numbers, `Δ kind` for every kind - with `v`/`^` marking anything that moved past `SLACK`
-   in either direction and `(!)` marking a form or kind that moved on or off a recorded `null` (no
-   candidates at all). It ends with one summary line, `improved / unchanged / regressed` counts across
-   every form, and exits non-zero the moment anything has regressed - the same floor `scoring.test.js`
-   enforces, made readable without subtracting by eye. `improved` is not a pass: it means a number rose
-   past `SLACK` with nothing recording it yet, which `scoring.test.js`'s own ceiling checks fail on too,
-   so the fix is to re-record the row in the same change, not to leave it green by accident.
+   the row to paste (percentages and the raw counts behind them, FORM-21 review), the per-kind
+   recall/precision breakdown and what it missed. Read the numbers before you write them down. `--all`
+   (FORM-21) re-scores every form in `baselines.json` and, for each, prints the same row plus a signed
+   delta against its recorded baseline - `Δ form` for the whole-form percentages, `Δ counts` for the
+   raw integers, `Δ kind` for every kind - with `v`/`^` marking anything that moved past `SLACK` (or,
+   for a count, at all) and `(!)` marking a form or kind that moved on or off a recorded `null` (no
+   candidates at all). It ends with one summary line, `changed / unchanged / regressed` counts across
+   every form, and exits non-zero the moment any form is `changed` or `regressed` - not `regressed`
+   alone. The two labels mirror `scoring.test.js` exactly rather than approximating it: `regressed`
+   means a floor breach or a kind vanishing entirely, the same drops the floor checks fail on;
+   `changed` means a ceiling breach, a kind appearing with nothing recorded for it, a value moving on
+   or off a recorded `null`, or a count that no longer matches - everything the ceiling and exact-count
+   checks fail on. Neither is a pass: `changed` still means re-recording the row in the change that
+   earned it, or the next change gets to lose the gain silently, exactly as `regressed` means the
+   detector got worse.
 4. That is the whole loop. From then on every run proves the form still works and says how well.
 
 **Two identities, kept apart.** A truth file's `sha256` is the document somebody *annotated*; a
