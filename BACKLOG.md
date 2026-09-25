@@ -496,7 +496,6 @@ _None._
 | FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
 | FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
 | FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
-| FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
 | FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
 | FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
@@ -504,7 +503,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
 
 ### Blocked
 
