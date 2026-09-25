@@ -176,7 +176,7 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carriedFont, carriedFontSize },
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carriedFont, carriedFontSize, carriedDirection },
     dispatch,
   } = useSignTool();
   useAutoFontProvisioning(elements);
@@ -191,11 +191,6 @@ export default function PdfWorkspace({
   // derived here, where the top toolbar, bottom actions, and review navigation
   // meet, rather than recreated in each of those presentation components.
   const exportReadiness = useMemo(() => getSignExportReadiness(elements), [elements]);
-
-  // A fresh field starts from the product's English/LTR default. Direction is
-  // then derived from what is typed into that field; it must never inherit the
-  // language/direction of a selected or previously edited text element.
-  const initialTextDirection = 'ltr';
 
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
@@ -218,7 +213,12 @@ export default function PdfWorkspace({
     // useWorkspaceGestures.ts's fieldFontSize-backed resolution.
     carriedFont,
     carriedFontSize,
-    initialDirection: initialTextDirection,
+    // The document's carried direction (SIGN-32 reopened): `null` on a fresh
+    // document, so a free field falls back to auto-detecting from what is
+    // typed into it (as before); once typing or an explicit toggle has set
+    // it, every field placed after takes it, the same "whatever it ends up
+    // in carries" rule as carriedFont/carriedFontSize.
+    carriedDirection,
     initialDateFormat: lastDateFormat,
     initialSymbolWidth: lastSymbolWidth,
     initialSymbolMark: lastSymbolMark,

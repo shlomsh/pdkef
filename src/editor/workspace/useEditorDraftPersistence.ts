@@ -2,6 +2,7 @@ import { useMemo } from 'preact/hooks';
 import { clearDraftHintAttribute, useDraftPersistence } from '../../lib/drafts/useDraftPersistence.js';
 import { migrateDraftRecord, validateDraftRecord } from '../registry/draftValidation.ts';
 import type { ActionHistoryEntry, HistoryElement } from '../model/actionHistory.ts';
+import type { TextDirection } from '../model/editorModel.ts';
 import { deleteDraft, takeHandoff } from '../../lib/drafts/draftStore.js';
 
 interface DraftRecord {
@@ -9,7 +10,7 @@ interface DraftRecord {
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements?: unknown[];
-  extra?: { actionHistory?: unknown[]; carriedFont?: string; carriedFontSize?: number };
+  extra?: { actionHistory?: unknown[]; carriedFont?: string; carriedFontSize?: number; carriedDirection?: TextDirection };
 }
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
@@ -18,10 +19,12 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   fileBytes: ArrayBuffer | null;
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
-  /** Sign's document-carried font family/size (SIGN-32); Redact never
-   * supplies either, and both stay entirely out of its own draft record. */
+  /** Sign's document-carried font family/size (SIGN-32) and direction
+   * (SIGN-32 reopened); Redact never supplies any of the three, and all stay
+   * entirely out of its own draft record. */
   carriedFont?: string | null;
   carriedFontSize?: number | null;
+  carriedDirection?: TextDirection | null;
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
   isDirty: boolean;
@@ -38,9 +41,10 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
 export interface EditorDraftInitialState<TElement extends HistoryElement> {
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
-  /** Sign only (SIGN-32); absent for Redact and for a fresh pick. */
+  /** Sign only (SIGN-32/SIGN-32 reopened); absent for Redact and for a fresh pick. */
   carriedFont?: string;
   carriedFontSize?: number;
+  carriedDirection?: TextDirection;
 }
 
 /**
@@ -56,6 +60,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   actionHistory,
   carriedFont,
   carriedFontSize,
+  carriedDirection,
   status,
   isDirty,
   loadStartedRef,
@@ -71,11 +76,16 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   // `extra` participates in the autosave revision. Keep its identity tied to
   // actual history/carried-value changes, otherwise a save-state rerender
   // would look like a new edit and schedule another write forever. Redact
-  // never passes carriedFont/carriedFontSize, so both stay undefined and out
-  // of its own draft record.
+  // never passes carriedFont/carriedFontSize/carriedDirection, so all three
+  // stay undefined and out of its own draft record.
   const extra = useMemo(
-    () => ({ actionHistory, carriedFont: carriedFont ?? undefined, carriedFontSize: carriedFontSize ?? undefined }),
-    [actionHistory, carriedFont, carriedFontSize],
+    () => ({
+      actionHistory,
+      carriedFont: carriedFont ?? undefined,
+      carriedFontSize: carriedFontSize ?? undefined,
+      carriedDirection: carriedDirection ?? undefined,
+    }),
+    [actionHistory, carriedFont, carriedFontSize, carriedDirection],
   );
 
   return useDraftPersistence({
@@ -125,6 +135,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
           actionHistory: validated.extra?.actionHistory || [],
           carriedFont: validated.extra?.carriedFont,
           carriedFontSize: validated.extra?.carriedFontSize,
+          carriedDirection: validated.extra?.carriedDirection,
         },
         true,
       );

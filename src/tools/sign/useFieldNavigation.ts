@@ -57,6 +57,10 @@ export interface FieldNavigationOptions {
    * for the tap path this mirrors. */
   carriedFont?: string | null;
   carriedFontSize?: number | null;
+  /** The document's carried text direction (SIGN-32 reopened), or `null`
+   * when the document has none yet - see useWorkspaceGestures.ts's identical
+   * prop for the tap path this mirrors. */
+  carriedDirection?: TextDirection | null;
   pageSizes?: PageGeometry[];
   nextElementIndex?: number;
   /** LOC-16: same optional/English-default shape as useWorkspaceGestures.ts's `messages`. */
@@ -321,6 +325,7 @@ export default function useFieldNavigation({
   initialColor = DEFAULT_COLOR_BLUE,
   carriedFont = null,
   carriedFontSize = null,
+  carriedDirection = null,
   pageSizes = [],
   nextElementIndex = elements.length,
   messages,
@@ -358,13 +363,17 @@ export default function useFieldNavigation({
     const pageWidthPoints = pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS;
     const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
     const id = createElementId();
-    // Seeded from the FORM's own printed direction, not the product's usual
-    // English/LTR default a free placement gets (PdfWorkspace.tsx) - a field
-    // reached by Next is sitting on one specific spot on a page whose own
-    // text already reads a given way, and getEffectiveTextDirection only
-    // honours this seed for a field-spanned box in the first place (see its
-    // own doc), so a free box elsewhere is never affected by it.
-    const direction = formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
+    // The document's carried direction (SIGN-32 reopened) wins once it has
+    // one, the same priority useWorkspaceGestures.ts's tap path gives it -
+    // see that hook's identical comment for why. Only a document with
+    // nothing carried yet falls back to the FORM's own printed direction, not
+    // the product's usual English/LTR default a free placement gets
+    // (PdfWorkspace.tsx): a field reached by Next is sitting on one specific
+    // spot on a page whose own text already reads a given way, and
+    // getEffectiveTextDirection only honours this seed for a field-spanned
+    // box in the first place (see its own doc), so a free box elsewhere is
+    // never affected by it.
+    const direction = carriedDirection ?? formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
     // The size and family this element takes - the document's carried
     // values, or (SIGN-32) seeded from this field's own height when the
     // document has none yet; see useWorkspaceGestures.ts's identical

@@ -1,4 +1,4 @@
-import type { EditorElement, ElementType } from '../model/editorModel.ts';
+import type { EditorElement, ElementType, TextDirection } from '../model/editorModel.ts';
 import { isActionHistoryEntry, type ActionHistoryEntry, type HistoryElement } from '../model/actionHistory.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
@@ -153,9 +153,15 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements: TElement[];
-  /** carriedFont/carriedFontSize are Sign-only (SIGN-32); a Redact record
-   * simply never carries either, and both come back undefined for it. */
-  extra?: { actionHistory?: ActionHistoryEntry<TElement>[]; carriedFont?: string; carriedFontSize?: number };
+  /** carriedFont/carriedFontSize (SIGN-32) and carriedDirection (SIGN-32
+   * reopened) are Sign-only; a Redact record simply never carries any of the
+   * three, and all come back undefined for it. */
+  extra?: {
+    actionHistory?: ActionHistoryEntry<TElement>[];
+    carriedFont?: string;
+    carriedFontSize?: number;
+    carriedDirection?: TextDirection;
+  };
 }
 
 function isNonEmptyArrayBuffer(value: unknown): value is ArrayBuffer {
@@ -205,12 +211,20 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     && (record.extra.carriedFontSize as number) > 0
     ? (record.extra.carriedFontSize as number)
     : undefined;
+  // SIGN-32 reopened: Sign-only, optional - same treatment as carriedFont
+  // above. Anything other than the two real direction values (a malformed
+  // draft, or a draft written before this existed) comes back undefined
+  // rather than failing the whole restore.
+  const carriedDirection: TextDirection | undefined = isRecord(record.extra)
+    && (record.extra.carriedDirection === 'ltr' || record.extra.carriedDirection === 'rtl')
+    ? record.extra.carriedDirection
+    : undefined;
 
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory, carriedFont, carriedFontSize } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory, carriedFont, carriedFontSize, carriedDirection } : undefined,
   };
 }
