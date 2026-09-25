@@ -20,8 +20,13 @@
  *
  * `reconcile(sourceResults, { sourceOrder, kindPrecedence })` is the one
  * function both facts are data for. `detectFormFields.ts` calls it once per
- * page with that page's raw regions from every source, keyed by source name;
- * a new source needs a name in `SOURCE_ORDER` and nothing else changes here.
+ * page with that page's raw regions from every source, keyed by source name.
+ * A new source does not need a name in `SOURCE_ORDER` to be folded in at
+ * all: one absent from `sourceOrder` is appended after every name that is
+ * present, in the order its result arrived, rather than dropped (ARCH-24
+ * step C). Giving it a line in `SOURCE_ORDER` is still how its precedence
+ * against `ink`/`widgets` is chosen on purpose; leaving it out only means
+ * "runs last, wins no same-kind tie", not "invisible".
  *
  * A third thing is not a precedence rule and stays fixed, pure geometry:
  * `formCells.js`'s cell detector and `formGrid.js`'s comb detector each see
@@ -109,7 +114,12 @@ function absorbWritable(combs, cells) {
   });
 }
 
-/** The two sources today, earlier wins a tie. A new source adds its name here. */
+/**
+ * The two sources today, earlier wins a tie. A new source may add its name
+ * here to place it deliberately; one that does not is still folded in, last
+ * (see `reconcile`'s module doc, ARCH-24 step C) - this list decides
+ * precedence, not membership.
+ */
 export const SOURCE_ORDER = ['ink', 'widgets'];
 
 /**
@@ -167,13 +177,32 @@ function fold(accepted, source, kindPrecedence) {
  * what earlier sources contributed by `kindPrecedence` (Rules 1 and 2 above).
  * A name in `sourceOrder` with no entry in `sourceResults` is skipped.
  *
+ * A name in `sourceResults` that `sourceOrder` does not know - a new source
+ * `detectFormFields` was handed without a line in `SOURCE_ORDER` - is folded
+ * in too, appended after every named source, in the order its result appears
+ * in `sourceResults` (`detectFormFields.ts` builds that object in the
+ * caller's own `sources` array order, so this is deterministic, not
+ * incidental). The alternative was silently dropping it, which is what this
+ * function did before ARCH-24 step C: a caller composing a third source
+ * through the public contract would have seen it vanish with no error and no
+ * row of coverage lost, the same silent-failure shape ARCH-24's own "coupling
+ * already cost us one outage" section warns about. Appending keeps that
+ * caller's data instead, at the weakest possible precedence - it can still
+ * lose a same-kind tie to `ink` or `widgets`, or a same-rectangle cell to a
+ * later-processed protected kind - until its name earns a deliberate place in
+ * `SOURCE_ORDER`. Pinned in `fieldRegions.test.js` ("reconcile, an unknown
+ * source name") and demonstrated end to end through `detectFormFields` in
+ * `corpus/thirdSourceContract.test.js`.
+ *
  * @param {Record<string, {combs: Array, checkboxes: Array, cells: Array}>} sourceResults
  * @param {{sourceOrder?: string[], kindPrecedence?: string[]}} [options]
  * @returns {{combs: Array, checkboxes: Array, cells: Array}}
  */
 export function reconcile(sourceResults, { sourceOrder = SOURCE_ORDER, kindPrecedence = KIND_PRECEDENCE } = {}) {
+  const unknown = Object.keys(sourceResults).filter((name) => !sourceOrder.includes(name));
+  const order = [...sourceOrder, ...unknown];
   let accepted = Object.fromEntries(kindPrecedence.map((kind) => [kind, []]));
-  for (const name of sourceOrder) {
+  for (const name of order) {
     const source = sourceResults[name];
     if (!source) continue;
     const withWritable = { ...source, combs: absorbWritable(source.combs ?? [], source.cells ?? []) };
