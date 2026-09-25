@@ -38,6 +38,38 @@ _None._
 | FONT-06 | P3 | [FONT-06](backlog/tasks/FONT-06.md) · Urdu in Nastaliq |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
 
+## Landing story and demo
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEMO-08 | P3 | [DEMO-08](backlog/tasks/DEMO-08.md) · The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| DEMO-01 | P1 | [DEMO-01](backlog/tasks/DEMO-01.md) · Type roles and vertical rhythm tokens for the marketing surface |
+| DEMO-02 | P1 | [DEMO-02](backlog/tasks/DEMO-02.md) · The hero demo: fill and sign a form from a chat, and blur what's private before sending it |
+| DEMO-03 | P3 | [DEMO-03](backlog/tasks/DEMO-03.md) · Close the loop: accept a PDF shared into PDkef from another app |
+| DEMO-04 | P2 | [DEMO-04](backlog/tasks/DEMO-04.md) · Say it stays on your phone, in words a non-technical person believes |
+| DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
+| DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
+| DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
+
+### Retired
+
+_None._
+
 ## Mobile round trip
 
 ### Open
@@ -636,24 +668,6 @@ Every task in these epics is done or retired. They collapse here so the board ab
 | ARCH-12 | P2 | [ARCH-12](backlog/tasks/ARCH-12.md) · Validate canonical backlog and generated indexes in CI |
 | ARCH-13 | P2 | [ARCH-13](backlog/tasks/ARCH-13.md) · Restore CSS delivery-budget headroom |
 | ARCH-14 | P2 | [ARCH-14](backlog/tasks/ARCH-14.md) · Type the editor interaction tests now covered by shared contracts |
-
-### Retired
-
-_None._
-
-## Landing story and demo
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| DEMO-01 | P1 | [DEMO-01](backlog/tasks/DEMO-01.md) · Type roles and vertical rhythm tokens for the marketing surface |
-| DEMO-02 | P1 | [DEMO-02](backlog/tasks/DEMO-02.md) · The hero demo: fill and sign a form from a chat, and blur what's private before sending it |
-| DEMO-03 | P3 | [DEMO-03](backlog/tasks/DEMO-03.md) · Close the loop: accept a PDF shared into PDkef from another app |
-| DEMO-04 | P2 | [DEMO-04](backlog/tasks/DEMO-04.md) · Say it stays on your phone, in words a non-technical person believes |
-| DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
-| DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
-| DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
 
 ### Retired
 
