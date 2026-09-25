@@ -31,12 +31,8 @@
  *
  * DEMO-09: the middle suite below guards the same class of bug one level up
  * - the `--story-slide`/`--caption-opacity`/`--story-opacity` trio
- * ScrollDriver.tsx writes onto each `[data-hero-track]` element itself
- * (which story is on screen at all), not onto `[data-hero-stage]` (which
- * beat within it). `.track`'s var() fallbacks for those three properties
- * only ever matched the *first* track's own progress-0 output by
- * coincidence; the second track had no default of its own and rendered
- * fully visible, stacked on the first, until ScrollDriver hydrated.
+ * ScrollDriver.tsx writes onto each `[data-hero-track]` element (which story
+ * is on screen at all, not which beat within it).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -120,16 +116,10 @@ describe('HeroDemo stage defaults match ScrollDriver at scroll position 0', () =
 });
 
 describe('HeroDemo track defaults match ScrollDriver at scroll position 0 (DEMO-09)', () => {
-  // The bug this guards: HeroDemo.module.css gave [data-hero-track="blur"]
-  // no default at all for --story-slide/--caption-opacity/--story-opacity,
-  // so those properties fell back to .track's var() fallbacks (0%, 1, 1) -
-  // which only happen to equal the *sign* track's own progress-0 values, by
-  // coincidence (crossfade is 0 at scroll position 0 either way, but the two
-  // tracks' formulas diverge from there - see computeTrackVisibility). With
-  // no real default, the blur track rendered stacked directly on top of the
-  // sign track, fully visible, until ScrollDriver hydrated and corrected it:
-  // both captions printed over each other and the second phone covered the
-  // first for every visitor, every load, until JS ran.
+  // The bug this guards: [data-hero-track="blur"] had no default of its own
+  // for --story-slide/--caption-opacity/--story-opacity, so it fell back to
+  // .track's shared var() fallbacks, which only match the sign track's
+  // progress-0 values, not the blur track's.
   it('the sign track needs no override: its progress-0 values already equal the shared var() fallbacks', () => {
     const { storySlide, storyVisible } = computeTrackVisibility('sign', 0);
     // -100 * 0 is JS's -0, not +0; toBe's Object.is would fail a literal `0`

@@ -67,11 +67,7 @@ const TRACKS: TrackConfig[] = [
       // pinned at 0 until the track's top reaches the viewport top), so the
       // panel is invisible while it moves and fades in once it has settled.
       // This is the second half of the intro card's handoff, which is why
-      // only this track has it. Nothing currently reads the resulting
-      // --p-enter value (see HeroDemo.module.css's own comment on that
-      // property) - the actual entrance fade for both tracks is
-      // --story-slide/--caption-opacity/--story-opacity on .track, driven
-      // directly by this file's crossfade math below instead.
+      // only this track has it.
       enter: [0.0, 0.04],
       msg: [-0.06, 0.0],
       // Hold the complete chat view (the message and attached permission
@@ -170,19 +166,11 @@ export function computeStageBeats(
   return result;
 }
 
-/** The `--story-slide` / `--caption-opacity` / `--story-opacity` trio
- * `update()` writes onto one track's own `[data-hero-track]` element (not its
- * `[data-hero-stage]` child - see `computeStageBeats` above for that) for a
- * given global tour progress. Exported for the same reason: so
- * heroDemoStageDefaults.test.js can compute exactly what a mounted
- * ScrollDriver writes at progress 0 through this real implementation, rather
- * than a hand re-derivation that could drift from it - which is exactly what
- * happened here before the defaults below existed (see HeroDemo.module.css's
- * `[data-hero-track="blur"]` rule).
- *
- * `storySlide` is the unsigned percentage `update()` passes to
- * `--story-slide`; the CSS multiplies it by `--hero-dir` to mirror under RTL,
- * so this function never needs to know the page direction. */
+/** Returns the `--story-slide` / `--caption-opacity` / `--story-opacity`
+ * trio `update()` writes onto one track's `[data-hero-track]` element for a
+ * given global tour progress. Exported so heroDemoStageDefaults.test.js can
+ * check the CSS defaults against this real formula. `storySlide` is
+ * unsigned; the CSS applies `--hero-dir` to mirror it under RTL. */
 export function computeTrackVisibility(
   key: string,
   progress: number,
