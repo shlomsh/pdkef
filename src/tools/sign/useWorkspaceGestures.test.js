@@ -620,6 +620,17 @@ describe('useWorkspaceGestures – date tool', () => {
     expect(added).toMatchObject({ dateFormatId: 'dmyDigits', text: formatDate(todayIso, 'dmyDigits') });
   });
 
+  it('uses MMDDYYYY on an 8-cell comb when the remembered format is month-first', () => {
+    const dateRun = { pageIndex: 0, left: 40, top: 49, width: 15, height: 0.9, cells: 8 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'date',
+      initialDateFormat: 'mdy',
+      formRegions: { combs: [dateRun], checkboxes: [], cells: [] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({ dateFormatId: 'mdyDigits', text: formatDate(todayIso, 'mdyDigits') });
+  });
+
   it('keeps the remembered format on a comb run that is not 8 cells', () => {
     const shortRun = { pageIndex: 0, left: 40, top: 49, width: 15, height: 0.9, cells: 6 };
     const { dispatch, handlePageClick } = makeHook({
