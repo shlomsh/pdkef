@@ -135,7 +135,7 @@ and only a file somebody was actually sent proves the rules hold together:
 
 | File | Why it is here |
 | --- | --- |
-| `public/images/redaction-guide/sample.pdf` | our practice form - a live AcroForm, 9 fields, the file the home page offers on a first visit |
+| `__fixtures__/practice-form-v1.pdf` | the frozen v1 practice form - a live AcroForm, 9 fields, the corpus's only live-AcroForm-widget fixture; SNG-10 moved the home page to a flat, widget-free v2 |
 | `__fixtures__/income-tax-101-page1-geometry.pdf` | a dense flat form, no widgets at all |
 | `__fixtures__/health-declaration-page1-geometry.pdf` | the other scored flat form, whose checkboxes are painted rects rather than paths |
 

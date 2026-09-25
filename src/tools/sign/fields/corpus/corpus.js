@@ -501,9 +501,9 @@ export const ELEMENT_CASES = [
  */
 export const DOCUMENT_CASES = [
   {
-    name: 'the practice form (live AcroForm, 9 fields)',
-    file: ['public', 'images', 'redaction-guide', 'sample.pdf'],
-    why: 'the file the home page offers on a first visit, and the one this corpus was written for',
+    name: 'the frozen v1 practice form (live AcroForm, 9 fields)',
+    file: ['src', 'tools', 'sign', 'fields', '__fixtures__', 'practice-form-v1.pdf'],
+    why: 'the corpus\'s only live-AcroForm-widget case, kept as a fixture now that SNG-10 has the home page offer a flat, widget-free v2',
     expect: { combs: 1, cells: 6, checkboxes: 2 },
   },
   {
