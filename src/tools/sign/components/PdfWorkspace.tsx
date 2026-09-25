@@ -176,7 +176,7 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carriedFont, carriedFontSize, carriedDirection },
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carried },
     dispatch,
   } = useSignTool();
   useAutoFontProvisioning(elements);
@@ -207,18 +207,15 @@ export default function PdfWorkspace({
     initialColor: activeTextElement?.color || lastColor,
     initialWhiteoutColor: lastWhiteoutColor,
     initialStrokeWidth: lastThickness,
-    // The document's carried font/size (SIGN-32), never the currently
-    // selected element's own - a comb shrunk to fit its own cell must not
-    // leak that shrink into the next, unrelated placement. See
-    // useWorkspaceGestures.ts's fieldFontSize-backed resolution.
-    carriedFont,
-    carriedFontSize,
-    // The document's carried direction (SIGN-32 reopened): `null` on a fresh
-    // document, so a free field falls back to auto-detecting from what is
-    // typed into it (as before); once typing or an explicit toggle has set
-    // it, every field placed after takes it, the same "whatever it ends up
-    // in carries" rule as carriedFont/carriedFontSize.
-    carriedDirection,
+    // The document's carried style (SIGN-33), never the currently selected
+    // element's own - a comb shrunk to fit its own cell must not leak that
+    // shrink into the next, unrelated placement. See useWorkspaceGestures.ts's
+    // fieldFontSize-backed resolution. A fresh document (`carried` missing a
+    // key) falls back to auto-detecting direction from what is typed (as
+    // before); once typing or an explicit toggle has set it, every field
+    // placed after takes it, the same "whatever it ends up in carries" rule
+    // every carried key follows.
+    carried,
     initialDateFormat: lastDateFormat,
     initialSymbolWidth: lastSymbolWidth,
     initialSymbolMark: lastSymbolMark,

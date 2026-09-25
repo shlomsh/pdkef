@@ -1,6 +1,7 @@
 import { createElementId } from '../../editor/model/ids.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { placeTextOnField } from '../../editor/text/combPlacement.ts';
@@ -39,8 +40,7 @@ type FieldNavigationAction =
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
-  | { type: 'SET_CARRIED_FONT'; payload: string }
-  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number };
+  | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> };
 
 export interface FieldNavigationOptions {
   elements: EditorElement[];
@@ -52,15 +52,10 @@ export interface FieldNavigationOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   initialColor?: string;
-  /** The document's carried font family and size (SIGN-32), or `null` when
-   * the document has none yet - see useWorkspaceGestures.ts's identical prop
-   * for the tap path this mirrors. */
-  carriedFont?: string | null;
-  carriedFontSize?: number | null;
-  /** The document's carried text direction (SIGN-32 reopened), or `null`
-   * when the document has none yet - see useWorkspaceGestures.ts's identical
-   * prop for the tap path this mirrors. */
-  carriedDirection?: TextDirection | null;
+  /** The document's carried style (SIGN-33); a key absent from it means the
+   * document has none yet - see useWorkspaceGestures.ts's identical prop for
+   * the tap path this mirrors. */
+  carried?: Partial<DocumentStyle>;
   pageSizes?: PageGeometry[];
   nextElementIndex?: number;
   /** LOC-16: same optional/English-default shape as useWorkspaceGestures.ts's `messages`. */
@@ -323,14 +318,17 @@ export default function useFieldNavigation({
   logAction,
   setAnnouncement,
   initialColor = DEFAULT_COLOR_BLUE,
-  carriedFont = null,
-  carriedFontSize = null,
-  carriedDirection = null,
+  carried = {},
   pageSizes = [],
   nextElementIndex = elements.length,
   messages,
 }: FieldNavigationOptions): FieldNavigation {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  // Unpacked once, locally, so the rest of this hook reads the same three
+  // names it always has - only `carried` (SIGN-33) is the prop now.
+  const carriedFont = carried.font ?? null;
+  const carriedFontSize = carried.fontSize ?? null;
+  const carriedDirection: TextDirection | null = carried.direction ?? null;
 
   const order = orderTypableFields(
     formRegions.combs,
@@ -406,8 +404,10 @@ export default function useFieldNavigation({
     // Seeded only by an actual placement - `existing` above already returned
     // for a field that already has a box, so reaching here always means one
     // is about to be created.
-    if (carriedFont === null) dispatch({ type: 'SET_CARRIED_FONT', payload: resolvedFont });
-    if (carriedFontSize === null) dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: snapped.fontSize });
+    const seed: Partial<DocumentStyle> = {};
+    if (carriedFont === null) seed.font = resolvedFont;
+    if (carriedFontSize === null) seed.fontSize = snapped.fontSize;
+    if (seed.font !== undefined || seed.fontSize !== undefined) dispatch({ type: 'SET_CARRIED', payload: seed });
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });

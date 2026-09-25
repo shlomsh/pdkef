@@ -50,6 +50,9 @@ export type SymbolMark = 'check' | 'x' | 'dot';
 /** Text flow direction; `null`/absent means "auto-detect from content" (sign.js). */
 export type TextDirection = 'ltr' | 'rtl';
 
+/** Where text sits inside a box that has room to place it (signHelpers' getTextAlign). */
+export type TextAlign = 'left' | 'center' | 'right';
+
 /**
  * Fields common to every element. Percentages are relative to the page wrapper
  * the element lives in; `pageIndex` selects which PDF page it's baked onto.
@@ -131,7 +134,7 @@ export interface TextElement extends ElementBase {
    * signHelpers' getTextAlign. A free box hugs its text and a comb places
    * per cell, so neither has anywhere for this to show.
    */
-  textAlign?: 'left' | 'center' | 'right';
+  textAlign?: TextAlign;
   /**
    * Set only on a box created by the 'date' tool: which of `dateFormat.ts`'s
    * `DateFormatId`s `text` was last rendered in, kept as a plain string here

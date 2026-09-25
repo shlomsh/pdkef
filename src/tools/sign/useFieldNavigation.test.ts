@@ -14,6 +14,7 @@ import { describe, it, expect, vi } from 'vitest';
 import useFieldNavigation from './useFieldNavigation.ts';
 import type { CombRegion, FieldRegion } from '../../editor/text/combPlacement.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 
 const comb = (pageIndex: number, left: number, top: number, width = 15, cells = 9): CombRegion => (
@@ -27,7 +28,23 @@ const rowRight = comb(0, 70, 20); // rightmost - first on an RTL page
 const rowLeft = comb(0, 20, 20);
 const emptyRegions: FormFieldRegions = { detection: 'done', combs: [], checkboxes: [], cells: [], pageDirections: [] };
 
-function makeHook(overrides: Partial<Parameters<typeof useFieldNavigation>[0]> = {}) {
+// SIGN-33 folded the hook's three flat carriedFont/carriedFontSize/
+// carriedDirection props into one `carried` object. Every test below still
+// passes the flat, pre-SIGN-33 names; this helper translates them into the
+// shape the hook actually takes now - see useWorkspaceGestures.test.js's
+// identical helper for why.
+function makeHook(overrides: Partial<Parameters<typeof useFieldNavigation>[0]> & {
+  carriedFont?: string | null;
+  carriedFontSize?: number | null;
+  carriedDirection?: TextDirection | null;
+} = {}) {
+  const { carriedFont, carriedFontSize, carriedDirection, carried, ...rest } = overrides;
+  const mergedCarried: Partial<DocumentStyle> = {
+    ...(carriedFont !== undefined ? { font: carriedFont ?? undefined } : {}),
+    ...(carriedFontSize !== undefined ? { fontSize: carriedFontSize ?? undefined } : {}),
+    ...(carriedDirection !== undefined ? { direction: carriedDirection ?? undefined } : {}),
+    ...carried,
+  };
   const dispatch = vi.fn();
   const logAction = vi.fn();
   const setAnnouncement = vi.fn();
@@ -38,7 +55,8 @@ function makeHook(overrides: Partial<Parameters<typeof useFieldNavigation>[0]> =
     formRegions: emptyRegions,
     logAction,
     setAnnouncement,
-    ...overrides,
+    ...rest,
+    carried: mergedCarried,
   });
   return { dispatch, logAction, setAnnouncement, ...nav };
 }
@@ -164,27 +182,27 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
       const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: null, carriedFontSize: null });
       goToNext();
       const el = addedElement(dispatch) as TextElement;
-      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT', payload: el.fontFamily });
-      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT_SIZE', payload: el.fontSize });
+      // SIGN-33: one SET_CARRIED dispatch, not two.
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: el.fontFamily, fontSize: el.fontSize } });
     });
 
     it('never re-seeds once the document already carries a font and size', () => {
       const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: 'Arimo', carriedFontSize: 18 });
       goToNext();
-      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT')).toBe(false);
-      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);
     });
 
     it('only shrinks an existing carried size to fit a narrow field - the carried value itself never grows or shrinks', () => {
       // rowRight's comb cells are far narrower than a 40pt carried size at the
       // default page width, so the placed box must be smaller than 40 even
-      // though no SET_CARRIED_FONT_SIZE is dispatched to change the carried
-      // value itself.
+      // though no SET_CARRIED patch carrying a fontSize is dispatched to
+      // change the carried value itself. The font still seeds on its own
+      // (carriedFont was never given here).
       const { goToNext, dispatch } = makeHook({ formRegions, carriedFontSize: 40 });
       goToNext();
       const el = addedElement(dispatch) as TextElement;
       expect(el.fontSize).toBeLessThan(40);
-      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
     });
   });
 });

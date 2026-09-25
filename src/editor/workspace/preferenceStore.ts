@@ -12,13 +12,13 @@ export interface EditorPreferences {
   lastColor: string;
   lastWhiteoutColor: string;
   // lastFont/lastFontSize/lastDirection left this browser-wide preference
-  // store under SIGN-32: a document's font, size and (now) direction are
-  // carried with its own draft (SignToolState.carriedFont/carriedFontSize/
-  // carriedDirection, round-tripped through useEditorDraftPersistence's
-  // `extra`), not a cross-document browser setting - a document filled in
-  // Hebrew must never set the direction of the next, unrelated document.
-  // Checked before removal: no other consumer (Redact never read any of the
-  // three keys).
+  // store under SIGN-32: a document's font, size and direction are carried
+  // with its own draft (SignToolState.carried, a Partial<DocumentStyle>
+  // round-tripped through useEditorDraftPersistence's `extra.carried` -
+  // SIGN-33 folded the three separate fields into it), not a cross-document
+  // browser setting - a document filled in Hebrew must never set the
+  // direction of the next, unrelated document. Checked before removal: no
+  // other consumer (Redact never read any of the three keys).
   lastSymbolWidth: number;
   lastSymbolMark: 'check' | 'x' | 'dot';
   lastSignatureWidth: number;

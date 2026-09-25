@@ -3,7 +3,8 @@ import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
-import type { EditorElement, EditorElementPatch, SignToolType, TextDirection } from '../../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
 
 /**
@@ -21,17 +22,13 @@ export type SignToolAction =
       payload: {
         elements: EditorElement[];
         actionHistory: ActionHistoryEntry<EditorElement>[];
-        /** The document's carried font/size (SIGN-32), from its draft record.
-         * Absent (or `null`) resets to no carried value - a fresh document, or
-         * one restored from a draft written before this existed, starts over
-         * rather than inheriting whatever the previously loaded document had. */
-        carriedFont?: string | null;
-        carriedFontSize?: number | null;
-        /** The document's carried text direction (SIGN-32 reopened), same
-         * reset rule as carriedFont/carriedFontSize above: absent or `null`
-         * means a fresh document, or a draft written before this existed,
-         * starts over rather than inheriting a previous document's direction. */
-        carriedDirection?: TextDirection | null;
+        /** The document's carried style (SIGN-33; SIGN-32's `carriedFont`/
+         * `carriedFontSize`/`carriedDirection` folded into it), from its
+         * draft record. Absent (or `null`) resets to `{}` - a fresh document,
+         * or one restored from a draft written before this existed, starts
+         * over rather than inheriting whatever the previously loaded
+         * document had. */
+        carried?: Partial<DocumentStyle> | null;
       };
     }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
@@ -42,17 +39,12 @@ export type SignToolAction =
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
-  /** The document's one carried font family and font size (SIGN-32): set once,
-   * from the first field that needed one, or explicitly by an A-/A+ press or a
-   * font pick (PdfWorkspace's makeOnChange) - either way everything placed
-   * after takes it, until the next explicit change. */
-  | { type: 'SET_CARRIED_FONT'; payload: string }
-  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number }
-  /** The document's one carried text direction (SIGN-32 reopened): set by
-   * whatever direction an element's typing or an explicit toggle ends up in
-   * (PdfWorkspace's makeOnChange), the same "whatever it ends up in carries"
-   * rule as SET_CARRIED_FONT. */
-  | { type: 'SET_CARRIED_DIRECTION'; payload: TextDirection }
+  /** The document's one carried style (SIGN-33): a partial patch, merged
+   * into `carried`. Set once per key, from the first field that needed one,
+   * or explicitly by an A-/A+ press, a font pick, or a typed script/
+   * direction change (PdfWorkspace's makeOnChange) - either way everything
+   * placed after takes it, until the next explicit change to that key. */
+  | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -82,23 +74,17 @@ export interface SignToolState {
   documentRevision: number;
   /** Revision captured when a file is opened/restored; later revisions are edits. */
   draftBaselineRevision?: number;
-  /** The document's one carried font family and font size (SIGN-32) - belongs
-   * to this document, not the browser, and round-trips through its draft
-   * (useEditorDraftPersistence's `extra`). `null` means the document has not
-   * needed one yet; `combPlacement.ts`'s `fieldFontSize` seeds
-   * `carriedFontSize` from the first field that does, and `PdfWorkspace`'s
-   * `makeOnChange` sets either from an explicit A-/A+ press or font pick. */
-  carriedFont: string | null;
-  carriedFontSize: number | null;
-  /** The document's one carried text direction (SIGN-32 reopened) - belongs
-   * to this document, not the browser, and round-trips through its draft the
-   * same way carriedFont/carriedFontSize do. `null` means nothing has set it
-   * yet: a fresh field falls back to auto-detecting direction from its own
-   * text (getEffectiveTextDirection) or a detected field's printed direction,
-   * exactly as before this existed. Set by whatever direction an element's
-   * typing or an explicit direction toggle ends up in - see PdfWorkspace's
-   * makeOnChange. */
-  carriedDirection: TextDirection | null;
+  /** The document's one carried style (SIGN-33) - belongs to this document,
+   * not the browser, and round-trips through its draft
+   * (useEditorDraftPersistence's `extra.carried`). A key absent from this
+   * object means nothing has set it yet: `combPlacement.ts`'s
+   * `fieldFontSize` seeds `font`/`fontSize` from the first field that needs
+   * one, a fresh text field falls back to auto-detecting direction from its
+   * own text (getEffectiveTextDirection) or a detected field's printed
+   * direction, and every other key falls back to its own tool default.
+   * `PdfWorkspace`'s `makeOnChange` sets a key explicitly (A-/A+, a font
+   * pick, a typed script/direction change, and so on). */
+  carried: Partial<DocumentStyle>;
 }
 
 export interface SignToolContextValue {
@@ -134,9 +120,7 @@ const initialState: SignToolState = {
   redoHistory: [],
   documentRevision: 0,
   draftBaselineRevision: 0,
-  carriedFont: null,
-  carriedFontSize: null,
-  carriedDirection: null,
+  carried: {},
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
@@ -160,12 +144,10 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         editingElementId: null,
         documentRevision,
         draftBaselineRevision: documentRevision,
-        // A fresh file (no payload fields) or a pre-SIGN-32 draft (fields
-        // present but undefined) both reset to no carried value - a new
-        // document must never inherit another document's font or size.
-        carriedFont: action.payload.carriedFont ?? null,
-        carriedFontSize: action.payload.carriedFontSize ?? null,
-        carriedDirection: action.payload.carriedDirection ?? null,
+        // A fresh file (no payload field) or a pre-SIGN-33 draft (nothing to
+        // restore) both reset to `{}` - a new document must never inherit
+        // another document's style.
+        carried: action.payload.carried ?? {},
       };
     }
     case 'SET_TOOL': {
@@ -269,16 +251,17 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         redoHistory: future
       };
     }
-    // Bumps documentRevision like any other edit: the carried font/size is
-    // part of the document now (round-tripped through its draft), not a
-    // browser preference, so a change to either is a saveable edit the same
-    // way an element change is.
-    case 'SET_CARRIED_FONT':
-      return { ...state, carriedFont: action.payload, documentRevision: nextDocumentRevision(state) };
-    case 'SET_CARRIED_FONT_SIZE':
-      return { ...state, carriedFontSize: action.payload, documentRevision: nextDocumentRevision(state) };
-    case 'SET_CARRIED_DIRECTION':
-      return { ...state, carriedDirection: action.payload, documentRevision: nextDocumentRevision(state) };
+    // Bumps documentRevision like any other edit: the carried style is part
+    // of the document now (round-tripped through its draft), not a browser
+    // preference, so a change to any key is a saveable edit the same way an
+    // element change is. A partial patch merges into whatever is already
+    // carried, so setting one key never clobbers another.
+    case 'SET_CARRIED':
+      return {
+        ...state,
+        carried: { ...state.carried, ...action.payload },
+        documentRevision: nextDocumentRevision(state),
+      };
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
       return {

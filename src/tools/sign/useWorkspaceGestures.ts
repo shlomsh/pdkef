@@ -12,8 +12,8 @@ import type {
   EditorElementPatch,
   SignToolType,
   SymbolMark,
-  TextDirection,
 } from '../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
@@ -59,8 +59,7 @@ type WorkspaceGestureAction =
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'DISARM_TOOL' }
-  | { type: 'SET_CARRIED_FONT'; payload: string }
-  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number }
+  | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -93,20 +92,16 @@ export interface WorkspaceGestureOptions {
   initialColor?: string;
   initialWhiteoutColor?: string;
   initialStrokeWidth?: number;
-  /** The document's carried font family and size (SIGN-32), or `null` when
-   * the document has none yet - see combPlacement.ts's `fieldFontSize` for
-   * how a `null` carriedFontSize gets seeded from the field this hook places
-   * on, and SignToolContext.tsx's `SET_CARRIED_FONT`/`SET_CARRIED_FONT_SIZE`
-   * for where that seeding, and an explicit A-/A+/font-pick change, lands. */
-  carriedFont?: string | null;
-  carriedFontSize?: number | null;
-  /** The document's carried text direction (SIGN-32 reopened), or `null`
-   * when the document has none yet - same shape as carriedFont/
-   * carriedFontSize. Wins over a detected field's own printed direction
-   * (formRegions.pageDirections) once set, since it reflects what the
-   * person is actually typing on this document right now; pageDirections is
-   * only the fallback for a document that has not established one yet. */
-  carriedDirection?: TextDirection | null;
+  /** The document's carried style (SIGN-33); a key absent from it means the
+   * document has none yet - see combPlacement.ts's `fieldFontSize` for how
+   * a missing `fontSize` gets seeded from the field this hook places on, and
+   * SignToolContext.tsx's `SET_CARRIED` for where that seeding, and an
+   * explicit A-/A+/font-pick/direction change, lands. `direction` wins over
+   * a detected field's own printed direction (formRegions.pageDirections)
+   * once set, since it reflects what the person is actually typing on this
+   * document right now; pageDirections is only the fallback for a document
+   * that has not established one yet. */
+  carried?: Partial<DocumentStyle>;
   /** Remembered `dateFormat.ts` `DateFormatId`; the 'date' tool only. */
   initialDateFormat?: string;
   initialSymbolWidth?: number;
@@ -178,9 +173,7 @@ export default function useWorkspaceGestures({
   initialColor = DEFAULT_COLOR_BLUE,
   initialWhiteoutColor = '#ffffff',
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
-  carriedFont = null,
-  carriedFontSize = null,
-  carriedDirection = null,
+  carried = {},
   initialDateFormat = 'locale',
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
@@ -194,6 +187,13 @@ export default function useWorkspaceGestures({
   messages,
 }: WorkspaceGestureOptions) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  // Unpacked once, locally, so the rest of this hook reads the same three
+  // names it always has - only `carried` (SIGN-33) is the prop now, and only
+  // the seeding dispatches below (SET_CARRIED) know it is one key of a
+  // shared object rather than three of its own.
+  const carriedFont = carried.font ?? null;
+  const carriedFontSize = carried.fontSize ?? null;
+  const carriedDirection = carried.direction ?? null;
   const {
     getPointerCoords,
     getPointerPercent,
@@ -374,8 +374,10 @@ export default function useWorkspaceGestures({
     // returns above) - so this is deliberately the first point past both of
     // them, right beside the element that is about to carry the seeded value.
     if (snapsToFields) {
-      if (carriedFont === null) dispatch({ type: 'SET_CARRIED_FONT', payload: resolvedFont });
-      if (carriedFontSize === null) dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: resolvedFontSize });
+      const seed: Partial<DocumentStyle> = {};
+      if (carriedFont === null) seed.font = resolvedFont;
+      if (carriedFontSize === null) seed.fontSize = resolvedFontSize;
+      if (seed.font !== undefined || seed.fontSize !== undefined) dispatch({ type: 'SET_CARRIED', payload: seed });
     }
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
