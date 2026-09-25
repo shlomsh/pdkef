@@ -42,7 +42,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
 | SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
 | SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
-| SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font and font size per document: they carry from field to field, and each field only shrinks the size to fit |
+| SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
 
 
 ## Editor module boundaries (architecture)
