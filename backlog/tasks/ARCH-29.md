@@ -1,7 +1,7 @@
 ---
 id: "ARCH-29"
 title: "One local pre-push command runs exactly what CI would run for the diff"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"

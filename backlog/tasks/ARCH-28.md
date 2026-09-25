@@ -29,10 +29,9 @@ pushes, `vitest related <changed files> --run` selected 2 files (`editor`, `768d
    and any other file a test reads by path, `.css`/CSS Modules, deletions and renames (a moved file
    returns zero related tests), the oracle itself. `.astro`-only changes select no unit tests, which
    is correct; the build job and e2e cover them.
-3. Replace Nx at the same time (DEBT-07's removal branch): the project roots and the
-   `editor-ui -> {tool-sign, tool-redact}` edge become a literal map; ARCH-27's
-   `path-map-replay.mjs` already proves the map gives identical verdicts on 83 real pushes. E2E and
-   font-guard gating keep their current project-level rules for now.
+3. Nx stays (Shlomi, 2026-09-25). It keeps deciding project-level scope for e2e, font guards and
+   export guards; `vitest related` only refines `unit_paths` inside that scope, including for core
+   projects. E2E and font-guard gating keep their current project-level rules for now.
 4. Correctness audit before landing: for every CI run since `19dca856` that failed in the unit step,
    show that the failing test is in the new `unit_paths` for that push.
 
