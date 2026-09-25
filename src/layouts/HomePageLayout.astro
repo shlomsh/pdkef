@@ -643,8 +643,12 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      tour speeds both stories up silently. */
   .home-tour { height: calc(100svh + 1116svh); }
   .workspace-launcher { justify-self: start; width: 100%; max-width: 440px; padding-block: 24px; box-sizing: border-box; }
+  /* A reserved recents row never gets shorter than a readable tile: the
+     preview's 40px floor plus its padding, name and two sub lines (MOBI-36). */
+  .workspace-launcher { --recent-row-floor: 144px; }
   /* The first thumbnail's top (10px + the tile's 6px padding) lines up with the
-     demo phone's, which sits on HeroDemo's 16px stage padding (MOBI-37). */
+     demo phone's, which sits on HeroDemo's 16px stage padding (MOBI-37).
+     Desktop only: the tablet cell isn't beside the demo. */
   @media (min-width: 1024px) and (min-height: 561px) {
     .workspace-launcher { padding-top: 10px; }
   }
@@ -890,7 +894,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     }
     .hero-header h1 { font-size: 1.6rem; }
     .hero-header p { font-size: 0.85rem; }
-    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: flex-start; justify-content: center; }
+    .home-workspace { box-sizing: border-box; flex: 1 0 auto; min-height: 13rem; max-width: none; margin-inline: 0; padding: 24px; display: flex; align-items: stretch; justify-content: center; }
     .home-tour { height: auto; }
     /* Both stretch here, undoing the desktop centring: the launcher has to
        fill the 1fr row that makes up the rest of the first screen, and the
