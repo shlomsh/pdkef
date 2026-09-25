@@ -155,6 +155,7 @@ export const WIDEN_RULES = [
       'src/editor/registry/textShaping.test.js',
       'src/test/cross-tool/textCoverage.test.js',
       'src/editor/adapters/pdf/sign.test.js',
+      'src/tools/sign/PdfSignTool.test.tsx',
     ],
   },
   {
@@ -210,6 +211,18 @@ export const WIDEN_RULES = [
     reason: 'pdfRender.test.js/pdfjsWasm.test.js/the import-scan guard walk every non-test src file at run time looking for call-site patterns',
     match: (f) => !isTestFile(f) && f.startsWith('src/') && /\.(js|jsx|ts|tsx)$/.test(f),
     tests: ['src/lib/pdfRender.test.js', 'src/lib/pdfjsWasm.test.js', 'scripts/check-module-boundaries.import-scan.test.mjs'],
+  },
+  {
+    id: 'whole-src-import-scan',
+    reason: "the import-scan guard walks collectSourceFiles(SRC), which also takes .mjs and .astro (scripts/check-module-boundaries.mjs), so those need it too",
+    match: (f) => !isTestFile(f) && f.startsWith('src/') && /\.(mjs|astro)$/.test(f),
+    tests: ['scripts/check-module-boundaries.import-scan.test.mjs'],
+  },
+  {
+    id: 'licenses-text-read',
+    reason: 'fontAttribution.test.js reads THIRD_PARTY_LICENSES.md and src/pages/licenses.astro with readFileSync',
+    match: (f) => f === 'THIRD_PARTY_LICENSES.md' || f === 'src/pages/licenses.astro',
+    tests: ['src/editor/text/fontAttribution.test.js'],
   },
   {
     id: 'whole-src-tsx-camelcase-scan',

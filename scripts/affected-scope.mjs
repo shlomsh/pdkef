@@ -458,11 +458,13 @@ function main(argv) {
   const runMode = runIndex >= 0 ? argv[runIndex + 1] : null;
   const summary = argv.includes('--summary');
 
+  // Unit selection resolves its own scope (scripts/unit-scope.mjs); skip the Nx graph it would discard.
+  if (runMode === 'unit') return runUnit({ explicitBase, explicitHead });
+
   const scope = resolveScope({ explicitBase, explicitHead });
   console.error(`affected-scope: ${scope.reason}`);
 
   if (runMode) {
-    if (runMode === 'unit') return runUnit({ explicitBase, explicitHead });
     if (runMode === 'e2e-product') return runE2eProduct(scope);
     if (runMode === 'e2e-perf') return runE2ePerf(scope);
     if (runMode === 'fonts') return runFonts(scope);
