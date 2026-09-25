@@ -388,6 +388,8 @@ const SLASH_DATE_RE = /^[\s/.]{1,6}$/;
 const GLYPH_NOISE_RE = /^[a-zA-Z]{1,3}(\s+[a-zA-Z]{1,3})*$/;
 /** Longer than this is a sentence/paragraph, not a short label hugging an edge. */
 const MAX_LABEL_CHARS = 25;
+/** How far above a lone box (points) its caption may sit and still be its caption (SNG-10). */
+const LONE_CAPTION_GAP = 12;
 /**
  * Hebrew (U+0590-05FF), Arabic and its supplements/presentation forms
  * (U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB1D-FDFF, U+FE70-FEFF).
@@ -602,9 +604,13 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       // can sit well under FULL_TEXT_COVERAGE and still not be a field). A box with no text of
       // its own still needs a label above it before it is trusted as a field: a bare frame with
       // nothing printed near it (a decorative rule, a photo box) is not evidence of a field
-      // either, only a caption is - precision first, per SNG-10.
+      // either, only a caption is - precision first, per SNG-10. And a caption means a short label
+      // sitting right on the box (LONE_CAPTION_GAP, MAX_LABEL_CHARS), not whatever heading or
+      // paragraph `headerAbove` finds within its much wider column search.
       if (ownText.length > 0) continue;
-      if (!headerAbove(cell, textItemsPoints)) continue;
+      const caption = headerAbove(cell, textItemsPoints);
+      if (!caption || caption.y0 - cell.top > LONE_CAPTION_GAP) continue;
+      if (caption.str.trim().length > MAX_LABEL_CHARS) continue;
     }
     const ownStr = ownText.map((t) => t.str).join(' ').trim();
     const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
