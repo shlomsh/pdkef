@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest';
+import { fillTapDecision, type FillTapInput } from './fillTap.ts';
+import type { PagePoint, ReachTarget } from './fillTypes.ts';
+
+const point = (x: number, y: number): PagePoint => ({ pageIndex: 0, x, y });
+
+const reachOf = (kind: ReachTarget['kind'], key = 'k'): ReachTarget => (
+  { kind, key, pageIndex: 0, box: { left: 10, top: 10, width: 20, height: 10 } }
+);
+
+const base: FillTapInput = { onFillInput: false, typing: false, tool: 'other', reach: null, at: null };
+
+describe('fillTapDecision', () => {
+  it('lets a fill input take native focus, above every other rule', () => {
+    const input: FillTapInput = {
+      onFillInput: true,
+      typing: true,
+      tool: 'text',
+      reach: reachOf('box'),
+      at: point(1, 1),
+    };
+    expect(fillTapDecision(input)).toEqual({ type: 'native' });
+  });
+
+  it('focuses a fill target when Text is armed and it is in reach', () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('fill', 'slot-1') };
+    expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'slot-1' });
+  });
+
+  it('focuses the fill target even while a typing session is open', () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('fill', 'slot-2'), typing: true };
+    expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'slot-2' });
+  });
+
+  it('delegates to a tick box centre when Mark is armed and it is in reach', () => {
+    const input: FillTapInput = { ...base, tool: 'mark', reach: reachOf('box', 'box-1') };
+    // box left 10, top 10, width 20, height 10 -> centre (20, 15).
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
+  });
+
+  it('delegates to the box centre even while a typing session is open', () => {
+    const input: FillTapInput = { ...base, tool: 'mark', reach: reachOf('box', 'box-1'), typing: true };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
+  });
+
+  it('does not focus a reach target of the wrong kind for Text', () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('box') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('does not delegate-at-centre for a reach target of the wrong kind for Mark', () => {
+    const input: FillTapInput = { ...base, tool: 'mark', reach: reachOf('fill') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('falls through a mismatched reach target to dismiss a typing session', () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('box'), typing: true };
+    expect(fillTapDecision(input)).toEqual({ type: 'dismiss' });
+  });
+
+  it('dismisses a typing session when the tap is away from everything', () => {
+    const input: FillTapInput = { ...base, typing: true };
+    expect(fillTapDecision(input)).toEqual({ type: 'dismiss' });
+  });
+
+  it('opens a free slot when Text is armed, not typing, and nothing is in reach', () => {
+    const input: FillTapInput = { ...base, tool: 'text', at: point(3, 4) };
+    expect(fillTapDecision(input)).toEqual({ type: 'freeSlot', at: point(3, 4) });
+  });
+
+  it('does not open a free slot for Text with no page point', () => {
+    const input: FillTapInput = { ...base, tool: 'text' };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('delegates to production with the tap point when nothing else matches', () => {
+    const input: FillTapInput = { ...base, tool: 'mark', at: point(7, 8) };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: point(7, 8) });
+  });
+
+  it('delegates to production with no point when there is none', () => {
+    expect(fillTapDecision(base)).toEqual({ type: 'delegate' });
+  });
+});
