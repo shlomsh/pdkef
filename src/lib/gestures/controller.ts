@@ -27,6 +27,22 @@ export function startGesture<P>({
   let finished = false;
 
   const onMove = (event: GestureEvent) => {
+    // MOBI-31: a second touch point joining mid-gesture means the person
+    // meant to pinch-zoom, not to keep dragging/resizing with the first
+    // finger. `'touches' in event` alone is not enough to tell a real touch
+    // event apart from one of Preact's synthetic mouse events, which expose
+    // `touches: null` (see the same feature-detection note in
+    // src/editor/gestures/pointer.ts) - `event.touches?.length` guards that.
+    // This never fires for a real MouseEvent (no `touches` property at all).
+    // Cancelling here - through the same `cancel` every interruption
+    // (touchcancel, blur, tab hidden) already goes through - is the one
+    // place every gesture consumer (drag, resize, create, CompareSlider)
+    // gets this for free, rather than each caller re-deriving it inside its
+    // own `computePatch`.
+    if ('touches' in event && (event.touches?.length ?? 0) > 1) {
+      cancel();
+      return;
+    }
     latestPatch = computePatch(event);
     writeDOM(latestPatch);
   };

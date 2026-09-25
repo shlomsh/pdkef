@@ -124,6 +124,9 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
 | MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
+| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
+| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
+| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 
 ## Site quality: accessibility, CSS correctness and theming
@@ -347,7 +350,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | --- | --- | --- |
 | FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
 | FORM-02 | P1 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |
-| FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · A column header the last row of a tall table can still reach |
+| FORM-03 | P1 | [FORM-03](backlog/tasks/FORM-03.md) · Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach |
 | FORM-04 | P2 | [FORM-04](backlog/tasks/FORM-04.md) · A Latin-script form in the ground-truth corpus |
 | FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |
 | FORM-06 | P1 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |
@@ -366,6 +369,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
 | FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
+| MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
+| MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
 
 
 ## Migrated context and history

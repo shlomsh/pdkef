@@ -47,11 +47,11 @@ _None._
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 | MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
-| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 | MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 | MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
 | MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
+| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 ### In progress
 
@@ -80,6 +80,7 @@ _None._
 | MOBI-10 | P1 | [MOBI-10](backlog/tasks/MOBI-10.md) · Spike: can PDF Inspector map a flat form into answerable fields? |
 | MOBI-12 | P1 | [MOBI-12](backlog/tasks/MOBI-12.md) · A touch on a text box's corner handle resizes the font, not the comb span |
 | MOBI-16 | P2 | [MOBI-16](backlog/tasks/MOBI-16.md) · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar |
+| MOBI-17 | P2 | [MOBI-17](backlog/tasks/MOBI-17.md) · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it |
 | MOBI-19 | P1 | [MOBI-19](backlog/tasks/MOBI-19.md) · A text box's resize handles overlap into a blob on any short single-line field |
 | MOBI-21 | P1 | [MOBI-21](backlog/tasks/MOBI-21.md) · There is no way back into a text box on touch once its edit session closes |
 | MOBI-22 | P2 | [MOBI-22](backlog/tasks/MOBI-22.md) · A field move scrolls twice and lands the field behind the keyboard |
@@ -87,6 +88,8 @@ _None._
 | MOBI-27 | P1 | [MOBI-27](backlog/tasks/MOBI-27.md) · A symbol's resize handles overlap into a blob on a small detected checkbox |
 | MOBI-28 | P1 | [MOBI-28](backlog/tasks/MOBI-28.md) · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch |
 | MOBI-29 | P1 | [MOBI-29](backlog/tasks/MOBI-29.md) · A tiny checkbox's resize handles float noticeably past its own corner |
+| MOBI-30 | P1 | [MOBI-30](backlog/tasks/MOBI-30.md) · Tapping outside a text box on a phone leaves it selected, with its bar and handles up |
+| MOBI-31 | P1 | [MOBI-31](backlog/tasks/MOBI-31.md) · Dragging a text box's side handle on a phone moves the box instead of resizing it |
 
 ### Retired
 
@@ -331,7 +334,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
-| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
 
 ### In progress
 
@@ -354,6 +356,7 @@ _None._
 | ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
 | ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
 | ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
@@ -480,7 +483,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | FORM-02 | P1 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |
-| FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · A column header the last row of a tall table can still reach |
+| FORM-03 | P1 | [FORM-03](backlog/tasks/FORM-03.md) · Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach |
 | FORM-04 | P2 | [FORM-04](backlog/tasks/FORM-04.md) · A Latin-script form in the ground-truth corpus |
 | FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |
 | FORM-06 | P1 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |
@@ -493,13 +496,12 @@ _None._
 | FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
 | FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
 | FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
+| MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
+| MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
-| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
+_None._
 
 ### Blocked
 
@@ -509,11 +511,13 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| FORM-01 | P1 | [FORM-01](backlog/tasks/FORM-01.md) · Tell a caption from a field, and take form 101 to the 90% gate |
 | FORM-11 | P1 | [FORM-11](backlog/tasks/FORM-11.md) · Say what the detector found, and tell a failure from an honest zero |
 | FORM-12 | P1 | [FORM-12](backlog/tasks/FORM-12.md) · Stray rules from neighbouring boxes split table rows on form 101 |
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 | FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
 | FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
+| MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Retired
 

@@ -3,8 +3,23 @@
    model stores, while the exporter draws from that `top` with no border at all.
    Free-placed text hid the 1px, but a comb sized to a printed field (MOBI-04)
    put the rule visibly through the digits. `outline-offset: -1px` draws it in
-   exactly the same place the border occupied, so nothing moves on screen. */
-.element { position: absolute; z-index: 1; cursor: move; user-select: none; touch-action: none; outline: 1px dashed transparent; outline-offset: -1px; border-radius: 4px; transition: outline-color .15s ease; }
+   exactly the same place the border occupied, so nothing moves on screen.
+   MOBI-31: `touch-action` was `none` (all default touch behaviour off, single-
+   finger drag/resize is JS-owned). `pinch-zoom` still disables single-finger
+   panning identically - the drag/resize hooks call `preventDefault()` on
+   their own `touchmove` regardless - but it leaves two-finger pinch-zoom
+   available to the browser instead of blocking it outright. It only takes
+   effect when neither hook's `touchstart` handler calls `preventDefault()`
+   on the initiating touch: both bail out with no side effects, before that
+   call, when a second touch is already down at grab time (see
+   useDraggableElement.js/useElementResize.js). A pinch that starts with one
+   finger already mid-drag is a separate case, cancelled by the gesture
+   controller rather than handed to the browser - see MOBI-31's ticket for
+   why that half stays cancel-only. `.resizer`'s touch region is this
+   element's own (touch-action isn't literal CSS inheritance, but the same
+   computed intersection along the touched element's ancestor chain), so a
+   handle gets the same pinch-zoom allowance with no rule of its own. */
+.element { position: absolute; z-index: 1; cursor: move; user-select: none; touch-action: pinch-zoom; outline: 1px dashed transparent; outline-offset: -1px; border-radius: 4px; transition: outline-color .15s ease; }
 .element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: rgba(238, 243, 255, .4); }
 .symbol { padding: 0; }
 .element:hover { outline-color: var(--color-muted-light); }
