@@ -115,10 +115,15 @@ it needs the design decision DEBT-04 already flagged and explicitly left open - 
 See DEBT-07's "Investigated (2026-09-17)" note for the measured numbers.
 
 `scripts/affected-scope.mjs` is the oracle, never the executor: it asks
-`nx show projects --affected --files=<changed files>` once, then CI runs ONE `vitest run <paths>` and
+`nx show projects --affected --files=<changed files>` once, then CI runs
 ONE `playwright test <paths>` per shard, filtered by what it prints. `nx run <project>:test` targets
 still exist on every `project.json` for local `npx nx run <project>:test`/`npx nx run-many -t test`
 use, but nothing in `ci.yml` or `package.json` calls them.
+
+**ARCH-28 (2026-09-25) superseded the `vitest run <paths>` half of this** - see that section, near the
+end of this record, for the full change. `deriveScope()`'s own `unit_paths` field (and every rule below
+that talks about it) is unchanged code and still backs `e2e_paths`, but nothing runs unit tests off it
+any more.
 
 ## Executor vs. oracle: measured, not assumed
 
@@ -424,3 +429,81 @@ the day.
 `e2e` is gated by its own paths) and the exported-PDF baseline recapture step moved into it (the
 `fonts-shard-1`/`fonts-shard-2` split no longer carries it - shard 1 dropped from seven named specs to
 six, 175.5s to 157.8s, since the export render guard's 17.7s left with it).
+
+## ARCH-28 (2026-09-25): unit tests by file impact, not by Nx project
+
+Filed from ARCH-27's own numbers: on real pushes, `vitest related <changed files> --run` selected 2
+files for an `editor` commit, 13 for a `lib` commit and 1 for a `shell` commit, where `deriveScope()`'s
+`CORE_PROJECTS` rule ran all ~193 unit test files instead - 46 of 53 wide runs in the ARCH-22 window.
+Nx's directory-rooted project graph can say "this file is in `lib`, and every tool depends on `lib`",
+but it cannot say "this specific file in `lib` is imported by 13 test files" - only Vitest's own module
+graph knows that.
+
+**What changed:** `scripts/unit-scope.mjs` is a new, separate oracle for unit-test selection only.
+`resolveUnitScope()` feeds the changed files straight to `vitest related <files> --run
+--passWithNoTests`; `WIDEN_RULES`, a pure and unit-tested table, compensates for what that import graph
+cannot see (a file read with `node:fs` instead of `import`, a test that scans the whole repository, or
+global config that changes what "related" even means) by adding specific extra test files or widening
+the whole push to the full suite. Nx's own `deriveScope()`/`unit_paths` is untouched - it still exists
+and still backs `e2e_paths` - but the unit step no longer reads it at all, so a `CORE_PROJECTS` verdict
+(`site`/`shell`/`editor`/`lib`) that used to force `everything=true` for units no longer does. See
+`.claude/rules/tests.md`'s "Unit-by-impact selection" section for the day-to-day summary, and
+`scripts/unit-scope.mjs`'s own header comment for the mechanism in full, including the one fact this
+leans on throughout: passing a *test* file's own path as a `vitest related` seed selects exactly that
+file (Vitest seeds its `affected` set with the `related` list itself before walking import edges
+backwards from it), so a widen rule's extra tests are just more seeds in the same call - no second
+Vitest invocation needed.
+
+**Blind-spot inventory:** every `WIDEN_RULES` row is backed by a dedicated audit of the 199 unit test
+files this repo runs, checking each one for `fs.readFileSync`/`readdirSync`/`spawnSync`/directory-walk
+reads (things `import` cannot see), Vite-specific import kinds (`?raw`/`?url`/CSS Modules/dynamic
+`import()` - only CSS Modules and dynamic `import()` are actually used here, and both were measured to
+work correctly with no rule needed), global inputs (`vitest.config.js`, `tsconfig*.json`, `package*
+.json` - all confirmed zero-selection blind spots; `src/test/setup.js` and the `astro:content` alias
+target were the pleasant surprises, already handled correctly by Vitest itself), whole-repository guard
+tests (`pdfRender.test.js`, `noCamelCaseSvgAttrs.test.js`, the import-scan guard,
+`backlog-data.test.mjs`), and deletions/renames (`vitest related` on a missing path exits 0 with zero
+tests, silently - the danger case a script has to catch itself, not something Vitest flags).
+
+**Renames vs. deletions:** `changedFilesWithStatus()` (`change-scope.mjs`) is a second, ARCH-28-only diff
+function, used only by `unit-scope.mjs`. Unlike `changedFiles()`'s deliberate `--no-renames` (kept for
+Nx *ownership* - DEBT-03 wants both a rename's source and destination folder affected independently),
+this one leaves git's rename detection on (`-M`): a real content-preserving move reports only its
+destination, with status `A` - the same import edges as before still exist there, so `vitest related`
+needs nothing special. Only a genuine, unpaired deletion keeps status `D`, and that widens the whole
+push to the full suite - a basename/path git-grep at the base commit to find surviving coverage more
+precisely was considered and rejected: a generic basename both false-positives (an unrelated file of the
+same name) and false-negatives (a re-export hides the real reference) too easily to trust for something
+CI treats as authoritative.
+
+**Measured, on this tree (uncommitted single-file edits, reverted after each measurement):**
+
+```
+src/lib/drafts/draftStore.js            old: everything=true (193 files)   new: 6 seeds, vitest related -> 18 test files, ~9.5s
+src/editor/model/editorModel.ts         old: everything=true (193 files)   new: 4 seeds, vitest related -> 3 test files, ~1.9s
+src/shell/BasePdfTool.tsx               old: everything=true (193 files)   new: 5 seeds, vitest related -> 18 test files, ~9.5s
+src/tools/sign/PdfSignTool.tsx          old: 63 files (5 Nx projects)      new: 5 seeds, vitest related -> 7 test files, ~8.7s
+src/pages/pdf-to-image.astro            old: everything=true (193 files)   new: 1 seed, vitest related -> 0 test files ("No test files found", exit 0)
+vitest.config.js                        old: everything=true (193 files)   new: widen rule "vitest-config" -> everything (193 files) - unchanged, correctly
+src/lib/__fixtures__/num-1.pdf          old: everything=true (193 files)   new: widen rule "lib-pdf-fixtures" -> 12 seeds, vitest related -> 11 test files, ~9.3s
+```
+
+`BasePdfTool.tsx` and `draftStore.js` land at a similar file count to `PdfSignTool.tsx` only because both
+are genuinely imported broadly (every tool's shell, or every tool's draft persistence) - the point isn't
+that every file narrows to a handful, it's that the number now reflects the real import graph instead of
+which of four buckets (`site`/`shell`/`editor`/`lib`) a folder happens to sit in. Wall-clock time barely
+moves at this file count (Vitest's own worker/transform startup dominates under ~20 test files either
+way - the whole 199-file suite itself runs in ~16s), so the win here is what a run actually re-executes
+and what a CI summary shows as the reason, not raw seconds; a large multi-tool push would still see a
+real time reduction the same way the ARCH-20 project-level narrowing already did.
+
+**Deferred, not done here:** an audit of past CI unit-step failures against this implementation, to
+confirm the new selection would not have skipped a test that actually caught a regression - the ticket
+was deliberately left `in_progress` for this. `unit-scope.mjs` exports `resolveUnitScope({ explicitBase,
+explicitHead })` for exactly this: for a historical push, it returns `{ all, seeds, reasons }`; when
+`all` is true the audit trivially passes (everything ran), and otherwise the auditor should check out
+that push's tree and run `npx vitest related <...seeds> --run --reporter=json --outputFile=<tmp>`, then
+compare the resulting JSON's `testResults[].name` against the actual failing test file from that CI run.
+This executes the tests (there is no side-effect-free way to get Vitest's own module-graph expansion
+otherwise), so it is slow across many commits, but it is the only way to get the exact set Vitest itself
+would select.
