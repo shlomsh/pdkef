@@ -84,12 +84,13 @@ the failure message should tell you whether the change was wrong or the expectat
 
 **The runner leaves text out by default.** `useFormFieldRegions` feeds real text runs to
 `formCells.js`, which uses them for label lookup, for its "this cell is explanatory, drop it" filter,
-and for its "a caption over a repeating empty run is a header, not a field" filter (FORM-13). Most
-rows pass no text: the geometry the corpus is about does not read text at all, and including it
-would make every row depend on a second parser and on whatever prose a fixture happens to carry, so
-the default stays none. A row may declare `text` - the same page-percent shape `detectPage`'s
-`textRuns` takes - when the element it is pinning *is* text-plus-geometry and cannot be expressed
-without it; a captioned header row over a repeating empty run is the first of these. The cost of
+and for its "a centred caption is a heading, not a label" filter (FORM-14, replacing FORM-13's "a
+caption over a repeating empty run is a header" version). Most rows pass no text: the geometry the
+corpus is about does not read text at all, and including it would make every row depend on a second
+parser and on whatever prose a fixture happens to carry, so the default stays none. A row may declare
+`text` - the same page-percent shape `detectPage`'s `textRuns` takes - when the element it is pinning
+*is* text-plus-geometry and cannot be expressed without it; a captioned header row is the first of
+these. The cost of
 leaving text out by default is that a few cells a real page would filter out survive here. If
 `detectPage` in the runner ever drifts from the hook, the corpus is measuring something the product
 does not do.
@@ -122,7 +123,10 @@ Today: a checkbox square stroked as a path is never a checkbox candidate (the mi
 the drawn squares" on form 101 in `docs/mobi-10-field-map-spike.md`); and a real `/Sig` field is
 invisible because signature placement is a different creation mode. A painted square inside a ruled
 row used to be a third, costing the row every one of its cells; since `buildClosedCells` scopes rows
-per column it reads like its widget twin, and that row now lives in the printed group.
+per column it reads like its widget twin, and that row now lives in the printed group. An address
+block (a label hugging its wall over two identically ruled continuation lines) used to be a fourth,
+dropped by FORM-13's header rule; FORM-14 replaced that rule with one that reads the caption's own
+shape instead of what repeats below it, and that row now lives in the printed group too.
 
 ## The real documents
 
@@ -154,14 +158,14 @@ exists to prevent.
 | Form | targets | recall | precision | |
 | --- | --- | --- | --- | --- |
 | `pdkef-practice-form` | 9 | 88.9% | 88.9% | our own, Latin, self-labelling |
-| `health` | 75 | 86.7% | 94.2% | Hebrew, flat |
+| `health` | 75 | 86.7% | 100% | Hebrew, flat |
 | `itc101` | 139 | 94.2% | 97.8% | Hebrew, flat, dense |
 | `irs-1040-2024` | 88 | 100% | 97.8% | Latin, the first real live AcroForm |
 | `irs-1040-1970` | 64 | **0.0%** | n/a | a true scan: no text layer, no vector ink |
 | `thai-pnd90-2565` | 105 | 52.4% | 23.5% | Thai, live AcroForm, dense, dotted leaders |
 | `thai-lor-yor-01-2562` | 57 | 100% | 100% | Thai, live AcroForm, sparse |
-| `uscis-i9-2025-01-20` | 52 | 98.1% | 92.7% | Latin, live AcroForm, Section 1 + 2 on one page |
-| `thai-sso-1-10` | 46 | 17.4% | 88.9% | Thai, flat, dotted leaders, legacy fonts |
+| `uscis-i9-2025-01-20` | 52 | 98.1% | 96.2% | Latin, live AcroForm, Section 1 + 2 on one page |
+| `thai-sso-1-10` | 46 | 17.4% | 100% | Thai, flat, dotted leaders, legacy fonts |
 | `hmrc-sa100-2026` | 15 | 26.7% | 4.3% | Latin, flat, amount boxes drawn as separate squares |
 
 **A self-labelling form's recall is structural, not earned.** `pdkef-practice-form` and
