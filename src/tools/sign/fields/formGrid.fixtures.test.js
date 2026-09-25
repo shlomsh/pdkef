@@ -75,7 +75,10 @@ function collectIgnoringTheMatrix(tokens) {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixture = (name) => path.join(here, '__fixtures__', name);
-const practiceForm = path.resolve(here, '../../../../public/images/redaction-guide/sample.pdf');
+// The frozen v1 practice form (SNG-10 replaced it on the home page with a
+// flat, widget-free v2): the only live-AcroForm-widget fixture this file
+// exercises the comb detector against.
+const practiceForm = fixture('practice-form-v1.pdf');
 
 async function regionsOf(name) {
   const document = await PDFDocument.load(fs.readFileSync(fixture(name)), {
@@ -221,7 +224,7 @@ describe('short numeric combs', () => {
   });
 });
 
-describe('bundled practice form', () => {
+describe('frozen v1 practice form', () => {
   it('offers its nine-digit Student ID comb when Text is armed', async () => {
     const document = await PDFDocument.load(fs.readFileSync(practiceForm), {
       ignoreEncryption: true,
