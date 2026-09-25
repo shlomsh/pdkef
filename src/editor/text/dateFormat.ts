@@ -67,6 +67,16 @@ export function formatDate(isoDate: string, formatId: DateFormatId, locale: stri
   }
 }
 
+/**
+ * The format a date placed on a detected comb run starts in. An 8-cell run is
+ * DD|MM|YYYY with its dividers printed, so it takes 'dmyDigits' whatever was
+ * remembered; any other cell count keeps `formatId`. Day-first rather than
+ * the browser locale's order: the browser says nothing about the form.
+ */
+export function dateFormatForComb(formatId: DateFormatId, cells: number): DateFormatId {
+  return cells === 8 ? 'dmyDigits' : formatId;
+}
+
 /** Next format in the cycle order, wrapping - ElementToolbar.tsx's single control. */
 export function nextDateFormatId(current: DateFormatId): DateFormatId {
   const index = DATE_FORMAT_IDS.indexOf(current);
