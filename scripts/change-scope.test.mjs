@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { changedFiles, classify, isDocsOnly } from './change-scope.mjs';
+import { changedFiles, changedFilesWithStatus, classify, isDocsOnly } from './change-scope.mjs';
 
 /* scripts/change-scope.mjs decides, for CI and for `npm run test:e2e`, whether
    a change is docs-only (no build, no browser). Whether the font screening
@@ -103,5 +103,77 @@ describe('changedFiles passes --no-renames so a move affects both owners', () =>
       expect.arrayContaining(['src/tools/a/old-name.js', 'src/tools/b/new-name.js', 'src/tools/new-untracked.js']),
     );
     expect(files).toHaveLength(3);
+  });
+});
+
+// ARCH-28: unlike changedFiles() above, changedFilesWithStatus() leaves
+// rename detection ON (-M) - unit selection needs to tell a real move (feed
+// the destination, it carries the same import edges) apart from a genuine
+// deletion (nothing left to feed `vitest related`), which -M's dedicated 'R'
+// status makes possible.
+describe('changedFilesWithStatus', () => {
+  function makeRunStub(diffOutput, lsFilesOutput = '') {
+    const calls = [];
+    const run = (args) => {
+      calls.push(args);
+      if (args[0] === 'diff') return diffOutput;
+      if (args[0] === 'ls-files') return lsFilesOutput;
+      return '';
+    };
+    return { run, calls };
+  }
+
+  it('passes -M (rename detection on), not --no-renames', () => {
+    const { run, calls } = makeRunStub('M\tsrc/lib/format.js');
+    changedFilesWithStatus('origin/main', undefined, run);
+    const diffCall = calls.find((args) => args[0] === 'diff');
+    expect(diffCall).toContain('-M');
+    expect(diffCall).toContain('--name-status');
+    expect(diffCall).not.toContain('--no-renames');
+  });
+
+  it('reports plain add/modify/delete statuses as-is', () => {
+    const { run } = makeRunStub('A\tsrc/tools/merge/new.js\nM\tsrc/lib/format.js\nD\tsrc/lib/gone.js');
+    const files = changedFilesWithStatus('origin/main', undefined, run);
+    expect(files).toEqual([
+      { path: 'src/tools/merge/new.js', status: 'A' },
+      { path: 'src/lib/format.js', status: 'M' },
+      { path: 'src/lib/gone.js', status: 'D' },
+    ]);
+  });
+
+  it('reports a detected rename as only its destination, with status A', () => {
+    const { run } = makeRunStub('R100\tsrc/tools/a/old-name.js\tsrc/tools/a/new-name.js');
+    const files = changedFilesWithStatus('origin/main', undefined, run);
+    expect(files).toEqual([{ path: 'src/tools/a/new-name.js', status: 'A', renamedFrom: 'src/tools/a/old-name.js' }]);
+    // the old path must not also appear as its own 'D' entry - it has a live
+    // replacement, so it should never trigger the deletion widen rule.
+    expect(files.some((f) => f.path === 'src/tools/a/old-name.js')).toBe(false);
+  });
+
+  it('handles a partial-similarity rename percentage (R087, not just R100)', () => {
+    const { run } = makeRunStub('R087\tsrc/tools/a/old.js\tsrc/tools/a/new.js');
+    const files = changedFilesWithStatus('origin/main', undefined, run);
+    expect(files).toEqual([{ path: 'src/tools/a/new.js', status: 'A', renamedFrom: 'src/tools/a/old.js' }]);
+  });
+
+  it('reports untracked files as status A, and a tracked status wins over an untracked listing of the same path', () => {
+    const { run } = makeRunStub('A\tsrc/tools/merge/tracked-new.js', 'src/tools/merge/tracked-new.js\nsrc/tools/merge/untracked.js');
+    const files = changedFilesWithStatus('origin/main', undefined, run);
+    expect(files).toEqual(
+      expect.arrayContaining([
+        { path: 'src/tools/merge/tracked-new.js', status: 'A' },
+        { path: 'src/tools/merge/untracked.js', status: 'A' },
+      ]),
+    );
+    expect(files).toHaveLength(2);
+  });
+
+  it('the head form (a fixed commit range) also uses -M and --name-status, with no untracked-file merge', () => {
+    const { run, calls } = makeRunStub('M\tsrc/lib/format.js');
+    const files = changedFilesWithStatus('370ace3~1', '370ace3', run);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain('-M');
+    expect(files).toEqual([{ path: 'src/lib/format.js', status: 'M' }]);
   });
 });
