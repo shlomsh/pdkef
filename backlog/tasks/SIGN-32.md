@@ -1,7 +1,7 @@
 ---
 id: "SIGN-32"
 title: "One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -83,5 +83,41 @@ elements."
   starts in them, with no retyping and no re-picking.
 - Direction is carried per document, like the font and size. It is not a browser-wide preference.
 
-- [ ] Typing in another language carries the switched font and the direction to the next element placed
+- [x] Typing in another language carries the switched font and the direction to the next element placed
   (tap, Next/Previous, free text), persists with the draft, and a new document starts from the defaults.
+
+## Done (2026-09-26, reopened section)
+
+- `carriedDirection` joins `carriedFont`/`carriedFontSize` in `SignToolState`
+  (`src/tools/sign/components/SignToolContext.tsx`): `null` on a fresh document, set by
+  `SET_CARRIED_DIRECTION` whenever an element's typing or an explicit direction toggle changes its
+  effective direction (`PdfWorkspace.tsx`'s existing `makeOnChange` → `rememberDirection`, now dispatching
+  to the reducer instead of a browser preference), reset on `LOAD_DOCUMENT` for a new document, restored
+  from a pre-existing document's draft otherwise.
+- Font already worked this way: typing that switches an unpicked element's script-appropriate font
+  (`TextNode.tsx`'s `fontFamilyExplicit === false` path, resolving through `fonts.js`) already stored the
+  *resolved*, rendered family on the element, and `makeOnChange`'s existing `fontFamily`-in-fields branch
+  already fed it to `rememberFont`/`carriedFont` - nothing to change there.
+- Both placement paths (`useWorkspaceGestures.ts`'s tap, `useFieldNavigation.ts`'s Next/Previous) read
+  `carriedDirection` for a new element's initial direction, ahead of a detected field's own printed
+  direction once the document has one - a fresher signal that the person is filling this document in that
+  direction right now. A document with nothing carried yet still falls back to the field's printed
+  direction, preserving the original MOBI-06 fix (a Hebrew-printed form's fields open right-aligned before
+  anything has been typed).
+- Persisted in Sign's draft `extra.carriedDirection`, validated in `draftValidation.ts` (old drafts
+  without it restore cleanly), reset with the rest of the document state on `LOAD_DOCUMENT`.
+- The dead `lastDirection` browser-wide preference (written on every keystroke, never read back for a
+  placement - a unit test even proved a fresh field ignored it) is removed from `preferenceStore.ts`,
+  joining `lastFont`/`lastFontSize` which SIGN-32's first pass already removed.
+- **Tests:** reducer (`SignToolContext.test.tsx`), draft validation round-trip and malformed/missing
+  values (`draftValidation.test.ts`), the priority flip in both placement hooks
+  (`useWorkspaceGestures.test.js`, `useFieldNavigation.test.ts`), and the PdfWorkspace-level story - typing
+  Hebrew remembers both the resolved font and RTL, a later Latin element carries its own resulting
+  direction, a new field takes the document's carried direction, a fresh document has nothing carried yet
+  (`PdfWorkspace.test.tsx`).
+- **Browser:** checked in a real preview (port 4183) with the practice form - typing Hebrew into Full
+  name, tapping Employer starts it in Arimo (already Hebrew-capable, so the font didn't need to change)
+  and RTL before any retyping, a full reload restores the carried direction onto the next untouched field,
+  and opening a different, never-before-opened PDF in the same session starts fresh (LTR default), not
+  inheriting the previous document's carried direction. `--project=export-guards` and `--project=fonts`
+  both green (133 passed, 2 pre-existing skips unrelated to this change).
