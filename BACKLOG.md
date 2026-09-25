@@ -554,7 +554,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
-| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 
 ### Blocked
 
@@ -565,6 +564,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-01 | P1 | [SNG-01](backlog/tasks/SNG-01.md) · Plan of record for the next-generation Sign editor, with the learnings that led to it |
+| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 
 ### Retired
 
