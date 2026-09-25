@@ -16,7 +16,17 @@
  * reports a miss there rather than a pass.
  */
 
-const KIND_GROUPS = [
+/**
+ * Exported (only) so `match.test.js` can check it covers the same kinds as
+ * `fieldTypes.ts`'s `FIELD_KINDS` (FORM-23): a kind added there with no
+ * decision made here would otherwise silently match nothing but itself,
+ * rather than the compatibility being an intentional yes or no. Grouping
+ * itself is not derived from that list - `signature` and `select` are
+ * deliberately in no group (self-match only, via `a === b` below) and
+ * `unknown` is handled by its own special case, so a mechanical derivation
+ * from the full kind list would group kinds that must not be.
+ */
+export const KIND_GROUPS = [
   new Set(['text', 'table-cell', 'date']),
   new Set(['comb', 'date']),
   new Set(['checkbox', 'radio']),

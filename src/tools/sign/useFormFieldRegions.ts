@@ -298,12 +298,9 @@ export default function useFormFieldRegions(
           // dialog, not a point tap) and stays out of this first pass. Kept
           // out here, not inside the detector, so a caller that wants every
           // detected cell (the corpus, the scored corpus) still gets one.
-          // `SourceRegions.cells` is `FieldRegion[]` (the plan's own contract
-          // is deliberately kind-agnostic there), but every real cell a
-          // source produces does carry a `kind` - `formCells.js`'s and
-          // `formWidgets.js`'s own JSDoc types say so - so this is a widening
-          // cast, not a guess.
-          cells: (detected.cells as Array<FieldRegion & { kind: string }>).filter((cell) => cell.kind !== 'signature'),
+          // `detected.cells` is `DetectedCell[]` (FORM-23), so `kind` is
+          // already there - no widening cast needed to filter on it.
+          cells: detected.cells.filter((cell) => cell.kind !== 'signature'),
           pageDirections,
         };
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });

@@ -103,6 +103,7 @@ export const DETECTION_MODULES = [
   'src/editor/adapters/pdf/fieldRegions.js',
   'src/editor/adapters/pdf/textRuns.js',
   'src/editor/adapters/pdf/pdfObjects.js',
+  'src/editor/adapters/pdf/fieldTypes.ts',
   'src/editor/adapters/pdf/corpus/scoring/score.js',
   'src/editor/adapters/pdf/corpus/scoring/match.js',
   'src/editor/adapters/pdf/corpus/scoring/candidates.js',
