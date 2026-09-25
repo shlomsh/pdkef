@@ -258,6 +258,60 @@ describe('FieldSlot component', () => {
     });
   });
 
+  describe('leaving on blur', () => {
+    it('calls onLeave on a blank blur, without calling onCommit', () => {
+      const onCommit = vi.fn();
+      const onLeave = vi.fn();
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          onEnter={() => {}}
+          onCommit={onCommit}
+          onLeave={onLeave}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      act(() => {
+        input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+      });
+
+      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(onCommit).not.toHaveBeenCalled();
+    });
+
+    it('calls onLeave after onCommit on a filled blur', () => {
+      const onCommit = vi.fn();
+      const onLeave = vi.fn();
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          onEnter={() => {}}
+          onCommit={onCommit}
+          onLeave={onLeave}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      act(() => {
+        input.value = 'Shlomi';
+        input.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+      });
+
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(onLeave).toHaveBeenCalledTimes(1);
+      expect(onCommit.mock.invocationCallOrder[0]).toBeLessThan(onLeave.mock.invocationCallOrder[0]);
+    });
+  });
+
   describe('position', () => {
     it('places the input from slot.placement.box, in page-percent', () => {
       const slot = fillSlot({ placement: { box: { left: 8, top: 22.5, width: 33.25, height: 4 }, fontSize: 12, fontFamily: 'Arimo' } });
