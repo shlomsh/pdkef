@@ -331,15 +331,14 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
+_None._
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
+| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
 
 ### Blocked
 

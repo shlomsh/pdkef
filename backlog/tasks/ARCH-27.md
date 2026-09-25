@@ -1,7 +1,7 @@
 ---
 id: "ARCH-27"
 title: "Replay real pushes through a path map and decide whether Nx still earns its place"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "module-boundaries"
 phase: "near-term"
