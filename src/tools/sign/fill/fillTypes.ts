@@ -58,8 +58,14 @@ export interface ReachTarget {
   box: PercentBox;
 }
 
-/** The armed tool as fill mode sees it; 'other' is everything production handles itself. */
-export type FillTool = 'text' | 'mark' | 'other';
+/**
+ * The armed tool as fill mode sees it (fillToolOf in fillTap.ts):
+ * - 'text': no tool, or Text. Reaches every fill input; a tap on nothing opens a free slot.
+ * - 'date': reaches the empty detected slots only; production places the date at the slot's centre.
+ * - 'mark': the symbol tool. Reaches the detected tick boxes; production places it at the box's centre.
+ * - 'other': everything else, which production handles itself.
+ */
+export type FillTool = 'text' | 'date' | 'mark' | 'other';
 
 /** What a tap on the page does in fill mode. */
 export type FillTapDecision =
@@ -80,7 +86,7 @@ export type FillTapDecision =
   | { type: 'delegate'; at?: PagePoint };
 
 /**
- * What fill mode hands a text element's renderer (TextNode) through the renderer props.
+ * What fill mode hands a text element's renderer (TextNode) through TextFillContext.
  * With it, the textarea is a fill input: focusable, writable, hittable, and in order.
  */
 export interface TextFillProps {
@@ -102,11 +108,10 @@ export function textFillKey(elementId: string): string {
 /**
  * What PdfWorkspace hands one page's fill layer (FillLayer.tsx). The layer renders
  * `items` in the order given, a FieldSlot for a slot and `renderText` inside a
- * TextFillContext for a text element. It reads the aimed and pending-focus keys from
- * FillContext itself.
+ * TextFillContext for a text element. It reads the aimed and pending-focus keys, and
+ * closeFreeSlot, from FillContext itself.
  */
 export interface FillLayerProps {
-  pageIndex: number;
   /** This page's fill items, already in reading order (fillOrder). */
   items: FillItem[];
   /** The page's width in PDF points, for sizing slot text like the element it becomes. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fillTapDecision, type FillTapInput } from './fillTap.ts';
+import { fillTapDecision, fillToolOf, type FillTapInput } from './fillTap.ts';
 import type { PagePoint, ReachTarget } from './fillTypes.ts';
 
 const point = (x: number, y: number): PagePoint => ({ pageIndex: 0, x, y });
@@ -30,6 +30,16 @@ describe('fillTapDecision', () => {
   it('focuses the fill target even while a typing session is open', () => {
     const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('fill', 'slot-2'), typing: true };
     expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'slot-2' });
+  });
+
+  it('delegates to an empty slot\'s centre when Date is armed and it is in reach, even while typing', () => {
+    const input: FillTapInput = { ...base, tool: 'date', reach: reachOf('fill', 'slot-3'), typing: true };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
+  });
+
+  it('never opens a free slot for Date: nothing in reach is production\'s own placement', () => {
+    const input: FillTapInput = { ...base, tool: 'date', at: point(3, 4) };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: point(3, 4) });
   });
 
   it('delegates to a tick box centre when Mark is armed and it is in reach', () => {
@@ -80,5 +90,23 @@ describe('fillTapDecision', () => {
 
   it('delegates to production with no point when there is none', () => {
     expect(fillTapDecision(base)).toEqual({ type: 'delegate' });
+  });
+});
+
+describe('fillToolOf', () => {
+  it('treats no tool as Text', () => {
+    expect(fillToolOf(null)).toBe('text');
+    expect(fillToolOf('text')).toBe('text');
+  });
+
+  it('maps Date and the symbol tool to their own fill tools', () => {
+    expect(fillToolOf('date')).toBe('date');
+    expect(fillToolOf('symbol')).toBe('mark');
+  });
+
+  it('leaves every other tool to production', () => {
+    expect(fillToolOf('signature')).toBe('other');
+    expect(fillToolOf('rectangle')).toBe('other');
+    expect(fillToolOf('whiteout')).toBe('other');
   });
 });

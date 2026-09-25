@@ -367,6 +367,18 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(firstAddElement(dispatch).textDirection).toBe('ltr');
   });
 
+  it('snaps to the cell under a corrected point (fill mode) instead of the click\'s own point', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
+    });
+    // The click lands far from the cell (10%, 10%); the corrected point is inside it.
+    handlePageClick(makeClickEvent(100, 100, overlay), 0, { x: 50, y: 50 });
+    const added = firstAddElement(dispatch);
+    expect(added.left).toBeCloseTo(nameCell.left, 5);
+    expect(added.minWidth).toBeCloseTo(nameCell.width, 5);
+  });
+
   it('never sets width on the snapped element - a free-text cell is not a comb', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',

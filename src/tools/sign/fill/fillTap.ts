@@ -8,7 +8,16 @@
  * order is decided, so every caller - the touch handler and the mouse path alike - sees
  * the same precedence.
  */
+import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import type { FillTapDecision, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
+
+/** The armed tool as fill mode sees it (fillTypes.ts, FillTool). No tool is Text. */
+export function fillToolOf(selectedTool: SignToolType | null): FillTool {
+  if (selectedTool === null || selectedTool === 'text') return 'text';
+  if (selectedTool === 'date') return 'date';
+  if (selectedTool === 'symbol') return 'mark';
+  return 'other';
+}
 
 export interface FillTapInput {
   /** The tap landed on an existing fill input: let the browser focus it natively. */
@@ -33,7 +42,8 @@ function centreOf(target: ReachTarget): PagePoint {
 
 /**
  * What a tap on the page does in fill mode, in the order docs/sign-fill-mode.md fixes:
- * a real input always wins, then the armed tool's own reach, then closing a typing
+ * a real input always wins, then the armed tool's own reach (Text focuses what it
+ * reaches; Date and a mark are placed by production at its centre), then closing a typing
  * session, then opening a free slot for Text, and only then production's own tap path.
  * The order is the behaviour, so it stays a short list of guard clauses rather than a
  * lookup table.
@@ -42,6 +52,7 @@ export function fillTapDecision(input: FillTapInput): FillTapDecision {
   const { onFillInput, typing, tool, reach, at } = input;
   if (onFillInput) return { type: 'native' };
   if (tool === 'text' && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
+  if (tool === 'date' && reach?.kind === 'fill') return { type: 'delegate', at: centreOf(reach) };
   if (tool === 'mark' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach) };
   if (typing) return { type: 'dismiss' };
   if (tool === 'text' && at) return { type: 'freeSlot', at };
