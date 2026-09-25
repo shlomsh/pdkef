@@ -38,6 +38,16 @@ import { pageCropBox } from '../../pageInk.js';
 export const IOU = 0.5;
 
 /**
+ * How much a score may move, either direction, before `scoring.test.js` and
+ * `score-form.mjs --all` treat it as a real change rather than float noise.
+ * Both sides round to one decimal, so this only absorbs that: a tenth of a
+ * point on the smallest scored form (9 targets) is a fortieth of one field.
+ * One constant, so a floor check and a ceiling check can never disagree on
+ * what counts as noise.
+ */
+export const SLACK = 0.05;
+
+/**
  * CONTRACT.md puts `pageIndex` on the ground-truth file, not on each target,
  * and `greedyMatch` compares it per record. `score.mjs`'s CLI does this same
  * normalisation; doing it in one shared place is what keeps the two honest.
@@ -103,19 +113,35 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
   const candidates = toCandidates(detectPage(page, pageIndex, textRuns), pageIndex);
   const { matches, misses, falsePositives } = greedyMatch(truth.targets, candidates, IOU);
 
-  // Per kind, read from the target side: "of the N signature targets, how many
-  // did some compatible candidate find?". `score.mjs`'s own table explains why
-  // precision cannot be read from the same side - a compatible-but-not-exact
-  // match has no single kind describing both ends - so this keeps only the
-  // half a ratchet needs per kind, and precision stays a whole-form number.
+  // Recall reads from the target side, per kind: "of the N signature targets,
+  // how many did some compatible candidate find?". Precision (FORM-21) reads
+  // the same way from the candidate side, per kind: "of the N candidates the
+  // detector called `date`, how many matched some target?". The two sides can
+  // disagree on purpose - a `date` candidate matching a `text` target counts
+  // toward `text`'s recall and toward `date`'s precision, not the other way
+  // round - which is exactly the case a whole-form number cannot separate: a
+  // kind can start printing false positives while another kind's gain holds
+  // the form's total precision up. `byKind` is keyed by whichever kind showed
+  // up on either side, so a kind the detector only ever candidates for (never
+  // a truth target) still gets a precision row, with `recall: null` rather
+  // than a manufactured zero.
+  const emptyBucket = () => ({ targets: 0, found: 0, candidates: 0, matchedCandidates: 0 });
   const byKind = {};
   for (const target of truth.targets) {
-    byKind[target.kind] ??= { targets: 0, found: 0 };
+    byKind[target.kind] ??= emptyBucket();
     byKind[target.kind].targets += 1;
   }
-  for (const match of matches) byKind[match.t.kind].found += 1;
+  for (const candidate of candidates) {
+    byKind[candidate.kind] ??= emptyBucket();
+    byKind[candidate.kind].candidates += 1;
+  }
+  for (const match of matches) {
+    byKind[match.t.kind].found += 1;
+    byKind[match.c.kind].matchedCandidates += 1;
+  }
   for (const kind of Object.keys(byKind)) {
     byKind[kind].recall = pct(byKind[kind].found, byKind[kind].targets);
+    byKind[kind].precision = pct(byKind[kind].matchedCandidates, byKind[kind].candidates);
   }
 
   return {

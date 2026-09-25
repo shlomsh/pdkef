@@ -150,10 +150,13 @@ unchanged since the widget source was added. The corpus asserts that directly.
 ## The scored corpus
 
 `scoring/` measures the detector against whole real forms, every run, and fails when a number drops.
-`baselines.json` is the ratchet: it records what we get today, and these only ever go **down** by a
-deliberate edit that says why. A number going up is free and should be re-recorded in the change
-that earned it - otherwise the next change gets to lose it silently, which is the exact failure this
-exists to prevent.
+`baselines.json` is the ratchet: it records what we get today, and these only ever move by a
+deliberate edit that says why. **The ratchet runs both ways (FORM-21).** A number going down fails
+the floor checks. A number going up by more than `SLACK` fails the ceiling checks too, with a message
+pointing at re-recording - a gain nobody wrote down is a baseline nobody can prove moved, and the next
+change would get to give it back with nothing here to notice. "Re-record" always means the same
+thing: paste `score-form.mjs`'s printed row over the old one, in the change that earned the gain, with
+a note saying why.
 
 | Form | targets | recall | precision | |
 | --- | --- | --- | --- | --- |
@@ -219,8 +222,22 @@ The element corpus beside it still runs without text, on purpose, for the reason
 The two corpora want different things: one isolates a geometry rule, the other measures the shipped
 pipeline.
 
-Per-kind recall is ratcheted too, not just the whole-form number. A form's overall recall can hold
-while one kind collapses and another improves - that trade is exactly what a single number hides.
+Per-kind recall and precision are ratcheted too, not just the whole-form numbers (FORM-21). A form's
+overall recall can hold while one kind collapses and another improves, and its overall precision can
+hold while one kind starts producing false positives and another's gain covers for it - both trades
+are exactly what a single number hides. `byKind` in `baselines.json` records both per kind, in one
+object each: `{ "text": { "recall": 83.3, "precision": 91.4 }, ... }`. The two sides are read from
+opposite ends of the match and can disagree on purpose: recall reads from the *target* side ("of the N
+text targets, how many did some compatible candidate find?"), precision from the *candidate* side ("of
+the N candidates the detector itself called `text`, how many matched a target?"). A `date` candidate
+matching a `text` target counts toward `text`'s recall and toward `date`'s precision, not the other way
+round. That candidate-side reading is also why `byKind` sometimes carries a kind with `"recall": null`:
+the detector's own vocabulary is a little wider than the ground truth's (`table-cell` is never a truth
+kind, and a form whose truth calls something `radio` can still see the detector candidate it
+`checkbox`), so a kind can show up with candidates but no matching truth kind. There is nothing to hold
+for a kind with no targets, so recall is `null` there rather than a manufactured zero - and, mirroring
+the form-level convention below, precision is `null` wherever a kind has no candidates at all, because
+with nothing emitted there is nothing to be precise about.
 
 ### Adding a scored form
 
@@ -241,8 +258,16 @@ No new test code; a row and a file.
    by every live-AcroForm entry, each supplying only its own label source, kind rule and exclusion
    rule.
 3. **Record the baseline.** `node scripts/score-form.mjs --pdf <file> --truth <truth.json>` prints
-   the row to paste, the per-kind breakdown and what it missed. Read the numbers before you write
-   them down. `--all` re-scores every form and exits non-zero on a drop.
+   the row to paste, the per-kind recall/precision breakdown and what it missed. Read the numbers
+   before you write them down. `--all` (FORM-21) re-scores every form in `baselines.json` and, for
+   each, prints the same row plus a signed delta against its recorded baseline - `Δ form` for the
+   whole-form numbers, `Δ kind` for every kind - with `v`/`^` marking anything that moved past `SLACK`
+   in either direction and `(!)` marking a form or kind that moved on or off a recorded `null` (no
+   candidates at all). It ends with one summary line, `improved / unchanged / regressed` counts across
+   every form, and exits non-zero the moment anything has regressed - the same floor `scoring.test.js`
+   enforces, made readable without subtracting by eye. `improved` is not a pass: it means a number rose
+   past `SLACK` with nothing recording it yet, which `scoring.test.js`'s own ceiling checks fail on too,
+   so the fix is to re-record the row in the same change, not to leave it green by accident.
 4. That is the whole loop. From then on every run proves the form still works and says how well.
 
 **Two identities, kept apart.** A truth file's `sha256` is the document somebody *annotated*; a
