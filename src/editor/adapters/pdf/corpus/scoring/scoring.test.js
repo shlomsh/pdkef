@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { formatRow, scoreForm } from './score.js';
+import { formatRow, scoreForm, SLACK } from './score.js';
 
 /**
  * The scored corpus: how well the detector does on real forms, every run.
@@ -13,11 +13,13 @@ import { formatRow, scoreForm } from './score.js';
  * page. This is the other half: reviewed ground truth for whole forms, scored
  * with MOBI-10's matcher, ratcheted so a gain is never quietly lost.
  *
- * **A ratchet, not a target.** `baselines.json` records what we get today.
- * These assertions fail when a number goes *down*. A number going up is free,
- * and should be re-recorded in the change that earned it - otherwise the next
- * change gets to lose it without anybody noticing, which is the exact failure
- * this exists to prevent.
+ * **A ratchet, not a target, in both directions (FORM-21).** `baselines.json`
+ * records what we get today. The floor checks below fail when a number goes
+ * *down*. The ceiling checks fail when a number goes *up* by more than
+ * `SLACK`, because a gain nobody wrote down is a baseline nobody can prove
+ * moved: the next change can give it back and this file would stay green.
+ * "Re-record" means paste `score-form.mjs`'s printed row over the old one, in
+ * the change that earned the gain, with a note saying why.
  *
  * Adding a form is a row in `baselines.json` and a ground-truth file; no new
  * test code. `README.md` has the procedure.
@@ -26,13 +28,6 @@ import { formatRow, scoreForm } from './score.js';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..', '..');
 const baselines = JSON.parse(fs.readFileSync(path.join(repoRoot, 'src/editor/adapters/pdf/corpus/scoring/baselines.json'), 'utf8'));
 const FORMS = Object.entries(baselines.forms).map(([name, spec]) => ({ name, ...spec }));
-
-/**
- * Both sides are rounded to one decimal, so this only absorbs float noise,
- * never a real regression: a tenth of a point on the smallest scored form
- * (9 targets) is a fortieth of one field.
- */
-const SLACK = 0.05;
 
 const scored = new Map();
 
@@ -63,6 +58,16 @@ describe.each(FORMS)('$name', (form) => {
       .toBeGreaterThanOrEqual(form.recall - SLACK);
   });
 
+  it('has not gained recall beyond what is recorded, without a re-record', () => {
+    // The other half of the ratchet (FORM-21): a rise nobody wrote down is a
+    // baseline nobody can prove moved, and the next change gets to give the
+    // gain back with nothing here to notice. "Re-record" means paste
+    // score-form.mjs's printed row over this one, in the change that earned it.
+    const { recall } = scored.get(form.name);
+    expect(recall, `recall rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
+      .toBeLessThanOrEqual(form.recall + SLACK);
+  });
+
   it('is at least as precise as it used to be', () => {
     const { precision, candidates } = scored.get(form.name);
     // A `null` baseline precision records that this form yields no candidates
@@ -80,14 +85,64 @@ describe.each(FORMS)('$name', (form) => {
       .toBeGreaterThanOrEqual(form.precision - SLACK);
   });
 
+  it('has not gained precision beyond what is recorded, without a re-record', () => {
+    const { precision } = scored.get(form.name);
+    // A null baseline is already pinned exactly (both directions) by the
+    // null-candidates check above, so there is nothing further to ratchet here.
+    if (form.precision === null) return;
+    expect(precision, `precision rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
+      .toBeLessThanOrEqual(form.precision + SLACK);
+  });
+
   it('holds its recall on every kind of field, not just overall', () => {
     // A whole-form number can hold while one kind collapses and another
-    // improves. The per-kind floor is what catches that trade.
+    // improves. The per-kind floor is what catches that trade. A `null`
+    // recorded recall means the kind has no targets on this form at all (it
+    // only exists in byKind because the detector candidates it) - nothing to
+    // hold, so it is excluded rather than compared against 0.
     const { byKind } = scored.get(form.name);
     const fell = Object.entries(form.byKind)
-      .filter(([kind, floor]) => (byKind[kind]?.recall ?? 0) < floor - SLACK)
-      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.recall?.toFixed(1) ?? 'absent'}% < ${floor}%`);
+      .filter(([, floor]) => floor.recall !== null)
+      .filter(([kind, floor]) => (byKind[kind]?.recall ?? 0) < floor.recall - SLACK)
+      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.recall?.toFixed(1) ?? 'absent'}% < ${floor.recall}%`);
     expect(fell, `per-kind recall fell for ${form.name}`).toEqual([]);
+  });
+
+  it('has not gained recall on any kind beyond what is recorded, without a re-record', () => {
+    const { byKind } = scored.get(form.name);
+    const rose = Object.entries(form.byKind)
+      .filter(([, floor]) => floor.recall !== null)
+      .filter(([kind, floor]) => (byKind[kind]?.recall ?? floor.recall) > floor.recall + SLACK)
+      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.recall?.toFixed(1)}% > ${floor.recall}%`);
+    expect(rose, `per-kind recall rose for ${form.name} - re-record the baseline`).toEqual([]);
+  });
+
+  it('is at least as precise as it used to be, on every kind of field (FORM-21)', () => {
+    // Mirrors the whole-form null-precision rule, per kind: a kind recorded
+    // with no candidates is pinned at exactly zero candidates, the same "the
+    // zero is an assertion" rule the form-level check above uses. This is
+    // what catches a kind starting to produce false positives while another
+    // kind's gain holds the form's total precision up.
+    const { byKind } = scored.get(form.name);
+    const problems = Object.entries(form.byKind).flatMap(([kind, floor]) => {
+      if (floor.precision === null) {
+        const candidates = byKind[kind]?.candidates ?? 0;
+        return candidates === 0 ? [] : [`${kind}: now yields candidates where it recorded none - re-record the baseline`];
+      }
+      const precision = byKind[kind]?.precision ?? 0;
+      return precision < floor.precision - SLACK ? [`${kind}: ${precision.toFixed(1)}% < ${floor.precision}%`] : [];
+    });
+    expect(problems, `per-kind precision fell for ${form.name}`).toEqual([]);
+  });
+
+  it('has not gained precision on any kind beyond what is recorded, without a re-record', () => {
+    const { byKind } = scored.get(form.name);
+    const rose = Object.entries(form.byKind)
+      // A null baseline is already pinned exactly, both directions, above.
+      .filter(([, floor]) => floor.precision !== null)
+      .filter(([kind, floor]) => (byKind[kind]?.precision ?? floor.precision) > floor.precision + SLACK)
+      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.precision?.toFixed(1)}% > ${floor.precision}%`);
+    expect(rose, `per-kind precision rose for ${form.name} - re-record the baseline`).toEqual([]);
   });
 
   it('scores a form that really has targets in it', () => {
@@ -118,6 +173,12 @@ describe('the scored corpus as a whole', () => {
         `${form.name} has no recorded precision`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.pdf)), `${form.name}: ${form.pdf} is missing`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.truth)), `${form.name}: ${form.truth} is missing`).toBe(true);
+      for (const [kind, row] of Object.entries(form.byKind)) {
+        expect(row.recall === null || typeof row.recall === 'number',
+          `${form.name}/${kind} has no recorded recall`).toBe(true);
+        expect(row.precision === null || typeof row.precision === 'number',
+          `${form.name}/${kind} has no recorded precision`).toBe(true);
+      }
     }
   });
 });
