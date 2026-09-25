@@ -91,6 +91,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
 | DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
 | DEMO-08 | P3 | [DEMO-08](backlog/tasks/DEMO-08.md) · The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open |
+| DEMO-09 | P1 | [DEMO-09](backlog/tasks/DEMO-09.md) · Hero demo shows both stories stacked until ScrollDriver hydrates |
 
 
 ## Mobile round trip: fill a form from a chat and send it back

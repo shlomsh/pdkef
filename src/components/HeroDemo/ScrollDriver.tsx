@@ -67,8 +67,11 @@ const TRACKS: TrackConfig[] = [
       // pinned at 0 until the track's top reaches the viewport top), so the
       // panel is invisible while it moves and fades in once it has settled.
       // This is the second half of the intro card's handoff, which is why
-      // only this track has it - see HeroDemo.module.css's .stage-first
-      // opacity rule.
+      // only this track has it. Nothing currently reads the resulting
+      // --p-enter value (see HeroDemo.module.css's own comment on that
+      // property) - the actual entrance fade for both tracks is
+      // --story-slide/--caption-opacity/--story-opacity on .track, driven
+      // directly by this file's crossfade math below instead.
       enter: [0.0, 0.04],
       msg: [-0.06, 0.0],
       // Hold the complete chat view (the message and attached permission
@@ -167,6 +170,31 @@ export function computeStageBeats(
   return result;
 }
 
+/** The `--story-slide` / `--caption-opacity` / `--story-opacity` trio
+ * `update()` writes onto one track's own `[data-hero-track]` element (not its
+ * `[data-hero-stage]` child - see `computeStageBeats` above for that) for a
+ * given global tour progress. Exported for the same reason: so
+ * heroDemoStageDefaults.test.js can compute exactly what a mounted
+ * ScrollDriver writes at progress 0 through this real implementation, rather
+ * than a hand re-derivation that could drift from it - which is exactly what
+ * happened here before the defaults below existed (see HeroDemo.module.css's
+ * `[data-hero-track="blur"]` rule).
+ *
+ * `storySlide` is the unsigned percentage `update()` passes to
+ * `--story-slide`; the CSS multiplies it by `--hero-dir` to mirror under RTL,
+ * so this function never needs to know the page direction. */
+export function computeTrackVisibility(
+  key: string,
+  progress: number,
+): { storySlide: number; storyVisible: number } {
+  const crossfade = clamp01((progress - CROSSFADE_START) / (CROSSFADE_END - CROSSFADE_START));
+  const isFirst = key === 'sign';
+  return {
+    storySlide: isFirst ? -100 * crossfade : 100 * (1 - crossfade),
+    storyVisible: isFirst ? Number(crossfade < 1) : Number(crossfade > 0),
+  };
+}
+
 // Resolves which element is actually pinned right now. Desktop pins the
 // whole hero (header, launcher, demo and dock hold still together);
 // mobile pins only the demo frame once the first screen has scrolled past
@@ -205,19 +233,18 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     function update(progress: number) {
       // The two beat maps share one page-scroll-compatible span; see the
       // split constants above. Autoplay feeds that same span so scroll and
-      // time always describe exactly the same frame.
-      const crossfade = clamp01((progress - CROSSFADE_START) / (CROSSFADE_END - CROSSFADE_START));
+      // time always describe exactly the same frame. Each track's own
+      // crossfade fraction is computed inside computeTrackVisibility below,
+      // not re-derived here.
       for (const {key, beats, trackEl, stageEl} of tracks) {
         if (!trackEl || !stageEl) continue;
-        const isFirst = key === 'sign';
         const localProgress = localProgressForTrack(key, progress);
         // Treat story two as a distinct screen, not a crossfade. The first
         // complete panel travels out to the left as the second travels in
         // from the right, carrying its caption, progress rail and phone as
         // one object. That is easier to parse than two unrelated phone UIs
         // ghosting through one another.
-        const storySlide = isFirst ? -100 * crossfade : 100 * (1 - crossfade);
-        const storyVisible = isFirst ? Number(crossfade < 1) : Number(crossfade > 0);
+        const { storySlide, storyVisible } = computeTrackVisibility(key, progress);
         trackEl.style.setProperty('--story-slide', `${storySlide}%`);
         trackEl.style.setProperty('--caption-opacity', String(storyVisible));
         trackEl.style.setProperty('--story-opacity', String(storyVisible));
