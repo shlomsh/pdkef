@@ -125,7 +125,9 @@ describe('cellFontSize', () => {
   // (~11.8pt) - narrow enough that even the 12pt default overflows it.
   const shortCellPercent = 1.4;
 
-  it('keeps the remembered size when it fits the row', () => {
+  it('keeps the remembered size when it fits the row and already clears the field-fill target', () => {
+    // 1.4% of A4 is ~11.79pt; FIELD_FONT_FILL_RATIO (0.65) of that is ~7.66pt,
+    // under the remembered 8pt, so nothing here grows it either.
     expect(cellFontSize(8, shortCellPercent, PAGE_HEIGHT)).toBe(8);
   });
 
@@ -143,14 +145,52 @@ describe('cellFontSize', () => {
   it('returns the preferred size unchanged for a degenerate (zero-height) cell', () => {
     expect(cellFontSize(12, 0, PAGE_HEIGHT)).toBe(12);
   });
+
+  describe('growing a small remembered size to fill a generously tall field (SNG-10 follow-up)', () => {
+    // The practice form's "Full name" lone box, exactly as SNG-10's caption-
+    // band detection reports it: 22pt tall, well past the ~21.5pt
+    // (FIELD_FONT_MAX_PT / FIELD_FONT_FILL_RATIO) where the cap engages.
+    const fullNamePercent = (22 / PAGE_HEIGHT) * 100;
+
+    it('raises a small remembered size to the fill target, capped at FIELD_FONT_MAX_PT', () => {
+      // A fresh session's 12pt default no longer passes through unchanged:
+      // 22 * 0.65 = 14.3pt, capped at FIELD_FONT_MAX_PT (14).
+      expect(cellFontSize(12, fullNamePercent, PAGE_HEIGHT)).toBe(14);
+    });
+
+    it('still grows a size smaller than 12pt to the same target', () => {
+      // A font remembered from a tight comb elsewhere on the page (down at
+      // MIN_FONT_SIZE_PT) must not leave a field this tall looking like a
+      // thin strip - the target is the field's own answer, not whatever was
+      // last used.
+      expect(cellFontSize(6, fullNamePercent, PAGE_HEIGHT)).toBe(14);
+    });
+
+    it('never grows past the field itself: the resulting box still clears the cap comfortably', () => {
+      const size = cellFontSize(6, fullNamePercent, PAGE_HEIGHT);
+      const boxHeightPt = size * 1.29;
+      expect(boxHeightPt).toBeLessThan(22);
+    });
+
+    it('keeps a larger remembered size untouched, still shrinking only what overflows', () => {
+      // A preferred size already above the fill target and within the
+      // field's own ceiling is left alone - growth never overrides an
+      // intentionally large size.
+      expect(cellFontSize(16, fullNamePercent, PAGE_HEIGHT)).toBe(16);
+    });
+  });
 });
 
 describe('placeTextOnCell', () => {
   // The "Status" cell on the e-ticket that shipped this bug: a 12pt box
   // placed on it hung well past the row into "Confirmed" below.
   const shortCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
-  // A cell tall enough that the preferred size already fits, so nothing here
-  // is a shrink - the placement math below is unaffected by cellFontSize.
+  // A cell tall enough that a 12pt preferred size clears cellFontSize's own
+  // ceiling (26.1pt) with room to spare - but past the SNG-10 follow-up's
+  // ~21.5pt growth threshold, so the field-fill target (capped at
+  // FIELD_FONT_MAX_PT, 14) still raises it. The placement math below (left,
+  // minWidth, the re-centring formula) is unaffected either way - only the
+  // font size itself is.
   const roomyCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 4 };
 
   it('puts the box on the cell\'s left edge, centred on its middle, spanning its width', () => {
@@ -162,9 +202,11 @@ describe('placeTextOnCell', () => {
     const placed = placeTextOnCell(roomyCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
     expect(placed.left).toBe(30);
     expect(placed.minWidth).toBe(26);
-    expect(placed.fontSize).toBe(12);
+    // Grown from the 12pt preferred size to the field-fill cap: see
+    // cellFontSize's own "growing a small remembered size" tests.
+    expect(placed.fontSize).toBe(14);
     // Lowered by the box's bottom padding (0.12em), toward the cell's line.
-    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2 + (12 * 0.12 / PAGE_HEIGHT * 100), 5);
+    expect(placed.top).toBeCloseTo(30 - (14 * 1.29 / PAGE_HEIGHT * 100) / 2 + (14 * 0.12 / PAGE_HEIGHT * 100), 5);
   });
 
   it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {

@@ -2,6 +2,8 @@ import {
   COMB_BOX_FILL,
   COMB_CAP_HEIGHT_EM,
   COMB_MIN_CELL_EM,
+  FIELD_FONT_FILL_RATIO,
+  FIELD_FONT_MAX_PT,
   HELVETICA_BASELINE_OFFSET_EM,
   MAX_COMB_CELLS,
   MIN_FONT_SIZE_PT,
@@ -255,8 +257,9 @@ export function combFontSize(
 }
 
 /**
- * The largest font size whose one-line box still fits the printed cell's
- * height.
+ * The font size a one-line box takes on a detected free-text cell: large
+ * enough to read as sized *for* the field, never taller than the field
+ * itself.
  *
  * A free-text cell's `minWidth` (see `placeTextOnCell`) only ever grows the
  * box past the cell horizontally, the same way a hand-placed box grows - the
@@ -267,10 +270,18 @@ export function combFontSize(
  * past a boundary, it visibly sits on top of the next one. Someone whose
  * last text box was 24pt should not get a 24pt box in an 8pt-tall column.
  *
- * `TEXT_BOX_LINE_HEIGHT_EM` is the same one-line-box-height figure a raw
- * (unsnapped) tap already centres itself by, so a cell taller than that at
- * the preferred size changes nothing - this only ever shrinks, never grows,
- * a box past what a plain click would have given it.
+ * That half of the rule - `preferredSize` shrunk to `ceiling`, the largest
+ * one-line box (`TEXT_BOX_LINE_HEIGHT_EM`) the cell's height admits - is the
+ * whole of what this used to do, on the assumption that a detected cell was
+ * always short enough for an ordinary remembered size to already overflow
+ * it. SNG-10's lone-box detection broke that assumption: a generously tall
+ * field (a caption-less "Full name" row, 22pt) left a 12pt remembered font
+ * filling less than half of it, because nothing here ever raised a size that
+ * already fit. `target` is the field's own answer to "how big should this
+ * be" - `FIELD_FONT_FILL_RATIO` of its height, capped at `FIELD_FONT_MAX_PT`
+ * so a very tall field doesn't render an oversized single line - and the
+ * font grows to it whenever the remembered size was smaller, still bounded
+ * by `ceiling` so a short field is never overflowed to reach the target.
  */
 export function cellFontSize(
   preferredSize: number,
@@ -280,7 +291,8 @@ export function cellFontSize(
   const cellPoints = (cellHeightPercent / 100) * pageHeightPoints;
   if (!(cellPoints > 0)) return preferredSize;
   const ceiling = cellPoints / TEXT_BOX_LINE_HEIGHT_EM;
-  return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
+  const target = Math.min(FIELD_FONT_MAX_PT, cellPoints * FIELD_FONT_FILL_RATIO);
+  return Math.max(MIN_FONT_SIZE_PT, Math.min(Math.max(preferredSize, target), ceiling));
 }
 
 /**
