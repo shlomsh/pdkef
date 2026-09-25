@@ -34,7 +34,7 @@ import styles from './fill.module.css';
  * plain text, aligned by direction, until it is committed and TextNode's
  * real comb layout takes over.
  */
-export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, label, onEnter, onCommit }: {
+export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, label, onEnter, onCommit, onLeave }: {
   slot: FillSlot;
   enterKeyHint: EnterKeyHint;
   /** The droppable look: this slot is what the armed tool's own reach would tap next. */
@@ -45,6 +45,8 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   onEnter: () => void;
   /** Blurred with a non-blank value: the caller turns this slot into a text element. */
   onCommit: (text: string) => void;
+  /** Every blur, after onCommit when there was text: the free slot closes on it. */
+  onLeave?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const { getScaleFactor } = usePdfCoordinates();
@@ -80,6 +82,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   const handleBlur = (event: FocusEvent) => {
     const value = (event.currentTarget as HTMLInputElement).value.trim();
     if (value) onCommit(value);
+    onLeave?.();
   };
 
   return (
