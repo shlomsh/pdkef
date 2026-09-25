@@ -11,7 +11,9 @@ import LineNode from './nodes/LineNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
-import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
+import { createElementId } from '../../../editor/model/ids.ts';
+import { orderTypableFields } from '../../../editor/text/fieldOrder.ts';
 import { useSignTool } from './SignToolContext.tsx';
 import { useSignDefaults } from './SignDefaultsContext.tsx';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
@@ -43,6 +45,17 @@ import {
   isBlankAreaTarget,
   type TapGestureSample,
 } from '../tapOutsideDeselect.ts';
+import { useFill } from '../fill/FillContext.tsx';
+import FillLayer from '../fill/FillLayer.tsx';
+import FocusProxy from '../fill/FocusProxy.tsx';
+import useFillTap from '../fill/useFillTap.ts';
+import { fillToolOf } from '../fill/fillTap.ts';
+import { enterKeyHint } from '../fill/fillOrder.ts';
+import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from '../fill/fillWorkspace.ts';
+import { elementForSlot } from '../fill/slotElement.ts';
+import { fillKeyOf, focusNextFillInput } from '../fill/fillDom.ts';
+import type { FillItem, FillSlot, ReachTarget } from '../fill/fillTypes.ts';
+import fillStyles from '../fill/fill.module.css';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
@@ -184,6 +197,8 @@ export default function PdfWorkspace({
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
+  const initialFont = activeTextElement?.fontFamily || lastFont;
+  const initialFontSize = activeTextElement?.fontSize || lastFontSize;
   // One preflight projection feeds every export affordance. It is intentionally
   // derived here, where the top toolbar, bottom actions, and review navigation
   // meet, rather than recreated in each of those presentation components.
@@ -209,8 +224,8 @@ export default function PdfWorkspace({
     initialColor: activeTextElement?.color || lastColor,
     initialWhiteoutColor: lastWhiteoutColor,
     initialStrokeWidth: lastThickness,
-    initialFont: activeTextElement?.fontFamily || lastFont,
-    initialFontSize: activeTextElement?.fontSize || lastFontSize,
+    initialFont,
+    initialFontSize,
     initialDirection: initialTextDirection,
     initialDateFormat: lastDateFormat,
     initialSymbolWidth: lastSymbolWidth,
@@ -220,6 +235,61 @@ export default function PdfWorkspace({
     gestureCancelRef: placementGestureRef,
     messages,
   });
+
+  // --- Fill mode (SNG-15, docs/sign-fill-mode.md). Inert unless ?next=1. ---
+  // Slots take the remembered font, not the selected element's, so empty fields
+  // never re-layout as focus moves between filled ones; a commit uses the same.
+  const fill = useFill();
+  const fillTool = fillToolOf(selectedTool);
+  const pageSizeOf = useCallback(
+    (pageIndex: number): PageGeometry => pageSizes[pageIndex] || DEFAULT_PAGE_GEOMETRY,
+    [pageSizes],
+  );
+  const directionOfPage = useCallback(
+    (pageIndex: number) => formRegions.pageDirections?.[pageIndex] ?? 'ltr',
+    [formRegions],
+  );
+  const fieldOrder = useMemo(
+    () => (fill.enabled ? orderTypableFields(formRegions.combs, formRegions.cells, directionOfPage) : []),
+    [fill.enabled, formRegions, directionOfPage],
+  );
+  const fillItems = useMemo<FillItem[]>(() => (fill.enabled ? documentFillItems({
+    order: fieldOrder,
+    textElements: elements.filter((el): el is TextElement => el.type === 'text'),
+    freeAt: fill.freeAt,
+    typography: { fontFamily: lastFont, fontSize: lastFontSize },
+    pageSizeOf,
+    directionOfPage,
+  }) : []), [fill.enabled, fieldOrder, elements, fill.freeAt, lastFont, lastFontSize, pageSizeOf, directionOfPage]);
+  const fillPages = useMemo(() => fillItemsByPage(fillItems, numPages), [fillItems, numPages]);
+  const reachTargetsByPage = useMemo(() => {
+    const byPage = new Map<number, ReachTarget[]>();
+    if (!fill.enabled) return byPage;
+    const boxOfItem = (item: FillItem) => boxOf(item, fieldOrder, (pageIndex) => pageSizeOf(pageIndex).height);
+    for (const target of fillReachTargets(fillTool, fillItems, formRegions.checkboxes, boxOfItem)) {
+      byPage.set(target.pageIndex, [...(byPage.get(target.pageIndex) ?? []), target]);
+    }
+    return byPage;
+  }, [fill.enabled, fillTool, fillItems, fieldOrder, formRegions.checkboxes, pageSizeOf]);
+  const enterKeyHintOf = (key: string) => enterKeyHint(fillItemIndex(fillItems, key), fillItems.length);
+
+  // A slot left with text in it becomes a text element: one ADD_ELEMENT, one undo
+  // step. Direction as handlePageClick resolves it: a field takes its page's
+  // printed direction, a free spot the product default.
+  const commitSlot = useCallback((slot: FillSlot, text: string) => {
+    const size = pageSizeOf(slot.pageIndex);
+    const element = elementForSlot(slot, text, {
+      id: createElementId(),
+      color: lastColor,
+      fontFamily: lastFont,
+      fontSize: lastFontSize,
+      direction: slot.field ? directionOfPage(slot.pageIndex) : initialTextDirection,
+      pageWidthPoints: size.width,
+      pageHeightPoints: size.height,
+    });
+    dispatch({ type: 'ADD_ELEMENT', payload: element });
+    logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
+  }, [pageSizeOf, lastColor, lastFont, lastFontSize, directionOfPage, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
   // These are keyed on dispatch/remember* which are stable across renders, so
@@ -314,8 +384,10 @@ export default function PdfWorkspace({
     // touch-tap path below never moves focus anywhere - nothing else asks
     // for it - so it has to be done explicitly here, which also covers the
     // ordinary mouse/onClick path for free.
-    if (document.activeElement instanceof HTMLTextAreaElement) {
-      document.activeElement.blur();
+    // Fill mode (SNG-15): a slot is an <input>, and it goes down the same way.
+    const active = document.activeElement;
+    if (active instanceof HTMLTextAreaElement || (active instanceof HTMLElement && fillKeyOf(active) !== null)) {
+      active.blur();
     }
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
   }, [dispatch]);
@@ -398,6 +470,63 @@ export default function PdfWorkspace({
   const handlePagesContainerTouchCancel = () => {
     resetTouchTap();
   };
+
+  // Fill mode: the page overlay's taps and hover (useFillTap decides nothing itself).
+  const fillTap = useFillTap({
+    tool: fillTool,
+    targetsOf: (pageIndex) => reachTargetsByPage.get(pageIndex) ?? [],
+    pageGeometryOf: (pageIndex) => pageSizes[pageIndex],
+    engaged: () => fillKeyOf(document.activeElement) !== null || activeElementId !== null,
+    delegate: (event, pageIndex, at) => handlePageClick(event, pageIndex, at),
+    dismiss: deactivateAll,
+  });
+
+  // One element, drawn exactly as production draws it; fill mode renders text
+  // elements through FillLayer (in reading order) and the rest here.
+  const renderElement = (el: EditorElement, size: PageGeometry) => (
+    <DraggableWrapper
+      key={el.id}
+      element={el}
+      isActive={activeElementId === el.id}
+      isEditing={editingElementId === el.id}
+      onBeginEdit={makeOnBeginEdit(el.id)}
+      onSelect={makeOnSelect(el.id)}
+      onChange={makeOnChange(el.id)}
+      onDelete={makeOnDelete(el.id)}
+      onClone={cloneElement}
+      pageWidthPoints={size.width}
+      pageGeometry={size}
+      messages={messages}
+      /* MOBI-16: only the element actually in the edit
+         session gets a fieldNav, and only when the
+         document has a detected field to walk at all -
+         same `hasFields` gate SignToolbar.tsx uses for
+         the top toolbar's copy of this control, so a
+         free-placed box in a document with no detected
+         fields still gets today's full toolbar rather
+         than a Previous/Next pair with nowhere to go.
+         Every other wrapper's prop stays the stable
+         `null` default, so this never re-renders a
+         wrapper that isn't about to collapse its
+         toolbar. Off in fill mode: the platform's own
+         next and previous do the hopping there. */
+      fieldNav={!fill.enabled && fieldNavigation.hasFields && editingElementId === el.id ? {
+        hasNext: fieldNavigation.hasNext,
+        hasPrevious: fieldNavigation.hasPrevious,
+        onNext: fieldNavigation.goToNext,
+        onPrevious: fieldNavigation.goToPrevious,
+        direction: fieldNavigation.direction,
+      } : null}
+    >
+      {ELEMENT_RENDERERS[el.type]({
+        element: el,
+        onChange: makeOnChange(el.id),
+        onSelect: makeOnSelect(el.id),
+        pageWidthPoints: size.width,
+        messages,
+      })}
+    </DraggableWrapper>
+  );
 
   const reviewExportIssues = useCallback(() => {
     const firstIssueId = exportReadiness.blockingElementIds[0];
@@ -485,10 +614,16 @@ export default function PdfWorkspace({
             messages={messages}
           />
 
+          {fill.enabled && <FocusProxy />}
+
           {/* PDF Pages rendering container */}
           <div
             className={workspaceStyles['pages-container']}
-            onClick={deactivateAll}
+            onClick={(e) => {
+              // Fill mode: a click on a fill input is that input's own focus.
+              if (fillKeyOf(e.target as Element | null) !== null) return;
+              deactivateAll();
+            }}
             onTouchStart={handlePagesContainerTouchStart}
             onTouchEnd={handlePagesContainerTouchEnd}
             onTouchCancel={handlePagesContainerTouchCancel}
@@ -521,66 +656,50 @@ export default function PdfWorkspace({
                     />
 
                     <div
-                      className={workspaceStyles['page-overlay']}
+                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
                       // Capture sees a tap on an existing checkbox mark before
                       // its wrapper consumes the bubble event, so the same
-                      // detected square remains a real toggle target.
-                      onClickCapture={(e) => handlePageClick(e, pageIdx)}
-                      onMouseDown={(e) => handleOverlayPointerDown(e, pageIdx)}
-                      onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
+                      // detected square remains a real toggle target. Fill mode
+                      // asks fillTapDecision first (useFillTap).
+                      onClickCapture={(e) => (fill.enabled ? fillTap.onClickCapture(e, pageIdx) : handlePageClick(e, pageIdx))}
+                      onMouseDown={(e) => {
+                        if (fill.enabled) fillTap.onMouseDown();
+                        handleOverlayPointerDown(e, pageIdx);
+                      }}
+                      onTouchStart={(e) => {
+                        if (fill.enabled) fillTap.onTouchStart(e, pageIdx);
+                        handleOverlayPointerDown(e, pageIdx);
+                      }}
+                      onTouchEnd={fill.enabled ? (e) => fillTap.onTouchEnd(e, pageIdx) : undefined}
+                      onTouchCancel={fill.enabled ? fillTap.onTouchCancel : undefined}
+                      onPointerMove={fill.enabled ? (e) => fillTap.onPointerMove(e, pageIdx) : undefined}
+                      onPointerLeave={fill.enabled ? fillTap.onPointerLeave : undefined}
                     >
-                      {(selectedTool === 'text' || selectedTool === 'date') && (
+                      {/* In fill mode a slot draws its own frame over a comb or cell. */}
+                      {!fill.enabled && (selectedTool === 'text' || selectedTool === 'date') && (
                         <>
                           <FormFieldHints regions={formRegions.combs} kind="comb" pageIndex={pageIdx} />
                           <FormFieldHints regions={formRegions.cells} kind="cell" pageIndex={pageIdx} />
                         </>
                       )}
                       {selectedTool === 'symbol' && (
-                        <FormFieldHints regions={formRegions.checkboxes} kind="checkbox" pageIndex={pageIdx} />
+                        <FormFieldHints regions={formRegions.checkboxes} kind="checkbox" pageIndex={pageIdx} aimedKey={fill.aimedKey} />
                       )}
-                      {pageElements.map((el) => (
-                        <DraggableWrapper
-                          key={el.id}
-                          element={el}
-                          isActive={activeElementId === el.id}
-                          isEditing={editingElementId === el.id}
-                          onBeginEdit={makeOnBeginEdit(el.id)}
-                          onSelect={makeOnSelect(el.id)}
-                          onChange={makeOnChange(el.id)}
-                          onDelete={makeOnDelete(el.id)}
-                          onClone={cloneElement}
-                          pageWidthPoints={size.width}
-                          pageGeometry={size}
-                          messages={messages}
-                          /* MOBI-16: only the element actually in the edit
-                             session gets a fieldNav, and only when the
-                             document has a detected field to walk at all -
-                             same `hasFields` gate SignToolbar.tsx uses for
-                             the top toolbar's copy of this control, so a
-                             free-placed box in a document with no detected
-                             fields still gets today's full toolbar rather
-                             than a Previous/Next pair with nowhere to go.
-                             Every other wrapper's prop stays the stable
-                             `null` default, so this never re-renders a
-                             wrapper that isn't about to collapse its
-                             toolbar. */
-                          fieldNav={fieldNavigation.hasFields && editingElementId === el.id ? {
-                            hasNext: fieldNavigation.hasNext,
-                            hasPrevious: fieldNavigation.hasPrevious,
-                            onNext: fieldNavigation.goToNext,
-                            onPrevious: fieldNavigation.goToPrevious,
-                            direction: fieldNavigation.direction,
-                          } : null}
-                        >
-                          {ELEMENT_RENDERERS[el.type]({
-                            element: el,
-                            onChange: makeOnChange(el.id),
-                            onSelect: makeOnSelect(el.id),
-                            pageWidthPoints: size.width,
-                            messages,
-                          })}
-                        </DraggableWrapper>
-                      ))}
+                      {fill.enabled ? (
+                        <>
+                          {pageElements.filter((el) => el.type !== 'text').map((el) => renderElement(el, size))}
+                          {/* After the rest, so typed text sits above a whiteout drawn under it. */}
+                          <FillLayer
+                            items={fillPages[pageIdx] ?? []}
+                            pageWidthPoints={size.width}
+                            enterKeyHintOf={enterKeyHintOf}
+                            slotLabel={t.textButton}
+                            renderText={(el) => renderElement(el, size)}
+                            onEnter={focusNextFillInput}
+                            onCommitSlot={commitSlot}
+                          />
+                        </>
+                      ) : pageElements.map((el) => renderElement(el, size))}
                     </div>
                   </div>
                 </div>

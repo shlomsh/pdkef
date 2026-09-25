@@ -13,14 +13,18 @@ contract; change them first, then the pieces.
   - An empty detected field is a slot: a single-line `<input>` that never enters the editor model.
   - When the person leaves a slot with text in it, one `ADD_ELEMENT` creates the text element through
     production's placement (`placeTextOnField`). That is one undo step.
-  - A slot left empty leaves nothing behind.
+  - A slot left empty leaves nothing behind. The free slot closes whenever it is left (`FieldSlot`'s
+    `onLeave`).
   - A filled field is the text element production already renders (`TextNode` inside
     `DraggableWrapper`), made focusable and writable in fill mode.
   - Nothing hands focus from one input to another mid-typing.
 - **Reading order is DOM order.**
   - Each page's overlay has one fill layer holding its slots and its text elements, sorted into reading
     order: page, then row, then the start edge, right to left on an RTL page.
-  - Other elements (shapes, signatures, marks) stay in the existing layer, in creation order.
+  - Other elements (shapes, signatures, marks) render before it, in creation order, so typed text sits
+    above a whiteout drawn under it.
+  - Slots take the remembered font (`lastFont`, `lastFontSize`), not the selected element's, so empty
+    fields never re-layout as focus moves. A commit uses the same values, so nothing jumps.
   - iOS's arrows, Tab and VoiceOver all follow the same order.
 - **Focus decides what is edited.**
   - When a text element's input gets focus, by an arrow, a tap or Tab, it becomes active and editing
@@ -34,11 +38,16 @@ contract; change them first, then the pieces.
   has focus. On desktop it always stays.
 - **Taps** (`FillTapDecision`), in this order:
   1. On a fill input: native focus.
-  2. Within reach of one: focus it inside the touch handler (MOBI-24). Reach is 22 px, the printed label
-     just above a field counts, and between two rows the label's row wins.
-  3. Typing, and away from every spot: finish typing only.
-  4. Text armed (fill mode treats no tool as Text), not typing, nothing in reach: open a free slot there.
+  2. Within reach of the armed tool's target: Text focuses it inside the touch handler (MOBI-24). Date
+     and a mark go to production's `handlePageClick` at the target's centre, so its snap lands where the
+     droppable look promised. Reach is 22 px, the printed label just above a field counts, and between
+     two rows the label's row wins.
+  3. Typing or something selected, and away from every spot: finish that only.
+  4. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
   5. Everything else: production's `handlePageClick`.
+- **What each tool reaches** (`fillReachTargets`): Text, every fill input; Date, the empty detected
+  slots; a mark, the detected tick boxes; any other tool, nothing. While a tool other than Text is armed,
+  fill inputs don't take taps (`taps-go-to-tool`), so the tap reaches that tool.
 - **Hints.** A slot shows a faint frame at rest. The target a tap would reach for the armed tool
   (`FillTool`) gets a distinct "droppable" look while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
@@ -66,17 +75,22 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | `fillSlots.ts` | pure | `detectedSlots(order, textElements, placementFor)`, `freeSlot(at, placement)`, `slotKey(field)` |
 | `slotElement.ts` | pure | `elementForSlot(slot, text, defaults)`: the `TextElement` a filled slot becomes |
 | `fillReach.ts` | pure | `reachTarget(point, targets, pxPerPercent, options?)` |
-| `fillTap.ts` | pure | `fillTapDecision(input)` |
+| `fillTap.ts` | pure | `fillTapDecision(input)`, `fillToolOf(selectedTool)` |
+| `fillWorkspace.ts` | pure | `documentFillItems(input)`, `fillReachTargets(tool, items, checkboxes, boxOf)`, `fillItemsByPage`, `boxOf`, `fillItemIndex` |
 | `FieldSlot.tsx` | component | the slot input: placement style, `enterkeyhint`, Enter, commit on blur |
 | `FillLayer.tsx` | component | one page's fill items in order: `FieldSlot`, or a caller-supplied render for text |
+| `FocusProxy.tsx` | component | the hidden input a free-slot tap focuses first |
 | `useFillFocus.ts` | hook | focus-driven editing, and `filling` |
+| `useFillTap.ts` | hook | the overlay's taps and hover, adapted to `fillTapDecision` and `reachTarget` |
 | `fill.module.css` | styles | the slot frame, the droppable look, the toolbar hidden while filling on touch |
 
 Existing files change only at their seams:
 - `PdfSignTool.tsx`: the flag, mounting the hooks, and turning off the Tab navigation and fullscreen.
 - `PdfWorkspace.tsx`: splits text into `FillLayer`.
 - `TextNode.tsx` and `DraggableWrapper.tsx`: read `TextFillContext`.
-- `useWorkspaceGestures.ts`: asks `fillTapDecision` first.
+- `useWorkspaceGestures.ts`: `handlePageClick` takes an optional corrected point.
+- `PdfWorkspace.tsx` also: a click on a fill input never deselects, and `deactivateAll` blurs a focused
+  slot as it already blurs a textarea.
 - `SignToolbar.tsx`: shows Text as chosen when nothing is armed in fill mode.
 
 ## Rules for every piece
@@ -100,7 +114,7 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - the flag and the pointer kind;
   - `filling`;
   - the aimed key;
-  - the one free slot;
+  - the one free slot's point (`freeAt`);
   - a pending focus key;
   - the focus proxy's ref.
 
@@ -130,17 +144,20 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
 - **The DOM adapter** (`fillDom.ts`):
   - `focusFillInput(key)` and `focusNextFillInput(fromKey)`: DOM order is reading order;
   - `boxKey(region)` for tick-box reach targets.
-- **Gestures.** In fill mode `useWorkspaceGestures` asks `fillTapDecision` first:
+- **Gestures.** In fill mode the overlay's handlers go through `useFillTap`, which asks
+  `fillTapDecision`. Touch decides on `touchend`, and a decision it carries out calls `preventDefault`,
+  so no click follows. Native and delegate let the click through, and the click decides again. The mouse
+  reads "typing" at `mousedown`, before the default blur. The decisions:
   - `native`: leave the event alone;
   - `focus`: `focusFillInput(key)` synchronously;
   - `dismiss`: blur;
   - `freeSlot`: the proxy dance above. `openFreeSlot(at)` opens the slot and sets the pending focus
     key to its key, so the gesture only focuses the proxy and calls it;
   - `delegate`: production's `handlePageClick`, at the corrected point when one is given.
-- **The armed tool, as `FillTool`:** no tool or Text is 'text', the symbol tool is 'mark', anything else
-  is 'other'.
-- **The aim.** A mouse hovering with no button down, or a finger down, sets the aimed key from
-  `reachTarget`. It clears on moving past the tap slop, on the end, on a cancel, and on leaving the
-  page.
+- **The armed tool, as `FillTool`** (`fillToolOf`): no tool or Text is 'text', Date is 'date', the symbol
+  tool is 'mark', anything else is 'other'.
+- **The aim.** A mouse hovering with no button down (pointer events, so iOS's synthesized mouse events
+  never count), or a finger down, sets the aimed key from `reachTarget`. It clears when the touch ends
+  or is cancelled, and when the pointer leaves the page.
 - **The toolbar.** With no tool armed, `SignToolbar` shows Text as chosen in fill mode, and it hides
   while `filling && coarse`.
