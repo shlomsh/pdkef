@@ -98,6 +98,7 @@ export const DETECTION_MODULES = [
   'src/editor/adapters/pdf/pageInk.js',
   'src/editor/adapters/pdf/formGrid.js',
   'src/editor/adapters/pdf/formCells.js',
+  'src/editor/adapters/pdf/inkEdges.js',
   'src/editor/adapters/pdf/formWidgets.js',
   'src/editor/adapters/pdf/fieldRegions.js',
   'src/editor/adapters/pdf/textRuns.js',
@@ -376,6 +377,19 @@ function importedForbiddenLocalNames(sourceFile) {
   return names;
 }
 
+// `import type { PDFPage } from '@cantoo/pdf-lib'` (or every named element marked
+// `type`) is erased at compile time: it names a shape, it loads nothing, so a pure
+// detector may use it to describe its inputs.
+function isTypeOnly(statement) {
+  if (ts.isExportDeclaration(statement)) return statement.isTypeOnly;
+  const clause = statement.importClause;
+  if (!clause) return false;
+  if (clause.isTypeOnly) return true;
+  const bindings = clause.namedBindings;
+  return !clause.name && Boolean(bindings) && ts.isNamedImports(bindings)
+    && bindings.elements.length > 0 && bindings.elements.every((element) => element.isTypeOnly);
+}
+
 export function checkForbiddenImports(sourceFile, relPath, checker = createChecker(sourceFile)) {
   const violations = [];
   const exempt = BOUNDARY_SHIMS.has(relPath);
@@ -410,7 +424,7 @@ export function checkForbiddenImports(sourceFile, relPath, checker = createCheck
     if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement))
       && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)) {
       const specifier = statement.moduleSpecifier.text;
-      if (isForbiddenPackage(specifier)) reportStaticImport(statement, specifier);
+      if (isForbiddenPackage(specifier) && !isTypeOnly(statement)) reportStaticImport(statement, specifier);
     }
   }
 
