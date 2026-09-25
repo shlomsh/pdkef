@@ -1,7 +1,7 @@
 ---
 id: "FORM-21"
 title: "The scored corpus locks in gains and names every regression"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
@@ -61,3 +61,6 @@ Re-recorded from the current detector with no detection code change; every perce
 `baselines.json` is unchanged from `32d91483`. Sabotage-checked again (see the commit message for the
 three results). Left `in_progress`: FORM-21 is the harness later refactors (ARCH-24, FORM-22..24)
 prove "unchanged" against, so it is worth one more pair of eyes before closing.
+
+Closed 2026-09-25 after an independent review: new or vanished kinds now fail, `score-form --all` and
+`scoring.test.js` give the same verdict, and raw counts make "unchanged" exact.
