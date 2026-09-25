@@ -106,6 +106,8 @@ const RECENT_COUNTS = [1, 6];
 const TABLET_VIEWPORTS = [
   { width: 768, height: 1024 },
   { width: 820, height: 1180 },
+  // Short enough that the first screen grows; the worst case before MOBI-36.
+  { width: 800, height: 600 },
 ];
 // MOBI-36: a short desktop window used to squash recents tiles.
 const SHORT_DESKTOP_VIEWPORTS = [
