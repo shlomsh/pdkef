@@ -44,6 +44,8 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     actionHistory: [],
     redoHistory: [],
     documentRevision: 0,
+    carriedFont: null,
+    carriedFontSize: null,
     ...overrides,
   };
 }
@@ -66,8 +68,6 @@ function defaultDefaults(overrides: Partial<SignDefaultsContextValue> = {}): Sig
   return {
     lastColor: '#000000',
     lastWhiteoutColor: '#ffffff',
-    lastFont: 'Arimo',
-    lastFontSize: 12,
     lastDirection: null,
     lastThickness: 3,
     lastSymbolWidth: 5,

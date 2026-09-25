@@ -18,7 +18,6 @@ import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
-  DEFAULT_FONT_SIZE_PT,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS,
 } from '../../constants/signGeometry.js';
@@ -39,7 +38,9 @@ import {
 type FieldNavigationAction =
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
-  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null };
+  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
+  | { type: 'SET_CARRIED_FONT'; payload: string }
+  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number };
 
 export interface FieldNavigationOptions {
   elements: EditorElement[];
@@ -51,8 +52,11 @@ export interface FieldNavigationOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   initialColor?: string;
-  initialFont?: string;
-  initialFontSize?: number;
+  /** The document's carried font family and size (SIGN-32), or `null` when
+   * the document has none yet - see useWorkspaceGestures.ts's identical prop
+   * for the tap path this mirrors. */
+  carriedFont?: string | null;
+  carriedFontSize?: number | null;
   pageSizes?: PageGeometry[];
   nextElementIndex?: number;
   /** LOC-16: same optional/English-default shape as useWorkspaceGestures.ts's `messages`. */
@@ -315,8 +319,8 @@ export default function useFieldNavigation({
   logAction,
   setAnnouncement,
   initialColor = DEFAULT_COLOR_BLUE,
-  initialFont = DEFAULT_FONT_FAMILY,
-  initialFontSize = DEFAULT_FONT_SIZE_PT,
+  carriedFont = null,
+  carriedFontSize = null,
   pageSizes = [],
   nextElementIndex = elements.length,
   messages,
@@ -361,6 +365,22 @@ export default function useFieldNavigation({
     // honours this seed for a field-spanned box in the first place (see its
     // own doc), so a free box elsewhere is never affected by it.
     const direction = formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
+    // The size and family this element takes - the document's carried
+    // values, or (SIGN-32) seeded from this field's own height when the
+    // document has none yet; see useWorkspaceGestures.ts's identical
+    // resolution for the tap path this mirrors, and combPlacement.ts's
+    // fieldFontSize for the one function both read.
+    const resolvedFont = carriedFont ?? DEFAULT_FONT_FAMILY;
+    // A comb takes the run's span and cell count; a free-text cell takes its
+    // span as `minWidth` - see placeTextOnField's own docstring. Shared with
+    // the tap path so a field reached by Next looks exactly like one reached
+    // by tapping it (MOBI-04's placement, MOBI-32's font-fit).
+    const snapped = placeTextOnField(field, {
+      carriedFontSize,
+      fontFamily: resolvedFont,
+      pageWidthPoints,
+      pageHeightPoints,
+    });
     const newEl = definition.creation.create({
       id,
       pageIndex: field.region.pageIndex,
@@ -368,21 +388,17 @@ export default function useFieldNavigation({
       color: initialColor,
       whiteoutColor: '#ffffff',
       strokeWidth: DEFAULT_STROKE_WIDTH,
-      font: initialFont,
-      fontSize: initialFontSize,
+      font: resolvedFont,
+      fontSize: snapped.fontSize,
       direction,
     });
-    // A comb takes the run's span and cell count; a free-text cell takes its
-    // span as `minWidth` - see placeTextOnField's own docstring. Shared with
-    // the tap path so a field reached by Next looks exactly like one reached
-    // by tapping it (MOBI-04's placement, MOBI-... 's font-fit).
-    const snapped = placeTextOnField(field, {
-      fontSize: initialFontSize,
-      fontFamily: initialFont,
-      pageWidthPoints,
-      pageHeightPoints,
-    });
     const placed = { ...newEl, ...snapped };
+
+    // Seeded only by an actual placement - `existing` above already returned
+    // for a field that already has a box, so reaching here always means one
+    // is about to be created.
+    if (carriedFont === null) dispatch({ type: 'SET_CARRIED_FONT', payload: resolvedFont });
+    if (carriedFontSize === null) dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: snapped.fontSize });
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });

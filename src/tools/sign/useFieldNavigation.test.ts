@@ -133,13 +133,44 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
     const { goToNext, dispatch } = makeHook({
       formRegions,
       initialColor: '#ff3300',
-      initialFont: 'Noto Sans Hebrew',
-      initialFontSize: 18,
+      carriedFont: 'Noto Sans Hebrew',
+      carriedFontSize: 18,
     });
     goToNext();
     const el = addedElement(dispatch) as TextElement;
     expect(el.color).toBe('#ff3300');
     expect(el.fontFamily).toBe('Noto Sans Hebrew');
+  });
+
+  // SIGN-32: Next/Previous shares the tap path's carried-size rule -
+  // useWorkspaceGestures.test.js covers the tap side of the same contract.
+  describe('carried font/size (SIGN-32)', () => {
+    it('seeds the carried font and size from the first field reached, with nothing carried yet', () => {
+      const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: null, carriedFontSize: null });
+      goToNext();
+      const el = addedElement(dispatch) as TextElement;
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT', payload: el.fontFamily });
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT_SIZE', payload: el.fontSize });
+    });
+
+    it('never re-seeds once the document already carries a font and size', () => {
+      const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: 'Arimo', carriedFontSize: 18 });
+      goToNext();
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT')).toBe(false);
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+    });
+
+    it('only shrinks an existing carried size to fit a narrow field - the carried value itself never grows or shrinks', () => {
+      // rowRight's comb cells are far narrower than a 40pt carried size at the
+      // default page width, so the placed box must be smaller than 40 even
+      // though no SET_CARRIED_FONT_SIZE is dispatched to change the carried
+      // value itself.
+      const { goToNext, dispatch } = makeHook({ formRegions, carriedFontSize: 40 });
+      goToNext();
+      const el = addedElement(dispatch) as TextElement;
+      expect(el.fontSize).toBeLessThan(40);
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+    });
   });
 });
 

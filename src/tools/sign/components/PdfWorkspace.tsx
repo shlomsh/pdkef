@@ -175,10 +175,13 @@ export default function PdfWorkspace({
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory }, dispatch } = useSignTool();
+  const {
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carriedFont, carriedFontSize },
+    dispatch,
+  } = useSignTool();
   useAutoFontProvisioning(elements);
   const {
-    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
+    lastColor, lastWhiteoutColor, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
     rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
   } = useSignDefaults();
   const { activeSignature } = useSavedSignatures();
@@ -209,8 +212,12 @@ export default function PdfWorkspace({
     initialColor: activeTextElement?.color || lastColor,
     initialWhiteoutColor: lastWhiteoutColor,
     initialStrokeWidth: lastThickness,
-    initialFont: activeTextElement?.fontFamily || lastFont,
-    initialFontSize: activeTextElement?.fontSize || lastFontSize,
+    // The document's carried font/size (SIGN-32), never the currently
+    // selected element's own - a comb shrunk to fit its own cell must not
+    // leak that shrink into the next, unrelated placement. See
+    // useWorkspaceGestures.ts's fieldFontSize-backed resolution.
+    carriedFont,
+    carriedFontSize,
     initialDirection: initialTextDirection,
     initialDateFormat: lastDateFormat,
     initialSymbolWidth: lastSymbolWidth,
