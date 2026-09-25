@@ -8,6 +8,7 @@
  * that never enters the editor model. A filled spot is the text element production
  * already renders. A slot becomes an element when it is left with text in it.
  */
+import type { ComponentChildren } from 'preact';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import type { PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
 
@@ -96,4 +97,26 @@ export const FILL_KEY_ATTR = 'data-fill-key';
 /** The fill key of a placed text element's input. */
 export function textFillKey(elementId: string): string {
   return `el:${elementId}`;
+}
+
+/**
+ * What PdfWorkspace hands one page's fill layer (FillLayer.tsx). The layer renders
+ * `items` in the order given, a FieldSlot for a slot and `renderText` inside a
+ * TextFillContext for a text element. It reads the aimed and pending-focus keys from
+ * FillContext itself.
+ */
+export interface FillLayerProps {
+  pageIndex: number;
+  /** This page's fill items, already in reading order (fillOrder). */
+  items: FillItem[];
+  /** The page's width in PDF points, for sizing slot text like the element it becomes. */
+  pageWidthPoints: number;
+  /** The keyboard hint for an item, from its place in the whole document's order. */
+  enterKeyHintOf: (key: string) => EnterKeyHint;
+  /** The accessible label every slot reads out (the same one a text box uses). */
+  slotLabel: string;
+  /** Renders a text element exactly as production does (DraggableWrapper and TextNode). */
+  renderText: (element: TextElement) => ComponentChildren;
+  onEnter: (key: string) => void;
+  onCommitSlot: (slot: FillSlot, text: string) => void;
 }
