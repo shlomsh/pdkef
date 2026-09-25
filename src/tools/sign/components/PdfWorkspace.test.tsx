@@ -46,6 +46,7 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     documentRevision: 0,
     carriedFont: null,
     carriedFontSize: null,
+    carriedDirection: null,
     ...overrides,
   };
 }
@@ -68,7 +69,6 @@ function defaultDefaults(overrides: Partial<SignDefaultsContextValue> = {}): Sig
   return {
     lastColor: '#000000',
     lastWhiteoutColor: '#ffffff',
-    lastDirection: null,
     lastThickness: 3,
     lastSymbolWidth: 5,
     lastSymbolMark: 'check',
@@ -421,11 +421,15 @@ describe('PdfWorkspace Component', () => {
     expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
 
-  it('creates a new text field LTR after an RTL field instead of inheriting its direction', () => {
+  // SIGN-32 reopened: the document's carried direction (state.carriedDirection,
+  // set by whatever direction typing or an explicit toggle last ended up in -
+  // see the "typing a script switch" test below) - never a per-element or
+  // browser-wide preference - so it survives whichever element is selected.
+  it('creates a new text field in the document\'s carried direction', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const state = testState({ selectedTool: 'text', elements: [textElement('rtl-text', { left: 70, top: 20, text: 'שלום', fontSize: 12, fontFamily: 'Arimo', textDirection: 'rtl' })], activeElementId: 'rtl-text' });
+    const state = testState({ selectedTool: 'text', carriedDirection: 'rtl' });
 
-    host = mountWorkspace({ state, dispatch, defaults: { lastDirection: 'rtl' } });
+    host = mountWorkspace({ state, dispatch });
     const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
     overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
 
@@ -437,7 +441,86 @@ describe('PdfWorkspace Component', () => {
       (call): call is [Extract<SignToolAction, { type: 'ADD_ELEMENT' }>] => call[0].type === 'ADD_ELEMENT',
     );
     const added = addedCall?.[0].payload;
-    expect(added).toMatchObject({ type: 'text', text: '', textDirection: 'ltr' });
+    expect(added).toMatchObject({ type: 'text', text: '', textDirection: 'rtl' });
+  });
+
+  it('creates a new text field with no direction set on a fresh document (nothing carried yet auto-detects)', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    const state = testState({ selectedTool: 'text' });
+
+    host = mountWorkspace({ state, dispatch });
+    const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
+    overlay.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
+
+    act(() => {
+      overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 300, clientY: 300 }));
+    });
+
+    const addedCall = dispatch.mock.calls.find(
+      (call): call is [Extract<SignToolAction, { type: 'ADD_ELEMENT' }>] => call[0].type === 'ADD_ELEMENT',
+    );
+    const added = addedCall?.[0].payload;
+    expect(added).not.toHaveProperty('textDirection');
+  });
+
+  // SIGN-32 reopened: typing another script switches an unpicked element's
+  // font (TextNode's fontFamilyExplicit:false path) and its effective
+  // direction; both become the document's carried values through
+  // makeOnChange's rememberFont/rememberDirection, so the next field placed
+  // takes them without retyping or re-picking. Caveat is Latin-only
+  // (fonts-and-text.md), so Hebrew content forces a real substitution rather
+  // than a font that already happens to cover both scripts.
+  it('typing a script switch remembers both the resolved font and the detected direction', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    const rememberFont = vi.fn();
+    const rememberDirection = vi.fn();
+    const state = testState({
+      elements: [textElement('text-1', { left: 20, top: 20, text: '', fontFamily: 'Caveat', fontFamilyExplicit: false })],
+      activeElementId: 'text-1',
+      editingElementId: 'text-1',
+    });
+
+    host = mountWorkspace({ state, dispatch, defaults: { rememberFont, rememberDirection } });
+
+    const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
+    act(() => {
+      textarea.value = 'שלום';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    expect(rememberFont).toHaveBeenCalledWith('Gveret Levin');
+    expect(rememberDirection).toHaveBeenCalledWith('rtl');
+  });
+
+  it('switching back to Latin text in a later element carries its own resulting direction', () => {
+    const dispatch = vi.fn<(action: SignToolAction) => void>();
+    const rememberFont = vi.fn();
+    const rememberDirection = vi.fn();
+    // Already mid-Hebrew, from an earlier element's typing (fontFamilyExplicit
+    // stays false: nothing has been explicitly picked on this one either).
+    const state = testState({
+      elements: [textElement('text-2', { left: 20, top: 20, text: 'שלום', fontFamily: 'Gveret Levin', fontFamilyExplicit: false, textDirection: 'rtl' })],
+      activeElementId: 'text-2',
+      editingElementId: 'text-2',
+      carriedFont: 'Gveret Levin',
+      carriedDirection: 'rtl',
+    });
+
+    host = mountWorkspace({ state, dispatch, defaults: { rememberFont, rememberDirection } });
+
+    const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
+    act(() => {
+      textarea.value = 'Hello';
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    // Keep it simple and predictable: whatever the element ends up in
+    // carries. Gveret Levin already covers Latin (it stays the family, so
+    // typing here never touches fontFamily and rememberFont is never called
+    // for it - resolveFontSubstitution only fires on a real substitution),
+    // but the detected direction still switches back to LTR.
+    expect(rememberFont).not.toHaveBeenCalled();
+    expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
 
   it('coordinates both export locations from one blocking-field preflight and reviews the first field', () => {

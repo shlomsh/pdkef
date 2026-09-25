@@ -135,10 +135,10 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
     expect(firstAddElement(dispatch)).toMatchObject({ fontSize: 24 });
   });
 
-  it('does NOT set textDirection when initialDirection is null (auto-detect)', () => {
+  it('does NOT set textDirection when carriedDirection is null (auto-detect)', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: null,
+      carriedDirection: null,
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
@@ -148,7 +148,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('sets textDirection to "rtl" when the user previously chose RTL', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'rtl',
+      carriedDirection: 'rtl',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ textDirection: 'rtl' });
@@ -157,7 +157,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('sets textDirection to "ltr" when the user previously chose LTR explicitly', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ textDirection: 'ltr' });
@@ -169,7 +169,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
       initialColor: '#123456',
       carriedFont: 'David',
       carriedFontSize: 18,
-      initialDirection: 'rtl',
+      carriedDirection: 'rtl',
     });
     handlePageClick(makeClickEvent(200, 300, overlay), 2);
     expect(firstAddElement(dispatch)).toMatchObject({
@@ -334,7 +334,7 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
   it('places the box the same way whatever direction is predicted - the span has no anchored edge', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'rtl',
+      carriedDirection: 'rtl',
       formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -344,13 +344,28 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(added.textDirection).toBe('rtl');
   });
 
-  it('seeds the box with the page\'s printed direction, not the remembered one - a Hebrew form opens right-aligned even after an English field', () => {
-    // Reported live: on a Hebrew form, every field-spanned box opened with a
-    // left-aligned cursor. The placeholder is English but the person types
-    // their own language, and the page already says which way that reads.
+  it('takes the document\'s carried direction over the page\'s printed direction, once the document has one (SIGN-32 reopened)', () => {
+    // The person is actively filling this document in the direction they
+    // just typed in another field - a stronger, fresher signal than the
+    // page's own printed convention, so it wins on every field placed after.
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell], pageDirections: ['rtl'] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).textDirection).toBe('ltr');
+  });
+
+  it('falls back to the page\'s printed direction when the document has nothing carried yet - a Hebrew form opens right-aligned', () => {
+    // Reported live: on a Hebrew form, every field-spanned box opened with a
+    // left-aligned cursor. The placeholder is English but the person types
+    // their own language, and the page already says which way that reads -
+    // this is only the fallback for a document with no carried direction of
+    // its own (see the test above for once one exists).
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      carriedDirection: null,
       formRegions: { combs: [], checkboxes: [], cells: [nameCell], pageDirections: ['rtl'] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -360,7 +375,7 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
   it('leaves a free tap away from any field on the remembered direction - the page seed is for field-spanned boxes only', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
       formRegions: { combs: [], checkboxes: [], cells: [], pageDirections: ['rtl'] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);

@@ -159,6 +159,29 @@ describe('validateDraftRecord', () => {
     expect(result?.extra?.carriedFontSize).toBeUndefined();
   });
 
+  it.each([
+    ['ltr', 'ltr'],
+    ['rtl', 'rtl'],
+  ])('keeps a valid carried direction (SIGN-32 reopened): %s', (_label, carriedDirection) => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { carriedDirection },
+    };
+    expect(validateDraftRecord(record)?.extra).toMatchObject({ carriedDirection });
+  });
+
+  it.each([
+    ['missing (a draft from before this existed)', {}],
+    ['an empty string', { carriedDirection: '' }],
+    ['an unrelated string', { carriedDirection: 'up' }],
+    ['a number', { carriedDirection: 1 }],
+    ['null', { carriedDirection: null }],
+  ])('restores the draft with no carried direction when it is %s', (_label, extra) => {
+    const record = { fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText], extra };
+    const result = validateDraftRecord(record);
+    expect(result?.elements).toEqual([goodText]);
+    expect(result?.extra?.carriedDirection).toBeUndefined();
+  });
+
   it('returns a validated record with valid elements on success', () => {
     const record = { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: bytesOf(), elements: [goodText] };
     const result = validateDraftRecord(record);
