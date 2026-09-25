@@ -122,15 +122,21 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   reachable by the pre-hydration frame. Measured 0.0000-0.0004 at 0-3 recents after
   (`PerformanceObserver({type:'layout-shift'})`, seeding `pdf-toolkit:workspace:recent-files` via
   `page.addInitScript`).
-- **The desktop launcher reserves two recents rows instead of sizing to content (MOBI-35).** Recents
-  load after mount from `localStorage` behind one server-rendered placeholder tile; sizing the launcher
-  from its own content moved the picker or the tiles a frame later, for any recents count from 0 to 6.
-  `.workspace-launcher` stretches to fill its grid row, `FileDropzone` lays it out as a flex column
-  ending at the bottom, and `RecentFiles` reserves two grid rows from first paint with each tile's
-  preview scaling to fit the row. Tiles land in place and nothing in the launcher moves; do not size the
-  recents area from content. Guard: `e2e/home/launcher-picker-pinned.spec.js`. CLS fell from
-  0.0134-0.0310 (1440x900, 1280x720, 1024x768) to 0.0000; the tablet band (768-1023px) still moves and
-  is tracked in MOBI-36.
+- **The desktop launcher reserves two recents rows instead of sizing to content (MOBI-35), top-aligned
+  with the demo (MOBI-37).** Recents load after mount from `localStorage` behind one server-rendered
+  placeholder tile; sizing the launcher from its own content moved the picker or the tiles a frame
+  later, for any recents count from 0 to 6. `.workspace-launcher` stretches to fill its grid row,
+  `FileDropzone` lays it out as a flex column starting at the top (`justify-content: flex-start`) with
+  the two reserved recents rows first and the picker directly under them, and `RecentFiles` reserves two
+  grid rows from first paint with each tile's preview scaling to fit the row.
+  `.workspace-launcher`'s `padding-top: 10px` lines the first thumbnail's top up with `HeroDemo`'s
+  phone, which sits on its stage's `padding: 16px 0` (`HeroDemo.module.css`); change one and move the
+  other. That holds whenever the phone fills its stage's height (every common desktop height); on a
+  screen tall enough to hit the phone's 360px width cap it centres lower and the alignment no longer
+  holds exactly. Tiles land in place and nothing in the launcher moves; do not size the recents area
+  from content. Guard: `e2e/home/launcher-picker-pinned.spec.js`, which also checks thumbnail top ==
+  phone top (+-1px) and the picker directly under the list. CLS fell from 0.0134-0.0310 (1440x900,
+  1280x720, 1024x768) to 0.0000; the tablet band (768-1023px) still moves and is tracked in MOBI-36.
 - **The demo and the launcher cannot simply swap.** Demo copy must be server-rendered (SEO surface), so
   hiding it after hydration flashes and collapses several screens, and deciding before first paint
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than
