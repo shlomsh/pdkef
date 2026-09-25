@@ -122,10 +122,14 @@ const widgetsSource: FieldSource = {
 
 /**
  * The two sources this module ships. A caller may pass its own `sources`
- * list (a future OCR or metadata source, or the corpus's ARCH-24 step C stub)
- * - `detectFormFields` runs whatever it is given and hands every source's
- * regions to `reconcile` by name; a source not named in `fieldRegions.js`'s
- * `SOURCE_ORDER` simply is not folded in; see step C.
+ * list (a future OCR or metadata source, or the corpus's ARCH-24 step C
+ * stub, `corpus/thirdSourceContract.test.js`) - `detectFormFields` runs
+ * whatever it is given and hands every source's regions to `reconcile` by
+ * name. A source not named in `fieldRegions.js`'s `SOURCE_ORDER` is still
+ * folded in, appended after every source that is named there (`reconcile`'s
+ * own module doc); it just cannot win a same-kind tie against `ink` or
+ * `widgets` until it earns a deliberate line in `SOURCE_ORDER`. This module
+ * itself never has to change either way - that is the whole point of step C.
  */
 export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource];
 

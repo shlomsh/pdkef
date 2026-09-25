@@ -121,7 +121,7 @@ guarded.
 - [x] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
 - [x] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
 - [x] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
-- [ ] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
+- [x] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
       in the corpus, not asserted in prose.
 - [x] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
@@ -226,3 +226,48 @@ matched count moved from 51 to 52, with a per-kind precision regression). Restor
 
 Step B does not touch `useFormFieldRegions.ts`, the corpus, or `scoring/score.js` - all three already
 call `detectFormFields` and see no change in its signature or return shape.
+
+## Step C landed (2026-09-25)
+
+The last acceptance line asks for a demonstration, not prose: a third source added through
+`detectFormFields`'s own public `sources` option, with `useFormFieldRegions.ts` and production's
+`DEFAULT_SOURCES` untouched. `src/editor/adapters/pdf/corpus/thirdSourceContract.test.js` is new and is
+the whole demonstration - two stub `FieldSource`s that live only in that file:
+
+1. An empty stub (`{ combs: [], checkboxes: [], cells: [] }` on every page) run against every row in
+   `ELEMENT_CASES` (44 rows today), once with `sources: DEFAULT_SOURCES` and once with `sources:
+   [...DEFAULT_SOURCES, emptyStub]` - identical output on every row, so a source that finds nothing
+   really does change nothing.
+2. A stub that finds one fixed region, in two shapes: a stand-alone cell on an otherwise empty page (it
+   simply appears), and a comb on the exact rectangle `ink` already reported as a cell on a ruled
+   three-cell row (the brief's own example) - the stub's comb claims it, because `KIND_PRECEDENCE` says a
+   comb beats a cell whichever source found either one, even though the stub is the *later* source.
+
+That last case is also what answered the open question the brief raised: a source name absent from
+`fieldRegions.js`'s `SOURCE_ORDER` was, before this, silently skipped inside `reconcile` - `for (const
+name of sourceOrder) { const source = sourceResults[name]; if (!source) continue; ... }` never visits a
+name `sourceOrder` does not list, so a caller's stub would have vanished with no error, the same silent-
+failure shape this ticket's own "coupling already cost us one outage" section warns about. `reconcile`
+now appends every name in `sourceResults` that `sourceOrder` does not know, after every name that it
+does, in the order those results arrived (`detectFormFields.ts` builds `sourceResults` in the caller's
+own `sources` array order, so this is deterministic). A name still earns a line in `SOURCE_ORDER` to set
+its precedence against `ink`/`widgets` on purpose; leaving it out now means "runs last, wins no
+same-kind tie against a named source", not "invisible". Two new tests in `fieldRegions.test.js`
+("reconcile, an unknown source name") pin this directly at the `reconcile` level: an unknown name's
+region is folded in and survives when nothing contests it, and still loses a same-rectangle tie to a
+named source because it is appended last. Production is unaffected either way - `ink` and `widgets` are
+both always in `SOURCE_ORDER`, so the new branch never executes for the shipped pipeline.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed"; `npx vitest
+run src/editor/adapters/pdf src/tools/sign` is 945 tests green (883 at step B; this step adds 48 -
+44 empty-stub sweep rows plus 2 fixed-region tests in `thirdSourceContract.test.js`, plus 2 `reconcile`
+unit tests in `fieldRegions.test.js`; the remaining 14 of the 62-test delta landed on this scope from
+other tickets committed on this branch between step B and now, not from this step); `npm run check:fast`
+is green, `test:detection-purity` included (`fieldRegions.js` stays on
+its scanned-module list and the new branch is plain data manipulation, no new import, no module-level
+mutable state). `git diff HEAD -- src/tools/sign/` is empty - `useFormFieldRegions.ts` was not opened for
+this step. Sabotage-checked live in `fieldRegions.js`: reverting `reconcile` to fold `sourceOrder` alone
+(dropping the appended-unknown-names line) failed exactly 3 tests - both fixed-region corpus tests in
+`thirdSourceContract.test.js` and the first of the two new `reconcile` unit tests - and left the other 59
+in the same run green, including the empty-stub sweep over the whole element corpus. Restored, green
+again (945/945).

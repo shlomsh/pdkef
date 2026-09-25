@@ -173,3 +173,31 @@ describe('reconcile, precedence pinned by its own data', () => {
     expect(cells).toEqual([widgetCell]);
   });
 });
+
+describe('reconcile, an unknown source name (ARCH-24 step C)', () => {
+  // A name detectFormFields could hand reconcile (a new source) with no line
+  // in SOURCE_ORDER - the case a third source hits before anyone gives it a
+  // deliberate place in the precedence list.
+  it('is folded in rather than silently dropped, appended after every named source', () => {
+    const inkCell = { pageIndex: 0, left: 10, top: 10, width: 10, height: 4, kind: 'text' };
+    const stubCell = { pageIndex: 0, left: 50, top: 50, width: 10, height: 4, kind: 'text' };
+    const { cells } = reconcile({
+      ink: { combs: [], checkboxes: [], cells: [inkCell] },
+      stub: { combs: [], checkboxes: [], cells: [stubCell] },
+    });
+    // Both survive - they do not overlap, so this alone would also pass if
+    // 'stub' were silently dropped and stubCell just never arrived. The next
+    // test is what actually distinguishes "folded in, last" from "dropped".
+    expect(cells).toEqual([inkCell, stubCell]);
+  });
+
+  it('still loses a same-rectangle tie to a name SOURCE_ORDER already knows, because it is appended last', () => {
+    const inkCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'ink' };
+    const stubCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'stub' };
+    const { cells } = reconcile({
+      ink: { combs: [], checkboxes: [], cells: [inkCell] },
+      stub: { combs: [], checkboxes: [], cells: [stubCell] },
+    });
+    expect(cells).toEqual([inkCell]);
+  });
+});
