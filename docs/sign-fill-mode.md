@@ -89,3 +89,54 @@ Existing files change only at their seams:
 - Nothing changes when `?next=1` is absent. Every existing test stays green unchanged.
 - The gesture golden rule, the fonts invariant and the MOBI-24 synchronous focus all hold.
 - No em dashes.
+
+## Seams between the pieces
+
+These are the only places the pieces meet. Each is written down in code: `fillTypes.ts`,
+`FillContext.tsx` and `fillDom.ts`.
+
+- **`FillContext`** (`FillContext.tsx`). `PdfSignTool` provides it; the workspace, the gestures and the
+  toolbar read it. It holds:
+  - the flag and the pointer kind;
+  - `filling`;
+  - the aimed key;
+  - the one free slot;
+  - a pending focus key;
+  - the focus proxy's ref.
+
+  Without `?next=1` it is `FILL_OFF`, and every consumer behaves as production does today.
+- **The renderer props.**
+  - A text element's renderer takes an optional `fill: TextFillProps`, and `DraggableWrapper` takes
+    `quiet`.
+  - With `fill`, the textarea is a fill input:
+    - `tabIndex` 0, not read-only, not inert, pointer-events auto;
+    - `data-fill-input` and `data-fill-key`;
+    - `enterkeyhint`;
+    - Enter (no Shift, not composing) calls `onEnter`.
+  - Its focus no longer selects: `useFillFocus` does that.
+  - `quiet` on a coarse pointer hides the handles, the element toolbar and `.quick-field-nav`.
+- **The focus proxy.**
+  - The workspace renders one hidden input for `proxyRef`:
+    - fixed at the top left, one pixel, fully transparent, `tabIndex` -1, `aria-hidden`;
+    - font size 16 px, so iOS never zooms for it.
+  - A tap that opens a free slot:
+    1. focuses the proxy inside the touch handler, which raises the keyboard (MOBI-24);
+    2. opens the slot and sets the pending focus key.
+  - The fill layer focuses that key's input once it renders, with the keyboard already up, and clears
+    the key. This also closes MOBI-26's gap for fill mode.
+- **The DOM adapter** (`fillDom.ts`):
+  - `focusFillInput(key)` and `focusNextFillInput(fromKey)`: DOM order is reading order;
+  - `boxKey(region)` for tick-box reach targets.
+- **Gestures.** In fill mode `useWorkspaceGestures` asks `fillTapDecision` first:
+  - `native`: leave the event alone;
+  - `focus`: `focusFillInput(key)` synchronously;
+  - `dismiss`: blur;
+  - `freeSlot`: the proxy dance above;
+  - `delegate`: production's `handlePageClick`, at the corrected point when one is given.
+- **The armed tool, as `FillTool`:** no tool or Text is 'text', the symbol tool is 'mark', anything else
+  is 'other'.
+- **The aim.** A mouse hovering with no button down, or a finger down, sets the aimed key from
+  `reachTarget`. It clears on moving past the tap slop, on the end, on a cancel, and on leaving the
+  page.
+- **The toolbar.** With no tool armed, `SignToolbar` shows Text as chosen in fill mode, and it hides
+  while `filling && coarse`.
