@@ -659,6 +659,7 @@ describe('TextNode fill mode (SNG-15)', () => {
     expect(textarea.getAttribute('data-fill-input')).toBe('');
     expect(textarea.getAttribute('data-fill-key')).toBe('el:text-7');
     expect(textarea.getAttribute('enterkeyhint')).toBe('done');
+    expect(textarea.getAttribute('autocorrect')).toBe('off');
   });
 
   it('calls onEnter and prevents default on a plain Enter', () => {
@@ -719,6 +720,7 @@ describe('TextNode fill mode (SNG-15)', () => {
     expect(textarea.hasAttribute('data-fill-input')).toBe(false);
     expect(textarea.hasAttribute('data-fill-key')).toBe(false);
     expect(textarea.hasAttribute('enterkeyhint')).toBe(false);
+    expect(textarea.hasAttribute('autocorrect')).toBe(false);
 
     act(() => { textarea.focus(); });
     expect(onSelect).toHaveBeenCalledTimes(1);

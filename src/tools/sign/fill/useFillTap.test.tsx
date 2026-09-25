@@ -226,6 +226,42 @@ describe('useFillTap', () => {
     expect(endEvent.preventDefault).toHaveBeenCalled();
   });
 
+  it('never decides again on the click after a native touch tap, even when the page has moved under it', () => {
+    // iOS 26: focusing a slot hides the toolbar, the page shifts, and the synthesized
+    // click lands on the overlay beside another field. It must not take the focus there.
+    const { handlers, overlay, delegate } = setup({ targetsOf: () => [target('fill', 'slot:b')] });
+    const tapped = appendFillInput(overlay, 'slot:a');
+    const other = appendFillInput(overlay, 'slot:b');
+
+    const touch = fakeTouch(1, 500, 500);
+    handlers.onTouchStart(touchEvent(overlay, tapped, [touch], [touch]), 0);
+    const endEvent = touchEvent(overlay, tapped, [], [fakeTouch(1, 500, 500)]);
+    handlers.onTouchEnd(endEvent, 0);
+    tapped.focus();
+    const click = mouseEvent(overlay, overlay, 500, 500);
+    handlers.onClickCapture(click, 0);
+
+    expect(endEvent.preventDefault).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(tapped);
+    expect(document.activeElement).not.toBe(other);
+    expect(click.stopPropagation).toHaveBeenCalled();
+    expect(delegate).not.toHaveBeenCalled();
+  });
+
+  it('carries a touch tap\'s delegate decision to its click at the touch\'s own point', () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'mark', targetsOf: () => [target('box', 'box:1')] });
+
+    const touch = fakeTouch(1, 500, 500);
+    handlers.onTouchStart(touchEvent(overlay, overlay, [touch], [touch]), 0);
+    handlers.onTouchEnd(touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]), 0);
+    // The click lands far from any box: it still places at the box the tap reached.
+    const click = mouseEvent(overlay, overlay, 50, 950);
+    handlers.onClickCapture(click, 0);
+
+    expect(delegate).toHaveBeenCalledTimes(1);
+    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 });
+  });
+
   it('does not act on a touch that moved past the tap slop: a scroll or drag is not a tap', () => {
     const { handlers, overlay, openFreeSlot, delegate } = setup();
 

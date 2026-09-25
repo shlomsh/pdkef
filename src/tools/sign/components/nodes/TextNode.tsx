@@ -350,6 +350,9 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           data-fill-input={fill ? '' : undefined}
           data-fill-key={fill ? fill.fillKey : undefined}
           enterkeyhint={fill ? fill.enterKeyHint : undefined}
+          // Fill mode moves focus on every hop, and iOS applies a pending autocorrection
+          // as focus leaves: a name would be "corrected" into a word (SNG-15, iOS 26).
+          autocorrect={fill ? 'off' : undefined}
           aria-invalid={needsAttention || undefined}
           aria-describedby={fontMessage ? fontDescriptionId : undefined}
           readOnly={fill ? false : !isEditing}

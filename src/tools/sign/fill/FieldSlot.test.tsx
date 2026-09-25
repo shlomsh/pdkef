@@ -74,6 +74,7 @@ describe('FieldSlot component', () => {
     expect(input.getAttribute('dir')).toBe('auto');
     expect(input.getAttribute('aria-label')).toBe('First name');
     expect(input.getAttribute('autocomplete')).toBe('off');
+    expect(input.getAttribute('autocorrect')).toBe('off');
   });
 
   it('sets "done" as the enterkeyhint on the last field, per the enterKeyHint prop', () => {
