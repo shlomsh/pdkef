@@ -43,6 +43,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
 | SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
 | SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
+| SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 
 
 ## Editor module boundaries (architecture)
