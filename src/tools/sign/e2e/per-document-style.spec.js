@@ -134,7 +134,19 @@ async function addTextOnFirstField(page) {
   await armTool(page, 'Text');
   const field = page.locator('[class*="field-hint-cell"]').first();
   await expect(field).toBeVisible({ timeout: 10_000 });
-  await field.click();
+  // The hint span itself is a non-interactive visual overlay (it never
+  // receives pointer events); the real click target is the page overlay
+  // underneath it, at the hint's own rendered position - the same pattern
+  // form-grid-fill.spec.js's tapFirstCheckbox uses.
+  const fieldBox = await field.boundingBox();
+  const overlay = page.locator('[class*="page-overlay"]').first();
+  const overlayBox = await overlay.boundingBox();
+  await overlay.click({
+    position: {
+      x: fieldBox.x + fieldBox.width / 2 - overlayBox.x,
+      y: fieldBox.y + fieldBox.height / 2 - overlayBox.y,
+    },
+  });
   const element = activeElement(page);
   const input = element.locator('[data-editor-text-input]');
   await expect(input).toBeVisible();
