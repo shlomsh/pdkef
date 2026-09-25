@@ -28,8 +28,14 @@ import { describe, expect, it } from 'vitest';
  *    unit tests test the functions; only a browser opening a real file tests
  *    the assembly, and only by looking at it.
  *
- * ARCH-24 removes the assembly, at which point this shrinks to one name. Until
- * then, this is the cheap check that the hook and the modules still agree.
+ * ARCH-24 (step A) removed the assembly: the hook's dynamic imports were no
+ * longer five detector modules it assembles itself, but one entry point plus
+ * three geometry/pdf.js helper modules it still reached on its own. A follow-up
+ * closed that gap too - `detectFormFields.ts` now exports `pageGeometry` and
+ * re-exports `toPageTextRuns`, so `useFormFieldRegions.ts` imports `@cantoo/pdf-lib`
+ * and `detectFormFields.ts` and nothing else from the detector (the acceptance
+ * line ARCH-24 names). Every one of those bindings can still go stale the same
+ * way `formGrid.js`'s did, so this guard keeps checking all of them.
  *
  * Plain `.js`, like every other test here that reads a file: `@types/node` is
  * not a dependency and `tsconfig.json` declares no `types`, so a `.ts` file
@@ -83,7 +89,7 @@ describe('useFormFieldRegions lazy imports', () => {
   it('parses a block that is actually there - this guard must never run blind', () => {
     // If the hook is refactored into a different shape, the parse above throws
     // and this file fails loudly rather than asserting nothing.
-    expect(bindings.length).toBeGreaterThanOrEqual(5);
+    expect(bindings.length).toBeGreaterThanOrEqual(2);
     expect(bindings.every((binding) => binding.names.length > 0)).toBe(true);
   });
 

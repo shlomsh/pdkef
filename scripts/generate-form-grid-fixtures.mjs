@@ -42,7 +42,7 @@ import { getPageContentBytes } from '../src/editor/adapters/pdf/pdfObjects.js';
 import { tokenize } from '../src/editor/adapters/pdf/contentStream.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const outputDirectory = path.resolve(here, '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__');
+const outputDirectory = path.resolve(here, '..', 'src', 'tools', 'sign', 'fields', '__fixtures__');
 
 /**
  * Operators kept verbatim: graphics state that positions a path, the path

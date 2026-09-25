@@ -35,14 +35,15 @@ npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
 npm run check:fast        # the iteration loop: source guards, unit tests for what changed, typecheck (~20s)
+npm run check:push        # one pre-push command: the same CI oracle, narrowed to what the diff needs
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
 npm run test:e2e          # build + product e2e + font guards + export guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
 npm run test:e2e:product  # the product specs against the current dist/ (~45s on 4 workers), unconditionally
 npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI narrows them the same way
 ```
 
-- **Iterate with `check:fast`; run the whole `ci.yml` chain once before a push**, not after every edit
-  and not once per subagent. A subagent's brief names `check:fast` (or one spec) as its check.
+- **Iterate with `check:fast`; run `check:push` once before a push**, not after every edit and not once
+  per subagent. A subagent's brief names `check:fast` (or one spec) as its check. [tests]
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
   (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
   4 workers (2 in CI); a spec that asserts a wall-clock budget goes in `PERF_BUDGETS` in
@@ -157,7 +158,7 @@ there first, then in its LOC ticket. [content-and-copy]
 
 `ci.yml` runs, in order: `check:backlog`, `check:guidance`, `test`, `typecheck`,
 `test:editor-dependency-directions` (also the single-owner box-resize check), `test:module-boundaries`,
-`test:gesture-golden-rule`, `check-class-resolution`,
+`test:gesture-golden-rule`, `test:detection-purity`, `check-class-resolution`,
 `test:fonts`, `test:licenses`, `test:dependency-governance`, then `build`, `test:csp`, `test:seo`,
 `test:redirects`, `test:css`, `test:weight`, `test:lazy-modules`, and Playwright. Ratchets (CSS duplication, dead bytes,
 editor selectors in `global.css`) only ever go down: **the fix is to narrow what a page carries, never

@@ -38,7 +38,7 @@ describe('useFormFieldRegions detection state', () => {
     container.remove();
     warn.mockRestore();
     vi.doUnmock('@cantoo/pdf-lib');
-    vi.doUnmock('../../editor/adapters/pdf/formWidgets.js');
+    vi.doUnmock('./fields/formWidgets.js');
     vi.resetModules();
   });
 
@@ -111,7 +111,7 @@ describe('useFormFieldRegions detection state', () => {
   // and identically on every reload.
   it('says the detector never loaded when its own chunks fail to import', async () => {
     vi.resetModules();
-    vi.doMock('../../editor/adapters/pdf/formWidgets.js', () => {
+    vi.doMock('./fields/formWidgets.js', () => {
       throw new TypeError('Importing a module script failed.');
     });
 
