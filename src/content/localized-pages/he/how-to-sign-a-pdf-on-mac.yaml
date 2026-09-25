@@ -4,7 +4,7 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-11'
 reviewNotes: 'Published 2026-09-11 at the reviewer request, to be reviewed on the live site rather than in a preview build; wording, maqaf and geresh typography still to be checked on the deployed pages.'
-sourceHash: 'fnv1a64:a41934c8231d99be'
+sourceHash: 'fnv1a64:d566200ff7bbc5b2'
 title: 'איך לחתום על PDF ב‑Mac | PDkef'
 description: 'חתמו ומלאו PDF ב‑Mac דרך הדפדפן. מתי Preview מספיק, מתי צריך להוסיף טקסט או תיבות, ואיך לשמור עותק מוכן לשליחה.'
 breadcrumb: 'Mac'
@@ -33,7 +33,7 @@ sections:
         src: '/images/sign-guide/picker.jpg'
         alt: 'עורך PDkef האמיתי עם בוחר הקבצים הריק והכיתוב Drop PDF here'
         width: 720
-        height: 256
+        height: 102
         caption: >-
           <strong>פותחים את pdkef.com/sign ובוחרים קובץ.</strong> אין חשבון ואין שלב העלאה; ה‑PDF
           נטען ישירות לדפדפן.
@@ -41,7 +41,7 @@ sections:
         src: '/images/sign-guide/signature-methods.jpg'
         alt: 'חלון יצירת החתימה האמיתי של PDkef עם הלשוניות ציור, הקלדה והעלאה'
         width: 640
-        height: 623
+        height: 801
         caption: >-
           <strong>מציירים, מקלידים או מעלים חתימה.</strong> חתימה מוקלדת משתמשת בגופן כתב יד;
           חתימה מצוירת עוקבת אחרי משטח המגע.
@@ -49,7 +49,7 @@ sections:
         src: '/images/sign-guide/filled-and-signed.jpg'
         alt: 'עורך PDkef האמיתי עם טופס תרגול מלא: טקסט, תיבה מסומנת וחתימה מוקלדת'
         width: 720
-        height: 643
+        height: 1134
         caption: >-
           <strong>אותו מסמך, מלא וחתום.</strong> טקסט, תיבה מסומנת וחתימה מוקלדת, כולם הוצבו
           לפני ההורדה.
