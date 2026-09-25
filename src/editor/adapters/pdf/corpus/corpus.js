@@ -253,11 +253,12 @@ const PRINTED = [
   },
   {
     name: 'a captioned header row over three identical empty rows',
-    why: 'FORM-13: form 101\'s children table prints its column captions ("מספר זהות", "שם") in a '
-      + '12.4pt row whose own text side-carves it exactly like a labelled field - `writableArea` '
-      + 'cannot tell them apart. What does is the three identical, empty, ruled rows underneath: '
-      + 'only the header\'s two cells are headings, and dropping them must not cost the data rows '
-      + 'a single cell. Needs its own captions as `text` (README\'s "Two things to know"), since a '
+    why: 'FORM-14: form 101\'s children table prints its column captions ("מספר זהות", "שם") in a '
+      + '12.4pt row whose own text reaches its cell\'s midpoint exactly like a labelled field - '
+      + '`rightHug` alone cannot tell them apart. What does is the caption\'s own gaps: centred in '
+      + 'its cell (leftGap 50pt, rightGap 50pt, ratio 1.0), not hugging a wall, so it reads as a '
+      + 'heading and neither cell carves. Dropping it must not cost the three repeating data rows a '
+      + 'single cell. Needs its own captions as `text` (README\'s "Two things to know"), since a '
       + 'caption is the whole thing being pinned.',
     doc: {
       ink: [
@@ -267,8 +268,9 @@ const PRINTED = [
         { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 2 },
       ],
     },
-    // Page-percent, hugging each header cell's right wall with its baseline in the row's lower
-    // half (pdf y0=261, row midpoint 266.2) - a side carve, not a band carve.
+    // Page-percent, centred in each header cell with its baseline in the row's lower half
+    // (pdf y0=261, row midpoint 266.2) - a side carve is on offer, not a band carve, and
+    // HEADER_GAP_RATIO is what turns it down.
     text: [
       { str: 'מספר זהות', left: 22.5, top: 12, width: 5, height: 1 },
       { str: 'שם', left: 52.5, top: 12, width: 5, height: 1 },
@@ -276,11 +278,12 @@ const PRINTED = [
     expect: { ...none, cells: 6 },
   },
   {
-    name: 'a captioned row over one empty row',
-    why: 'FORM-13\'s companion: one blank row under a caption is the ordinary label-over-blank '
-      + 'shape (MIN_HEADER_RUN is 2, not 1), so both captioned cells are counted here - a change '
-      + 'that drops every side-carved caption regardless of what repeats below it goes red on this '
-      + 'row instead of only showing up as a lost itc101 point.',
+    name: 'an RTL heading centred over a single blank row',
+    why: 'FORM-14, health\'s own shape: its four false-positive column headings each sit over '
+      + 'exactly one blank data row, not a repeating run, so a rule keyed on what repeats below a '
+      + 'caption (FORM-13\'s, since removed) could never reach them. The caption here is the same '
+      + 'centred position as the row above, just one data row instead of three - what drops it is '
+      + 'its own shape, not the run underneath, so a single row is enough.',
     doc: {
       ink: [
         { ink: 'cellRow', x: 40, y: 260, width: 240, height: 12.4, columns: 2 },
@@ -291,7 +294,46 @@ const PRINTED = [
       { str: 'מספר זהות', left: 22.5, top: 12, width: 5, height: 1 },
       { str: 'שם', left: 52.5, top: 12, width: 5, height: 1 },
     ],
-    expect: { ...none, cells: 4 },
+    expect: { ...none, cells: 2 },
+  },
+  {
+    name: 'a label hugging its wall over two identically ruled continuation lines',
+    why: 'FORM-14: an address block - "כתובת" against the right wall of the first line, two more '
+      + 'blank lines ruled the same way under it. leftGap 90pt vs rightGap 2pt, ratio 45 - the '
+      + 'caption hugs its wall, so it carves and keeps its field regardless of what repeats below '
+      + 'it. Formerly a known gap under FORM-13\'s header rule, which read the run of identical '
+      + 'empty rows below and dropped the labelled line as a column heading (5 of 6 cells); FORM-14 '
+      + 'removed that rule in favour of reading the caption\'s own shape, which finds all 6.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 220, width: 240, height: 20, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 2 },
+      ],
+    },
+    // Page-percent on the 400x300 default page: x 250-278 against the right cell's wall at 280,
+    // pdf y 243-251, in the lower half of its 240-260 line, so a side carve rather than a band.
+    text: [{ str: 'כתובת', left: 62.5, top: 16.33, width: 7, height: 2.67 }],
+    expect: { ...none, cells: 6 },
+  },
+  {
+    name: 'an English caption centred over an empty row: no side carve',
+    why: 'FORM-14: the LTR counterpart to the two RTL heading rows above - the I-9\'s own "List A" '
+      + '/ "List B" column headings, centred the same way (leftGap 40pt, rightGap 40pt each, ratio '
+      + '1.0) and reaching each cell\'s midpoint just like a hugging label would. RTL_RE rejects '
+      + 'them before HEADER_GAP_RATIO is even asked - an LTR caption never side-carves, hugging or '
+      + 'not - so only the blank data row survives.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 260, width: 240, height: 12.4, columns: 2 },
+        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
+      ],
+    },
+    text: [
+      { str: 'List A', left: 20, top: 12, width: 10, height: 1 },
+      { str: 'List B', left: 50, top: 12, width: 10, height: 1 },
+    ],
+    expect: { ...none, cells: 2 },
   },
   {
     name: 'an undivided decorative panel',
@@ -431,26 +473,6 @@ const KNOWN_GAPS = [
       + '(MOBI-11) - so this is a scope line, not a bug. Wiring it up should flip this row.',
     doc: { widgets: [{ widget: 'signature', ...FIELD }] },
     expect: none,
-  },
-  {
-    name: 'a label hugging its wall over two identically ruled continuation lines',
-    why: 'an address block: "כתובת" against the right wall of the first line, two more blank lines '
-      + 'ruled the same way under it. FORM-13\'s header rule reads the run of identical empty rows '
-      + 'below and drops the labelled line as a column heading, so this finds 5 of the 6 cells. No '
-      + 'scored form has this shape (independent review, 2026-09-24). What separates it from a '
-      + 'heading is where the caption sits - hugging, not centred - which is FORM-14\'s test; '
-      + 'combining the two should flip this row to 6.',
-    doc: {
-      ink: [
-        { ink: 'cellRow', x: 40, y: 240, width: 240, height: 20, columns: 2 },
-        { ink: 'cellRow', x: 40, y: 220, width: 240, height: 20, columns: 2 },
-        { ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 2 },
-      ],
-    },
-    // Page-percent on the 400x300 default page: x 250-278 against the right cell's wall at 280,
-    // pdf y 243-251, in the lower half of its 240-260 line, so a side carve rather than a band.
-    text: [{ str: 'כתובת', left: 62.5, top: 16.33, width: 7, height: 2.67 }],
-    expect: { ...none, cells: 5 },
   },
 ];
 
