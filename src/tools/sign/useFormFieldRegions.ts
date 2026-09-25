@@ -253,22 +253,10 @@ export default function useFormFieldRegions(
       try {
         const [
           { PDFDocument },
-          { detectPageRegions },
-          { collectPageInk, pageCropBox },
-          { detectCellCandidates },
-          { reconcileFields, withWidgetFields },
-          { createPageGeometry },
-          { toPageTextRuns },
-          { detectWidgetRegions },
+          { detectFormFields, pageGeometry, toPageTextRuns },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
-          import('../../editor/adapters/pdf/formGrid.js'),
-          import('../../editor/adapters/pdf/pageInk.js'),
-          import('../../editor/adapters/pdf/formCells.js'),
-          import('../../editor/adapters/pdf/fieldRegions.js'),
-          import('../../editor/geometry/coords.ts'),
-          import('../../editor/adapters/pdf/textRuns.js'),
-          import('../../editor/adapters/pdf/formWidgets.js'),
+          import('./fields/detectFormFields.ts'),
         ]);
         detectorLoaded = true;
         const document = await PDFDocument.load(sourceBytes.slice(0), {
@@ -276,46 +264,45 @@ export default function useFormFieldRegions(
           updateMetadata: false,
         });
         if (!current) return;
-        const found: FormFieldRegions = { detection: 'done', combs: [], checkboxes: [], cells: [], pageDirections: [] };
+
+        // The pdf.js text pass stays here, not in the detector
+        // (`detectFormFields.ts`'s own docstring says why it never touches
+        // pdf.js): every page's own text runs, in the detector's page-percent
+        // shape, plus `pageDirections` - which is read straight off those same
+        // runs (`dominantTextDirection`) rather than asked of a detector that
+        // only knows geometry (see `FormFieldRegions.pageDirections`).
+        const textRuns: Array<Array<{ str: string } & PercentBox>> = [];
+        const pageDirections: TextDirection[] = [];
         for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
           const pdfLibPage = document.getPage(pageIndex);
-          const page = detectPageRegions(pdfLibPage, pageIndex);
-          found.checkboxes.push(...page.checkboxes);
-
-          // Own geometry/ink walk, independent of detectPageRegions' internal
-          // one: reusing its private state isn't worth the coupling risk to a
-          // shipped, tested feature for what is, per page, one more (cheap)
-          // walk of the same content stream.
-          const geometry = createPageGeometry({
-            cropBox: pageCropBox(pdfLibPage),
-            rotation: pdfLibPage.getRotation().angle,
-          });
-          const ink = collectPageInk(pdfLibPage);
+          // `pageGeometry` is the same function `detectFormFields` calls
+          // internally for this same page - see its own docstring - so this
+          // walk cannot drift from what the entry point uses.
+          const geometry = pageGeometry(pdfLibPage);
           const pdfjsPage = await sourceDocument.getPage(pageIndex + 1);
           if (!current) return;
-          const textItems = await pageTextRuns(pdfjsPage, geometry, toPageTextRuns);
+          const items = await pageTextRuns(pdfjsPage, geometry, toPageTextRuns);
           if (!current) return;
-          found.pageDirections[pageIndex] = dominantTextDirection(textItems.map((item) => item.str));
-          // The ink walk first, then whatever the page's own `/Tx` widgets
-          // add: a live form draws its boxes inside each widget's appearance
-          // stream, which `collectPageInk` does not walk and should not, so
-          // on a fillable form the ink pass finds only what is printed under
-          // the widgets - on our practice form, 1 of its 7 writable fields.
-          const reconciled = reconcileFields({
-            combs: page.combs,
-            checkboxes: page.checkboxes,
-            cells: detectCellCandidates(ink, geometry, pageIndex, textItems),
-          });
-          const { combs, cells } = withWidgetFields(
-            { ...reconciled, checkboxes: page.checkboxes },
-            detectWidgetRegions(pdfLibPage, pageIndex),
-          );
-          found.combs.push(...combs);
+          textRuns[pageIndex] = items;
+          pageDirections[pageIndex] = dominantTextDirection(items.map((item) => item.str));
+        }
+
+        const detected = await detectFormFields(document, { textRuns });
+        if (!current) return;
+        const found: FormFieldRegions = {
+          detection: 'done',
+          combs: detected.combs,
+          checkboxes: detected.checkboxes,
           // Signature cells aren't wired into a snap yet - signature
           // placement is a different creation mode (a saved-signature
-          // dialog, not a point tap) and stays out of this first pass.
-          found.cells.push(...cells.filter((cell) => cell.kind !== 'signature'));
-        }
+          // dialog, not a point tap) and stays out of this first pass. Kept
+          // out here, not inside the detector, so a caller that wants every
+          // detected cell (the corpus, the scored corpus) still gets one.
+          // `detected.cells` is `DetectedCell[]` (FORM-23), so `kind` is
+          // already there - no widening cast needed to filter on it.
+          cells: detected.cells.filter((cell) => cell.kind !== 'signature'),
+          pageDirections,
+        };
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });
       } catch (error) {
         // Quiet in the UI, loud in the console: the person gets the editor

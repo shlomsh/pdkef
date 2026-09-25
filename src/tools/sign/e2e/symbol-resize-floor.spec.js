@@ -27,7 +27,7 @@ import { test, expect } from '@playwright/test';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..', '..', '..', '..');
 const FIXTURE = path.join(
-  root, 'src', 'editor', 'adapters', 'pdf', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf',
+  root, 'src', 'tools', 'sign', 'fields', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf',
 );
 
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });

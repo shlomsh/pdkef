@@ -28,7 +28,7 @@ import {
 } from '../../editor/text/combPlacement.ts';
 import { placeSymbolOnRegion } from '../../editor/registry/symbol.ts';
 import { DESIGN_BOX, markInkExtent } from '../../editor/registry/symbolMarks.ts';
-import { formatDate, isDateFormatId, toIsoDateString } from '../../editor/text/dateFormat.ts';
+import { dateFormatForComb, formatDate, isDateFormatId, toIsoDateString } from '../../editor/text/dateFormat.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../i18n/toolMessages';
 import {
@@ -238,13 +238,6 @@ export default function useWorkspaceGestures({
       symbolMark: initialSymbolMark,
       textHeight,
     });
-    if (selectedTool === 'date' && newEl.type === 'text') {
-      const dateValue = toIsoDateString(new Date());
-      const dateFormatId = isDateFormatId(initialDateFormat) ? initialDateFormat : 'locale';
-      newEl.text = formatDate(dateValue, dateFormatId);
-      newEl.dateFormatId = dateFormatId;
-      newEl.dateValue = dateValue;
-    }
     // A text box placed on a printed grid takes that grid's span and cell
     // count, so the person types once instead of dragging a side handle until
     // the digits happen to line up (MOBI-04). It stays an ordinary text
@@ -269,6 +262,18 @@ export default function useWorkspaceGestures({
     const field: TypableField | null = combRegion
       ? { kind: 'comb', region: combRegion }
       : cellRegion ? { kind: 'cell', region: cellRegion } : null;
+    // A date on an 8-cell comb starts digits-only so the printed dividers do
+    // the separating; this does not touch the remembered format.
+    if (selectedTool === 'date' && newEl.type === 'text') {
+      const dateValue = toIsoDateString(new Date());
+      const rememberedFormatId = isDateFormatId(initialDateFormat) ? initialDateFormat : 'locale';
+      const dateFormatId = combRegion
+        ? dateFormatForComb(rememberedFormatId, combRegion.cells)
+        : rememberedFormatId;
+      newEl.text = formatDate(dateValue, dateFormatId);
+      newEl.dateFormatId = dateFormatId;
+      newEl.dateValue = dateValue;
+    }
     // A field-spanned box has no growing edge to anchor either way
     // (combPlacement.ts) and is sitting on one specific spot on a page whose
     // own text already reads a given direction, so it takes that direction -

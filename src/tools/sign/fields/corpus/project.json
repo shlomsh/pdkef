@@ -1,0 +1,15 @@
+{
+  "name": "form-corpus",
+  "$schema": "../../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "src/tools/sign/fields/corpus",
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vitest run src/tools/sign/fields/corpus/",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}

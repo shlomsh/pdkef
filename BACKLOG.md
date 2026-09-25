@@ -47,7 +47,6 @@ _None._
 | MOBI-08 | P2 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 | MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
-| MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 
 ### In progress
 
@@ -90,6 +89,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
 | MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
 | MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
 | MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
@@ -102,6 +102,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| MOBI-36 | P3 | [MOBI-36](backlog/tasks/MOBI-36.md) · Home launcher: tablet picker still moves when recents load |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
@@ -119,6 +120,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| MOBI-35 | P2 | [MOBI-35](backlog/tasks/MOBI-35.md) · Home launcher: pin the picker when recents load |
 | QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
 | QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
@@ -328,48 +330,6 @@ _None._
 
 _None._
 
-## Module boundaries
-
-### Open
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
-
-### In progress
-
-_None._
-
-### Blocked
-
-_None._
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
-| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
-| ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
-| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
-| ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
-| ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
-| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
-| ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
-| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
-| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
-| QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
-| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
-| QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
-| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
-
-### Retired
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
-| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
-
 ## Architecture debt
 
 ### Open
@@ -497,6 +457,7 @@ _None._
 | FORM-18 | P2 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |
 | FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |
 | FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |
+| FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
 
@@ -518,6 +479,10 @@ _None._
 | FORM-13 | P2 | [FORM-13](backlog/tasks/FORM-13.md) · Tell a table's caption row from a writable row |
 | FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
 | FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
+| FORM-21 | P1 | [FORM-21](backlog/tasks/FORM-21.md) · The scored corpus locks in gains and names every regression |
+| FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
+| FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
+| FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Retired
@@ -537,7 +502,6 @@ _None._
 | SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |
-| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
 
 ### In progress
@@ -556,6 +520,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-01 | P1 | [SNG-01](backlog/tasks/SNG-01.md) · Plan of record for the next-generation Sign editor, with the learnings that led to it |
+| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 
 ### Retired
 
@@ -648,6 +613,8 @@ _None._
 | DEMO-05 | P2 | [DEMO-05](backlog/tasks/DEMO-05.md) · Full-height story panels that read as slides without hijacking the scroll |
 | DEMO-06 | P3 | [DEMO-06](backlog/tasks/DEMO-06.md) · Decide the visual register: keep Sea Glass or move to warm paper |
 | DEMO-07 | P1 | [DEMO-07](backlog/tasks/DEMO-07.md) · Lead with blur where the traffic actually lands |
+| DEMO-08 | P3 | [DEMO-08](backlog/tasks/DEMO-08.md) · The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open |
+| DEMO-09 | P1 | [DEMO-09](backlog/tasks/DEMO-09.md) · Hero demo shows both stories stacked until ScrollDriver hydrates |
 
 ### Retired
 
@@ -698,3 +665,35 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+
+## Module boundaries
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
+| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
+| ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
+| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
+| ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
+| ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
+| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
+| ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
+| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
+| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
+| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
+| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
+| ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
+| QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
+| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
+| QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
+| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
+
+### Retired
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |

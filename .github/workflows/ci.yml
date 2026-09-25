@@ -124,10 +124,20 @@ jobs:
     - name: Validate agent guidance budget
       run: npm run check:guidance
 
-    # Empty unit_paths means affected-scope.mjs saw everything=true; `vitest
-    # run` with no path arguments is the unnarrowed, full-suite form.
+    # ARCH-28: unit tests are selected by Vitest's own module graph
+    # (`vitest related` against the changed files, plus a small widen-rule
+    # table for what that graph can't see - scripts/unit-scope.mjs), not by
+    # which Nx project a file's folder belongs to. A core-project verdict
+    # above (`everything=true`) no longer means the unit step runs all ~193
+    # files - see scripts/unit-scope.mjs's own header for why. This
+    # recomputes its own scope from the same $BASE the step above already
+    # fetched (scripts/change-scope.mjs's resolveBase(), shared by both) and
+    # prints why each test file ran, or why it widened, to this step's log
+    # and to the job summary.
     - name: Run tests
-      run: npx vitest run ${{ steps.affected.outputs.unit_paths }}
+      env:
+        BASE: ${{ needs.scope.outputs.base }}
+      run: node scripts/affected-scope.mjs --base "$BASE" --run unit
 
     - name: Typecheck
       run: npm run typecheck
@@ -147,6 +157,15 @@ jobs:
 
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
+
+    # FORM-22: field detection (src/tools/sign/fields/'s ink/widget/cell
+    # detectors, plus the scored corpus's scoring loader) stays plain data in,
+    # plain data out - no pdf-lib/pdf.js/DOM/time/random touch outside a named
+    # boundary shim, no module-level mutable state. Source-side, so it needs
+    # no build; see scripts/check-detection-purity.mjs's own header for why it
+    # parses with the TypeScript compiler API rather than scanning raw text.
+    - name: Verify field detection stays pure
+      run: npm run test:detection-purity
 
     # Source-side, so it needs no build. It also runs again inside test:css in
     # the build job, for anyone running that locally.

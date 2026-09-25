@@ -88,8 +88,9 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   These blocks go **last** in their sheet - every rule re-states one from a `max-width` block at the same
   specificity, and a media query adds none, so source order is all that decides it.
 - **The launcher's row is viewport-derived wherever the viewport can hold it.** It is the `1fr` row at
-  both breakpoints, so `FileDropzone` arriving cannot change it and content inside it can still move
-  (see the recents note below). It is *not* a floor: on a screen too short for its content the two
+  both breakpoints, so `FileDropzone` arriving cannot change it; at 1024px and up nothing inside it
+  moves either (see the recents note below), but below that a tablet can still move (MOBI-36) while a
+  phone's screen grows instead. It is *not* a floor: on a screen too short for its content the two
   bullets above take over - below 1024px the row takes its content's height and the first screen grows,
   at 1024px and up the cell scrolls. Read this as "the row never shrinks to its content", not "the row
   is always exactly one viewport's share".
@@ -99,12 +100,13 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   one-element measurement in `homeWorkspace.ts` only corrects headless Chromium, which rounds the
   hairline up. Hard-coding it left `e2e/card-reveal.spec.js` 0.063px from failing in CI. Guard:
   `e2e/home/nav-height.spec.js`.
-- **The first screen is one composed unit; insert nothing into it.** `index.astro` wraps hero,
-  dropzone and tool grid in one `min-h-[calc(100svh-3.5rem)]` flex column with `justify-center` and
-  pins the grid to the bottom with `mt-auto`, so the grid reads as a dock and stays on the first screen
-  for the visitor who came for one tool. New sections go after the wrapper. The dropzone's
-  `min-height: 13rem` (`.home-workspace` in `index.astro`, `.dropzone` in `Dropzone.module.css`) is the
-  separate floor that keeps first paint from moving the dock while the launcher settles.
+- **The first screen is one composed unit; insert nothing into it.** `HomePageLayout.astro`'s
+  `.home-hero` grid (see "One canonical DOM" above) holds header, launcher, demo and dock as named
+  areas of one 100svh grid, not a wrapper `index.astro` composes; the dock sits in its own `dock` row
+  so it reads as a dock and stays on the first screen for the visitor who came for one tool. New
+  sections go after `.home-hero`. The dropzone's `min-height: 13rem` (`.dropzone` in
+  `Dropzone.module.css`) is the separate floor that keeps first paint from moving the dock while the
+  launcher settles.
 - **`FileDropzone` is `client:load`, and that directive and its `recents` state are one decision.**
   Server-rendering the launcher is only safe while the first client render reproduces the server markup
   exactly, so `recents` starts as `null` and `localStorage` is read only in the mount effect: Preact
@@ -120,10 +122,15 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   reachable by the pre-hydration frame. Measured 0.0000-0.0004 at 0-3 recents after
   (`PerformanceObserver({type:'layout-shift'})`, seeding `pdf-toolkit:workspace:recent-files` via
   `page.addInitScript`).
-- **Accepted residual: ~0.02 CLS at 4-6 recents** (0.0211 on the current grid; re-measure if the grid
-  changes). The three-column recents grid grows a second row, which moves the picker tile down. Fixing
-  it means reserving two-row height for every visitor to smooth a transition only returning visitors
-  with four or more files see; rejected. Re-open only on real-user CLS from Search Console / CrUX.
+- **The desktop launcher reserves two recents rows instead of sizing to content (MOBI-35).** Recents
+  load after mount from `localStorage` behind one server-rendered placeholder tile; sizing the launcher
+  from its own content moved the picker or the tiles a frame later, for any recents count from 0 to 6.
+  `.workspace-launcher` stretches to fill its grid row, `FileDropzone` lays it out as a flex column
+  ending at the bottom, and `RecentFiles` reserves two grid rows from first paint with each tile's
+  preview scaling to fit the row. Tiles land in place and nothing in the launcher moves; do not size the
+  recents area from content. Guard: `e2e/home/launcher-picker-pinned.spec.js`. CLS fell from
+  0.0134-0.0310 (1440x900, 1280x720, 1024x768) to 0.0000; the tablet band (768-1023px) still moves and
+  is tracked in MOBI-36.
 - **The demo and the launcher cannot simply swap.** Demo copy must be server-rendered (SEO surface), so
   hiding it after hydration flashes and collapses several screens, and deciding before first paint
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than

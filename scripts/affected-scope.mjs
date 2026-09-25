@@ -101,6 +101,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, isDocsOnly } from './change-scope.mjs';
+import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -316,7 +317,11 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
   };
 }
 
-function resolveScope({ explicitBase, explicitHead }) {
+// Exported for scripts/check-push.mjs (ARCH-29): it computes the scope once,
+// the same way this file's own `main()` does, so the local pre-push command
+// and this file's own `--base`/`--run` CLI cannot resolve two different
+// diffs for the same push.
+export function resolveScope({ explicitBase, explicitHead }) {
   const base = resolveBase(explicitBase);
   if (!base) {
     return wide([], `no usable base (${explicitBase ?? 'origin/main'})`);
@@ -372,13 +377,39 @@ function summaryMarkdown(scope) {
   ].join('\n');
 }
 
-function runUnit(scope) {
-  const args = scope.everything || !scope.unit_paths ? [] : scope.unit_paths.split(' ').filter(Boolean);
-  const result = spawnSync('npx', ['vitest', 'run', ...args], { stdio: 'inherit', cwd: ROOT });
-  return result.status ?? 1;
+// ARCH-28: unit selection no longer comes from this file's own
+// project-level `unit_paths` (deriveScope() above still computes it, for
+// e2e/font/export narrowing's own tests to pin against, but nothing runs
+// tests off it any more - a core-project verdict here would otherwise force
+// all ~193 unit files, exactly the thing ARCH-28 replaces). `runUnit` is now
+// a thin wrapper around scripts/unit-scope.mjs's own `resolveUnitScope`/
+// `runUnitByImpact` - the same functions check-push.mjs calls directly
+// against its own once-computed unit scope, so CI's `--run unit` and a local
+// `check:push` never resolve two different diffs. Takes `{ explicitBase,
+// explicitHead }` rather than this file's `scope` object on purpose: unit
+// selection resolves its own (identically-based) scope internally instead of
+// reading anything Nx decided.
+export function runUnit({ explicitBase, explicitHead } = {}) {
+  const unitScope = resolveUnitScope({ explicitBase, explicitHead });
+  const summary = `all=${unitScope.all} seeds=${unitScope.seeds.length} - ${unitScope.reasons.join(' | ')}`;
+  console.error(`affected-scope: unit selection (ARCH-28): ${summary}`);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    appendFileSync(
+      process.env.GITHUB_STEP_SUMMARY,
+      [
+        '### Unit test selection (ARCH-28)',
+        '',
+        `- **all**: ${unitScope.all}`,
+        `- **seeds**: ${unitScope.all ? '(full suite)' : unitScope.seeds.join(', ')}`,
+        `- **reason**: ${unitScope.reasons.join('; ')}`,
+        '',
+      ].join('\n'),
+    );
+  }
+  return runUnitByImpact(unitScope);
 }
 
-function runE2eProduct(scope) {
+export function runE2eProduct(scope) {
   if (!scope.everything && !scope.e2e_paths) {
     console.error('affected-scope: no tool/site-e2e project affected; skipping product e2e.');
     return 0;
@@ -388,7 +419,7 @@ function runE2eProduct(scope) {
   return result.status ?? 1;
 }
 
-function runE2ePerf(scope) {
+export function runE2ePerf(scope) {
   if (!scope.everything && !scope.e2e_paths) {
     console.error('affected-scope: no tool/site-e2e project affected; skipping perf e2e.');
     return 0;
@@ -398,7 +429,7 @@ function runE2ePerf(scope) {
   return result.status ?? 1;
 }
 
-function runFonts(scope) {
+export function runFonts(scope) {
   if (!scope.fonts) {
     console.error('affected-scope: fonts project not affected; skipping the font guards.');
     return 0;
@@ -409,7 +440,7 @@ function runFonts(scope) {
 
 // ARCH-23: the export render guard and language acceptance, split out of
 // `fonts` into their own project - see e2e/export/project.json.
-function runExportGuards(scope) {
+export function runExportGuards(scope) {
   if (!scope.export_guards) {
     console.error('affected-scope: export-guards project not affected; skipping the export guards.');
     return 0;
@@ -427,11 +458,13 @@ function main(argv) {
   const runMode = runIndex >= 0 ? argv[runIndex + 1] : null;
   const summary = argv.includes('--summary');
 
+  // Unit selection resolves its own scope (scripts/unit-scope.mjs); skip the Nx graph it would discard.
+  if (runMode === 'unit') return runUnit({ explicitBase, explicitHead });
+
   const scope = resolveScope({ explicitBase, explicitHead });
   console.error(`affected-scope: ${scope.reason}`);
 
   if (runMode) {
-    if (runMode === 'unit') return runUnit(scope);
     if (runMode === 'e2e-product') return runE2eProduct(scope);
     if (runMode === 'e2e-perf') return runE2ePerf(scope);
     if (runMode === 'fonts') return runFonts(scope);

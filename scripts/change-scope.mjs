@@ -114,6 +114,60 @@ export function changedFiles(base, head, run = git) {
   return [...new Set([...tracked, ...untracked])];
 }
 
+// ARCH-28 (scripts/unit-scope.mjs): same shape as changedFiles() above, but
+// keeps each file's git status ('A'/'M'/'D') instead of throwing it away -
+// unit-scope.mjs needs to tell an unpaired deletion apart from an ordinary
+// add/modify, since `vitest related` on a path that no longer exists
+// silently selects zero tests (a deletion-blind widen rule has to catch
+// that).
+//
+// Unlike changedFiles() above, this call leaves git's rename detection ON
+// (`-M`): a real content-preserving move (`git diff --name-status -M`
+// reports it as a single `R100\told\tnew` line) is reported here as the
+// **new** path with status 'A' - it carries the same real import edges the
+// old path did, so `vitest related` needs no special handling for it (per
+// the ARCH-28 blind-spot inventory's Category 5). Only a path with no
+// same-content match on the other side - a genuine deletion - keeps status
+// 'D'. This is a deliberate divergence from changedFiles()'s own
+// `--no-renames` choice: that function exists to decide Nx *ownership*,
+// where DEBT-03 wants both a rename's source and destination folder treated
+// as affected independently; this one exists to decide whether a path can
+// still be fed to `vitest related` at all; a rename that changes not just
+// location but the same import edges the old path had should not force the
+// whole suite. A tracked file's status always wins over untracked (a file
+// cannot be both); untracked files are reported as 'A', the only status
+// `git ls-files --others` implies.
+export function changedFilesWithStatus(base, head, run = git) {
+  function parseNameStatus(output) {
+    return output
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split('\t');
+        const status = parts[0];
+        if (status[0] === 'R' || status[0] === 'C') {
+          // "R100\told\tnew" (or "C100\told\tnew" if copy detection is ever
+          // enabled) - report only the destination, which is what still
+          // exists and still carries the real edges.
+          return { path: parts[2], status: 'A', renamedFrom: parts[1] };
+        }
+        return { path: parts[1], status: status[0] };
+      });
+  }
+
+  if (head) {
+    return parseNameStatus(run(['diff', '-M', '--name-status', base, head]));
+  }
+  const tracked = parseNameStatus(run(['diff', '-M', '--name-status', base]));
+  const trackedPaths = new Set(tracked.map((f) => f.path));
+  const untracked = run(['ls-files', '--others', '--exclude-standard'])
+    .split('\n')
+    .filter(Boolean)
+    .filter((path) => !trackedPaths.has(path))
+    .map((path) => ({ path, status: 'A' }));
+  return [...tracked, ...untracked];
+}
+
 function main(argv) {
   const baseIndex = argv.indexOf('--base');
   const explicitBase = baseIndex >= 0 ? argv[baseIndex + 1] : undefined;
