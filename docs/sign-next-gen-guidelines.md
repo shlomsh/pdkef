@@ -11,27 +11,35 @@
 
 ## 0. North star
 
-Open a form on a phone. Zoom to where you want to write, choose what to write, and tap. A tick lands in its box, text sits on its line, and nothing on the page is guessed for you. Sign it, look over what you added, and share it. The page never jumps, no control covers what you are filling, nothing moves unless you meant it, and every change can be undone. The file never leaves the phone.
+Open a form on a phone. ∧ ∨ hop between elements, zoomed in so each one is readable: a wrong or missing suggestion costs one tap, never more. A tick lands in its box, text sits on its line, and nothing on the page is guessed for you. Sign it, look over what you added, and share it. The page never jumps on its own, no control covers what you are filling, nothing moves or resizes unless you meant it, and every change can be undone. The file never leaves the phone.
 
 ## 1. The page is an image, and the person is the guide
 
-**The owner's premise, 2026-09-25, final:** "impeccable ux based on raster with user guidance assuming low precision and recall" (`docs/sign-next-gen.md` §5.6). It replaces the same day's earlier model, in which found fields were marked, walked, counted and flagged when empty.
+**The owner's premise, 2026-09-25:** "impeccable ux based on raster with user guidance assuming low precision and recall" (`docs/sign-next-gen.md` §5.6). It replaced the day's earlier model, in which found fields were marked, walked, counted and flagged when empty.
 
-**Why, beyond the measurements:** even perfect detection could not know which blanks are this person's to fill. An employee's form leaves the employer's section blank on purpose. "Check the following if they apply" makes an unticked box a correct answer. Whether a blank is a gap is a judgment about intent and context, not about the page. So a walk over fields, a count, or "you missed this" is a guess about intent, and a wrong guess frustrates more than it helps.
+**The mental model, 2026-09-25, final:** "allow user to move between elements zooming on those detected, with false positives and false negatives as first class citizens" (the owner). Detection may suggest where to go; it still never claims what the form needs.
+
+**Why, beyond the measurements:** even perfect detection could not know which blanks are this person's to fill. An employee's form leaves the employer's section blank on purpose. "Check the following if they apply" makes an unticked box a correct answer. Whether a blank is a gap is a judgment about intent and context, not about the page. So the app never flags a blank or counts what is left, and a wrong or missing suggestion is treated as ordinary, not as a mistake to correct.
 
 **Marks are as central as text:** text, a tick, a cross, a circle, a strike, initials, a signature, a date.
 
-**Rules:**
-- Nothing in the UI comes from whole-page detection: no marks on found fields, no walk over fields, no counts, no empty-field review, no field names.
-- The person chooses what to write. The app never guesses the kind of mark.
-- The app helps only with where, at the fingertip: a tick centres in the box under the finger, text sits on the line, a circle wraps the word, a strike runs through it. This help reads only a small window of the rendered page, declines when unsure, and is one undo away (SNG-09, widened to every mark).
+**The model:**
+- Elements are the detected ones and the ones the person adds. Once on the page, both are equal.
+- ∧ ∨ hop between elements in reading order, across pages, and each hop zooms the view onto the element so it is readable, with its printed label in view. There is no count and no progress over elements.
+- A hop makes the element ready for input (text: caret and keyboard; a box: a tap ticks it). A hop never shows move or resize handles.
+- False positives are first-class. Passing one costs a single ∨, and a blank is never flagged, counted or nagged later. At an empty detected element, "Remove" in the bar takes it out of the hops for this file (saved with the draft; the verdict feeds the pure `reconcileFields` in `src/editor/adapters/pdf/fieldRegions.js`).
+- False negatives are first-class. A tap on a spot nothing marks adds an element there (Text by default), lined up with the print by the local help (SNG-09), and it joins the hops in reading order like any other.
+- Wrong kind is one tap: the bar at an element offers its kinds (Text, tick, cross, date, signature), and a tap converts it.
+- Move and resize are intentional: handles appear only after a direct tap on an element. Only a selected element moves or resizes. A pinch only zooms and never moves or resizes anything (a second finger cancels any one-finger claim, §2.2).
+- Pinch is the zoom. Pinching out past the whole page switches to a grid of pages only deliberately (§4); a "Pages" control in the bar does the same.
+- The document takes the screen: one row of bar (44px targets), no second row, minimal gutters around pages, no redundant lines of copy, no persistent coach bands (a first-open hint, if any, disappears on first use).
+- Right actions in right context: the one bar changes with the moment (§2.6).
 - A scan and a typed PDF behave the same. (Open: whether a fillable PDF's own fields are filled silently underneath.)
-- Guidance teaches how, never what: first-run hints, and, depending on the direction, the app moving the view through the page for the person (open #0, SNG-02).
 - The finish shows what you added, never what you missed.
 
 **Copy never says** "missed", "empty", "N fields" or "all done". The finish says "Here's everything you added."
 
-**The first-open hint** is decided with the direction (SNG-02); proposed: "Zoom in, choose what to write, and tap where it goes."
+**The first-open hint** follows the chosen model (SNG-02); proposed: "Zoom in, choose what to write, and tap where it goes."
 
 ## 2. Interaction grammar
 
@@ -42,11 +50,12 @@ Open a form on a phone. Zoom to where you want to write, choose what to write, a
 | idle | No tool armed, nothing selected. One-finger scroll is native. |
 | tool armed | One placement queued; the next qualifying tap commits it and disarms (editor.md: tools are one-shot). |
 | tool locked | Re-arms after every placement until Stop (touch) or reselection (mouse). Entered by double-tap/double-click on the tool (SIGN-30/31). |
-| element selected | The bar targets it; delete and (on touch) drag apply to it. |
-| editing text | Always implies selected. The caret is live. |
+| at a hop | Ready for input, no handles. Reached by ∧ ∨, or by a tap that lands on or adds an element. The bar shows the element's kinds and, on an empty detected element, "Remove". |
+| element selected (handles) | Reached only by a direct tap on an element. Handles for move and resize; the bar offers Duplicate/Delete. |
+| editing text | Reached from a hop or from selecting a text element. The caret is live. |
 | gesture | Exactly one of drag, resize, create or pinch at a time, DOM-owned, committed once on release through `controller.ts`. |
 | signature sheet | Modal to the workspace until dismissed. |
-| finish | the zoomed-out look at what you added; a tap on one of your marks opens it |
+| finish (the grid of pages) | the zoomed-out look at what you added; a tap on one of your marks opens it |
 
 **Illegal, and unrepresentable in the machine (P4):**
 - editing without that element selected;
@@ -58,16 +67,17 @@ Open a form on a phone. Zoom to where you want to write, choose what to write, a
 
 | Input | Outcome |
 |---|---|
-| Tap, the page, idle | Places the chosen mark (Text when nothing else is chosen), helped to its spot at the fingertip (§1). How a mark is chosen is the direction pick (open #0). |
-| Tap, the page, something selected or editing | Deselect: one level per tap, as Escape. A box left empty closes and disappears, with no undo step. |
+| Tap, a spot nothing marks | Adds an element there (Text by default), lined up with the print by the local help (§1, SNG-09), and it joins the hops in reading order. |
+| Tap, the page, something selected (handles) or editing | Deselect: one level per tap, as Escape. A box left empty closes and disappears, with no undo step. |
 | Tap, the page, a tool armed | As today: the tool places its mark and disarms, unless a double-tap locked it (SIGN-30/31). Whether ticks and crosses stay armed by default is open (#21). |
-| Tap, unselected element | Select it. A text element also opens for editing in the same tap (MOBI-21). |
+| Tap, unselected element | Selects it with handles (a direct tap; §2.1). A text element also opens for editing in the same tap (MOBI-21). |
 | Tap, the selected element | Text re-opens editing. Anything else is acted on through the bar. |
-| One-finger drag, blank page or an **unselected** element | Native scroll. The element ignores the touch (owner, 2026-09-25). |
-| One-finger drag, the selected element | Move, after the slop (§2.5), clamped to the page, RTL-aware. |
+| One-finger drag, blank page or an element that is not selected with handles | Native scroll. The element ignores the touch (owner, 2026-09-25). |
+| One-finger drag, an element selected with handles | Move, after the slop (§2.5), clamped to the page, RTL-aware. |
 | One-finger drag, a handle | Resize. |
 | A second contact, at any phase | Cancels any pending or live one-finger claim, restores the DOM, and the two contacts pinch (decided, P3). The contact is checked at start, move **and** release (regression 2, sign-next-gen.md §1): under Pointer Events, a second `pointerdown` while one pointer is active; under Touch Events, `touches.length > 1`. Which event model the router uses on iOS is spike question (g), so this rule is written for both. The grace window before a first contact may move anything is §2.5's, and it is proposed. |
-| Two-finger pinch or pan | App-owned zoom around the midpoint (§4). |
+| Two-finger pinch or pan | Always zoom, around the midpoint (§4); never moves or resizes an element. Zooming out meets a stop at the whole page; a further pinch past a threshold, committed on release, switches to the grid of pages, with hysteresis on the way back; the bar's "Pages" control does the same switch. |
+| Pinch, in the grid of pages | Pinching into a page opens it. |
 | Double-tap, page | Unbound (open #1). |
 | Double-tap, a tool | Locks it (`toolArming.js`, SIGN-30/31). |
 | Long-press | Unbound (open #2). |
@@ -76,7 +86,8 @@ Open a form on a phone. Zoom to where you want to write, choose what to write, a
 
 | Input | Outcome |
 |---|---|
-| Click | Blank page: with something selected, deselect; otherwise place the chosen mark, as a tap does (proposed, open #3; SNG-06 confirms it on desktop). Element: select. Second click of a double-click on text: edit. Second click on a tool: lock. |
+| Click | Blank page: with something selected, deselect; otherwise place the chosen mark, as a tap does (proposed, open #3; SNG-06 confirms it on desktop). Element: selects it with handles (§2.1). Second click of a double-click on text: edit. Second click on a tool: lock. |
+| Hover | Never reveals handles; only a click does (§2.1). |
 | Drag | Any element: select and move in one gesture (desktop convention; the touch-only rule is scoped to coarse pointers, open #4). A handle resizes. |
 | Wheel | Native scroll. |
 | Ctrl/Cmd + wheel | App zoom in steps, around the pointer; browser zoom is prevented inside the surface. |
@@ -85,12 +96,12 @@ Open a form on a phone. Zoom to where you want to write, choose what to write, a
 
 | Input | Outcome |
 |---|---|
-| Tab / Shift+Tab | Moves between the person's own marks in reading order (proposed; `PdfSignTool.tsx` keydown). Otherwise native tab order. |
-| Return, in a single-line box on a printed line | Commits and closes the box (proposed). The interception is separate (proposed, spike (f)): these boxes are a single-line `<input>`; Return is a `keydown` Enter that is not `isComposing`; and a `beforeinput` guard catches `insertLineBreak`/`insertParagraph`. |
+| Tab / Shift+Tab | Hops between elements, detected and added alike, in reading order (§3; proposed; `PdfSignTool.tsx` keydown). Otherwise native tab order. |
+| Return, in a single-line box on a printed line | Commits and hops to the next element (proposed), the way Tab does. The interception is separate (proposed, spike (f)): these boxes are a single-line `<input>`; Return is a `keydown` Enter that is not `isComposing`; and a `beforeinput` guard catches `insertLineBreak`/`insertParagraph`. |
 | Return, in a box on open space | New line. |
-| Escape | One level per press: editing, then selected, then idle; armed, then idle. |
-| Delete / Backspace | Deletes the selected element unless focus is in a text input. |
-| Arrows, Shift+Arrows | Nudge the selected element 1 / 10 screen px (proposed; WCAG 2.5.7, §7). |
+| Escape | One level per press: editing, then hop or selected (handles), then idle; armed, then idle. |
+| Delete / Backspace | Deletes the element selected with handles, unless focus is in a text input. |
+| Arrows, Shift+Arrows | Nudge the element selected with handles 1 / 10 screen px (proposed; WCAG 2.5.7, §7). |
 | Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z, Ctrl+Y | Undo, redo. Ignored while typing (`useHistoryShortcuts.js`). |
 | Cmd/Ctrl + and −, Cmd/Ctrl+0 | Zoom step in and out, fit width. |
 
@@ -111,22 +122,39 @@ The machine owns these. No listener defines its own threshold.
 
 ### 2.6 The bar has a measured budget
 
-One contextual bar holds the tools (text and the marks), zoom, Undo/Redo and Download. That is more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen.
+One bar, one row, and it changes with the moment (right actions in right context, owner, 2026-09-25):
+- **Nothing selected:** the add tools (Text, tick, cross, signature, date), then ∧ ∨, Undo, and Download.
+- **At a hop (input):** the element's kinds, "Remove" when it is an empty detected element, ∧ ∨, Done.
+- **After a direct tap (handles showing):** Duplicate, Delete, Done.
+- **The grid of pages:** Download and Share.
+
+That is more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen, so no single context may exceed it.
 
 The rules:
-- Each context shows at most what fits one row of 44px targets at 375px. Undo is always in it.
+- Each context shows at most what fits one row of 44px targets at 375px. There is no second row.
 - Everything else goes to a "More" sheet.
-- The content of each context is decided with the chosen direction (SNG-02), and measured at 320, 375 and 430px in SNG-03 before any build (open #13).
+- Gutters around the pages are kept to a minimum, and no line of copy repeats what a control already says: the document takes the screen, not the chrome around it.
+- The exact content of each context is measured at 320, 375 and 430px in SNG-03 before any build.
 
-## 3. No field walk
+## 3. Hopping between elements
 
-The walk over detected fields is retired with the premise, and with it regression 1 (Next jumping to the bottom of the document) disappears.
+∧ ∨ hop between elements, up and down and direction-neutral (§8), in reading order. Elements are the detected ones and the ones the person adds; once on the page, both are equal. A removed element is skipped, and an added one is included, each in its place in the order. There is no count and no progress bar: regression 1 (Next jumping to the bottom of the document) cannot recur, because there is no field-language-dependent arrow to swap.
 
-If the direction moves the view through the page for the person (open #0, A: piece by piece), ∨ goes to the next piece of the page in document order, never to a field. The order rules carry over:
-- **Order** is a document property and never depends on the UI's language:
-  - rows cluster by top edge (`ROW_TOLERANCE_PERCENT`, `fieldOrder.ts:41`);
-  - within a row, it starts at the page's printed start edge (`fieldOrder.ts:47-51`);
-  - pages go in ascending order.
+**Order** is a document property and never depends on the UI's language:
+- rows cluster by top edge (`ROW_TOLERANCE_PERCENT`, `fieldOrder.ts:41`);
+- within a row, it starts at the page's printed start edge (`fieldOrder.ts:47-51`);
+- pages go in ascending order.
+
+**Boundaries:**
+
+| State | ∧ (previous) | ∨ (next) |
+|---|---|---|
+| Nothing selected | disabled | goes to the first element |
+| At the first element | disabled | goes to the next element |
+| At the last element | goes to the previous element | goes to the grid of pages (the finish) |
+
+- **After a deletion,** the selection clears; ∧ ∨ resume from "nothing selected."
+- **During a gesture,** ∧ ∨ are inert.
 
 **Keyboard.** The text keyboard, always; digits are reached through its 123 key, never a guessed number pad. Dates are typed like any other text.
 
@@ -138,11 +166,13 @@ If the direction moves the view through the page for the person (open #0, A: pie
 - **Zoom buttons** (−, %, +, Fit) are the single-pointer path (WCAG 2.5.1). They live in the bar (§2.6).
 
 **Who moves the camera.** The app moves or zooms the view only on:
-- entering or leaving the finish;
-- a step to the next piece, if the direction has pieces (open #0, A);
-- a tap that writes at a zoom where the text would render under 17px (open #19). This is also how a person at fit width sees at once which line the box landed on.
+- a hop (∧ ∨, or a tap that lands on or adds an element): the view zooms onto the element so it is readable, with its printed label in view (§1);
+- entering or leaving the grid of pages (the finish);
+- a tap that writes at a zoom where the text would render under 17px (open #19). This is also how a person at fit width sees at once which line the element landed on.
 
-Any other tap opens what it touches where it is, at the zoom the person chose. The person's own zoom wins everywhere else (proposed, open #11).
+Any other tap opens what it touches where it is, at the zoom the person chose. A plain pinch is the person's own zoom and wins everywhere else (proposed, open #11).
+
+**The grid-switch threshold.** Zooming out meets a stop at the whole page. Only a further pinch, past a threshold and committed on release, switches to the grid of pages; the way back has hysteresis, so a small correction does not flip the view again. The bar's "Pages" control makes the same switch without a pinch.
 
 **The reveal:**
 - A box being typed in lands in the upper third of the visible band, below the bar and clear of the keyboard, so its printed label above it stays in view.
@@ -165,7 +195,7 @@ Any other tap opens what it touches where it is, at the zoom the person chose. T
 
 ## 5. The finish: what you added
 
-- **Every page, zoomed out,** with the person's own marks highlighted. A tap on one opens it to fix; nothing is filled from the overview itself.
+- **Every page, zoomed out** (the grid of pages), with the person's own marks highlighted. A tap on one opens it to fix; nothing is filled from the overview itself.
 - **Nothing is flagged as missing.** Not the employer's section, not an unticked "check the following if they apply" box: the page alone cannot say which blanks are this person's, so the finish never marks one empty.
 - **Copy:** "Here's everything you added."
 - **Ending:** Download and Share, using the file MOBI-07 already pre-generates. Share leads on a phone (UX§8).
@@ -189,10 +219,10 @@ Any other tap opens what it touches where it is, at the zoom the person chose. T
 
 **Must, and testable:**
 - **Focus order is DOM order:** the bar, then the page, then the person's marks in reading order.
-- **One polite live region** announces placements, undo and the finish (for example "Tick added, page 1"). Numbers inside RTL copy are isolated (`<bdi>`, UX§9).
+- **One polite live region** announces hops by kind and page (for example "Text, page 1"), placements, undo and the finish. Numbers inside RTL copy are isolated (`<bdi>`, UX§9).
 - **Every mark has an accessible name** from its kind and page ("Tick, page 1"); a text mark also reads its text. Never blank, never an id.
 - **Contrast.** Every mark state (placed, selected, being typed in) and the finish's highlight reach 3:1 against the page (WCAG 1.4.11).
-  - **Blocked by QUAL-04:** `--color-border-strong` (`#6fbeb2`) is 2.07:1, so no mark, highlight or piece outline may use it as its only boundary.
+  - **Blocked by QUAL-04:** `--color-border-strong` (`#6fbeb2`) is 2.07:1, so no mark, highlight or selection outline may use it as its only boundary.
 
 **WCAG 2.2 AA mapping:**
 
@@ -269,7 +299,7 @@ Builds on UX§9.
 12. Can anything fully cover the focused field?
 13. Is reduced motion respected?
 14. Are accessible names and roles verified?
-15. Does it behave the same on a scan and a typed PDF, and does nothing claim what the form needs (a gap, a count, a next field)?
+15. Does it behave the same on a scan and a typed PDF, and does nothing claim what the form needs (a gap, a count, a required field)?
 
 **Done means:**
 - all 15 answered in the commit or ticket;
@@ -284,28 +314,33 @@ Builds on UX§9.
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 0 | The direction (SNG-02): how a page about 2.5 times wider than the phone is read and filled. A, piece by piece: the app cuts each page into readable pieces where the white space is, and ∨ moves through them in reading order ("3 of 8" counts pieces, not fields). B, whole page and close-up: a tap zooms into an area, Done zooms back out. C, never zoom: a magnifier to aim, a large box above the keyboard to type | Pending. Recommended: A, with B's tap on the whole page to jump into a piece |
+| 0 | The mental model for reading and filling a page about 2.5 times wider than the phone | **Decided (owner, 2026-09-25):** hop between elements, zoomed in; detection suggests where to go, and false positives and false negatives are first-class |
 | 1 | Double-tap on the page | Leave it unbound: double-tap already locks a tool, and no competitor zooms on it |
 | 2 | Long-press | Leave it unbound until a real need is named |
 | 3 | What a tap on the page places | The chosen mark, Text by default |
 | 4 | "Only a selected element moves" | Touch only; the mouse keeps select-and-drag |
-| 5 | Previous at the first piece | Applies only if the direction has pieces (A) |
-| 6 | Checkboxes, dates and signatures in the walk; Next never skips a filled stop | Retired with the field walk |
+| 5 | Previous (∧) with nothing selected | Decided: disabled (§3) |
+| 6 | Checkboxes, dates and signatures in the hop order | Decided: they are hops like any element; a signature hop offers "Sign" in the bar without opening the sheet on arrival |
 | 7 | Dates | Typed into the printed cells, not the iOS date wheel |
 | 8 | Undo feedback (row D) | A chip for a delete; a named Undo for moves, resizes and typing |
-| 9 | The non-drag path for move and resize on touch (WCAG 2.5.7) | A move/resize stepper in the selected element's bar controls; decide with the direction |
+| 9 | The non-drag path for move and resize on touch (WCAG 2.5.7) | A move/resize stepper in the selected element's bar controls (open) |
 | 10 | Handle hit areas | 44px, shrinking toward a 24px floor, never overlapping |
-| 11 | When the app may move the camera | Only on entering or leaving the finish, a step to the next piece if the direction has pieces, and a tap that writes below the readable zoom (§4) |
-| 12 | Dismissing a false detection | Retired: no detection marks to dismiss |
-| 13 | What each bar context holds at 375px (§2.6) | Decide with the direction, and measure in SNG-03 |
-| 14 | Saving the current piece in the draft, if the direction has pieces | Yes, re-selected but not focused after a reload |
+| 11 | When the app may move the camera | On a hop, on entering or leaving the grid of pages, and on a tap that writes below the readable zoom (§4) |
+| 12 | Dismissing a false positive | Decided: "Remove" in the bar, at an empty detected element (§1) |
+| 13 | What each bar context holds at 375px (§2.6) | The four contexts are in §2.6; exact fit at each breakpoint is measured in SNG-03 |
+| 14 | Saving the current hop in the draft | Decided: yes, re-selected but not focused after a reload |
 | 15 | `interactive-widget=resizes-content` on the editor page | Yes. Android honours it and iOS ignores it (WebKit bug 259770) |
 | 16 | Counts and field names | No counts or field names anywhere |
-| 17 | The precision floor for a mark, a stop or a highlight | Retired: no whole-page detection in the UI |
+| 17 | The precision floor for a mark, a stop or a highlight | Superseded: no floor; every detected element becomes a hop, and a false positive is handled by being cheap to pass, not filtered out (§1) |
 | 18 | The keyboard when writing text | The text keyboard always |
-| 19 | A tap that writes below the readable zoom | The camera reveals the new box, like a walk step (§4) |
+| 19 | A tap that writes below the readable zoom | The camera reveals the new element, like a hop (§4) |
 | 20 | Fillable PDFs: fill their own fields silently underneath, or treat them as images too | Open |
 | 21 | Whether a tick or a cross stays armed after a tap by default, instead of today's one-shot with a double-tap to lock | Open |
+| 22 | Whether hops are suppressed on a form where detection floods the page with false stops (HMRC SA100: 89 of 93 candidates wrong, `docs/sign-next-gen.md` §5.6) | Open |
+| 23 | Handles only after a direct tap | Decided (owner, 2026-09-25): a hop never shows handles; only selecting an element with a direct tap does (§2.1-§2.3) |
+| 24 | Accidental layout switch on a pinch | Decided (owner, 2026-09-25): a pinch only zooms; the grid of pages needs a pinch past a stop, committed on release, with hysteresis, or the bar's "Pages" control (§4) |
+| 25 | How much of the screen is chrome | Decided (owner, 2026-09-25): one row, no second row; the document takes the screen (§2.6) |
+| 26 | What the bar shows | Decided (owner, 2026-09-25): it changes with the moment, one of four contexts (§2.6) |
 
 ## 13. Cases the rules must also cover
 
@@ -314,15 +349,15 @@ Builds on UX§9.
 | **Android Chrome** | The same model and rules. Its `visualViewport` follows the spec, and it supports `interactive-widget=resizes-content`, which keeps a fixed bar above the keyboard by resizing the layout viewport (proposed for the editor page, open #15). The gate gets an Android emulator smoke run beside the iOS one (SNG-07). |
 | **Landscape** | Supported. With the keyboard up, the bars compact to one row, the box being typed in still lands in the visible band, and nothing is forced to rotate. |
 | **iPad Split View and Slide Over** | Layout follows width and input follows the pointer. Both change live, so state, selection and an open text session survive a resize. |
-| **An external keyboard** (iPad, or a phone with one) | There is no soft keyboard, so `visualViewport` does not shrink. Tab and Shift+Tab move between the person's own marks, and every §2.4 shortcut works. |
-| **Drafts and reload** | Elements persist as today. The current piece, if the direction has pieces, is saved in the draft (proposed, open #14). Nothing else is auto-focused after a reload: iOS allows no keyboard without a tap, so one tap resumes typing. |
+| **An external keyboard** (iPad, or a phone with one) | There is no soft keyboard, so `visualViewport` does not shrink. Tab and Shift+Tab hop between elements, and every §2.4 shortcut works. |
+| **Drafts and reload** | Elements persist as today. The current hop is saved in the draft (§12 #14). Nothing else is auto-focused after a reload: iOS allows no keyboard without a tap, so one tap resumes typing. |
 | **A pinch during a text session** | Allowed. Editing is a state, not a gesture, so the session and the keyboard stay open, zoom changes around the fingers, and the camera does not move afterwards (§4). |
 | **The signature sheet's typed name** | Its input follows every keyboard rule here: at least 16px, focused synchronously on the tap that opens "Type", and the sheet stays above the keyboard. |
 | **A stray tap** | It places the chosen mark; an empty text box disappears when you tap away, and any other mark is one undo away. |
-| **Yes/no rows (medical forms)** | A tick locked by a double-tap (as today) makes a column of ticks one tap each (open #21); nothing guesses which box is yours. |
-| **"Check the following if they apply"** | Nothing flags an unticked box. |
-| **A section for someone else (the employer)** | Nothing flags it; the finish only shows what you added. |
-| **"Delete whichever does not apply"** | The strike pen runs a line through the word under the finger, centred on the text by the local help (SNG-09). |
+| **Yes/no rows (medical forms)** | Each box is a hop; a tick locked by a double-tap (as today) makes a column of ticks one tap each (open #21). Nothing guesses which box is yours, and passing one with ∨ costs nothing. |
+| **"Check the following if they apply"** | The box is a hop the person can tick or pass with ∨. Nothing flags it unticked. |
+| **A section for someone else (the employer)** | Its fields are hops the person passes with ∨; nothing flags them, and the finish only shows what you added. |
+| **"Delete whichever does not apply"** | The strike pen runs a line through the word under the finger, centred on the text by the local help (SNG-09); the struck word becomes a mark like any other, and the words not struck are hops the person passes with ∨. |
 
 ## Sources
 

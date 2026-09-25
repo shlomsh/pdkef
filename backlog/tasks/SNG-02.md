@@ -45,6 +45,13 @@ Each sketch covers the same moments:
   - C's question cards wait for the model step (SNG-12).
   - Shlomi's note: the sketches' Employee details form becomes the app's own example form (SNG-10).
 - **2026-09-25, final:** Shlomi set the premise: "impeccable ux based on raster with user guidance assuming low precision and recall". Even perfect detection cannot tell which blanks are the person's (an employer's section, an optional box), so walks, counts and "you missed" reviews are out, and marks (ticks, crosses, circles, strike-outs) are first-class. Row F and the detection-based paths are superseded; new low-fidelity directions follow.
+- **2026-09-25, the direction:** Shlomi picked the mental model and set the interaction rules that follow from it.
+  1. The mental model: "allow user to move between elements zooming on those detected, with false positives and false negatives as first class citizens." Hopping between elements, zoomed in, with detection as a suggestion rather than a claim, is the direction that replaces the three-way A/B/C open question.
+  2. Move and resize become deliberate: "hiding the move and resize handles until a field has been selected with a direct click. resize and move should be more intentional." A hop no longer shows handles; only a direct tap does.
+  3. Pinch stays zoom, always: "switching to multi column and back should be harder to do by mistake, it will allow better zoom by pinching which is the best mental model for mobile users." Read as: pinching out past the whole page switches to a grid of pages, and that switch must be deliberate, so pinch always means zoom.
+  4. The document gets the room: "the document should take most of the real estate, we should be extra conscious to unneeded paddings, margins, redundant multilines etc."
+  5. The bar follows the moment: "right actions should appear in right context."
+  - Full model and its consequences: `docs/sign-next-gen.md` §5 item 6, `docs/sign-next-gen-guidelines.md` §1 and §12.
 
 ## Acceptance
 
