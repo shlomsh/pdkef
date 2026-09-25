@@ -5,7 +5,7 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
 import { detectPageRegions } from './formGrid.js';
 import { detectCellCandidates } from './formCells.js';
 import { detectWidgetRegions } from './formWidgets.js';
-import { reconcileFields, withWidgetFields } from './fieldRegions.js';
+import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 
 /**
  * ARCH-24 step A: the one entry point onto field detection. `useFormFieldRegions.ts`
@@ -25,13 +25,12 @@ import { reconcileFields, withWidgetFields } from './fieldRegions.js';
  * drift from what `detectFormFields` itself uses.
  *
  * Two sources today, `ink` and `widgets`, each a thin async wrapper around
- * functions that already existed and are unchanged by this step. So is the
- * order they are reconciled in: `reconcileFields` then `withWidgetFields`,
- * exactly as `useFormFieldRegions.ts` called them before this file existed.
- * Turning that order into declared data, so a third source can be added
- * without editing this function, is ARCH-24 step B - the sources are already
- * behind the `FieldSource` contract for it, but precedence is still
- * hard-coded to these two names below.
+ * functions that already existed and are unchanged by this step. Precedence
+ * between what they find is declared data, not code here: `fieldRegions.js`'s
+ * `reconcile` is driven by its own exported `SOURCE_ORDER` and
+ * `KIND_PRECEDENCE` (ARCH-24 step B), so this function no longer knows the
+ * two source names by name, or how many there are - it hands every source's
+ * raw regions to `reconcile` keyed by name and gets back one set of fields.
  *
  * Never touches pdf.js or the DOM. `document` is an already-loaded
  * `@cantoo/pdf-lib` document, and `pageDirections` is not part of the return
@@ -122,11 +121,11 @@ const widgetsSource: FieldSource = {
 };
 
 /**
- * `ink` first, `widgets` second - the order the reconciliation below already
- * assumes. A caller may still pass its own `sources` (the corpus's ARCH-24
- * step C stub source does), but until step B turns precedence into data,
- * `detectFormFields` finds `ink` and `widgets` in whatever list it gets by
- * name and reconciles only those two, in this order.
+ * The two sources this module ships. A caller may pass its own `sources`
+ * list (a future OCR or metadata source, or the corpus's ARCH-24 step C stub)
+ * - `detectFormFields` runs whatever it is given and hands every source's
+ * regions to `reconcile` by name; a source not named in `fieldRegions.js`'s
+ * `SOURCE_ORDER` simply is not folded in; see step C.
  */
 export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource];
 
@@ -165,12 +164,6 @@ export async function detectFormFields(
   document: PDFDocument,
   { textRuns, sources = DEFAULT_SOURCES }: { textRuns: PageTextRun[][]; sources?: FieldSource[] },
 ): Promise<{ combs: CombRegion[]; checkboxes: FieldRegion[]; cells: FieldRegion[] }> {
-  const ink = sources.find((source) => source.name === 'ink');
-  const widgets = sources.find((source) => source.name === 'widgets');
-  if (!ink || !widgets) {
-    throw new Error('detectFormFields needs an "ink" and a "widgets" source by name - reconciliation is not yet data-driven (ARCH-24 step B).');
-  }
-
   const found: { combs: CombRegion[]; checkboxes: FieldRegion[]; cells: FieldRegion[] } = {
     combs: [],
     checkboxes: [],
@@ -181,26 +174,19 @@ export async function detectFormFields(
     const geometry = pageGeometry(page);
     const context: DetectionContext = { textRuns: textRuns[pageIndex], geometry, pageIndex };
 
-    // The ink walk first, then whatever the page's own `/Tx` widgets add: a
-    // live form draws its boxes inside each widget's appearance stream,
-    // which the ink source does not walk and should not, so on a fillable
-    // form the ink pass finds only what is printed under the widgets.
-    const [inkRegions, widgetRegions] = await Promise.all([
-      ink.detect(page, context),
-      widgets.detect(page, context),
-    ]);
-    const reconciled = reconcileFields({
-      combs: inkRegions.combs,
-      checkboxes: inkRegions.checkboxes,
-      cells: inkRegions.cells,
+    // Every source runs against the same page and context - order here does
+    // not matter, since `reconcile` below is what decides precedence, from
+    // `SOURCE_ORDER` and `KIND_PRECEDENCE` (fieldRegions.js), not from the
+    // order these promises settle in.
+    const results = await Promise.all(sources.map((source) => source.detect(page, context)));
+    const sourceResults: Record<string, SourceRegions> = {};
+    sources.forEach((source, index) => {
+      sourceResults[source.name] = results[index];
     });
-    const { combs, cells } = withWidgetFields(
-      { ...reconciled, checkboxes: inkRegions.checkboxes },
-      widgetRegions,
-    );
+    const { combs, checkboxes, cells } = reconcile(sourceResults, { sourceOrder: SOURCE_ORDER, kindPrecedence: KIND_PRECEDENCE });
     found.combs.push(...combs);
     found.cells.push(...cells);
-    found.checkboxes.push(...inkRegions.checkboxes);
+    found.checkboxes.push(...checkboxes);
   }
   return found;
 }

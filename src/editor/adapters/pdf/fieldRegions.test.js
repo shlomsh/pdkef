@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reconcileFields } from './fieldRegions.js';
+import { reconcile, KIND_PRECEDENCE, SOURCE_ORDER } from './fieldRegions.js';
 
 // Page percentages. Form 101's section ב row: the identity comb's teeth hang
 // off the bottom rule of a 23pt cell that is as tall as the name cell beside it.
@@ -7,9 +7,18 @@ const teeth = { pageIndex: 0, left: 73.6, top: 27.28, width: 17.15, height: 0.84
 const identityCell = { pageIndex: 0, left: 73.6, top: 25.32, width: 17.15, height: 2.77, kind: 'text' };
 const nameCell = { pageIndex: 0, left: 52.7, top: 25.32, width: 20.9, height: 2.77, kind: 'text' };
 
-describe('reconcileFields', () => {
+/**
+ * `reconcile` folded a single source ('ink') against an empty pool - what
+ * `reconcileFields` used to do alone, before ARCH-24 step B turned
+ * precedence into data. See `fieldRegions.js`'s module doc.
+ */
+function reconcileOneSource({ combs, checkboxes, cells }) {
+  return reconcile({ ink: { combs, checkboxes, cells } });
+}
+
+describe('reconcile, one source', () => {
   it('gives an open comb the cell drawn around it as its writable strip, and drops the cell', () => {
-    const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [identityCell, nameCell] });
+    const { combs, cells } = reconcileOneSource({ combs: [teeth], checkboxes: [], cells: [identityCell, nameCell] });
     expect(combs[0].writable).toEqual({ left: 73.6, top: 25.32, width: 17.15, height: 2.77 });
     expect(cells).toEqual([nameCell]);
   });
@@ -23,13 +32,13 @@ describe('reconcileFields', () => {
       height: 1.69,
       enclosure: { left: 73.6, top: 25.32, width: 17.15, height: 2.77 },
     };
-    const { combs } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [labelled] });
+    const { combs } = reconcileOneSource({ combs: [teeth], checkboxes: [], cells: [labelled] });
     expect(combs[0].writable).toEqual({ left: 73.6, top: 26.4, width: 17.15, height: 1.69 });
   });
 
   it('takes the tightest enclosing cell, not a section frame that also contains the run', () => {
     const frame = { pageIndex: 0, left: 4.8, top: 25.05, width: 85.9, height: 13.9, kind: 'text' };
-    const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [frame, identityCell] });
+    const { combs, cells } = reconcileOneSource({ combs: [teeth], checkboxes: [], cells: [frame, identityCell] });
     expect(combs[0].writable.height).toBeCloseTo(2.77);
     expect(cells).toEqual([]);
   });
@@ -47,7 +56,7 @@ describe('reconcileFields', () => {
       height: 1.69,
       enclosure: { left: 73.6, top: 25.32, width: 17.15, height: 2.77 },
     };
-    const { combs, cells } = reconcileFields({ combs: [inBand], checkboxes: [], cells: [labelled] });
+    const { combs, cells } = reconcileOneSource({ combs: [inBand], checkboxes: [], cells: [labelled] });
     expect(combs[0].writable).toEqual({ left: 73.6, top: 26.4, width: 17.15, height: 1.69 });
     expect(cells).toEqual([]);
   });
@@ -67,26 +76,26 @@ describe('reconcileFields', () => {
       kind: 'text',
       enclosure: { left: 4.8, top: 25.05, width: 85.9, height: 13.9 },
     };
-    const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [frame, identityCell] });
+    const { combs, cells } = reconcileOneSource({ combs: [teeth], checkboxes: [], cells: [frame, identityCell] });
     expect(combs[0].writable).toEqual({ left: 73.6, top: 25.32, width: 17.15, height: 2.77 });
     expect(cells).toEqual([]);
   });
 
   it('leaves a boxed comb alone - its boxes are the field - but still drops the cell around it', () => {
     const boxed = { ...teeth, boxed: true };
-    const { combs, cells } = reconcileFields({ combs: [boxed], checkboxes: [], cells: [identityCell] });
+    const { combs, cells } = reconcileOneSource({ combs: [boxed], checkboxes: [], cells: [identityCell] });
     expect(combs[0]).toBe(boxed);
     expect(cells).toEqual([]);
   });
 
   it('drops a cell a checkbox sits in', () => {
     const box = { pageIndex: 0, left: 54, top: 26, width: 1.5, height: 1.5 };
-    const { cells } = reconcileFields({ combs: [], checkboxes: [box], cells: [nameCell] });
+    const { cells } = reconcileOneSource({ combs: [], checkboxes: [box], cells: [nameCell] });
     expect(cells).toEqual([]);
   });
 
   it('drops a cell whose printed box a checkbox sits in, above the strip it publishes', () => {
-    // Health's yes/no rows, live: a ruled box with "\u05db\u05df" and "\u05dc\u05d0" printed on its top line
+    // Health's yes/no rows, live: a ruled box with "כן" and "לא" printed on its top line
     // beside the two radios, and blank space under them. The cell publishes that blank band, so
     // only a sixth of each radio falls inside its bounds - but the box the radios are in is the
     // box this cell was cut from, and something else has already reported them. Published
@@ -96,7 +105,7 @@ describe('reconcileFields', () => {
       pageIndex: 0, left: 50.9, top: 42.9, width: 8.9, height: 1.4, kind: 'text',
       enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
     };
-    const { cells } = reconcileFields({ combs: [], checkboxes: [radio], cells: [yesNo] });
+    const { cells } = reconcileOneSource({ combs: [], checkboxes: [radio], cells: [yesNo] });
     expect(cells).toEqual([]);
   });
 
@@ -106,14 +115,61 @@ describe('reconcileFields', () => {
       pageIndex: 0, left: 50.9, top: 42.9, width: 8.9, height: 1.4, kind: 'text',
       enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
     };
-    const { cells } = reconcileFields({ combs: [], checkboxes: [outside], cells: [yesNo] });
+    const { cells } = reconcileOneSource({ combs: [], checkboxes: [outside], cells: [yesNo] });
     expect(cells).toEqual([yesNo]);
   });
 
   it('keeps a comb and a cell that merely touch', () => {
     const below = { ...nameCell, left: 73.6, top: 28.12 };
-    const { combs, cells } = reconcileFields({ combs: [teeth], checkboxes: [], cells: [below] });
+    const { combs, cells } = reconcileOneSource({ combs: [teeth], checkboxes: [], cells: [below] });
     expect(combs[0].writable).toBeUndefined();
     expect(cells).toEqual([below]);
+  });
+});
+
+describe('reconcile, precedence pinned by its own data', () => {
+  // A stand-in that behaves like formCells.js's own "closed box" candidate:
+  // the same rectangle a comb also claims, phrased as a plain cell so the
+  // comb-vs-cell outcome is legible.
+  const disputedComb = { pageIndex: 0, left: 10, top: 10, width: 20, height: 4, cells: 3 };
+  const disputedCell = { pageIndex: 0, left: 10, top: 10, width: 20, height: 4, kind: 'text' };
+
+  it('a comb claims a cell on the same rectangle by default (KIND_PRECEDENCE)', () => {
+    const { combs, cells } = reconcile({ ink: { combs: [disputedComb], checkboxes: [], cells: [disputedCell] } });
+    expect(combs).toHaveLength(1);
+    expect(cells).toEqual([]);
+  });
+
+  it('sabotage: reversing KIND_PRECEDENCE makes the cell claim the comb instead', () => {
+    const reversed = [...KIND_PRECEDENCE].reverse();
+    const { combs, cells } = reconcile(
+      { ink: { combs: [disputedComb], checkboxes: [], cells: [disputedCell] } },
+      { kindPrecedence: reversed },
+    );
+    expect(combs).toEqual([]);
+    expect(cells).toHaveLength(1);
+  });
+
+  it('between two sources reporting the same cell, the earlier SOURCE_ORDER entry wins by default', () => {
+    const inkCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'ink' };
+    const widgetCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'widgets' };
+    const { cells } = reconcile({
+      ink: { combs: [], checkboxes: [], cells: [inkCell] },
+      widgets: { combs: [], checkboxes: [], cells: [widgetCell] },
+    });
+    expect(cells).toEqual([inkCell]);
+  });
+
+  it('sabotage: reversing SOURCE_ORDER flips which of two equal-kind regions wins', () => {
+    const inkCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'ink' };
+    const widgetCell = { pageIndex: 0, left: 30, top: 30, width: 10, height: 4, kind: 'text', from: 'widgets' };
+    const { cells } = reconcile(
+      {
+        ink: { combs: [], checkboxes: [], cells: [inkCell] },
+        widgets: { combs: [], checkboxes: [], cells: [widgetCell] },
+      },
+      { sourceOrder: [...SOURCE_ORDER].reverse() },
+    );
+    expect(cells).toEqual([widgetCell]);
   });
 });

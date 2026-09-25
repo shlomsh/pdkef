@@ -119,7 +119,7 @@ guarded.
 
 - [x] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
 - [x] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
-- [ ] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
+- [x] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
 - [x] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
 - [ ] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
       in the corpus, not asserted in prose.
@@ -184,3 +184,45 @@ now behind that one entry point, it stops building as a chunk of its own (confir
 output), so `LAZY_ONLY` drops to one row. Sabotage-checked twice: a renamed `pageGeometry` export fails
 the wiring test with a clear diff; a static import of the entry point from `PdfWorkspace.tsx` fails
 `test:lazy-modules` (missing chunk, plus `pdf-lib` going eager on `/sign/`). Both restored, green again.
+
+## Step B landed (2026-09-25)
+
+`reconcileFields` and `withWidgetFields` (`fieldRegions.js`) hard-coded three things, not two: (1)
+between two regions of the same kind, `ink` beat `widgets`; (2) a comb claimed (and, if not boxed,
+absorbed the bounds of) any cell it overlapped, whichever source found either one, but never claimed
+a checkbox in either direction; (3) inside `ink`'s own pass alone, a checkbox claimed any cell it
+overlapped, and an open comb absorbed its tightest enclosing cell's bounds as `writable` before the
+cross-source step ever ran. Rule 3 turned out to be rule 2 applied within one source - the same
+`unclaimed(cell, [...combs, ...checkboxes])` shape reused - so it did not need its own code path, only
+the `writable` bounds-copy (pure geometry, not precedence) stayed a fixed step.
+
+One `reconcile(sourceResults, { sourceOrder, kindPrecedence })` (`fieldRegions.js`) now expresses
+rules 1 and 2 as data: `SOURCE_ORDER = ['ink', 'widgets']` and `KIND_PRECEDENCE = ['combs',
+'checkboxes', 'cells']`. `KIND_PRECEDENCE`'s last entry is the only reclaimable kind (accepted only
+when nothing already accepted overlaps it, and dropped the moment an earlier kind claims the same
+ground); every other kind is "protected" - it blocks a later region of any protected kind and is
+never itself removed, which is what keeps a comb from ever reclaiming a checkbox, matching today's
+code exactly. `reconcile` folds each source's own regions (each comb first absorbing `writable` from
+that source's own cells, unchanged geometry) into what earlier sources contributed, in `sourceOrder`.
+`detectFormFields.ts` no longer knows the two source names: it runs every source in `sources`, keys
+their raw regions by name, and hands the whole map to `reconcile` - dropping the `if (!ink ||
+!widgets) throw` guard step A still had. `claimExtent`/`overlap` geometry is untouched.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed"; `npx
+vitest run src/editor/adapters/pdf src/tools/sign` is 883 tests green, including the existing
+`fieldRegions.test.js`/`formWidgets.test.js` precedence assertions, now calling `reconcile` instead of
+`reconcileFields`/`withWidgetFields` with the same expectations; `npm run typecheck` is clean (0
+errors); `npm run check:fast` is green. `npm run test:detection-purity` does not exist on this branch
+yet, so it was skipped per the brief. Two new pinning tests in `fieldRegions.test.js` assert each rule
+by its own data: reversing `KIND_PRECEDENCE` flips a comb-vs-cell outcome, and reversing
+`SOURCE_ORDER` flips which of two equal-kind regions from different sources wins.
+
+Sabotage-checked once, live in the source file rather than only in a test: swapped `SOURCE_ORDER` to
+`['widgets', 'ink']`, which failed 17 of 883 unit tests (`fieldRegions.test.js`'s two new pinning
+tests plus `formWidgets.test.js`'s practice-form and `withWidgetFields`-derived assertions) and turned
+`node scripts/score-form.mjs --all` red - "0 changed, 7 unchanged, 3 regressed" (uscis-i9-2025-01-20's
+matched count moved from 51 to 52, with a per-kind precision regression). Restored, both green again;
+`git status` was clean except the four intended files.
+
+Step B does not touch `useFormFieldRegions.ts`, the corpus, or `scoring/score.js` - all three already
+call `detectFormFields` and see no change in its signature or return shape.

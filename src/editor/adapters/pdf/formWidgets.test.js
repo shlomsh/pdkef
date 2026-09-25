@@ -11,7 +11,7 @@ import {
   markableButtonField,
   widgetRegions,
 } from './formWidgets.js';
-import { reconcileFields, withWidgetFields } from './fieldRegions.js';
+import { reconcile } from './fieldRegions.js';
 import { createPageGeometry } from '../../geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 
@@ -41,11 +41,11 @@ const SAMPLE = path.resolve(
 /** What `useFormFieldRegions` does per page, minus the pdf.js text pass. */
 function detectPage(page, pageIndex = 0) {
   const ink = detectPageRegions(page, pageIndex);
-  const reconciled = reconcileFields({ combs: ink.combs, checkboxes: ink.checkboxes, cells: [] });
-  return {
-    ...withWidgetFields({ ...reconciled, checkboxes: ink.checkboxes }, detectWidgetRegions(page, pageIndex)),
-    checkboxes: ink.checkboxes,
-  };
+  const widgets = detectWidgetRegions(page, pageIndex);
+  return reconcile({
+    ink: { combs: ink.combs, checkboxes: ink.checkboxes, cells: [] },
+    widgets: { combs: widgets.combs, checkboxes: [], cells: widgets.cells },
+  });
 }
 
 /**
@@ -329,43 +329,49 @@ describe('the widget path under rotation and a shifted crop box', () => {
   });
 });
 
-describe('withWidgetFields', () => {
+describe('reconcile, ink and widgets together', () => {
   const box = (left, top, width = 10, height = 4) => ({ pageIndex: 0, left, top, width, height });
 
+  /** `ink` and `widgets` each `{combs, checkboxes?, cells}` - checkboxes default to []. */
+  const foldTwo = (ink, widgets) => reconcile({
+    ink: { checkboxes: [], ...ink },
+    widgets: { checkboxes: [], ...widgets },
+  });
+
   it('keeps the ink answer and drops the widget that overlaps it', () => {
-    const ink = { combs: [box(10, 10)], checkboxes: [], cells: [] };
+    const ink = { combs: [box(10, 10)], cells: [] };
     const widgets = { combs: [{ ...box(10.2, 10.1), cells: 9 }], cells: [] };
-    const { combs } = withWidgetFields(ink, widgets);
+    const { combs } = foldTwo(ink, widgets);
     expect(combs).toEqual(ink.combs);
   });
 
   it('adds the widgets nothing else found', () => {
-    const ink = { combs: [], checkboxes: [], cells: [box(10, 10)] };
+    const ink = { combs: [], cells: [box(10, 10)] };
     const widgets = { combs: [], cells: [box(10, 40), box(10, 60)] };
-    expect(withWidgetFields(ink, widgets).cells).toHaveLength(3);
+    expect(foldTwo(ink, widgets).cells).toHaveLength(3);
   });
 
   it('does not offer a text cell over a checkbox already found', () => {
     const ink = { combs: [], checkboxes: [box(10, 10, 3, 3)], cells: [] };
     const widgets = { combs: [], cells: [box(10, 10, 3, 3)] };
-    expect(withWidgetFields(ink, widgets).cells).toEqual([]);
+    expect(foldTwo(ink, widgets).cells).toEqual([]);
   });
 
   it('lets an added comb claim the cell the ink pass called plain text', () => {
     // The weakest thing either side reports is a cell, so a widget saying
     // "nine boxes" beats an ink pass that only found "a closed box here".
     // Leaving both put a text box and a nine-cell comb on one rectangle.
-    const ink = { combs: [], checkboxes: [], cells: [{ ...box(10, 10), kind: 'text' }] };
+    const ink = { combs: [], cells: [{ ...box(10, 10), kind: 'text' }] };
     const widgets = { combs: [{ ...box(10, 10), cells: 9, boxed: true }], cells: [] };
-    const { combs, cells } = withWidgetFields(ink, widgets);
+    const { combs, cells } = foldTwo(ink, widgets);
     expect(combs).toHaveLength(1);
     expect(cells).toEqual([]);
   });
 
   it('leaves an ink cell alone when the added comb is somewhere else', () => {
-    const ink = { combs: [], checkboxes: [], cells: [{ ...box(10, 10), kind: 'text' }] };
+    const ink = { combs: [], cells: [{ ...box(10, 10), kind: 'text' }] };
     const widgets = { combs: [{ ...box(10, 40), cells: 9, boxed: true }], cells: [] };
-    const { combs, cells } = withWidgetFields(ink, widgets);
+    const { combs, cells } = foldTwo(ink, widgets);
     expect(combs).toHaveLength(1);
     expect(cells).toEqual(ink.cells);
   });
@@ -381,22 +387,22 @@ describe('withWidgetFields', () => {
       kind: 'text',
       enclosure: { left: 50.9, top: 42.3, width: 8.9, height: 2.0 },
     };
-    const ink = { combs: [], checkboxes: [], cells: [strip] };
+    const ink = { combs: [], cells: [strip] };
     const widgets = { combs: [], cells: [box(51.2, 42.35, 3, 0.5)] };
-    expect(withWidgetFields(ink, widgets).cells).toEqual([strip]);
+    expect(foldTwo(ink, widgets).cells).toEqual([strip]);
   });
 
   it('does not offer a cell over a comb it just added either', () => {
-    const ink = { combs: [], checkboxes: [], cells: [] };
+    const ink = { combs: [], cells: [] };
     const widgets = { combs: [{ ...box(10, 10), cells: 9 }], cells: [box(10, 10)] };
-    const { combs, cells } = withWidgetFields(ink, widgets);
+    const { combs, cells } = foldTwo(ink, widgets);
     expect(combs).toHaveLength(1);
     expect(cells).toEqual([]);
   });
 
   it('is a no-op on a flat form, which has no widgets at all', () => {
     const ink = { combs: [box(10, 10)], checkboxes: [box(5, 5)], cells: [box(10, 40)] };
-    const { combs, cells } = withWidgetFields(ink, { combs: [], cells: [] });
-    expect({ combs, cells }).toEqual({ combs: ink.combs, cells: ink.cells });
+    const { combs, checkboxes, cells } = foldTwo(ink, { combs: [], cells: [] });
+    expect({ combs, checkboxes, cells }).toEqual({ combs: ink.combs, checkboxes: ink.checkboxes, cells: ink.cells });
   });
 });
