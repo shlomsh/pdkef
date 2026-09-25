@@ -84,10 +84,9 @@ while `vitest related <changed files>` selected 2, 13 and 1. On CI, per-job setu
 
 ## Decision
 
-- **Nx does not earn its place, but removing it is not the win.** It adds nothing over a small map,
-  and costs `nx` + `@nx/js` in every job's install and a few seconds of graph per job. Its removal
-  is DEBT-07's second branch; do it as part of ARCH-28, which rewrites the oracle anyway, not as its
-  own project.
+- **Nx stays.** It adds nothing over a small map on this window's pushes, and it costs `nx` +
+  `@nx/js` in every job's install and a few seconds of graph per job, but removing it is not the win
+  and Shlomi decided on 2026-09-25 to keep it. Narrowing work builds on it.
 - **The win is file-level impact instead of project-level.** 46 of 53 wide runs in the ARCH-22
   window were core reach, and no project graph can narrow those. ARCH-28 takes unit tests to
   `vitest related`, with the caveats measured here (`.astro`, moved files, tests that read fixtures
