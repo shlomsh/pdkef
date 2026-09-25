@@ -153,7 +153,9 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements: TElement[];
-  extra?: { actionHistory?: ActionHistoryEntry<TElement>[] };
+  /** carriedFont/carriedFontSize are Sign-only (SIGN-32); a Redact record
+   * simply never carries either, and both come back undefined for it. */
+  extra?: { actionHistory?: ActionHistoryEntry<TElement>[]; carriedFont?: string; carriedFontSize?: number };
 }
 
 function isNonEmptyArrayBuffer(value: unknown): value is ArrayBuffer {
@@ -192,12 +194,23 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
   if (actionHistory.length !== rawHistory.length) {
     console.error(`draftValidation: dropped ${rawHistory.length - actionHistory.length} invalid history command(s)`);
   }
+  // SIGN-32: Sign-only, optional - a Redact record or a draft written before
+  // this existed simply has neither, and both come back undefined rather than
+  // failing the whole restore.
+  const carriedFont: string | undefined = isRecord(record.extra) && hasString(record.extra, 'carriedFont')
+    && (record.extra.carriedFont as string)
+    ? (record.extra.carriedFont as string)
+    : undefined;
+  const carriedFontSize: number | undefined = isRecord(record.extra) && hasNumber(record.extra, 'carriedFontSize')
+    && (record.extra.carriedFontSize as number) > 0
+    ? (record.extra.carriedFontSize as number)
+    : undefined;
 
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory, carriedFont, carriedFontSize } : undefined,
   };
 }

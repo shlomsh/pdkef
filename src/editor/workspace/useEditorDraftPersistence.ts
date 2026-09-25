@@ -9,7 +9,7 @@ interface DraftRecord {
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements?: unknown[];
-  extra?: { actionHistory?: unknown[] };
+  extra?: { actionHistory?: unknown[]; carriedFont?: string; carriedFontSize?: number };
 }
 
 export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElement> {
@@ -18,6 +18,10 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   fileBytes: ArrayBuffer | null;
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
+  /** Sign's document-carried font family/size (SIGN-32); Redact never
+   * supplies either, and both stay entirely out of its own draft record. */
+  carriedFont?: string | null;
+  carriedFontSize?: number | null;
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
   isDirty: boolean;
@@ -34,6 +38,9 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
 export interface EditorDraftInitialState<TElement extends HistoryElement> {
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
+  /** Sign only (SIGN-32); absent for Redact and for a fresh pick. */
+  carriedFont?: string;
+  carriedFontSize?: number;
 }
 
 /**
@@ -47,6 +54,8 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   fileBytes,
   elements,
   actionHistory,
+  carriedFont,
+  carriedFontSize,
   status,
   isDirty,
   loadStartedRef,
@@ -60,9 +69,14 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
     new File([record.fileBytes], record.fileName, { type: record.fileType || 'application/pdf' });
 
   // `extra` participates in the autosave revision. Keep its identity tied to
-  // actual history changes, otherwise a save-state rerender would look like a
-  // new edit and schedule another write forever.
-  const extra = useMemo(() => ({ actionHistory }), [actionHistory]);
+  // actual history/carried-value changes, otherwise a save-state rerender
+  // would look like a new edit and schedule another write forever. Redact
+  // never passes carriedFont/carriedFontSize, so both stay undefined and out
+  // of its own draft record.
+  const extra = useMemo(
+    () => ({ actionHistory, carriedFont: carriedFont ?? undefined, carriedFontSize: carriedFontSize ?? undefined }),
+    [actionHistory, carriedFont, carriedFontSize],
+  );
 
   return useDraftPersistence({
     tool,
@@ -106,7 +120,12 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
       loadPdf(
         fileFrom(validated),
         validated.fileBytes,
-        { elements: validated.elements, actionHistory: validated.extra?.actionHistory || [] },
+        {
+          elements: validated.elements,
+          actionHistory: validated.extra?.actionHistory || [],
+          carriedFont: validated.extra?.carriedFont,
+          carriedFontSize: validated.extra?.carriedFontSize,
+        },
         true,
       );
     },
