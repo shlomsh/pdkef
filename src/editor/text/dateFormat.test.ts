@@ -36,6 +36,10 @@ describe('formatDate', () => {
     expect(formatDate(isoDate, 'dmy')).toBe('15/09/2026');
   });
 
+  it('formats DDMMYYYY with no separators for dmyDigits, one digit per comb cell', () => {
+    expect(formatDate(isoDate, 'dmyDigits')).toBe('15092026');
+  });
+
   it('formats month/day/year for mdy', () => {
     expect(formatDate(isoDate, 'mdy')).toBe('09/15/2026');
   });
@@ -43,6 +47,7 @@ describe('formatDate', () => {
   it('zero-pads single-digit day and month', () => {
     expect(formatDate('2026-01-05', 'dmy')).toBe('05/01/2026');
     expect(formatDate('2026-01-05', 'mdy')).toBe('01/05/2026');
+    expect(formatDate('2026-01-05', 'dmyDigits')).toBe('05012026');
   });
 
   it('follows the given locale for the locale format', () => {
