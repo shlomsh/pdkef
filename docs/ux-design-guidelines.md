@@ -230,6 +230,34 @@ not the other, which is easy to miss because it looks like a small cosmetic gap 
 number. Measure the rotated box's own `getBoundingClientRect()` against its container's, not just a
 screenshot - the crop bug above hides inside a rect that measures perfectly.
 
+## 17. Editors on a phone: the page is the work, the bar is where you act
+
+Added 2026-09-25 from the Sign next-generation review. After 34 mobile tickets in 76 days, each fix was
+locally right and the next edge sat right behind it. The full rules, with evidence, are in
+[sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md). These are the parts every editing tool
+inherits:
+
+- **Nothing floats over what the person is editing on touch.** A selected element's controls live in one
+  fixed, contextual bar or sheet, never in a toolbar anchored to the element.
+  - Every studied competitor that edits on a phone does this.
+  - Ours broke under zoom, under the keyboard, and against the sticky strip.
+- **The editor owns its zoom.**
+  - Pinch and the zoom buttons change the app's zoom. Safari never zooms the editing surface: `touch-action` goes on the surface and on every descendant.
+  - Fit always shows the whole page (§16).
+  - Safari's own zoom cannot be set from code, and a sticky bar rides out of view under it.
+- **On touch, a swipe that starts on the page scrolls.** Only an element that was already selected
+  moves. A second finger always cancels a one-finger gesture.
+- **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
+  arrow must not change meaning with the language.
+- **Detection speeds the work up. It never gates it, and it never claims completeness.** A scan finds
+  nothing, so tapping anywhere to write is always the first-class path, and the copy says "the fields we found".
+- **Every committed change is one undo step**, moves and typing included (UNDO-04). How undo announces
+  itself on a phone is decided in the Sign guidelines §6.
+
+## The review questions
+
+Every tool review answers these.
+
 1. What is the output, and is it the centre of the loaded state?
 2. What is the shortest path for the common case, and does any step exist only to make a button
    appear?
@@ -246,3 +274,5 @@ screenshot - the crop bug above hides inside a rect that measures perfectly.
     person reach the setting without scrolling away from the canvas?
 12. Does any preview transform (rotate, zoom, fit) crop more of the page than the untransformed
     preview did, checked with a fixture that has real content near an edge, not a blank or centred one?
+13. On a phone, can anything cover what the person is editing, can a swipe on the page move something
+    they had not selected, and does the tool still work on a scan where nothing is detected (§17)?

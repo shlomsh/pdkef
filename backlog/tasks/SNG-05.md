@@ -5,7 +5,7 @@ status: "open"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
-depends_on: ["SNG-04", "UNDO-04"]
+depends_on: ["SNG-04", "UNDO-04", "SNG-09"]
 ---
 
 # SNG-05 · The next-generation phone surface behind a flag: contextual bar, app-owned zoom, field walking and review
@@ -19,6 +19,11 @@ It deletes these from the phone path:
 - `tapOutsideDeselect`;
 - field navigation's zoom branch.
 
+The normative rules are `docs/sign-next-gen-guidelines.md`:
+- SNG-04 implements §2 (states, input tables, the one set of constants) and §3's boundary table.
+- SNG-05 implements §1 and §3-§6.
+- Both answer §11's checklist.
+
 ## Acceptance
 
 - [ ] The parity checklist passes on the Simulator and on Shlomi's iPhone.
@@ -26,3 +31,6 @@ It deletes these from the phone path:
 - [ ] The review step highlights empty fields.
 - [ ] Undo covers moves, resizes, typing and styling.
 - [ ] The three regressions recorded in `docs/sign-next-gen.md` §1 cannot happen, and each has a test.
+- [ ] All three document classes of §5.6 work: a fillable PDF, a vector flat form, and a scan with 0 fields.
+  - On the scan, tap to write snaps to the line (SNG-09), and the review shows every page to check.
+  - No copy anywhere claims the form is complete.

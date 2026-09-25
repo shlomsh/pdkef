@@ -22,6 +22,11 @@ depends_on: ["SNG-03"]
 - A touch never moves an element that was not selected before it began. A swipe on an unselected element scrolls.
 - A movement slop comes before an element follows a finger.
 
+The normative rules are `docs/sign-next-gen-guidelines.md`:
+- SNG-04 implements §2 (states, input tables, the one set of constants) and §3's boundary table.
+- SNG-05 implements §1 and §3-§6.
+- Both answer §11's checklist.
+
 ## Acceptance
 
 - [ ] Every MOBI regression is a unit test of transitions, fed synthetic pointer streams. This includes the 2026-09-25 staggered-finger commit race and the create path's missing multi-touch guard.
