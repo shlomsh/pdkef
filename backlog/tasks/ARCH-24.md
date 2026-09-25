@@ -227,6 +227,16 @@ matched count moved from 51 to 52, with a per-kind precision regression). Restor
 Step B does not touch `useFormFieldRegions.ts`, the corpus, or `scoring/score.js` - all three already
 call `detectFormFields` and see no change in its signature or return shape.
 
+**Fix (2026-09-25):** step B's `fold()` computed a protected kind's `blockedBy` from `next`, the
+accumulator it was still mutating for the source in progress, so `checkboxes` (processed after `combs`
+in `KIND_PRECEDENCE`) was filtered against that same source's own just-accepted combs - something
+`reconcileFields` never did (an ink checkbox overlapping an ink comb was dropped instead of kept).
+Fixed by reading `accepted`, the snapshot from before that source's fold, instead. Confirmed with a
+4000-case random differential against the frozen pre-step-B oracle (`fieldRegionsReferenceOracle.js`):
+835 mismatches before the fix, 0 after; a trimmed 600-case version plus two explicit same-source
+comb/checkbox regression tests are now in `fieldRegions.test.js`. `SOURCE_ORDER`/`KIND_PRECEDENCE` are
+now `Object.freeze`d.
+
 ## Step C landed (2026-09-25)
 
 The last acceptance line asks for a demonstration, not prose: a third source added through

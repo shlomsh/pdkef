@@ -120,7 +120,9 @@ function absorbWritable(combs, cells) {
  * (see `reconcile`'s module doc, ARCH-24 step C) - this list decides
  * precedence, not membership.
  */
-export const SOURCE_ORDER = ['ink', 'widgets'];
+// Frozen so a caller cannot mutate detection precedence for every other
+// caller by pushing or splicing the array it imported.
+export const SOURCE_ORDER = Object.freeze(['ink', 'widgets']);
 
 /**
  * `combs` and `checkboxes` are "protected": once accepted they are never
@@ -129,7 +131,7 @@ export const SOURCE_ORDER = ['ink', 'widgets'];
  * accepted (of any kind) overlaps it, and dropped the moment a protected kind
  * claims the same ground, whichever source found either one.
  */
-export const KIND_PRECEDENCE = ['combs', 'checkboxes', 'cells'];
+export const KIND_PRECEDENCE = Object.freeze(['combs', 'checkboxes', 'cells']);
 
 /**
  * Folds one source's regions into what earlier sources already contributed.
@@ -153,7 +155,15 @@ function fold(accepted, source, kindPrecedence) {
       const blockedBy = kindPrecedence.flatMap((k) => next[k] ?? []);
       next[kind] = [...(next[kind] ?? []), ...candidates.filter((region) => unclaimed(region, blockedBy))];
     } else {
-      const blockedBy = protectedKinds.flatMap((k) => next[k] ?? []);
+      // Blocked only by what earlier sources already accepted (`accepted`,
+      // frozen for the whole call), never by a protected kind this same
+      // source's own fold is still in the middle of accepting: within one
+      // source, combs and checkboxes do not block each other (old
+      // `reconcileFields` never filtered checkboxes against combs, or vice
+      // versa). Using `next` here was the bug - `checkboxes` runs after
+      // `combs` in `kindPrecedence`, so a checkbox was being filtered
+      // against this same source's own just-accepted combs.
+      const blockedBy = protectedKinds.flatMap((k) => accepted[k] ?? []);
       const acceptedHere = candidates.filter((region) => unclaimed(region, blockedBy));
       next[kind] = [...(next[kind] ?? []), ...acceptedHere];
       // A newly accepted protected-kind region reclaims any already-accepted
@@ -195,7 +205,7 @@ function fold(accepted, source, kindPrecedence) {
  * `corpus/thirdSourceContract.test.js`.
  *
  * @param {Record<string, {combs: Array, checkboxes: Array, cells: Array}>} sourceResults
- * @param {{sourceOrder?: string[], kindPrecedence?: string[]}} [options]
+ * @param {{sourceOrder?: readonly string[], kindPrecedence?: readonly string[]}} [options]
  * @returns {{combs: Array, checkboxes: Array, cells: Array}}
  */
 export function reconcile(sourceResults, { sourceOrder = SOURCE_ORDER, kindPrecedence = KIND_PRECEDENCE } = {}) {
