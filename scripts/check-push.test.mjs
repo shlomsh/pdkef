@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fileCannotReachDist, reachesDist, planSteps, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS } from './check-push.mjs';
-import { deriveScope } from './affected-scope.mjs';
+import { fileCannotReachDist, reachesDist, planSteps, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
 /* scripts/check-push.mjs (ARCH-29) computes the CI oracle's scope once (base:
@@ -99,14 +99,20 @@ describe('fileCannotReachDist / reachesDist', () => {
   it('reachesDist is true when ANY file in the diff reaches dist, even mixed with docs', () => {
     expect(reachesDist(['backlog/tasks/ARCH-29.md', 'src/lib/format.js'])).toBe(true);
     expect(reachesDist(['backlog/tasks/ARCH-29.md', 'docs/x.md'])).toBe(false);
-    expect(reachesDist([])).toBe(false);
+    expect(reachesDist([])).toBe(true); // no base or no diff: fail open
   });
 });
 
 describe('planSteps', () => {
-  it('docs-only stops after the always-on guards, regardless of every other field', () => {
+  it('docs-only runs only what CI runs for a docs-only push, regardless of every other field', () => {
     const steps = planSteps({ docsOnly: true, everything: true, unit_paths: '', e2e_paths: '', fonts: true, export_guards: true, reachesDist: true });
-    expect(steps).toEqual(ALWAYS_GUARD_STEPS);
+    expect(steps).toEqual(DOCS_ONLY_STEPS);
+  });
+
+  it('no resolvable base (empty file list) fails open: build and every dist guard run', () => {
+    const files = [];
+    const steps = planSteps({ ...wide([], 'no usable base'), docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) });
+    expect(steps).toEqual(expect.arrayContaining(['unit', 'typecheck', 'build', ...DIST_GUARD_STEPS, 'e2e:product']));
   });
 
   it('a scripts-only diff (tooling, no build script touched): unit + typecheck, no build, no e2e', () => {
