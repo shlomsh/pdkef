@@ -44,8 +44,8 @@ A standalone page outside the app, in the session scratchpad, served on the loca
 
 ## Findings
 
-**Measured on the iOS 26.2 Simulator (iPhone 17), 2026-09-25.** A real iPhone run by Shlomi is still to
-come.
+**Measured on the iOS 26.2 Simulator (iPhone 17), 2026-09-25.** Shlomi then tried it on his iPhone and on
+desktop Chrome (below).
 
 ### The three questions
 
@@ -83,6 +83,43 @@ come.
 - Our first page had four more bugs from a zero-context review, all fixed: a cancelled touch counted as
   a tap; a hop didn't stop a fling; tap-added fields could fall out of row order; a stale "via tap"
   label.
+
+### Shlomi's run on his iPhone and desktop Chrome, 2026-09-26
+
+Each item is what he hit, then what changed on the test page.
+
+- **A multi-line box stranded him.** On Address, the keyboard's return key became a plain return, so
+  "next" was gone. Now each printed line is its own single-line field. The return key reads "next" on
+  every field and "done" on the last.
+- **Invisible detection doesn't work on a phone.** With no hint, a slightly-off tap missed the spot and
+  created a free field above or below it. The tap tolerance was 10 px, and a whole line is about 9 px
+  tall at the zoomed-out view. Now:
+  - detected spots show a faint frame and a trace of fill at rest;
+  - a tap within half a fingertip (22 px) of a spot, or on the printed label just above it, goes to that
+    spot;
+  - between two rows, the field whose label was tapped wins.
+- **Hints must be quiet but answer back.** A cream band read as a bright highlight, and ghost carets
+  with lit lines weren't it either. His model: a faint frame at rest, and a "droppable" look when the
+  mouse hovers near a spot, or the finger touches down near one. That look shows what the armed tool
+  would fill. With nothing detected nearby, there is no preview.
+- **The default tool must be visible.** A tap wrote text while nothing looked armed. Now Text shows as
+  chosen in the bar. Tick and cross can be chosen and stay chosen. Date fills today's date once, then
+  goes back to Text.
+- **A slip must be undoable.** Esc did nothing, and a click away from any spot while typing made yet
+  another field. Now:
+  - Esc ends typing;
+  - a tap away from every spot while typing only finishes typing;
+  - an empty free field disappears when left;
+  - the bar stays visible on desktop, and hides only on touch screens while the keyboard is up.
+- **Answers that are marks on printed words** ("I am / am not"): circling or striking one needs
+  production's ellipse and line. A phone-friendly way to explore: pick circle or strike, then tap the
+  word.
+- **Formatting while typing:** no controls in the keyboard's bar (a page can't add any). Good defaults
+  (the size fits the line, the direction follows the script) and production's text controls when the
+  text is tapped directly.
+- **Everything else is production's.** Signature, rectangle, ellipse, line, border thickness and
+  colour, text formatting and undo already exist. The test page won't rebuild them; the next step
+  brings the model into the production editor.
 
 ## Acceptance
 
