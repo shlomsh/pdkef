@@ -545,7 +545,6 @@ _None._
 | SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · On a scan, a tapped text box snaps to the printed line under the finger, found locally, with no whole-page detection |
-| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 | SNG-11 | P1 | [SNG-11](backlog/tasks/SNG-11.md) · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
 | SNG-13 | P2 | [SNG-13](backlog/tasks/SNG-13.md) · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name |
@@ -555,6 +554,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
+| SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 
 ### Blocked
 
