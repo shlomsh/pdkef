@@ -177,7 +177,7 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
      |---|---|---|
      | misses a field | nothing different: a tap writes there anyway, lined up with the printed line (SNG-09) | none |
      | marks a non-field | a quiet dashed mark; at that stop, "Not a field" removes it for good | one tap |
-     | guesses the wrong kind | a text box, the default under doubt; the guessed kind is only offered in the bar ("Today", "Sign") | one tap |
+     | guesses the wrong kind | where the guess is only offered ("Today", "Sign" in the bar), a text box as if there were no guess; where it acts (a found checkbox ticks, a signature stop arrives with no keyboard), one tap corrects it ("Text instead", or a tap on the line) | none, or one tap |
      | guesses a wrong label | nothing: a guessed label is never shown, and the zoom frames the printed one | none |
      | finds only part of the form | nothing that counts or promises: no "12 fields", no "all done"; review asks you to check each page | none |
 
