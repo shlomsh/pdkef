@@ -28,8 +28,13 @@ import { describe, expect, it } from 'vitest';
  *    unit tests test the functions; only a browser opening a real file tests
  *    the assembly, and only by looking at it.
  *
- * ARCH-24 removes the assembly, at which point this shrinks to one name. Until
- * then, this is the cheap check that the hook and the modules still agree.
+ * ARCH-24 (step A) removed the assembly: the hook's dynamic imports are no
+ * longer five detector modules it assembles itself, but one entry point,
+ * `detectFormFields.ts`, plus the pdf.js/geometry helpers the hook still owns
+ * for gathering the page's own text runs (`detectFormFields.ts` never touches
+ * pdf.js - see its own docstring). Every one of those bindings can still go
+ * stale the same way `formGrid.js`'s did, so this guard keeps checking all of
+ * them, not just the detector's.
  *
  * Plain `.js`, like every other test here that reads a file: `@types/node` is
  * not a dependency and `tsconfig.json` declares no `types`, so a `.ts` file

@@ -117,12 +117,57 @@ guarded.
 
 ## Acceptance
 
-- [ ] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
-- [ ] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
+- [x] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
+- [x] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
 - [ ] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
-- [ ] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
+- [x] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
 - [ ] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
       in the corpus, not asserted in prose.
-- [ ] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
+- [x] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
-- [ ] `test:lazy-modules` still passes, with its list reduced to the new entry point.
+- [x] `test:lazy-modules` still passes, with its list reduced (5 rows -> 2: the new entry point plus
+      `pageInk`, which stays real - see "Step A landed" below for why).
+
+## Step A landed (2026-09-25)
+
+`src/editor/adapters/pdf/detectFormFields.ts` is the one entry point:
+`detectFormFields(document, { textRuns, sources? }) -> Promise<{ combs, checkboxes, cells }>`, with the
+`FieldSource` / `DetectionContext` / `SourceRegions` types from the adopted plan and two sources, `ink`
+and `widgets`, each a thin async wrapper around today's pure functions
+(`detectPageRegions`/`detectCellCandidates` for ink, `detectWidgetRegions` for widgets). Reconciliation
+(`reconcileFields` then `withWidgetFields`) is called from inside the entry point, in today's order,
+unchanged - turning that order into declared data is step B. `pageDirections` is no longer part of the
+return value: `useFormFieldRegions.ts` computes it itself from the same text runs
+(`dominantTextDirection`), since it is text-derived, not geometry.
+
+All three callers route through it: the hook (one dynamic import of the entry point, one call; the
+pdf.js text pass, the Safari `streamTextContent` workaround, and every `if (!current) return`
+cancellation point all stay in the hook, since the entry point never touches pdf.js or the DOM), the
+element corpus (`corpus.test.js` now calls `detectFormFields` directly; `corpus/detect.js` is deleted
+and the README's mentions of it are fixed), and the scored corpus (`scoring/score.js`). The signature-
+cell filter (`cell.kind !== 'signature'`) stayed in the hook rather than moving into the entry point:
+it is a Sign-specific UX decision (no snap for signatures yet), not a detection rule, and moving it
+into the entry point would have silently dropped a real, scored signature candidate on `itc101` -
+caught only by running the proof below before committing.
+
+The wiring test (`useFormFieldRegions.wiring.test.js`) still checks every destructured binding, now 5
+instead of 8 (`pdf-lib`, `detectFormFields`, `coords`, `pageInk`, `textRuns`); sabotage-checked by
+renaming the entry point's export (test failed with a clear diff, restored, green again).
+`scripts/check-lazy-modules.js`'s `LAZY_ONLY` list is reduced from 5 rows to 2: `formWidgets.js`,
+`formGrid.js`, `formCells.js` and `fieldRegions.js` no longer build as separate chunks at all (confirmed
+on the built output - they inline into `detectFormFields`'s ~12 KB chunk, since nothing else imports
+them now) and are gone from the list; `pageInk.js` stays its own row because the hook still imports it
+directly, for the page geometry it needs to convert pdf.js text into the entry point's `textRuns` shape
+in the *same* coordinate frame the entry point computes internally (both sides call
+`createPageGeometry({ cropBox: pageCropBox(page), rotation: page.getRotation().angle })` on the same
+pdf-lib page) - switching the hook to a pdfjs-derived geometry instead was considered, to get down to
+one row, but rejected as an unverified coordinate-frame risk for no requirement it was needed to meet.
+Sabotage-checked with a static import of the entry point from `PdfWorkspace.tsx` (multiple violations:
+the entry point's own chunk, plus `pageInk` and `pdf-lib`, all went eager on `/sign/` and `/he/sign/`),
+restored, green again.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed" (all ten
+forms, including `itc101`'s signature candidate, held exactly); `npx vitest run src/editor/adapters/pdf
+src/tools/sign` is 882 tests green; `npm run typecheck` is clean; the three detection e2e specs
+(`form-grid-fill`, `form-cell-fill`, `form-field-nav-phone`) are 17/17 green against a fresh build.
+`npm run check:fast` is green.

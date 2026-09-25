@@ -26,10 +26,16 @@
  * Runs after `npm run build`, beside `test:csp` and `test:weight`, because
  * chunking is a property of the bundle and `astro dev` does not have one.
  *
- * ARCH-24 will put these modules behind one entry point; when it does, the
- * list below should shrink to that entry point rather than be deleted - a new
- * source (OCR, metadata extraction) is exactly the kind of thing that must not
- * land in everyone's first paint.
+ * ARCH-24 (step A) put four of these modules behind one entry point,
+ * `detectFormFields.ts`: `formWidgets.js`, `formGrid.js`, `formCells.js` and
+ * `fieldRegions.js` no longer build as chunks of their own (nothing imports
+ * them except the entry point now), confirmed on the built output and
+ * replaced below by one row for it. `pageInk.js` stays a row of its own: the
+ * hook still reaches it directly, for the page geometry it needs to build the
+ * text runs it passes in, so it is still a real separate chunk. A future
+ * source (OCR, metadata extraction) is exactly the kind of thing that must
+ * not land in everyone's first paint either, and inherits this guard through
+ * the entry point rather than needing its own row.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -55,11 +61,8 @@ const ASSETS = path.join(DIST, '_astro');
  * touches it.
  */
 const LAZY_ONLY = [
-  { chunk: /^formWidgets\./, why: 'AcroForm widget reading', reachableFrom: ['sign'] },
-  { chunk: /^formGrid\./, why: 'comb and checkbox detection', reachableFrom: ['sign'] },
-  { chunk: /^formCells\./, why: 'closed-cell detection', reachableFrom: ['sign'] },
+  { chunk: /^detectFormFields\./, why: 'field detection - the one entry point (ARCH-24)', reachableFrom: ['sign'] },
   { chunk: /^pageInk\./, why: 'the content-stream ink walk', reachableFrom: ['sign'] },
-  { chunk: /^fieldRegions\./, why: 'cross-source reconciliation', reachableFrom: ['sign'] },
   {
     chunk: /^pdf-lib\./,
     why: 'pdf-lib, 628 KiB: nothing needs it until a file is opened',
