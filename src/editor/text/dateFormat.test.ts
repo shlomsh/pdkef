@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   DATE_FORMAT_IDS,
+  dateFormatForComb,
   detectLocale,
   formatDate,
   isDateFormatId,
@@ -57,6 +58,17 @@ describe('formatDate', () => {
 
   it('defaults to detectLocale() when no locale is passed', () => {
     expect(formatDate(isoDate, 'iso')).toBe(isoDate);
+  });
+});
+
+describe('dateFormatForComb', () => {
+  it('turns any remembered format into dmyDigits on an 8-cell comb', () => {
+    DATE_FORMAT_IDS.forEach((id) => expect(dateFormatForComb(id, 8)).toBe('dmyDigits'));
+  });
+
+  it('keeps the remembered format for any other cell count', () => {
+    expect(dateFormatForComb('iso', 10)).toBe('iso');
+    expect(dateFormatForComb('mdy', 6)).toBe('mdy');
   });
 });
 

@@ -616,7 +616,19 @@ describe('useWorkspaceGestures – date tool', () => {
     const added = firstAddElement(dispatch);
     expect(added.left).toBeCloseTo(40, 5);
     expect(added.combCells).toBe(8);
-    expect(added.text).toBe(formatDate(todayIso, 'locale')); // still prefilled
+    // 8 cells is DD|MM|YYYY with printed dividers: digits only, one per cell.
+    expect(added).toMatchObject({ dateFormatId: 'dmyDigits', text: formatDate(todayIso, 'dmyDigits') });
+  });
+
+  it('keeps the remembered format on a comb run that is not 8 cells', () => {
+    const shortRun = { pageIndex: 0, left: 40, top: 49, width: 15, height: 0.9, cells: 6 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'date',
+      initialDateFormat: 'iso',
+      formRegions: { combs: [shortRun], checkboxes: [], cells: [] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch)).toMatchObject({ dateFormatId: 'iso', text: todayIso });
   });
 
   it('fills a detected free-text cell the same way the text tool does', () => {
