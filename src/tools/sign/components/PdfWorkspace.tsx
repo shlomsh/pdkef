@@ -270,6 +270,10 @@ export default function PdfWorkspace({
       }
     }
     if ('fontFamily' in fields && fields.fontFamily) rememberFont(fields.fontFamily);
+    // SIGN-32: every size the person sets carries to the next field - A-/A+,
+    // and a text box's resize drag too (`applyTextResize` patches `fontSize`),
+    // since that is the person correcting the size by hand. A placement's own
+    // fit-shrink never comes through here, so it never carries.
     if ('fontSize' in fields && fields.fontSize) rememberFontSize(fields.fontSize);
     if ('strokeWidth' in fields && fields.strokeWidth) rememberThickness(fields.strokeWidth);
     // A resized symbol sets the size for the next one placed, so repeated marks

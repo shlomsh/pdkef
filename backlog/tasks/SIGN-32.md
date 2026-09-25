@@ -1,7 +1,7 @@
 ---
 id: "SIGN-32"
 title: "One font and font size per document: they carry from field to field, and each field only shrinks the size to fit"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -47,12 +47,26 @@ font, and font size to use."
 
 ## Acceptance
 
-- [ ] One sizing function, used by every placement path.
-- [ ] The carried size persists with the document's draft and survives a reload. A new document does not
+- [x] One sizing function, used by every placement path.
+- [x] The carried size persists with the document's draft and survives a reload. A new document does not
   inherit another document's size.
-- [ ] A product-path test fills the practice form top to bottom (Full name, the ID comb, the dates, the
+- [x] A product-path test fills the practice form top to bottom (Full name, the ID comb, the dates, the
   postal comb, a free text box) and asserts that every element shares the carried size wherever the
   field fits it.
-- [ ] Unit tests cover the rule's edges: a first field sets the size, A+ carries forward, a narrow comb
+- [x] Unit tests cover the rule's edges: a first field sets the size, A+ carries forward, a narrow comb
   shrinks without changing the carried size, and a reload keeps the size.
-- [ ] Checked in a real browser, desktop and phone width.
+- [x] Checked in a real browser, desktop and phone width.
+
+## Done (2026-09-25)
+
+- `fieldFontSize` (`src/editor/text/combPlacement.ts`) sizes every placement: text cells, combs, dates
+  and free text. `cellFontSize`'s grow-to-fill special case is gone.
+- The carried font and size live in `SignToolState` (`carriedFont`, `carriedFontSize`). They persist in
+  Sign's draft `extra`, validated in `draftValidation.ts`, and are reset on `LOAD_DOCUMENT` for a new
+  document. The browser-wide `lastFont` and `lastFontSize` preferences are removed; Redact never read them.
+- **What carries:** A-, A+, a font pick, and a text box's resize drag, which is also the person correcting
+  the size. A placement's own fit-shrink never carries.
+- **Tests:** `carriedFontSize.practiceForm.test.tsx` fills the practice form in order and asserts one font
+  and one size. Draft-validation tests cover missing and malformed carried values.
+- **Browser:** checked at desktop and 390x844. A+ carries to the next field and survives a reload; another
+  PDF starts fresh.
