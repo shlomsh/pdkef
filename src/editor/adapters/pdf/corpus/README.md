@@ -9,10 +9,11 @@ Nx project `form-corpus`. Run it with `npx vitest run src/editor/adapters/pdf/co
 
 ```
 corpus/
-  detect.js      one page through the whole detector. The one copy the tests share.
   documents.js   a declarative spec -> a real PDF. Builds only, decides nothing.
   corpus.js      the element cases and their expectations. This is the file you edit.
-  corpus.test.js the element runner. Case-agnostic; you should not need to touch it.
+  corpus.test.js the element runner. Case-agnostic; you should not need to touch it. Calls
+                 ../detectFormFields.ts, the product's one entry point (ARCH-24) - not a
+                 copy of the pipeline.
   scoring/
     match.js       IoU matching, lifted from the MOBI-10 spike. One home, two callers.
     candidates.js  detector regions -> the spike's CandidateField contract.
@@ -88,12 +89,11 @@ and for its "a centred caption is a heading, not a label" filter (FORM-14, repla
 caption over a repeating empty run is a header" version). Most rows pass no text: the geometry the
 corpus is about does not read text at all, and including it would make every row depend on a second
 parser and on whatever prose a fixture happens to carry, so the default stays none. A row may declare
-`text` - the same page-percent shape `detectPage`'s `textRuns` takes - when the element it is pinning
-*is* text-plus-geometry and cannot be expressed without it; a captioned header row is the first of
-these. The cost of
-leaving text out by default is that a few cells a real page would filter out survive here. If
-`detectPage` in the runner ever drifts from the hook, the corpus is measuring something the product
-does not do.
+`text` - the same page-percent shape `detectFormFields`'s `textRuns` takes - when the element it is
+pinning *is* text-plus-geometry and cannot be expressed without it; a captioned header row is the first
+of these. The cost of leaving text out by default is that a few cells a real page would filter out
+survive here. Since ARCH-24, `corpus.test.js` calls `detectFormFields` directly - the same entry point
+the hook and the scored corpus call - so there is no second copy of the pipeline left to drift from it.
 
 **pdf-lib never emits the `re` operator.** It builds every rectangle as `m/l/l/l/h`, so a
 `drawRectangle` lands in `ink.verticals`/`ink.horizontals` and never in `ink.rects` - which is the
@@ -212,13 +212,13 @@ Getting there took two fixes, not one, and the second was hidden behind the firs
   from the boxes beside the table had split. Checkbox recall on `itc101` is now 62 of 62.
 - **And something has to read it.** `health` did not move at all when its original landed, because
   `formCells`' own-text filter is fed by the *pdf.js* text pass, which is a different path entirely
-  and which `detect.js` deliberately does not run. The fixture was never that number's cause. The
-  scored corpus now does its own pdf.js pass (`score.js`), because the product does one and a score
-  of a pipeline we do not ship is not a measurement. That is what moved `health` 80.2% -> 94.2% and
-  `itc101`'s precision 87.2% -> 91.4% at the time, and it is still worth about 4 points of precision
-  on top of the tick-column fix.
+  and which the element corpus deliberately does not run. The fixture was never that number's cause.
+  The scored corpus now does its own pdf.js pass (`score.js`), because the product does one and a
+  score of a pipeline we do not ship is not a measurement. That is what moved `health` 80.2% -> 94.2%
+  and `itc101`'s precision 87.2% -> 91.4% at the time, and it is still worth about 4 points of
+  precision on top of the tick-column fix.
 
-The element corpus beside it still runs without text, on purpose, for the reasons in `detect.js`.
+The element corpus beside it still runs without text by default, on purpose, for the reasons above.
 The two corpora want different things: one isolates a geometry rule, the other measures the shipped
 pipeline.
 

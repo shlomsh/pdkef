@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { greedyMatch } from './match.js';
-import { detectPage } from '../detect.js';
+import { detectFormFields } from '../../detectFormFields.ts';
 import { toCandidates } from './candidates.js';
 import { toPageTextRuns } from '../../textRuns.js';
 import { createPageGeometry } from '../../../../geometry/coords.ts';
@@ -106,11 +106,24 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
   const bytes = fs.readFileSync(pdf);
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const page = doc.getPage(pageIndex);
-  const textRuns = await pageTextRuns(bytes, pageIndex, createPageGeometry({
+  const runs = await pageTextRuns(bytes, pageIndex, createPageGeometry({
     cropBox: pageCropBox(page),
     rotation: page.getRotation().angle,
   }));
-  const candidates = toCandidates(detectPage(page, pageIndex, textRuns), pageIndex);
+  // detectFormFields detects a whole document at once (ARCH-24), and this
+  // harness only has real text for the one page it scores - every other page
+  // gets `[]`, same as the element corpus does for a page a case has nothing
+  // to say about. Its results are discarded below; only correctness of the
+  // scored page is ever asserted.
+  const textRuns = Array.from({ length: doc.getPageCount() }, (_, index) => (index === pageIndex ? runs : []));
+  const found = await detectFormFields(doc, { textRuns });
+  const onScoredPage = (region) => region.pageIndex === pageIndex;
+  const detected = {
+    combs: found.combs.filter(onScoredPage),
+    cells: found.cells.filter(onScoredPage),
+    checkboxes: found.checkboxes.filter(onScoredPage),
+  };
+  const candidates = toCandidates(detected, pageIndex);
   const { matches, misses, falsePositives } = greedyMatch(truth.targets, candidates, IOU);
 
   // Recall reads from the target side, per kind: "of the N signature targets,
