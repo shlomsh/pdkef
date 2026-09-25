@@ -1,7 +1,7 @@
 ---
 id: "FORM-22"
 title: "A CI guard keeps field detection pure"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
@@ -142,3 +142,6 @@ passes 51/51. All three original sabotage checks re-run clean, plus a fourth
 (`globalThis.document.title` inserted into `formCells.js`) added for finding 1; each was inserted, run,
 confirmed failing with the expected message and line, then reverted, with `git status` clean after all
 four.
+
+Closed 2026-09-25 after an independent review and its follow-up (globalThis/self, crypto, scope-resolved
+mutation, per-function shims, require). The detector module list moves with ARCH-24.
