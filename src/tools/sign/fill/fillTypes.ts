@@ -78,6 +78,17 @@ export type FillTapDecision =
    */
   | { type: 'delegate'; at?: PagePoint };
 
+/**
+ * What fill mode hands a text element's renderer (TextNode) through the renderer props.
+ * With it, the textarea is a fill input: focusable, writable, hittable, and in order.
+ */
+export interface TextFillProps {
+  fillKey: string;
+  enterKeyHint: EnterKeyHint;
+  /** Enter, without Shift and not composing: move to the next fill input. */
+  onEnter: () => void;
+}
+
 /** DOM contract: every fill input carries both attributes. */
 export const FILL_INPUT_ATTR = 'data-fill-input';
 export const FILL_KEY_ATTR = 'data-fill-key';
