@@ -7,7 +7,7 @@
     "pdkef-practice-form": {
       "pdf": "public/images/redaction-guide/sample.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json",
-      "note": "SNG-10 (2026-09-25): v2, our own flat vector form (no AcroForm, no widgets), replacing the v1 permission-slip AcroForm this row used to score. Its ground truth is generated straight from its own layout by scripts/generate-practice-form.mjs, not eyeballed - see that truth file's own notes. Recall and precision are both 100% for the first time: the two misses v1 always carried (a signature field collectTextFieldWidgets never read, and a scope line for open signature/date lines with no box) are both gone, the second one because a sibling SNG-10 change taught formLines.js to read a bare captioned rule as a field. v1 stays committed at src/tools/sign/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry.",
+      "note": "SNG-10 (2026-09-25): v2 is the flat Employee details form generated, with its ground truth, straight from its own layout by scripts/generate-practice-form.mjs (scripts/practice-form-content.mjs), not eyeballed - see that truth file's own notes. It scores 13/13, 100% recall and 100% precision, through closed cells, combs, checkboxes, the new lone-box rule (formCells.js: a single undivided box - no interior wall - is read as a field once it is empty and a header label sits above it, never merely because geometry allows it) and the open-line detector in formLines.js. Re-recorded the same day the row was first written: the form's own MARGIN_RULE hack (a decorative rule drawn solely to give every lone field a fake interior wall) came out, which is what the lone-box rule above replaces it with - the sha256 changed, the counts did not. v1 stays committed at src/tools/sign/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry.",
       "targets": 13,
       "candidates": 13,
       "matched": 13,
@@ -55,7 +55,7 @@
           "matchedCandidates": 1
         }
       },
-      "sha256": "acd827078d45051c640ab62fdfafee5bde8fc981fbe591f1fa64f0a9dd5f0610"
+      "sha256": "408ed07444a20ae48105e9212a035fc2fdf4b2fad336a60a6010c77baac27045"
     },
     "health": {
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf",

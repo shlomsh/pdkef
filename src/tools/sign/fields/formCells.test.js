@@ -42,10 +42,38 @@ describe('detectCellCandidates', () => {
     expect(a.height).toBeCloseTo(20, 5);
   });
 
-  it('drops a row bounded only by its own two outer walls (no interior division)', () => {
-    // An instructional panel: one bordered paragraph, no internal rule.
+  it('drops a lone undivided box with no text and no label above it', () => {
+    // Geometry alone cannot tell a bare frame from an unlabelled field, and with nothing printed
+    // near it either, there is no evidence for a field - see formCells.js's own `lone` comment.
     const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
     expect(detectCellCandidates(ink, geometry, 0, [])).toEqual([]);
+  });
+
+  it('finds a lone undivided box as a field when it is empty and labelled above it', () => {
+    // SNG-10: a single-box field (a name, an address, an employer) sitting alone on its own row
+    // has exactly this shape - only its own two outer walls, no interior division - and is now
+    // read as a field once a header label above it backs the read.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
+    const header = text('Full name', { left: 0, top: 10, width: 100 });
+    const [cell] = detectCellCandidates(ink, geometry, 0, [header]);
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe('text');
+    expect(cell.label).toBe('Full name');
+    expect(cell.top).toBeCloseTo(20, 5);
+    expect(cell.height).toBeCloseTo(20, 5);
+  });
+
+  it('drops a lone undivided box that holds its own paragraph, labelled or not', () => {
+    // The instructional-panel case the interior-wall rule was written for: a bordered box full
+    // of prose. Own text inside a lone box drops it outright, before the label test is even
+    // asked - a panel is evidence against a field, not neutral.
+    const ink = rowBand({ top: 80, bottom: 60, columns: [0, 100] });
+    const header = text('Please read carefully', { left: 0, top: 10, width: 100 });
+    const paragraph = text(
+      'I declare that the details on this form are true and complete',
+      { left: 10, top: 25, width: 80, height: 10 },
+    );
+    expect(detectCellCandidates(ink, geometry, 0, [header, paragraph])).toEqual([]);
   });
 
   it('ignores a row band outside the writable height range', () => {

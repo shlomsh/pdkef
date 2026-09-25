@@ -341,7 +341,9 @@ const PRINTED = [
   },
   {
     name: 'an undivided decorative panel',
-    why: 'a row needs an interior wall - a plain box is a frame, not a field',
+    why: 'SNG-10: an empty lone box (no interior wall) with no label printed above it is still a '
+      + 'bare frame, not evidence of a field - formCells.js reads a lone box as a field only when '
+      + "it is both empty and labelled, and this row carries no text at all, so it has neither.",
     doc: { ink: [{ ink: 'rect', x: 40, y: 100, width: 300, height: 40 }] },
     expect: none,
   },

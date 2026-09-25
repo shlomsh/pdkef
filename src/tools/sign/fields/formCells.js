@@ -268,11 +268,18 @@ function buildClosedCells(ink) {
         .map((edge) => edge.x);
       const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
       // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
-      // box, not a form row - every observed instructional or explanatory panel on both spike
-      // forms has exactly this shape (one bordered paragraph, no internal rule), while every
-      // real labelled-field row has at least one more division alongside it. Requiring a genuine
-      // interior wall drops those panels without touching any table row in the misses.
-      if (xs.length < 3) continue;
+      // box: an instructional/explanatory panel on both spike forms (one bordered paragraph, no
+      // internal rule), but also the ordinary shape of a lone labelled field on a Western form (a
+      // name, an address, an employer) that sits alone on its own row with nothing beside it to
+      // divide it. Geometry alone cannot tell those two apart - a panel and a lone field can be
+      // the same size - so this band is not dropped outright any more; the pair is still pushed
+      // as a candidate cell, tagged `lone: true`, and `detectCellCandidates` below is where the
+      // two are actually told apart, by whether the box carries any text of its own: a panel is
+      // always full of the prose it exists to hold, a field is empty until someone writes in it.
+      // A row with a real interior wall (xs.length >= 3) needs no such tagging; it was never
+      // ambiguous.
+      if (xs.length < 2) continue;
+      const lone = xs.length === 2;
 
       for (let j = 0; j < xs.length - 1; j += 1) {
         const left = xs[j];
@@ -293,7 +300,9 @@ function buildClosedCells(ink) {
         if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
 
         const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-        cells.push({ left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH });
+        cells.push({
+          left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
+        });
       }
     }
   }
@@ -582,6 +591,20 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
         closure: cell.closure,
       });
       continue;
+    }
+    if (cell.lone) {
+      // A lone box (no interior wall, see buildClosedCells) is either an instructional/
+      // explanatory panel or a single labelled field, and geometry alone cannot tell them apart -
+      // a panel and a lone field can be the same size. Own text settles the panel case: a panel
+      // is always full of the prose it exists to hold, so any text of the box's own drops it
+      // outright, same as the general FULL_TEXT_COVERAGE/MAX_LABEL_CHARS filters below would for
+      // a divided row, just decided outright rather than by a coverage ratio (a short paragraph
+      // can sit well under FULL_TEXT_COVERAGE and still not be a field). A box with no text of
+      // its own still needs a label above it before it is trusted as a field: a bare frame with
+      // nothing printed near it (a decorative rule, a photo box) is not evidence of a field
+      // either, only a caption is - precision first, per SNG-10.
+      if (ownText.length > 0) continue;
+      if (!headerAbove(cell, textItemsPoints)) continue;
     }
     const ownStr = ownText.map((t) => t.str).join(' ').trim();
     const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
