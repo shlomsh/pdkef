@@ -56,7 +56,7 @@ radio, 15 text, 6 comb, 2 date, 1 signature. Each correction is recorded per tar
 | Gate | 90 / 90 / 85 | 90 / 90 / 85 |
 
 Numbers above are post-MOBI-11-step-1 (2026-09-17): lifting `cells.mjs` into product code
-(`src/editor/adapters/pdf/formCells.js`) and writing its unit tests surfaced a real bug — a
+(`src/tools/sign/fields/formCells.js`) and writing its unit tests surfaced a real bug — a
 closed cell's own printed text was never actually found (a field-name mismatch made the overlap
 check silently `NaN`), so the "own text hugging an edge" path never fired and a few explanatory
 boxes were never filtered. Fixing it moved precision from 89.0%/80.2% to 91.4%/94.2% at a
@@ -276,7 +276,7 @@ base for all of it. MOBI-11 (the review surface) moved with it; MOBI-10 stays wh
 
 Two of those arrived from a parallel branch the same day and are not mine. Worth knowing before you
 read a number here: **the spike is no longer the only place these are measured.** Every form in
-`src/editor/adapters/pdf/corpus/scoring/baselines.json` is now re-scored on every CI run and
+`src/tools/sign/fields/corpus/scoring/baselines.json` is now re-scored on every CI run and
 ratcheted, so that file is the live number and this record is the reasoning behind it. Where the two
 disagree, it is because the committed fixtures are geometry-only and this record scores the real
 source PDFs; `baselines.json` says so per form.

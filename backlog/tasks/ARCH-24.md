@@ -1,11 +1,11 @@
 ---
 id: "ARCH-24"
 title: "Field detection is a capability with one entry point, not a pipeline the Sign tool assembles"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
-depends_on: []
+depends_on: ["FORM-14", "FORM-21"]
 ---
 
 # ARCH-24 · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles
@@ -117,12 +117,179 @@ guarded.
 
 ## Acceptance
 
-- [ ] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
-- [ ] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
-- [ ] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
-- [ ] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
-- [ ] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
+- [x] One documented entry point; `useFormFieldRegions` imports it and nothing else from the detector.
+- [x] Source contract written down, async-capable, with `ink` and `widgets` implemented against it.
+- [x] Precedence declared as data, with the two current rules expressed in it and unchanged in effect.
+- [x] The corpus runs through the entry point, and its duplicated `detectPage` is gone.
+- [x] A third source can be added without touching `useFormFieldRegions` - demonstrated by a stub source
       in the corpus, not asserted in prose.
-- [ ] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
+- [x] The practice form still reports 1 comb, 6 cells, 2 checkboxes, and both scored flat forms are
       unchanged.
-- [ ] `test:lazy-modules` still passes, with its list reduced to the new entry point.
+- [x] `test:lazy-modules` still passes, with its list reduced to the new entry point alone (`pageInk`
+      no longer builds as a separate chunk either - see "Step A follow-up" below).
+
+## Step A landed (2026-09-25)
+
+`src/editor/adapters/pdf/detectFormFields.ts` is the one entry point:
+`detectFormFields(document, { textRuns, sources? }) -> Promise<{ combs, checkboxes, cells }>`, with the
+`FieldSource` / `DetectionContext` / `SourceRegions` types from the adopted plan and two sources, `ink`
+and `widgets`, each a thin async wrapper around today's pure functions
+(`detectPageRegions`/`detectCellCandidates` for ink, `detectWidgetRegions` for widgets). Reconciliation
+(`reconcileFields` then `withWidgetFields`) is called from inside the entry point, in today's order,
+unchanged - turning that order into declared data is step B. `pageDirections` is no longer part of the
+return value: `useFormFieldRegions.ts` computes it itself from the same text runs
+(`dominantTextDirection`), since it is text-derived, not geometry.
+
+All three callers route through it: the hook (one dynamic import of the entry point, one call; the
+pdf.js text pass, the Safari `streamTextContent` workaround, and every `if (!current) return`
+cancellation point all stay in the hook, since the entry point never touches pdf.js or the DOM), the
+element corpus (`corpus.test.js` now calls `detectFormFields` directly; `corpus/detect.js` is deleted
+and the README's mentions of it are fixed), and the scored corpus (`scoring/score.js`). The signature-
+cell filter (`cell.kind !== 'signature'`) stayed in the hook rather than moving into the entry point:
+it is a Sign-specific UX decision (no snap for signatures yet), not a detection rule, and moving it
+into the entry point would have silently dropped a real, scored signature candidate on `itc101` -
+caught only by running the proof below before committing.
+
+The wiring test (`useFormFieldRegions.wiring.test.js`) still checks every destructured binding, now 5
+instead of 8 (`pdf-lib`, `detectFormFields`, `coords`, `pageInk`, `textRuns`); sabotage-checked by
+renaming the entry point's export (test failed with a clear diff, restored, green again).
+`scripts/check-lazy-modules.js`'s `LAZY_ONLY` list is reduced from 5 rows to 2: `formWidgets.js`,
+`formGrid.js`, `formCells.js` and `fieldRegions.js` no longer build as separate chunks at all (confirmed
+on the built output - they inline into `detectFormFields`'s ~12 KB chunk, since nothing else imports
+them now) and are gone from the list; `pageInk.js` stays its own row because the hook still imports it
+directly, for the page geometry it needs to convert pdf.js text into the entry point's `textRuns` shape
+in the *same* coordinate frame the entry point computes internally (both sides call
+`createPageGeometry({ cropBox: pageCropBox(page), rotation: page.getRotation().angle })` on the same
+pdf-lib page) - switching the hook to a pdfjs-derived geometry instead was considered, to get down to
+one row, but rejected as an unverified coordinate-frame risk for no requirement it was needed to meet.
+Sabotage-checked with a static import of the entry point from `PdfWorkspace.tsx` (multiple violations:
+the entry point's own chunk, plus `pageInk` and `pdf-lib`, all went eager on `/sign/` and `/he/sign/`),
+restored, green again.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed" (all ten
+forms, including `itc101`'s signature candidate, held exactly); `npx vitest run src/editor/adapters/pdf
+src/tools/sign` is 882 tests green; `npm run typecheck` is clean; the three detection e2e specs
+(`form-grid-fill`, `form-cell-fill`, `form-field-nav-phone`) are 17/17 green against a fresh build.
+`npm run check:fast` is green.
+
+## Step A follow-up (2026-09-25)
+
+The one remaining gap in step A: the hook still built page geometry and text runs via its own dynamic
+imports of `coords.ts`, `pageInk.js` and `textRuns.js`, relying on convention that its geometry matched
+the entry point's. `detectFormFields.ts` now exports `pageGeometry(page)` (what it already computed
+internally, unchanged) and re-exports `toPageTextRuns`, so both the hook and `scoring/score.js` call
+through the entry point instead of duplicating the computation; `useFormFieldRegions.ts` now dynamically
+imports only `@cantoo/pdf-lib` and `detectFormFields.ts`. With `pageInk.js`'s only production importers
+now behind that one entry point, it stops building as a chunk of its own (confirmed on the built
+output), so `LAZY_ONLY` drops to one row. Sabotage-checked twice: a renamed `pageGeometry` export fails
+the wiring test with a clear diff; a static import of the entry point from `PdfWorkspace.tsx` fails
+`test:lazy-modules` (missing chunk, plus `pdf-lib` going eager on `/sign/`). Both restored, green again.
+
+## Step B landed (2026-09-25)
+
+`reconcileFields` and `withWidgetFields` (`fieldRegions.js`) hard-coded three things, not two: (1)
+between two regions of the same kind, `ink` beat `widgets`; (2) a comb claimed (and, if not boxed,
+absorbed the bounds of) any cell it overlapped, whichever source found either one, but never claimed
+a checkbox in either direction; (3) inside `ink`'s own pass alone, a checkbox claimed any cell it
+overlapped, and an open comb absorbed its tightest enclosing cell's bounds as `writable` before the
+cross-source step ever ran. Rule 3 turned out to be rule 2 applied within one source - the same
+`unclaimed(cell, [...combs, ...checkboxes])` shape reused - so it did not need its own code path, only
+the `writable` bounds-copy (pure geometry, not precedence) stayed a fixed step.
+
+One `reconcile(sourceResults, { sourceOrder, kindPrecedence })` (`fieldRegions.js`) now expresses
+rules 1 and 2 as data: `SOURCE_ORDER = ['ink', 'widgets']` and `KIND_PRECEDENCE = ['combs',
+'checkboxes', 'cells']`. `KIND_PRECEDENCE`'s last entry is the only reclaimable kind (accepted only
+when nothing already accepted overlaps it, and dropped the moment an earlier kind claims the same
+ground); every other kind is "protected" - it blocks a later region of any protected kind and is
+never itself removed, which is what keeps a comb from ever reclaiming a checkbox, matching today's
+code exactly. `reconcile` folds each source's own regions (each comb first absorbing `writable` from
+that source's own cells, unchanged geometry) into what earlier sources contributed, in `sourceOrder`.
+`detectFormFields.ts` no longer knows the two source names: it runs every source in `sources`, keys
+their raw regions by name, and hands the whole map to `reconcile` - dropping the `if (!ink ||
+!widgets) throw` guard step A still had. `claimExtent`/`overlap` geometry is untouched.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed"; `npx
+vitest run src/editor/adapters/pdf src/tools/sign` is 883 tests green, including the existing
+`fieldRegions.test.js`/`formWidgets.test.js` precedence assertions, now calling `reconcile` instead of
+`reconcileFields`/`withWidgetFields` with the same expectations; `npm run typecheck` is clean (0
+errors); `npm run check:fast` is green. `npm run test:detection-purity` does not exist on this branch
+yet, so it was skipped per the brief. Two new pinning tests in `fieldRegions.test.js` assert each rule
+by its own data: reversing `KIND_PRECEDENCE` flips a comb-vs-cell outcome, and reversing
+`SOURCE_ORDER` flips which of two equal-kind regions from different sources wins.
+
+Sabotage-checked once, live in the source file rather than only in a test: swapped `SOURCE_ORDER` to
+`['widgets', 'ink']`, which failed 17 of 883 unit tests (`fieldRegions.test.js`'s two new pinning
+tests plus `formWidgets.test.js`'s practice-form and `withWidgetFields`-derived assertions) and turned
+`node scripts/score-form.mjs --all` red - "0 changed, 7 unchanged, 3 regressed" (uscis-i9-2025-01-20's
+matched count moved from 51 to 52, with a per-kind precision regression). Restored, both green again;
+`git status` was clean except the four intended files.
+
+Step B does not touch `useFormFieldRegions.ts`, the corpus, or `scoring/score.js` - all three already
+call `detectFormFields` and see no change in its signature or return shape.
+
+**Fix (2026-09-25):** step B's `fold()` computed a protected kind's `blockedBy` from `next`, the
+accumulator it was still mutating for the source in progress, so `checkboxes` (processed after `combs`
+in `KIND_PRECEDENCE`) was filtered against that same source's own just-accepted combs - something
+`reconcileFields` never did (an ink checkbox overlapping an ink comb was dropped instead of kept).
+Fixed by reading `accepted`, the snapshot from before that source's fold, instead. Confirmed with a
+4000-case random differential against the frozen pre-step-B oracle (`fieldRegionsReferenceOracle.js`):
+835 mismatches before the fix, 0 after; a trimmed 600-case version plus two explicit same-source
+comb/checkbox regression tests are now in `fieldRegions.test.js`. `SOURCE_ORDER`/`KIND_PRECEDENCE` are
+now `Object.freeze`d.
+
+## Step C landed (2026-09-25)
+
+The last acceptance line asks for a demonstration, not prose: a third source added through
+`detectFormFields`'s own public `sources` option, with `useFormFieldRegions.ts` and production's
+`DEFAULT_SOURCES` untouched. `src/editor/adapters/pdf/corpus/thirdSourceContract.test.js` is new and is
+the whole demonstration - two stub `FieldSource`s that live only in that file:
+
+1. An empty stub (`{ combs: [], checkboxes: [], cells: [] }` on every page) run against every row in
+   `ELEMENT_CASES` (44 rows today), once with `sources: DEFAULT_SOURCES` and once with `sources:
+   [...DEFAULT_SOURCES, emptyStub]` - identical output on every row, so a source that finds nothing
+   really does change nothing.
+2. A stub that finds one fixed region, in two shapes: a stand-alone cell on an otherwise empty page (it
+   simply appears), and a comb on the exact rectangle `ink` already reported as a cell on a ruled
+   three-cell row (the brief's own example) - the stub's comb claims it, because `KIND_PRECEDENCE` says a
+   comb beats a cell whichever source found either one, even though the stub is the *later* source.
+
+That last case is also what answered the open question the brief raised: a source name absent from
+`fieldRegions.js`'s `SOURCE_ORDER` was, before this, silently skipped inside `reconcile` - `for (const
+name of sourceOrder) { const source = sourceResults[name]; if (!source) continue; ... }` never visits a
+name `sourceOrder` does not list, so a caller's stub would have vanished with no error, the same silent-
+failure shape this ticket's own "coupling already cost us one outage" section warns about. `reconcile`
+now appends every name in `sourceResults` that `sourceOrder` does not know, after every name that it
+does, in the order those results arrived (`detectFormFields.ts` builds `sourceResults` in the caller's
+own `sources` array order, so this is deterministic). A name still earns a line in `SOURCE_ORDER` to set
+its precedence against `ink`/`widgets` on purpose; leaving it out now means "runs last, wins no
+same-kind tie against a named source", not "invisible". Two new tests in `fieldRegions.test.js`
+("reconcile, an unknown source name") pin this directly at the `reconcile` level: an unknown name's
+region is folded in and survives when nothing contests it, and still loses a same-rectangle tie to a
+named source because it is appended last. Production is unaffected either way - `ink` and `widgets` are
+both always in `SOURCE_ORDER`, so the new branch never executes for the shipped pipeline.
+
+Proof: `node scripts/score-form.mjs --all` exits 0, "0 changed, 10 unchanged, 0 regressed"; `npx vitest
+run src/editor/adapters/pdf src/tools/sign` is 945 tests green (883 at step B; this step adds 48 -
+44 empty-stub sweep rows plus 2 fixed-region tests in `thirdSourceContract.test.js`, plus 2 `reconcile`
+unit tests in `fieldRegions.test.js`; the remaining 14 of the 62-test delta landed on this scope from
+other tickets committed on this branch between step B and now, not from this step); `npm run check:fast`
+is green, `test:detection-purity` included (`fieldRegions.js` stays on
+its scanned-module list and the new branch is plain data manipulation, no new import, no module-level
+mutable state). `git diff HEAD -- src/tools/sign/` is empty - `useFormFieldRegions.ts` was not opened for
+this step. Sabotage-checked live in `fieldRegions.js`: reverting `reconcile` to fold `sourceOrder` alone
+(dropping the appended-unknown-names line) failed exactly 3 tests - both fixed-region corpus tests in
+`thirdSourceContract.test.js` and the first of the two new `reconcile` unit tests - and left the other 59
+in the same run green, including the empty-stub sweep over the whole element corpus. Restored, green
+again (945/945).
+
+## Step D landed, closed (2026-09-25)
+
+The capability moved from `src/editor/adapters/pdf/` to `src/tools/sign/fields/`: the entry point,
+the detectors, `inkEdges.js`, `fieldRegions.js` (with its reference oracle), `fieldTypes.ts`,
+`pageInk.js`, `textRuns.js`, their tests, `__fixtures__/` and the whole corpus with its scoring.
+`pdfObjects.js` stays in `src/editor/adapters/pdf/` because Redact's edit path uses it; the
+`WidgetEntry` typedef moved into it, its producer, so nothing in `editor` points into Sign.
+`fieldOrder.fixtures.test.js` moved to Sign for the same reason. The move is a re-runnable script,
+dry-run twice on copies before the real run. Proof: `score-form.mjs --all` "0 changed, 10 unchanged,
+0 regressed", module-boundaries and editor dependency directions green, purity guard 13 modules
+clean, then the full `ci.yml` chain. Two review should-fixes carry on in FORM-25.

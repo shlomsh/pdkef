@@ -146,3 +146,11 @@ already names as the actual cut - not a new decision. Filed here as the number t
 ARCH-23's own population (the `tool-sign` edge on `narrow`-verdict runs), which measured 100% coarse
 (8 of 8, zero counterexamples) rather than 50% - the reason ARCH-23 was raised to P1 and this ticket
 was not.
+
+## Settled by ARCH-27 (2026-09-25)
+
+ARCH-27 re-ran Nx at the sha of each of 83 real pushes and fed a hand-written map into the same
+`deriveScope()`: identical scope on 83 of 83. The graph changed 4 times in 156 commits and none would
+have changed a verdict. Even so, Shlomi decided the same day to keep Nx: the removal branch of this
+ticket is not taken. What remains here is the `editor`-leaves-`CORE_PROJECTS` branch; ARCH-28's
+file-level unit selection makes most of its value moot for unit tests.

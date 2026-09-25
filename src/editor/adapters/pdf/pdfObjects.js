@@ -495,6 +495,26 @@ export function pageWidgets(page) {
 }
 
 /**
+ * What one widget annotation says about itself, as plain values - the shape
+ * `formWidgets.js` (tool:sign) decides on. Defined here, not there: this is
+ * the module that actually produces it, and an editor module may not import
+ * a tool's type even for documentation only (ARCH-24 step D moved
+ * `formWidgets.js` out of editor/adapters/pdf/; `formWidgets.js` now points
+ * back at this typedef instead of the other way around).
+ *
+ * `fieldType`, `fieldFlags` and `maxLen` are *inheritable* field attributes
+ * and may come from an ancestor rather than the widget (see `widgetEntries`);
+ * `annotationFlags` and `rect` are the widget's own and are never inherited.
+ *
+ * @typedef {object} WidgetEntry
+ * @property {string} [fieldType] `/FT`, as pdf-lib renders a name: `'/Tx'`.
+ * @property {number} [annotationFlags] `/F`.
+ * @property {number} [fieldFlags] `/Ff`.
+ * @property {number} [maxLen] `/MaxLen`.
+ * @property {{x: number, y: number, width: number, height: number}} [rect] `/Rect`, normalized.
+ */
+
+/**
  * The five entries a widget states about itself, as plain values, for
  * `formWidgets.js` to decide on.
  *
@@ -505,7 +525,7 @@ export function pageWidgets(page) {
  *
  * @param {import('@cantoo/pdf-lib').PDFContext} context
  * @param {import('@cantoo/pdf-lib').PDFDict} widget
- * @returns {import('./formWidgets.js').WidgetEntry}
+ * @returns {WidgetEntry}
  */
 export function widgetEntries(context, widget) {
   return {

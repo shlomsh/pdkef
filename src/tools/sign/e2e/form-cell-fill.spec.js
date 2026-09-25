@@ -18,14 +18,14 @@ import { test, expect } from '@playwright/test';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.resolve(
-  here, '..', '..', '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
+  here, '..', '..', '..', '..', 'src', 'tools', 'sign', 'fields', '__fixtures__',
   'health-declaration-page1-geometry.pdf',
 );
 
 // Form 101 in full, text layer included: its employer-row phone cell is
 // captioned, so its hint and its typed box are the band under the caption.
 const FORM_101 = path.resolve(
-  here, '..', '..', '..', '..', 'src', 'editor', 'adapters', 'pdf', 'corpus', 'scoring', 'forms',
+  here, '..', '..', '..', '..', 'src', 'tools', 'sign', 'fields', 'corpus', 'scoring', 'forms',
   'income-tax-101-2024.pdf',
 );
 

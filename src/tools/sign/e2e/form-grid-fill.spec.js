@@ -16,11 +16,11 @@ import { test, expect } from '@playwright/test';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE = path.resolve(
-  here, '..', '..', '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
+  here, '..', '..', '..', '..', 'src', 'tools', 'sign', 'fields', '__fixtures__',
   'income-tax-101-page1-geometry.pdf',
 );
 const HEALTH_FIXTURE = path.resolve(
-  here, '..', '..', '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
+  here, '..', '..', '..', '..', 'src', 'tools', 'sign', 'fields', '__fixtures__',
   'health-declaration-page1-geometry.pdf',
 );
 
