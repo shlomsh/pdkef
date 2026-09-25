@@ -101,3 +101,17 @@ touches more than one tool.
   export pipeline for real) and decided the normal way, by whether `export-guards` is affected.
 - Any changed file no Nx project owns (`scripts/`, root config, `package*.json`, and the like) widens
   to everything, fail-open: ambiguous scope always widens, never narrows.
+
+## `npm run check:push` (`scripts/check-push.mjs`, ARCH-29)
+
+The local pre-push command: computes the same scope as CI, once, then runs only the steps that scope
+needs, stopping at the first failure. It never re-derives the scope itself - it calls
+`affected-scope.mjs`'s own exported `resolveScope`/`runUnit`/`runE2eProduct`/`runE2ePerf`/`runFonts`/
+`runExportGuards` against one base (the merge-base of `origin/main` and `HEAD`) and one file list (the
+working tree against that base, uncommitted and untracked files included, so it works before a commit
+too). The one question it adds that the oracle doesn't answer is whether the diff reaches `dist/` at
+all - `fileCannotReachDist()`'s allowlist (docs/backlog, `.github/`, `*.test.*`, `src/test/`, `e2e/`
+specs, and `scripts/` other than the handful `npm run build` itself invokes) gates the build and its
+dist guards; anything not on that allowlist defaults to "reaches dist," same fail-open direction as
+every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
+`dist/` on its own - Playwright cannot run against a stale one.
