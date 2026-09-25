@@ -88,12 +88,12 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   These blocks go **last** in their sheet - every rule re-states one from a `max-width` block at the same
   specificity, and a media query adds none, so source order is all that decides it.
 - **The launcher's row is viewport-derived wherever the viewport can hold it.** It is the `1fr` row at
-  both breakpoints, so `FileDropzone` arriving cannot change it; at 1024px and up nothing inside it
-  moves either (see the recents note below), but below that a tablet can still move (MOBI-36) while a
-  phone's screen grows instead. It is *not* a floor: on a screen too short for its content the two
-  bullets above take over - below 1024px the row takes its content's height and the first screen grows,
-  at 1024px and up the cell scrolls. Read this as "the row never shrinks to its content", not "the row
-  is always exactly one viewport's share".
+  both breakpoints, so `FileDropzone` arriving cannot change it; at 768px and up (tablet and desktop)
+  nothing inside it moves either (see the recents note below), while below that a phone's screen grows
+  instead. It is *not* a floor: on a screen too short for its content the two bullets above take over -
+  below 1024px the row takes its content's height and the first screen grows, at 1024px and up the cell
+  scrolls. Read this as "the row never shrinks to its content", not "the row is always exactly one
+  viewport's share".
 - **`--home-nav-height` is measured at runtime.** `AppBar.astro` is `h-14` plus a `border-b-[0.5px]`
   hairline, so it is 56.5px, not 56px, and `.home-header`'s `padding-top` and the card stack's sticky
   band derive from it. The CSS default `calc(3.5rem + 0.5px)` is exact in real browsers (CLS 0); the
@@ -122,15 +122,28 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   reachable by the pre-hydration frame. Measured 0.0000-0.0004 at 0-3 recents after
   (`PerformanceObserver({type:'layout-shift'})`, seeding `pdf-toolkit:workspace:recent-files` via
   `page.addInitScript`).
-- **The desktop launcher reserves two recents rows instead of sizing to content (MOBI-35).** Recents
-  load after mount from `localStorage` behind one server-rendered placeholder tile; sizing the launcher
-  from its own content moved the picker or the tiles a frame later, for any recents count from 0 to 6.
-  `.workspace-launcher` stretches to fill its grid row, `FileDropzone` lays it out as a flex column
-  ending at the bottom, and `RecentFiles` reserves two grid rows from first paint with each tile's
-  preview scaling to fit the row. Tiles land in place and nothing in the launcher moves; do not size the
-  recents area from content. Guard: `e2e/home/launcher-picker-pinned.spec.js`. CLS fell from
-  0.0134-0.0310 (1440x900, 1280x720, 1024x768) to 0.0000; the tablet band (768-1023px) still moves and
-  is tracked in MOBI-36.
+- **The launcher reserves two recents rows instead of sizing to content, on tablet and desktop alike
+  (MOBI-35, MOBI-36), top-aligned with the demo (MOBI-37).** Recents load after mount from
+  `localStorage` behind one server-rendered placeholder tile; sizing the launcher from its own content
+  moved the picker or the tiles a frame later, for any recents count from 0 to 6, on every viewport
+  768px and up. `.workspace-launcher` stretches to fill its grid row,
+  `FileDropzone` lays it out as a flex column starting at the top (`justify-content: flex-start`) with
+  the two reserved recents rows first and the picker directly under them, and `RecentFiles` reserves two
+  grid rows from first paint with each tile's preview scaling to fit the row.
+  `.workspace-launcher`'s `padding-top: 10px` lines the first thumbnail's top up with `HeroDemo`'s
+  phone, which sits on its stage's `padding: 16px 0` (`HeroDemo.module.css`); change one and move the
+  other. That holds whenever the phone fills its stage's height (every common desktop height); on a
+  screen tall enough to hit the phone's 360px width cap it centres lower and the alignment no longer
+  holds exactly. Each reserved row has a floor at a readable tile (`--recent-row-floor`, 144px). On a
+  desktop window too short for two floored rows the recents section shrinks to one row and scrolls
+  inside itself, so "Choose files" never leaves the first screen (a version that let the cell scroll
+  instead hid it at <=640px tall even with no recents); on tablets the first screen grows. Either way
+  the reserved height depends only on the viewport, so nothing moves. Tiles land in place and nothing in the launcher moves after mount; do
+  not size the recents area from content. Guard: `e2e/home/launcher-picker-pinned.spec.js`, which also
+  checks thumbnail top == phone top (+-1px) and the picker directly under the list, plus tablet cases
+  (768x1024, 820x1180) and 1280x600 / 1366x625 cases for the row floor and a clickable picker. CLS fell from 0.0134-0.0310 (1440x900,
+  1280x720, 1024x768) to 0.0000, and from 0.017-0.074 on portrait tablets (768x1024 up to 800x600) to
+  0.0000.
 - **The demo and the launcher cannot simply swap.** Demo copy must be server-rendered (SEO surface), so
   hiding it after hydration flashes and collapses several screens, and deciding before first paint
   needs an `is:inline` script that CSP cannot hash. If a conditional is wanted, **collapse rather than
