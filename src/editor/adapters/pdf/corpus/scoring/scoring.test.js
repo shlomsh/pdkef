@@ -29,6 +29,16 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const baselines = JSON.parse(fs.readFileSync(path.join(repoRoot, 'src/editor/adapters/pdf/corpus/scoring/baselines.json'), 'utf8'));
 const FORMS = Object.entries(baselines.forms).map(([name, spec]) => ({ name, ...spec }));
 
+/**
+ * Every kind that shows up on either side of a comparison, baseline or
+ * actual (FORM-21 review). The per-kind checks below used to iterate
+ * `Object.entries(form.byKind)` alone, which only ever walks the baseline's
+ * own keys - a kind the actual run stopped producing (or started producing)
+ * was invisible to every one of them, because a key that is not in the
+ * object being iterated is never visited, floor or ceiling.
+ */
+const unionKinds = (baselineByKind, actualByKind) => [...new Set([...Object.keys(baselineByKind), ...Object.keys(actualByKind)])];
+
 const scored = new Map();
 
 beforeAll(async () => {
@@ -100,20 +110,37 @@ describe.each(FORMS)('$name', (form) => {
     // recorded recall means the kind has no targets on this form at all (it
     // only exists in byKind because the detector candidates it) - nothing to
     // hold, so it is excluded rather than compared against 0.
+    //
+    // Iterated over the UNION of the baseline's kinds and the actual run's
+    // kinds (FORM-21 review), not the baseline's alone: a kind the baseline
+    // recorded that has vanished from the actual output entirely is a
+    // regression the old `Object.entries(form.byKind)` loop could never see,
+    // because it never looked at a kind the baseline did not already know
+    // about missing being exactly the failure mode to catch.
     const { byKind } = scored.get(form.name);
-    const fell = Object.entries(form.byKind)
-      .filter(([, floor]) => floor.recall !== null)
-      .filter(([kind, floor]) => (byKind[kind]?.recall ?? 0) < floor.recall - SLACK)
-      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.recall?.toFixed(1) ?? 'absent'}% < ${floor.recall}%`);
+    const fell = unionKinds(form.byKind, byKind).flatMap((kind) => {
+      const floor = form.byKind[kind];
+      if (!floor || floor.recall === null) return [];
+      if (!byKind[kind]) return [`${kind}: vanished from the detector's output - recorded ${floor.recall}% recall`];
+      const recall = byKind[kind].recall ?? 0;
+      return recall < floor.recall - SLACK ? [`${kind}: ${recall.toFixed(1)}% < ${floor.recall}%`] : [];
+    });
     expect(fell, `per-kind recall fell for ${form.name}`).toEqual([]);
   });
 
   it('has not gained recall on any kind beyond what is recorded, without a re-record', () => {
+    // The mirror case (FORM-21 review): a kind the actual run produced that
+    // the baseline never recorded at all - not merely a rise on a known kind
+    // - is exactly as unrecorded as a rise, so it fails here too.
     const { byKind } = scored.get(form.name);
-    const rose = Object.entries(form.byKind)
-      .filter(([, floor]) => floor.recall !== null)
-      .filter(([kind, floor]) => (byKind[kind]?.recall ?? floor.recall) > floor.recall + SLACK)
-      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.recall?.toFixed(1)}% > ${floor.recall}%`);
+    const rose = unionKinds(form.byKind, byKind).flatMap((kind) => {
+      const actual = byKind[kind];
+      if (!actual || actual.recall === null) return [];
+      const floor = form.byKind[kind];
+      if (!floor) return [`${kind}: appeared with ${actual.recall.toFixed(1)}% recall, not recorded - re-record the baseline`];
+      if (floor.recall === null) return [];
+      return actual.recall > floor.recall + SLACK ? [`${kind}: ${actual.recall.toFixed(1)}% > ${floor.recall}%`] : [];
+    });
     expect(rose, `per-kind recall rose for ${form.name} - re-record the baseline`).toEqual([]);
   });
 
@@ -122,14 +149,19 @@ describe.each(FORMS)('$name', (form) => {
     // with no candidates is pinned at exactly zero candidates, the same "the
     // zero is an assertion" rule the form-level check above uses. This is
     // what catches a kind starting to produce false positives while another
-    // kind's gain holds the form's total precision up.
+    // kind's gain holds the form's total precision up. Union of kinds, same
+    // reason as the recall floor above: a recorded kind whose candidates
+    // vanish entirely is a regression, not a silent pass.
     const { byKind } = scored.get(form.name);
-    const problems = Object.entries(form.byKind).flatMap(([kind, floor]) => {
+    const problems = unionKinds(form.byKind, byKind).flatMap((kind) => {
+      const floor = form.byKind[kind];
+      if (!floor) return [];
       if (floor.precision === null) {
         const candidates = byKind[kind]?.candidates ?? 0;
         return candidates === 0 ? [] : [`${kind}: now yields candidates where it recorded none - re-record the baseline`];
       }
-      const precision = byKind[kind]?.precision ?? 0;
+      if (!byKind[kind]) return [`${kind}: vanished from the detector's output - recorded ${floor.precision}% precision`];
+      const precision = byKind[kind].precision ?? 0;
       return precision < floor.precision - SLACK ? [`${kind}: ${precision.toFixed(1)}% < ${floor.precision}%`] : [];
     });
     expect(problems, `per-kind precision fell for ${form.name}`).toEqual([]);
@@ -137,11 +169,15 @@ describe.each(FORMS)('$name', (form) => {
 
   it('has not gained precision on any kind beyond what is recorded, without a re-record', () => {
     const { byKind } = scored.get(form.name);
-    const rose = Object.entries(form.byKind)
+    const rose = unionKinds(form.byKind, byKind).flatMap((kind) => {
+      const actual = byKind[kind];
+      if (!actual || actual.precision === null) return [];
+      const floor = form.byKind[kind];
+      if (!floor) return [`${kind}: appeared with ${actual.precision.toFixed(1)}% precision, not recorded - re-record the baseline`];
       // A null baseline is already pinned exactly, both directions, above.
-      .filter(([, floor]) => floor.precision !== null)
-      .filter(([kind, floor]) => (byKind[kind]?.precision ?? floor.precision) > floor.precision + SLACK)
-      .map(([kind, floor]) => `${kind}: ${byKind[kind]?.precision?.toFixed(1)}% > ${floor.precision}%`);
+      if (floor.precision === null) return [];
+      return actual.precision > floor.precision + SLACK ? [`${kind}: ${actual.precision.toFixed(1)}% > ${floor.precision}%`] : [];
+    });
     expect(rose, `per-kind precision rose for ${form.name} - re-record the baseline`).toEqual([]);
   });
 
@@ -153,6 +189,30 @@ describe.each(FORMS)('$name', (form) => {
     // precision above rather than here.
     const { targets } = scored.get(form.name);
     expect(targets).toBeGreaterThan(5);
+  });
+
+  it('matches its recorded counts exactly (FORM-21 review)', () => {
+    // Percentages round to one decimal, which is why SLACK exists; the raw
+    // integers behind them do not round at all, so they are pinned exactly
+    // rather than within SLACK. This is what makes a same-percentage,
+    // different-underlying-numbers change visible (e.g. targets and matched
+    // both scaling together) rather than passing as "unchanged" by
+    // coincidence. Only kinds present on both sides are checked here - a kind
+    // that appeared or vanished is already reported, with a clearer message,
+    // by the recall/precision tests above.
+    const result = scored.get(form.name);
+    expect(result.targets, `${form.name} targets count moved`).toBe(form.targets);
+    expect(result.candidates, `${form.name} candidates count moved`).toBe(form.candidates);
+    expect(result.matched, `${form.name} matched count moved`).toBe(form.matched);
+    for (const kind of unionKinds(form.byKind, result.byKind)) {
+      const floor = form.byKind[kind];
+      const actual = result.byKind[kind];
+      if (!floor || !actual) continue;
+      expect(actual.targets, `${form.name}/${kind} targets count moved`).toBe(floor.targets);
+      expect(actual.found, `${form.name}/${kind} found count moved`).toBe(floor.found);
+      expect(actual.candidates, `${form.name}/${kind} candidates count moved`).toBe(floor.candidates);
+      expect(actual.matchedCandidates, `${form.name}/${kind} matchedCandidates count moved`).toBe(floor.matchedCandidates);
+    }
   });
 });
 
