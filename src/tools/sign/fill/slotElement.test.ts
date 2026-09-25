@@ -1,0 +1,112 @@
+import { describe, expect, it } from 'vitest';
+import { elementForSlot, type SlotElementBase } from './slotElement.ts';
+import { detectedSlots, freeSlot, placementForField, placementForFree } from './fillSlots.ts';
+import { getElementDefinition } from '../../../editor/registry/index.ts';
+import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
+
+// A4 in PDF points, matching combPlacement.test.ts and fieldOrder.test.ts.
+const PAGE_WIDTH = 595.275;
+const PAGE_HEIGHT = 841.89;
+
+const base: SlotElementBase = {
+  id: 'el-fresh',
+  color: '#1463ff',
+  fontFamily: 'Arimo',
+  fontSize: 12,
+  direction: 'rtl',
+  pageWidthPoints: PAGE_WIDTH,
+  pageHeightPoints: PAGE_HEIGHT,
+};
+const page = { fontSize: base.fontSize, fontFamily: base.fontFamily, pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT };
+
+/**
+ * What production's own two-step recipe builds for the same field -
+ * `useFieldNavigation.ts`'s `goTo`, reproduced directly rather than imported,
+ * since `goTo` also dispatches and scrolls and is not a pure function. This
+ * is the reference `elementForSlot` has to match exactly.
+ */
+function productionElement(field: TypableField) {
+  const create = getElementDefinition('text').creation.create!;
+  const newEl = create({
+    id: base.id,
+    pageIndex: field.region.pageIndex,
+    point: { left: field.region.left, top: field.region.top },
+    color: base.color,
+    whiteoutColor: '#ffffff',
+    strokeWidth: DEFAULT_STROKE_WIDTH,
+    font: base.fontFamily,
+    fontSize: base.fontSize,
+    direction: base.direction,
+  });
+  const snapped = placeTextOnField(field, page);
+  return { ...newEl, ...snapped };
+}
+
+describe('elementForSlot', () => {
+  it('matches production exactly for a comb field', () => {
+    const region: CombRegion = { pageIndex: 0, left: 73.597, top: 27.277, width: 17.152, height: 0.836, cells: 9 };
+    const field: TypableField = { kind: 'comb', region };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+    expect(elementForSlot(slot, '123456789', base)).toEqual({ ...productionElement(field), text: '123456789' });
+  });
+
+  it('matches production exactly for a cell field', () => {
+    const region: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 4 };
+    const field: TypableField = { kind: 'cell', region };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+    expect(elementForSlot(slot, 'Jane Doe', base)).toEqual({ ...productionElement(field), text: 'Jane Doe' });
+  });
+
+  it('gives a comb both width and combCells, and a cell only minWidth', () => {
+    const comb: TypableField = { kind: 'comb', region: { pageIndex: 0, left: 10, top: 10, width: 15, height: 0.8, cells: 6 } };
+    const cell: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 20, width: 20, height: 2 } };
+    const combSlot = detectedSlots([comb], [], (f) => placementForField(f, page))[0];
+    const cellSlot = detectedSlots([cell], [], (f) => placementForField(f, page))[0];
+
+    const combEl = elementForSlot(combSlot, '123456', base);
+    const cellEl = elementForSlot(cellSlot, 'hi', base);
+
+    expect(combEl.width).toBe(15);
+    expect(combEl.combCells).toBe(6);
+    expect(combEl).not.toHaveProperty('minWidth');
+    expect(cellEl.minWidth).toBe(20);
+    expect(cellEl).not.toHaveProperty('width');
+    expect(cellEl).not.toHaveProperty('combCells');
+  });
+
+  it('gives a free slot no width, minWidth or combCells, sitting exactly where its slot sat', () => {
+    const at = { pageIndex: 0, x: 40, y: 50 };
+    const placement = placementForFree(at, page);
+    const slot = freeSlot(at, placement);
+
+    const element = elementForSlot(slot, 'hello', base);
+
+    expect(element.left).toBe(placement.box.left);
+    expect(element.top).toBe(placement.box.top);
+    expect(element).not.toHaveProperty('width');
+    expect(element).not.toHaveProperty('minWidth');
+    expect(element).not.toHaveProperty('combCells');
+    expect(element.text).toBe('hello');
+    expect(element.fontSize).toBe(base.fontSize);
+    expect(element.fontFamily).toBe(base.fontFamily);
+    expect(element.color).toBe(base.color);
+  });
+
+  it('carries a resolved direction onto the element, and omits it when null, same as create()', () => {
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+
+    expect(elementForSlot(slot, 'x', { ...base, direction: 'ltr' }).textDirection).toBe('ltr');
+    expect(elementForSlot(slot, 'x', { ...base, direction: null }).textDirection).toBeUndefined();
+  });
+
+  it('gives each call the requested id and a fresh, empty-text-free element otherwise identical in shape', () => {
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 1, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+    const element = elementForSlot(slot, 'signed', { ...base, id: 'el-42' });
+    expect(element.id).toBe('el-42');
+    expect(element.type).toBe('text');
+    expect(element.pageIndex).toBe(1);
+  });
+});
