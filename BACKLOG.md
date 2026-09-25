@@ -331,13 +331,13 @@ _None._
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
+_None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
 
 ### Blocked
 
