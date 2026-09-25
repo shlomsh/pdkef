@@ -25,7 +25,7 @@ silently unknown to the others.
 - [x] No behaviour change: `score-form.mjs --all` identical, both corpora green, `npm run typecheck`
       clean.
 
-## Landed (2026-09-25)
+## Landed (2026-09-25, `46e53ea`)
 
 `src/editor/adapters/pdf/fieldTypes.ts` is the one module: `FIELD_KINDS` (the scoring contract's full
 nine-kind enum, `as const`) and `FieldKind` off it; `DETECTOR_FIELD_KINDS` (the six kinds our own
