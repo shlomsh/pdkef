@@ -5,6 +5,8 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import { FillContext, TextFillContext, FILL_OFF } from '../fill/FillContext.tsx';
+import type { TextFillProps } from '../fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
 
 type TextChange = (changes: EditorElementPatch<TextElement>) => void;
@@ -424,5 +426,107 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
 
     act(() => next.click());
     expect(fieldNav.onNext).toHaveBeenCalledTimes(1);
+  });
+});
+
+// SNG-15: quiet = fill props on a coarse pointer (docs/sign-fill-mode.md,
+// "the seams between the pieces"). A page cannot add its own buttons to the
+// bar iOS already puts above a fill input's keyboard, so quiet drops the
+// floating toolbar, `.quick-field-nav` and the resize handles entirely - not
+// merely hides them, since a page cannot ask iOS to route around a hidden
+// element either. On a fine pointer (desktop, no keyboard bar to make room
+// for) fill mode keeps production's own chrome, unchanged.
+describe('DraggableWrapper quiet (SNG-15 fill mode)', () => {
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  const fill: TextFillProps = { fillKey: 'el:1', enterKeyHint: 'next', onEnter: vi.fn() };
+
+  function mountQuietCase(coarse: boolean) {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse }}>
+          <TextFillContext.Provider value={fill}>
+            <DraggableWrapper
+              element={element}
+              isActive
+              onBeginEdit={() => {}}
+              onSelect={() => {}}
+              onChange={() => {}}
+              onDelete={() => {}}
+              onClone={() => {}}
+              pageWidthPoints={612}
+            >
+              {textNode(element)}
+            </DraggableWrapper>
+          </TextFillContext.Provider>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    return wrapper;
+  }
+
+  it('renders no resize handles, no toolbar and no quick-field-nav on a coarse pointer', () => {
+    const wrapper = mountQuietCase(true);
+
+    expect(wrapper.querySelector('[data-editor-actions]')).toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).toBeNull();
+    expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
+  });
+
+  it('keeps the resize handles and the floating toolbar on a fine pointer', () => {
+    const wrapper = mountQuietCase(false);
+
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
+  });
+
+  it('renders production chrome as today when fill props are absent, even on a coarse pointer', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse: true }}>
+          <DraggableWrapper
+            element={element}
+            isActive
+            onBeginEdit={() => {}}
+            onSelect={() => {}}
+            onChange={() => {}}
+            onDelete={() => {}}
+            onClone={() => {}}
+            pageWidthPoints={612}
+          >
+            {textNode(element)}
+          </DraggableWrapper>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
   });
 });

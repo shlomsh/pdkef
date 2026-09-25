@@ -100,6 +100,10 @@
    to the wrapper, so the click selects and drags the element instead of placing
    a caret; entering the edit session (double-click, Enter) drops this class. */
 .text-input-inert { pointer-events: none; user-select: none; }
+/* SNG-15 fill mode: a real fill input. pointer-events is inherited, and the
+   platform's own next/previous skip a field whose centre hit-test misses it
+   (SNG-14), so it is stated rather than left to whatever an ancestor sets. */
+.text-input-fill { pointer-events: auto; }
 /* Comb layout. The span is explicit, so the grid column is pinned to it and the
    measure (kept only for the one-line height) can no longer widen the box. */
 .text-display[data-comb="on"] { grid-template-columns: 100%; overflow: hidden; }

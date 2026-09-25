@@ -116,8 +116,8 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
     - Enter (no Shift, not composing) calls `onEnter`.
   - Its focus no longer selects: `useFillFocus` does that.
   - `DraggableWrapper` is quiet when it has `TextFillContext` on a coarse pointer (`useFill().coarse`).
-    Quiet hides the handles, the element toolbar and `.quick-field-nav`, and leaves a tap on the
-    textarea to native focus.
+    Quiet hides the element toolbar and `.quick-field-nav`, and leaves a tap on the textarea to native
+    focus. It is also passed to `TextNode`, which renders the resize handles and hides them.
 - **The focus proxy.**
   - The workspace renders one hidden input for `proxyRef`:
     - fixed at the top left, one pixel, fully transparent, `tabIndex` -1, `aria-hidden`;

@@ -13,6 +13,7 @@ import useVisualViewportScale from '../../../editor-ui/hooks/useVisualViewportSc
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 import { revealFieldAfterKeyboard } from '../useFieldNavigation.ts';
+import { useFill, useTextFill } from '../fill/FillContext.tsx';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
@@ -38,6 +39,10 @@ type DraggableChildProps = {
   onResizeStart?: NodeResizeStart;
   handlePointerDown?: (event: MouseEvent | TouchEvent) => void;
   isSpanResizing?: boolean;
+  /** SNG-15: this wrapper's own `quiet` (fill props on a coarse pointer,
+   * docs/sign-fill-mode.md). Only TextNode reads it, to hide its resize
+   * handles; every other node type ignores the extra prop. */
+  quiet?: boolean;
 };
 
 export default function DraggableWrapper<T extends EditorElement>({
@@ -98,6 +103,16 @@ export default function DraggableWrapper<T extends EditorElement>({
   // form as ~84px of document. Desktop (a fine pointer) never sees this - the
   // full toolbar renders exactly as before.
   const isCoarsePointer = useCoarsePointer();
+  // SNG-15: quiet when this element carries fill props on a coarse pointer
+  // (docs/sign-fill-mode.md, "the seams between the pieces"). Both hooks are
+  // called unconditionally, every render - `&&` may only combine their
+  // results, never decide which one runs. Null/false outside fill mode, so
+  // `quiet` is always false there and every branch below that reads it is a
+  // no-op. On a fine pointer fill mode keeps production's own chrome - a
+  // desktop has no bar above the keyboard to make room for.
+  const textFill = useTextFill();
+  const fillContext = useFill();
+  const quiet = textFill !== null && fillContext.coarse;
   // Starts collapsed on every fresh edit session (a new field reached by
   // Next/Previous mounts its own DraggableWrapper instance with this at its
   // default false; re-entering an edit session on the same box resets it via
@@ -172,6 +187,11 @@ export default function DraggableWrapper<T extends EditorElement>({
   // raises can land on top of the box; `revealFieldAfterKeyboard` lifts it
   // back into view once the keyboard is up.
   function beginEditFromTap() {
+    // SNG-15: quiet means the textarea is already a real fill input (TextNode.tsx),
+    // so a tap there is native focus - MOBI-21's synchronous-focus dance below
+    // would be redundant, and calling it a second time on the same element is
+    // exactly the double-focus dance fill mode exists to avoid.
+    if (quiet) return;
     const input = elementRef.current?.querySelector<HTMLTextAreaElement>('[data-editor-text-input]');
     if (input) {
       input.readOnly = false;
@@ -413,8 +433,11 @@ export default function DraggableWrapper<T extends EditorElement>({
       onTouchStart={!isLine ? handlePointerDown : undefined}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Element options bar */}
-      <div
+      {/* Element options bar. SNG-15: quiet renders none of it - no floating
+          toolbar, no `.quick-field-nav` - since a page cannot add its own
+          buttons to the bar iOS already puts above a fill input's keyboard
+          (docs/sign-fill-mode.md). */}
+      {!quiet && <div
         ref={(node) => {
           actionsRef.current = node;
           if (node && refs.floating !== node) {
@@ -505,7 +528,7 @@ export default function DraggableWrapper<T extends EditorElement>({
             />
           </>
         )}
-      </div>
+      </div>}
 
       {/* Render element depending on type */}
       {toChildArray(children).map((child) => {
@@ -517,7 +540,8 @@ export default function DraggableWrapper<T extends EditorElement>({
           onBeginEdit,
           onResizeStart: handleResizeStart,
           handlePointerDown,
-          isSpanResizing
+          isSpanResizing,
+          quiet
         });
       })}
     </div>
