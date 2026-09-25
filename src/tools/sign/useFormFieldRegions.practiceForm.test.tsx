@@ -117,4 +117,56 @@ describe('useFormFieldRegions on the SNG-10 practice form (product path)', () =>
       container.remove();
     }
   });
+
+  it('publishes the ID number comb as its own nine cells, not grown into the Full name box above it', async () => {
+    // SNG-10 follow-up: `FormFieldHints.module.css`'s `.field-hint-comb`
+    // grows an OPEN comb's teeth-height region up to the writable strip, and
+    // used to be applied to every comb regardless of `boxed` - a BOXED
+    // comb's region is already the printed cells (formGrid.js measures the
+    // box walls, not teeth), so the same growth doubled its hint upward into
+    // whatever sat above it. This drives the hook the product path renders
+    // from (see the module doc above) and checks the *published* region -
+    // what `FormFieldHints` and `combPlacement.ts` both read - against the
+    // form's own defined rect (practice-form-page1.json's `id_number`
+    // target: x 0.0807, y 0.2138, width 0.3025, height 0.0261, page
+    // 595x842pt), not a value re-derived from this test.
+    const buffer = fs.readFileSync(PDF_PATH);
+    const file = new File([buffer], 'sample.pdf', { type: 'application/pdf' });
+    const bytes = await file.arrayBuffer();
+    const pdfDocument = await loadPdfjsDocument(await file.arrayBuffer());
+    const pageWidthPoints = 595;
+    const pageHeightPoints = 842;
+    // 0.5pt, in the editor's page-percent units on each axis.
+    const toleranceX = (0.5 / pageWidthPoints) * 100;
+    const toleranceY = (0.5 / pageHeightPoints) * 100;
+
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    try {
+      let latest!: FormFieldRegions;
+      function Probe() {
+        latest = useFormFieldRegions(bytes, pdfDocument.numPages, pdfDocument as never);
+        return null;
+      }
+      await act(async () => { render(<Probe />, container); });
+      await vi.waitFor(() => expect(latest.detection).toBe('done'), { timeout: 10_000, interval: 20 });
+
+      const idNumber = latest.combs.find((comb) => comb.pageIndex === 0 && comb.cells === 9);
+      expect(idNumber).toBeDefined();
+      expect(idNumber!.boxed).toBe(true);
+      expect(idNumber!.left).toBeCloseTo(8.0672, 3);
+      expect(idNumber!.top).toBeCloseTo(21.3777, 3);
+      expect(idNumber!.width).toBeCloseTo(30.2521, 3);
+      // The one that used to fail: `.field-hint-comb`'s growth is a rendering
+      // concern this hook's own output never carried, but this pins the
+      // published height against the ground truth within 0.5pt either way,
+      // rather than only against the code's own arithmetic.
+      expect(Math.abs(idNumber!.height - 2.6128)).toBeLessThan(toleranceY);
+      expect(Math.abs(idNumber!.left - 8.07)).toBeLessThan(toleranceX);
+      expect(Math.abs(idNumber!.top - 21.38)).toBeLessThan(toleranceY);
+    } finally {
+      act(() => render(null, container));
+      container.remove();
+    }
+  });
 });
