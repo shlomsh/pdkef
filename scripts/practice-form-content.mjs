@@ -16,7 +16,11 @@
  * `src/tools/sign/fields/__fixtures__/practice-form-v1.pdf` for the tests that still need its exact
  * geometry.
  *
- * Dependency-free by design so a plain Node script can import it directly.
+ * Dependency-free by design so a plain Node script can import it directly. That includes the
+ * palette: this module only NAMES which `src/styles/global.css` `:root` custom property each role
+ * uses (`PALETTE_TOKENS`); it never hard-codes a colour literal. `generate-practice-form.mjs` reads
+ * global.css at generation time and resolves those names to the site's real, current hex values, so
+ * the practice form can never drift from the app's own theme (SNG-10 v2 brand pass).
  */
 
 /** Page size in points, [width, height]. A4 portrait. */
@@ -29,20 +33,32 @@ export const DOCUMENT_META = {
   keywords: ['PDkef', 'practice', 'employee details', 'sample form'],
 };
 
-/** RGB triples (0-1 range), matching `rgb(r, g, b)` from `@cantoo/pdf-lib`. Reused from v1: a
- * restrained teal/ink palette, no loud colours. */
-export const PALETTE = {
-  ink: [0.12, 0.25, 0.29],
-  muted: [0.32, 0.45, 0.50],
-  teal: [0.17, 0.48, 0.56],
-  rule: [0.72, 0.81, 0.84],
-  soft: [0.93, 0.97, 0.97],
-  field: [0.98, 0.995, 0.995],
-  white: [1, 1, 1],
+/**
+ * Which `global.css` `:root` custom property each drawing role uses - names only, resolved to real
+ * hex colours by `generate-practice-form.mjs`'s own strict parser at generation time. See
+ * `.claude/rules/styling.md` ("Mint and paper") for the palette these are drawn from.
+ *
+ * - `ink`: headings and body text - `--color-text`.
+ * - `muted`: field labels, the header tagline, the footer - `--color-muted`.
+ * - `stroke`: every box, comb cell, checkbox and line's outline - `--color-primary`.
+ *   `--color-border-strong` looks closest to v1's teal but measures 2.07:1 against white (QUAL-04),
+ *   too low for a form's own field outlines; `--color-primary` is what buttons, focus rings and
+ *   borders already use for exactly this job.
+ * - `fieldFill`: the pale wash inside a field box or comb cell - `--color-primary-soft`, the same
+ *   token tinted surfaces (cards, chips) use, so a field reads as "the brand's paper", not plain white.
+ * - `rule`: the thin footer divider - `--color-border`.
+ */
+export const PALETTE_TOKENS = {
+  ink: '--color-text',
+  muted: '--color-muted',
+  stroke: '--color-primary',
+  fieldFill: '--color-primary-soft',
+  rule: '--color-border',
 };
 
 export const HEADER = {
-  eyebrow: 'PDKEF PRACTICE FORM',
+  wordmark: 'PDkef',
+  tagline: 'Practice form',
   title: 'PERSONAL AND EMPLOYMENT DETAILS',
 };
 

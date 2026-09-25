@@ -7,7 +7,7 @@
     "pdkef-practice-form": {
       "pdf": "public/images/redaction-guide/sample.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/practice-form-page1.json",
-      "note": "SNG-10 (2026-09-25): v2 is the flat Employee details form generated, with its ground truth, straight from its own layout by scripts/generate-practice-form.mjs (scripts/practice-form-content.mjs), not eyeballed - see that truth file's own notes. It scores 13/13, 100% recall and 100% precision, through closed cells, combs, checkboxes, the new lone-box rule (formCells.js: a single undivided box - no interior wall - is read as a field once it is empty and a header label sits above it, never merely because geometry allows it) and the open-line detector in formLines.js. Re-recorded the same day the row was first written: the form's own MARGIN_RULE hack (a decorative rule drawn solely to give every lone field a fake interior wall) came out, which is what the lone-box rule above replaces it with - the sha256 changed, the counts did not. v1 stays committed at src/tools/sign/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry.",
+      "note": "SNG-10 (2026-09-25): v2 is the flat Employee details form generated, with its ground truth, straight from its own layout by scripts/generate-practice-form.mjs (scripts/practice-form-content.mjs), not eyeballed - see that truth file's own notes. It scores 13/13, 100% recall and 100% precision, through closed cells, combs, checkboxes, the new lone-box rule (formCells.js: a single undivided box - no interior wall - is read as a field once it is empty and a header label sits above it, never merely because geometry allows it) and the open-line detector in formLines.js. Re-recorded the same day the row was first written: the form's own MARGIN_RULE hack (a decorative rule drawn solely to give every lone field a fake interior wall) came out, which is what the lone-box rule above replaces it with - the sha256 changed, the counts did not. v1 stays committed at src/tools/sign/fields/__fixtures__/practice-form-v1.pdf for the tests that still need its exact widget geometry. SNG-10 v2 brand pass (2026-09-25, same day): re-themed under PDkef's own palette - box/comb/checkbox/line strokes and the embedded app logo now read their colour from global.css's :root tokens at generation time (practice-form-content.mjs's PALETTE_TOKENS) instead of a hard-coded leftover teal, and the header gained the logo, 'PDkef' wordmark and 'Practice form' tagline. Layout, and therefore every field rect the ground truth is built from, did not move - the sha256 changed (new ink colours, new embedded PNG), the counts did not.",
       "targets": 13,
       "candidates": 13,
       "matched": 13,
@@ -55,7 +55,7 @@
           "matchedCandidates": 1
         }
       },
-      "sha256": "408ed07444a20ae48105e9212a035fc2fdf4b2fad336a60a6010c77baac27045"
+      "sha256": "798c0b27d544130859efac286d9bdb64743fea26c3af60a1e8b5ea3e447af2bf"
     },
     "health": {
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf",
