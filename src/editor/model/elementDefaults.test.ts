@@ -32,10 +32,12 @@ describe('elementDefaultsFor', () => {
   it('text: {} returns today\'s defaults exactly', () => {
     expect(elementDefaultsFor({}, 'text', DEFAULTS)).toEqual({
       fontFamily: 'Arimo',
-      fontSize: 12,
-      textDirection: 'ltr',
+      // No size, direction or alignment until the document carries one: the
+      // caller's contextual fallbacks decide (see elementDefaults.ts).
+      fontSize: undefined,
+      textDirection: undefined,
       color: '#1463ff',
-      textAlign: 'left',
+      textAlign: undefined,
       fontWeight: 'normal',
       fontStyle: 'normal',
       dateFormatId: 'locale',
@@ -69,10 +71,12 @@ describe('elementDefaultsFor', () => {
     const carried: Partial<DocumentStyle> = { symbolMark: 'x', strokeWidth: 9, whiteoutColor: '#000000', signatureWidth: 40 };
     expect(elementDefaultsFor(carried, 'text', DEFAULTS)).toEqual({
       fontFamily: 'Arimo',
-      fontSize: 12,
-      textDirection: 'ltr',
+      // No size, direction or alignment until the document carries one: the
+      // caller's contextual fallbacks decide (see elementDefaults.ts).
+      fontSize: undefined,
+      textDirection: undefined,
       color: '#1463ff',
-      textAlign: 'left',
+      textAlign: undefined,
       fontWeight: 'normal',
       fontStyle: 'normal',
       dateFormatId: 'locale',
