@@ -13,9 +13,11 @@
 // agent may run this before committing) - see resolveBase()/changedFiles()
 // in change-scope.mjs, which affected-scope.mjs's resolveScope() already
 // calls this same way. Every step below either calls a function exported
-// from affected-scope.mjs against that one scope object, or runs the exact
-// npm script ci.yml's `checks`/`build` jobs run - never a second narrowing
-// decision.
+// from affected-scope.mjs (Nx-decided e2e/font/export scope) or
+// scripts/unit-scope.mjs (ARCH-28: unit tests, by Vitest's own module graph,
+// against that one already-resolved base) against a once-computed scope
+// object, or runs the exact npm script ci.yml's `checks`/`build` jobs run -
+// never a second narrowing decision.
 //
 // Usage: npm run check:push
 
@@ -23,7 +25,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
-import { resolveScope, runUnit, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
+import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
+import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -181,12 +184,17 @@ for (const script of ALWAYS_GUARD_STEPS) {
   if (!(script in STEP_RUNNERS)) STEP_RUNNERS[script] = () => runNpm(script);
 }
 
-function printScope({ base, dirty, scope }) {
+function printScope({ base, dirty, scope, unitScope }) {
   const lines = [
     `check:push scope (base ${base ? base.slice(0, 7) : '(none)'})${dirty ? ' - working tree has uncommitted/untracked changes; scope includes them' : ''}:`,
     `  docs_only:      ${scope.docsOnly}`,
-    `  everything:     ${scope.everything}  (${scope.reason})`,
-    `  unit_paths:     ${scope.unit_paths || '(full suite)'}`,
+    `  everything:     ${scope.everything}  (${scope.reason})  [e2e/font/export scope, Nx-decided]`,
+    // ARCH-28: unit selection is a separate mechanism (scripts/unit-scope.mjs,
+    // Vitest's own module graph) from the Nx-decided everything/e2e_paths
+    // above - a core-project (`everything: true`) verdict no longer implies
+    // the unit step runs everything too.
+    `  unit:           ${unitScope.all ? '(full suite)' : `${unitScope.seeds.length} seed(s): ${unitScope.seeds.join(' ')}`}`,
+    `  unit_reason:    ${unitScope.reasons.join('; ')}`,
     `  e2e_paths:      ${scope.e2e_paths || (scope.everything ? '(full suite)' : '(none)')}`,
     `  fonts:          ${scope.fonts}`,
     `  export_guards:  ${scope.export_guards}`,
@@ -213,10 +221,11 @@ function main() {
   const files = base ? changedFiles(base) : [];
   const docsOnly = classify(files).docs_only;
   const nxScope = resolveScope({ explicitBase: base ?? undefined });
+  const unitScope = resolveUnitScope({ explicitBase: base ?? undefined });
   const build = reachesDist(files);
 
   const scope = { ...nxScope, docsOnly, reachesDist: build };
-  printScope({ base, dirty, scope });
+  printScope({ base, dirty, scope, unitScope });
 
   const steps = planSteps(scope);
   const timings = [];
@@ -229,7 +238,7 @@ function main() {
   for (const id of steps) {
     const t0 = Date.now();
     let status;
-    if (id === 'unit') status = runUnit(nxScope);
+    if (id === 'unit') status = runUnitByImpact(unitScope);
     else if (id === 'e2e:product') status = runE2eProduct(nxScope);
     else if (id === 'e2e:perf') status = runE2ePerf(nxScope);
     else if (id === 'e2e:fonts') status = runFonts(nxScope);
