@@ -5,6 +5,10 @@ import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import type { TextDirection } from '../../editor/model/editorModel.ts';
 import { dominantTextDirection } from '../../lib/signHelpers.js';
 import { describeFormDetectionFailure } from './formDetectionDetail.ts';
+// Type-only: erased at compile time, so this does not give `fields/` a
+// second static importer and does not feed `test:lazy-modules`'s walk of the
+// built graph (that walk follows only what survives to a real `import`).
+import type { DetectedCell } from './fields/fieldTypes.ts';
 
 /** A page-percent `{left, top, width, height}` box - what `toPagePercentBox`
  * actually returns, which is `FieldRegion` minus `pageIndex` (the caller's to
@@ -109,7 +113,14 @@ export interface FormFieldRegions {
   detectionIssue?: string;
   combs: CombRegion[];
   checkboxes: FieldRegion[];
-  cells: FieldRegion[];
+  /**
+   * `DetectedCell[]`, matching what `detectFormFields` itself returns
+   * (FORM-23), not the plain `FieldRegion[]` this used to widen to: a
+   * signature-kind cell is still in here (see the assignment below), and
+   * `useWorkspaceGestures.ts`/`useFieldNavigation.ts` need `kind` on hand to
+   * tell it apart from a typable one before building their own field lists.
+   */
+  cells: DetectedCell[];
   /**
    * The direction each page's printed text reads in, by page index - what
    * MOBI-06's field-to-field order walks a row by. It comes from the page's
@@ -293,14 +304,27 @@ export default function useFormFieldRegions(
           detection: 'done',
           combs: detected.combs,
           checkboxes: detected.checkboxes,
-          // Signature cells aren't wired into a snap yet - signature
-          // placement is a different creation mode (a saved-signature
-          // dialog, not a point tap) and stays out of this first pass. Kept
-          // out here, not inside the detector, so a caller that wants every
-          // detected cell (the corpus, the scored corpus) still gets one.
-          // `detected.cells` is `DetectedCell[]` (FORM-23), so `kind` is
-          // already there - no widening cast needed to filter on it.
-          cells: detected.cells.filter((cell) => cell.kind !== 'signature'),
+          // Every detected cell, signature included. This used to filter
+          // `kind === 'signature'` out here - signature placement is a
+          // different creation mode (a saved-signature dialog, not a point
+          // tap) and was never wired into the text/date snap - but a
+          // signature was still a *detected field*, and `formRegions.cells`
+          // feeds both that snap (`useWorkspaceGestures.ts`) and the
+          // toolbar's "N form fields found" count (`PdfWorkspace.tsx`'s
+          // FORM-11 sum), which is documented there as counting the same set
+          // the hint overlay outlines, deliberately larger than what
+          // Next/Previous walks. Filtering here made all three the smaller
+          // set, silently, and cost nothing to notice until SNG-10's
+          // `formLines.js` started reporting a real, on-page signature line
+          // as `kind: 'signature'` too - before that, only a closed cell
+          // captioned "signature" ever carried it, on forms this pipeline
+          // was not yet scored against. The exclusion from the snap still
+          // holds; it now lives at the two places that build a *typable*
+          // field list from these cells - `useWorkspaceGestures.ts`'s tap
+          // path and `useFieldNavigation.ts`'s Next/Previous order - so a
+          // signature keeps counting toward what was found without becoming
+          // something Next or a tap can type into.
+          cells: detected.cells,
           pageDirections,
         };
         if (current) setRegions({ ...found, detectionIssue: issueRef.current.issue ?? undefined });
