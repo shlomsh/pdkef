@@ -545,6 +545,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
+| SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
 
 ### Blocked
 

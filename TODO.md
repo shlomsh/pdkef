@@ -390,6 +390,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-11 | P1 | [SNG-11](backlog/tasks/SNG-11.md) · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
 | SNG-13 | P2 | [SNG-13](backlog/tasks/SNG-13.md) · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name |
+| SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
 
 
 ## Migrated context and history
