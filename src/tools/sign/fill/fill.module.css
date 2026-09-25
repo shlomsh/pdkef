@@ -1,0 +1,69 @@
+/*
+ * Fill mode (SNG-15): the chrome FieldSlot.tsx renders (docs/sign-fill-mode.md,
+ * "Hints"). Position, size and font all vary per slot instance and stay inline
+ * (styling.md's runtime-geometry boundary) - only state that is the same shape
+ * for every slot lives here. Colors are tokens from src/styles/global.css only.
+ */
+
+/* At rest: a faint frame and a trace of fill, so an empty form reads as
+   "these are the spots to write in" without competing with the page's own
+   print. The same color-mix idiom FormFieldHints.module.css already uses
+   for its own faint fill, at a lower strength since a slot sits directly on
+   top of the printed field rather than beside it. */
+.slot {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  color: var(--color-text);
+  /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
+     slot has to sit exactly where the text element it becomes will. */
+  line-height: 1.05;
+  outline: none;
+  /* Nothing of ours sits on top of a slot, but this stays explicit: iOS
+     skips a field whose centre hit-test lands elsewhere (SNG-14), and a
+     slot must never inherit `pointer-events: none` from a layer that
+     otherwise lets taps pass through to production. */
+  pointer-events: auto;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+/* The droppable look (docs/sign-fill-mode.md, "Hints"): the target the
+   armed tool's own reach (fillReach.ts) would tap next. A solid frame, a
+   soft outer ring and a light fill - distinct from the faint rest state at
+   a glance, on a phone as much as a desktop. --color-primary-ring is the
+   palette's own translucent "ring" token, which is the soft half of this;
+   the clear, solid line is what :focus-visible below draws instead. */
+.slot.aimed {
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 4px var(--color-primary-ring);
+}
+
+/* A clear focus line, layered over either state above - the outline paints
+   outside the border box, so it never competes with the aimed ring's own
+   box-shadow. Same treatment as the sitewide default (global.css), made
+   explicit here since a focused slot is one of this component's own named
+   states rather than an incidental default. */
+.slot:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/*
+ * Exported for later use, not applied by this file: on a coarse pointer, the
+ * main toolbar hides while a fill input has focus (docs/sign-fill-mode.md -
+ * "a page can't add buttons to iOS's own bar"). A fine pointer keeps its
+ * toolbar, since a desktop has no on-screen keyboard bar to compete with.
+ * The toolbar itself opts into this class once it reads `filling` from
+ * useFillFocus.ts.
+ */
+@media (pointer: coarse) {
+  .toolbar-hidden-while-filling {
+    display: none;
+  }
+}
