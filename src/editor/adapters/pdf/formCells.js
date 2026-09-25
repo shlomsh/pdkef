@@ -128,23 +128,6 @@ const MAX_HEIGHTS_BETWEEN = 12;
 const MIN_CELL_WIDTH = 15;
 
 /**
- * A captioned cell sitting directly above this many identical, empty rows in
- * its own column is a table's header, not a field - see `emptyRowRunBelow`.
- * Two is the smallest number that is a repeat rather than a coincidence: one
- * blank cell below a caption is exactly the ordinary "label above a blank
- * answer" shape the detector is supposed to find (`headerAbove`'s whole
- * job), and only a *second* identical blank row beneath the first rules that
- * out. Measured (FORM-13) over every page of every scored form, it drops
- * five cells and all five are headings: on itc101's first page the children
- * table's "מספר זהות" and "שם" (a 13-row run below) and the letter-spaced
- * "השינויים בפרטי" title, on its second page the "כתובת" and "שם" column
- * captions. 2 and 3 drop the same five.
- */
-const MIN_HEADER_RUN = 2;
-/** Bounds `emptyRowRunBelow`'s walk down a column; no scored table has close to this many rows. */
-const MAX_HEADER_RUN_WALK = 60;
-
-/**
  * A ruled cell narrower than `MIN_CELL_WIDTH` is a tick target rather than a
  * place to write a word - form 101 rules its children table as 13 rows of
  * 6.3pt and 8.1pt columns a person ticks, and a width floor written for
@@ -426,46 +409,6 @@ function headerAbove(cell, textItems) {
   return best;
 }
 
-/**
- * How many contiguous, identical, empty rows sit directly beneath `cell` in
- * its own column - FORM-13's header signal.
- *
- * A table column header and a one-off labelled field print the same shape
- * (a caption, then blank space to write in): what tells them apart is not
- * the caption, it is what continues below it. Walks down from `cell`,
- * requiring at each step a closed cell whose left and right walls match
- * `cell`'s own (`POS_TOLERANCE`, the same window `buildClosedCells` used to
- * decide they are one column), whose top meets the running bottom
- * (`BAND_TOLERANCE`, stacked with no gap), whose height matches the row
- * before it (also `BAND_TOLERANCE` - a table's rows are cut from the same
- * ruling, a coincidence of adjacent unrelated boxes is not), and which holds
- * no own text at all. The walk stops at the first row that fails any of
- * these, or at `MAX_HEADER_RUN_WALK`.
- *
- * "Empty" is deliberately just "no own text" here, not "not narrow": a
- * narrow tick column's header is already dropped before this runs (a narrow
- * cell with any own text is rejected outright, see the `cell.narrow` branch
- * in `detectCellCandidates`), so this only ever walks the free-text columns
- * a table like itc101's children table prints beside its tick columns.
- */
-function emptyRowRunBelow(cell, closedCells, textItems) {
-  let run = 0;
-  let cursorBottom = cell.bottom;
-  let refHeight = null;
-  for (let i = 0; i < MAX_HEADER_RUN_WALK; i += 1) {
-    const next = closedCells.find((c) => c !== cell
-      && Math.abs(c.left - cell.left) <= POS_TOLERANCE
-      && Math.abs(c.right - cell.right) <= POS_TOLERANCE
-      && Math.abs(c.top - cursorBottom) <= BAND_TOLERANCE
-      && (refHeight === null || Math.abs(c.height - refHeight) <= BAND_TOLERANCE));
-    if (!next || textInsideCell(next, textItems).length > 0) break;
-    run += 1;
-    refHeight = next.height;
-    cursorBottom = next.bottom;
-  }
-  return run;
-}
-
 // The 4-letter root, not the dictionary form: Hebrew construct state turns חתימה (signature)
 // into חתימת (e.g. "חתימת העובד/ת", signature-of-the-employee), which does not contain the
 // literal string "חתימה" - matching the root instead of the lemma is what actually catches
@@ -479,6 +422,46 @@ const SLASH_DATE_RE = /^[\s/.]{1,6}$/;
 const GLYPH_NOISE_RE = /^[a-zA-Z]{1,3}(\s+[a-zA-Z]{1,3})*$/;
 /** Longer than this is a sentence/paragraph, not a short label hugging an edge. */
 const MAX_LABEL_CHARS = 25;
+/**
+ * Hebrew (U+0590-05FF), Arabic and its supplements/presentation forms
+ * (U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB1D-FDFF, U+FE70-FEFF).
+ *
+ * A side carve only makes sense in the direction a caption's own script
+ * writes it: `writableArea`'s side carve keeps the blank on the *left*
+ * (`area = {...cell, right: textLeft}`), which is the shape an RTL caption
+ * hugging the cell's right wall leaves behind. An LTR caption never has
+ * that shape - a wall-hugging LTR label hugs the *left* wall and leaves its
+ * blank on the right - so any LTR own text that still reaches the cell's
+ * midpoint (`rightHug`) is not a label hugging its writing wall, it is
+ * something else sitting where the test happens to catch it (FORM-14: on
+ * the scored corpus, always a heading or a table's own column caption).
+ * Whether a string is RTL is a fact about the string itself, read the same
+ * way `HEBREW_SIGNATURE`/`HEBREW_DATE` already read the page's own text -
+ * no threshold, no corpus fitting.
+ */
+const RTL_RE = /[\u0590-\u05FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/;
+/**
+ * How much further a side-carved caption's blank-side gap must reach than
+ * its hugged-side gap before the carve is trusted (FORM-14, previously
+ * explored under FORM-13).
+ *
+ * A caption printed *beside* an answer is set against the wall the answer
+ * starts from and leaves the rest of the cell for the answer: it hugs one
+ * wall and the blank runs away from it, so the two gaps are lopsided by
+ * construction. A caption *centred* in its cell - a column heading sitting
+ * over a table's rows - is set apart from both walls by design, so its two
+ * gaps are close to equal. `rightHug` alone cannot tell these apart: it
+ * only asks the caption to reach the cell's midpoint, which a centred
+ * heading does too. Measured on every page of every scored PDF
+ * (2026-09-25): every RTL heading reaches at most ratio 1.35 (itc101's
+ * "שם" column caption, pulled slightly off-centre by its own short width),
+ * and the only two RTL labels this test has to keep are itc101's phone
+ * cells at 9.08 and 13.74. 3 sits between the two with more than 2x
+ * headroom on both sides. LTR captions no longer reach this test at all -
+ * `RTL_RE` above screens them out first - so a caption's own script now
+ * decides whether the ratio is even asked.
+ */
+const HEADER_GAP_RATIO = 3;
 
 /**
  * Is a cell's own printed text separators a person writes *across*, rather
@@ -540,20 +523,35 @@ function classifyKind(ownText, label) {
  * writing line, or a caption at the `side` of it. The two are not equally
  * trustworthy as a published box; see "What a cell candidate's bounds are"
  * in the module docstring.
+ *
+ * A side carve additionally needs the caption itself to be believable as a
+ * label rather than a heading: printed separators (`isPrintedSeparators`)
+ * are trusted outright, same as always, but any other own text must be RTL
+ * (`RTL_RE`) and must hug the wall it is carving against
+ * (`HEADER_GAP_RATIO`) - see both constants' doc comments.
  */
 function writableArea(cell, ownText) {
   let area = cell;
   let carve = 'none';
   if (ownText.length > 0) {
     const textLeft = Math.min(...ownText.map((t) => t.x0));
+    const textRight = Math.max(...ownText.map((t) => t.x1));
     // A pdf.js item's box starts at its baseline, so this is the label's baseline.
     const textBottom = Math.min(...ownText.map((t) => t.y0));
-    const rightHug = Math.max(...ownText.map((t) => t.x1)) >= cell.left + cell.width * 0.5;
+    const rightHug = textRight >= cell.left + cell.width * 0.5;
     const topHug = textBottom >= cell.bottom + cell.height * 0.5;
+    const ownStr = ownText.map((t) => t.str).join(' ').trim();
+    const isSeparators = isPrintedSeparators(ownStr);
+    // Rule 1 (RTL_RE): a caption with no RTL character never side-carves.
+    const sideCarveable = isSeparators || RTL_RE.test(ownStr);
+    // Rule 2 (HEADER_GAP_RATIO): an RTL caption side-carves only when it hugs its wall.
+    const leftGap = textLeft - cell.left;
+    const rightGap = cell.right - textRight;
+    const hugsWall = isSeparators || leftGap >= rightGap * HEADER_GAP_RATIO;
     if (topHug && textBottom - cell.bottom >= MIN_BLANK_HEIGHT) {
       area = { ...cell, top: textBottom };
       carve = 'band';
-    } else if (rightHug && textLeft - cell.left >= MIN_BLANK_WIDTH) {
+    } else if (rightHug && sideCarveable && hugsWall && leftGap >= MIN_BLANK_WIDTH) {
       area = { ...cell, right: textLeft };
       carve = 'side';
     } else return null;
@@ -643,15 +641,6 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
 
     const writable = writableArea(cell, ownText);
     if (!writable) continue;
-
-    // A side-carved caption over a run of identical empty rows is the column's heading, not a
-    // label beside a blank (FORM-13, `emptyRowRunBelow`). Only the side carve: a band carve
-    // already publishes the blank under its caption as the field. A printed `/  /` is not a
-    // caption, for the same reason `typingStrip` ignores it.
-    if (writable.carve === 'side' && !isPrintedSeparators(ownStr)
-      && emptyRowRunBelow(cell, closedCells, textItemsPoints) >= MIN_HEADER_RUN) {
-      continue;
-    }
 
     const header = headerAbove(cell, textItemsPoints);
     const label = ownText.length > 0 ? ownStr : header?.str?.trim();

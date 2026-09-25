@@ -425,19 +425,27 @@ describe('rows are scoped per column', () => {
   });
 });
 
-describe('FORM-13: a caption over a run of identical empty rows is a header, not a field', () => {
+describe('FORM-14: a caption\'s own shape decides label vs heading, not what repeats below it', () => {
   // Mirrors form 101's children-table header: a 12.4pt-tall row whose two cells each hold a
-  // short caption hugging the right wall (RTL). The caption's baseline sits in the row's lower
-  // half, so `writableArea` side-carves it - the same shape as an ordinary labelled field - and
-  // only the run of identical, empty, ruled rows directly underneath tells the two apart.
+  // short caption reaching the cell's midpoint (`rightHug`), the same shape as an ordinary
+  // labelled field. FORM-13 tried telling the two apart by what repeats underneath; FORM-14
+  // replaces that with the caption's own shape - RTL_RE and HEADER_GAP_RATIO. What is stacked
+  // below (or whether anything is) no longer affects the verdict, so every case here uses one
+  // empty row, health's own shape.
   const HEADER_TOP = 92.4;
   const HEADER_BOTTOM = 80; // 12.4pt tall, matching form 101's own header row.
   const HEADER_COLUMNS = [0, 50, 100];
   // Baseline (y0) at pdf y=83, well below the row's midpoint (86.2): the lower half, so this is
   // NOT a band carve.
   const CAPTION = { top: 14.8, height: 2.2 }; // percent top 14.8 -> pdf y1 85.2, y0 83.
-  const idCaption = text('מספר זהות', { left: 30, width: 10, ...CAPTION });
-  const nameCaption = text('שם', { left: 80, width: 10, ...CAPTION });
+  // Hugging its cell's right wall: leftGap 30 vs rightGap 10, ratio 3.0 - HEADER_GAP_RATIO's own
+  // boundary, matching form 101's real children-table captions.
+  const idCaptionHugging = text('מספר זהות', { left: 30, width: 10, ...CAPTION });
+  const nameCaptionHugging = text('שם', { left: 80, width: 10, ...CAPTION });
+  // Centred in its cell: leftGap 20 vs rightGap 20, ratio 1.0 - health's own four column headings
+  // measure 0.94-1.02, itc101's least-centred one 1.35.
+  const idCaptionCentred = text('מספר זהות', { left: 20, width: 10, ...CAPTION });
+  const nameCaptionCentred = text('שם', { left: 70, width: 10, ...CAPTION });
   const idSeparator = text('/ /', { left: 30, width: 10, ...CAPTION });
   const nameSeparator = text('/ /', { left: 80, width: 10, ...CAPTION });
   // Percent top of the header's own bottom wall (pdf y=80 -> 100-80=20): a real header
@@ -461,32 +469,32 @@ describe('FORM-13: a caption over a run of identical empty rows is a header, not
     return mergeInk(...bands);
   }
 
-  it('drops a captioned header row above three identical empty rows, keeping the data rows', () => {
-    const ink = mergeInk(header(), emptyRows(3));
-    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
-    expect(candidates).toHaveLength(6); // only the 3 data rows x 2 columns
+  it('drops a centred RTL caption as a heading, keeping the data row', () => {
+    const ink = mergeInk(header(), emptyRows(1));
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaptionCentred, nameCaptionCentred]);
+    expect(candidates).toHaveLength(2); // only the one data row's 2 columns
     expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
   });
 
-  it('keeps the header above exactly one empty row (MIN_HEADER_RUN is 2, not 1)', () => {
+  it('keeps a hugging RTL caption as a field, over the same run', () => {
     const ink = mergeInk(header(), emptyRows(1));
-    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
+    const candidates = detectCellCandidates(ink, geometry, 0, [idCaptionHugging, nameCaptionHugging]);
     expect(candidates).toHaveLength(4); // the header's 2 cells, plus the one data row's 2
     const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
     expect(headerCells).toHaveLength(2);
     expect(headerCells.every((c) => c.kind === 'text')).toBe(true);
   });
 
-  it('keeps the header over rows whose heights differ from each other (not a repeating table)', () => {
-    const ink = mergeInk(
-      header(),
-      rowBand({ top: 80, bottom: 60, columns: HEADER_COLUMNS }), // 20pt
-      rowBand({ top: 60, bottom: 45, columns: HEADER_COLUMNS }), // 15pt - breaks the run at two
-    );
-    const candidates = detectCellCandidates(ink, geometry, 0, [idCaption, nameCaption]);
-    expect(candidates).toHaveLength(6);
-    const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
-    expect(headerCells).toHaveLength(2);
+  it('never side-carves an LTR caption, even when it reaches the cell\'s midpoint', () => {
+    // Same geometry as the hugging RTL case above, translated to English - reaches the
+    // midpoint (`rightHug`) exactly the way a real label would, but RTL_RE screens it out
+    // before HEADER_GAP_RATIO is even asked.
+    const ink = mergeInk(header(), emptyRows(1));
+    const idLatin = text('ID number', { left: 30, width: 10, ...CAPTION });
+    const nameLatin = text('Name', { left: 80, width: 10, ...CAPTION });
+    const candidates = detectCellCandidates(ink, geometry, 0, [idLatin, nameLatin]);
+    expect(candidates).toHaveLength(2); // only the one data row's 2 columns - the caption row is gone
+    expect(candidates.every((c) => c.top >= HEADER_PERCENT_FLOOR - 1e-6)).toBe(true);
   });
 
   it('keeps a printed "/ /" cell above a run of empty rows - it is written across, not captioned', () => {
