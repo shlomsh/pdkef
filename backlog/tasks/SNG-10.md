@@ -32,25 +32,23 @@ Why it matters beyond looks:
 - It becomes the canonical fixture for SNG-05's surface and SNG-07's Simulator smoke run.
 - The sketches and the product then share one form.
 
-## Open questions for Shlomi
+## Shlomi's answers (2026-09-25)
 
-1. **Fillable (AcroForm, like today) or flat vector?**
-   - Recommendation: flat vector, scored 100/100 in the corpus. It teaches the rule that works on every form (tap to write, plus the spots we found), and it exercises the detection path most real forms take.
-   - A fillable twin can stay a test fixture for the counted path (canvas frame F7).
-2. **A Hebrew twin** as the `/he/` practice form, drawn RTL, so the walk's order and the comb cells are checked on an RTL document.
-3. **Redact.** Should Redact gain a sample for the first time: the same form, filled with the sketches' sample values, since a filled form has something to redact?
+1. **Flat vector, not fillable.** It teaches the rule that works on every form (tap to write, plus the spots we found), and it exercises the detection path most real forms take.
+2. **No Hebrew version.**
+3. **No Redact sample:** "there is no complexity there".
 
 ## Scope
 
-- Move the content module out of `src/tools/redact/` to where its consumers live (`docs/module-boundaries.md`).
-- Generate v2 from the content module, as today.
-- Regenerate its ground truth (the `practice-form` entry in `scripts/generate-live-form-truth.mjs`) and re-record its baseline.
+- Move the content module out of `src/tools/redact/` to where its one consumer lives (`docs/module-boundaries.md`).
+- Generate v2 from the content module as a flat vector PDF: drawn lines, boxes and combs, no AcroForm widgets.
+- Its ground truth can no longer come from widgets (`generate-live-form-truth.mjs` reads widgets). Generate it from the content module's own layout, every drawn field's rect and kind, and re-record the baseline.
 - Audit every e2e spec that loads `sample.pdf`. Keep v1 as a fixture where a spec depends on its geometry.
 - Re-shoot the how-to-sign screenshots (iPhone, Android, Mac content pages) that show the practice form.
 
 ## Acceptance
 
-- [ ] Shlomi answers the three questions above; the answers are recorded here.
-- [ ] v2 is generated from its content module, and detection scores it 100/100 in the corpus (or matches its widgets exactly, if fillable).
-- [ ] The home page's sample loads it (and Redact's, if question 3 says so), and every e2e spec is green, including `field-nav-arrow-direction.spec.js`, which loads `sample.pdf` today.
+- [x] Shlomi answers the three questions; the answers are recorded above.
+- [ ] v2 is generated from its content module as a flat form, and detection scores it 100/100 in the corpus, every spot above the precision floor (SNG-11).
+- [ ] The home page's sample loads it, and every e2e spec is green, including `field-nav-arrow-direction.spec.js`, which loads `sample.pdf` today.
 - [ ] The content pages' screenshots show v2.
