@@ -6,7 +6,7 @@
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import type { FillSlot, PagePoint } from './fillTypes.ts';
+import type { FillSlot, PagePoint, TextFillProps } from './fillTypes.ts';
 
 export interface FillContextValue {
   /** `?next=1`. When false every other field is inert and production runs unchanged. */
@@ -53,4 +53,15 @@ export const FillContext = createContext<FillContextValue>(FILL_OFF);
 
 export function useFill(): FillContextValue {
   return useContext(FillContext);
+}
+
+/**
+ * Per text element: FillLayer wraps each text element it renders in this provider, and
+ * TextNode and DraggableWrapper read it. A context rather than a renderer prop keeps the
+ * editor core's renderer map free of a Sign-only concept. Null outside fill mode.
+ */
+export const TextFillContext = createContext<TextFillProps | null>(null);
+
+export function useTextFill(): TextFillProps | null {
+  return useContext(TextFillContext);
 }

@@ -75,7 +75,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 Existing files change only at their seams:
 - `PdfSignTool.tsx`: the flag, mounting the hooks, and turning off the Tab navigation and fullscreen.
 - `PdfWorkspace.tsx`: splits text into `FillLayer`.
-- `TextNode.tsx` and `DraggableWrapper.tsx`: a `fill` prop and `quiet`.
+- `TextNode.tsx` and `DraggableWrapper.tsx`: read `TextFillContext`.
 - `useWorkspaceGestures.ts`: asks `fillTapDecision` first.
 - `SignToolbar.tsx`: shows Text as chosen when nothing is armed in fill mode.
 
@@ -105,16 +105,19 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - the focus proxy's ref.
 
   Without `?next=1` it is `FILL_OFF`, and every consumer behaves as production does today.
-- **The renderer props.**
-  - A text element's renderer takes an optional `fill: TextFillProps`, and `DraggableWrapper` takes
-    `quiet`.
-  - With `fill`, the textarea is a fill input:
+- **The text element's fill props** travel by context, not by renderer prop, so the editor core's
+  renderer map learns nothing about fill mode.
+  - `FillLayer` wraps each text element in `TextFillContext` (`FillContext.tsx`) with its
+    `TextFillProps`. `TextNode` and `DraggableWrapper` read it with `useTextFill()`.
+  - With it, the textarea is a fill input:
     - `tabIndex` 0, not read-only, not inert, pointer-events auto;
     - `data-fill-input` and `data-fill-key`;
     - `enterkeyhint`;
     - Enter (no Shift, not composing) calls `onEnter`.
   - Its focus no longer selects: `useFillFocus` does that.
-  - `quiet` on a coarse pointer hides the handles, the element toolbar and `.quick-field-nav`.
+  - `DraggableWrapper` is quiet when it has `TextFillContext` on a coarse pointer (`useFill().coarse`).
+    Quiet hides the handles, the element toolbar and `.quick-field-nav`, and leaves a tap on the
+    textarea to native focus.
 - **The focus proxy.**
   - The workspace renders one hidden input for `proxyRef`:
     - fixed at the top left, one pixel, fully transparent, `tabIndex` -1, `aria-hidden`;
