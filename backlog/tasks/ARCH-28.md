@@ -1,7 +1,7 @@
 ---
 id: "ARCH-28"
 title: "Unit tests run by file impact, not by project: a core-folder change runs the tests that import it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -39,3 +39,28 @@ pushes, `vitest related <changed files> --run` selected 2 files (`editor`, `768d
 
 A push touching only `src/lib/drafts/draftStore.js` runs its related unit tests, not 193 files, on a
 green CI run; the audit in step 4 finds no failing test the new scope would have skipped.
+
+## Result (2026-09-25)
+
+`scripts/unit-scope.mjs` chooses unit tests with `vitest related <changed files>` plus a
+`WIDEN_RULES` table for everything the import graph cannot see (tests that read files by path, the
+whole-`src` scan guards, fixtures, fonts, `backlog/`, licenses text). The whole suite runs for global
+config, `.github/workflows/**`, the three scripts that compute the diff or scope, any deletion, an
+empty diff, or a `vitest related` spawn error. CI's `checks` job, `check:push` and `check:fast` all
+select through it. Nx still decides e2e, font guards and export guards.
+
+Measured on single-file changes (unit files selected, before -> after): `src/lib/drafts/draftStore.js`
+193 -> 18, `src/shell/BasePdfTool.tsx` 193 -> 18, `src/tools/sign/PdfSignTool.tsx` 63 -> 7,
+`vitest.config.js` 193 -> 193. Wall time moves less than file count (whole suite ~16s, a narrow set
+~9s): Vitest's startup dominates.
+
+Audit: all 8 CI runs since 2026-09-01 whose unit step failed would still select the failing test.
+7 widen to the whole suite (5 dependency bumps via `package*.json`, 1 oracle-script change and
+deletion, 1 `ci.yml` change); in the 8th the failing test was itself a changed file. The replay found
+that the `ci.yml` case (run 34890208527) had been covered only by luck, which is why workflow changes
+now widen. A fresh review then found three more by-path reads (`.astro`/`.mjs` for the import-scan
+guard, `THIRD_PARTY_LICENSES.md` and `licenses.astro` for `fontAttribution.test.js`, and
+`PdfSignTool.test.tsx`'s font read), all now rules with tests.
+
+Known trade-off: a source file with no test importers and no rule now runs no unit tests, where the
+project-level scope used to run its folder's tests anyway.
