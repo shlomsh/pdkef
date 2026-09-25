@@ -1,7 +1,7 @@
 ---
 id: "FORM-24"
 title: "One home for the ink edge builders"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
@@ -68,3 +68,6 @@ Proof, all run locally: `node scripts/score-form.mjs --all` -> `0 changed, 10 un
 src/editor/adapters/pdf/corpus` -> 195/195 across 2 files; `npm run typecheck` -> 0 errors. A stale
 comment in `corpus/corpus.js` naming the old `horizontalRulesAll` by name was also updated to name the
 new `includeRectSides` option instead (that file is not on the excluded-files list for this ticket).
+
+Closed 2026-09-25 after an independent review: old and new builders compared on every page of the 9
+scored PDFs and 2 fixtures (33 pages, both call-site configurations), 0 mismatches including order.

@@ -502,9 +502,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
+_None._
 
 ### Blocked
 
@@ -522,6 +520,7 @@ _None._
 | FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
 | FORM-21 | P1 | [FORM-21](backlog/tasks/FORM-21.md) · The scored corpus locks in gains and names every regression |
 | FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
+| FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Retired
