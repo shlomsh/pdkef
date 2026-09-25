@@ -1,6 +1,6 @@
 # Sign, next generation: plan of record
 
-*Opened 2026-09-25.* This is the plan for the next-generation Sign editor, and the record of why it exists. Its tickets are the `SNG-*` epic in `backlog/tasks/`.
+*Opened 2026-09-25.* This is the plan for the next-generation Sign editor, and the record of why it exists. Its tickets are the `SNG-*` epic in `backlog/tasks/`. The normative rules that follow from it (interaction grammar, the field walk, the viewport, accessibility, testing, and the review checklist) are in [sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md).
 
 It comes out of one day of work:
 - seven code audits;
@@ -155,10 +155,28 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
 5. **Every committed change is one undo step** (UNDO-04).
    - Moves, resizes, typing (one step per edit session) and styling are all included.
    - No "Moved · Undo" chip (owner's decision); Undo and Redo in the bar are the whole model.
-6. **Fields first, free placement always.**
-   - Filling a form is walking its fields: ∧ ∨ with a count ("3 of 12"). These are up/down arrows (owner's decision, 2026-09-25): iOS's own form-navigation idiom, with no left/right question on RTL documents.
-   - A zoomed-out **review** at the end highlights the empty fields; tapping one jumps back in.
-   - Tap-and-type anywhere stays first-class (FORM-09's rule).
+6. **Detection speeds things up. It never blocks, and it never claims completeness.**
+   - **Why:** recall will never reach 100%.
+     - Many forms people fill on a phone are scans: a photo of paper saved as a PDF. Detection finds nothing on them today (MOBI-14), and a raster path (FORM-06/07) will still miss fields.
+     - Vector flat forms reached about 82% recall at MOBI-10 and 90% on form 101 (FORM-01).
+     - Owner's concern, 2026-09-25: "I am afraid we will never reach 100% recall."
+   - So the editor must be good with zero fields detected, and never harmful when some are missed. There are three document classes, one editor:
+
+     | Document | What we know | Field walk | Review |
+     |---|---|---|---|
+     | Fillable PDF (AcroForm) | every field, exactly | the walk is exact | "N empty" is exact |
+     | Vector flat form | detected fields, recall below 100% | walks the detected fields, as suggestions | counts only what was found, and says so |
+     | Scan, or 0 fields found | nothing | none; tap to write is the path | every page zoomed out with what you added, to check yourself |
+
+   - **Tap to write is the primary path on every document, not a fallback.**
+     - Where you tap, the app looks only at the pixels around your finger for the printed line or box, and snaps the new text box to it. This is local help, not recall (proposed, SNG-09).
+     - Finding the line under a finger is a small precision problem that works on scans. Finding every field on a page is a recall problem that does not.
+   - **Filling a form with detected fields is walking them:** ∧ ∨ with a count ("2 of 12").
+     - These are up/down arrows (owner's decision, 2026-09-25): iOS's own form-navigation idiom, with no left/right question on RTL documents.
+     - A field detection missed becomes a field the moment it is tapped, and it joins the walk in reading order.
+     - A false detection can be dismissed from the walk, and from review.
+   - **The zoomed-out review at the end** highlights the empty fields that were found, and one tap goes back in.
+     - Its copy never claims completeness. It says "All the fields we found are filled. Check each page for anything we missed", never "All done".
    - The question flow of FORM-09 remains gated on the 90/90/85 detection bar.
 7. **Tested where it breaks.**
    - The machine and the router are pure, and are unit-tested with synthetic pointer streams. Every MOBI ticket becomes a transition test.
@@ -223,6 +241,7 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
 | 4. Phone surface behind a flag, Simulator release gate | SNG-05, SNG-07 | parity checklist on the Simulator and on the owner's iPhone |
 | 5. Desktop on the same surface: sketches first, then parity, then flip the flag and delete the old paths | SNG-06 | parity on desktop and iPad |
 | 6. Redact: consolidate its state, then move onto the machine | SNG-08 | Redact's specs green on both engines |
+| alongside 3-4. Tap-local snap to the printed line, for scans and for missed lines | SNG-09 | a scored scan corpus, precision over reach |
 
 **Spike questions, each with its fallback:**
 - **(a)** With `pan-x pan-y` on every descendant, do two-finger touches reach JS reliably while one-finger pans stay native with momentum?

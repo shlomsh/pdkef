@@ -27,6 +27,14 @@ Each sketch covers the same moments:
 6. review what was missed
 7. finish
 
+## Progress
+
+- **2026-09-25:** the canvas is https://claude.ai/artifact/2zhdweqZqXLd5LjmpWsGay.
+  - Directions A (guided composer), B (top bar, type in place) and C (Fill and Add modes), five moments each.
+  - Row D: the undo feedback decision.
+  - Row E: each direction on a scan with 0 fields found, added after Shlomi's point that recall will never reach 100%.
+- The open decisions that ride on the pick are in `docs/sign-next-gen-guidelines.md` §12.
+
 ## Acceptance
 
 - [ ] Three sketches published, each with the same moments, so they can be compared side by side.

@@ -29,8 +29,9 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
 
 **Next generation (2026-09-25).** Sign is being redesigned, phone first, with desktop on the same
 architecture. The plan of record is [docs/sign-next-gen.md](../../docs/sign-next-gen.md), under the SNG
-epic. Local mobile fixes are frozen by Shlomi's decision. Read its §3 (iOS learnings) before touching any
-touch, zoom, focus or keyboard code. The floating-toolbar rules below govern the current editor only, and
+epic, and its normative rules are [docs/sign-next-gen-guidelines.md](../../docs/sign-next-gen-guidelines.md).
+Local mobile fixes are frozen by Shlomi's decision. Read the record's §3 (iOS learnings) and the
+guidelines' §11 checklist before touching any touch, zoom, focus or keyboard code. The floating-toolbar rules below govern the current editor only, and
 retire with SNG-06.
 
 ## Shape of the editor (landed, do not re-migrate)

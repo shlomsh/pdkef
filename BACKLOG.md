@@ -536,6 +536,7 @@ _None._
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Desktop and iPad on the next-generation surface: sketches, parity, then retire the old editor paths |
 | SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
+| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · On a scan, a tapped text box snaps to the printed line under the finger, found locally, with no whole-page detection |
 
 ### In progress
 
