@@ -1,7 +1,7 @@
 ---
 id: "DEMO-08"
 title: "The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "landing-story-demo"
 phase: "near-term"
@@ -34,5 +34,10 @@ My lean is 1: the story works because the scene is familiar, and the demo never 
 
 ## Acceptance
 
-- [ ] The owner picks 1 or 2; the decision is recorded here.
+- [x] The owner picks 1 or 2; the decision is recorded here.
 - [ ] If 2: the story, its localized copy and `home-page.md` describe the new form, and `e2e/home/**` is green.
+
+## Decision (2026-09-25)
+
+Shlomi: **1, keep the demo as is.** The Sign story stays the parents'-chat permission slip; the
+practice form is a separate thing to practise on. Nothing to build.
