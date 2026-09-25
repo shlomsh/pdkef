@@ -96,6 +96,9 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
       dir="auto"
       aria-label={label}
       autocomplete="off"
+      // Names, numbers and addresses are not prose, and iOS applies a pending
+      // autocorrection as focus leaves for the next field ("DJane" became "Do").
+      autocorrect="off"
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       style={{

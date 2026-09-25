@@ -6,15 +6,14 @@
  * `FillTapDecision` comes back. What a tap *should* do lives in `fillTap.ts`; this file
  * only knows how to read a DOM event and how to act on the answer.
  *
- * Two decisions can run per touch tap, deliberately. `onTouchStart` only sets the aimed
- * key (the droppable look) and never acts. `onTouchEnd` is the one that decides and acts,
- * gated by `classifyTouchTap` so a scroll or drag is never read as a tap. When its
- * decision is 'native' or 'delegate', `onTouchEnd` does nothing at all and lets the click
- * iOS synthesizes reach `onClickCapture`, which decides again against a live DOM target
- * (the touch's own target can be stale once a slot has just been created under it).
- * Acting on 'focus'/'dismiss'/'freeSlot' instead calls `preventDefault` on the touchend so
- * that synthesized click never fires: deciding twice there would focus-then-dismiss, or
- * open a second free slot, for the one tap.
+ * A touch tap decides exactly once. `onTouchStart` only sets the aimed key (the
+ * droppable look) and never acts. `onTouchEnd` decides, gated by `classifyTouchTap` so a
+ * scroll or drag is never read as a tap. It carries out 'focus', 'dismiss' and
+ * 'freeSlot' itself and calls `preventDefault`, so iOS synthesizes no click. For
+ * 'native' and 'delegate' it lets the click come, and `onClickCapture` carries out that
+ * same decision without deciding again: the focus a tap causes can move the page under
+ * the finger (the toolbar hides, iOS scrolls), so the click's own point is not the tap's.
+ * Only a mouse click decides in `onClickCapture`.
  *
  * A free slot's own focus is a special case (MOBI-24): iOS only raises the keyboard for a
  * focus made synchronously inside a touch handler, before the slot's own input even
@@ -31,6 +30,9 @@ import { useFill } from './FillContext.tsx';
 import type { FillTapDecision, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
 
 type OnOverlay = { currentTarget: HTMLElement };
+
+/** How long after a touch tap its synthesized click still belongs to it. */
+const TOUCH_CLICK_WINDOW_MS = 1000;
 export type FillMouseEvent = MouseEvent & OnOverlay;
 export type FillPointerEvent = PointerEvent & OnOverlay;
 export type FillTouchEvent = TouchEvent & OnOverlay;
@@ -70,6 +72,12 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   const touchIdRef = useRef<number | null>(null);
   const multiTouchRef = useRef(false);
   const engagedAtPress = useRef(false);
+  // A touch decides once, at touchend. The click iOS synthesizes afterwards only carries
+  // out a 'native' or 'delegate' decision made there, never decides again: by then the
+  // focus that tap caused may have moved the page under the finger (the toolbar hides,
+  // iOS scrolls the field into view), so the click's own point is no longer the tap's.
+  // Measured on iOS 26: deciding again sent the focus to whatever field slid under it.
+  const touchTapRef = useRef<{ decision: FillTapDecision; time: number } | null>(null);
 
   /** A browser client point, on this page, in the percent model fillTap.ts decides over. */
   const pointAt = (clientX: number, clientY: number, overlay: HTMLElement, pageIndex: number): PagePoint => {
@@ -145,6 +153,15 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   };
 
   const onClickCapture = (event: FillMouseEvent, pageIndex: number) => {
+    const touchTap = touchTapRef.current;
+    touchTapRef.current = null;
+    if (touchTap && Date.now() - touchTap.time < TOUCH_CLICK_WINDOW_MS) {
+      if (touchTap.decision.type === 'delegate') delegate(event, pageIndex, touchTap.decision.at);
+      // 'native': the input already has focus. A click that lands on the page after the
+      // shift must not reach the workspace's blank-area deselect and take it away.
+      else event.stopPropagation();
+      return;
+    }
     const target = event.target as Element | null;
     if (ownedByElement(target)) {
       // Exactly production's own path: no corrected point, since nothing here found a
@@ -190,6 +207,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       return;
     }
     const touch = event.changedTouches[0];
+    touchTapRef.current = null;
     touchStartRef.current = sample(touch);
     touchIdRef.current = touch.identifier;
     multiTouchRef.current = false;
@@ -215,20 +233,25 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     // and the decision below both read clientX/Y off this changedTouches entry instead.
     if (!start || !classifyTouchTap(start, sample(touch), { multiTouch })) return;
     const target = event.target as Element | null;
-    if (ownedByElement(target)) return;
+    if (ownedByElement(target)) {
+      // Production's own tap: the click carries it out exactly as production would.
+      touchTapRef.current = { decision: { type: 'delegate' }, time: Date.now() };
+      return;
+    }
     const at = pointAt(touch.clientX, touch.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
     if (act(decision)) {
-      // Suppresses the click iOS would otherwise synthesize from this touch, which would
-      // decide a second time - see the file docstring.
+      // Suppresses the click iOS would otherwise synthesize from this touch.
       event.preventDefault();
       event.stopPropagation();
+      return;
     }
-    // 'native' and 'delegate' do nothing: the synthesized click reaches onClickCapture,
-    // which decides again against a live target.
+    // 'native' and 'delegate': the synthesized click carries this decision out as is.
+    touchTapRef.current = { decision, time: Date.now() };
   };
 
   const onTouchCancel = () => {
+    touchTapRef.current = null;
     touchStartRef.current = null;
     touchIdRef.current = null;
     multiTouchRef.current = false;
