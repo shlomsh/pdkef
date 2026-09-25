@@ -68,10 +68,16 @@ export function elementDefaultsFor(
     case 'text':
       return {
         fontFamily: value('font'),
-        fontSize: value('fontSize'),
-        textDirection: value('direction'),
+        // Size, direction and alignment come from the carried style only: each
+        // has a contextual fallback the caller owns (fieldFontSize seeds the
+        // size from the first field, a detected field falls back to the page's
+        // printed direction, and an unset alignment follows the text's own
+        // direction via getTextAlign). A fixed default here would override all
+        // three.
+        fontSize: carried.fontSize,
+        textDirection: carried.direction,
         color: value('color'),
-        textAlign: value('textAlign'),
+        textAlign: carried.textAlign,
         fontWeight: value('bold') ? 'bold' : 'normal',
         fontStyle: value('italic') ? 'italic' : 'normal',
         dateFormatId: value('dateFormat'),
