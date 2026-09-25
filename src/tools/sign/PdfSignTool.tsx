@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   EditorElement,
@@ -19,11 +19,17 @@ import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
-import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
+import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT, PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
+import useCoarsePointer from './useCoarsePointer.ts';
+import { isFillMode } from './fill/fillMode.ts';
+import { freeSlot, placementForFree } from './fill/fillSlots.ts';
+import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
+import { useFillFocus } from './fill/useFillFocus.ts';
+import type { FillSlot, PagePoint } from './fill/fillTypes.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
@@ -82,6 +88,34 @@ function describeSignFailure(err: unknown, t: SignMessages): string {
 
 function isTextDirection(value: string): value is TextDirection {
   return value === 'ltr' || value === 'rtl';
+}
+
+/**
+ * Fill mode (SNG-15): what `openFreeSlot` builds when a tap lands where
+ * nothing was detected - the tapped page's own size in points (the same
+ * fallback `useWorkspaceGestures.ts`'s `handlePageClick` falls back to for an
+ * unmeasured page), and the font size/family a real placement would take
+ * right now: the selected text element's own, or the remembered default,
+ * exactly as `PdfWorkspace.tsx`'s `initialFont`/`initialFontSize` resolve
+ * them for `handlePageClick` itself. Pure and exported so this is unit-tested
+ * directly, without mounting the island (docs/sign-fill-mode.md).
+ */
+export function buildFreeSlot(
+  at: PagePoint,
+  pageSizes: PageGeometry[],
+  fonts: {
+    activeText: { fontFamily?: string; fontSize?: number } | null;
+    lastFont: string;
+    lastFontSize: number;
+  },
+): FillSlot {
+  const geometry = pageSizes[at.pageIndex];
+  return freeSlot(at, placementForFree(at, {
+    fontFamily: fonts.activeText?.fontFamily || fonts.lastFont,
+    fontSize: fonts.activeText?.fontSize || fonts.lastFontSize,
+    pageWidthPoints: geometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+    pageHeightPoints: geometry?.height || PAGE_HEIGHT_DEFAULT_PTS,
+  }));
 }
 
 // How long to wait after the last edit before speculatively re-exporting in
@@ -169,6 +203,57 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // next 'date' tool placement.
   const [lastDateFormat, setLastDateFormat] = useState('locale');
 
+  // Fill mode (SNG-15), opt-in on `?next=1` alone (docs/sign-fill-mode.md).
+  // Read once, lazily, rather than on every render: the island is
+  // prerendered (output: 'static'), so `window` may not exist yet, and the
+  // flag must not flip mid-session once a real `window.location.search` is
+  // available on hydration.
+  const [enabled] = useState(() => typeof window !== 'undefined' && isFillMode(window.location.search));
+  const coarse = useCoarsePointer();
+  const [aimedKey, setAimedKey] = useState<string | null>(null);
+  const [freeSlotState, setFreeSlotState] = useState<FillSlot | null>(null);
+  const [pendingFocusKey, setPendingFocusKey] = useState<string | null>(null);
+  const proxyRef = useRef<HTMLInputElement>(null);
+
+  // Fill mode only: the box a free slot becomes must read exactly like the
+  // selected text element's own font, or the remembered default otherwise -
+  // duplicated from PdfWorkspace.tsx's own activeTextElement rather than
+  // lifted up, the same reasoning as this file's own exportReadiness copy
+  // below (threading it down would only serve this one background piece).
+  const activeElement = elements.find((el) => el.id === activeElementId);
+  const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
+
+  const openFreeSlot = useCallback((at: PagePoint) => {
+    const slot = buildFreeSlot(at, pageSizes, { activeText: activeTextElement, lastFont, lastFontSize });
+    setFreeSlotState(slot);
+    setPendingFocusKey(slot.key);
+  }, [pageSizes, activeTextElement, lastFont, lastFontSize]);
+
+  const closeFreeSlot = useCallback(() => setFreeSlotState(null), []);
+
+  const { filling } = useFillFocus({
+    enabled,
+    dispatch,
+    textOf: (elementId) => {
+      const element = elements.find((el) => el.id === elementId);
+      return element?.type === 'text' ? element.text : undefined;
+    },
+  });
+
+  const fillContextValue = useMemo<FillContextValue>(() => ({
+    enabled,
+    coarse,
+    filling,
+    aimedKey,
+    setAimedKey,
+    freeSlot: freeSlotState,
+    openFreeSlot,
+    closeFreeSlot,
+    pendingFocusKey,
+    setPendingFocusKey,
+    proxyRef,
+  }), [enabled, coarse, filling, aimedKey, freeSlotState, openFreeSlot, closeFreeSlot, pendingFocusKey, setAimedKey, setPendingFocusKey, proxyRef]);
+
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
   const [activeSignature, setActiveSignature] = useState<SavedSignature | null>(null);
@@ -253,6 +338,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   }, [file, documentRevision, clearPrepared]);
 
   const toggleFullscreen = () => {
+    // Off in fill mode (docs/sign-fill-mode.md): fullscreen makes
+    // `.workspace` the scroller, and iOS's arrows can't reach an off-screen
+    // field inside it.
+    if (enabled) return;
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
       return;
@@ -765,7 +854,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       // calling preventDefault when there is nowhere left to go
       // (hasNext/hasPrevious false) leaves Tab free to leave the field the
       // ordinary way, same as reaching the end of any other web form.
-      if (e.key === 'Tab' && activeElementId) {
+      //
+      // Off in fill mode (docs/sign-fill-mode.md): every fill input is a
+      // real, focusable element already in reading order, so native Tab
+      // needs no help finding the next one - this handler would otherwise
+      // fight the browser's own order with `fieldOrder.ts`'s.
+      if (!enabled && e.key === 'Tab' && activeElementId) {
         const goingForward = !e.shiftKey;
         if (goingForward ? fieldNavigation.hasNext : fieldNavigation.hasPrevious) {
           e.preventDefault();
@@ -800,7 +894,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // useWorkspaceGestures's handlers), so listing it here re-subscribes on
     // every render rather than risking a stale hasNext/hasPrevious closure -
     // cheap next to what a Tab press silently doing the wrong thing would cost.
-  }, [activeElementId, editingElementId, elements, fieldNavigation]);
+  }, [activeElementId, editingElementId, elements, fieldNavigation, enabled]);
 
   // Handle element copy and paste actions
   useEffect(() => {
@@ -1032,33 +1126,39 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           <SavedSignaturesContext.Provider
             value={{ savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature: deleteSavedSignature }}
           >
-            <PdfWorkspace
-              status={status}
-              isPseudoFullscreen={isPseudoFullscreen}
-              workspaceRef={workspaceRef}
-              numPages={numPages}
-              pageSizes={pageSizes}
-              formRegions={formRegions}
-              pdfDocument={pdfDocument}
-              pageWrapperRefs={pageWrapperRefs}
-              setTempPlacement={setTempPlacement}
-              setDialogOpen={setDialogOpen}
-              logAction={logAction}
-              handleSavePdf={handleSavePdf}
-              handleDownloadPdf={handleDownloadPdf}
-              handleSharePdf={handleSharePdf}
-              setAnnouncement={setAnnouncement}
-              onUndo={undoLast}
-              onRedo={redoLast}
-              toggleFullscreen={toggleFullscreen}
-              isFullscreen={isFullscreen}
-              placeSignatureAt={placeSignatureAt}
-              canSharePdf={canSharePdf}
-              shareReady={shareReady}
-              errorDetail={errorDetail}
-              fieldNavigation={fieldNavigation}
-              messages={t}
-            />
+            {/* Fill mode (SNG-15): the workspace, its gestures and the
+                toolbar all read this through useFill(). Off (`FILL_OFF`)
+                keeps every consumer on production's current behaviour -
+                see FillContext.tsx and docs/sign-fill-mode.md. */}
+            <FillContext.Provider value={enabled ? fillContextValue : FILL_OFF}>
+              <PdfWorkspace
+                status={status}
+                isPseudoFullscreen={isPseudoFullscreen}
+                workspaceRef={workspaceRef}
+                numPages={numPages}
+                pageSizes={pageSizes}
+                formRegions={formRegions}
+                pdfDocument={pdfDocument}
+                pageWrapperRefs={pageWrapperRefs}
+                setTempPlacement={setTempPlacement}
+                setDialogOpen={setDialogOpen}
+                logAction={logAction}
+                handleSavePdf={handleSavePdf}
+                handleDownloadPdf={handleDownloadPdf}
+                handleSharePdf={handleSharePdf}
+                setAnnouncement={setAnnouncement}
+                onUndo={undoLast}
+                onRedo={redoLast}
+                toggleFullscreen={toggleFullscreen}
+                isFullscreen={isFullscreen}
+                placeSignatureAt={placeSignatureAt}
+                canSharePdf={canSharePdf}
+                shareReady={shareReady}
+                errorDetail={errorDetail}
+                fieldNavigation={fieldNavigation}
+                messages={t}
+              />
+            </FillContext.Provider>
           </SavedSignaturesContext.Provider>
         </SignDefaultsContext.Provider>
       )}
