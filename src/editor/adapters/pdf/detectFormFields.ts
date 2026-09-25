@@ -1,6 +1,13 @@
 import type { PDFDocument, PDFPage } from '@cantoo/pdf-lib';
 import { createPageGeometry, type PageGeometry } from '../../geometry/coords.ts';
 import type { CombRegion, FieldRegion } from '../../text/combPlacement.ts';
+import type {
+  DetectedCell,
+  DetectionContext,
+  FieldSource,
+  PageTextRun,
+  SourceRegions,
+} from './fieldTypes.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { detectPageRegions } from './formGrid.js';
 import { detectCellCandidates } from './formCells.js';
@@ -46,47 +53,14 @@ import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 export { toPageTextRuns } from './textRuns.js';
 
 /**
- * One page's text, already in the editor's page-percent shape - what
- * `textRuns.js`'s `toPageTextRuns` produces from a pdf.js page, and what a
- * corpus row authors directly (`corpus/README.md`, "Two things to know").
+ * The source contract - `PageTextRun`, `DetectionContext`, `SourceRegions`,
+ * `FieldSource` - lives in `fieldTypes.ts` now (FORM-23), next to the kind
+ * vocabulary a source's regions carry. Re-exported here so an existing
+ * `import type { FieldSource } from './detectFormFields.ts'` (or the other
+ * three) keeps working unchanged; a new import should prefer `fieldTypes.ts`
+ * directly.
  */
-export interface PageTextRun {
-  str: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
-/**
- * What a source needs to detect one page: its own text runs, the page's
- * geometry (built once per page in `detectFormFields` and shared by every
- * source, so two sources can never disagree about it), and which page this
- * is, for the regions a source stamps with `pageIndex`.
- */
-export interface DetectionContext {
-  textRuns: PageTextRun[];
-  geometry: PageGeometry;
-  pageIndex: number;
-}
-
-/** What one source reports for one page, before reconciliation. */
-export interface SourceRegions {
-  combs: CombRegion[];
-  checkboxes: FieldRegion[];
-  cells: FieldRegion[];
-}
-
-/**
- * One way of finding fields on a page. Async from the start: today's two
- * sources are synchronous wrappers around synchronous functions, but OCR
- * will not be - it will likely run in a worker - and a contract that is sync
- * now is one every future source has to rewrite around.
- */
-export interface FieldSource {
-  name: string;
-  detect(page: PDFPage, context: DetectionContext): Promise<SourceRegions>;
-}
+export type { PageTextRun, DetectionContext, SourceRegions, FieldSource };
 
 /**
  * The page's own drawn ink: comb teeth, checkbox squares and glyphs, ruled
@@ -158,13 +132,19 @@ export function pageGeometry(page: PDFPage): PageGeometry {
  * expensive way, when leaving text out cost the health declaration 14 points
  * of precision and nobody had decided that on purpose.
  *
+ * `cells` comes back typed as `DetectedCell[]`, not the plain `FieldRegion[]`
+ * a source itself reports (`SourceRegions.cells`): every real cell a source
+ * produces does carry a `kind` (`formCells.js`'s and `formWidgets.js`'s own
+ * JSDoc types say so), so the entry point asserts that once here rather than
+ * leaving every caller to re-assert it with its own widening cast.
+ *
  * @param document an already-loaded `@cantoo/pdf-lib` document.
  */
 export async function detectFormFields(
   document: PDFDocument,
   { textRuns, sources = DEFAULT_SOURCES }: { textRuns: PageTextRun[][]; sources?: FieldSource[] },
-): Promise<{ combs: CombRegion[]; checkboxes: FieldRegion[]; cells: FieldRegion[] }> {
-  const found: { combs: CombRegion[]; checkboxes: FieldRegion[]; cells: FieldRegion[] } = {
+): Promise<{ combs: CombRegion[]; checkboxes: FieldRegion[]; cells: DetectedCell[] }> {
+  const found: { combs: CombRegion[]; checkboxes: FieldRegion[]; cells: DetectedCell[] } = {
     combs: [],
     checkboxes: [],
     cells: [],
