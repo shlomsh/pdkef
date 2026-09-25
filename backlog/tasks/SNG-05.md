@@ -27,7 +27,12 @@ The normative rules are `docs/sign-next-gen-guidelines.md`:
 ## Acceptance
 
 - [ ] The parity checklist passes on the Simulator and on Shlomi's iPhone.
-- [ ] Nothing in the UI comes from whole-page detection: no marks, no walk, no counts, no empty-field review.
+- [ ] ∧ ∨ hop between elements, detected and added alike, zoomed in so each is readable; there is no count and no progress over elements.
+- [ ] A false positive passes with a single ∨, and "Remove" at an empty detected element takes it out of the hops for that file.
+- [ ] A tap on a spot nothing marks adds an element there (Text by default), lined up by the local help (SNG-09), and it joins the hops.
+- [ ] Handles for move and resize appear only after a direct tap on an element; a hop never shows them.
+- [ ] A pinch never moves or resizes anything, and never switches to the grid of pages by accident: the switch needs a pinch past a stop, committed on release, or the bar's "Pages" control.
+- [ ] The bar is one row, and changes with the moment (nothing selected, at a hop, an element selected, the grid of pages).
 - [ ] Every mark (text, tick, cross, circle, strike, initials, signature, date) can be placed, lands neatly (SNG-09), and is one undo away.
 - [ ] The finish shows what the person added and never flags a blank.
 - [ ] Undo covers moves, resizes, typing and styling.

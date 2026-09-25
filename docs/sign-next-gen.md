@@ -11,7 +11,7 @@ It comes out of one day of work:
 
 **The decision.** Stop patching mobile Sign. Design and build the next-generation editor, starting from three mobile sketches the owner picks from. Desktop moves onto the same architecture.
 
-**Its detection premise (the owner, 2026-09-25, final).** The page is an image and the person is the guide: even perfect detection could not know which blanks are this person's to fill, since that is a judgment about intent and context, an employer's section left blank on purpose, an optional checkbox, a yes/no mark in a medical form, not something the page alone can carry (§5.6). So nothing in the UI comes from whole-page detection; the person chooses what to write, and the app helps only with where, at the fingertip, on every document alike.
+**Its detection premise (the owner, 2026-09-25, final).** The page is an image and the person is the guide: even perfect detection could not know which blanks are this person's to fill, since that is a judgment about intent and context, an employer's section left blank on purpose, an optional checkbox, a yes/no mark in a medical form, not something the page alone can carry (§5.6). So the model is to hop between elements, zoomed in: detection suggests where to go, and a wrong or missing suggestion is a first-class case, not an error. The person still chooses what to write and what each mark means, at the fingertip, on every document alike.
 
 ## 1. The pains
 
@@ -161,12 +161,14 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
    - **The owner's premise, 2026-09-25, final:** "impeccable ux based on raster with user guidance assuming low precision and recall." It replaces the same day's earlier model, in which found fields were marked, walked, counted and flagged when empty.
    - **Why, beyond the measurements:** even perfect detection could not know which blanks are this person's to fill. An employee's form leaves the employer's section blank on purpose. "Check the following if they apply" makes an unticked box a correct answer. Whether a blank is a gap is a judgment about intent and context, not about the page. So a walk over fields, a count, or "you missed this" is a guess about intent, and a wrong guess frustrates more than it helps.
    - **Marks are as central as text:** a tick or a cross in a box (the yes/no answers of a medical form), a circle around an answer, a line through what does not apply, initials, a signature, a date.
-   - **The rules:**
-     - Nothing in the UI comes from whole-page detection: no marks on found fields, no walk over fields, no counts, no empty-field review, no field names.
-     - The person chooses what to write. The app never guesses the kind of mark.
-     - The app helps only with where, at the fingertip: a tick centres in the box under the finger, text sits on the line, a circle wraps the word, a strike runs through it. This help reads only a small window of the rendered page, declines when unsure, and is one undo away (SNG-09, widened to every mark).
+   - **The rules (the mental model, owner, 2026-09-25):** "allow user to move between elements zooming on those detected, with false positives and false negatives as first class citizens."
+     - Detection suggests where to go. Elements are the detected ones and the ones the person adds; once on the page, both are equal, and ∧ ∨ hop between them in reading order, across pages, zoomed in so each is readable with its printed label in view. No count, no progress.
+     - A hop readies the element for input; it never shows move or resize handles. Handles appear only after a direct tap on an element, and only that element moves or resizes; a pinch only zooms.
+     - False positives are first-class: passing an empty one costs one ∨, and "Remove" at an empty detected element takes it out of the hops for that file. False negatives are first-class: a tap on a spot nothing marks adds an element there, lined up by the local help (SNG-09), and it joins the hops like any other.
+     - Wrong kind is one tap: the bar at an element offers its kinds, and a tap converts it.
+     - Pinching out past the whole page switches to a grid of pages only deliberately, past a threshold, committed on release; a plain pinch always zooms.
+     - The person still chooses what to write and what each mark means. The app helps only with where, at the fingertip (SNG-09), reads only a small window of the page, and declines when unsure.
      - A scan and a typed PDF behave the same. (Open: whether a fillable PDF's own fields are filled silently underneath.)
-     - Guidance teaches how, never what: first-run hints, and, depending on the direction, the app moving the view through the page for the person (open #0, SNG-02).
      - The finish shows what you added, never what you missed.
    - **What detection does today** (measured 2026-09-25: `node scripts/score-form.mjs --all` on d7f8c817, equal to `baselines.json`):
      - Most typed forms, fillable or flat, score 87-100% recall at 96-100% precision: health 86.7/100, form 101 94.2/97.8, 1040 (2024) 100/97.8, I-9 98.1/96.2, ล.ย.01 100/100.
@@ -202,7 +204,7 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
   - A second interaction model would double every future fix.
 - **Desktop gains from the same pieces:**
   - app zoom (buttons, Ctrl or Cmd + wheel, fit width);
-  - moving between marks (Tab / Shift+Tab, the convention of every PDF form viewer);
+  - hopping between elements (Tab / Shift+Tab, the convention of every PDF form viewer);
   - the finish step;
   - fine-grained undo.
 
@@ -213,7 +215,7 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
   - With an element selected: its properties replace the tools (size, colour, font, delete, duplicate), the way Canva's bar changes on selection.
 - **No floating element toolbar.** Nothing can cover the field above it, the MOBI-32 class is gone on desktop too, and there is one place to look.
 - **In-place WYSIWYG typing in the box.** There is no soft keyboard, so desktop never needs the phone's workarounds.
-- **Keyboard shortcuts are unchanged.** Tab and Shift+Tab move between marks.
+- **Keyboard shortcuts are unchanged.** Tab and Shift+Tab hop between elements.
 - **Optional on wide screens:** a marks rail listing every mark the person added. It is the finish step, kept open.
 
 **Order of work.** The phone ships first, because that is where the pain is. Desktop follows on the same flag to parity. Then the old paths are deleted, and Redact moves over. Redact first needs its own state consolidated: it has about 13 `useState`s and no reducer.
@@ -239,7 +241,7 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
 | Phase | Ticket | Gate |
 |---|---|---|
 | 0. Plan of record and learnings (this document) | SNG-01 | done |
-| 1. Three mobile sketches; the owner picks one; polish it into a clickable prototype | SNG-02 | the owner picks a direction within the raster-first premise |
+| 1. Three mobile sketches; the owner picks one; polish it into a clickable prototype | SNG-02 | the chosen model (hop between elements, zoomed) polished at low fidelity, then higher |
 | alongside 1. Practice form v2: the sketches' Employee details form becomes the app's own example form | SNG-10 | the owner's choices on its open questions |
 | 2. Spike on the iOS 26 Simulator, shaped by the chosen sketch | SNG-03 | go/no-go on every question below, each with a fallback |
 | 3. Interaction machine, input router and fine-grained undo, pure, with the MOBI history as tests | SNG-04, UNDO-04 | unit suite green; every MOBI regression has a test |

@@ -241,16 +241,23 @@ inherits:
   fixed, contextual bar or sheet, never in a toolbar anchored to the element.
   - Every studied competitor that edits on a phone does this.
   - Ours broke under zoom, under the keyboard, and against the sticky strip.
+- **The document takes the screen.** One row of chrome, margins kept to a minimum around the page, and
+  no redundant line of copy.
 - **The editor owns its zoom.**
   - Pinch and the zoom buttons change the app's zoom. Safari never zooms the editing surface: `touch-action` goes on the surface and on every descendant.
   - Fit always shows the whole page (§16).
   - Safari's own zoom cannot be set from code, and a sticky bar rides out of view under it.
+- **Pinch is the zoom.** No layout switch, like jumping to a grid of pages, ever rides on a pinch by
+  accident; that needs a deliberate extra step or its own control.
 - **On touch, a swipe that starts on the page scrolls.** Only an element that was already selected
   moves. A second finger always cancels a one-finger gesture.
+- **Move and resize are intentional.** Handles appear only after a direct tap on an element; arriving at
+  it by a hop, or touching it with a pinch, never shows them.
 - **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
   arrow must not change meaning with the language.
 - **The app never claims what a form needs.** Even perfect detection cannot know which blanks are yours:
-  an employer's section, an optional box. So no walk over fields, no counts, and no "you missed this".
+  an employer's section, an optional box. Detection may suggest where to go, never what must be filled:
+  a wrong or missing suggestion costs one tap, and nothing is ever counted or flagged as missing.
   The person chooses what to write, and the app helps only with where, at the fingertip, declining when
   unsure. Every page is treated as an image, so a scan works like any PDF (owner, 2026-09-25; the Sign
   guidelines §1).
