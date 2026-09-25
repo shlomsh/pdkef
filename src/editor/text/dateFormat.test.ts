@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   DATE_FORMAT_IDS,
+  dateFormatForComb,
   detectLocale,
   formatDate,
   isDateFormatId,
@@ -36,6 +37,14 @@ describe('formatDate', () => {
     expect(formatDate(isoDate, 'dmy')).toBe('15/09/2026');
   });
 
+  it('formats DDMMYYYY with no separators for dmyDigits, one digit per comb cell', () => {
+    expect(formatDate(isoDate, 'dmyDigits')).toBe('15092026');
+  });
+
+  it('formats MMDDYYYY with no separators for mdyDigits', () => {
+    expect(formatDate(isoDate, 'mdyDigits')).toBe('09152026');
+  });
+
   it('formats month/day/year for mdy', () => {
     expect(formatDate(isoDate, 'mdy')).toBe('09/15/2026');
   });
@@ -43,6 +52,8 @@ describe('formatDate', () => {
   it('zero-pads single-digit day and month', () => {
     expect(formatDate('2026-01-05', 'dmy')).toBe('05/01/2026');
     expect(formatDate('2026-01-05', 'mdy')).toBe('01/05/2026');
+    expect(formatDate('2026-01-05', 'dmyDigits')).toBe('05012026');
+    expect(formatDate('2026-01-05', 'mdyDigits')).toBe('01052026');
   });
 
   it('follows the given locale for the locale format', () => {
@@ -52,6 +63,19 @@ describe('formatDate', () => {
 
   it('defaults to detectLocale() when no locale is passed', () => {
     expect(formatDate(isoDate, 'iso')).toBe(isoDate);
+  });
+});
+
+describe('dateFormatForComb', () => {
+  it('goes digits-only on an 8-cell comb, month-first only for a month-first choice', () => {
+    expect(dateFormatForComb('mdy', 8)).toBe('mdyDigits');
+    expect(dateFormatForComb('mdyDigits', 8)).toBe('mdyDigits');
+    (['locale', 'iso', 'dmy', 'dmyDigits'] as const).forEach((id) => expect(dateFormatForComb(id, 8)).toBe('dmyDigits'));
+  });
+
+  it('keeps the remembered format for any other cell count', () => {
+    expect(dateFormatForComb('iso', 10)).toBe('iso');
+    expect(dateFormatForComb('mdy', 6)).toBe('mdy');
   });
 });
 
