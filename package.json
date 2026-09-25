@@ -12,7 +12,7 @@
     "preview": "astro preview",
     "typecheck": "astro check",
     "test": "vitest run",
-    "test:changed": "vitest run --changed origin/main",
+    "test:changed": "node scripts/unit-scope.mjs --run",
     "test:affected": "node scripts/affected-scope.mjs --run unit",
     "test:e2e": "npm run build && node scripts/affected-scope.mjs --run e2e-product && node scripts/affected-scope.mjs --run e2e-perf && node scripts/affected-scope.mjs --run fonts && node scripts/affected-scope.mjs --run export-guards",
     "test:e2e:product": "playwright test --project=chromium --project=webkit && playwright test --project=perf --workers=1",
