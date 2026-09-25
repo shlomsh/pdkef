@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { boxOf, fillItemIndex } from './fillWorkspace.ts';
-import type { FieldRegion, TypableField } from '../../../editor/text/combPlacement.ts';
-import type { TextElement } from '../../../editor/model/editorModel.ts';
-import type { FillItem, FillSlot } from './fillTypes.ts';
+import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from './fillWorkspace.ts';
+import { freeSlotKey, slotKey } from './fillSlots.ts';
+import { boxKey } from './fillDom.ts';
+import type { FieldRegion, PercentBox, TypableField } from '../../../editor/text/combPlacement.ts';
+import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
+import type { FillItem, FillSlot, PagePoint } from './fillTypes.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FONT_SIZE_PT,
@@ -120,5 +122,177 @@ describe('fillItemIndex', () => {
 
   it('is -1 for an empty list', () => {
     expect(fillItemIndex([], 'a')).toBe(-1);
+  });
+});
+
+describe('documentFillItems', () => {
+  const pageSizeOf = () => ({ width: 612, height: 792 });
+  const ltr = (): TextDirection => 'ltr';
+  const typography = { fontFamily: 'Arimo', fontSize: 12 };
+
+  it('turns an empty detected field into a slot item keyed by slotKey', () => {
+    const items = documentFillItems({
+      order: [FIELD],
+      textElements: [],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items).toEqual([{ kind: 'slot', key: slotKey(FIELD), slot: expect.objectContaining({ field: FIELD }) }]);
+  });
+
+  it('yields no slot, only the text item, when a text element already sits on the field', () => {
+    // Same left/top as FIELD_REGION, so elementIsOnField matches it (see FIELD comment above).
+    const element = textElement({ left: FIELD_REGION.left, top: FIELD_REGION.top });
+    const items = documentFillItems({
+      order: [FIELD],
+      textElements: [element],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items).toEqual([{ kind: 'text', key: 'el:el-1', element }]);
+  });
+
+  it('includes a free slot keyed by freeSlotKey, with field null, when freeAt is set', () => {
+    const freeAt: PagePoint = { pageIndex: 0, x: 10, y: 20 };
+    const items = documentFillItems({
+      order: [],
+      textElements: [],
+      freeAt,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items).toEqual([{ kind: 'slot', key: freeSlotKey(freeAt), slot: expect.objectContaining({ field: null }) }]);
+  });
+
+  it('includes no free slot when freeAt is null', () => {
+    const items = documentFillItems({
+      order: [],
+      textElements: [],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items).toEqual([]);
+  });
+
+  it("takes a slot's placement font family from typography", () => {
+    const items = documentFillItems({
+      order: [FIELD],
+      textElements: [],
+      freeAt: null,
+      typography: { fontFamily: 'Rubik', fontSize: 14 },
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    const [item] = items;
+    if (item.kind !== 'slot') throw new Error('expected a slot item');
+    expect(item.slot.placement.fontFamily).toBe('Rubik');
+  });
+
+  it('orders two fields on one row left first on an LTR page', () => {
+    const left: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 28, width: 10, height: 4 } };
+    const right: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 50, top: 28, width: 10, height: 4 } };
+    const items = documentFillItems({
+      order: [right, left],
+      textElements: [],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items.map((item) => item.key)).toEqual([slotKey(left), slotKey(right)]);
+  });
+
+  it('orders two fields on one row right first on an RTL page', () => {
+    const left: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 28, width: 10, height: 4 } };
+    const right: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 50, top: 28, width: 10, height: 4 } };
+    const items = documentFillItems({
+      order: [left, right],
+      textElements: [],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: () => 'rtl',
+    });
+    expect(items.map((item) => item.key)).toEqual([slotKey(right), slotKey(left)]);
+  });
+
+  it('orders a page 0 item before a page 1 item regardless of input order', () => {
+    const onPage1: TypableField = { kind: 'cell', region: { pageIndex: 1, left: 10, top: 10, width: 10, height: 4 } };
+    const items = documentFillItems({
+      order: [onPage1, FIELD],
+      textElements: [],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items.map((item) => item.key)).toEqual([slotKey(FIELD), slotKey(onPage1)]);
+  });
+
+  it('orders a text element below a slot on the same page after it', () => {
+    const element = textElement({ top: 80 });
+    const items = documentFillItems({
+      order: [FIELD],
+      textElements: [element],
+      freeAt: null,
+      typography,
+      pageSizeOf,
+      directionOfPage: ltr,
+    });
+    expect(items.map((item) => item.key)).toEqual([slotKey(FIELD), 'el:el-1']);
+  });
+});
+
+describe('fillReachTargets', () => {
+  const box: PercentBox = { left: 10, top: 20, width: 30, height: 40 };
+  const boxOfItem = (): PercentBox & { pageIndex: number } => ({ ...box, pageIndex: 3 });
+  const fieldSlot = slotItem({ key: 'field-slot', field: FIELD });
+  const freeSlotItem = slotItem({ key: 'free-slot', field: null });
+  const textEl = textItem(textElement({ id: 'el-9' }));
+
+  it("'text' returns one 'fill' target per item, with the box from boxOfItem and no pageIndex inside it", () => {
+    const targets = fillReachTargets('text', [fieldSlot, freeSlotItem, textEl], [], boxOfItem);
+    expect(targets).toEqual([
+      { kind: 'fill', key: 'field-slot', pageIndex: 3, box },
+      { kind: 'fill', key: 'free-slot', pageIndex: 3, box },
+      { kind: 'fill', key: 'el:el-9', pageIndex: 3, box },
+    ]);
+  });
+
+  it("'date' returns only the detected slots, excluding a free slot and a text item", () => {
+    const targets = fillReachTargets('date', [fieldSlot, freeSlotItem, textEl], [], boxOfItem);
+    expect(targets).toEqual([{ kind: 'fill', key: 'field-slot', pageIndex: 3, box }]);
+  });
+
+  it("'mark' returns one 'box' target per checkbox, keyed by boxKey", () => {
+    const region: FieldRegion = { pageIndex: 1, left: 5, top: 6, width: 7, height: 8 };
+    const targets = fillReachTargets('mark', [], [region], boxOfItem);
+    expect(targets).toEqual([{ kind: 'box', key: boxKey(region), pageIndex: 1, box: { left: 5, top: 6, width: 7, height: 8 } }]);
+  });
+
+  it("'other' returns no targets", () => {
+    expect(fillReachTargets('other', [fieldSlot, textEl], [], boxOfItem)).toEqual([]);
+  });
+});
+
+describe('fillItemsByPage', () => {
+  it("groups a slot by slot.pageIndex and a text item by element.pageIndex, keeping order, in numPages lists including empty ones", () => {
+    const a = slotItem({ key: 'a', pageIndex: 0 });
+    const b = textItem(textElement({ id: 'el-b', pageIndex: 0 }));
+    const c = slotItem({ key: 'c', pageIndex: 2 });
+    expect(fillItemsByPage([a, b, c], 3)).toEqual([[a, b], [], [c]]);
+  });
+
+  it('drops an item on a page at or past numPages', () => {
+    const a = slotItem({ key: 'a', pageIndex: 0 });
+    const stray = slotItem({ key: 'stray', pageIndex: 5 });
+    expect(fillItemsByPage([a, stray], 2)).toEqual([[a], []]);
   });
 });
