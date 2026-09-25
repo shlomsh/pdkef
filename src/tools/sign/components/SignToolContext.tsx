@@ -3,7 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useReducer, useContext, useMemo } from 'preact/hooks';
 import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
-import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
+import type { EditorElement, EditorElementPatch, SignToolType, TextDirection } from '../../../editor/model/editorModel.ts';
 import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
 
 /**
@@ -27,6 +27,11 @@ export type SignToolAction =
          * rather than inheriting whatever the previously loaded document had. */
         carriedFont?: string | null;
         carriedFontSize?: number | null;
+        /** The document's carried text direction (SIGN-32 reopened), same
+         * reset rule as carriedFont/carriedFontSize above: absent or `null`
+         * means a fresh document, or a draft written before this existed,
+         * starts over rather than inheriting a previous document's direction. */
+        carriedDirection?: TextDirection | null;
       };
     }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
@@ -43,6 +48,11 @@ export type SignToolAction =
    * after takes it, until the next explicit change. */
   | { type: 'SET_CARRIED_FONT'; payload: string }
   | { type: 'SET_CARRIED_FONT_SIZE'; payload: number }
+  /** The document's one carried text direction (SIGN-32 reopened): set by
+   * whatever direction an element's typing or an explicit toggle ends up in
+   * (PdfWorkspace's makeOnChange), the same "whatever it ends up in carries"
+   * rule as SET_CARRIED_FONT. */
+  | { type: 'SET_CARRIED_DIRECTION'; payload: TextDirection }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -80,6 +90,15 @@ export interface SignToolState {
    * `makeOnChange` sets either from an explicit A-/A+ press or font pick. */
   carriedFont: string | null;
   carriedFontSize: number | null;
+  /** The document's one carried text direction (SIGN-32 reopened) - belongs
+   * to this document, not the browser, and round-trips through its draft the
+   * same way carriedFont/carriedFontSize do. `null` means nothing has set it
+   * yet: a fresh field falls back to auto-detecting direction from its own
+   * text (getEffectiveTextDirection) or a detected field's printed direction,
+   * exactly as before this existed. Set by whatever direction an element's
+   * typing or an explicit direction toggle ends up in - see PdfWorkspace's
+   * makeOnChange. */
+  carriedDirection: TextDirection | null;
 }
 
 export interface SignToolContextValue {
@@ -117,6 +136,7 @@ const initialState: SignToolState = {
   draftBaselineRevision: 0,
   carriedFont: null,
   carriedFontSize: null,
+  carriedDirection: null,
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
@@ -145,6 +165,7 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         // document must never inherit another document's font or size.
         carriedFont: action.payload.carriedFont ?? null,
         carriedFontSize: action.payload.carriedFontSize ?? null,
+        carriedDirection: action.payload.carriedDirection ?? null,
       };
     }
     case 'SET_TOOL': {
@@ -256,6 +277,8 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
       return { ...state, carriedFont: action.payload, documentRevision: nextDocumentRevision(state) };
     case 'SET_CARRIED_FONT_SIZE':
       return { ...state, carriedFontSize: action.payload, documentRevision: nextDocumentRevision(state) };
+    case 'SET_CARRIED_DIRECTION':
+      return { ...state, carriedDirection: action.payload, documentRevision: nextDocumentRevision(state) };
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
       return {

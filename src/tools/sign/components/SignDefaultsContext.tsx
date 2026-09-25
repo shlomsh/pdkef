@@ -13,7 +13,6 @@ const noop = () => {};
 export interface SignDefaultsContextValue {
   lastColor: string;
   lastWhiteoutColor: string;
-  lastDirection: TextDirection | null;
   lastThickness: number;
   lastSymbolWidth: number;
   lastSymbolMark: SymbolMark;
@@ -27,6 +26,9 @@ export interface SignDefaultsContextValue {
    * SET_CARRIED_FONT/SET_CARRIED_FONT_SIZE to the SignToolContext reducer. */
   rememberFont: (fontFamily: string) => void;
   rememberFontSize: (fontSize: number) => void;
+  /** Sets the document's carried text direction (SIGN-32 reopened) - not a
+   * browser preference either. PdfSignTool.tsx's implementation dispatches
+   * SET_CARRIED_DIRECTION to the SignToolContext reducer. */
   rememberDirection: (textDirection: TextDirection) => void;
   rememberThickness: (strokeWidth: number) => void;
   rememberSymbolWidth: (width: number) => void;
@@ -46,7 +48,6 @@ export interface SignDefaultsContextValue {
 export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   lastColor: DEFAULT_COLOR_BLUE,
   lastWhiteoutColor: '#ffffff',
-  lastDirection: null,
   lastThickness: DEFAULT_STROKE_WIDTH,
   lastSymbolWidth: DEFAULT_SYMBOL_WIDTH_PCT,
   lastSymbolMark: 'check',

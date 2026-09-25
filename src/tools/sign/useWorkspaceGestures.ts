@@ -100,7 +100,13 @@ export interface WorkspaceGestureOptions {
    * for where that seeding, and an explicit A-/A+/font-pick change, lands. */
   carriedFont?: string | null;
   carriedFontSize?: number | null;
-  initialDirection?: TextDirection | null;
+  /** The document's carried text direction (SIGN-32 reopened), or `null`
+   * when the document has none yet - same shape as carriedFont/
+   * carriedFontSize. Wins over a detected field's own printed direction
+   * (formRegions.pageDirections) once set, since it reflects what the
+   * person is actually typing on this document right now; pageDirections is
+   * only the fallback for a document that has not established one yet. */
+  carriedDirection?: TextDirection | null;
   /** Remembered `dateFormat.ts` `DateFormatId`; the 'date' tool only. */
   initialDateFormat?: string;
   initialSymbolWidth?: number;
@@ -174,7 +180,7 @@ export default function useWorkspaceGestures({
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
   carriedFont = null,
   carriedFontSize = null,
-  initialDirection = null,
+  carriedDirection = null,
   initialDateFormat = 'locale',
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
   initialSymbolMark = 'check',
@@ -281,7 +287,7 @@ export default function useWorkspaceGestures({
       strokeWidth: initialStrokeWidth,
       font: resolvedFont,
       fontSize: resolvedFontSize,
-      direction: initialDirection,
+      direction: carriedDirection,
       symbolWidth,
       symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
       symbolMark: initialSymbolMark,
@@ -300,15 +306,20 @@ export default function useWorkspaceGestures({
       newEl.dateValue = dateValue;
     }
     // A field-spanned box has no growing edge to anchor either way
-    // (combPlacement.ts) and is sitting on one specific spot on a page whose
-    // own text already reads a given direction, so it takes that direction -
-    // never `initialDirection`'s product default - the same seed
-    // useFieldNavigation.ts uses for the identical case reached by Next
-    // instead of a tap. getEffectiveTextDirection only honours this seed for
-    // a field-spanned box in the first place (see its own doc), so a free
-    // placement elsewhere still gets `initialDirection` untouched.
+    // (combPlacement.ts), so it takes a direction rather than auto-detecting
+    // one from its own (still empty) text - the same seed useFieldNavigation.ts
+    // uses for the identical case reached by Next instead of a tap.
+    // `carriedDirection` wins once the document has one (SIGN-32 reopened):
+    // the person is actively filling this document in that direction right
+    // now, a stronger signal than the page's own printed convention. Only a
+    // document with no carried direction yet falls back to the page's own
+    // printed direction - which is what keeps a Hebrew-printed form's fields
+    // opening right-aligned before anything has been typed at all.
+    // getEffectiveTextDirection only honours this seed for a field-spanned
+    // box in the first place (see its own doc), so a free placement
+    // elsewhere still gets `carriedDirection` untouched.
     if (field && newEl.type === 'text') {
-      newEl.textDirection = formRegions.pageDirections?.[pageIndex] ?? initialDirection ?? 'ltr';
+      newEl.textDirection = carriedDirection ?? formRegions.pageDirections?.[pageIndex] ?? 'ltr';
     }
     const checkboxRegion = selectedTool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
@@ -427,7 +438,7 @@ export default function useWorkspaceGestures({
     const newEl = definition.creation.create({
       id, pageIndex, point: { left: startLeftPercent, top: startTopPercent }, color: initialColor,
       whiteoutColor: initialWhiteoutColor, strokeWidth: initialStrokeWidth, font: carriedFont ?? DEFAULT_FONT_FAMILY,
-      fontSize: carriedFontSize ?? DEFAULT_FONT_SIZE_PT, direction: initialDirection,
+      fontSize: carriedFontSize ?? DEFAULT_FONT_SIZE_PT, direction: carriedDirection,
     });
     const isLineTool = newEl.type === 'line';
 

@@ -11,13 +11,14 @@ export interface EditorPreferences {
   penThickness: number;
   lastColor: string;
   lastWhiteoutColor: string;
-  // lastFont/lastFontSize left this browser-wide preference store under
-  // SIGN-32: a document's font and size are now carried with its own draft
-  // (SignToolState.carriedFont/carriedFontSize, round-tripped through
-  // useEditorDraftPersistence's `extra`), not a cross-document browser
-  // setting - a size picked on one form must never drive another. Checked
-  // before removal: no other consumer (Redact never read either key).
-  lastDirection: string;
+  // lastFont/lastFontSize/lastDirection left this browser-wide preference
+  // store under SIGN-32: a document's font, size and (now) direction are
+  // carried with its own draft (SignToolState.carriedFont/carriedFontSize/
+  // carriedDirection, round-tripped through useEditorDraftPersistence's
+  // `extra`), not a cross-document browser setting - a document filled in
+  // Hebrew must never set the direction of the next, unrelated document.
+  // Checked before removal: no other consumer (Redact never read any of the
+  // three keys).
   lastSymbolWidth: number;
   lastSymbolMark: 'check' | 'x' | 'dot';
   lastSignatureWidth: number;
@@ -36,7 +37,7 @@ export const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
 const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   penColor: 'pdf-toolkit:penColor', penThickness: 'pdf-toolkit:penThickness',
   lastColor: 'pdf-toolkit:lastColor', lastWhiteoutColor: 'pdf-toolkit:lastWhiteoutColor',
-  lastDirection: 'pdf-toolkit:lastDirection', lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
+  lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
   lastSymbolMark: 'pdf-toolkit:lastSymbolMark', lastSignatureWidth: 'pdf-toolkit:lastSignatureWidth',
   dateFormat: 'pdf-toolkit:dateFormat',
 };
@@ -102,12 +103,12 @@ function readSavedSignatures(value: unknown): SavedSignature[] | null {
 const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPreferences[K] | null } = {
   penColor: readString, penThickness: readPositiveNumber, lastColor: readString,
   lastWhiteoutColor: readString,
-  lastDirection: readString, lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
+  lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
   lastSignatureWidth: readPositiveNumber, dateFormat: readString,
 };
 const LEGACY_WRITERS: { [K in EditorPreferenceKey]: (value: EditorPreferences[K]) => string } = {
   penColor: String, penThickness: String, lastColor: String, lastWhiteoutColor: String,
-  lastDirection: String, lastSymbolWidth: String,
+  lastSymbolWidth: String,
   lastSymbolMark: String, lastSignatureWidth: String, dateFormat: String,
 };
 

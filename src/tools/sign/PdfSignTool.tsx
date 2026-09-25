@@ -80,10 +80,6 @@ function describeSignFailure(err: unknown, t: SignMessages): string {
   return t.exportGenericFailure;
 }
 
-function isTextDirection(value: string): value is TextDirection {
-  return value === 'ltr' || value === 'rtl';
-}
-
 // How long to wait after the last edit before speculatively re-exporting in
 // the background (MOBI-07). Generous on purpose: re-signing rasterizes every
 // page on the device the user is holding, so this must not fire mid-edit.
@@ -120,7 +116,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const {
     state: {
       selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory,
-      documentRevision, draftBaselineRevision, carriedFont, carriedFontSize,
+      documentRevision, draftBaselineRevision, carriedFont, carriedFontSize, carriedDirection,
     },
     dispatch,
   } = useSignTool();
@@ -147,11 +143,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // browser. See rememberFont/rememberFontSize below for the explicit-change
   // path and useEditorDraftPersistence's `extra` for the draft round-trip.
 
-  // Last manually-toggled text direction, remembered across new placements —
-  // lets a form filled in the same language keep predicting direction
-  // without re-toggling per field. null means "no manual override yet",
-  // so new elements fall back to content-based auto-detection.
-  const [lastDirection, setLastDirection] = useState<TextDirection | null>(null);
+  // The document's carried text direction (SIGN-32 reopened) lives in the
+  // SignTool reducer, not here - `carriedDirection` above - for the same
+  // reason as carriedFont/carriedFontSize: it belongs to the document, not
+  // the browser. See rememberDirection below for the explicit-change path.
 
   // Last chosen stroke thickness, remembered across new placements
   const [lastThickness, setLastThickness] = useState(3);
@@ -327,12 +322,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (stored) setLastWhiteoutColor(stored);
   }, []);
 
-  // Load last-used text direction override from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastDirection');
-    if (stored && isTextDirection(stored)) setLastDirection(stored);
-  }, []);
-
   // Load last-used symbol width from workspace preferences on mount.
   useEffect(() => {
     const stored = getEditorPreference('lastSymbolWidth');
@@ -369,9 +358,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       }),
       subscribeToEditorPreference('lastColor', ({ value }) => { if (value) setLastColor(value); }),
       subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => { if (value) setLastWhiteoutColor(value); }),
-      subscribeToEditorPreference('lastDirection', ({ value }) => {
-        if (value && isTextDirection(value)) setLastDirection(value);
-      }),
       subscribeToEditorPreference('lastSymbolWidth', ({ value }) => { if (value) setLastSymbolWidth(value); }),
       subscribeToEditorPreference('lastSymbolMark', ({ value }) => { if (value) setLastSymbolMark(value); }),
       subscribeToEditorPreference('lastSignatureWidth', ({ value }) => { if (value) setLastSignatureWidth(value); }),
@@ -428,10 +414,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setEditorPreference('lastSignatureWidth', width);
   };
 
-  // Remember the text direction last manually toggled, for future placements
+  // The document's carried text direction (SIGN-32 reopened): whatever
+  // direction an element's typing or an explicit direction toggle
+  // (PdfWorkspace's makeOnChange) ends up in, on this document only - never
+  // a browser-wide preference.
   const rememberDirection = (textDirection: TextDirection) => {
-    setLastDirection(textDirection);
-    setEditorPreference('lastDirection', textDirection);
+    dispatch({ type: 'SET_CARRIED_DIRECTION', payload: textDirection });
   };
 
   // Remember the date format last chosen, for future 'date' tool placements
@@ -512,6 +500,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
             // document's font or size.
             carriedFont: preset.carriedFont,
             carriedFontSize: preset.carriedFontSize,
+            carriedDirection: preset.carriedDirection,
           },
         });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -626,6 +615,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     initialColor: lastColor,
     carriedFont,
     carriedFontSize,
+    carriedDirection,
     messages: t,
   });
 
@@ -638,6 +628,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     actionHistory,
     carriedFont,
     carriedFontSize,
+    carriedDirection,
     status,
     isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
     loadStartedRef,
@@ -1030,7 +1021,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
           value={{
-            lastColor, lastWhiteoutColor, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
+            lastColor, lastWhiteoutColor, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
             rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
           }}
         >
