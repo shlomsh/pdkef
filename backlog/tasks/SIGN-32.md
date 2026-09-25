@@ -1,14 +1,14 @@
 ---
 id: "SIGN-32"
-title: "One font and font size per document: they carry from field to field, and each field only shrinks the size to fit"
-status: "done"
+title: "One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit"
+status: "in_progress"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
 depends_on: []
 ---
 
-# SIGN-32 · One font and font size per document: they carry from field to field, and each field only shrinks the size to fit
+# SIGN-32 · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit
 
 *Filed 2026-09-25* from Shlomi's report on the practice form (SNG-10): the ID number comb's digits came out
 about half the size of the Full name text above them.
@@ -70,3 +70,18 @@ font, and font size to use."
   and one size. Draft-validation tests cover missing and malformed carried values.
 - **Browser:** checked at desktop and 390x844. A+ carries to the next field and survives a reload; another
   PDF starts fresh.
+
+## Reopened (2026-09-26): the language's font and direction carry too
+
+Shlomi: "new document starts with the default font, that's fine. when the user start typing in another
+language it defaults to a font. both its font and ltr/rtl direction should be saved for the following
+elements."
+
+- A new document starts with the default font. That is confirmed.
+- When typing in another script switches an element to that script's font, and to RTL where the script
+  is right-to-left, that font and that direction become the document's carried values. The next element
+  starts in them, with no retyping and no re-picking.
+- Direction is carried per document, like the font and size. It is not a browser-wide preference.
+
+- [ ] Typing in another language carries the switched font and the direction to the next element placed
+  (tap, Next/Previous, free text), persists with the draft, and a new document starts from the defaults.
