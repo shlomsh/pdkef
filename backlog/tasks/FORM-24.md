@@ -1,7 +1,7 @@
 ---
 id: "FORM-24"
 title: "One home for the ink edge builders"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
