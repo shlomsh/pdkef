@@ -139,6 +139,26 @@ describe('validateDraftRecord', () => {
     errorSpy.mockRestore();
   });
 
+  it('keeps a valid carried font and size (SIGN-32)', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { carriedFont: 'Caveat', carriedFontSize: 13.5 },
+    };
+    expect(validateDraftRecord(record)?.extra).toMatchObject({ carriedFont: 'Caveat', carriedFontSize: 13.5 });
+  });
+
+  it.each([
+    ['missing (a draft from before SIGN-32)', {}],
+    ['a string size and an empty font', { carriedFont: '', carriedFontSize: '18' }],
+    ['a negative size and a numeric font', { carriedFont: 7, carriedFontSize: -5 }],
+    ['a zero size', { carriedFontSize: 0 }],
+  ])('restores the draft with no carried font or size when they are %s', (_label, extra) => {
+    const record = { fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText], extra };
+    const result = validateDraftRecord(record);
+    expect(result?.elements).toEqual([goodText]);
+    expect(result?.extra?.carriedFont).toBeUndefined();
+    expect(result?.extra?.carriedFontSize).toBeUndefined();
+  });
+
   it('returns a validated record with valid elements on success', () => {
     const record = { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: bytesOf(), elements: [goodText] };
     const result = validateDraftRecord(record);
