@@ -139,9 +139,9 @@
 .launcher > .error { grid-column: 1 / -1; }
 
 /* Two rows reserved from first paint so real recents land in place, top
-   aligned with the picker right under them; the picker never shrinks; tiles
-   scale with the row so two rows fit at 1280x720. */
-@media (min-width: 1024px) and (min-height: 561px) {
+   aligned with the picker right under them; the picker never shrinks and
+   always stays on screen. Tablets reserve the same two rows (MOBI-36). */
+@media (min-width: 768px) and (min-height: 561px) {
   .launcher {
     display: flex;
     flex-direction: column;
@@ -151,8 +151,11 @@
     align-items: stretch;
   }
   .launcher > [data-home-recents] {
+    /* On a short window this shrinks to one floored row and scrolls, so
+       the picker below stays visible; its height never depends on the count. */
     flex: 0 1 376px;
-    min-height: 0;
+    min-height: var(--recent-row-floor);
+    overflow-y: auto;
   }
   .launcher > .tile {
     flex: 0 0 auto;
