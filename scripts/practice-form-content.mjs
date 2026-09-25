@@ -66,23 +66,6 @@ export const FOOTER = {
   pageNumber: '1 / 1',
 };
 
-/**
- * A thin vertical accent rule along the inner margin, bounding sections 1 and 2. It is a plain,
- * common form convention (a ruled margin, the way a legal pad or a carbon form marks its writing
- * column) - and it does one more thing: every one of this form's single-box fields (a name, an
- * address, an employer) sits alone on its own row with no second field beside it, so the row it
- * draws has only its own two side walls and nothing to divide it. `formCells.js`'s closed-cell
- * reader requires an interior wall before it will read a row as a form field at all (`buildClosedCells`,
- * "a row bounded by only its own two outer walls... is a single undivided box, not a form row") -
- * exactly the shape a real single-box field has to avoid. Run the whole width of the content
- * column at `MARGIN_RULE.x`, a few points inside each field's own left wall, it gives every row
- * that interior wall for free: the sliver it carves off (a few points wide) is too narrow for the
- * detector to offer as a field of its own and is dropped outright, and the field's own box is read
- * whole from its own wall inward. It sits left of every field and checkbox on the page (`x: 44` vs.
- * their own `x: 48`), so it never crosses so much as a stroke of one.
- */
-export const MARGIN_RULE = { x: 44, y0: 120, y1: 516 };
-
 /** Every text/date box and comb cell shares this height (PDF points). */
 const FIELD_HEIGHT = 22;
 /** Comb cells are square-ish, contiguous, this wide each. */

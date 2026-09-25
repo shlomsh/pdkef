@@ -7,7 +7,7 @@ import {
   rectangle, fillAndStroke, setFillingRgbColor, setStrokingRgbColor, setLineWidth,
 } from '@cantoo/pdf-lib';
 import {
-  PAGE_SIZE, DOCUMENT_META, PALETTE, HEADER, SECTIONS, DECLARATION_TEXT, FOOTER, MARGIN_RULE,
+  PAGE_SIZE, DOCUMENT_META, PALETTE, HEADER, SECTIONS, DECLARATION_TEXT, FOOTER,
   FIELDS, fieldLayout,
 } from './practice-form-content.mjs';
 
@@ -190,16 +190,6 @@ function drawDeclaration(page, pageHeight, font) {
   });
 }
 
-/** See `MARGIN_RULE`'s own doc comment in practice-form-content.mjs for why this line exists. */
-function drawMarginRule(page, pageHeight) {
-  page.drawLine({
-    start: { x: MARGIN_RULE.x, y: pageHeight - MARGIN_RULE.y0 },
-    end: { x: MARGIN_RULE.x, y: pageHeight - MARGIN_RULE.y1 },
-    thickness: 0.8,
-    color: colorOf('rule'),
-  });
-}
-
 function drawFooter(page, pageWidth, font) {
   const ruleY = 34;
   page.drawLine({
@@ -273,7 +263,6 @@ export async function buildPracticeForm() {
   drawSections(page, pageHeight, bold);
   drawFields(page, pageHeight, font);
   drawDeclaration(page, pageHeight, font);
-  drawMarginRule(page, pageHeight);
   drawFooter(page, pageWidth, font);
 
   // updateFieldAppearances: false - see the module doc comment. This document never creates a
