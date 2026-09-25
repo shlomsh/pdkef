@@ -30,7 +30,7 @@ Rules:
 - **A field detection missed becomes a field** the moment a box is placed on it, and it must join the walk in reading order.
   - This is new work (SNG-04/05), not existing behaviour. Today the walk is built only from detected regions (`useFieldNavigation.ts:326-330`).
   - `fieldPosition` (`fieldOrder.ts:236-246`) only navigates *from* an off-field box, never *through* it.
-- **A false detection can be dismissed** from the walk and from review (proposed).
+- **A false detection can be dismissed** from the walk and from review (proposed). The person's verdict becomes one more input to the one pure `reconcile` in `src/tools/sign/fields/fieldRegions.js`, where source and kind precedence are already data (`SOURCE_ORDER`, `KIND_PRECEDENCE`). It goes there, not into a UI-side filter.
 - **Copy never claims completeness.**
   - Review ends with "All the fields we found are filled. Check each page for anything we missed."
   - Never "All done", and never "0 of 0".
@@ -129,6 +129,7 @@ The rules:
   - a date opens for typing into its printed cells;
   - a signature field opens the signature sheet.
   - Today's walk skips checkboxes and signatures (`fieldOrder.ts:16-19`). The next generation includes them (proposed, open #6).
+  - `detectFormFields` (`src/tools/sign/fields/detectFormFields.ts`, d7f8c817) already returns every checkbox, and every cell including the signature kind. Only `useFormFieldRegions.ts` filters signature cells today. So the walk reads the detection result directly, with kinds from `fields/fieldTypes.ts`.
 - **Order** is a document property and never depends on the UI's language:
   - rows cluster by top edge (`ROW_TOLERANCE_PERCENT`, `fieldOrder.ts:41`);
   - within a row, the walk starts at the page's printed start edge (`fieldOrder.ts:47-51`);
