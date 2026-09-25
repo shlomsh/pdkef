@@ -5,9 +5,11 @@ dist/
 *.log
 .vercel
 # .claude/ is local (settings, worktrees, skills) except rules/, which is
-# team-shared agent guidance loaded per matching file. See CLAUDE.md.
+# team-shared agent guidance loaded per matching file (see CLAUDE.md), and
+# agents/, the shared subagent types.
 .claude/*
 !.claude/rules/
+!.claude/agents/
 playwright-report/
 test-results/
 .nx/
