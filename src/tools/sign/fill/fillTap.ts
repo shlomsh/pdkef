@@ -35,9 +35,8 @@ function centreOf(target: ReachTarget): PagePoint {
  * What a tap on the page does in fill mode, in the order docs/sign-fill-mode.md fixes:
  * a real input always wins, then the armed tool's own reach, then closing a typing
  * session, then opening a free slot for Text, and only then production's own tap path.
- * Each rule is a case SNG-14 got wrong once the rule below it fired first, so this stays
- * a short, ordered list of guard clauses rather than a lookup table - the order *is*
- * the behaviour.
+ * The order is the behaviour, so it stays a short list of guard clauses rather than a
+ * lookup table.
  */
 export function fillTapDecision(input: FillTapInput): FillTapDecision {
   const { onFillInput, typing, tool, reach, at } = input;
