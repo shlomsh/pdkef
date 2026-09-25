@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { reconcile, KIND_PRECEDENCE, SOURCE_ORDER } from './fieldRegions.js';
+import { oldReconcile } from './fieldRegionsReferenceOracle.js';
 
 // Page percentages. Form 101's section ב row: the identity comb's teeth hang
 // off the bottom rule of a 23pt cell that is as tall as the name cell beside it.
@@ -199,5 +200,123 @@ describe('reconcile, an unknown source name (ARCH-24 step C)', () => {
       stub: { combs: [], checkboxes: [], cells: [stubCell] },
     });
     expect(cells).toEqual([inkCell]);
+  });
+});
+
+describe('reconcile, same-source protected kinds do not block each other', () => {
+  // A regression pin for a bug an independent reviewer found and confirmed
+  // by running: `fold()`'s protected-kind branch computed `blockedBy` from
+  // `next`, the accumulator it was still mutating for this same source, so a
+  // checkbox (processed after combs in KIND_PRECEDENCE) was filtered against
+  // combs its own source had just been accepted in the very same fold() call
+  // - something `reconcileFields` never did (it only ever removed a cell,
+  // never a checkbox or a comb). Fixed by reading `accepted`, the snapshot
+  // from before this source's fold, instead.
+  it('keeps an ink checkbox that overlaps an ink comb from the same source', () => {
+    const comb = { pageIndex: 0, left: 10, top: 10, width: 20, height: 4, cells: 3 };
+    const overlappingCheckbox = { pageIndex: 0, left: 12, top: 11, width: 2, height: 2 };
+    const { combs, checkboxes } = reconcile({
+      ink: { combs: [comb], checkboxes: [overlappingCheckbox], cells: [] },
+    });
+    expect(combs).toEqual([comb]);
+    expect(checkboxes).toEqual([overlappingCheckbox]);
+  });
+
+  it('keeps an ink comb that overlaps an ink checkbox from the same source, the other way round', () => {
+    const checkbox = { pageIndex: 0, left: 10, top: 10, width: 4, height: 4 };
+    const overlappingComb = { pageIndex: 0, left: 11, top: 11, width: 2, height: 2, cells: 3 };
+    const { combs, checkboxes } = reconcile({
+      ink: { combs: [overlappingComb], checkboxes: [checkbox], cells: [] },
+    });
+    expect(combs).toEqual([overlappingComb]);
+    expect(checkboxes).toEqual([checkbox]);
+  });
+
+  it('still excludes a later source\'s comb against an earlier source\'s checkbox (cross-source rule is unaffected)', () => {
+    const inkCheckbox = { pageIndex: 0, left: 10, top: 10, width: 2, height: 2 };
+    const widgetComb = { pageIndex: 0, left: 8, top: 10, width: 10, height: 4, cells: 3, boxed: true };
+    const { combs, checkboxes } = reconcile({
+      ink: { combs: [], checkboxes: [inkCheckbox], cells: [] },
+      widgets: { combs: [widgetComb], checkboxes: [], cells: [] },
+    });
+    expect(combs).toEqual([]);
+    expect(checkboxes).toEqual([inkCheckbox]);
+  });
+});
+
+describe('reconcile vs. the pre-ARCH-24 oracle (differential)', () => {
+  // Small, deterministic PRNG (mulberry32) so a failure is reproducible from
+  // the printed seed alone, with no external dependency.
+  function mulberry32(seed) {
+    let a = seed;
+    return function next() {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function makeRegion(rng, idPrefix, i) {
+    // A small grid with sizes 1-4 on a 0-8 range forces heavy overlap.
+    const left = Math.floor(rng() * 8);
+    const top = Math.floor(rng() * 8);
+    const width = 1 + Math.floor(rng() * 4);
+    const height = 1 + Math.floor(rng() * 4);
+    return { id: `${idPrefix}${i}`, pageIndex: 0, left, top, width, height };
+  }
+
+  function makeComb(rng, idPrefix, i, { forceBoxed = false } = {}) {
+    const region = makeRegion(rng, idPrefix, i);
+    // `detectWidgetRegions` (formWidgets.js) always emits `boxed: true` -
+    // only ink's own comb detector (formGrid.js) ever reports an open one.
+    const boxed = forceBoxed || rng() < 0.5;
+    return { ...region, cells: 1 + Math.floor(rng() * 9), boxed };
+  }
+
+  function makeCell(rng, idPrefix, i) {
+    const region = makeRegion(rng, idPrefix, i);
+    const kind = rng() < 0.5 ? 'text' : 'other';
+    if (rng() >= 0.4) return { ...region, kind };
+    const enclosure = {
+      left: Math.max(0, region.left - Math.floor(rng() * 2)),
+      top: Math.max(0, region.top - Math.floor(rng() * 2)),
+      width: region.width + Math.floor(rng() * 3),
+      height: region.height + Math.floor(rng() * 3),
+    };
+    return { ...region, kind, enclosure };
+  }
+
+  function makeSource(rng, prefix, { combs, checkboxes, cells }, comboOpts) {
+    return {
+      combs: Array.from({ length: combs }, (_, i) => makeComb(rng, `${prefix}c`, i, comboOpts)),
+      checkboxes: Array.from({ length: checkboxes }, (_, i) => makeRegion(rng, `${prefix}x`, i)),
+      cells: Array.from({ length: cells }, (_, i) => makeCell(rng, `${prefix}l`, i)),
+    };
+  }
+
+  it('agrees with reconcileFields + withWidgetFields on every generated case, in order', () => {
+    const totalCases = 600;
+    const mismatches = [];
+    for (let caseIndex = 0; caseIndex < totalCases; caseIndex += 1) {
+      const rng = mulberry32(1000003 * (caseIndex + 1));
+      const counts = () => ({
+        combs: Math.floor(rng() * 4),
+        checkboxes: Math.floor(rng() * 4),
+        cells: Math.floor(rng() * 4),
+      });
+      const ink = makeSource(rng, 'i', counts());
+      // widgetsSource never reports checkboxes (detectFormFields.ts) and its
+      // combs are always boxed (formWidgets.js).
+      const widgets = { ...makeSource(rng, 'w', counts(), { forceBoxed: true }), checkboxes: [] };
+
+      const expected = oldReconcile({ ink, widgets });
+      const actual = reconcile({ ink, widgets });
+
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        mismatches.push({ caseIndex, ink, widgets, expected, actual });
+      }
+    }
+    expect(mismatches).toEqual([]);
   });
 });
