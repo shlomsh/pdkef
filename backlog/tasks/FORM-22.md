@@ -91,3 +91,54 @@ detection files") is satisfied unconditionally instead (it runs every `check:fas
 source guards in that chain, none of which are change-scoped either) - worth a second look once ARCH-24
 lands and the file list collapses to a folder, but not worth narrowing today's ten-file, sub-second
 guard by hand.
+
+## Review follow-up (2026-09-25)
+
+An independent review of the landed commit found five real gaps, all fixed in the same file without
+touching any detection code:
+
+1. **BLOCKING** - `FORBIDDEN_PROPERTY_ACCESS` only ever matched a bare `document`/`window`/`navigator`
+   object name, so `globalThis.document.title`, `self.document.title`, a bare `self`, and
+   `const { document: doc } = globalThis` all passed. Replaced with `FORBIDDEN_GLOBAL_REFERENCES`, a
+   set of identifiers (`globalThis`, `self`, `window`, `document`, `navigator`, `localStorage`,
+   `sessionStorage`, `indexedDB`, `fetch`, `XMLHttpRequest`) that are forbidden by *reference*, however
+   reached, checked against the AST (a property name and a destructure's property key are excluded, an
+   identifier reference is not) rather than only the specific `object.member` shape.
+2. `crypto.randomUUID()`/`crypto.getRandomValues()` were not caught. Added `crypto` to
+   `FORBIDDEN_NONDETERMINISTIC_MEMBERS` alongside `Math`/`Date`/`performance`.
+3. `isMutatingUse`/`checkModuleLevelState` matched a mutation by name only, so a function-local shadow
+   of a top-level const's name (a parameter, or a same-named local declared and mutated inside a
+   function) falsely flagged the top-level binding. Fixed with real scope resolution: `createChecker`
+   builds a single-file, `noLib` TypeScript Program and its type checker purely for
+   `getSymbolAtLocation`, and a mutation only counts against a top-level declaration when the
+   reference's resolved symbol is that exact declaration node.
+4. `BOUNDARY_SHIMS` exempted a whole file, so in `pdfObjects.js`, `lookupDict`, `numberAt`,
+   `getPageContentBytes`, `extractPageObjects` and `hasFillableAcroForm` all got pdf-lib for free
+   alongside the three functions the file's own comment named. Added `FUNCTION_SHIMS` (file -> function
+   name -> one-line reason), enforced by walking a reference's `node.parent` chain to its nearest named
+   enclosing function: every reference to an imported pdf-lib/pdf.js binding, and every dynamic
+   `import()`/`require()` call, must sit inside a function on that file's `FUNCTION_SHIMS` list. Read
+   straight off today's code, honestly (`hasFillableAcroForm` is listed even though it references no
+   import directly - its parameter is a pdf-lib `PDFDocument` - and `scoreForm` in `score.js` is listed
+   even though nothing named it before, since it calls `PDFDocument.load` itself):
+   - `pageInk.js`: `pageCropBox` (reads CropBox/MediaBox), `collectPageInk` (delegates entirely to
+     `pdfObjects.js`, referencing no import itself, but is the file's other named shim).
+   - `pdfObjects.js`: `lookupDict`, `numberAt`, `getPageContentBytes`, `readFont`, `buildFontTable`,
+     `buildXObjectTable`, `collectCheckboxGlyphs`, `inheritedEntry`, `pageWidgets`, `widgetEntries`,
+     `extractPageObjects`, `hasFillableAcroForm` - effectively every function in the file that is not
+     pure string/geometry logic (`parseToUnicode`, `decodeCodes`, `isCheckboxGlyph`, `textGlyphBox`
+     stay off the list, correctly).
+   - `corpus/scoring/score.js`: `pageTextRuns` (dynamic pdfjs-dist import), `scoreForm`
+     (`PDFDocument.load`).
+5. A bare `require('pdfjs-dist')` was not caught (only a static `import` or dynamic `import()`).
+   Added, scoped the same way as a dynamic import: unconditionally forbidden outside a shim file, and
+   confined to a `FUNCTION_SHIMS` function inside one. `require.resolve(...)` (score.js's real use, to
+   locate the font/cmap/wasm directories) is unaffected - it resolves a path, it never loads the module.
+
+19 new unit tests (one or more per finding), each confirmed by hand to fail against commit b8750b02's
+own copy of the script before the fix and pass after. `node scripts/check-detection-purity.mjs` still
+passes 10/10 modules, 0 violations, in ~0.20s. `npx vitest run scripts/check-detection-purity.test.mjs`
+passes 51/51. All three original sabotage checks re-run clean, plus a fourth
+(`globalThis.document.title` inserted into `formCells.js`) added for finding 1; each was inserted, run,
+confirmed failing with the expected message and line, then reverted, with `git status` clean after all
+four.

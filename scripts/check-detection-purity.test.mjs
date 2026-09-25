@@ -12,6 +12,8 @@ import {
 
 const FILE = 'src/editor/adapters/pdf/formGrid.js'; // a real, non-shim entry in DETECTION_MODULES
 const SHIM_FILE = 'src/editor/adapters/pdf/pageInk.js'; // a real entry in BOUNDARY_SHIMS
+const PDFOBJECTS_FILE = 'src/editor/adapters/pdf/pdfObjects.js'; // a shim with several FUNCTION_SHIMS entries
+const SCORE_FILE = 'src/editor/adapters/pdf/corpus/scoring/score.js'; // a shim whose entry point dynamically imports
 
 function imports(source, file = FILE) {
   return checkForbiddenImports(parseModule(file, source), file);
@@ -173,6 +175,144 @@ describe('detection purity guard: module-level mutable state (rule 2)', () => {
   it('ignores a function-local let/const container - only top-level state counts', () => {
     const source = 'export function walk(tokens) {\n  let depth = 0;\n  const found = [];\n  for (const t of tokens) { if (t) depth += 1; found.push(t); }\n  return { depth, found };\n}\n';
     expect(state(source)).toEqual([]);
+  });
+});
+
+// The five gaps below are from an independent review of commit b8750b02:
+// each fixture reproduces one finding and, run against that commit's own
+// copy of scripts/check-detection-purity.mjs, either goes uncaught (a
+// missed violation) or gets wrongly flagged (a false positive on a
+// shadowed local) - confirmed by hand, side by side against a checkout of
+// b8750b02, before writing the fix.
+describe('detection purity guard: forbidden globals - full reference coverage (rule 1b, review finding 1)', () => {
+  it('fails globalThis.document.title', () => {
+    expect(globals('export const t = globalThis.document.title;\n')).toHaveLength(1);
+  });
+
+  it('fails self.document.title', () => {
+    expect(globals('export const t = self.document.title;\n')).toHaveLength(1);
+  });
+
+  it('fails a bare self reference', () => {
+    expect(globals('export function f() { return self; }\n')).toHaveLength(1);
+  });
+
+  it('fails destructuring document off globalThis, even though "document" itself is only a property key', () => {
+    expect(globals('const { document: doc } = globalThis;\nexport const t = doc;\n')).toHaveLength(1);
+  });
+
+  it('does not flag a reference to a shadowing PARAMETER used in the function body', () => {
+    // The old FORBIDDEN_PROPERTY_ACCESS map matched only the bare object
+    // name, so a body reference to a shadowed parameter was never actually
+    // exercised by a passing test - only the declaration site was (the
+    // "parameter, object key or property named localStorage" case above),
+    // and a declaration site is excluded by isBindingPosition regardless of
+    // scope resolution. A real body *use* of the shadowed name needs
+    // createChecker's scope resolution, not a name-only match, to stay
+    // unflagged.
+    expect(globals('export function f(document) { return document.title; }\n')).toEqual([]);
+  });
+});
+
+describe('detection purity guard: nondeterministic crypto (rule 3, review finding 2)', () => {
+  it('fails crypto.randomUUID()', () => {
+    expect(globals('export const id = crypto.randomUUID();\n')).toHaveLength(1);
+  });
+
+  it('fails crypto.getRandomValues()', () => {
+    expect(globals('export const buf = crypto.getRandomValues(new Uint8Array(4));\n')).toHaveLength(1);
+  });
+
+  it('still allows an unrelated crypto member', () => {
+    expect(globals('export const alg = crypto.subtle;\n')).toEqual([]);
+  });
+});
+
+describe('detection purity guard: scope-resolved mutation (rule 2, review finding 3)', () => {
+  it('does not flag a top-level const when only a same-named SHADOWED LOCAL is mutated', () => {
+    // This exact shape (a top-level readonly const like KIND_GROUPS, and a
+    // same-named local built and mutated inside a function) is real in
+    // formGrid.js today; the old name-only isMutatingUse would have flagged
+    // formGrid.js's own top-level KIND_GROUPS the moment a function ever
+    // declared a local of the same name.
+    const source = 'const cache = new Map();\n'
+      + 'export function f() {\n'
+      + '  const cache = new Map();\n'
+      + '  cache.set(1, 2);\n'
+      + '  return cache;\n'
+      + '}\n';
+    expect(state(source)).toEqual([]);
+  });
+
+  it('does not flag a top-level const when only a same-named PARAMETER is mutated', () => {
+    const source = 'const cache = new Map();\nexport function f(cache) { cache.set(1, 2); }\n';
+    expect(state(source)).toEqual([]);
+  });
+
+  it('still flags the real top-level mutation when nothing shadows the name', () => {
+    const source = 'const cache = new Map();\nexport function remember(k, v) { cache.set(k, v); }\n';
+    expect(state(source)).toHaveLength(1);
+  });
+});
+
+describe('detection purity guard: per-function shim allowlist (rule 1, review finding 4)', () => {
+  it('allows a reference to an imported pdf-lib binding inside an allowlisted function', () => {
+    const source = "import { PDFName } from '@cantoo/pdf-lib';\n"
+      + 'export function lookupDict(context, value) {\n'
+      + '  return PDFName.of("x");\n'
+      + '}\n';
+    expect(imports(source, PDFOBJECTS_FILE)).toEqual([]);
+  });
+
+  it('fails a reference to an imported pdf-lib binding inside a function NOT on the allowlist', () => {
+    // Same shape as the file's real lookupDict, under a name FUNCTION_SHIMS
+    // does not list - the exact "exempted per file, not per function" gap
+    // the review found: lookupDict, numberAt, getPageContentBytes,
+    // extractPageObjects and hasFillableAcroForm were all getting pdf-lib
+    // for free off the old whole-file exemption before this fix.
+    const source = "import { PDFName } from '@cantoo/pdf-lib';\n"
+      + 'export function notAShim(context, value) {\n'
+      + '  return PDFName.of("x");\n'
+      + '}\n';
+    expect(imports(source, PDFOBJECTS_FILE)).toHaveLength(1);
+  });
+
+  it('fails a reference at true module scope, outside any function', () => {
+    const source = "import { PDFName } from '@cantoo/pdf-lib';\nexport const KEY = PDFName.of('x');\n";
+    expect(imports(source, PDFOBJECTS_FILE)).toHaveLength(1);
+  });
+
+  it('fails a dynamic import() inside a function not on the file allowlist, even in a shim file', () => {
+    const source = 'export async function notAShim() {\n'
+      + "  return import('pdfjs-dist/legacy/build/pdf.mjs');\n"
+      + '}\n';
+    expect(imports(source, SCORE_FILE)).toHaveLength(1);
+  });
+
+  it('allows the same dynamic import() inside its real allowlisted function', () => {
+    const source = 'export async function pageTextRuns() {\n'
+      + "  return import('pdfjs-dist/legacy/build/pdf.mjs');\n"
+      + '}\n';
+    expect(imports(source, SCORE_FILE)).toEqual([]);
+  });
+});
+
+describe('detection purity guard: bare require(...) (rule 1, review finding 5)', () => {
+  it('fails a bare require of a forbidden package in a non-shim file', () => {
+    expect(imports("const lib = require('@cantoo/pdf-lib');\n")).toHaveLength(1);
+  });
+
+  it('fails require(...) of a forbidden package outside the allowlisted function, even in a shim file', () => {
+    const source = "export function notAShim() { return require('pdfjs-dist'); }\n";
+    expect(imports(source, SCORE_FILE)).toHaveLength(1);
+  });
+
+  it('does not flag require.resolve(...) of a forbidden package path', () => {
+    // score.js's real pageTextRuns does exactly this
+    // (require.resolve('pdfjs-dist/package.json')) to locate the font/cmap/
+    // wasm directories on disk - it resolves a path, it never loads the
+    // module, and is not the bare `require(...)` call this rule is about.
+    expect(imports("const p = require.resolve('pdfjs-dist/package.json');\n")).toEqual([]);
   });
 });
 

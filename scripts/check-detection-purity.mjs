@@ -19,23 +19,50 @@
 // from 'typescript'` breaks under Vite/Vitest).
 //
 // Rules (backlog/tasks/FORM-22.md):
-//   1. No import of pdfjs-dist, @cantoo/pdf-lib or preact, and no reference to
-//      a DOM global (document./window./navigator./localStorage/fetch(/
-//      XMLHttpRequest), in a detection module - except a file on the
-//      BOUNDARY_SHIMS allowlist below, which is exempt from the
-//      package-import half of this rule only (a shim still may not touch the
-//      DOM; nothing here needs to).
+//   1. No import of pdfjs-dist, @cantoo/pdf-lib or preact - static, dynamic
+//      `import(...)`, or a bare `require(...)` - in a detection module,
+//      except a file on the BOUNDARY_SHIMS allowlist, which is exempt from
+//      the package-import half of this rule only. Within a shim file, every
+//      reference to a binding the file imported from one of those packages
+//      (and every dynamic import()/require() call for one) must itself sit
+//      inside a function named on that file's FUNCTION_SHIMS allowlist -
+//      the exemption is per function, not per file (FORM-22 review,
+//      finding 4), so a plain helper living beside a real shim in the same
+//      file gets no free pass.
+//   1b. No reference to a DOM/storage/network global - `globalThis`, `self`,
+//      `window`, `document`, `navigator`, `localStorage`, `sessionStorage`,
+//      `indexedDB`, `fetch`, `XMLHttpRequest` - however it is reached: bare
+//      (`self`), as the object of a property access (`self.document.title`,
+//      `globalThis.document`), or as the source object of a destructure
+//      (`const { document: doc } = globalThis`). Catching the identifier
+//      reference itself catches every one of those forms in one rule,
+//      because in each case the forbidden name is what gets referenced, not
+//      a property name that happens to read the same (FORM-22 review,
+//      finding 1). A name that is locally declared in an enclosing scope
+//      (a parameter, a shadowing local) is not the global and is not
+//      flagged. A shim still may not touch any of these; nothing here needs
+//      to.
 //   2. No module-level mutable state: a top-level `let`/`var` is a violation
 //      outright; a top-level `const` bound to `new Map/Set/WeakMap/Array`, an
 //      array literal or an object literal is a violation only if something
 //      later in the file mutates it (a lookup table that is only ever read -
-//      `.has()`, indexed, spread - is not state).
-//   3. No `Date.now()`, `new Date()`, `Math.random()` or `performance.now()`
-//      anywhere in a detection module.
+//      `.has()`, indexed, spread - is not state). A same-named mutation
+//      inside a function only counts against the top-level binding if the
+//      reference actually resolves to it; a closer declaration of the same
+//      name (a parameter, a shadowing local) binds the name to something
+//      else and is not this rule's business (FORM-22 review, finding 3).
+//   3. No `Date.now()`, `new Date()`, `Math.random()`, `performance.now()`,
+//      `crypto.randomUUID()` or `crypto.getRandomValues()` anywhere in a
+//      detection module.
 //
-// Measured on today's code (2026-09-25): 0 violations across all ten scanned
-// modules, in well under a second - see the "Landed" note in
-// backlog/tasks/FORM-22.md for the run and its sabotage-check results.
+// Rules 1b and 2's "locally declared" and "resolves to it" carve-outs need
+// real scope resolution, not a name-only scan: `createChecker` builds a
+// full TypeScript type checker over a single in-memory, `noLib` Program for
+// exactly that. With no lib files loaded, an unresolved identifier - one no
+// declaration in the file can explain - is a real, undeclared global by
+// construction; that is the whole trick, and it costs one Program per file
+// (still comfortably sub-second across all ten - see the "Landed" note in
+// backlog/tasks/FORM-22.md for the measured run).
 
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -92,9 +119,11 @@ export const DETECTION_ENTRY_POINT = 'src/editor/adapters/pdf/detectFormFields.t
 // import a package in half of it would be churn ARCH-24 is about to redo
 // anyway when it draws the real folder boundary. Exempting the whole file
 // from rule 1's package-import check is the honest version of that, not a
-// loophole: every other rule (module-level state, Date/Math/performance)
-// still applies to a shim in full, and DOM globals are never allowed even
-// here - see the header comment.
+// loophole: every other rule (module-level state, Date/Math/performance,
+// DOM globals) still applies to a shim in full, and - since FORM-22's
+// review - so does FUNCTION_SHIMS below: this map says a file may hold the
+// `import` statement, FUNCTION_SHIMS says which of its functions may
+// actually use what it imports.
 export const BOUNDARY_SHIMS = new Map([
   [
     'src/editor/adapters/pdf/pageInk.js',
@@ -112,28 +141,91 @@ export const BOUNDARY_SHIMS = new Map([
   ],
 ]);
 
+// The per-function half of the allowlist (FORM-22 review, finding 4): a
+// shim file may import pdf-lib/pdf.js, but every reference to what it
+// imported must sit inside one of the functions named here. Read straight
+// from today's code (2026-09-25), one line per function that touches an
+// import, honestly - including a function that is pure logic reading plain
+// values off a parameter the caller happens to have gotten from pdf-lib,
+// not only the ones that call pdf-lib/pdf.js APIs directly.
+export const FUNCTION_SHIMS = new Map([
+  [
+    'src/editor/adapters/pdf/pageInk.js',
+    new Map([
+      ['pageCropBox', "reads a pdf-lib page's CropBox/MediaBox (PDFName lookups) into a plain rect."],
+      ['collectPageInk', 'the file\'s other named shim; delegates the pdf-lib access entirely to '
+        + "pdfObjects.js's getPageContentBytes and never dereferences an import itself, but it is "
+        + "what makes the file a shim at all, so it is named here rather than left implicit."],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/pdfObjects.js',
+    new Map([
+      ['lookupDict', 'resolves a context reference to a PDFDict; the shared primitive every other '
+        + 'dict-reading function below calls.'],
+      ['numberAt', 'resolves one PDFName.of(key) dict entry into a plain number.'],
+      ['getPageContentBytes', "concatenates a pdf-lib page's content streams (PDFStream/PDFArray/"
+        + 'decodePDFRawStream) into one plain byte buffer.'],
+      ['readFont', 'reads a pdf-lib font dict (Type0 descendant, /W widths, FontDescriptor) into '
+        + 'plain glyph metrics; the biggest single adapter in the file.'],
+      ['buildFontTable', "walks a pdf-lib Resources dict's /Font entries into a plain lookup table."],
+      ['buildXObjectTable', "walks a pdf-lib Resources dict's /XObject entries into a plain lookup "
+        + 'table.'],
+      ['collectCheckboxGlyphs', "reads a pdf-lib page's Resources dict once before walking its own "
+        + 'already-decoded content-stream tokens; the one PDFName reference is why the whole '
+        + 'function needs to be here even though most of its body is pure geometry.'],
+      ['inheritedEntry', "walks a widget's PDFDict parent chain to read one inheritable field "
+        + 'attribute into a plain value.'],
+      ['pageWidgets', "reads a pdf-lib page's /Annots array into plain widget dicts."],
+      ['widgetEntries', 'reads the five widget/field entries pdf-lib exposes into a plain '
+        + 'WidgetEntry object.'],
+      ['extractPageObjects', "reads a pdf-lib page's Resources dict and content bytes once before "
+        + 'walking its own already-decoded tokens, the same shape as collectCheckboxGlyphs.'],
+      ['hasFillableAcroForm', "reads a pdf-lib document's AcroForm dict into a plain boolean. It "
+        + 'references no import identifier directly - `pdfDoc.catalog.getAcroForm()` calls a method '
+        + 'on its parameter rather than naming PDFName/PDFDict/etc. - so nothing here would actually '
+        + 'flag it; it is listed anyway because its parameter is a pdf-lib PDFDocument and hiding '
+        + 'that would be the dishonest version of this allowlist.'],
+    ]),
+  ],
+  [
+    'src/editor/adapters/pdf/corpus/scoring/score.js',
+    new Map([
+      ['pageTextRuns', 'opens a real PDF through pdfjs-dist (dynamic import) and reads its text '
+        + 'layer for scoring (MOBI-13).'],
+      ['scoreForm', 'loads the PDF through pdf-lib (`PDFDocument.load`) and reads its page before '
+        + 'scoring; this one was getting the package "for free" off the file-level exemption before '
+        + 'this review (FORM-22 review, finding 4) even though nothing named it - it genuinely '
+        + 'adapts a pdf-lib document into inputs for the rest of the pipeline, so it earns its place '
+        + 'honestly rather than by omission.'],
+    ]),
+  ],
+]);
+
 const FORBIDDEN_PACKAGES = ['pdfjs-dist', '@cantoo/pdf-lib', 'preact'];
 
 function isForbiddenPackage(specifier) {
   return FORBIDDEN_PACKAGES.some((pkg) => specifier === pkg || specifier.startsWith(`${pkg}/`));
 }
 
-// Property-access forms that reach outside a detector's plain-data inputs.
-// `null` means every property on that object is forbidden (there is no
-// legitimate reason a pure geometry/annotation reader touches `document` or
-// `window` at all); a Set narrows to the specific nondeterministic member -
-// `Math.min`/`Math.abs`/`Math.round` etc. are ordinary pure arithmetic this
-// codebase uses constantly and must stay allowed.
-const FORBIDDEN_PROPERTY_ACCESS = new Map([
-  ['document', null],
-  ['window', null],
-  ['navigator', null],
+// Identifiers that always reach outside a detector's plain-data inputs,
+// however they are referenced (see rule 1b above). `Math`/`Date`/
+// `performance`/`crypto` are deliberately not here: those are otherwise
+// ordinary, pure globals, and only specific nondeterministic members of
+// them are forbidden (FORBIDDEN_NONDETERMINISTIC_MEMBERS below) - `Math.min`
+// etc. are ordinary arithmetic this codebase uses constantly and must stay
+// allowed.
+const FORBIDDEN_GLOBAL_REFERENCES = new Set([
+  'globalThis', 'self', 'window', 'document', 'navigator',
+  'localStorage', 'sessionStorage', 'indexedDB', 'fetch', 'XMLHttpRequest',
+]);
+
+const FORBIDDEN_NONDETERMINISTIC_MEMBERS = new Map([
   ['Math', new Set(['random'])],
   ['Date', new Set(['now'])],
   ['performance', new Set(['now'])],
+  ['crypto', new Set(['randomUUID', 'getRandomValues'])],
 ]);
-
-const FORBIDDEN_BARE_GLOBALS = new Set(['localStorage', 'XMLHttpRequest']);
 
 const MUTATING_METHODS = new Set([
   'set', 'add', 'delete', 'clear', 'push', 'pop', 'shift', 'unshift',
@@ -157,6 +249,44 @@ export function parseModule(relPath, text) {
   return ts.createSourceFile(path.join(ROOT, relPath), text, ts.ScriptTarget.Latest, true, scriptKind);
 }
 
+// A single-file, `noLib` Program's type checker, used only for scope
+// resolution (`getSymbolAtLocation`), never for type information. With no
+// lib files loaded, the checker cannot see ambient globals like `document`
+// or `Math` at all, so an identifier resolves here if and only if some
+// declaration inside this file explains it (a parameter, a local
+// var/let/const, an import specifier, a function/class name...) - exactly
+// the "is this name locally bound" question rules 1b and 2 need answered,
+// with none of the false confidence a name-only text match would carry.
+export function createChecker(sourceFile) {
+  const compilerOptions = {
+    allowJs: true, checkJs: false, noLib: true, target: ts.ScriptTarget.Latest,
+  };
+  const host = {
+    getSourceFile: (fileName) => (fileName === sourceFile.fileName ? sourceFile : undefined),
+    writeFile: () => {},
+    getDefaultLibFileName: () => 'lib.d.ts',
+    useCaseSensitiveFileNames: () => true,
+    getCanonicalFileName: (fileName) => fileName,
+    getCurrentDirectory: () => '',
+    getNewLine: () => '\n',
+    fileExists: (fileName) => fileName === sourceFile.fileName,
+    readFile: () => undefined,
+  };
+  const program = ts.createProgram([sourceFile.fileName], compilerOptions, host);
+  return program.getTypeChecker();
+}
+
+// True when `node` resolves to a real declaration inside this file - a
+// symbol with at least one declaration. `globalThis` (and a handful of
+// other well-known names) get a synthetic checker symbol even under
+// `noLib` with zero declarations, which is exactly the "not actually
+// local" case this must say no to; a genuinely local binding always has a
+// declaration node.
+function isLocallyBound(checker, node) {
+  const symbol = checker.getSymbolAtLocation(node);
+  return Boolean(symbol && symbol.declarations && symbol.declarations.length > 0);
+}
+
 function lineOf(sourceFile, node) {
   return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
 }
@@ -169,85 +299,201 @@ function forEachNode(root, visit) {
   walk(root);
 }
 
+// True when `node` is where a name gets bound rather than referenced: the
+// declared name of a variable/parameter/binding element, a destructure's
+// property key (`{ document: doc }` - the key is a selector, not a
+// reference, same as `obj.document`'s member name), an object literal's
+// property key, an import's local name, or a property access's member
+// name. Every one of these can share text with a forbidden global or an
+// imported binding without being a use of it.
+function isBindingPosition(node) {
+  const { parent } = node;
+  if (!parent) return false;
+  if ((ts.isVariableDeclaration(parent) || ts.isParameter(parent)) && parent.name === node) return true;
+  if (ts.isBindingElement(parent) && (parent.name === node || parent.propertyName === node)) return true;
+  if (ts.isPropertyAssignment(parent) && parent.name === node) return true;
+  if (ts.isImportSpecifier(parent) && (parent.name === node || parent.propertyName === node)) return true;
+  if (ts.isNamespaceImport(parent) && parent.name === node) return true;
+  if (ts.isImportClause(parent) && parent.name === node) return true;
+  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return true;
+  return false;
+}
+
+// Walks up to the nearest named function-like ancestor: a function
+// declaration, a named function expression, a function/arrow expression
+// assigned to a single identifier (`const foo = () => {}`), or a method.
+// Returns null for a reference with no enclosing function at all (true
+// module top level). FUNCTION_SHIMS entries are matched against exactly
+// this name - the nearest one, so a reference inside a nested helper closes
+// over the helper's own name, not its outer function's; a nested helper
+// that itself needs to touch an import earns its own allowlist line rather
+// than inheriting one silently.
+function enclosingFunctionName(node) {
+  let current = node.parent;
+  while (current) {
+    if ((ts.isFunctionDeclaration(current) || ts.isFunctionExpression(current)) && current.name) {
+      return current.name.text;
+    }
+    if (ts.isMethodDeclaration(current) && ts.isIdentifier(current.name)) {
+      return current.name.text;
+    }
+    if ((ts.isFunctionExpression(current) || ts.isArrowFunction(current))
+      && current.parent && ts.isVariableDeclaration(current.parent)
+      && ts.isIdentifier(current.parent.name) && current.parent.initializer === current) {
+      return current.parent.name.text;
+    }
+    current = current.parent;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
-// Rule 1: forbidden imports + DOM globals
+// Rule 1 (+1b): forbidden imports, the per-function shim allowlist, and DOM
+// globals
 // ---------------------------------------------------------------------------
 
-export function checkForbiddenImports(sourceFile, relPath) {
+// Local binding names this file imports from a forbidden package via a
+// static `import` declaration - the names FUNCTION_SHIMS restricts to
+// named functions in a shim file.
+function importedForbiddenLocalNames(sourceFile) {
+  const names = new Set();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isImportDeclaration(statement) || !statement.moduleSpecifier
+      || !ts.isStringLiteral(statement.moduleSpecifier) || !isForbiddenPackage(statement.moduleSpecifier.text)) {
+      continue;
+    }
+    const clause = statement.importClause;
+    if (!clause) continue;
+    if (clause.name) names.add(clause.name.text);
+    if (clause.namedBindings) {
+      if (ts.isNamespaceImport(clause.namedBindings)) {
+        names.add(clause.namedBindings.name.text);
+      } else if (ts.isNamedImports(clause.namedBindings)) {
+        for (const element of clause.namedBindings.elements) names.add(element.name.text);
+      }
+    }
+  }
+  return names;
+}
+
+export function checkForbiddenImports(sourceFile, relPath, checker = createChecker(sourceFile)) {
   const violations = [];
   const exempt = BOUNDARY_SHIMS.has(relPath);
+  const allowedFunctions = FUNCTION_SHIMS.get(relPath) ?? new Map();
 
-  const report = (node, specifier) => {
+  // Static `import`/`export ... from` declarations only ever appear at the
+  // module's top level, per the language grammar, so there is no function
+  // to scope this exemption to: a shim file's whole-file pass is the only
+  // kind that can apply here.
+  const reportStaticImport = (node, specifier) => {
     if (exempt) return;
     violations.push(`${relPath}:${lineOf(sourceFile, node)}: imports '${specifier}', which is not on the boundary-shim allowlist`);
   };
 
-  // Static `import`/`export ... from` declarations only ever appear at the
-  // module's top level, per the language grammar.
+  // A dynamic import() or a require(...) call is an expression, so - unlike
+  // a static import - it can sit inside a function, and in a shim file its
+  // exemption is scoped to FUNCTION_SHIMS the same way a reference to an
+  // already-imported binding is below.
+  const reportCall = (node, specifier, verb) => {
+    if (!exempt) {
+      violations.push(`${relPath}:${lineOf(sourceFile, node)}: ${verb} '${specifier}', which is not on the boundary-shim allowlist`);
+      return;
+    }
+    const fnName = enclosingFunctionName(node);
+    if (!fnName || !allowedFunctions.has(fnName)) {
+      const where = fnName ? `'${fnName}'` : 'module scope';
+      violations.push(`${relPath}:${lineOf(sourceFile, node)}: ${verb} '${specifier}' from ${where}, which is not on this file's per-function allowlist`);
+    }
+  };
+
   for (const statement of sourceFile.statements) {
     if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement))
       && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)) {
       const specifier = statement.moduleSpecifier.text;
-      if (isForbiddenPackage(specifier)) report(statement, specifier);
+      if (isForbiddenPackage(specifier)) reportStaticImport(statement, specifier);
     }
   }
 
-  // A dynamic `import(...)` call can appear anywhere in the file.
   forEachNode(sourceFile, (node) => {
+    // A dynamic `import(...)` call.
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword) {
       const [arg] = node.arguments;
-      if (arg && ts.isStringLiteralLike(arg) && isForbiddenPackage(arg.text)) report(node, arg.text);
+      if (arg && ts.isStringLiteralLike(arg) && isForbiddenPackage(arg.text)) {
+        reportCall(node, arg.text, 'dynamically imports');
+      }
+      return;
+    }
+    // A bare `require('pdfjs-dist')` (FORM-22 review, finding 5) - cheap to
+    // catch with the AST already in hand, and the one other way a module
+    // can pull a forbidden package in without a static `import` statement.
+    // `require` is never declared by these ES modules, so `isLocallyBound`
+    // only matters for a hypothetical local rebinding (`function f(require)
+    // {...}`) - the same carve-out every other global reference here gets.
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'require'
+      && !isLocallyBound(checker, node.expression)) {
+      const [arg] = node.arguments;
+      if (arg && ts.isStringLiteralLike(arg) && isForbiddenPackage(arg.text)) {
+        reportCall(node, arg.text, 'calls require(...) on');
+      }
     }
   });
+
+  // The per-function half of the allowlist (FORM-22 review, finding 4):
+  // every reference to a binding this file imported from a forbidden
+  // package must sit inside one of the functions FUNCTION_SHIMS names for
+  // it. Only reachable for a shim file - a non-shim file already failed on
+  // its import declaration above, and nothing it exports is ever compared
+  // against FUNCTION_SHIMS.
+  if (exempt) {
+    const importedNames = importedForbiddenLocalNames(sourceFile);
+    if (importedNames.size > 0) {
+      forEachNode(sourceFile, (node) => {
+        if (!ts.isIdentifier(node) || !importedNames.has(node.text) || isBindingPosition(node)) return;
+        const fnName = enclosingFunctionName(node);
+        if (!fnName || !allowedFunctions.has(fnName)) {
+          const where = fnName ? `'${fnName}'` : 'module scope';
+          violations.push(`${relPath}:${lineOf(sourceFile, node)}: references imported '${node.text}' from ${where}, which is not on this file's per-function allowlist`);
+        }
+      });
+    }
+  }
 
   return violations;
 }
 
-export function checkForbiddenGlobals(sourceFile, relPath) {
+export function checkForbiddenGlobals(sourceFile, relPath, checker = createChecker(sourceFile)) {
   const violations = [];
   const report = (node, message) => violations.push(`${relPath}:${lineOf(sourceFile, node)}: ${message}`);
 
   forEachNode(sourceFile, (node) => {
-    if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Date') {
+    if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'Date'
+      && !isLocallyBound(checker, node.expression)) {
       report(node, "'new Date()' is nondeterministic; a detector must be pure");
-      return;
-    }
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'fetch') {
-      report(node, "'fetch(...)' reaches off-device; a detector reads only its own inputs");
       return;
     }
     if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(node.expression)) {
       const objectName = node.expression.text;
-      if (FORBIDDEN_PROPERTY_ACCESS.has(objectName)) {
-        const onlyMembers = FORBIDDEN_PROPERTY_ACCESS.get(objectName);
-        if (onlyMembers === null || onlyMembers.has(node.name.text)) {
-          report(node, `'${objectName}.${node.name.text}' reaches outside the detector's plain-data inputs`);
-        }
+      const onlyMembers = FORBIDDEN_NONDETERMINISTIC_MEMBERS.get(objectName);
+      if (onlyMembers && onlyMembers.has(node.name.text) && !isLocallyBound(checker, node.expression)) {
+        report(node, `'${objectName}.${node.name.text}' is nondeterministic; a detector must be pure`);
       }
-      return;
+      // Fall through deliberately: `node.expression` (the object identifier)
+      // is visited again below as its own node, so a forbidden *global*
+      // object (document.title) still gets checked by the identifier rule
+      // even when it is not also a nondeterministic-member access.
     }
-    // A bare reference, e.g. `typeof localStorage`. Excludes a name used as a
-    // *binding* (a declared local, a parameter, an object-literal key, an
-    // import specifier) or as the property name in `a.localStorage` - either
-    // is a different thing than the global, and `FORBIDDEN_PROPERTY_ACCESS`
-    // above already covers the real property-access form for `document`/
-    // `window`/`navigator`.
-    if (ts.isIdentifier(node) && FORBIDDEN_BARE_GLOBALS.has(node.text) && !isBindingPosition(node)) {
-      report(node, `references the global '${node.text}'`);
+    // A reference to a forbidden DOM/storage/network global - bare, as the
+    // object half of a property access, or as the source of a destructure
+    // (rule 1b). Excludes a binding position (isBindingPosition) and a name
+    // that resolves to a local declaration (isLocallyBound); see both
+    // functions' own comments for why each is needed.
+    if (ts.isIdentifier(node) && FORBIDDEN_GLOBAL_REFERENCES.has(node.text)
+      && !isBindingPosition(node) && !isLocallyBound(checker, node)) {
+      report(node, `references the global '${node.text}', which reaches outside the detector's plain-data inputs`);
     }
   });
 
   return violations;
-}
-
-function isBindingPosition(node) {
-  const { parent } = node;
-  if (!parent) return false;
-  if ((ts.isVariableDeclaration(parent) || ts.isParameter(parent) || ts.isBindingElement(parent)) && parent.name === node) return true;
-  if (ts.isPropertyAssignment(parent) && parent.name === node) return true;
-  if (ts.isImportSpecifier(parent) && parent.name === node) return true;
-  if (ts.isPropertyAccessExpression(parent) && parent.name === node) return true;
-  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,12 +513,9 @@ function isMutableContainerInitializer(initializer) {
 // True when `node` (an Identifier already known to spell a candidate
 // container's name) is used here as the receiver of a mutation: a call to a
 // known mutating method, or the target of a property/index assignment.
-// Matched by name only, not by resolved binding (a real binder/checker is
-// more than this guard needs) - a documented limit, same shape as
-// check-editor-dependency-directions.mjs's SINGLE_OWNER_PATTERN text scan:
-// safe here because every candidate name in DETECTION_MODULES today
-// (IDENTITY, PAINT_OPERATORS, KIND_GROUPS, CHECKBOX_GLYPHS, KINDS, ...) is
-// distinctive enough that no unrelated nested local plausibly shares it.
+// Whether that mutation counts against a particular top-level declaration is
+// decided by the caller via scope resolution (checkModuleLevelState below);
+// this only answers "is this use a mutation at all".
 function isMutatingUse(node) {
   const { parent } = node;
   if (!parent) return false;
@@ -289,7 +532,7 @@ function isMutatingUse(node) {
   return false;
 }
 
-export function checkModuleLevelState(sourceFile, relPath) {
+export function checkModuleLevelState(sourceFile, relPath, checker = createChecker(sourceFile)) {
   const violations = [];
 
   for (const statement of sourceFile.statements) {
@@ -313,7 +556,18 @@ export function checkModuleLevelState(sourceFile, relPath) {
       let mutated = false;
       forEachNode(sourceFile, (node) => {
         if (mutated || !ts.isIdentifier(node) || node.text !== name || node === decl.name) return;
-        if (isMutatingUse(node)) mutated = true;
+        if (!isMutatingUse(node)) return;
+        // A same-named mutation only counts against THIS top-level binding
+        // if the reference actually resolves to it: a closer declaration in
+        // an enclosing function or block scope - a parameter, a shadowing
+        // local with the same name - binds the identifier to something else
+        // entirely, and mutating that is none of this rule's business
+        // (FORM-22 review, finding 3). `getSymbolAtLocation` is the real
+        // TypeScript binder's answer to "what does this name resolve to
+        // here", not a second name-only guess.
+        const symbol = checker.getSymbolAtLocation(node);
+        const resolvedDeclaration = symbol?.declarations?.[0];
+        if (resolvedDeclaration === decl) mutated = true;
       });
       if (mutated) {
         violations.push(`${relPath}:${lineOf(sourceFile, decl)}: top-level 'const ${name}' is a container that gets mutated after creation`);
@@ -347,10 +601,11 @@ export function checkAll() {
     }
     scanned.push(relPath);
     const sourceFile = parseModule(relPath, readFileSync(absPath, 'utf8'));
+    const checker = createChecker(sourceFile);
     violations.push(
-      ...checkForbiddenImports(sourceFile, relPath),
-      ...checkForbiddenGlobals(sourceFile, relPath),
-      ...checkModuleLevelState(sourceFile, relPath),
+      ...checkForbiddenImports(sourceFile, relPath, checker),
+      ...checkForbiddenGlobals(sourceFile, relPath, checker),
+      ...checkModuleLevelState(sourceFile, relPath, checker),
     );
   }
 
@@ -370,7 +625,7 @@ function main() {
 
   if (violations.length > 0) {
     console.error('Detection purity guard failed: field detection must stay plain data in, plain data out.');
-    console.error('Every pdf-lib/pdf.js/DOM/time/random touch belongs to a named shim in BOUNDARY_SHIMS, or nowhere at all.');
+    console.error('Every pdf-lib/pdf.js/DOM/time/random touch belongs to a named shim in BOUNDARY_SHIMS/FUNCTION_SHIMS, or nowhere at all.');
     for (const violation of violations) console.error(`  ${violation}`);
     process.exitCode = 1;
     return;
