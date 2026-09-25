@@ -15,6 +15,15 @@ import { reconcileFields, withWidgetFields } from './fieldRegions.js';
  * gap (`src/editor/adapters/pdf/formGrid.js` and its siblings were already pure
  * functions; nothing knew them as one capability).
  *
+ * A caller needs more than the detection call itself to gather what it passes
+ * in: `toPageTextRuns` (re-exported below, from `textRuns.js`) turns pdf.js
+ * text items into the page-percent runs this module's `textRuns` parameter
+ * expects, and `pageGeometry` (below) builds the same per-page geometry this
+ * module builds internally. Both are exported from here, not from their own
+ * modules directly, so a consumer - the hook is the one this matters for -
+ * reaches every detector-adjacent piece through this one module and cannot
+ * drift from what `detectFormFields` itself uses.
+ *
  * Two sources today, `ink` and `widgets`, each a thin async wrapper around
  * functions that already existed and are unchanged by this step. So is the
  * order they are reconciled in: `reconcileFields` then `withWidgetFields`,
@@ -31,6 +40,11 @@ import { reconcileFields, withWidgetFields } from './fieldRegions.js';
  * (`dominantTextDirection`), so `useFormFieldRegions.ts` computes it itself
  * rather than asking a detector for something that is not geometry.
  */
+
+/** See the module doc above: re-exported so a caller reaches the pdf.js-item
+ * conversion through this one module rather than importing `textRuns.js`
+ * directly. */
+export { toPageTextRuns } from './textRuns.js';
 
 /**
  * One page's text, already in the editor's page-percent shape - what
@@ -117,6 +131,23 @@ const widgetsSource: FieldSource = {
 export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource];
 
 /**
+ * One page's geometry (crop box plus rotation), exactly as `detectFormFields`
+ * builds it for each page below. Exported so a caller that needs the same
+ * geometry to gather text runs - the hook, the scored corpus - computes it
+ * through this one function instead of repeating `createPageGeometry({
+ * cropBox: pageCropBox(page), rotation: ... })` itself. Before this, two call
+ * sites building "the same" geometry by convention was exactly the kind of
+ * drift ARCH-24's acceptance line rules out: nothing enforced that a second
+ * copy stayed identical to this one.
+ */
+export function pageGeometry(page: PDFPage): PageGeometry {
+  return createPageGeometry({
+    cropBox: pageCropBox(page),
+    rotation: page.getRotation().angle,
+  });
+}
+
+/**
  * Detects every comb, checkbox and free-text cell in a document.
  *
  * `textRuns` is required, per page, and never defaulted: the element corpus
@@ -147,10 +178,7 @@ export async function detectFormFields(
   };
   for (let pageIndex = 0; pageIndex < document.getPageCount(); pageIndex += 1) {
     const page = document.getPage(pageIndex);
-    const geometry = createPageGeometry({
-      cropBox: pageCropBox(page),
-      rotation: page.getRotation().angle,
-    });
+    const geometry = pageGeometry(page);
     const context: DetectionContext = { textRuns: textRuns[pageIndex], geometry, pageIndex };
 
     // The ink walk first, then whatever the page's own `/Tx` widgets add: a

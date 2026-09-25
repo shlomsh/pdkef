@@ -26,16 +26,18 @@
  * Runs after `npm run build`, beside `test:csp` and `test:weight`, because
  * chunking is a property of the bundle and `astro dev` does not have one.
  *
- * ARCH-24 (step A) put four of these modules behind one entry point,
- * `detectFormFields.ts`: `formWidgets.js`, `formGrid.js`, `formCells.js` and
- * `fieldRegions.js` no longer build as chunks of their own (nothing imports
- * them except the entry point now), confirmed on the built output and
- * replaced below by one row for it. `pageInk.js` stays a row of its own: the
- * hook still reaches it directly, for the page geometry it needs to build the
- * text runs it passes in, so it is still a real separate chunk. A future
- * source (OCR, metadata extraction) is exactly the kind of thing that must
- * not land in everyone's first paint either, and inherits this guard through
- * the entry point rather than needing its own row.
+ * ARCH-24 put all five of these modules behind one entry point,
+ * `detectFormFields.ts`. Step A stopped the hook assembling `formWidgets.js`,
+ * `formGrid.js`, `formCells.js` and `fieldRegions.js` itself; a follow-up
+ * closed the last gap by having the entry point export `pageGeometry` and
+ * re-export `toPageTextRuns`, so the hook no longer reaches `pageInk.js` (for
+ * the page geometry) or `textRuns.js` directly either. With every production
+ * importer of `pageInk.js` now behind the one entry point, it no longer builds
+ * as a chunk of its own - confirmed on the built output - so the five rows
+ * this list used to carry (two, after step A) collapse to the one below. A
+ * future source (OCR, metadata extraction) is exactly the kind of thing that
+ * must not land in everyone's first paint either, and inherits this guard
+ * through the entry point rather than needing its own row.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -62,7 +64,6 @@ const ASSETS = path.join(DIST, '_astro');
  */
 const LAZY_ONLY = [
   { chunk: /^detectFormFields\./, why: 'field detection - the one entry point (ARCH-24)', reachableFrom: ['sign'] },
-  { chunk: /^pageInk\./, why: 'the content-stream ink walk', reachableFrom: ['sign'] },
   {
     chunk: /^pdf-lib\./,
     why: 'pdf-lib, 628 KiB: nothing needs it until a file is opened',
