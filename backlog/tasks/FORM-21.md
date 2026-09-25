@@ -1,7 +1,7 @@
 ---
 id: "FORM-21"
 title: "The scored corpus locks in gains and names every regression"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
