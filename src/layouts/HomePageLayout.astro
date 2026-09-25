@@ -562,7 +562,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
       "dock   dock     dock   dock   dock";
   }
   .home-header { grid-area: header; }
-  .workspace-launcher { grid-area: launcher; align-self: center; }
+  /* Fills its row rather than centring (MOBI-35): recents arrive after mount,
+     so FileDropzone/RecentFiles reserve two rows inside this fixed box and pin
+     the picker to its bottom; nothing moves when the real tiles land. */
+  .workspace-launcher { grid-area: launcher; align-self: stretch; }
   .demo-track { grid-area: demo; align-self: center; }
   .home-dock { grid-area: dock; }
   /* The demo pin's own frame just fills whichever cell holds it; the pin
