@@ -77,6 +77,8 @@ describe('SignToolContext Reducer', () => {
     actionHistory: [],
     redoHistory: [],
     documentRevision: 0,
+    carriedFont: null,
+    carriedFontSize: null,
   };
 
   it('SET_TOOL sets selectedTool', () => {
@@ -103,6 +105,50 @@ describe('SignToolContext Reducer', () => {
     expect(loaded.documentRevision).toBe(8);
     expect(loaded.draftBaselineRevision).toBe(8);
     expect(reducer(loaded, { type: 'UPDATE_ELEMENT', payload: { id: 'restored-1', changes: { text: 'Edited' } } }).documentRevision).toBe(9);
+  });
+
+  // SIGN-32: one carried font and size per document, belonging to the
+  // document (round-tripped through its draft), never the browser.
+  describe('carried font/size', () => {
+    it('SET_CARRIED_FONT and SET_CARRIED_FONT_SIZE set the carried values and bump documentRevision', () => {
+      const fontState = reducer(initialState, { type: 'SET_CARRIED_FONT', payload: 'David' });
+      expect(fontState.carriedFont).toBe('David');
+      expect(fontState.documentRevision).toBe(1);
+
+      const sizeState = reducer(fontState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
+      expect(sizeState.carriedFontSize).toBe(18);
+      expect(sizeState.documentRevision).toBe(2);
+      // Setting one never disturbs the other.
+      expect(sizeState.carriedFont).toBe('David');
+    });
+
+    it('LOAD_DOCUMENT restores a draft\'s carried font/size', () => {
+      const loaded = reducer(initialState, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carriedFont: 'David', carriedFontSize: 18 },
+      });
+      expect(loaded.carriedFont).toBe('David');
+      expect(loaded.carriedFontSize).toBe(18);
+    });
+
+    it('LOAD_DOCUMENT resets to no carried value for a fresh document, even one opened after a document that carried one', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
+      expect(withCarry.carriedFontSize).toBe(18);
+
+      const fresh = reducer(withCarry, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
+      expect(fresh.carriedFont).toBeNull();
+      expect(fresh.carriedFontSize).toBeNull();
+    });
+
+    it('LOAD_DOCUMENT resets to no carried value for a pre-SIGN-32 draft (fields present but undefined)', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
+      const restored = reducer(withCarry, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carriedFont: undefined, carriedFontSize: undefined },
+      });
+      expect(restored.carriedFont).toBeNull();
+      expect(restored.carriedFontSize).toBeNull();
+    });
   });
 
   it('increments the document revision for every change that can invalidate an export', () => {

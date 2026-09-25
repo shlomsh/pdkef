@@ -16,7 +16,19 @@ export type { EditorElementPatch } from '../../../editor/model/editorModel.ts';
 export type SignToolAction =
   | { type: 'SET_TOOL'; payload: SignToolType | null | { tool: SignToolType; locked: boolean } }
   | { type: 'DISARM_TOOL' }
-  | { type: 'LOAD_DOCUMENT'; payload: { elements: EditorElement[]; actionHistory: ActionHistoryEntry<EditorElement>[] } }
+  | {
+      type: 'LOAD_DOCUMENT';
+      payload: {
+        elements: EditorElement[];
+        actionHistory: ActionHistoryEntry<EditorElement>[];
+        /** The document's carried font/size (SIGN-32), from its draft record.
+         * Absent (or `null`) resets to no carried value - a fresh document, or
+         * one restored from a draft written before this existed, starts over
+         * rather than inheriting whatever the previously loaded document had. */
+        carriedFont?: string | null;
+        carriedFontSize?: number | null;
+      };
+    }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'UPDATE_ELEMENT'; payload: { id: string; changes: EditorElementPatch } }
@@ -25,6 +37,12 @@ export type SignToolAction =
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'ADD_ACTION_HISTORY'; payload: ActionHistoryEntry<EditorElement> }
+  /** The document's one carried font family and font size (SIGN-32): set once,
+   * from the first field that needed one, or explicitly by an A-/A+ press or a
+   * font pick (PdfWorkspace's makeOnChange) - either way everything placed
+   * after takes it, until the next explicit change. */
+  | { type: 'SET_CARRIED_FONT'; payload: string }
+  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -54,6 +72,14 @@ export interface SignToolState {
   documentRevision: number;
   /** Revision captured when a file is opened/restored; later revisions are edits. */
   draftBaselineRevision?: number;
+  /** The document's one carried font family and font size (SIGN-32) - belongs
+   * to this document, not the browser, and round-trips through its draft
+   * (useEditorDraftPersistence's `extra`). `null` means the document has not
+   * needed one yet; `combPlacement.ts`'s `fieldFontSize` seeds
+   * `carriedFontSize` from the first field that does, and `PdfWorkspace`'s
+   * `makeOnChange` sets either from an explicit A-/A+ press or font pick. */
+  carriedFont: string | null;
+  carriedFontSize: number | null;
 }
 
 export interface SignToolContextValue {
@@ -89,6 +115,8 @@ const initialState: SignToolState = {
   redoHistory: [],
   documentRevision: 0,
   draftBaselineRevision: 0,
+  carriedFont: null,
+  carriedFontSize: null,
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
@@ -112,6 +140,11 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         editingElementId: null,
         documentRevision,
         draftBaselineRevision: documentRevision,
+        // A fresh file (no payload fields) or a pre-SIGN-32 draft (fields
+        // present but undefined) both reset to no carried value - a new
+        // document must never inherit another document's font or size.
+        carriedFont: action.payload.carriedFont ?? null,
+        carriedFontSize: action.payload.carriedFontSize ?? null,
       };
     }
     case 'SET_TOOL': {
@@ -215,6 +248,14 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         redoHistory: future
       };
     }
+    // Bumps documentRevision like any other edit: the carried font/size is
+    // part of the document now (round-tripped through its draft), not a
+    // browser preference, so a change to either is a saveable edit the same
+    // way an element change is.
+    case 'SET_CARRIED_FONT':
+      return { ...state, carriedFont: action.payload, documentRevision: nextDocumentRevision(state) };
+    case 'SET_CARRIED_FONT_SIZE':
+      return { ...state, carriedFontSize: action.payload, documentRevision: nextDocumentRevision(state) };
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
       return {
