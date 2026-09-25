@@ -48,17 +48,12 @@ _None._
 | MOBI-14 | P3 | [MOBI-14](backlog/tasks/MOBI-14.md) · A scanned form finds nothing: the detector reads vector ink, and a scan has none |
 | MOBI-15 | P3 | [MOBI-15](backlog/tasks/MOBI-15.md) · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard |
 | MOBI-18 | P2 | [MOBI-18](backlog/tasks/MOBI-18.md) · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it |
-| MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
-| MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
-| MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
-| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-13 | P2 | [MOBI-13](backlog/tasks/MOBI-13.md) · A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost |
-| MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
 
 ### Blocked
 
@@ -93,7 +88,13 @@ _None._
 
 ### Retired
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| MOBI-20 | P3 | [MOBI-20](backlog/tasks/MOBI-20.md) · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px |
+| MOBI-23 | P3 | [MOBI-23](backlog/tasks/MOBI-23.md) · A narrow text box that is selected but not open is all resize handle on touch |
+| MOBI-25 | P1 | [MOBI-25](backlog/tasks/MOBI-25.md) · Next on a pinch-zoomed iPhone throws the page to its top |
+| MOBI-26 | P2 | [MOBI-26](backlog/tasks/MOBI-26.md) · Creating a text box from a tap on an iPhone may not raise the keyboard |
+| MOBI-32 | P2 | [MOBI-32](backlog/tasks/MOBI-32.md) · Zoomed in, a box near the top of the screen is hidden under its own full toolbar |
 
 ## Site quality
 
@@ -424,7 +425,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| UNDO-04 | P3 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
+| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
 
 ### In progress
@@ -518,6 +519,39 @@ _None._
 | FORM-14 | P3 | [FORM-14](backlog/tasks/FORM-14.md) · A caption centred in its cell is a heading, not a label |
 | FORM-16 | P2 | [FORM-16](backlog/tasks/FORM-16.md) · Score Thai and English forms in the benchmark |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
+
+### Retired
+
+_None._
+
+## Sign next generation
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SNG-03 | P1 | [SNG-03](backlog/tasks/SNG-03.md) · Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives the keyboard, and synchronous focus |
+| SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
+| SNG-05 | P1 | [SNG-05](backlog/tasks/SNG-05.md) · The next-generation phone surface behind a flag: contextual bar, app-owned zoom, field walking and review |
+| SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Desktop and iPad on the next-generation surface: sketches, parity, then retire the old editor paths |
+| SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
+| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
+
+### In progress
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
+
+### Blocked
+
+_None._
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SNG-01 | P1 | [SNG-01](backlog/tasks/SNG-01.md) · Plan of record for the next-generation Sign editor, with the learnings that led to it |
 
 ### Retired
 

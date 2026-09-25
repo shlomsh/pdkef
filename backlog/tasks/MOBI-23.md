@@ -1,7 +1,7 @@
 ---
 id: "MOBI-23"
 title: "A narrow text box that is selected but not open is all resize handle on touch"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -39,3 +39,9 @@ to the text rather than covering it. Guarded in `touch-edit-reentry.spec.js`.
   adjustment, scales with the finger's contact radius - which a real finger has more of than a test. Measure it
   on an iPhone before trusting 16px. Redact's `RedactBox.tsx` positions the same bar at the plain offset and
   has not been looked at.
+
+## Retired 2026-09-25 into the next-generation Sign
+
+Retired, not fixed. Shlomi stopped local mobile fixes on 2026-09-25, because each one was locally right and
+created the next edge. This ticket is a symptom of a cause the new editor removes by design. Its failure
+case is carried into SNG-05's acceptance. See `docs/sign-next-gen.md` §1-2 and the SNG epic.

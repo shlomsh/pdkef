@@ -1,7 +1,7 @@
 ---
 id: "MOBI-20"
 title: "Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -85,3 +85,9 @@ At a phone viewport, in the expanded element toolbar, no two 44px hit boxes inte
 axis, and the bar is no taller than it is today. The all-pairs assertion in
 `src/tools/sign/e2e/form-field-nav-phone.spec.js` replaces the cross-row one, and its excluded-
 pairs comment goes with it.
+
+## Retired 2026-09-25 into the next-generation Sign
+
+Retired, not fixed. Shlomi stopped local mobile fixes on 2026-09-25, because each one was locally right and
+created the next edge. This ticket is a symptom of a cause the new editor removes by design. Its failure
+case is carried into SNG-05's acceptance. See `docs/sign-next-gen.md` §1-2 and the SNG epic.

@@ -1,7 +1,7 @@
 ---
 id: "MOBI-26"
 title: "Creating a text box from a tap on an iPhone may not raise the keyboard"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -21,3 +21,9 @@ Split out of MOBI-24, which fixed re-entering an existing box by tap.
   is the usual pattern).
 - No automated check can see the iOS keyboard. Until one exists, any change to how a text session opens on
   touch needs a real-phone check on a Vercel preview before it reaches `main`.
+
+## Retired 2026-09-25 into the next-generation Sign
+
+Retired, not fixed. Shlomi stopped local mobile fixes on 2026-09-25, because each one was locally right and
+created the next edge. This ticket is a symptom of a cause the new editor removes by design. Its failure
+case is carried into SNG-05's acceptance. See `docs/sign-next-gen.md` §1-2 and the SNG epic.

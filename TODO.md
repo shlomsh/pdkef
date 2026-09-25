@@ -329,7 +329,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
 | UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
 | UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
-| UNDO-04 | P3 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
+| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
 | UNDO-06 | P2 | [UNDO-06](backlog/tasks/UNDO-06.md) · The change-history dialog goes; Undo and Redo are the whole model |
 
@@ -371,6 +371,20 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
+
+
+## Sign, next generation: one editor for phone and desktop (2026-09-25)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| SNG-01 | P1 | [SNG-01](backlog/tasks/SNG-01.md) · Plan of record for the next-generation Sign editor, with the learnings that led to it |
+| SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
+| SNG-03 | P1 | [SNG-03](backlog/tasks/SNG-03.md) · Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives the keyboard, and synchronous focus |
+| SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
+| SNG-05 | P1 | [SNG-05](backlog/tasks/SNG-05.md) · The next-generation phone surface behind a flag: contextual bar, app-owned zoom, field walking and review |
+| SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Desktop and iPad on the next-generation surface: sketches, parity, then retire the old editor paths |
+| SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
+| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 
 
 ## Migrated context and history

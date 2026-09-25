@@ -60,6 +60,12 @@ export const epics = [
   // MOBI-11 moved here; MOBI-10 stays where it was decided, per the 2026-09-12
   // re-filing convention above.
   { key: 'form-understanding', label: 'Form understanding', heading: 'Form understanding: read what a form asks, ask the person, fill it back (2026-09-20)' },
+  // Opened 2026-09-25 when Shlomi stopped the mobile patching: 34 MOBI tickets
+  // in 76 days, each fix locally right and the next edge right behind it. The
+  // record (docs/sign-next-gen.md) holds the pains, the four causes, the iOS
+  // learnings, the competitor study and the plan; phone first, desktop on the
+  // same architecture, Redact last.
+  { key: 'sign-next-gen', label: 'Sign next generation', heading: 'Sign, next generation: one editor for phone and desktop (2026-09-25)' },
 ];
 
 export const statuses = [

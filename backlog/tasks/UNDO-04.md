@@ -2,9 +2,9 @@
 id: "UNDO-04"
 title: "History covers moves, resizes, styling and typing, not just add and delete"
 status: "open"
-priority: "P3"
+priority: "P1"
 epic: "undo-and-redo"
-phase: "longer-term"
+phase: "near-term"
 depends_on: ["UNDO-01"]
 ---
 
@@ -32,3 +32,20 @@ and clear-page, and a nudged box does not come back.
   be wrong and per-session would be too coarse.
 - Sizing note: the persisted history array has no depth cap today, and an `update` operation would push
   far more entries through it than add/delete ever did. Cap it as part of this work.
+
+## 2026-09-25: raised to P1 for the next-generation Sign
+
+An accidental move on a phone has no way back, and Shlomi named it directly: undo "only removes the last
+elements added". This is now a prerequisite of SNG-05 (`docs/sign-next-gen.md` §5.5). The audit that day
+found every move, resize, keystroke and style change already funnels through one function per tool:
+- Sign: `updateElement`, `PdfWorkspace.tsx:229`
+- Redact: `PdfRedactTool.tsx:591`
+
+So the fix is:
+- an `'update'` entry `{id, before, after}` in the pure core, with its branch in
+  `revertHistoryEntries`/`applyHistoryEntries` and `draftValidation`;
+- logging at those two choke points;
+- one step per text edit session, and same-element nudges within about 500ms merged;
+- a label per entry.
+
+No "Moved · Undo" chip (Shlomi's call).
