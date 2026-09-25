@@ -155,9 +155,13 @@
   .launcher > [data-home-recents] {
     /* On a short window this shrinks to one floored row and scrolls, so
        the picker below stays visible; its height never depends on the count. */
-    flex: 0 1 376px;
-    min-height: var(--recent-row-floor);
+    flex: 0 1 calc(376px + 8px);
+    min-height: calc(var(--recent-row-floor) + 8px);
     overflow-y: auto;
+    /* Room for the tiles' 4px focus ring inside the scroller (the 8px above),
+       cancelled by the margin so nothing moves. */
+    padding: 4px;
+    margin: -4px;
   }
   .launcher > .tile {
     flex: 0 0 auto;
