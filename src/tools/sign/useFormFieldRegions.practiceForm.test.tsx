@@ -13,28 +13,16 @@ import useFormFieldRegions from './useFormFieldRegions.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 
 /**
- * SNG-10 regression: the product's own "N form fields found" count must
- * agree with what `corpus/scoring/score.js` measures for this exact form -
- * `node scripts/score-form.mjs --pdf public/images/redaction-guide/sample.pdf
- * --truth .../ground-truth/practice-form-page1.json` reports 13 candidates
- * matching all 13 targets (`baselines.json`'s `pdkef-practice-form` row).
- *
- * It used to report 12. The detector itself was never the gap -
- * `detectFormFields` (what `score.js` calls directly) always found all 13,
- * signature line included. `useFormFieldRegions.ts` threw one away on the
- * way out: `cells: detected.cells.filter((cell) => cell.kind !== 'signature')`
- * dropped every signature-kind cell before the toolbar's count
- * (`PdfWorkspace.tsx`: `formRegions.combs.length + formRegions.cells.length
- * + formRegions.checkboxes.length`) ever saw it. That filter predates
- * `formLines.js` (SNG-10): before an *open* signature line could be
- * detected at all, `kind: 'signature'` only ever came from a closed cell
- * captioned "signature", on forms this pipeline had no score for, so the
- * filter's effect on the published count was invisible. The fix keeps the
- * exclusion - a signature is still placed through the saved-signature
- * dialog, never a typed snap - but moves it to the two places that build a
- * *typable* field list (`useWorkspaceGestures.ts`'s tap path,
- * `useFieldNavigation.ts`'s Next/Previous order), so `formRegions.cells`
- * itself, and everything counting off it, keeps every detected field.
+ * SNG-10: the product path on the practice form. `score-form.mjs` scores
+ * `detectFormFields` directly and finds all 13 spots (`baselines.json`'s
+ * `pdkef-practice-form` row). The current editor's toolbar reads 12, on
+ * purpose: `useFormFieldRegions.ts` keeps signature-kind cells out of Sign
+ * (MOBI-11, a848570c), because a signature is placed through the signature
+ * dialog, never as a typed snap, and a marked spot that does nothing on tap
+ * would be a promise the editor does not keep. The next-generation editor
+ * decides how a found signature line is offered (SNG-05,
+ * docs/sign-next-gen-guidelines.md: "Sign" at a found signature line); until
+ * then this pins the difference so it is a decision, not drift.
  *
  * This drives the hook itself - real `@cantoo/pdf-lib` and
  * `detectFormFields.ts`, no mocks - with a pdf.js document read the way
@@ -92,7 +80,7 @@ async function loadPdfjsDocument(bytes: ArrayBuffer) {
 }
 
 describe('useFormFieldRegions on the SNG-10 practice form (product path)', () => {
-  it('counts all 13 detected fields, the signature line included', async () => {
+  it('counts 12: every detected spot except the signature line, which Sign keeps out', async () => {
     const buffer = fs.readFileSync(PDF_PATH);
     // A jsdom `File`, like PdfSignTool.test.tsx's own fixtures use, not
     // Node's `Buffer.buffer` directly: `@cantoo/pdf-lib`'s validator checks
@@ -120,12 +108,10 @@ describe('useFormFieldRegions on the SNG-10 practice form (product path)', () =>
       // The exact formula PdfWorkspace.tsx's toolbar reads (FORM-11) and
       // PdfSignTool.tsx's maintenance telemetry mirrors.
       const count = latest.combs.length + latest.cells.length + latest.checkboxes.length;
-      expect(count).toBe(13);
+      expect(count).toBe(12);
 
-      // The specific field this regression is about, named rather than just
-      // counted: a signature-kind cell must still be in what the hook
-      // publishes, even though it stays untypable (see the module doc above).
-      expect(latest.cells.some((cell) => cell.kind === 'signature')).toBe(true);
+      // The one detected spot the current editor leaves out, named rather than just counted.
+      expect(latest.cells.some((cell) => (cell as { kind?: string }).kind === 'signature')).toBe(false);
     } finally {
       act(() => render(null, container));
       container.remove();
