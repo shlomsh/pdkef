@@ -149,6 +149,8 @@
     justify-content: flex-start;
     /* Stretches the recents section to fill the cell's cross axis. */
     align-items: stretch;
+    /* A full tile's last text line would otherwise sit 16px off the picker. */
+    row-gap: 28px;
   }
   .launcher > [data-home-recents] {
     /* On a short window this shrinks to one floored row and scrolls, so
