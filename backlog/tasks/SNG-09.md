@@ -42,8 +42,15 @@ This runs on device, on the pixels pdf.js already rendered. There is no OCR and 
   pixels is the one allowlisted boundary shim.
 - **Scoring.** Its scan corpus is scored with `node scripts/score-form.mjs` (FORM-21), and it is held by the
   same two-way ratchet: any moved number fails until `baselines.json` is re-recorded with a note.
-- **Sequencing.** Coordinate with that session before adding files under the fields folder while the
-  move is in flight.
+- **Sequencing.** The move landed on main as d7f8c817 (ARCH-24, FORM-21..24 closed). Nothing else is in
+  flight there, except FORM-25: checkJs on the detector files, and an out-of-order source test.
+- **Shape.** The snap runs at tap time on one pixel window, not as a whole-page pass, so it is a pure
+  function in `src/tools/sign/fields/` (say, `snapToPrintedLine(window, tap)`), not a `detectFormFields`
+  source.
+  - Add the file to `DETECTION_MODULES` in `scripts/check-detection-purity.mjs`.
+  - Add the canvas read to `FUNCTION_SHIMS` as a named function with its reason.
+  - If a whole-page raster source is ever built (FORM-07), it is a `{ name, detect(page, context) }` source
+    passed through `sources`, with `fields/corpus/thirdSourceContract.test.js` as the worked example.
 
 ## Acceptance
 
