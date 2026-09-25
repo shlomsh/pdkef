@@ -44,9 +44,7 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     actionHistory: [],
     redoHistory: [],
     documentRevision: 0,
-    carriedFont: null,
-    carriedFontSize: null,
-    carriedDirection: null,
+    carried: {},
     ...overrides,
   };
 }
@@ -421,13 +419,14 @@ describe('PdfWorkspace Component', () => {
     expect(rememberDirection).toHaveBeenCalledWith('ltr');
   });
 
-  // SIGN-32 reopened: the document's carried direction (state.carriedDirection,
-  // set by whatever direction typing or an explicit toggle last ended up in -
-  // see the "typing a script switch" test below) - never a per-element or
-  // browser-wide preference - so it survives whichever element is selected.
+  // SIGN-33 (formerly SIGN-32 reopened): the document's carried direction
+  // (state.carried.direction, set by whatever direction typing or an
+  // explicit toggle last ended up in - see the "typing a script switch" test
+  // below) - never a per-element or browser-wide preference - so it survives
+  // whichever element is selected.
   it('creates a new text field in the document\'s carried direction', () => {
     const dispatch = vi.fn<(action: SignToolAction) => void>();
-    const state = testState({ selectedTool: 'text', carriedDirection: 'rtl' });
+    const state = testState({ selectedTool: 'text', carried: { direction: 'rtl' } });
 
     host = mountWorkspace({ state, dispatch });
     const overlay = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-overlay']}`), 'page overlay');
@@ -502,8 +501,7 @@ describe('PdfWorkspace Component', () => {
       elements: [textElement('text-2', { left: 20, top: 20, text: 'שלום', fontFamily: 'Gveret Levin', fontFamilyExplicit: false, textDirection: 'rtl' })],
       activeElementId: 'text-2',
       editingElementId: 'text-2',
-      carriedFont: 'Gveret Levin',
-      carriedDirection: 'rtl',
+      carried: { font: 'Gveret Levin', direction: 'rtl' },
     });
 
     host = mountWorkspace({ state, dispatch, defaults: { rememberFont, rememberDirection } });

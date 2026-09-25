@@ -67,8 +67,22 @@ function firstAddElement(dispatch) {
 // Default helpers used across tests
 // ---------------------------------------------------------------------------
 
-function makeHook(overrides = {}) {
+// SIGN-33 folded the hook's three flat carriedFont/carriedFontSize/
+// carriedDirection props into one `carried` object. Every test below still
+// passes the flat, pre-SIGN-33 names (deliberately - that is what reads as
+// "the remembered font", "the remembered size", "the remembered direction");
+// this helper is the one place that translates them into the shape the hook
+// actually takes now, so no single test had to be rewritten to know about
+// `carried` at all. A test that already knows to pass `carried` directly
+// (none do yet) still works: it wins over any flat key alongside it.
+function makeHook({ carriedFont, carriedFontSize, carriedDirection, carried, ...overrides } = {}) {
   const dispatch = vi.fn();
+  const mergedCarried = {
+    ...(carriedFont !== undefined ? { font: carriedFont ?? undefined } : {}),
+    ...(carriedFontSize !== undefined ? { fontSize: carriedFontSize ?? undefined } : {}),
+    ...(carriedDirection !== undefined ? { direction: carriedDirection ?? undefined } : {}),
+    ...carried,
+  };
   const hook = useWorkspaceGestures({
     selectedTool: overrides.selectedTool ?? 'text',
     dispatch,
@@ -79,6 +93,7 @@ function makeHook(overrides = {}) {
     logAction: vi.fn(),
     setAnnouncement: vi.fn(),
     ...overrides,
+    carried: mergedCarried,
   });
   return { dispatch, ...hook };
 }
@@ -691,8 +706,9 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
     expect(el.fontSize).toBe(12);
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT_SIZE', payload: 12 });
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT', payload: 'Arimo' });
+    // SIGN-33: one SET_CARRIED dispatch, not two - see useWorkspaceGestures.ts's
+    // `seed` object, built once and dispatched once per placement.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 12 } });
   });
 
   it('seeds the carried size from a detected field\'s own height, not the default, on the first placement', () => {
@@ -703,7 +719,9 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
     expect(el.fontSize).toBe(14);
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED_FONT_SIZE', payload: 14 });
+    // The font seeds alongside the size - neither carriedFont nor
+    // carriedFontSize was provided, so both are still unset going in.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 14 } });
   });
 
   it('carries an explicit font/size forward without re-seeding', () => {
@@ -715,8 +733,7 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
     expect(el).toMatchObject({ fontFamily: 'David', fontSize: 18 });
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT')).toBe(false);
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);
   });
 
   it('shrinks a narrow comb only - the carried size itself is untouched, so the next field gets it back', () => {
@@ -730,15 +747,16 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     expect(el.fontSize).toBeLessThan(20);
     // Nothing dispatched to change the carried size: a second placement in
     // the same click (simulated by a fresh hook with the same carriedFontSize)
-    // would still start from 20, not from this comb's shrunk answer.
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+    // would still start from 20, not from this comb's shrunk answer. The font
+    // still seeds on its own (carriedFont was never given), so this only
+    // checks that no SET_CARRIED patch ever carries a fontSize key.
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
   });
 
   it('never seeds the carried font/size from a symbol placement', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'symbol' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT')).toBe(false);
-    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED_FONT_SIZE')).toBe(false);
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);
   });
 
   it('never seeds when a tap on an existing element short-circuits placement', () => {

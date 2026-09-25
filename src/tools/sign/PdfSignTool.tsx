@@ -116,7 +116,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const {
     state: {
       selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory,
-      documentRevision, draftBaselineRevision, carriedFont, carriedFontSize, carriedDirection,
+      documentRevision, draftBaselineRevision, carried,
     },
     dispatch,
   } = useSignTool();
@@ -137,16 +137,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Last whiteout color picked, remembered across new placements
   const [lastWhiteoutColor, setLastWhiteoutColor] = useState('#ffffff');
 
-  // The document's carried font family/size (SIGN-32) live in the SignTool
-  // reducer, not here - `carriedFont`/`carriedFontSize` above - because they
-  // belong to the document (round-tripped through its draft) rather than the
-  // browser. See rememberFont/rememberFontSize below for the explicit-change
-  // path and useEditorDraftPersistence's `extra` for the draft round-trip.
-
-  // The document's carried text direction (SIGN-32 reopened) lives in the
-  // SignTool reducer, not here - `carriedDirection` above - for the same
-  // reason as carriedFont/carriedFontSize: it belongs to the document, not
-  // the browser. See rememberDirection below for the explicit-change path.
+  // The document's carried style (SIGN-33) lives in the SignTool reducer, not
+  // here - `carried` above - because it belongs to the document (round-
+  // tripped through its draft) rather than the browser. See rememberFont/
+  // rememberFontSize/rememberDirection below for the explicit-change path and
+  // useEditorDraftPersistence's `extra.carried` for the draft round-trip.
 
   // Last chosen stroke thickness, remembered across new placements
   const [lastThickness, setLastThickness] = useState(3);
@@ -378,15 +373,15 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setEditorPreference('lastWhiteoutColor', color);
   };
 
-  // The document's carried font family/size (SIGN-32): an explicit A-/A+
-  // press or font pick (PdfWorkspace's makeOnChange) sets it for everything
+  // The document's carried style (SIGN-33): an explicit A-/A+ press or font
+  // pick (PdfWorkspace's makeOnChange) sets font/fontSize for everything
   // placed after, on this document only - never a browser-wide preference.
   const rememberFont = (fontFamily: string) => {
-    dispatch({ type: 'SET_CARRIED_FONT', payload: fontFamily });
+    dispatch({ type: 'SET_CARRIED', payload: { font: fontFamily } });
   };
 
   const rememberFontSize = (fontSize: number) => {
-    dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: fontSize });
+    dispatch({ type: 'SET_CARRIED', payload: { fontSize } });
   };
 
   // Remember the stroke thickness last picked for a shape, for future placements
@@ -414,12 +409,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setEditorPreference('lastSignatureWidth', width);
   };
 
-  // The document's carried text direction (SIGN-32 reopened): whatever
-  // direction an element's typing or an explicit direction toggle
-  // (PdfWorkspace's makeOnChange) ends up in, on this document only - never
-  // a browser-wide preference.
+  // The document's carried direction (SIGN-33): whatever direction an
+  // element's typing or an explicit direction toggle (PdfWorkspace's
+  // makeOnChange) ends up in, on this document only - never a browser-wide
+  // preference.
   const rememberDirection = (textDirection: TextDirection) => {
-    dispatch({ type: 'SET_CARRIED_DIRECTION', payload: textDirection });
+    dispatch({ type: 'SET_CARRIED', payload: { direction: textDirection } });
   };
 
   // Remember the date format last chosen, for future 'date' tool placements
@@ -494,13 +489,10 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           payload: {
             elements: presetElements,
             actionHistory: preset.actionHistory,
-            // Absent for a fresh pick or a pre-SIGN-32 draft - the reducer
-            // treats that the same as an explicit null, resetting to no
-            // carried value so a new document never inherits another
-            // document's font or size.
-            carriedFont: preset.carriedFont,
-            carriedFontSize: preset.carriedFontSize,
-            carriedDirection: preset.carriedDirection,
+            // Absent for a fresh pick or a pre-SIGN-33 draft - the reducer
+            // treats that the same as an explicit null, resetting to `{}` so
+            // a new document never inherits another document's style.
+            carried: preset.carried,
           },
         });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -613,9 +605,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     logAction,
     setAnnouncement,
     initialColor: lastColor,
-    carriedFont,
-    carriedFontSize,
-    carriedDirection,
+    carried,
     messages: t,
   });
 
@@ -626,9 +616,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     fileBytes: fileBytesRef.current,
     elements,
     actionHistory,
-    carriedFont,
-    carriedFontSize,
-    carriedDirection,
+    carried,
     status,
     isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
     loadStartedRef,

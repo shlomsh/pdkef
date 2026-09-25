@@ -21,14 +21,14 @@ export interface SignDefaultsContextValue {
   lastDateFormat: string;
   rememberColor: (color: string) => void;
   rememberWhiteoutColor: (color: string) => void;
-  /** Sets the document's carried font family/size (SIGN-32) - not a browser
-   * preference. PdfSignTool.tsx's implementation dispatches
-   * SET_CARRIED_FONT/SET_CARRIED_FONT_SIZE to the SignToolContext reducer. */
+  /** Sets the document's carried font family/size (SIGN-33) - not a browser
+   * preference. PdfSignTool.tsx's implementation dispatches SET_CARRIED
+   * (with a `{ font }`/`{ fontSize }` patch) to the SignToolContext reducer. */
   rememberFont: (fontFamily: string) => void;
   rememberFontSize: (fontSize: number) => void;
-  /** Sets the document's carried text direction (SIGN-32 reopened) - not a
-   * browser preference either. PdfSignTool.tsx's implementation dispatches
-   * SET_CARRIED_DIRECTION to the SignToolContext reducer. */
+  /** Sets the document's carried text direction (SIGN-33) - not a browser
+   * preference either. PdfSignTool.tsx's implementation dispatches
+   * SET_CARRIED (with a `{ direction }` patch) to the SignToolContext reducer. */
   rememberDirection: (textDirection: TextDirection) => void;
   rememberThickness: (strokeWidth: number) => void;
   rememberSymbolWidth: (width: number) => void;

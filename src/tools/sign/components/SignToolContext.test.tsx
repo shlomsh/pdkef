@@ -77,9 +77,7 @@ describe('SignToolContext Reducer', () => {
     actionHistory: [],
     redoHistory: [],
     documentRevision: 0,
-    carriedFont: null,
-    carriedFontSize: null,
-    carriedDirection: null,
+    carried: {},
   };
 
   it('SET_TOOL sets selectedTool', () => {
@@ -108,88 +106,57 @@ describe('SignToolContext Reducer', () => {
     expect(reducer(loaded, { type: 'UPDATE_ELEMENT', payload: { id: 'restored-1', changes: { text: 'Edited' } } }).documentRevision).toBe(9);
   });
 
-  // SIGN-32: one carried font and size per document, belonging to the
-  // document (round-tripped through its draft), never the browser.
-  describe('carried font/size', () => {
-    it('SET_CARRIED_FONT and SET_CARRIED_FONT_SIZE set the carried values and bump documentRevision', () => {
-      const fontState = reducer(initialState, { type: 'SET_CARRIED_FONT', payload: 'David' });
-      expect(fontState.carriedFont).toBe('David');
+  // SIGN-33 (folding SIGN-32's carriedFont/carriedFontSize/carriedDirection
+  // into one carried style object): one carried style per document,
+  // belonging to the document (round-tripped through its draft), never the
+  // browser.
+  describe('carried style', () => {
+    it('SET_CARRIED merges a partial patch into carried and bumps documentRevision', () => {
+      const fontState = reducer(initialState, { type: 'SET_CARRIED', payload: { font: 'David' } });
+      expect(fontState.carried.font).toBe('David');
       expect(fontState.documentRevision).toBe(1);
 
-      const sizeState = reducer(fontState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
-      expect(sizeState.carriedFontSize).toBe(18);
+      const sizeState = reducer(fontState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      expect(sizeState.carried.fontSize).toBe(18);
       expect(sizeState.documentRevision).toBe(2);
-      // Setting one never disturbs the other.
-      expect(sizeState.carriedFont).toBe('David');
+      // Setting one key never disturbs another already carried.
+      expect(sizeState.carried.font).toBe('David');
+
+      // A single patch can set several keys at once too.
+      const multiState = reducer(sizeState, { type: 'SET_CARRIED', payload: { direction: 'rtl', color: '#ff0000' } });
+      expect(multiState.carried).toEqual({ font: 'David', fontSize: 18, direction: 'rtl', color: '#ff0000' });
+      expect(multiState.documentRevision).toBe(3);
     });
 
-    it('LOAD_DOCUMENT restores a draft\'s carried font/size', () => {
+    it('LOAD_DOCUMENT restores a draft\'s carried style', () => {
       const loaded = reducer(initialState, {
         type: 'LOAD_DOCUMENT',
-        payload: { elements: [], actionHistory: [], carriedFont: 'David', carriedFontSize: 18 },
+        payload: { elements: [], actionHistory: [], carried: { font: 'David', fontSize: 18, direction: 'rtl' } },
       });
-      expect(loaded.carriedFont).toBe('David');
-      expect(loaded.carriedFontSize).toBe(18);
+      expect(loaded.carried).toEqual({ font: 'David', fontSize: 18, direction: 'rtl' });
     });
 
-    it('LOAD_DOCUMENT resets to no carried value for a fresh document, even one opened after a document that carried one', () => {
-      const withCarry = reducer(initialState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
-      expect(withCarry.carriedFontSize).toBe(18);
+    it('LOAD_DOCUMENT resets to {} for a fresh document, even one opened after a document that carried style', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      expect(withCarry.carried.fontSize).toBe(18);
 
       const fresh = reducer(withCarry, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
-      expect(fresh.carriedFont).toBeNull();
-      expect(fresh.carriedFontSize).toBeNull();
+      expect(fresh.carried).toEqual({});
     });
 
-    it('LOAD_DOCUMENT resets to no carried value for a pre-SIGN-32 draft (fields present but undefined)', () => {
-      const withCarry = reducer(initialState, { type: 'SET_CARRIED_FONT_SIZE', payload: 18 });
-      const restored = reducer(withCarry, {
+    it('LOAD_DOCUMENT resets to {} for a draft written before this existed (carried absent or null)', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      const restoredAbsent = reducer(withCarry, {
         type: 'LOAD_DOCUMENT',
-        payload: { elements: [], actionHistory: [], carriedFont: undefined, carriedFontSize: undefined },
+        payload: { elements: [], actionHistory: [] },
       });
-      expect(restored.carriedFont).toBeNull();
-      expect(restored.carriedFontSize).toBeNull();
-    });
-  });
+      expect(restoredAbsent.carried).toEqual({});
 
-  // SIGN-32 reopened: one carried text direction per document, same rule as
-  // carried font/size - set by whatever direction typing or an explicit
-  // toggle ends up in, belongs to the document, never the browser.
-  describe('carried direction', () => {
-    it('SET_CARRIED_DIRECTION sets the carried direction and bumps documentRevision', () => {
-      const rtlState = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
-      expect(rtlState.carriedDirection).toBe('rtl');
-      expect(rtlState.documentRevision).toBe(1);
-
-      // Switching to a later Latin element carries whatever it ends up in too.
-      const ltrState = reducer(rtlState, { type: 'SET_CARRIED_DIRECTION', payload: 'ltr' });
-      expect(ltrState.carriedDirection).toBe('ltr');
-      expect(ltrState.documentRevision).toBe(2);
-    });
-
-    it('LOAD_DOCUMENT restores a draft\'s carried direction', () => {
-      const loaded = reducer(initialState, {
+      const restoredNull = reducer(withCarry, {
         type: 'LOAD_DOCUMENT',
-        payload: { elements: [], actionHistory: [], carriedDirection: 'rtl' },
+        payload: { elements: [], actionHistory: [], carried: null },
       });
-      expect(loaded.carriedDirection).toBe('rtl');
-    });
-
-    it('LOAD_DOCUMENT resets to no carried direction for a fresh document (new document starts from the default)', () => {
-      const withCarry = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
-      expect(withCarry.carriedDirection).toBe('rtl');
-
-      const fresh = reducer(withCarry, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
-      expect(fresh.carriedDirection).toBeNull();
-    });
-
-    it('LOAD_DOCUMENT resets to no carried direction for a draft written before this existed (field present but undefined)', () => {
-      const withCarry = reducer(initialState, { type: 'SET_CARRIED_DIRECTION', payload: 'rtl' });
-      const restored = reducer(withCarry, {
-        type: 'LOAD_DOCUMENT',
-        payload: { elements: [], actionHistory: [], carriedDirection: undefined },
-      });
-      expect(restored.carriedDirection).toBeNull();
+      expect(restoredNull.carried).toEqual({});
     });
   });
 
