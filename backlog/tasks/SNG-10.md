@@ -1,7 +1,7 @@
 ---
 id: "SNG-10"
 title: "Practice form v2: the sketches' Employee details form becomes the app's own example form"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
