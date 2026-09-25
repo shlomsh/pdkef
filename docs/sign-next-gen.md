@@ -1,6 +1,6 @@
 # Sign, next generation: plan of record
 
-*Opened 2026-09-25.* This is the plan for the next-generation Sign editor, and the record of why it exists. Its tickets are the `SNG-*` epic in `backlog/tasks/`. The normative rules that follow from it (interaction grammar, the field walk, the viewport, accessibility, testing, and the review checklist) are in [sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md).
+*Opened 2026-09-25.* This is the plan for the next-generation Sign editor, and the record of why it exists. Its tickets are the `SNG-*` epic in `backlog/tasks/`. The normative rules that follow from it (interaction grammar, why there is no field walk, the viewport, accessibility, testing, and the review checklist) are in [sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md).
 
 It comes out of one day of work:
 - seven code audits;
@@ -11,7 +11,7 @@ It comes out of one day of work:
 
 **The decision.** Stop patching mobile Sign. Design and build the next-generation editor, starting from three mobile sketches the owner picks from. Desktop moves onto the same architecture.
 
-**Its detection premise (the owner, later the same day).** A strong model that reads forms is a future step, and how a person would connect their own is not resolved. Until a model reaches high grades, the editor assumes only reasonable precision and recall, and no detection error may cost the person more than it saves (§5.6). Row F on the canvas is the direction built for that.
+**Its detection premise (the owner, 2026-09-25, final).** The page is an image and the person is the guide: even perfect detection could not know which blanks are this person's to fill, since that is a judgment about intent and context, an employer's section left blank on purpose, an optional checkbox, a yes/no mark in a medical form, not something the page alone can carry (§5.6). So nothing in the UI comes from whole-page detection; the person chooses what to write, and the app helps only with where, at the fingertip, on every document alike.
 
 ## 1. The pains
 
@@ -120,7 +120,7 @@ These hold for any web editor on iOS. Each was paid for with a shipped bug.
 **Takeaways:**
 - **Nobody ships a rich floating per-element toolbar on a phone.** Controls live in fixed bars and sheets.
 - **Three of the four web editors own zoom.** The one that leaves zoom to Safari has almost no chrome to protect.
-- **None has field-to-field navigation, a progress count or a "what did I miss" review.** That, plus on-device processing (all five upload the file) and real RTL, is where PDkef leads.
+- **None has field-to-field navigation, a progress count or a "what did I miss" review.** On-device processing (all five upload the file) and real RTL are where PDkef leads; the next generation drops the other three from PDkef's own UI too, on the owner's raster-first premise (§5.6).
   - Sejda shows a banner saying right-to-left scripts aren't fully supported.
   - Smallpdf keeps its arrows LTR on a Hebrew form.
 - **Signature capture is a modal or sheet with Draw / Type / Upload** (PDF24 and Sejda add Camera).
@@ -157,7 +157,17 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
 5. **Every committed change is one undo step** (UNDO-04).
    - Moves, resizes, typing (one step per edit session) and styling are all included.
    - No "Moved · Undo" chip (owner's decision); Undo and Redo in the bar are the whole model.
-6. **Detection speeds things up. It never blocks, never claims completeness, and never costs more than it saves.**
+6. **The page is an image, and the person is the guide. The app never claims what the form needs.**
+   - **The owner's premise, 2026-09-25, final:** "impeccable ux based on raster with user guidance assuming low precision and recall." It replaces the same day's earlier model, in which found fields were marked, walked, counted and flagged when empty.
+   - **Why, beyond the measurements:** even perfect detection could not know which blanks are this person's to fill. An employee's form leaves the employer's section blank on purpose. "Check the following if they apply" makes an unticked box a correct answer. Whether a blank is a gap is a judgment about intent and context, not about the page. So a walk over fields, a count, or "you missed this" is a guess about intent, and a wrong guess frustrates more than it helps.
+   - **Marks are as central as text:** a tick or a cross in a box (the yes/no answers of a medical form), a circle around an answer, a line through what does not apply, initials, a signature, a date.
+   - **The rules:**
+     - Nothing in the UI comes from whole-page detection: no marks on found fields, no walk over fields, no counts, no empty-field review, no field names.
+     - The person chooses what to write. The app never guesses the kind of mark.
+     - The app helps only with where, at the fingertip: a tick centres in the box under the finger, text sits on the line, a circle wraps the word, a strike runs through it. This help reads only a small window of the rendered page, declines when unsure, and is one undo away (SNG-09, widened to every mark).
+     - A scan and a typed PDF behave the same. (Open: whether a fillable PDF's own fields are filled silently underneath.)
+     - Guidance teaches how, never what: first-run hints, and, depending on the direction, the app moving the view through the page for the person (open #0, SNG-02).
+     - The finish shows what you added, never what you missed.
    - **What detection does today** (measured 2026-09-25: `node scripts/score-form.mjs --all` on d7f8c817, equal to `baselines.json`):
      - Most typed forms, fillable or flat, score 87-100% recall at 96-100% precision: health 86.7/100, form 101 94.2/97.8, 1040 (2024) 100/97.8, I-9 98.1/96.2, ล.ย.01 100/100.
      - Unusual layouts fail badly: ภ.ง.ด.90 52.4/23.5 (dividers inside combs split them), HMRC SA100 26.7/4.3 (one square per digit reads as a checkbox), SSO 1-10 17.4/100 (dotted leaders and glyph checkboxes carry no ink).
@@ -170,33 +180,7 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
      - Knowing which label belongs to which field is unsolved even in English. The one permissively licensed candidate (LiLT, MIT) is English-only and trails the non-commercial models, and no benchmark covers Hebrew forms.
      - On an iPhone, a web page has no built-in model: Chrome's runs on desktop and Android only, and Apple's form detection is native-only.
      - Every product that walks a person through fields, or asks questions, does so over fields a human confirmed: DocuSign's sender, TurboTax's tax code, a fillable PDF's own fields. The largest viewers (Chrome, Drive, Edge) fill only real fields and guess nothing. Adobe's detected boxes that could not be dismissed drew its sharpest complaints. Microsoft's human-AI guidelines say the same: support efficient dismissal (G8) and correction (G9), and scope the service when in doubt (G10).
-   - **The owner's call, 2026-09-25:** postpone a strong model to a future step, since how a person hooks up their own is not yet resolved; high grades would change the mental model. Until then, "a solid ux that assumes only reasonable precision recall".
-   - **So every detection error has a bounded cost:**
-
-     | When detection... | the person meets | cost |
-     |---|---|---|
-     | misses a field | nothing different: a tap writes there anyway, lined up with the printed line (SNG-09) | none |
-     | marks a non-field | a quiet dashed mark; at that stop, "Not a field" removes it for good | one tap |
-     | guesses the wrong kind | where the guess is only offered ("Today", "Sign" in the bar), a text box as if there were no guess; where it acts (a found checkbox ticks, a signature stop arrives with no keyboard), one tap corrects it ("Text instead", or a tap on the line) | none, or one tap |
-     | guesses a wrong label | nothing: a guessed label is never shown, and the zoom frames the printed one | none |
-     | finds only part of the form | nothing that counts or promises: no "12 fields", no "all done"; review asks you to check each page | none |
-
-   - **The rules that follow:**
-     - **One rule on every document: tap where you want to write.** A tap on the page writes, whether or not detection found anything there. Detection only changes where the box lands and how big it is. Where you tap, the app looks only at the pixels around your finger for the printed line or box (SNG-09). Finding the line under a finger is a small precision problem that works on scans; finding every field on a page is a recall problem that does not.
-     - **Detection earns a place in the UI only above a measured precision floor.** A dashed mark, a walk stop and a review highlight each need 95% precision per corpus form, scored the way the person meets it (SNG-11). Below the floor, detection only snaps. Recall is never a UI promise.
-     - **Counts and field names come only from the file.** A fillable PDF's own fields may be counted ("2 of 12") and named from its tooltips (SNG-13). Found spots are never totalled and never named.
-     - **Under doubt, choose the default whose error is cheapest:** a text box over a guessed kind, and the text keyboard over a number pad, which has no way back to letters.
-     - **The FORM-09 question flow, and anything else that speaks a field's meaning, waits for the model step** (SNG-12). A document qualifies only when its detection clears the 90/90/85 bar.
-   - **Three document classes, one editor, one rule:**
-
-     | Document | What we know | ∧ ∨ step through | Count | Review |
-     |---|---|---|---|---|
-     | Fillable PDF (AcroForm) | every field, from the file | its fields | "2 of 12" | "N empty", exact |
-     | Vector flat form | what detection found above the floor | the spots found, plus what you wrote | none | the found spots still empty, and "check each page" |
-     | Scan, or nothing found | nothing | what you wrote | none | every page zoomed out, to check yourself |
-
-   - **∧ ∨ are up/down arrows** (owner's decision, 2026-09-25): iOS's own form-navigation idiom, with no left/right question on RTL documents. A field detection missed joins the walk, in reading order, the moment you write on it.
-   - **The zoomed-out review at the end** highlights the found spots still empty, and one tap goes back in. Its copy never claims completeness: "1 spot we found is still empty. We can miss fields, so check each page too." Never "All done".
+   - **The model step (SNG-12) stays later,** and would change this only on documents where it is proven.
 7. **Tested where it breaks.**
    - The machine and the router are pure, and are unit-tested with synthetic pointer streams. Every MOBI ticket becomes a transition test.
    - The Sign mobile specs run in the WebKit iPhone project.
@@ -218,19 +202,19 @@ The evidence (screenshots, DOM and CSS dumps, bundle greps) was captured in the 
   - A second interaction model would double every future fix.
 - **Desktop gains from the same pieces:**
   - app zoom (buttons, Ctrl or Cmd + wheel, fit width);
-  - field walking (Tab / Shift+Tab, the convention of every PDF form viewer);
-  - the review step;
+  - moving between marks (Tab / Shift+Tab, the convention of every PDF form viewer);
+  - the finish step;
   - fine-grained undo.
 
 **What desktop looks like on the new surface.** Desktop sketches follow once a mobile sketch is chosen.
 
 - **The contextual bar.** The same component as on the phone, laid out wide in the sticky tool card:
-  - With nothing selected: tools, then ∧ ∨ with a count and a Review button, then zoom (−, %, +, Fit), then Undo/Redo, then Download.
+  - With nothing selected: tools, then a Finish button, then zoom (−, %, +, Fit), then Undo/Redo, then Download.
   - With an element selected: its properties replace the tools (size, colour, font, delete, duplicate), the way Canva's bar changes on selection.
 - **No floating element toolbar.** Nothing can cover the field above it, the MOBI-32 class is gone on desktop too, and there is one place to look.
 - **In-place WYSIWYG typing in the box.** There is no soft keyboard, so desktop never needs the phone's workarounds.
-- **Keyboard shortcuts are unchanged.** Tab and Shift+Tab walk fields.
-- **Optional on wide screens:** a fields rail listing every field as filled or empty. It is the review step, kept open.
+- **Keyboard shortcuts are unchanged.** Tab and Shift+Tab move between marks.
+- **Optional on wide screens:** a marks rail listing every mark the person added. It is the finish step, kept open.
 
 **Order of work.** The phone ships first, because that is where the pain is. Desktop follows on the same flag to parity. Then the old paths are deleted, and Redact moves over. Redact first needs its own state consolidated: it has about 13 `useState`s and no reducer.
 
@@ -241,12 +225,12 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
 | Layer | Where | New or kept |
 |---|---|---|
 | Model, geometry, registry, text, export, drafts | `src/editor/**` | kept |
-| Field detection (one entry point, `detectFormFields`), SNG-09's tap-local snap as a strategy in it, and the precision floor that decides what the UI may show (SNG-11) | `src/tools/sign/fields/` (moved in ARCH-24) | kept; the purity guard (FORM-22) and the scoring ratchet (FORM-21) apply |
+| Field detection (one entry point, `detectFormFields`), with SNG-09's tap-local snap as a strategy in it | `src/tools/sign/fields/` (moved in ARCH-24) | kept; the purity guard (FORM-22) and the scoring ratchet (FORM-21) apply |
 | History with `'update'` entries, coalescing, labels | `src/editor/model/` | extended (UNDO-04) |
 | Interaction machine (pure, synchronous interpreter) | `src/editor/interaction/` | new |
 | Input router (Pointer Events to machine events) | `src/editor-ui/` | new; replaces the claim logic in `useDraggableElement`, `useElementResize`, `tapOutsideDeselect` and `PdfWorkspace`'s touch handlers |
 | Viewport (app zoom, page layout, render scheduling, reveal-a-field) | `src/editor-ui/` | new; replaces `visualViewportClamp`, `useVisualViewportScale` and field navigation's zoom branch |
-| Views: contextual bar, pages, selection overlay, review | `src/tools/sign/` and `src/editor-ui/` | new, adaptive by width and pointer |
+| Views: contextual bar, pages, selection overlay, finish | `src/tools/sign/` and `src/editor-ui/` | new, adaptive by width and pointer |
 
 `controller.ts` keeps commit-once. The gesture golden rule is unchanged.
 
@@ -255,16 +239,14 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
 | Phase | Ticket | Gate |
 |---|---|---|
 | 0. Plan of record and learnings (this document) | SNG-01 | done |
-| 1. Three mobile sketches; the owner picks one; polish it into a clickable prototype | SNG-02 | the owner approves a direction (row F recommended, built for reasonable detection) |
+| 1. Three mobile sketches; the owner picks one; polish it into a clickable prototype | SNG-02 | the owner picks a direction within the raster-first premise |
 | alongside 1. Practice form v2: the sketches' Employee details form becomes the app's own example form | SNG-10 | the owner's choices on its open questions |
 | 2. Spike on the iOS 26 Simulator, shaped by the chosen sketch | SNG-03 | go/no-go on every question below, each with a fallback |
 | 3. Interaction machine, input router and fine-grained undo, pure, with the MOBI history as tests | SNG-04, UNDO-04 | unit suite green; every MOBI regression has a test |
 | 4. Phone surface behind a flag, Simulator release gate | SNG-05, SNG-07 | parity checklist on the Simulator and on the owner's iPhone |
 | 5. Desktop on the same surface: sketches first, then parity, then flip the flag and delete the old paths | SNG-06 | parity on desktop and iPad |
 | 6. Redact: consolidate its state, then move onto the machine | SNG-08 | Redact's specs green on both engines |
-| alongside 3-4. Tap-local snap to the printed line, for scans and for missed lines | SNG-09 | a scored scan corpus, precision over reach |
-| alongside 3-4. The precision floor: detection is shown only where it is right 95% of the time | SNG-11 | every corpus form at 95% precision on what the UI shows |
-| alongside 3-4. A fillable PDF names its fields in its own words (`/TU`) | SNG-13 | labels equal the truth on the I-9; no label from an auto-generated name |
+| alongside 3-4. Every mark lands neatly: a local snap at the fingertip for text, ticks, crosses, circles and strikes | SNG-09 | a scored scan corpus, precision over reach |
 | later. The model step: a model the person connects reads the form; a document that clears 90/90/85 unlocks asking questions | SNG-12 | the owner reopens it once connecting a model is resolved |
 
 **Spike questions, each with its fallback:**
@@ -279,10 +261,10 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
   - Fallback: render only visible pages, and tile at high zoom.
 - **(e)** With `touch-action` on the surface, do caret placement, selection handles and the loupe still work inside the focused input?
   - Fallback: the focused input and its editing box keep `touch-action: manipulation`, and a pinch that starts on them is ignored.
-- **(f)** Is Return reliably interceptable in a walked field on the iOS and Android keyboards, including during IME composition?
-  - Fallback: walked fields are single-line `<input>`s, advance happens on `change`, and the ∨ button is the guaranteed path.
+- **(f)** Is Return reliably interceptable in a single-line box on a printed line, on the iOS and Android keyboards, including during IME composition?
+  - Fallback: these boxes are single-line `<input>`s, and commit happens on `change` if interception fails.
 - **(g)** Which event model does the router use on iOS?
   - Candidates: Pointer Events (and whether a two-finger gesture under `pan-x pan-y` yields `pointercancel`), or Touch Events with `preventDefault`.
   - Fallback: Touch Events for touch, Pointer Events for mouse and pen.
 
-**Superseded MOBI tickets.** These are retired into this plan, because each is a symptom of a cause above: MOBI-20, 23, 25, 26 and 32. MOBI-33 and MOBI-34 (the field-map review, and navigation reading the reviewed map) stay open and feed principle 6.
+**Superseded MOBI tickets.** These are retired into this plan, because each is a symptom of a cause above: MOBI-20, 23, 25, 26 and 32. MOBI-33 and MOBI-34 (the field-map review, and navigation reading the reviewed map) no longer feed principle 6, which now rules out any review over detected fields; they stay open for the owner's own call.
