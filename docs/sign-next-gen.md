@@ -221,7 +221,8 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
 
 | Layer | Where | New or kept |
 |---|---|---|
-| Model, geometry, registry, text, export, detection, drafts | `src/editor/**` | kept |
+| Model, geometry, registry, text, export, drafts | `src/editor/**` | kept |
+| Field detection (one entry point, `detectFormFields`), and SNG-09's tap-local snap as a strategy in it | moving to `src/tools/sign/fields/` (ARCH-24) | kept; the purity guard (FORM-22) and the scoring ratchet (FORM-21) apply |
 | History with `'update'` entries, coalescing, labels | `src/editor/model/` | extended (UNDO-04) |
 | Interaction machine (pure, synchronous interpreter) | `src/editor/interaction/` | new |
 | Input router (Pointer Events to machine events) | `src/editor-ui/` | new; replaces the claim logic in `useDraggableElement`, `useElementResize`, `tapOutsideDeselect` and `PdfWorkspace`'s touch handlers |

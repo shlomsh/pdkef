@@ -32,6 +32,19 @@ snap, so **precision beats reach**.
 
 This runs on device, on the pixels pdf.js already rendered. There is no OCR and no model.
 
+## Where it lives (from the form-detection session, 2026-09-25)
+
+- **Location.** Field detection has one entry point, `detectFormFields` (4f42276f, ARCH-24 step A). The
+  whole capability (detectors, entry point, corpus, scoring, fixtures) moves to `src/tools/sign/fields/`
+  in the next landing, so the snap is a strategy there, not a new home.
+- **Purity.** The line-finding is a pure function over a pixel window. It passes
+  `npm run test:detection-purity` (FORM-22): no DOM, no pdf.js, no module state. Reading the canvas
+  pixels is the one allowlisted boundary shim.
+- **Scoring.** Its scan corpus is scored with `node scripts/score-form.mjs` (FORM-21), and it is held by the
+  same two-way ratchet: any moved number fails until `baselines.json` is re-recorded with a note.
+- **Sequencing.** Coordinate with that session before adding files under the fields folder while the
+  move is in flight.
+
 ## Acceptance
 
 - [ ] A scored fixture set of scans (form 101 printed and photographed, a Latin form, a skewed scan),
