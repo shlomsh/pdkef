@@ -372,6 +372,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
 | FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
 | FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
+| FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |

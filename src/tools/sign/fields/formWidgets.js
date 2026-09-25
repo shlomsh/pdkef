@@ -1,7 +1,7 @@
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
-import { createPageGeometry, toPagePercentBox } from '../../geometry/coords.ts';
+import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
-import { pageWidgets, widgetEntries } from './pdfObjects.js';
+import { pageWidgets, widgetEntries } from '../../../editor/adapters/pdf/pdfObjects.js';
 
 /**
  * The fields a form states outright, from its own `/Tx` widget annotations.
@@ -37,18 +37,10 @@ const FIELD_READ_ONLY = 1;
 const FIELD_COMB = 1 << 24;
 
 /**
- * What one widget annotation says about itself, as plain values.
- *
- * `fieldType`, `fieldFlags` and `maxLen` are *inheritable* field attributes
- * and may come from an ancestor rather than the widget (see `widgetEntries`);
- * `annotationFlags` and `rect` are the widget's own and are never inherited.
- *
- * @typedef {object} WidgetEntry
- * @property {string} [fieldType] `/FT`, as pdf-lib renders a name: `'/Tx'`.
- * @property {number} [annotationFlags] `/F`.
- * @property {number} [fieldFlags] `/Ff`.
- * @property {number} [maxLen] `/MaxLen`.
- * @property {{x: number, y: number, width: number, height: number}} [rect] `/Rect`, normalized.
+ * What one widget annotation says about itself, as plain values - defined in
+ * `pdfObjects.js` (editor), the module that actually produces this shape via
+ * `widgetEntries()`; this file only interprets it (ARCH-24 step D).
+ * @typedef {import('../../../editor/adapters/pdf/pdfObjects.js').WidgetEntry} WidgetEntry
  */
 
 /** A writable text field, in PDF user space. `combCells` marks a comb run. */
@@ -156,7 +148,7 @@ export function fillableTextField(entry) {
  * CTM, so both sources arrive comparable.
  *
  * @param {TextFieldWidget[]} fields
- * @param {import('../../geometry/coords.ts').PageGeometry} geometry
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @returns {{combs: Array, cells: Array}} in the editor's page percentages
  */

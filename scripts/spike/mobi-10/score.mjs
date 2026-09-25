@@ -31,7 +31,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 // The matching itself lives with the scored corpus now (MOBI-13); this CLI
 // is a wrapper over it so the two can never disagree.
-import { greedyMatch, iou, kindsCompatible } from '../../../src/editor/adapters/pdf/corpus/scoring/match.js';
+import { greedyMatch, iou, kindsCompatible } from '../../../src/tools/sign/fields/corpus/scoring/match.js';
 
 export { greedyMatch, iou, kindsCompatible };
 

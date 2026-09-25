@@ -1,7 +1,7 @@
 ---
 id: "FORM-23"
 title: "One typed vocabulary for field kinds and candidates"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
@@ -58,3 +58,6 @@ Verified: `node scripts/score-form.mjs --all` -> `0 changed, 10 unchanged, 0 reg
 `npm run typecheck` -> 0 errors; `npm run test:detection-purity` -> 13 modules, 0 violations;
 `npm run check:fast` green end to end. Not run: Playwright / `test:e2e` (out of scope for this change
 per the brief).
+
+Closed 2026-09-25 after an independent review. Its two should-fixes (the `.js` detectors are not
+type-checked, so the JSDoc types document rather than enforce) carry on in FORM-25.

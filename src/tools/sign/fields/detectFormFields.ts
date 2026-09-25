@@ -1,6 +1,6 @@
 import type { PDFDocument, PDFPage } from '@cantoo/pdf-lib';
-import { createPageGeometry, type PageGeometry } from '../../geometry/coords.ts';
-import type { CombRegion, FieldRegion } from '../../text/combPlacement.ts';
+import { createPageGeometry, type PageGeometry } from '../../../editor/geometry/coords.ts';
+import type { CombRegion, FieldRegion } from '../../../editor/text/combPlacement.ts';
 import type {
   DetectedCell,
   DetectionContext,
@@ -19,7 +19,7 @@ import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
  * (Sign), the element corpus (`corpus/corpus.test.js`) and the scored corpus
  * (`corpus/scoring/score.js`) all call this now, instead of each assembling the
  * same five modules itself - see ARCH-24 for why that assembly was the actual
- * gap (`src/editor/adapters/pdf/formGrid.js` and its siblings were already pure
+ * gap (`src/tools/sign/fields/formGrid.js` and its siblings were already pure
  * functions; nothing knew them as one capability).
  *
  * A caller needs more than the detection call itself to gather what it passes

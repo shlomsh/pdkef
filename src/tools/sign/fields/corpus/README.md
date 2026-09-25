@@ -4,7 +4,7 @@ A table of form elements, each built into a real PDF and run through the whole d
 that adding an element is cheap and **the elements already here keep proving themselves for free**
 while the detector is refactored around them.
 
-Nx project `form-corpus`. Run it with `npx vitest run src/editor/adapters/pdf/corpus/` or
+Nx project `form-corpus`. Run it with `npx vitest run src/tools/sign/fields/corpus/` or
 `npx nx run form-corpus:test`.
 
 ```

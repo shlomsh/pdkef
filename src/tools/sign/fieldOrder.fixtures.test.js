@@ -3,8 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { detectPageRegions } from '../adapters/pdf/formGrid.js';
-import { orderTypableFields } from './fieldOrder.ts';
+import { detectPageRegions } from './fields/formGrid.js';
+import { orderTypableFields } from '../../editor/text/fieldOrder.ts';
 
 /**
  * MOBI-06's acceptance on the committed form 101 fixture: every comb run on
@@ -15,7 +15,7 @@ import { orderTypableFields } from './fieldOrder.ts';
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const FIXTURE = path.resolve(here, '../adapters/pdf/__fixtures__/income-tax-101-page1-geometry.pdf');
+const FIXTURE = path.resolve(here, './fields/__fixtures__/income-tax-101-page1-geometry.pdf');
 
 // Same reason this file is .js and not .ts as formGrid.fixtures.test.js:
 // astro check has no node types for fs/path, and the test needs both.

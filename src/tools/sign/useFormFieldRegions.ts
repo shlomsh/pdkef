@@ -256,7 +256,7 @@ export default function useFormFieldRegions(
           { detectFormFields, pageGeometry, toPageTextRuns },
         ] = await Promise.all([
           import('@cantoo/pdf-lib'),
-          import('../../editor/adapters/pdf/detectFormFields.ts'),
+          import('./fields/detectFormFields.ts'),
         ]);
         detectorLoaded = true;
         const document = await PDFDocument.load(sourceBytes.slice(0), {

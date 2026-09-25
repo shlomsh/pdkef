@@ -10,10 +10,10 @@ import {
   parseModule, checkForbiddenImports, checkForbiddenGlobals, checkModuleLevelState, checkAll,
 } from './check-detection-purity.mjs';
 
-const FILE = 'src/editor/adapters/pdf/formGrid.js'; // a real, non-shim entry in DETECTION_MODULES
-const SHIM_FILE = 'src/editor/adapters/pdf/pageInk.js'; // a real entry in BOUNDARY_SHIMS
+const FILE = 'src/tools/sign/fields/formGrid.js'; // a real, non-shim entry in DETECTION_MODULES
+const SHIM_FILE = 'src/tools/sign/fields/pageInk.js'; // a real entry in BOUNDARY_SHIMS
 const PDFOBJECTS_FILE = 'src/editor/adapters/pdf/pdfObjects.js'; // a shim with several FUNCTION_SHIMS entries
-const SCORE_FILE = 'src/editor/adapters/pdf/corpus/scoring/score.js'; // a shim whose entry point dynamically imports
+const SCORE_FILE = 'src/tools/sign/fields/corpus/scoring/score.js'; // a shim whose entry point dynamically imports
 
 function imports(source, file = FILE) {
   return checkForbiddenImports(parseModule(file, source), file);
@@ -41,13 +41,13 @@ describe('detection purity guard: forbidden imports (rule 1)', () => {
   });
 
   it('passes a type-only import, which is erased and loads nothing', () => {
-    const TS_FILE = 'src/editor/adapters/pdf/detectFormFields.ts';
+    const TS_FILE = 'src/tools/sign/fields/detectFormFields.ts';
     expect(imports("import type { PDFPage } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(0);
     expect(imports("import { type PDFPage, type PDFDocument } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(0);
   });
 
   it('fails an import mixing a type with a runtime binding', () => {
-    const TS_FILE = 'src/editor/adapters/pdf/detectFormFields.ts';
+    const TS_FILE = 'src/tools/sign/fields/detectFormFields.ts';
     expect(imports("import { type PDFPage, PDFName } from '@cantoo/pdf-lib';\n", TS_FILE)).toHaveLength(1);
   });
 

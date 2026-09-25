@@ -26,7 +26,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIELDS_FIXTURE = path.resolve(
-  here, '..', '..', 'src', 'editor', 'adapters', 'pdf', '__fixtures__',
+  here, '..', '..', 'src', 'tools', 'sign', 'fields', '__fixtures__',
   'income-tax-101-page1-geometry.pdf',
 );
 

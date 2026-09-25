@@ -58,7 +58,7 @@ into or out of `src/editor/`, `src/tools/sign/` or `src/tools/merge/`.
   (`scripts/check-lazy-modules.js`, after `build`) walks the built graph per page and fails on it.
   Measured: /redact/ and /merge/ cannot reach them at all.
 - **The form-field detector has a corpus, and a new element belongs in it**:
-  `src/editor/adapters/pdf/corpus/` (Nx project `form-corpus`) is one row per form element - live
+  `src/tools/sign/fields/corpus/` (Nx project `form-corpus`) is one row per form element - live
   AcroForm widgets, printed ink, hybrids of both, page geometry, and the known gaps - each built into
   a real PDF and run through the whole pipeline. Read its `README.md` before changing `pageInk.js`,
   `formGrid.js`, `formCells.js`, `fieldRegions.js` or `formWidgets.js`: a third of the rows pin things

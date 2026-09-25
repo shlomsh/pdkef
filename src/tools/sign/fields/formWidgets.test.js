@@ -12,7 +12,7 @@ import {
   widgetRegions,
 } from './formWidgets.js';
 import { reconcile } from './fieldRegions.js';
-import { createPageGeometry } from '../../geometry/coords.ts';
+import { createPageGeometry } from '../../../editor/geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 
 /**

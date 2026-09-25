@@ -74,12 +74,12 @@ const root = path.resolve(here, '..', '..', '..', '..');
 const DOCUMENTS = [
   {
     name: 'income tax form 101 (RTL/Hebrew)',
-    file: path.join(root, 'src', 'editor', 'adapters', 'pdf', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf'),
+    file: path.join(root, 'src', 'tools', 'sign', 'fields', 'corpus', 'scoring', 'forms', 'income-tax-101-2024.pdf'),
     direction: 'rtl',
   },
   {
     name: 'health declaration (LTR/English)',
-    file: path.join(root, 'src', 'editor', 'adapters', 'pdf', '__fixtures__', 'health-declaration-page1-geometry.pdf'),
+    file: path.join(root, 'src', 'tools', 'sign', 'fields', '__fixtures__', 'health-declaration-page1-geometry.pdf'),
     direction: 'ltr',
   },
 ];
