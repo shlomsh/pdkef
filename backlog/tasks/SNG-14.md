@@ -44,7 +44,45 @@ A standalone page outside the app, in the session scratchpad, served on the loca
 
 ## Findings
 
-(to fill)
+**Measured on the iOS 26.2 Simulator (iPhone 17), 2026-09-25.** A real iPhone run by Shlomi is still to
+come.
+
+### The three questions
+
+- **The stops.** In the final setup, iOS's ∨ visits every text field in reading order, across both pages.
+  Fields added by a tap join the order at once (∧ from a new field went back to the earlier one). Real
+  checkboxes are never stops: from the last page-1 text field, ∨ skipped all 14 checkboxes and went to
+  page 2. This matches WebKit's source, where `isAssistableElement` covers text fields, textareas,
+  selects and contenteditable only.
+- **The keyboard.** It stayed up across every ∨ and ∧ hop, and when a tap added a field while typing.
+- **The view.** Each field lands about a third of the way down the visible area, above the keyboard, and
+  Safari never moved the page on its own ("Safari moved 0" on every hop).
+
+### What it takes (each one failed first)
+
+- **Fields must be hittable at their centre.** With `pointer-events: none` on the invisible fields, both
+  arrows were greyed out. WebKit's `nextAssistableElement` hit-tests the next field's centre and skips it
+  as "obscured" when the hit lands elsewhere.
+- **The document itself must scroll.** With the zoomed page moved by transforms inside a fixed frame, ∨
+  went 1, 3, 6 and then greyed out with 10 fields left: every field whose centre was off-screen was
+  skipped. A native scroll container inside a fixed frame failed the same way (1 to 3). With the window
+  as the scroller, every field was reachable.
+- **Lock the page scale both ways.** With only `maximum-scale=1`, iOS zoomed the page out to about 0.6
+  when ∨ reached the wide Address box, and the next hops landed wrong. Adding `minimum-scale=1` stopped
+  it.
+- **Frame against the visual viewport.** With the keyboard up on iOS 26, `window.scrollY` equals
+  `visualViewport.offsetTop`: scrolling moves the visible area. Adding `offsetTop` into the target
+  counted it twice and left the Email field behind the keyboard bar.
+
+### Also learned
+
+- The bar above the keyboard can't be changed or extended by a page (WebKit source, the accessory view
+  lives in the UI process). Anything contextual goes in our own chrome when the keyboard is down.
+- `inputmode="none"` keeps the arrows and hides the keyboard (WebKit source, unverified on device).
+- In the Simulator, a tap on the status bar scrolls the page to the top, as on a phone.
+- Our first page had four more bugs from a zero-context review, all fixed: a cancelled touch counted as
+  a tap; a hop didn't stop a fling; tap-added fields could fall out of row order; a stale "via tap"
+  label.
 
 ## Acceptance
 
