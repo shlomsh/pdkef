@@ -4,7 +4,7 @@
  *
  * `scripts/generate-practice-form.mjs` imports this module and renders it into
  * the shipped asset `public/images/redaction-guide/sample.pdf`, which
- * `src/shell/FileDropzone.tsx` fetches at runtime as the Redact tool's sample
+ * `src/site-lib/FileDropzone.tsx` fetches at runtime as the Redact tool's sample
  * file. Edit the form's words or fields here; drawing logic (pdf-lib calls,
  * layout arithmetic, positions) stays in the script.
  *

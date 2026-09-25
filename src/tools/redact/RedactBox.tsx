@@ -7,8 +7,19 @@ import { createElementRenderers } from '../../editor/registry/renderers.ts';
 import type { ElementType } from '../../editor/model/editorModel.ts';
 import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../editor-ui/hooks/useElementResize.js';
+import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale.ts';
+import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+
+// MOBI-17: which corner of the bar actually touches the box it belongs to, so
+// the counter-scale below shrinks it away from that corner rather than its
+// own center. Generalised over `placement` (not fixed LTR/RTL like Sign's
+// DraggableWrapper) because this bar's own `flip()` can resolve to plain
+// 'bottom' (centered, no start/end) when it does not fit above. Shared with
+// `visualViewportClamp`'s own origin math (`visualViewportClamp.ts`) so the
+// two can never disagree about which corner is fixed.
+const toolbarScaleOrigin = toolbarScaleOriginCss;
 
 // Redact never renders a registered node component - its whiteout/blackout/
 // blur elements always take the `renderTarget: 'redact'` branch inside
@@ -58,15 +69,44 @@ export default function RedactBox({
   onClone: (...args: any[]) => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
-  const { refs, floatingStyles } = useFloating({
+  const { refs, floatingStyles, placement, update } = useFloating({
     placement: 'top-start',
     whileElementsMounted: autoUpdate,
     middleware: [
-      offset(TOOLBAR_FLOATING_OFFSET),
+      // MOBI-17: 0, not TOOLBAR_FLOATING_OFFSET - the gap is re-added below as
+      // a scale-corrected CSS translate instead, so it does not grow under
+      // pinch/auto-zoom the way a literal offset() value baked into
+      // floatingStyles' translate(...) would. Full reasoning in
+      // DraggableWrapper.tsx's own offset(0) comment; the only difference
+      // here is this bar can flip to plain 'bottom', so the sign of the
+      // correction below follows the resolved `placement` instead of being
+      // fixed to "up".
+      offset(0),
       flip({ fallbackPlacements: ['bottom'] }),
-      shift({ padding: TOOLBAR_FLOATING_OFFSET })
+      shift({ padding: TOOLBAR_FLOATING_OFFSET }),
+      // MOBI-17: the missing containment check - see DraggableWrapper.tsx's
+      // own comment beside its `visualViewportClamp` call, and
+      // visualViewportClamp.ts's header, for the full reasoning. `flip()`
+      // above already handles "does not fit above the box" by trying
+      // 'bottom'; this handles "the whole page is zoomed and panned so
+      // neither placement is currently visible".
+      visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
     ]
   });
+  // MOBI-17: same publisher DraggableWrapper.tsx uses, ref-counted across
+  // every mounted box on the page - see that file's comment on the hook call
+  // and the hook's own header for the full reasoning (module-level CSSOM
+  // write, never Preact state, so a pinch never re-renders a redaction box).
+  // Also feeds this bar's own `update()` into the shared visualViewport
+  // change broadcast, so `visualViewportClamp` above is recomputed on every
+  // pinch/pan step - `autoUpdate` alone never listens for one.
+  useVisualViewportScale(update);
+  // Floating UI's placement list is always exactly 'top-start' or plain
+  // 'bottom' here (the two options fed to `useFloating`/`flip` above), so the
+  // gap always sits on the main (vertical) axis: negative to push the bar up
+  // off the top of the box, positive to push it down when flipped below.
+  const toolbarGapSign = placement.startsWith('bottom') ? 1 : -1;
+  const toolbarTransform = `${floatingStyles.transform || ''} translateY(calc(${toolbarGapSign} * ${TOOLBAR_FLOATING_OFFSET}px / var(--vv-scale, 1))) scale(calc(1 / var(--vv-scale, 1)))`;
 
   // Drag-to-move and resize gestures, shared with the Sign tool's element
   // wrapper (E7.5) - blackout/blur/whiteout never hit the line/text-specific
@@ -176,7 +216,13 @@ export default function RedactBox({
           ref={refs.setFloating}
           className={elementStyles.actions}
           data-editor-actions
-          style={{ ...floatingStyles, opacity: 1, pointerEvents: 'auto' }}
+          style={{
+            ...floatingStyles,
+            transform: toolbarTransform,
+            transformOrigin: toolbarScaleOrigin(placement),
+            opacity: 1,
+            pointerEvents: 'auto',
+          }}
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}

@@ -37,10 +37,38 @@ import {
 import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../../i18n/toolMessages';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import formFieldHintStyles from './FormFieldHints.module.css';
+import {
+  classifyTouchTap,
+  isBlankAreaTarget,
+  type TapGestureSample,
+} from '../tapOutsideDeselect.ts';
 
 const DEFAULT_PAGE_GEOMETRY = createPageGeometry({
   cropBox: { x: 0, y: 0, width: PAGE_WIDTH_DEFAULT_PTS, height: PAGE_HEIGHT_DEFAULT_PTS },
 });
+
+// MOBI-30: a touch tap that lands on any of these (an element, its toolbar,
+// its resize handles, the page header's Clear button, a form-field hint, or
+// any other ordinary control) is never "blank page area" - see
+// handlePagesContainerTouchEnd below. `[data-editor-actions]` and
+// `[data-editor-resizer]` are already inside `[data-editor-element]` in the
+// current DOM (DraggableWrapper.tsx), but are named explicitly rather than
+// relied on transitively, since nothing here enforces that nesting.
+const BLANK_AREA_EXCLUDED_SELECTOR = [
+  '[data-editor-element]',
+  '[data-editor-actions]',
+  '[data-editor-resizer]',
+  '[data-editor-page-header]',
+  `.${formFieldHintStyles['field-hints']}`,
+  'button',
+  'a[href]',
+  'input',
+  'select',
+  'textarea',
+  '[role="button"]',
+  '[contenteditable="true"]',
+].join(', ');
 
 // PdfSignTool.tsx builds the real one (it owns the state useFieldNavigation
 // needs); this is only what a caller that never detected any fields - or a
@@ -281,8 +309,95 @@ export default function PdfWorkspace({
   }, [dispatch, elements.length, logAction, t]);
 
   const deactivateAll = useCallback(() => {
+    // MOBI-30: the keyboard should go down with the box. A real mouse click
+    // elsewhere blurs the textarea for free (focus just moves), but the
+    // touch-tap path below never moves focus anywhere - nothing else asks
+    // for it - so it has to be done explicitly here, which also covers the
+    // ordinary mouse/onClick path for free.
+    if (document.activeElement instanceof HTMLTextAreaElement) {
+      document.activeElement.blur();
+    }
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
   }, [dispatch]);
+
+  // --- MOBI-30: touch-tap-outside deselect (see tapOutsideDeselect.ts) ---
+  //
+  // `onClick={deactivateAll}` below only ever fires from a browser-synthesised
+  // `click`, which a real iPhone can suppress entirely: a tap with a few
+  // points of finger jitter (worse while pinch-zoomed) reads to iOS as the
+  // start of a pan, so it fires `pointercancel` and never synthesises a
+  // click - but `touchstart`/`touchend` still fire. This is a one-shot
+  // recognition on release, not a live gesture: nothing here runs during
+  // `touchmove` (there is no `touchmove` listener at all), and the only refs
+  // held across the gesture are the start sample and the touch identifier -
+  // see the gesture golden rule in `.claude/rules/editor.md`.
+  //
+  // Skipped entirely while a tool is armed: `useWorkspaceGestures`' overlay
+  // handlers own that tap (placing an element, or a drag-tool's own
+  // `touchstart` already having called `stopPropagation`), and re-checked at
+  // release since arming never changes mid-gesture but the check is cheap
+  // enough not to assume it.
+  const touchTapStartRef = useRef<TapGestureSample | null>(null);
+  const touchTapIdRef = useRef<number | null>(null);
+  const touchTapMultiRef = useRef(false);
+
+  const readScrollTop = () =>
+    (workspaceRef.current?.scrollTop || 0) + (document.scrollingElement?.scrollTop || 0);
+
+  const readTapSample = (touch: Touch, time: number): TapGestureSample => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+    return {
+      x: touch.clientX,
+      y: touch.clientY,
+      time,
+      viewportScale: vv?.scale ?? 1,
+      viewportOffsetLeft: vv?.offsetLeft ?? 0,
+      viewportOffsetTop: vv?.offsetTop ?? 0,
+      scrollTop: readScrollTop(),
+    };
+  };
+
+  const resetTouchTap = () => {
+    touchTapStartRef.current = null;
+    touchTapIdRef.current = null;
+    touchTapMultiRef.current = false;
+  };
+
+  const handlePagesContainerTouchStart = (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      // A second finger joining disqualifies the whole sequence, even the
+      // touch that started it - a pinch always disqualifies, never resets
+      // into tracking the newest finger.
+      touchTapMultiRef.current = true;
+      return;
+    }
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    touchTapStartRef.current = readTapSample(touch, Date.now());
+    touchTapIdRef.current = touch.identifier;
+    touchTapMultiRef.current = false;
+  };
+
+  const handlePagesContainerTouchEnd = (e: TouchEvent) => {
+    const start = touchTapStartRef.current;
+    const trackedId = touchTapIdRef.current;
+    if (!start || trackedId == null) return;
+    const endTouch = Array.from(e.changedTouches).find((t) => t.identifier === trackedId);
+    if (!endTouch) return; // some other touch ended; the tracked one is still down
+    const multiTouch = touchTapMultiRef.current;
+    const end = readTapSample(endTouch, Date.now());
+    resetTouchTap();
+
+    if (selectedTool) return; // an armed tool's own overlay gesture owns this tap
+    if (!classifyTouchTap(start, end, { multiTouch })) return;
+    if (!isBlankAreaTarget(e.target, BLANK_AREA_EXCLUDED_SELECTOR)) return;
+
+    deactivateAll();
+  };
+
+  const handlePagesContainerTouchCancel = () => {
+    resetTouchTap();
+  };
 
   const reviewExportIssues = useCallback(() => {
     const firstIssueId = exportReadiness.blockingElementIds[0];
@@ -371,7 +486,13 @@ export default function PdfWorkspace({
           />
 
           {/* PDF Pages rendering container */}
-          <div className={workspaceStyles['pages-container']} onClick={deactivateAll}>
+          <div
+            className={workspaceStyles['pages-container']}
+            onClick={deactivateAll}
+            onTouchStart={handlePagesContainerTouchStart}
+            onTouchEnd={handlePagesContainerTouchEnd}
+            onTouchCancel={handlePagesContainerTouchCancel}
+          >
             {Array.from({ length: numPages }).map((_, pageIdx) => {
               const size = pageSizes[pageIdx] || DEFAULT_PAGE_GEOMETRY;
 

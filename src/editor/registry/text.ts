@@ -3,7 +3,7 @@
 import type { ElementDefinition, TextPositionInput, TextPositionPatch, TextResizeInput, TextResizePatch, WidthFloorInput, WidthResizeInput, WidthResizePatch } from './types.ts';
 import type { TextElement } from '../model/editorModel.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
-import { COMB_MIN_CELL_EM, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
+import { COMB_MIN_CELL_EM, COMB_NATURAL_WIDTH_TOLERANCE_PX, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { combCellCenterFraction, combCellCount } from '../text/comb.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs } from '../text/textTransforms.js';
 import { fontkitFont, shapedWidth, unrepresentableCharacters } from '../text/textMetrics.ts';
@@ -46,9 +46,17 @@ export function applyCombWidth({ handle, delta, start, isRtl, minWidth }: WidthR
   };
 }
 
-export function combWidthFloor({ element, fontSizePx, pageWidthPx }: WidthFloorInput): number {
+export function combWidthFloor({ element, fontSizePx, pageWidthPx, naturalWidthPx }: WidthFloorInput): number {
   if (!(pageWidthPx > 0) || !(fontSizePx > 0)) return MIN_COMB_WIDTH_PCT;
-  return Math.max(MIN_COMB_WIDTH_PCT, (combCellCount(element as TextElement) * fontSizePx * COMB_MIN_CELL_EM / pageWidthPx) * 100);
+  const cellFloorPct = Math.max(MIN_COMB_WIDTH_PCT, (combCellCount(element as TextElement) * fontSizePx * COMB_MIN_CELL_EM / pageWidthPx) * 100);
+  // MOBI-31: the cell-pitch floor above is a lower bound only, for the
+  // empty/one-character case (or a caller that measured nothing yet). Once
+  // the text's own natural (plain, unspaced) width is known, it is the real
+  // threshold - see COMB_NATURAL_WIDTH_TOLERANCE_PX's comment for the
+  // tolerance subtracted from it.
+  if (!(naturalWidthPx && naturalWidthPx > 0)) return cellFloorPct;
+  const naturalFloorPct = Math.max(0, (naturalWidthPx - COMB_NATURAL_WIDTH_TOLERANCE_PX) / pageWidthPx * 100);
+  return Math.max(cellFloorPct, naturalFloorPct);
 }
 
 export const textDefinition: ElementDefinition<TextElement> = {

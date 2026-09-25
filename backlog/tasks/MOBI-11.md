@@ -1,7 +1,7 @@
 ---
 id: "MOBI-11"
 title: "A reviewable field-map stage in Sign, from the geometry detector, before any guided filling"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
@@ -27,13 +27,15 @@ not available at runtime anyway.
   `src/editor/adapters/pdf/` with unit fixtures from both spike forms) and offer the result as a
   proposed field map, never as filled content. *Lifted 2026-09-17* — the union detector is
   product code now (`fieldLabels.js`, `formCells.js`, both unit-tested).
-- [ ] **Wired 2026-09-17, but not as a review layer** — see "Step 2" below for why. The person
+- [x] **Wired 2026-09-17, but not as a review layer** — see "Step 2" below for why. The person
   never sees a proposal to delete/resize/relabel; nothing is written until they tap and type, same
   as every other tool. "Add a field" was already a first-class action (drag a text box by hand) and
   stays exactly that.
-- [ ] Each proposal carries its label and kind; a low-confidence proposal is visibly tentative.
-- [ ] MOBI-06's next/previous navigation consumes the reviewed map, not the raw detector output.
-- [ ] **Split out 2026-09-20**, so this ticket can close on the review surface alone: the
+- [ ] ~~Each proposal carries its label and kind; a low-confidence proposal is visibly tentative.~~
+  **Moved to MOBI-33 (2026-09-25).**
+- [ ] ~~MOBI-06's next/previous navigation consumes the reviewed map, not the raw detector output.~~
+  **Moved to MOBI-34 (2026-09-25).**
+- [x] **Split out 2026-09-20**, so this ticket can close on the review surface alone: the
   remaining failure classes are FORM-01 (caption versus field, the only class left with room to
   reach the gate), the label reach on a tall table is FORM-03, and the Latin-script form is
   FORM-04. The tick-column class was closed here; see Step 3.
@@ -265,3 +267,17 @@ it. MOBI-10 stays where it was decided, per the re-filing convention in `scripts
 What is left here is the review surface itself, the acceptance items above it that are still open;
 the detector accuracy work it used to carry is FORM-01, FORM-03 and FORM-04, and the semantic layer
 that consumes this map is FORM-02.
+
+## Closed (2026-09-25)
+
+What this ticket set out to do shipped: the union detector is product code, wired into Sign as
+hints and tap-snapping on the armed tool (Steps 1-3), and scored against the reviewed ground truth.
+What was left was not more of the same work but a product decision nobody had scoped since
+2026-09-20, so it split instead of sitting half-done:
+
+- **MOBI-33**: decide whether Sign gets a "review the proposed fields" layer at all, against the
+  one-shot arming invariant. It carries the label/kind and tentative-proposal criterion.
+- **MOBI-34**: MOBI-06's next/previous navigation reads the reviewed map; depends on MOBI-33.
+
+The detector's remaining failure classes were already split to FORM-01, FORM-03 and FORM-04.
+

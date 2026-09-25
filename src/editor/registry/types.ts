@@ -150,6 +150,13 @@ export interface WidthFloorInput {
   fontSizePx: number;
   /** The page wrapper's rendered width in CSS pixels, so the answer can be a %. */
   pageWidthPx: number;
+  /**
+   * MOBI-31: the element's own text, measured (not estimated) at grab time as
+   * plain, unspaced CSS pixels - the width it would have as a plain text box
+   * at the same font/size. Optional because only comb text's floor uses it;
+   * 0/undefined means "not measured", not "zero width".
+   */
+  naturalWidthPx?: number;
 }
 
 export interface WidthResizePatch {

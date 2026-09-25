@@ -12,6 +12,7 @@ import {
   type TypableField,
 } from '../../editor/text/fieldOrder.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
+import { visibleViewportOrigin } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import { englishSignMessages, formatMessage, type SignMessages } from '../../i18n/toolMessages';
 import {
   DEFAULT_COLOR_BLUE,
@@ -141,6 +142,9 @@ function positionOf(element: EditorElement): PlacedText {
 // smooth scroll used to leave two deferred scrolls queued, each measured at a
 // different moment; the older one is simply abandoned now.
 let pendingFrame = 0;
+// The tap path's pending reveal (`revealFieldAfterKeyboard` below); a field
+// move supersedes it.
+let cancelPendingReveal = () => {};
 
 function bringFieldIntoView(elementId: string) {
   // Deferred to after paint, and that is load-bearing. Every caller runs this
@@ -150,6 +154,7 @@ function bringFieldIntoView(elementId: string) {
   // and what actually brought the field into view was the browser's own scroll
   // on focus. Two frames: the first lets Preact commit, the second lets layout
   // settle so the rect measured is the one the person will see.
+  cancelPendingReveal();
   if (typeof requestAnimationFrame !== 'function') {
     scrollFieldIntoView(elementId);
     return;
@@ -211,7 +216,11 @@ function scrollFieldIntoView(elementId: string) {
   // there is one: `block: 'center'` centres on the layout viewport, which iOS
   // does not shrink when the keyboard opens.
   const rect = node.getBoundingClientRect();
-  if (!Number.isFinite(rect.top) || !Number.isFinite(viewport.offsetTop) || !Number.isFinite(window.scrollY)) return;
+  // The band's top is `visibleViewportOrigin`, not `offsetTop`: with the
+  // keyboard up iOS reports an `offsetTop` that is not where the visible slice
+  // is in this rect's frame (see that function's header).
+  const bandOrigin = visibleViewportOrigin(viewport);
+  if (!Number.isFinite(rect.top) || !Number.isFinite(bandOrigin.top) || !Number.isFinite(window.scrollY)) return;
 
   // MOBI-25: pinch-zoomed, the arithmetic below is not safe to trust. It mixes
   // layout-viewport rects with the visual viewport's offset and hands the sum to
@@ -226,8 +235,8 @@ function scrollFieldIntoView(elementId: string) {
   }
 
   const container = scrollContainerOf(node);
-  let bandTop = viewport.offsetTop;
-  let bandBottom = viewport.offsetTop + viewport.height;
+  let bandTop = bandOrigin.top;
+  let bandBottom = bandOrigin.top + viewport.height;
   if (container) {
     const box = container.getBoundingClientRect();
     bandTop = Math.max(bandTop, box.top);
@@ -246,6 +255,56 @@ function scrollFieldIntoView(elementId: string) {
   if (Math.abs(delta) < 1) return;
   if (container) container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
   else window.scrollTo({ top: window.scrollY + delta, behavior: 'smooth' });
+}
+
+/**
+ * Brings a box the person just tapped open back above the keyboard.
+ *
+ * A tap opens the edit session with `focus({ preventScroll: true })`
+ * (DraggableWrapper.tsx's `beginEditFromTap`), which is what keeps iOS from
+ * auto-zooming onto small text - but it also stops iOS from lifting the box
+ * clear of the keyboard, and nothing else did. Measured on an iPhone 17
+ * simulator, form 101 restored from a draft at scroll 0: tapping a box at a
+ * rect top of 586 raised a keyboard that left a visible slice 377 tall, the
+ * box stayed underneath it, and the element toolbar (which follows its box)
+ * was clamped to the bottom edge of the slice, attached to nothing.
+ *
+ * The box is on screen when tapped; it is the keyboard that hides it, and the
+ * keyboard's height is only known once `visualViewport` resizes for it. So
+ * the reveal waits for that resize, then makes the same one deliberate move a
+ * field move makes - which leaves a box already in view exactly where it is.
+ * The timeout covers a keyboard that was already up (tapping a second box),
+ * where no resize comes.
+ *
+ * One pending move at a time, shared with `bringFieldIntoView`: whichever came
+ * last wins. A Next pressed before the keyboard settled must not be followed
+ * by a scroll back to the box it left, and vice versa. For the same reason the reveal
+ * only runs if that box still holds the focus - a session closed in the
+ * meantime has nothing left to reveal.
+ */
+const KEYBOARD_SETTLE_TIMEOUT_MS = 800;
+
+export function revealFieldAfterKeyboard(elementId: string) {
+  cancelPendingReveal();
+  // And the other way round: a tap landing during a field move's two frames
+  // is the newer intent, so that move is dropped too.
+  if (pendingFrame && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pendingFrame);
+  pendingFrame = 0;
+  const viewport = typeof window !== 'undefined' ? window.visualViewport : null;
+  if (!viewport) return;
+  const cancel = () => {
+    viewport.removeEventListener('resize', reveal);
+    window.clearTimeout(timer);
+    cancelPendingReveal = () => {};
+  };
+  const reveal = () => {
+    cancel();
+    const node = document.querySelector(`[data-editor-element-id="${elementId}"]`);
+    if (node && node.contains(document.activeElement)) scrollFieldIntoView(elementId);
+  };
+  viewport.addEventListener('resize', reveal);
+  const timer = window.setTimeout(reveal, KEYBOARD_SETTLE_TIMEOUT_MS);
+  cancelPendingReveal = cancel;
 }
 
 export default function useFieldNavigation({

@@ -71,6 +71,20 @@ export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for th
 // down to a 12px slit first, whatever is written in it.
 export const COMB_MIN_CELL_EM = 0.6;
 export const MAX_COMB_CELLS = 60;                       // Upper bound on the cell stepper
+// MOBI-31: the cell-pitch floor above is a lower bound only. The real
+// collapse threshold is the comb's own text laid out plain (unspaced) at the
+// same font/size - measured at grab time from the hidden
+// `[data-text-part="measure"]` node (see useElementResize.js and
+// TextNode.tsx), not estimated. An empty box's measure node holds its
+// placeholder, so an empty comb collapses at the placeholder's width. So a comb can never be narrowed to where its
+// characters stop fitting side by side without turning back into plain text
+// first (a 9-digit comb on real iOS Safari used to narrow well past that
+// point, with the digits overflowing both edges of the box). Subtracted from
+// the measured width before it becomes the floor, so a comb whose cells
+// equal the text's own glyph advance sits fractionally past the collapse
+// point rather than exactly on it, where sub-pixel drag jitter would flicker
+// collapsed/uncollapsed every other frame.
+export const COMB_NATURAL_WIDTH_TOLERANCE_PX = 1;
 // How tall a digit or capital stands above the baseline, as a fraction of the
 // font size - the cap height. ~0.72em for the text faces (Arimo is 0.716) and
 // close enough for the handwriting ones. Used to fit a comb's glyphs inside a
@@ -85,6 +99,10 @@ export const COMB_BOX_FILL = 0.8;
 
 // Miscellaneous UI Sizing/Offsets
 export const TOOLBAR_FLOATING_OFFSET = 8;             // Offset in pixels for Floating UI positioning
+// MOBI-17: how much of the visual viewport's edge the element toolbar's
+// visualViewportClamp middleware leaves as breathing room - small on
+// purpose, this is a "must be reachable" floor, not a layout gutter.
+export const VISUAL_VIEWPORT_CLAMP_MARGIN_PX = 4;
 export const LINE_TOOLBAR_MARGIN_TOP_PX = -10;         // Margin top offset in pixels for line toolbar positioning
 export const TEXT_RESIZE_SCALE_FACTOR = 0.2;          // Font size scaling rate relative to drag offset
 export const LINE_HIT_TARGET_STOKE_WIDTH = 20;        // Interactive stroke thickness for easier clicking (px)

@@ -568,4 +568,146 @@ describe('PdfWorkspace Component', () => {
       expect(setAnnouncement).toHaveBeenCalledWith('Cleared page 1.');
     });
   });
+
+  // MOBI-30: `onClick={deactivateAll}` alone only ever fires from a
+  // browser-synthesised click, which a real iPhone can suppress on a tap
+  // that jitters (see tapOutsideDeselect.ts's own docstring). These drive
+  // the touchstart/touchend pair the pages-container div now also listens
+  // for, in place of the click that a real device may never deliver.
+  describe('Touch tap outside deselect (MOBI-30)', () => {
+    function touchPoint(clientX: number, clientY: number, identifier = 1): Touch {
+      // jsdom's TouchEvent does not validate/coerce Touch objects (confirmed
+      // against jsdom 30 - see useDraggableElement.tap.test.tsx), so a plain
+      // point literal carrying only the fields this module reads is enough.
+      return { clientX, clientY, identifier } as Touch;
+    }
+
+    function dispatchTouchStart(target: Element, touches: Touch[]) {
+      act(() => {
+        target.dispatchEvent(
+          new TouchEvent('touchstart', { touches, changedTouches: touches, bubbles: true, cancelable: true })
+        );
+      });
+    }
+
+    function dispatchTouchEnd(target: Element, remainingTouches: Touch[], endedTouch: Touch) {
+      act(() => {
+        target.dispatchEvent(
+          new TouchEvent('touchend', {
+            touches: remainingTouches,
+            changedTouches: [endedTouch],
+            bubbles: true,
+            cancelable: true,
+          })
+        );
+      });
+    }
+
+    function pagesContainer(host: HTMLDivElement): HTMLDivElement {
+      return required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['pages-container']}`), 'pages container');
+    }
+
+    it('deselects on a stationary touch tap on blank page area', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      const point = touchPoint(50, 60);
+      dispatchTouchStart(container, [point]);
+      dispatchTouchEnd(container, [], point);
+
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('still deselects when the finger jitters a few px before release (within slop)', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      dispatchTouchStart(container, [touchPoint(50, 60)]);
+      // 6 CSS px of jitter, well under the 16 screen-pt default slop.
+      dispatchTouchEnd(container, [], touchPoint(56, 60));
+
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('does not deselect a one-finger scroll-pan past the slop', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      dispatchTouchStart(container, [touchPoint(50, 60)]);
+      // An 80px pan is a scroll, not a tap.
+      dispatchTouchEnd(container, [], touchPoint(50, 140));
+
+      expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('does not deselect once a second touch joined (a pinch)', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      const first = touchPoint(50, 60, 1);
+      const second = touchPoint(90, 100, 2);
+      dispatchTouchStart(container, [first]);
+      dispatchTouchStart(container, [first, second]);
+      // Both fingers lift with no net movement on the tracked touch.
+      dispatchTouchEnd(container, [second], first);
+      dispatchTouchEnd(container, [], second);
+
+      expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('does nothing while a tool is armed - the overlay gesture owns that tap', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1', selectedTool: 'text' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      const point = touchPoint(50, 60);
+      dispatchTouchStart(container, [point]);
+      dispatchTouchEnd(container, [], point);
+
+      expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('does not deselect a tap that lands on an existing element', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({
+        elements: [textElement('el-1', { left: 10, top: 10 })],
+        activeElementId: 'el-1',
+      });
+      host = mountWorkspace({ state, dispatch });
+
+      const element = required(host.querySelector<HTMLElement>('[data-editor-element]'), 'element');
+      const point = touchPoint(50, 60);
+      dispatchTouchStart(element, [point]);
+      dispatchTouchEnd(element, [], point);
+
+      expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('blurs a focused textarea so the keyboard goes down with the tap deselect', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const textarea = document.createElement('textarea');
+      host.appendChild(textarea);
+      textarea.focus();
+      expect(document.activeElement).toBe(textarea);
+
+      const container = pagesContainer(host);
+      const point = touchPoint(50, 60);
+      dispatchTouchStart(container, [point]);
+      dispatchTouchEnd(container, [], point);
+
+      expect(document.activeElement).not.toBe(textarea);
+    });
+  });
 });

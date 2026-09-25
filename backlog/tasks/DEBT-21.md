@@ -24,7 +24,7 @@ test we run by default: jsdom cannot restore a page, and Playwright launches Chr
 `--disable-back-forward-cache` (see the rule, and `e2e/home/back-navigation.spec.js`, which drops
 that switch).
 
-The four navigation sites today are `src/shell/FileDropzone.tsx`, `src/tools/merge/PdfMergeTool.tsx`,
+The four navigation sites today are `src/site-lib/FileDropzone.tsx`, `src/tools/merge/PdfMergeTool.tsx`,
 `src/tools/split/PdfSplitTool.tsx` and `src/tools/redact/PdfRedactTool.tsx`, all converted.
 
 ## Why it is P3, and why a naive check will not do
