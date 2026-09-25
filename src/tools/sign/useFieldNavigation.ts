@@ -325,7 +325,13 @@ export default function useFieldNavigation({
 
   const order = orderTypableFields(
     formRegions.combs,
-    formRegions.cells,
+    // Signature cells are excluded here, not upstream in `formRegions.cells`
+    // (see `useFormFieldRegions.ts`'s own doc on that field): Next/Previous
+    // opens or creates a typed text box on whatever it lands on, and a
+    // signature is placed through the saved-signature dialog, never by
+    // typing - the same reason `useWorkspaceGestures.ts`'s tap path excludes
+    // it from its own snap.
+    formRegions.cells.filter((cell) => cell.kind !== 'signature'),
     (pageIndex) => formRegions.pageDirections[pageIndex] ?? 'ltr',
   );
 
