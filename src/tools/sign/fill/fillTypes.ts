@@ -49,8 +49,9 @@ export type FillItem =
 /** The keyboard's return key for a fill input: "next" everywhere but the last, "done" there. */
 export type EnterKeyHint = 'next' | 'done';
 
-/** Something a tap can reach: a fill item or a detected tick box, by key, with its box. */
+/** Something a tap can reach: a fill item (slot or text) or a detected tick box. */
 export interface ReachTarget {
+  kind: 'fill' | 'box';
   key: string;
   pageIndex: number;
   box: PercentBox;
