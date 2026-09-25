@@ -134,7 +134,8 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - `native`: leave the event alone;
   - `focus`: `focusFillInput(key)` synchronously;
   - `dismiss`: blur;
-  - `freeSlot`: the proxy dance above;
+  - `freeSlot`: the proxy dance above. `openFreeSlot(at)` opens the slot and sets the pending focus
+    key to its key, so the gesture only focuses the proxy and calls it;
   - `delegate`: production's `handlePageClick`, at the corrected point when one is given.
 - **The armed tool, as `FillTool`:** no tool or Text is 'text', the symbol tool is 'mark', anything else
   is 'other'.
