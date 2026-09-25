@@ -331,7 +331,9 @@ _None._
 
 ### Open
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
 
 ### In progress
 
