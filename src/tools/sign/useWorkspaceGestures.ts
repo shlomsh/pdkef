@@ -191,8 +191,13 @@ export default function useWorkspaceGestures({
   /**
    * Handles a click on a page overlay for point-placement tools
    * (text, symbol, signature). No-ops for drag-drawn tools.
+   *
+   * `at` (page percent) places at that point instead of the click's own: fill
+   * mode (SNG-15) passes a detected field's or tick box's centre when its reach
+   * found one near the tap, so the snap below lands where its droppable look
+   * promised. Production never passes it.
    */
-  const handlePageClick = (e: PageClickEvent, pageIndex: number) => {
+  const handlePageClick = (e: PageClickEvent, pageIndex: number, at?: { x: number; y: number }) => {
     if (!selectedTool) return;
     // 'date' has no registry entry of its own - it places an ordinary
     // TextElement (see editorModel.ts's SignToolType comment), prefilled below.
@@ -200,7 +205,7 @@ export default function useWorkspaceGestures({
     if (definition.creation.mode !== 'point') {
       if (definition.creation.mode === 'external' && selectedTool === 'signature') {
         const container = e.currentTarget;
-        const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageSizes[pageIndex]);
+        const { x: leftPercent, y: topPercent } = at ?? getPointerPercent(e, container, pageSizes[pageIndex]);
         if (activeSignature) {
           placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
           dispatch({ type: 'DISARM_TOOL' });
@@ -213,7 +218,7 @@ export default function useWorkspaceGestures({
     }
     const container = e.currentTarget;
     const pageGeometry = pageSizes[pageIndex];
-    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageGeometry);
+    const { x: leftPercent, y: topPercent } = at ?? getPointerPercent(e, container, pageGeometry);
 
     const id = createElementId();
     const symbolWidth = initialSymbolWidth;

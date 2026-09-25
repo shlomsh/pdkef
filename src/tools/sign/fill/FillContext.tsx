@@ -6,7 +6,7 @@
 import { createContext } from 'preact';
 import { useContext } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import type { FillSlot, PagePoint, TextFillProps } from './fillTypes.ts';
+import type { PagePoint, TextFillProps } from './fillTypes.ts';
 
 export interface FillContextValue {
   /** `?next=1`. When false every other field is inert and production runs unchanged. */
@@ -18,8 +18,12 @@ export interface FillContextValue {
   /** The target a tap would reach for the armed tool, shown with the droppable look. */
   aimedKey: string | null;
   setAimedKey: (key: string | null) => void;
-  /** The one free slot a tap opened where nothing was detected, or null. */
-  freeSlot: FillSlot | null;
+  /**
+   * Where a tap opened the one free slot (nothing detected there), or null. The
+   * workspace builds the slot from it with the typography a new text box takes.
+   */
+  freeAt: PagePoint | null;
+  /** Opens the free slot at `at` and sets the pending focus key to its key. */
   openFreeSlot: (at: PagePoint) => void;
   closeFreeSlot: () => void;
   /** A fill input to focus once it renders; set together with focusing the proxy. */
@@ -41,7 +45,7 @@ export const FILL_OFF: FillContextValue = {
   filling: false,
   aimedKey: null,
   setAimedKey: noop,
-  freeSlot: null,
+  freeAt: null,
   openFreeSlot: noop,
   closeFreeSlot: noop,
   pendingFocusKey: null,

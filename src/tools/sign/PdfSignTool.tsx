@@ -19,17 +19,17 @@ import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { describeUnrepresentableText } from './components/textMessages.ts';
 import { pageGeometryFromPdfJsPage, widthPercentToHeightPercent } from '../../editor/geometry/coords.js';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
-import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT, PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../constants/signGeometry.js';
+import { DEFAULT_SYMBOL_WIDTH_PCT, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
 import useCoarsePointer from './useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
-import { freeSlot, placementForFree } from './fill/fillSlots.ts';
+import { freeSlotKey } from './fill/fillSlots.ts';
 import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
 import { useFillFocus } from './fill/useFillFocus.ts';
-import type { FillSlot, PagePoint } from './fill/fillTypes.ts';
+import type { PagePoint } from './fill/fillTypes.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
@@ -88,34 +88,6 @@ function describeSignFailure(err: unknown, t: SignMessages): string {
 
 function isTextDirection(value: string): value is TextDirection {
   return value === 'ltr' || value === 'rtl';
-}
-
-/**
- * Fill mode (SNG-15): what `openFreeSlot` builds when a tap lands where
- * nothing was detected - the tapped page's own size in points (the same
- * fallback `useWorkspaceGestures.ts`'s `handlePageClick` falls back to for an
- * unmeasured page), and the font size/family a real placement would take
- * right now: the selected text element's own, or the remembered default,
- * exactly as `PdfWorkspace.tsx`'s `initialFont`/`initialFontSize` resolve
- * them for `handlePageClick` itself. Pure and exported so this is unit-tested
- * directly, without mounting the island (docs/sign-fill-mode.md).
- */
-export function buildFreeSlot(
-  at: PagePoint,
-  pageSizes: PageGeometry[],
-  fonts: {
-    activeText: { fontFamily?: string; fontSize?: number } | null;
-    lastFont: string;
-    lastFontSize: number;
-  },
-): FillSlot {
-  const geometry = pageSizes[at.pageIndex];
-  return freeSlot(at, placementForFree(at, {
-    fontFamily: fonts.activeText?.fontFamily || fonts.lastFont,
-    fontSize: fonts.activeText?.fontSize || fonts.lastFontSize,
-    pageWidthPoints: geometry?.width || PAGE_WIDTH_DEFAULT_PTS,
-    pageHeightPoints: geometry?.height || PAGE_HEIGHT_DEFAULT_PTS,
-  }));
 }
 
 // How long to wait after the last edit before speculatively re-exporting in
@@ -211,25 +183,18 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [enabled] = useState(() => typeof window !== 'undefined' && isFillMode(window.location.search));
   const coarse = useCoarsePointer();
   const [aimedKey, setAimedKey] = useState<string | null>(null);
-  const [freeSlotState, setFreeSlotState] = useState<FillSlot | null>(null);
+  const [freeAt, setFreeAt] = useState<PagePoint | null>(null);
   const [pendingFocusKey, setPendingFocusKey] = useState<string | null>(null);
   const proxyRef = useRef<HTMLInputElement>(null);
 
-  // Fill mode only: the box a free slot becomes must read exactly like the
-  // selected text element's own font, or the remembered default otherwise -
-  // duplicated from PdfWorkspace.tsx's own activeTextElement rather than
-  // lifted up, the same reasoning as this file's own exportReadiness copy
-  // below (threading it down would only serve this one background piece).
-  const activeElement = elements.find((el) => el.id === activeElementId);
-  const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
-
+  // The workspace builds the free slot from `freeAt` with the typography a new text
+  // box takes; its key comes from the point alone, so focus can be queued now.
   const openFreeSlot = useCallback((at: PagePoint) => {
-    const slot = buildFreeSlot(at, pageSizes, { activeText: activeTextElement, lastFont, lastFontSize });
-    setFreeSlotState(slot);
-    setPendingFocusKey(slot.key);
-  }, [pageSizes, activeTextElement, lastFont, lastFontSize]);
+    setFreeAt(at);
+    setPendingFocusKey(freeSlotKey(at));
+  }, []);
 
-  const closeFreeSlot = useCallback(() => setFreeSlotState(null), []);
+  const closeFreeSlot = useCallback(() => setFreeAt(null), []);
 
   const { filling } = useFillFocus({
     enabled,
@@ -246,13 +211,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     filling,
     aimedKey,
     setAimedKey,
-    freeSlot: freeSlotState,
+    freeAt,
     openFreeSlot,
     closeFreeSlot,
     pendingFocusKey,
     setPendingFocusKey,
     proxyRef,
-  }), [enabled, coarse, filling, aimedKey, freeSlotState, openFreeSlot, closeFreeSlot, pendingFocusKey, setAimedKey, setPendingFocusKey, proxyRef]);
+  }), [enabled, coarse, filling, aimedKey, freeAt, openFreeSlot, closeFreeSlot, pendingFocusKey]);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);

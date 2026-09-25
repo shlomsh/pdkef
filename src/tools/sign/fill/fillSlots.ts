@@ -133,9 +133,14 @@ export function detectedSlots(
  */
 export function freeSlot(at: PagePoint, placement: SlotPlacement): FillSlot {
   return {
-    key: `free:${at.pageIndex}:${at.x.toFixed(1)}:${at.y.toFixed(1)}`,
+    key: freeSlotKey(at),
     pageIndex: at.pageIndex,
     field: null,
     placement,
   };
+}
+
+/** A free slot's key, from the tap point alone, so it is known before the slot renders. */
+export function freeSlotKey(at: PagePoint): string {
+  return `free:${at.pageIndex}:${at.x.toFixed(1)}:${at.y.toFixed(1)}`;
 }
