@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  PALETTE, FIELDS, PAGE_SIZE, fieldLayout, lineWritableRect,
+  PALETTE_TOKENS, FIELDS, PAGE_SIZE, fieldLayout, lineWritableRect,
 } from './practice-form-content.mjs';
 
-const HEX_COLOR_COMPONENT = (value) => typeof value === 'number' && value >= 0 && value <= 1;
+const CSS_CUSTOM_PROPERTY = /^--[a-z][a-z0-9-]*$/;
 
 describe('practice-form-content', () => {
   it('has unique, non-empty field ids', () => {
@@ -36,13 +36,12 @@ describe('practice-form-content', () => {
     });
   });
 
-  it('gives every palette entry a valid RGB triple in the 0-1 range', () => {
-    const entries = Object.values(PALETTE);
+  it('names a global.css custom property for every palette role, no colour literals', () => {
+    const entries = Object.values(PALETTE_TOKENS);
     expect(entries.length).toBeGreaterThan(0);
-    entries.forEach((color) => {
-      expect(Array.isArray(color)).toBe(true);
-      expect(color).toHaveLength(3);
-      color.forEach((component) => expect(HEX_COLOR_COMPONENT(component)).toBe(true));
+    entries.forEach((tokenName) => {
+      expect(typeof tokenName).toBe('string');
+      expect(tokenName).toMatch(CSS_CUSTOM_PROPERTY);
     });
   });
 

@@ -4,8 +4,8 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
-import { buildPracticeForm } from './generate-practice-form.mjs';
-import { fieldLayout } from './practice-form-content.mjs';
+import { buildPracticeForm, readColorTokens, resolvePalette } from './generate-practice-form.mjs';
+import { fieldLayout, PALETTE_TOKENS } from './practice-form-content.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLE_PDF = path.resolve(here, '../public/images/redaction-guide/sample.pdf');
@@ -14,6 +14,41 @@ const TRUTH_JSON = path.resolve(
 );
 
 const sha256 = (bytes) => crypto.createHash('sha256').update(bytes).digest('hex');
+const GLOBAL_CSS_PATH = path.resolve(here, '../src/styles/global.css');
+
+describe('generate-practice-form palette (SNG-10 v2 brand pass)', () => {
+  it("resolves every PALETTE_TOKENS role from global.css's own :root block", () => {
+    const cssText = fs.readFileSync(GLOBAL_CSS_PATH, 'utf8');
+    const palette = resolvePalette(cssText);
+    Object.keys(PALETTE_TOKENS).forEach((role) => {
+      expect(palette).toHaveProperty(role);
+      expect(palette[role]).toHaveLength(3);
+      palette[role].forEach((component) => {
+        expect(component).toBeGreaterThanOrEqual(0);
+        expect(component).toBeLessThanOrEqual(1);
+      });
+    });
+  });
+
+  it('reads a literal #rrggbb token out of a fabricated :root block', () => {
+    const cssText = ':root {\n  --color-text: #0b4c4c;\n}\n';
+    expect(readColorTokens(cssText, ['--color-text'])).toEqual({ '--color-text': '#0b4c4c' });
+  });
+
+  it('throws when a requested token is missing from :root', () => {
+    const cssText = ':root {\n  --color-text: #0b4c4c;\n}\n';
+    expect(() => readColorTokens(cssText, ['--color-muted'])).toThrow(/--color-muted/);
+  });
+
+  it('throws when a token is not a literal #rrggbb hex (var()/rgba()/color-mix() indirection)', () => {
+    const cssText = ':root {\n  --color-primary: rgba(0, 121, 121, 0.35);\n}\n';
+    expect(() => readColorTokens(cssText, ['--color-primary'])).toThrow(/--color-primary/);
+  });
+
+  it('throws when the stylesheet has no top-level :root block at all', () => {
+    expect(() => readColorTokens('.foo { color: red; }', ['--color-text'])).toThrow(/:root/);
+  });
+});
 
 describe('generate-practice-form', () => {
   it('is byte-deterministic across two builds', async () => {
