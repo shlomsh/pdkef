@@ -3,8 +3,6 @@ import { useContext } from 'preact/hooks';
 import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
-  DEFAULT_FONT_FAMILY,
-  DEFAULT_FONT_SIZE_PT,
   DEFAULT_SYMBOL_WIDTH_PCT,
   DEFAULT_START_WIDTH_PCT
 } from '../../../constants/signGeometry.js';
@@ -15,8 +13,6 @@ const noop = () => {};
 export interface SignDefaultsContextValue {
   lastColor: string;
   lastWhiteoutColor: string;
-  lastFont: string;
-  lastFontSize: number;
   lastDirection: TextDirection | null;
   lastThickness: number;
   lastSymbolWidth: number;
@@ -26,6 +22,9 @@ export interface SignDefaultsContextValue {
   lastDateFormat: string;
   rememberColor: (color: string) => void;
   rememberWhiteoutColor: (color: string) => void;
+  /** Sets the document's carried font family/size (SIGN-32) - not a browser
+   * preference. PdfSignTool.tsx's implementation dispatches
+   * SET_CARRIED_FONT/SET_CARRIED_FONT_SIZE to the SignToolContext reducer. */
   rememberFont: (fontFamily: string) => void;
   rememberFontSize: (fontSize: number) => void;
   rememberDirection: (textDirection: TextDirection) => void;
@@ -47,8 +46,6 @@ export interface SignDefaultsContextValue {
 export const SignDefaultsContext = createContext<SignDefaultsContextValue>({
   lastColor: DEFAULT_COLOR_BLUE,
   lastWhiteoutColor: '#ffffff',
-  lastFont: DEFAULT_FONT_FAMILY,
-  lastFontSize: DEFAULT_FONT_SIZE_PT,
   lastDirection: null,
   lastThickness: DEFAULT_STROKE_WIDTH,
   lastSymbolWidth: DEFAULT_SYMBOL_WIDTH_PCT,

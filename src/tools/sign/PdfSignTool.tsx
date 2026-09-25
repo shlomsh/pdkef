@@ -117,7 +117,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [sourceBytes, setSourceBytes] = useState<ArrayBuffer | null>(null);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
   const [pageSizes, setPageSizes] = useState<PageGeometry[]>([]); // Rotated/cropped visible page frames in physical PDF points.
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, documentRevision, draftBaselineRevision }, dispatch } = useSignTool();
+  const {
+    state: {
+      selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory,
+      documentRevision, draftBaselineRevision, carriedFont, carriedFontSize,
+    },
+    dispatch,
+  } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
   // Export errors are recoverable without unmounting the editor. A failed
@@ -135,11 +141,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Last whiteout color picked, remembered across new placements
   const [lastWhiteoutColor, setLastWhiteoutColor] = useState('#ffffff');
 
-  // Last font family picked for a text element, remembered across new placements
-  const [lastFont, setLastFont] = useState('Arimo');
-
-  // Last font size picked for a text element, remembered across new placements
-  const [lastFontSize, setLastFontSize] = useState(12);
+  // The document's carried font family/size (SIGN-32) live in the SignTool
+  // reducer, not here - `carriedFont`/`carriedFontSize` above - because they
+  // belong to the document (round-tripped through its draft) rather than the
+  // browser. See rememberFont/rememberFontSize below for the explicit-change
+  // path and useEditorDraftPersistence's `extra` for the draft round-trip.
 
   // Last manually-toggled text direction, remembered across new placements —
   // lets a form filled in the same language keep predicting direction
@@ -321,18 +327,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (stored) setLastWhiteoutColor(stored);
   }, []);
 
-  // Load last-used text font from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastFont');
-    if (stored) setLastFont(stored);
-  }, []);
-
-  // Load last-used text font size from workspace preferences on mount.
-  useEffect(() => {
-    const stored = getEditorPreference('lastFontSize');
-    if (stored) setLastFontSize(stored);
-  }, []);
-
   // Load last-used text direction override from workspace preferences on mount.
   useEffect(() => {
     const stored = getEditorPreference('lastDirection');
@@ -375,8 +369,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       }),
       subscribeToEditorPreference('lastColor', ({ value }) => { if (value) setLastColor(value); }),
       subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => { if (value) setLastWhiteoutColor(value); }),
-      subscribeToEditorPreference('lastFont', ({ value }) => { if (value) setLastFont(value); }),
-      subscribeToEditorPreference('lastFontSize', ({ value }) => { if (value) setLastFontSize(value); }),
       subscribeToEditorPreference('lastDirection', ({ value }) => {
         if (value && isTextDirection(value)) setLastDirection(value);
       }),
@@ -400,16 +392,15 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     setEditorPreference('lastWhiteoutColor', color);
   };
 
-  // Remember the font last picked for a text element, for future placements
+  // The document's carried font family/size (SIGN-32): an explicit A-/A+
+  // press or font pick (PdfWorkspace's makeOnChange) sets it for everything
+  // placed after, on this document only - never a browser-wide preference.
   const rememberFont = (fontFamily: string) => {
-    setLastFont(fontFamily);
-    setEditorPreference('lastFont', fontFamily);
+    dispatch({ type: 'SET_CARRIED_FONT', payload: fontFamily });
   };
 
-  // Remember the font size last picked for a text element, for future placements
   const rememberFontSize = (fontSize: number) => {
-    setLastFontSize(fontSize);
-    setEditorPreference('lastFontSize', fontSize);
+    dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: fontSize });
   };
 
   // Remember the stroke thickness last picked for a shape, for future placements
@@ -510,7 +501,19 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
-        dispatch({ type: 'LOAD_DOCUMENT', payload: { elements: presetElements, actionHistory: preset.actionHistory } });
+        dispatch({
+          type: 'LOAD_DOCUMENT',
+          payload: {
+            elements: presetElements,
+            actionHistory: preset.actionHistory,
+            // Absent for a fresh pick or a pre-SIGN-32 draft - the reducer
+            // treats that the same as an explicit null, resetting to no
+            // carried value so a new document never inherits another
+            // document's font or size.
+            carriedFont: preset.carriedFont,
+            carriedFontSize: preset.carriedFontSize,
+          },
+        });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
         dispatch({ type: 'SET_TOOL', payload: null });
         seedUniqueId(presetElements);
@@ -621,8 +624,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     logAction,
     setAnnouncement,
     initialColor: lastColor,
-    initialFont: lastFont,
-    initialFontSize: lastFontSize,
+    carriedFont,
+    carriedFontSize,
     messages: t,
   });
 
@@ -633,6 +636,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     fileBytes: fileBytesRef.current,
     elements,
     actionHistory,
+    carriedFont,
+    carriedFontSize,
     status,
     isDirty: documentRevision !== (draftBaselineRevision ?? documentRevision),
     loadStartedRef,
@@ -1025,7 +1030,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       {hasFiles && status !== 'loading' && (
         <SignDefaultsContext.Provider
           value={{
-            lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
+            lastColor, lastWhiteoutColor, lastDirection, lastThickness, lastSymbolWidth, lastSymbolMark, lastSignatureWidth, lastDateFormat,
             rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
           }}
         >

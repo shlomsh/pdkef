@@ -22,6 +22,7 @@ import {
   cellRegionAt,
   checkboxRegionAt,
   combRegionAt,
+  fieldFontSize,
   placeTextOnField,
   type FieldRegion,
   type TypableField,
@@ -58,6 +59,8 @@ type WorkspaceGestureAction =
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
   | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
   | { type: 'DISARM_TOOL' }
+  | { type: 'SET_CARRIED_FONT'; payload: string }
+  | { type: 'SET_CARRIED_FONT_SIZE'; payload: number }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -90,8 +93,13 @@ export interface WorkspaceGestureOptions {
   initialColor?: string;
   initialWhiteoutColor?: string;
   initialStrokeWidth?: number;
-  initialFont?: string;
-  initialFontSize?: number;
+  /** The document's carried font family and size (SIGN-32), or `null` when
+   * the document has none yet - see combPlacement.ts's `fieldFontSize` for
+   * how a `null` carriedFontSize gets seeded from the field this hook places
+   * on, and SignToolContext.tsx's `SET_CARRIED_FONT`/`SET_CARRIED_FONT_SIZE`
+   * for where that seeding, and an explicit A-/A+/font-pick change, lands. */
+  carriedFont?: string | null;
+  carriedFontSize?: number | null;
   initialDirection?: TextDirection | null;
   /** Remembered `dateFormat.ts` `DateFormatId`; the 'date' tool only. */
   initialDateFormat?: string;
@@ -164,8 +172,8 @@ export default function useWorkspaceGestures({
   initialColor = DEFAULT_COLOR_BLUE,
   initialWhiteoutColor = '#ffffff',
   initialStrokeWidth = DEFAULT_STROKE_WIDTH,
-  initialFont = DEFAULT_FONT_FAMILY,
-  initialFontSize = DEFAULT_FONT_SIZE_PT,
+  carriedFont = null,
+  carriedFontSize = null,
   initialDirection = null,
   initialDateFormat = 'locale',
   initialSymbolWidth = DEFAULT_SYMBOL_WIDTH_PCT,
@@ -214,30 +222,12 @@ export default function useWorkspaceGestures({
     const container = e.currentTarget;
     const pageGeometry = pageSizes[pageIndex];
     const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageGeometry);
-
-    const id = createElementId();
-    const symbolWidth = initialSymbolWidth;
     // A text box's on-screen height is its font size (points) scaled by the same
     // factor the page itself is rendered at, so as a share of the page it is just
     // em-height / page height in points — no DOM measurement needed.
     const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
-    const textHeight = (initialFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
-    if (!definition.creation.create) return;
-    const newEl = definition.creation.create({
-      id,
-      pageIndex,
-      point: { left: leftPercent, top: topPercent },
-      color: initialColor,
-      whiteoutColor: initialWhiteoutColor,
-      strokeWidth: initialStrokeWidth,
-      font: initialFont,
-      fontSize: initialFontSize,
-      direction: initialDirection,
-      symbolWidth,
-      symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
-      symbolMark: initialSymbolMark,
-      textHeight,
-    });
+    const pageWidthPoints = pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS;
+
     // A text box placed on a printed grid takes that grid's span and cell
     // count, so the person types once instead of dragging a side handle until
     // the digits happen to line up (MOBI-04). It stays an ordinary text
@@ -245,7 +235,9 @@ export default function useWorkspaceGestures({
     // gains no second source of truth - so undo, draft persistence and the
     // export registry all carry on unchanged. 'date' places an ordinary text
     // element too (see the definition lookup above), so it gets the same
-    // snap as 'text' throughout this block.
+    // snap as 'text' throughout this block. Computed before the element
+    // itself so the field it lands on (if any) can settle this placement's
+    // font size once, not patch it in a second time below.
     const point = { x: leftPercent, y: topPercent };
     const snapsToFields = selectedTool === 'text' || selectedTool === 'date';
     const combRegion = snapsToFields
@@ -262,6 +254,39 @@ export default function useWorkspaceGestures({
     const field: TypableField | null = combRegion
       ? { kind: 'comb', region: combRegion }
       : cellRegion ? { kind: 'cell', region: cellRegion } : null;
+
+    // The size and family this element takes - the document's carried
+    // values, or (SIGN-32) seeded from this field's own height, or
+    // DEFAULT_FONT_SIZE_PT for free text, when the document has none yet.
+    // combPlacement.ts's fieldFontSize is the one function every placement
+    // path (comb, cell, date on either, free text) reads for this. Only
+    // 'text'/'date' ever place a font-bearing element, so every other tool
+    // keeps the plain carried-or-default fallback with nothing to seed.
+    const resolvedFont = carriedFont ?? DEFAULT_FONT_FAMILY;
+    const fieldPlacement = snapsToFields && field
+      ? placeTextOnField(field, { carriedFontSize, fontFamily: resolvedFont, pageWidthPoints, pageHeightPoints })
+      : null;
+    const resolvedFontSize = fieldPlacement ? fieldPlacement.fontSize : fieldFontSize(carriedFontSize, {});
+
+    const id = createElementId();
+    const symbolWidth = initialSymbolWidth;
+    const textHeight = (resolvedFontSize * TEXT_BOX_LINE_HEIGHT_EM / pageHeightPoints) * 100;
+    if (!definition.creation.create) return;
+    const newEl = definition.creation.create({
+      id,
+      pageIndex,
+      point: { left: leftPercent, top: topPercent },
+      color: initialColor,
+      whiteoutColor: initialWhiteoutColor,
+      strokeWidth: initialStrokeWidth,
+      font: resolvedFont,
+      fontSize: resolvedFontSize,
+      direction: initialDirection,
+      symbolWidth,
+      symbolHeight: getWidthPercentToHeightPercent(symbolWidth, ASPECT_RATIO_SYMBOL, container),
+      symbolMark: initialSymbolMark,
+      textHeight,
+    });
     // A date on an 8-cell comb starts digits-only so the printed dividers do
     // the separating; this does not touch the remembered format.
     if (selectedTool === 'date' && newEl.type === 'text') {
@@ -320,23 +345,27 @@ export default function useWorkspaceGestures({
     e.stopPropagation();
     // A comb takes the run's span and cell count; a free-text cell gives the
     // box the cell's span as `minWidth`, never `width`, with its font size
-    // cellFontSize's answer rather than whatever was last used - see
-    // placeTextOnCell's own docstring for why. placeTextOnField is the one
-    // owner of both, shared with the Next/Previous field move
-    // (useFieldNavigation) - neither kind needs `direction` any more, since
-    // neither has an anchored edge left to flip (see its own docstring).
-    const snapped = field
-      ? placeTextOnField(field, {
-        fontSize: initialFontSize,
-        fontFamily: initialFont,
-        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
-        pageHeightPoints,
-      })
-      : (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
-        pageWidthPoints: pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS,
+    // fieldFontSize's answer (already resolved above, as `fieldPlacement`)
+    // rather than whatever was last used - see placeTextOnCell's own
+    // docstring for why. placeTextOnField is the one owner of both, shared
+    // with the Next/Previous field move (useFieldNavigation) - neither kind
+    // needs `direction` any more, since neither has an anchored edge left to
+    // flip (see its own docstring).
+    const snapped = fieldPlacement
+      ?? (checkboxRegion && placeSymbolOnRegion(checkboxRegion, initialSymbolMark, {
+        pageWidthPoints,
         pageHeightPoints,
       }));
     const placed = snapped ? { ...newEl, ...snapped } : newEl;
+
+    // The carried font/size is only ever seeded by an actual placement, never
+    // by a click this function is about to no-op or redirect (the two early
+    // returns above) - so this is deliberately the first point past both of
+    // them, right beside the element that is about to carry the seeded value.
+    if (snapsToFields) {
+      if (carriedFont === null) dispatch({ type: 'SET_CARRIED_FONT', payload: resolvedFont });
+      if (carriedFontSize === null) dispatch({ type: 'SET_CARRIED_FONT_SIZE', payload: resolvedFontSize });
+    }
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
@@ -390,10 +419,15 @@ export default function useWorkspaceGestures({
     const { x: clientX, y: clientY } = getPointerCoords(e);
 
     const id = createElementId();
+    // None of the drag-drawn tools (whiteout, line, ellipse, rectangle) ever
+    // render text - `font`/`fontSize` are here only because the creation
+    // signature is shared with the point-placement tools, so this passes the
+    // carried values through unseeded rather than reading fieldFontSize for
+    // an element type that can never use its answer.
     const newEl = definition.creation.create({
       id, pageIndex, point: { left: startLeftPercent, top: startTopPercent }, color: initialColor,
-      whiteoutColor: initialWhiteoutColor, strokeWidth: initialStrokeWidth, font: initialFont,
-      fontSize: initialFontSize, direction: initialDirection,
+      whiteoutColor: initialWhiteoutColor, strokeWidth: initialStrokeWidth, font: carriedFont ?? DEFAULT_FONT_FAMILY,
+      fontSize: carriedFontSize ?? DEFAULT_FONT_SIZE_PT, direction: initialDirection,
     });
     const isLineTool = newEl.type === 'line';
 
