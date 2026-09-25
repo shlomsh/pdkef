@@ -12,16 +12,15 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import useFieldNavigation from './useFieldNavigation.ts';
-import type { CombRegion } from '../../editor/text/combPlacement.ts';
+import type { CombRegion, FieldRegion } from '../../editor/text/combPlacement.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
-import type { DetectedCell } from './fields/fieldTypes.ts';
 
 const comb = (pageIndex: number, left: number, top: number, width = 15, cells = 9): CombRegion => (
   { pageIndex, left, top, width, height: 0.84, cells }
 );
-const cell = (pageIndex: number, left: number, top: number, width = 20): DetectedCell => (
-  { pageIndex, left, top, width, height: 1.6, kind: 'text' }
+const cell = (pageIndex: number, left: number, top: number, width = 20): FieldRegion => (
+  { pageIndex, left, top, width, height: 1.6 }
 );
 
 const rowRight = comb(0, 70, 20); // rightmost - first on an RTL page

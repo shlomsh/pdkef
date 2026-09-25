@@ -263,15 +263,8 @@ export default function useWorkspaceGestures({
     // the more specific match and formCells.js already skips any cell that
     // overlaps one, so this is a defensive ordering rather than a real
     // ambiguity today.
-    //
-    // A signature cell (a closed box captioned "signature", or SNG-10's open
-    // signature line) is excluded here, not upstream in `formRegions.cells`
-    // (`useFormFieldRegions.ts`'s own doc on that field says why): signature
-    // placement is a different creation mode, a saved-signature dialog, not
-    // a point tap, so a signature region is never a typable target for the
-    // text/date tool - the count and the hint overlay still know it exists.
     const cellRegion = snapsToFields && !combRegion
-      ? cellRegionAt(formRegions.cells.filter((cell) => cell.kind !== 'signature'), point, pageIndex)
+      ? cellRegionAt(formRegions.cells, point, pageIndex)
       : null;
     const field: TypableField | null = combRegion
       ? { kind: 'comb', region: combRegion }
