@@ -1,6 +1,6 @@
 ---
 id: "SIGN-32"
-title: "One font size per document: it carries from field to field, and each field only shrinks it to fit"
+title: "One font and font size per document: they carry from field to field, and each field only shrinks the size to fit"
 status: "in_progress"
 priority: "P1"
 epic: "sign-tool-architecture"
@@ -8,7 +8,7 @@ phase: "near-term"
 depends_on: []
 ---
 
-# SIGN-32 · One font size per document: it carries from field to field, and each field only shrinks it to fit
+# SIGN-32 · One font and font size per document: they carry from field to field, and each field only shrinks the size to fit
 
 *Filed 2026-09-25* from Shlomi's report on the practice form (SNG-10): the ID number comb's digits came out
 about half the size of the Full name text above them.
@@ -29,11 +29,17 @@ and this one.
 ## The rule (Shlomi, 2026-09-25)
 
 "If the previous field chose the font size, it should have been saved to serve the next fields in line."
+And: "within the same form it is common to use the same font and font size, this is the reason for saving
+it persistent. if you calculated it for the first field and the user didnt correct it, then this is the
+font, and font size to use."
 
-- A document has one **carried font size**. It belongs to the document (its draft), not to the browser.
+- A document has one **carried font and font size**. They belong to the document (its draft), not to the
+  browser. The font follows the same rule as the size: whatever the first field used, or what the person
+  picked since, is what the next field gets.
 - When a document has none yet, the first field it is needed for sets it from that field's own height.
   Free text on a document with none uses the default.
-- A- or A+ on an element changes the carried size for everything placed after it.
+- A- or A+, or a font pick, on an element changes the carried size or font for everything placed after it.
+  A size the first field computed and the person did not correct is the carried size.
 - Each field **fits** the carried size: it shrinks the size only where the text would not fit the
   printed cell. The shrink applies to that element only and never changes the carried size.
 - Combs, text cells, dates and free text all read **one function**. `cellFontSize`'s grow-to-fill special

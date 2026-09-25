@@ -14,7 +14,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font size per document: it carries from field to field, and each field only shrinks it to fit |
+| SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font and font size per document: they carry from field to field, and each field only shrinks the size to fit |
 
 ### Blocked
 
