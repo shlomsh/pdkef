@@ -49,6 +49,15 @@
   transform: translateX(calc(var(--hero-dir) * var(--story-slide, 0%)));
   will-change: transform;
 }
+/* The second story starts slid off and invisible, equal to
+   computeTrackVisibility('blur', 0), so first paint (and no-JS) already
+   matches what ScrollDriver writes at scroll position 0. Pinned by
+   heroDemoStageDefaults.test.js. */
+.track[data-hero-track='blur'] {
+  --story-slide: 100%;
+  --caption-opacity: 0;
+  --story-opacity: 0;
+}
 .stage {
   display: grid;
   grid-template-columns: minmax(150px, 250px) auto;
@@ -884,7 +893,7 @@
  * `will-change: filter/transform`) creates a new containing block for every
  * descendant, which silently kills `position: sticky` on anything beneath
  * it - with no console warning anywhere. The sticky stage that this entire
- * demo depends on lives far above this subtree (.stage / .stage-first), so
+ * demo depends on lives far above this subtree (.stage), so
  * nothing in the share sheet may ever reach for filter or transform on a
  * wrapper. .share-sheet below uses `transform: translateY(...)` for the
  * slide - that is safe *only* because .share-sheet itself has no sticky

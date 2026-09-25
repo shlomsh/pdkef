@@ -28,12 +28,17 @@
  * imports it, so the second suite below pins it: delete it, rename it, or let
  * it fall out of step with the beat map and a test fails rather than a silent
  * degradation shipping.
+ *
+ * DEMO-09: the middle suite below guards the same class of bug one level up
+ * - the `--story-slide`/`--caption-opacity`/`--story-opacity` trio
+ * ScrollDriver.tsx writes onto each `[data-hero-track]` element (which story
+ * is on screen at all, not which beat within it).
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { TRACKS, localProgressForTrack, computeStageBeats } from './ScrollDriver.tsx';
+import { TRACKS, localProgressForTrack, computeStageBeats, computeTrackVisibility } from './ScrollDriver.tsx';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -56,6 +61,26 @@ function parseStageDefaults() {
   const body = stageMatch[1];
   const defaults = {};
   for (const match of body.matchAll(/--p-([\w-]+):\s*([\d.]+);/g)) {
+    defaults[match[1]] = Number(match[2]);
+  }
+  return defaults;
+}
+
+// Parses the `.track[data-hero-track='<trackKey>']` rule (if any) out of the
+// real CSS file, the counterpart to parseStageDefaults() above but for the
+// track-level --story-slide/--caption-opacity/--story-opacity trio rather
+// than .stage's per-beat --p-* properties. Percent values (--story-slide)
+// keep their bare number; the trailing `%` is stripped by the regex, not
+// carried into the parsed value, since computeTrackVisibility()'s own
+// storySlide is likewise unsigned and unitless.
+function parseTrackDefaults(trackKey) {
+  const css = readFileSync(join(__dirname, 'HeroDemo.module.css'), 'utf8');
+  const trackMatch = css.match(
+    new RegExp(`\\.track\\[data-hero-track=['"]${trackKey}['"]\\]\\s*\\{([\\s\\S]*?)\\n\\}`),
+  );
+  if (!trackMatch) return null;
+  const defaults = {};
+  for (const match of trackMatch[1].matchAll(/--([\w-]+):\s*(-?[\d.]+)%?;/g)) {
     defaults[match[1]] = Number(match[2]);
   }
   return defaults;
@@ -87,6 +112,42 @@ describe('HeroDemo stage defaults match ScrollDriver at scroll position 0', () =
       // silently absent from stageVars.
       expect(stageVars).toHaveProperty('track', localProgress);
     }
+  });
+});
+
+describe('HeroDemo track defaults match ScrollDriver at scroll position 0 (DEMO-09)', () => {
+  // The bug this guards: [data-hero-track="blur"] had no default of its own
+  // for --story-slide/--caption-opacity/--story-opacity, so it fell back to
+  // .track's shared var() fallbacks, which only match the sign track's
+  // progress-0 values, not the blur track's.
+  it('the sign track needs no override: its progress-0 values already equal the shared var() fallbacks', () => {
+    const { storySlide, storyVisible } = computeTrackVisibility('sign', 0);
+    // -100 * 0 is JS's -0, not +0; toBe's Object.is would fail a literal `0`
+    // even though "-0%" and "0%" are the same CSS value, so this compares
+    // numerically instead.
+    expect(storySlide).toBeCloseTo(0); // matches --story-slide's `0%` fallback in .track
+    expect(storyVisible).toBe(1); // matches --caption-opacity/--story-opacity's `1` fallback
+  });
+
+  it('the blur track declares an explicit default rule', () => {
+    expect(parseTrackDefaults('blur'), '.track[data-hero-track=\'blur\'] rule not found in HeroDemo.module.css').not.toBeNull();
+  });
+
+  it('the blur track default rule equals computeTrackVisibility(\'blur\', 0)', () => {
+    const defaults = parseTrackDefaults('blur');
+    const { storySlide, storyVisible } = computeTrackVisibility('blur', 0);
+    expect(
+      defaults['story-slide'],
+      `--story-slide: CSS default is ${defaults['story-slide']}, but ScrollDriver writes ${storySlide} at scroll position 0.`,
+    ).toBe(storySlide);
+    expect(
+      defaults['caption-opacity'],
+      `--caption-opacity: CSS default is ${defaults['caption-opacity']}, but ScrollDriver writes ${storyVisible} at scroll position 0.`,
+    ).toBe(storyVisible);
+    expect(
+      defaults['story-opacity'],
+      `--story-opacity: CSS default is ${defaults['story-opacity']}, but ScrollDriver writes ${storyVisible} at scroll position 0.`,
+    ).toBe(storyVisible);
   });
 });
 
