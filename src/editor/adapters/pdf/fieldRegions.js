@@ -1,12 +1,40 @@
 /**
- * Reconciles one page's detected fields: the comb/checkbox detector
- * (`formGrid.js`) and the closed-cell detector (`formCells.js`) each see the
- * whole page, so a printed cell that holds a comb or a checkbox is found
- * twice. The comb detector's answer wins, but a cell drawn around an open
- * comb still knows something the teeth do not: how tall the field is. Form
- * 101's identity number is 4-7pt ticks on the rule of a 23pt cell, the same
- * height as the name cells beside it, and text placed on the ticks alone
- * stood 5pt lower than its neighbours (live report).
+ * Reconciles what each detection source found into one set of fields, from
+ * declared data rather than hard-coded rules (ARCH-24 step B).
+ *
+ * Two facts about a page's own detected regions used to be code:
+ *
+ * 1. Between two regions of the same kind, whichever source is earlier in
+ *    `SOURCE_ORDER` wins - `ink` beats `widgets` today.
+ * 2. A comb beats a cell whichever source found it, and claims it. A cell is
+ *    the weakest thing either side reports (`formCells.js` caps its own
+ *    confidence below the comb detector's for exactly this reason), so a
+ *    widget that says "nine boxes, `/MaxLen` 9" against an ink pass that only
+ *    managed "some closed box here" is the better answer, and leaving both
+ *    would put a plain text box and a nine-cell comb on one rectangle. A
+ *    checkbox is never reclaimed this way - nothing in today's code ever
+ *    removes one, from either source - so `KIND_PRECEDENCE`'s last entry
+ *    (`cells`) is the only reclaimable kind; every other kind is "protected":
+ *    it blocks a later region the way a cell never can, and it is never
+ *    itself removed.
+ *
+ * `reconcile(sourceResults, { sourceOrder, kindPrecedence })` is the one
+ * function both facts are data for. `detectFormFields.ts` calls it once per
+ * page with that page's raw regions from every source, keyed by source name;
+ * a new source needs a name in `SOURCE_ORDER` and nothing else changes here.
+ *
+ * A third thing is not a precedence rule and stays fixed, pure geometry:
+ * `formCells.js`'s cell detector and `formGrid.js`'s comb detector each see
+ * the whole page, so a printed cell that holds a comb is found twice, and an
+ * *open* comb (teeth, no boxes) still knows something its own teeth do not -
+ * how tall the field is. Form 101's identity number is 4-7pt ticks on the
+ * rule of a 23pt cell, the same height as the name cells beside it, and text
+ * placed on the ticks alone stood 5pt lower than its neighbours (live
+ * report). `absorbWritable` gives an open, unboxed comb the bounds of the
+ * tightest cell drawn around it as `writable`, from that comb's own source
+ * only, before any cross-source reconciliation happens - a boxed comb (every
+ * widget comb, and a printed run of closed boxes) never needs this, since its
+ * own boxes are the field.
  */
 
 /** A cell is the same field as a comb/checkbox when they overlap this much. */
@@ -49,64 +77,27 @@ function claimExtent(region) {
   return region.enclosure ?? region;
 }
 
-/**
- * Folds a page's native `/Tx` widget regions (`detectWidgetRegions`) into what
- * the ink detectors reconciled, so that one field is one region however many
- * sources saw it.
- *
- * The two sources are not alternatives, because a form can be both at once.
- * Our own practice form paints nine guide boxes for its student-ID comb into
- * the page stream *and* lays a live comb widget over them, so that field
- * arrives twice and only one of the two may reach the editor - a second hint
- * on the same strip is a second tap target for one box. Everything the ink
- * walk did not find, though, is a field a live form is simply telling us
- * about, and that is the whole of what this adds.
- *
- * Two precedence rules, and they are the ones `reconcileFields` already
- * applies to the ink pass's own two detectors:
- *
- * 1. **Between equals, ink wins.** It is the source whose numbers the
- *    fixtures pin, and on a hybrid its box is the one actually printed.
- * 2. **A comb beats a cell, whichever source found it,** and claims it. A
- *    cell is the weakest thing either side reports - `formCells.js` caps its
- *    own confidence below the comb detector's for exactly this reason - so a
- *    widget that says "nine boxes, `/MaxLen` 9" against an ink pass that only
- *    managed "some closed box here" is the better answer, and leaving both
- *    would put a plain text box and a nine-cell comb on one rectangle.
- *
- * A widget comb is `boxed`, so it does not want the claimed cell's writing
- * strip the way an open comb does: its own boxes are the field.
- *
- * @param {{combs: Array, checkboxes: Array, cells: Array}} reconciled
- * @param {{combs: Array, cells: Array}} widgets
- * @returns {{combs: Array, cells: Array}}
- */
-export function withWidgetFields(reconciled, widgets) {
-  const { combs, checkboxes, cells } = reconciled;
-  const unclaimed = (region, found) => !found.some((other) => overlap(claimExtent(region), claimExtent(other)));
-  const allCombs = [...combs, ...widgets.combs.filter((comb) => unclaimed(comb, [...combs, ...checkboxes]))];
-  // Rule 2. Against the ink pass's own combs this is a no-op - `reconcileFields`
-  // has already dropped what they claimed - so it only ever removes a cell an
-  // added widget comb now covers.
-  const inkCells = cells.filter((cell) => unclaimed(cell, allCombs));
-  const taken = [...allCombs, ...checkboxes, ...inkCells];
-  return { combs: allCombs, cells: [...inkCells, ...widgets.cells.filter((cell) => unclaimed(cell, taken))] };
+/** Whether `region` overlaps none of `claimedBy`, by the printed-box rule above. */
+function unclaimed(region, claimedBy) {
+  return !claimedBy.some((other) => overlap(claimExtent(region), claimExtent(other)));
 }
 
 /**
- * @template {{left: number, top: number, width: number, height: number, boxed?: boolean, writable?: object}} Comb
- * @template {{left: number, top: number, width: number, height: number, enclosure?: object}} Cell
- * @param {{combs: Comb[], checkboxes: object[], cells: Cell[]}} detected
- * @returns {{combs: Comb[], cells: Cell[]}} the combs, each open one carrying
- *   its enclosing cell's blank strip as `writable`; the cells nothing else
- *   already claims.
+ * Gives every open, unclaimed-by-boxes comb in `combs` the bounds of the
+ * tightest cell in `cells` that encloses it, as `writable` - the one piece of
+ * `reconcileFields`'s old behaviour that is geometry, not precedence, and so
+ * stays fixed rather than becoming data. A boxed comb, or one that already
+ * carries `writable`, is returned unchanged. Never mutates its input.
+ *
+ * @param {Array} combs
+ * @param {Array} cells
+ * @returns {Array} `combs`, some with a new `writable` property
  */
-export function reconcileFields({ combs, checkboxes, cells }) {
-  const claimed = new Set();
-  const reconciledCombs = combs.map((comb) => {
+function absorbWritable(combs, cells) {
+  return combs.map((comb) => {
+    if (comb.boxed || comb.writable) return comb;
     const enclosing = cells.filter((cell) => overlap(claimExtent(cell), claimExtent(comb)));
-    enclosing.forEach((cell) => claimed.add(cell));
-    if (comb.boxed || comb.writable || enclosing.length === 0) return comb;
+    if (enclosing.length === 0) return comb;
     // The tightest cell around the run, compared as printed boxes: a section
     // frame can overlap it too.
     const area = (c) => claimExtent(c).width * claimExtent(c).height;
@@ -116,9 +107,77 @@ export function reconcileFields({ combs, checkboxes, cells }) {
     const { left, top, width, height } = cell;
     return { ...comb, writable: { left, top, width, height } };
   });
-  return {
-    combs: reconciledCombs,
-    cells: cells.filter((cell) => !claimed.has(cell)
-      && !checkboxes.some((box) => overlap(claimExtent(cell), claimExtent(box)))),
-  };
+}
+
+/** The two sources today, earlier wins a tie. A new source adds its name here. */
+export const SOURCE_ORDER = ['ink', 'widgets'];
+
+/**
+ * `combs` and `checkboxes` are "protected": once accepted they are never
+ * removed, and each blocks a later region of any protected kind. `cells`,
+ * last, is the only reclaimable kind - accepted only when nothing already
+ * accepted (of any kind) overlaps it, and dropped the moment a protected kind
+ * claims the same ground, whichever source found either one.
+ */
+export const KIND_PRECEDENCE = ['combs', 'checkboxes', 'cells'];
+
+/**
+ * Folds one source's regions into what earlier sources already contributed.
+ * Called with an empty `accepted`, it resolves one source's own regions
+ * against themselves - what `reconcileFields` used to do alone, for `ink`
+ * only, before this existed.
+ *
+ * @param {Record<string, Array>} accepted one entry per kind in `kindPrecedence`
+ * @param {Record<string, Array>} source one source's regions, same shape
+ * @param {string[]} kindPrecedence
+ * @returns {Record<string, Array>}
+ */
+function fold(accepted, source, kindPrecedence) {
+  const next = { ...accepted };
+  const protectedKinds = kindPrecedence.slice(0, -1);
+  const reclaimableKind = kindPrecedence[kindPrecedence.length - 1];
+
+  for (const kind of kindPrecedence) {
+    const candidates = source[kind] ?? [];
+    if (kind === reclaimableKind) {
+      const blockedBy = kindPrecedence.flatMap((k) => next[k] ?? []);
+      next[kind] = [...(next[kind] ?? []), ...candidates.filter((region) => unclaimed(region, blockedBy))];
+    } else {
+      const blockedBy = protectedKinds.flatMap((k) => next[k] ?? []);
+      const acceptedHere = candidates.filter((region) => unclaimed(region, blockedBy));
+      next[kind] = [...(next[kind] ?? []), ...acceptedHere];
+      // A newly accepted protected-kind region reclaims any already-accepted
+      // reclaimable-kind region it now overlaps - this is Rule 2 above,
+      // whichever source (this fold or an earlier one) found the cell.
+      if (acceptedHere.length > 0 && next[reclaimableKind]) {
+        next[reclaimableKind] = next[reclaimableKind].filter((region) => unclaimed(region, acceptedHere));
+      }
+    }
+  }
+  return next;
+}
+
+/**
+ * Reconciles every source's regions for one page into one set of fields.
+ *
+ * `sourceResults` is one entry per source name (`detectFormFields.ts`'s
+ * `FieldSource.name`), each `{ combs, checkboxes, cells }`. Sources are
+ * folded in `sourceOrder`, each source's own combs first absorbing a
+ * `writable` strip from its own cells (see the module doc), then merged into
+ * what earlier sources contributed by `kindPrecedence` (Rules 1 and 2 above).
+ * A name in `sourceOrder` with no entry in `sourceResults` is skipped.
+ *
+ * @param {Record<string, {combs: Array, checkboxes: Array, cells: Array}>} sourceResults
+ * @param {{sourceOrder?: string[], kindPrecedence?: string[]}} [options]
+ * @returns {{combs: Array, checkboxes: Array, cells: Array}}
+ */
+export function reconcile(sourceResults, { sourceOrder = SOURCE_ORDER, kindPrecedence = KIND_PRECEDENCE } = {}) {
+  let accepted = Object.fromEntries(kindPrecedence.map((kind) => [kind, []]));
+  for (const name of sourceOrder) {
+    const source = sourceResults[name];
+    if (!source) continue;
+    const withWritable = { ...source, combs: absorbWritable(source.combs ?? [], source.cells ?? []) };
+    accepted = fold(accepted, withWritable, kindPrecedence);
+  }
+  return accepted;
 }
