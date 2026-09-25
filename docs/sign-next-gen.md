@@ -254,5 +254,12 @@ When the new surface ships, the floating-toolbar rules in `.claude/rules/editor.
   - Fallback: the always-mounted input remains the editor.
 - **(d)** pdf.js memory at 3x zoom and DPR 3.
   - Fallback: render only visible pages, and tile at high zoom.
+- **(e)** With `touch-action` on the surface, do caret placement, selection handles and the loupe still work inside the focused input?
+  - Fallback: the focused input and its editing box keep `touch-action: manipulation`, and a pinch that starts on them is ignored.
+- **(f)** Is Return reliably interceptable in a walked field on the iOS and Android keyboards, including during IME composition?
+  - Fallback: walked fields are single-line `<input>`s, advance happens on `change`, and the ∨ button is the guaranteed path.
+- **(g)** Which event model does the router use on iOS?
+  - Candidates: Pointer Events (and whether a two-finger gesture under `pan-x pan-y` yields `pointercancel`), or Touch Events with `preventDefault`.
+  - Fallback: Touch Events for touch, Pointer Events for mouse and pen.
 
 **Superseded MOBI tickets.** These are retired into this plan, because each is a symptom of a cause above: MOBI-20, 23, 25, 26 and 32. MOBI-33 and MOBI-34 (the field-map review, and navigation reading the reviewed map) stay open and feed principle 6.

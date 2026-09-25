@@ -16,7 +16,12 @@ Build a throwaway page, not product code. The questions and their fallbacks are 
 - (c) a newly created field gets the keyboard;
 - (d) pdf.js memory at 3x zoom.
 
-Add any question the chosen sketch raises.
+Add any question the chosen sketch raises. The 2026-09-25 guidelines review added three more, all in the record:
+- (e) text selection under `touch-action`;
+- (f) Return interception;
+- (g) the router's event model on iOS.
+
+Also measure the bar's budget per context at 320, 375 and 430px (guidelines §2.6).
 
 ## Acceptance
 

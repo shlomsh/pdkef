@@ -27,7 +27,9 @@ Rules:
 - **Tap to write is the primary path on every document.**
   - On a scan, the tapped box snaps to the printed line or box under the finger, found locally (SNG-09).
   - The snap declines rather than guesses. When nothing credible is found, the box lands exactly at the tap.
-- **A field detection missed becomes a field** the moment a box is placed on it, and it joins the walk in reading order (`fieldPosition`'s reading-order fallback, `fieldOrder.ts:236-246`).
+- **A field detection missed becomes a field** the moment a box is placed on it, and it must join the walk in reading order.
+  - This is new work (SNG-04/05), not existing behaviour. Today the walk is built only from detected regions (`useFieldNavigation.ts:326-330`).
+  - `fieldPosition` (`fieldOrder.ts:236-246`) only navigates *from* an off-field box, never *through* it.
 - **A false detection can be dismissed** from the walk and from review (proposed).
 - **Copy never claims completeness.**
   - Review ends with "All the fields we found are filled. Check each page for anything we missed."
@@ -67,7 +69,7 @@ Rules:
 | One-finger drag, blank page or an **unselected** element | Native scroll. The element ignores the touch (owner, 2026-09-25). |
 | One-finger drag, the selected element | Move, after the slop (§2.5), clamped to the page, RTL-aware. |
 | One-finger drag, a handle | Resize. |
-| A second finger, at any moment | Cancels any pending or live one-finger claim, and restores the DOM. It is checked on `touchstart`, `touchmove` **and** `touchend` (regression 2, sign-next-gen.md §1). The two fingers then pinch. |
+| A second contact, at any phase | Cancels any pending or live one-finger claim, restores the DOM, and the two contacts pinch (decided, P3). The contact is checked at start, move **and** release (regression 2, sign-next-gen.md §1): under Pointer Events, a second `pointerdown` while one pointer is active; under Touch Events, `touches.length > 1`. Which event model the router uses on iOS is spike question (g), so this rule is written for both. The grace window before a first contact may move anything is §2.5's, and it is proposed. |
 | Two-finger pinch or pan | App-owned zoom around the midpoint (§4). |
 | Double-tap, page | Unbound (open #1). |
 | Double-tap, a tool | Locks it (`toolArming.js`, SIGN-30/31). |
@@ -87,7 +89,7 @@ Rules:
 | Input | Outcome |
 |---|---|
 | Tab / Shift+Tab | Walk Next/Previous while a field or element is selected (`PdfSignTool.tsx` keydown). Otherwise native tab order. |
-| Return, in a walked field | Commit and go to the next field (`enterkeyhint="next"`, `"done"` on the last). |
+| Return, in a walked field | Commit and go to the next field. `enterkeyhint="next"` (`"done"` on the last) only relabels the key. The interception is separate (proposed, spike (f)): walked single-line fields are an `<input>`; Return is a `keydown` Enter that is not `isComposing`; and a `beforeinput` guard catches `insertLineBreak`/`insertParagraph`. |
 | Return, in a free-placed text box | New line. |
 | Escape | One level per press: editing, then selected, then idle; armed, then idle. |
 | Delete / Backspace | Deletes the selected element unless focus is in a text input. |
@@ -109,6 +111,15 @@ All are in screen px and ms. None scale with zoom.
 | Handle hit area | 44px, shrinking toward a 24px floor so it never overlaps a neighbouring handle (proposed) | Regression 2: four 44px squares on a 4px checkbox form one pad |
 
 The machine owns these. No listener defines its own threshold.
+
+### 2.6 The bar has a measured budget
+
+One contextual bar holds the tools, the walk (∧ ∨ with a count), Review, zoom, Undo/Redo and Download. That is more than today's twelve-control toolbar, which `editor.md` ("Main toolbar layout") shows is already at the edge of a 375px screen.
+
+The rules:
+- Each context shows at most what fits one row of 44px targets at 375px. Undo, and the walk while filling, are always in it.
+- Everything else goes to a "More" sheet.
+- The content of each context is decided with the chosen direction (SNG-02), and measured at 320, 375 and 430px in SNG-03 before any build (open #13).
 
 ## 3. The field walk
 
@@ -144,7 +155,7 @@ The machine owns these. No listener defines its own threshold.
 
 **Zoom** is app-owned (P1):
 - The range runs from the whole page, through fit width (the resting zoom), to a max that the iOS canvas cap allows (SNG-03 (d); 3x is the working ceiling).
-- **Pinch:** a CSS transform during the gesture with the midpoint fixed under the fingers. On release, one re-layout and one pdf.js re-render at the settled scale, with the focal point unmoved. Never re-centre (UX§16).
+- **Pinch:** a CSS transform during the gesture with the midpoint fixed under the fingers. On release, one re-layout and one pdf.js re-render at the settled scale, with the focal point unmoved. Never re-centre: a view that moves on its own loses the person (MOBI-22, MOBI-25).
 - **Zoom buttons** (−, %, +, Fit) are the single-pointer path (WCAG 2.5.1). They live in the bar, beside the walk and Review.
 
 **Who moves the camera.** The app moves or zooms the view only on:
@@ -161,6 +172,9 @@ A plain tap on a field opens it where it is, at the zoom the person chose. The p
 
 **The iOS order of operations is fixed** (sign-next-gen.md §3):
 1. Select or create the field, and focus an input that already exists, synchronously inside the tap.
+   - The constraint is settled: iOS raises the keyboard only this way (MOBI-24).
+   - **The mechanism for a newly created field is open** (spike (c)): an always-mounted input focused in the tap, then either kept as the editor, or handed to the box's own textarea while the keyboard stays up.
+   - The fallback, if the handoff fails, is that the always-mounted input remains the editor. That is direction A's composer.
 2. Only then reveal, on the next frame.
 3. One pending reveal at a time: a later move cancels an earlier one (`useFieldNavigation.ts:141-147`).
 4. A keyboard that is still opening re-runs the reveal once, on the `visualViewport` resize (`revealFieldAfterKeyboard`, `useFieldNavigation.ts:287-308`).
@@ -269,11 +283,11 @@ Builds on UX§9.
 ## 11. Review checklist and definition of done
 
 **Every SNG change that touches touch, zoom, focus or the keyboard answers:**
-1. Is focus moved synchronously in the gesture handler, on an input that already exists?
+1. Is focus moved synchronously in the gesture handler, on an input that already exists? (For a newly created field, the mechanism is spike (c).)
 2. Is every text input's computed font size at least 16px?
-3. Is `touch-action` set on the surface and every descendant?
+3. Is `touch-action` set on the surface and every descendant, without breaking caret placement, selection or the loupe inside the focused input (spike (e))?
 4. Is nothing read from `visualViewport.offsetTop`?
-5. Are second fingers handled on `touchstart` and `touchend`, not only on move?
+5. Is a second contact handled at start, move and release, in the router's event model?
 6. Is there no new floating element chrome, and does no Floating UI middleware close over render values?
 7. Is any fixed bar verified with the keyboard up?
 8. Has it run on the iOS Simulator gate?
@@ -311,6 +325,21 @@ Builds on UX§9.
 | 10 | Handle hit areas | 44px, shrinking toward a 24px floor, never overlapping |
 | 11 | When the app may move the camera | Only on a walk step, a jump from Review, and entering or leaving Review |
 | 12 | Dismissing a false detection | Yes, from the walk and from review |
+| 13 | What each bar context holds at 375px (§2.6) | Decide with the direction, and measure in SNG-03 |
+| 14 | Saving the walk position in the draft | Yes, re-selected but not focused after a reload |
+| 15 | `interactive-widget=resizes-content` on the editor page | Yes. Android honours it and iOS ignores it (WebKit bug 259770) |
+
+## 13. Cases the rules must also cover
+
+| Case | Rule |
+|---|---|
+| **Android Chrome** | The same model and rules. Its `visualViewport` follows the spec, and it supports `interactive-widget=resizes-content`, which keeps a fixed bar above the keyboard by resizing the layout viewport (proposed for the editor page, open #15). The gate gets an Android emulator smoke run beside the iOS one (SNG-07). |
+| **Landscape** | Supported. With the keyboard up, the bars compact to one row, the walked field still lands in the visible band, and nothing is forced to rotate. |
+| **iPad Split View and Slide Over** | Layout follows width and input follows the pointer. Both change live, so state, selection and an open text session survive a resize. |
+| **An external keyboard** (iPad, or a phone with one) | There is no soft keyboard, so `visualViewport` does not shrink. Tab and Shift+Tab walk the fields, and every §2.4 shortcut works. |
+| **Drafts and reload mid-walk** | Elements persist as today. The walk position is saved in the draft (proposed, open #14). After a reload the field is re-selected but not focused: iOS allows no keyboard without a tap, so one tap resumes typing. |
+| **A pinch during a text session** | Allowed. Editing is a state, not a gesture, so the session and the keyboard stay open, zoom changes around the fingers, and the camera does not move afterwards (§4). |
+| **The signature sheet's typed name** | Its input follows every keyboard rule here: at least 16px, focused synchronously on the tap that opens "Type", and the sheet stays above the keyboard. |
 
 ## Sources
 
