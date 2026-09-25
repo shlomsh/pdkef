@@ -148,6 +148,15 @@ jobs:
     - name: Verify gesture golden-rule (static)
       run: npm run test:gesture-golden-rule
 
+    # FORM-22: field detection (src/editor/adapters/pdf/'s ink/widget/cell
+    # detectors, plus the scored corpus's scoring loader) stays plain data in,
+    # plain data out - no pdf-lib/pdf.js/DOM/time/random touch outside a named
+    # boundary shim, no module-level mutable state. Source-side, so it needs
+    # no build; see scripts/check-detection-purity.mjs's own header for why it
+    # parses with the TypeScript compiler API rather than scanning raw text.
+    - name: Verify field detection stays pure
+      run: npm run test:detection-purity
+
     # Source-side, so it needs no build. It also runs again inside test:css in
     # the build job, for anyone running that locally.
     - name: Verify every class string resolves to CSS
