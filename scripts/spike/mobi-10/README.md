@@ -21,7 +21,7 @@ Writes, into `<dir>`:
   page 1 (confirmed: `annots.length === 0` for both), so this array is empty for both — a valid,
   reported result, not a bug.
 - `candidates.pdfjs-layout.json` — the existing comb/checkbox detector,
-  `detectPageRegions(page, pageIndex)` from `src/editor/adapters/pdf/formGrid.js`, fed a `@cantoo/pdf-lib`
+  `detectPageRegions(page, pageIndex)` from `src/tools/sign/fields/formGrid.js`, fed a `@cantoo/pdf-lib`
   page (same loading pattern as `scripts/generate-form-grid-fixtures.mjs`). One candidate per comb run
   (with `cells`), one per checkbox. `confidence` is `0.8`, `source` is `pdfjs-layout`.
 - `text-items.json` — every `pdf.js` text run on the page (`page.getTextContent()`), with `str`, `dir`

@@ -508,13 +508,13 @@ export const DOCUMENT_CASES = [
   },
   {
     name: 'income tax form 101, page 1 (flat)',
-    file: ['src', 'editor', 'adapters', 'pdf', '__fixtures__', 'income-tax-101-page1-geometry.pdf'],
+    file: ['src', 'tools', 'sign', 'fields', '__fixtures__', 'income-tax-101-page1-geometry.pdf'],
     why: 'a dense flat form - no widgets at all, so the widget pass must be a provable no-op',
     widgetFree: true,
   },
   {
     name: 'health declaration, page 1 (flat)',
-    file: ['src', 'editor', 'adapters', 'pdf', '__fixtures__', 'health-declaration-page1-geometry.pdf'],
+    file: ['src', 'tools', 'sign', 'fields', '__fixtures__', 'health-declaration-page1-geometry.pdf'],
     why: 'the other scored form, whose checkboxes are painted rects rather than paths',
     widgetFree: true,
   },

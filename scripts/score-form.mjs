@@ -3,7 +3,7 @@
  * Scores one form and prints the `baselines.json` row to paste.
  *
  * This is step 3 of "adding a scored form" in
- * `src/editor/adapters/pdf/corpus/README.md`, made executable, because the
+ * `src/tools/sign/fields/corpus/README.md`, made executable, because the
  * step people skip is reading the numbers before writing them down. It also
  * runs the two checks that are easy to forget and expensive to miss:
  *
@@ -38,10 +38,10 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { scoreForm, formatRow, SLACK } from '../src/editor/adapters/pdf/corpus/scoring/score.js';
+import { scoreForm, formatRow, SLACK } from '../src/tools/sign/fields/corpus/scoring/score.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const BASELINES = path.join(ROOT, 'src/editor/adapters/pdf/corpus/scoring/baselines.json');
+const BASELINES = path.join(ROOT, 'src/tools/sign/fields/corpus/scoring/baselines.json');
 
 function parseArgs(argv) {
   const args = { page: 0 };

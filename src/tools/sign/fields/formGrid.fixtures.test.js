@@ -5,8 +5,8 @@ import { PDFDocument } from '@cantoo/pdf-lib';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { detectPageRegions, findCombRuns } from './formGrid.js';
 import { collectPageInk } from './pageInk.js';
-import { getPageContentBytes } from './pdfObjects.js';
-import { tokenize } from './contentStream.js';
+import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+import { tokenize } from '../../../editor/adapters/pdf/contentStream.js';
 
 /**
  * The detector's own walk with the graphics state removed, so the CTM's

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPageGeometry } from '../../geometry/coords.ts';
+import { createPageGeometry } from '../../../editor/geometry/coords.ts';
 import { toPageTextRuns } from './textRuns.js';
 
 /**

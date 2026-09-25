@@ -26,7 +26,7 @@ import { formatRow, scoreForm, SLACK } from './score.js';
  */
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..', '..');
-const baselines = JSON.parse(fs.readFileSync(path.join(repoRoot, 'src/editor/adapters/pdf/corpus/scoring/baselines.json'), 'utf8'));
+const baselines = JSON.parse(fs.readFileSync(path.join(repoRoot, 'src/tools/sign/fields/corpus/scoring/baselines.json'), 'utf8'));
 const FORMS = Object.entries(baselines.forms).map(([name, spec]) => ({ name, ...spec }));
 
 /**

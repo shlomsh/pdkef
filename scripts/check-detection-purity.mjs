@@ -95,25 +95,25 @@ const ROOT = path.resolve(__dirname, '..');
 // constant collapses to that folder's contents plus DETECTION_ENTRY_POINT
 // below, a one-line change rather than a rewrite of this script.
 export const DETECTION_MODULES = [
-  'src/editor/adapters/pdf/pageInk.js',
-  'src/editor/adapters/pdf/formGrid.js',
-  'src/editor/adapters/pdf/formCells.js',
-  'src/editor/adapters/pdf/inkEdges.js',
-  'src/editor/adapters/pdf/formWidgets.js',
-  'src/editor/adapters/pdf/fieldRegions.js',
-  'src/editor/adapters/pdf/textRuns.js',
+  'src/tools/sign/fields/pageInk.js',
+  'src/tools/sign/fields/formGrid.js',
+  'src/tools/sign/fields/formCells.js',
+  'src/tools/sign/fields/inkEdges.js',
+  'src/tools/sign/fields/formWidgets.js',
+  'src/tools/sign/fields/fieldRegions.js',
+  'src/tools/sign/fields/textRuns.js',
   'src/editor/adapters/pdf/pdfObjects.js',
-  'src/editor/adapters/pdf/fieldTypes.ts',
-  'src/editor/adapters/pdf/corpus/scoring/score.js',
-  'src/editor/adapters/pdf/corpus/scoring/match.js',
-  'src/editor/adapters/pdf/corpus/scoring/candidates.js',
+  'src/tools/sign/fields/fieldTypes.ts',
+  'src/tools/sign/fields/corpus/scoring/score.js',
+  'src/tools/sign/fields/corpus/scoring/match.js',
+  'src/tools/sign/fields/corpus/scoring/candidates.js',
 ];
 
 // ARCH-24's one entry point (`detectFormFields(document, { textRuns, sources? })`).
 // Scanned only once it exists, so this guard covers it from the day it lands
 // with no second change, and never fails for a file ARCH-24 has not written
 // yet.
-export const DETECTION_ENTRY_POINT = 'src/editor/adapters/pdf/detectFormFields.ts';
+export const DETECTION_ENTRY_POINT = 'src/tools/sign/fields/detectFormFields.ts';
 
 // A shim is a whole file, not a named export within it: pdfObjects.js and
 // pageInk.js each mix a handful of page-reading functions with plain
@@ -128,7 +128,7 @@ export const DETECTION_ENTRY_POINT = 'src/editor/adapters/pdf/detectFormFields.t
 // actually use what it imports.
 export const BOUNDARY_SHIMS = new Map([
   [
-    'src/editor/adapters/pdf/pageInk.js',
+    'src/tools/sign/fields/pageInk.js',
     'collectPageInk/pageCropBox adapt one pdf-lib PDFPage into plain ink data (MOBI-03).',
   ],
   [
@@ -137,7 +137,7 @@ export const BOUNDARY_SHIMS = new Map([
       + 'annotation tree into plain values (FORM-14, MOBI-11).',
   ],
   [
-    'src/editor/adapters/pdf/corpus/scoring/score.js',
+    'src/tools/sign/fields/corpus/scoring/score.js',
     'the scoring loader: pageTextRuns opens a real PDF through pdf-lib and pdfjs-dist '
       + 'to score the shipped pipeline against reviewed ground truth (MOBI-13).',
   ],
@@ -152,7 +152,7 @@ export const BOUNDARY_SHIMS = new Map([
 // not only the ones that call pdf-lib/pdf.js APIs directly.
 export const FUNCTION_SHIMS = new Map([
   [
-    'src/editor/adapters/pdf/pageInk.js',
+    'src/tools/sign/fields/pageInk.js',
     new Map([
       ['pageCropBox', "reads a pdf-lib page's CropBox/MediaBox (PDFName lookups) into a plain rect."],
       ['collectPageInk', 'the file\'s other named shim; delegates the pdf-lib access entirely to '
@@ -191,7 +191,7 @@ export const FUNCTION_SHIMS = new Map([
     ]),
   ],
   [
-    'src/editor/adapters/pdf/corpus/scoring/score.js',
+    'src/tools/sign/fields/corpus/scoring/score.js',
     new Map([
       ['pageTextRuns', 'opens a real PDF through pdfjs-dist (dynamic import) and reads its text '
         + 'layer for scoring (MOBI-13).'],

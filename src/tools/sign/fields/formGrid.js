@@ -1,7 +1,7 @@
-import { createPageGeometry, toPagePercentBox } from '../../geometry/coords.ts';
+import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { collectPageInk, pageCropBox } from './pageInk.js';
-import { collectCheckboxGlyphs } from './pdfObjects.js';
+import { collectCheckboxGlyphs } from '../../../editor/adapters/pdf/pdfObjects.js';
 import { collectCheckboxWidgets } from './formWidgets.js';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
@@ -268,7 +268,7 @@ function uniqueCheckboxes(boxes) {
  * Candidate fillable regions on one page, in the editor's page-percent model.
  *
  * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
- * @param {import('../../geometry/coords.ts').PageGeometry} geometry
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  */
 export function detectRegions(ink, geometry, pageIndex = 0, checkboxBoxes = findCheckboxes(ink)) {

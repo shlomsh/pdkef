@@ -1,4 +1,4 @@
-import { toPagePercentBox } from '../../geometry/coords.ts';
+import { toPagePercentBox } from '../../../editor/geometry/coords.ts';
 
 /**
  * pdf.js text items as `formCells.js`'s page-percent `PageTextRun` shape.
@@ -18,7 +18,7 @@ import { toPagePercentBox } from '../../geometry/coords.ts';
  * are marked-content operators, not glyph runs - and are skipped like a blank.
  *
  * @param {Array<object>} items `getTextContent().items`
- * @param {import('../../geometry/coords.ts').PageGeometry} geometry
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @returns {Array<{str: string, left: number, top: number, width: number, height: number}>}
  */
 export function toPageTextRuns(items, geometry) {

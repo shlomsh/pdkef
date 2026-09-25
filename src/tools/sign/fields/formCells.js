@@ -1,4 +1,4 @@
-import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../geometry/coords.ts';
+import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
 
@@ -539,7 +539,7 @@ function confidenceOf(resolved, kind) {
  * comb/checkbox detector deliberately leaves alone.
  *
  * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
- * @param {import('../../geometry/coords.ts').PageGeometry} geometry
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @param {PageTextRun[]} textItems page text, page-percent bounds
  */

@@ -39,7 +39,7 @@ the repo root, `.nx/` gitignored:
 | `export-guards` | `e2e/export` (nested inside `site-e2e`'s own root, sibling of `fonts`) | - | ✓ |
 | `site-e2e` | `e2e` | - | ✓ |
 | `cross-tool-tests` | `src/test/cross-tool` (nested inside `site-test`'s root) | ✓ | - |
-| `form-corpus` | `src/editor/adapters/pdf/corpus` (nested inside `editor`'s root, same shape as `cross-tool-tests` inside `site-test`) | ✓ | - |
+| `form-corpus` | `src/tools/sign/fields/corpus` (nested inside `tool-sign`'s root, same shape as `cross-tool-tests` inside `site-test` - ARCH-24 moved it out of `editor`'s root) | ✓ | - |
 | `site-test` | `src/test` (`cross-tool-tests` and `seo-content-guards` both nest inside it, same shape as `fonts` inside `site-e2e`) | ✓ | - |
 | `seo-content-guards` | `src/test/seo` (nested inside `site-test`'s root, sibling of `cross-tool-tests`) | ✓ | - |
 

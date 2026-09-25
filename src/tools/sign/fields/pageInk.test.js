@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tokenize } from './contentStream.js';
+import { tokenize } from '../../../editor/adapters/pdf/contentStream.js';
 import { collectInkFromTokens } from './pageInk.js';
 
 const ink = (stream) => collectInkFromTokens(tokenize(new TextEncoder().encode(stream)));

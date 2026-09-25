@@ -20,7 +20,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { detectPageRegions } from '../../../src/editor/adapters/pdf/formGrid.js';
+import { detectPageRegions } from '../../../src/tools/sign/fields/formGrid.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 

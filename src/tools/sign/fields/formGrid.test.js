@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
-import { tokenize } from './contentStream.js';
+import { tokenize } from '../../../editor/adapters/pdf/contentStream.js';
 import { collectInkFromTokens } from './pageInk.js';
-import { createPageGeometry } from '../../geometry/coords.ts';
+import { createPageGeometry } from '../../../editor/geometry/coords.ts';
 import { detectPageRegions, detectRegions, findCheckboxes, findCombRuns } from './formGrid.js';
 
 const inkOf = (stream) => collectInkFromTokens(tokenize(new TextEncoder().encode(stream)));

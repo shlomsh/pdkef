@@ -1,7 +1,7 @@
 ---
 id: "ARCH-24"
 title: "Field detection is a capability with one entry point, not a pipeline the Sign tool assembles"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "module-boundaries"
 phase: "near-term"
@@ -281,3 +281,15 @@ this step. Sabotage-checked live in `fieldRegions.js`: reverting `reconcile` to 
 `thirdSourceContract.test.js` and the first of the two new `reconcile` unit tests - and left the other 59
 in the same run green, including the empty-stub sweep over the whole element corpus. Restored, green
 again (945/945).
+
+## Step D landed, closed (2026-09-25)
+
+The capability moved from `src/editor/adapters/pdf/` to `src/tools/sign/fields/`: the entry point,
+the detectors, `inkEdges.js`, `fieldRegions.js` (with its reference oracle), `fieldTypes.ts`,
+`pageInk.js`, `textRuns.js`, their tests, `__fixtures__/` and the whole corpus with its scoring.
+`pdfObjects.js` stays in `src/editor/adapters/pdf/` because Redact's edit path uses it; the
+`WidgetEntry` typedef moved into it, its producer, so nothing in `editor` points into Sign.
+`fieldOrder.fixtures.test.js` moved to Sign for the same reason. The move is a re-runnable script,
+dry-run twice on copies before the real run. Proof: `score-form.mjs --all` "0 changed, 10 unchanged,
+0 regressed", module-boundaries and editor dependency directions green, purity guard 13 modules
+clean, then the full `ci.yml` chain. Two review should-fixes carry on in FORM-25.
