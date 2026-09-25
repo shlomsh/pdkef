@@ -52,3 +52,9 @@ caption to reach past the cell's midpoint. Two false positives, and itc101 preci
   runner now forwards a case's own `text`, since a caption cannot be expressed without it.
 - [x] A `formCells.test.js` case fails without the rule (header over three identical empty rows:
   8 cells instead of 6).
+
+**Superseded (FORM-14, 2026-09-25):** the row-run rule (`emptyRowRunBelow`, `MIN_HEADER_RUN`,
+`MAX_HEADER_RUN_WALK`) is removed. Once a side carve is gated on the caption's own shape (RTL_RE,
+HEADER_GAP_RATIO), it only ever survives for a caption hugging its wall - a label, never a heading -
+so the row-run rule could only have been dropping a real label, and measured with it disabled every
+scored form was byte-identical.
