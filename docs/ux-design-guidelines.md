@@ -232,8 +232,9 @@ screenshot - the crop bug above hides inside a rect that measures perfectly.
 
 ## 17. Editors on a phone: the page is the work, the bar is where you act
 
-Added 2026-09-25 from the Sign next-generation review. After 34 mobile tickets in 76 days, each fix was
-locally right and the next edge sat right behind it. The full rules, with evidence, are in
+Added 2026-09-25 from the Sign next-generation review, revised 2026-09-26 after SNG-14 (the hop control
+is the platform's, not ours). After 34 mobile tickets in 76 days, each fix was locally right and the
+next edge sat right behind it. The full rules, with evidence, are in
 [sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md). These are the parts every editing tool
 inherits:
 
@@ -252,9 +253,11 @@ inherits:
 - **On touch, a swipe that starts on the page scrolls.** Only an element that was already selected
   moves. A second finger always cancels a one-finger gesture.
 - **Move and resize are intentional.** Handles appear only after a direct tap on an element; arriving at
-  it by a hop, or touching it with a pinch, never shows them.
-- **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
-  arrow must not change meaning with the language.
+  it by a hop (the platform's own next/previous, Sign guidelines §3), or touching it with a pinch, never
+  shows them.
+- **Navigation that walks a document is the platform's own next and previous, never an arrow of ours.**
+  iOS's ∧ ∨, desktop's Tab and Shift+Tab, Android's Next key: reading order belongs to the document, and
+  none of them change meaning with the UI's language (Sign guidelines §3).
 - **The app never claims what a form needs.** Even perfect detection cannot know which blanks are yours:
   an employer's section, an optional box. Detection may suggest where to go, never what must be filled:
   a wrong or missing suggestion costs one tap, and nothing is ever counted or flagged as missing.
