@@ -11,13 +11,13 @@
 // an English "September" on an otherwise-Hebrew form reads as wrong in a way
 // the numeric formats below never can, since none of them spell anything out.
 //
-// 'dmyDigits' is DDMMYYYY with no separators, for boxed date fields that print
+// 'dmyDigits' / 'mdyDigits' are DDMMYYYY / MMDDYYYY with no separators, for boxed date fields that print
 // their own dividers (e.g. an 8-cell DD|MM|YYYY comb on Israeli tax forms):
 // written with slashes, those would spend two cells on '/' and cut the year.
-export type DateFormatId = 'locale' | 'iso' | 'dmy' | 'dmyDigits' | 'mdy';
+export type DateFormatId = 'locale' | 'iso' | 'dmy' | 'dmyDigits' | 'mdy' | 'mdyDigits';
 
 /** Cycle order for ElementToolbar.tsx's single format-cycling control. */
-export const DATE_FORMAT_IDS: readonly DateFormatId[] = ['locale', 'iso', 'dmy', 'dmyDigits', 'mdy'];
+export const DATE_FORMAT_IDS: readonly DateFormatId[] = ['locale', 'iso', 'dmy', 'dmyDigits', 'mdy', 'mdyDigits'];
 
 export function isDateFormatId(value: unknown): value is DateFormatId {
   return typeof value === 'string' && (DATE_FORMAT_IDS as readonly string[]).includes(value);
@@ -61,6 +61,7 @@ export function formatDate(isoDate: string, formatId: DateFormatId, locale: stri
     case 'dmy': return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
     case 'dmyDigits': return `${pad2(date.getDate())}${pad2(date.getMonth() + 1)}${date.getFullYear()}`;
     case 'mdy': return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())}/${date.getFullYear()}`;
+    case 'mdyDigits': return `${pad2(date.getMonth() + 1)}${pad2(date.getDate())}${date.getFullYear()}`;
     case 'locale':
     default:
       return new Intl.DateTimeFormat(locale).format(date);
@@ -69,12 +70,14 @@ export function formatDate(isoDate: string, formatId: DateFormatId, locale: stri
 
 /**
  * The format a date placed on a detected comb run starts in. An 8-cell run is
- * DD|MM|YYYY with its dividers printed, so it takes 'dmyDigits' whatever was
- * remembered; any other cell count keeps `formatId`. Day-first rather than
- * the browser locale's order: the browser says nothing about the form.
+ * a date with its dividers printed, so it goes digits-only: month-first only
+ * when the person chose a month-first format, otherwise day-first (the
+ * browser locale's order says nothing about the form). Any other cell count
+ * keeps `formatId`.
  */
 export function dateFormatForComb(formatId: DateFormatId, cells: number): DateFormatId {
-  return cells === 8 ? 'dmyDigits' : formatId;
+  if (cells !== 8) return formatId;
+  return formatId === 'mdy' || formatId === 'mdyDigits' ? 'mdyDigits' : 'dmyDigits';
 }
 
 /** Next format in the cycle order, wrapping - ElementToolbar.tsx's single control. */
