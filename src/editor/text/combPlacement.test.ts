@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   baselineDropEm,
-  cellFontSize,
   cellRegionAt,
   checkboxRegionAt,
-  combFontSize,
   combRegionAt,
+  fieldFontSize,
   placeCombOnRegion,
   placeTextOnCell,
   type CombRegion,
   type FieldRegion,
 } from './combPlacement.ts';
 import { combCellCenterFraction } from './comb.js';
+import { COMB_CAP_HEIGHT_EM, COMB_MIN_CELL_EM, MIN_FONT_SIZE_PT, TEXT_BOX_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 
 // A4 in PDF points, the size both evidence forms are. Never a 0x0 rect: every
 // percentage derived from a zero-sized page is NaN or Infinity, and a geometry
@@ -120,63 +120,83 @@ describe('cellRegionAt', () => {
   });
 });
 
-describe('cellFontSize', () => {
-  // The e-ticket "Status" column: a short row, 1.4% of an A4 page tall
-  // (~11.8pt) - narrow enough that even the 12pt default overflows it.
-  const shortCellPercent = 1.4;
+// SIGN-32: fieldFontSize is the one function every placement path (text
+// cell, comb, date on either, free text) reads for its size. combPlacement.ts's
+// own docstring on it has the full rule; these are its edges in isolation -
+// placeTextOnCell/placeCombOnRegion below cover the same rule wired to real
+// field geometry (percent-of-page in, ceilings/seed height in points out).
+describe('fieldFontSize', () => {
+  describe('a carried size already exists - shrink-only fit, never grows', () => {
+    // The e-ticket "Status" column: a short row, 1.4% of an A4 page tall
+    // (~11.8pt) - narrow enough that even the 12pt default overflows it.
+    const shortCellPoints = (1.4 / 100) * PAGE_HEIGHT;
+    const shortCellCeiling = shortCellPoints / TEXT_BOX_LINE_HEIGHT_EM;
 
-  it('keeps the remembered size when it fits the row and already clears the field-fill target', () => {
-    // 1.4% of A4 is ~11.79pt; FIELD_FONT_FILL_RATIO (0.65) of that is ~7.66pt,
-    // under the remembered 8pt, so nothing here grows it either.
-    expect(cellFontSize(8, shortCellPercent, PAGE_HEIGHT)).toBe(8);
-  });
-
-  it('shrinks a size whose one-line box is taller than the row', () => {
-    // A box taller than the row it was placed on doesn't grow past a
-    // printed boundary the way minWidth does horizontally - it sits on top
-    // of the row below. ceiling = 11.78646pt / 1.29em (TEXT_BOX_LINE_HEIGHT_EM).
-    expect(cellFontSize(12, shortCellPercent, PAGE_HEIGHT)).toBeCloseTo(11.78646 / 1.29, 2);
-  });
-
-  it("never goes below the editor's own minimum", () => {
-    expect(cellFontSize(12, 0.1, PAGE_HEIGHT)).toBe(6);
-  });
-
-  it('returns the preferred size unchanged for a degenerate (zero-height) cell', () => {
-    expect(cellFontSize(12, 0, PAGE_HEIGHT)).toBe(12);
-  });
-
-  describe('growing a small remembered size to fill a generously tall field (SNG-10 follow-up)', () => {
-    // The practice form's "Full name" lone box, exactly as SNG-10's caption-
-    // band detection reports it: 22pt tall, well past the ~21.5pt
-    // (FIELD_FONT_MAX_PT / FIELD_FONT_FILL_RATIO) where the cap engages.
-    const fullNamePercent = (22 / PAGE_HEIGHT) * 100;
-
-    it('raises a small remembered size to the fill target, capped at FIELD_FONT_MAX_PT', () => {
-      // A fresh session's 12pt default no longer passes through unchanged:
-      // 22 * 0.65 = 14.3pt, capped at FIELD_FONT_MAX_PT (14).
-      expect(cellFontSize(12, fullNamePercent, PAGE_HEIGHT)).toBe(14);
+    it('keeps the carried size when it fits the row', () => {
+      expect(fieldFontSize(8, { heightCeilingPoints: shortCellCeiling })).toBe(8);
     });
 
-    it('still grows a size smaller than 12pt to the same target', () => {
-      // A font remembered from a tight comb elsewhere on the page (down at
-      // MIN_FONT_SIZE_PT) must not leave a field this tall looking like a
-      // thin strip - the target is the field's own answer, not whatever was
-      // last used.
-      expect(cellFontSize(6, fullNamePercent, PAGE_HEIGHT)).toBe(14);
+    it('shrinks a carried size whose one-line box is taller than the row', () => {
+      // A box taller than the row it was placed on doesn't grow past a
+      // printed boundary the way minWidth does horizontally - it sits on top
+      // of the row below.
+      expect(fieldFontSize(12, { heightCeilingPoints: shortCellCeiling })).toBeCloseTo(shortCellCeiling, 5);
     });
 
-    it('never grows past the field itself: the resulting box still clears the cap comfortably', () => {
-      const size = cellFontSize(6, fullNamePercent, PAGE_HEIGHT);
-      const boxHeightPt = size * 1.29;
-      expect(boxHeightPt).toBeLessThan(22);
+    it("never goes below the editor's own minimum", () => {
+      const tinyCeiling = ((0.1 / 100) * PAGE_HEIGHT) / TEXT_BOX_LINE_HEIGHT_EM;
+      expect(fieldFontSize(12, { heightCeilingPoints: tinyCeiling })).toBe(MIN_FONT_SIZE_PT);
     });
 
-    it('keeps a larger remembered size untouched, still shrinking only what overflows', () => {
-      // A preferred size already above the fill target and within the
-      // field's own ceiling is left alone - growth never overrides an
-      // intentionally large size.
-      expect(cellFontSize(16, fullNamePercent, PAGE_HEIGHT)).toBe(16);
+    it('returns the carried size unchanged with no ceiling at all (free text, or an open comb\'s teeth)', () => {
+      expect(fieldFontSize(12, {})).toBe(12);
+    });
+
+    it('takes the stricter of a width and a height ceiling together (a comb)', () => {
+      // Wide, short teeth: height is the binding ceiling.
+      expect(fieldFontSize(24, { widthCeilingPoints: 18.9, heightCeilingPoints: 9.78 })).toBeCloseTo(9.78, 5);
+      // Narrow, tall boxes: width is the binding ceiling.
+      expect(fieldFontSize(24, { widthCeilingPoints: 8.3, heightCeilingPoints: 15 })).toBeCloseTo(8.3, 5);
+    });
+
+    it('never grows a carried size toward a field\'s own fill target - only seeding does that', () => {
+      // The practice form's "Full name" row (22pt): a carried size well
+      // under the field's own fill target stays exactly where it was, never
+      // jumping toward what a fresh document would have seeded here.
+      const fullNameHeightPoints = 22;
+      const ceiling = fullNameHeightPoints / TEXT_BOX_LINE_HEIGHT_EM;
+      expect(fieldFontSize(6, { seedHeightPoints: fullNameHeightPoints, heightCeilingPoints: ceiling })).toBe(6);
+    });
+  });
+
+  describe('no carried size yet - seeds it, once', () => {
+    it('takes DEFAULT_FONT_SIZE_PT when there is no field height to grow toward (free text)', () => {
+      expect(fieldFontSize(null, {})).toBe(12);
+    });
+
+    it('takes DEFAULT_FONT_SIZE_PT for a degenerate (zero-height) field too', () => {
+      expect(fieldFontSize(null, { seedHeightPoints: 0 })).toBe(12);
+    });
+
+    describe('a generously tall field (the practice form\'s "Full name" row, SNG-10 follow-up)', () => {
+      // 22pt tall, well past the ~21.5pt (FIELD_FONT_MAX_PT / FIELD_FONT_FILL_RATIO)
+      // where the cap engages.
+      const fullNameHeightPoints = 22;
+
+      it('seeds the fill target, capped at FIELD_FONT_MAX_PT', () => {
+        // 22 * 0.65 = 14.3pt, capped at FIELD_FONT_MAX_PT (14).
+        expect(fieldFontSize(null, { seedHeightPoints: fullNameHeightPoints })).toBe(14);
+      });
+
+      it('never seeds past the field itself: the resulting box still clears the cap comfortably', () => {
+        const size = fieldFontSize(null, { seedHeightPoints: fullNameHeightPoints });
+        const boxHeightPt = size * TEXT_BOX_LINE_HEIGHT_EM;
+        expect(boxHeightPt).toBeLessThan(fullNameHeightPoints);
+      });
+    });
+
+    it('is still floored at MIN_FONT_SIZE_PT for a field far too short to hold the fill ratio', () => {
+      expect(fieldFontSize(null, { seedHeightPoints: 0.01 })).toBe(MIN_FONT_SIZE_PT);
     });
   });
 });
@@ -185,12 +205,12 @@ describe('placeTextOnCell', () => {
   // The "Status" cell on the e-ticket that shipped this bug: a 12pt box
   // placed on it hung well past the row into "Confirmed" below.
   const shortCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 1.4 };
-  // A cell tall enough that a 12pt preferred size clears cellFontSize's own
+  // A cell tall enough that a carried size well clears fieldFontSize's own
   // ceiling (26.1pt) with room to spare - but past the SNG-10 follow-up's
-  // ~21.5pt growth threshold, so the field-fill target (capped at
-  // FIELD_FONT_MAX_PT, 14) still raises it. The placement math below (left,
-  // minWidth, the re-centring formula) is unaffected either way - only the
-  // font size itself is.
+  // ~21.5pt seeding threshold, so a document with nothing carried yet still
+  // seeds the field-fill target (capped at FIELD_FONT_MAX_PT, 14) here. The
+  // placement math below (left, minWidth, the re-centring formula) is
+  // unaffected either way - only the font size itself is.
   const roomyCell: FieldRegion = { pageIndex: 0, left: 30, top: 28, width: 26, height: 4 };
 
   it('puts the box on the cell\'s left edge, centred on its middle, spanning its width', () => {
@@ -199,18 +219,27 @@ describe('placeTextOnCell', () => {
     // way the text will read - a box with a span has no growing edge to
     // anchor - and not the cell's middle (43), which used to hang the box's
     // right half out over the next column.
-    const placed = placeTextOnCell(roomyCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
     expect(placed.left).toBe(30);
     expect(placed.minWidth).toBe(26);
-    // Grown from the 12pt preferred size to the field-fill cap: see
-    // cellFontSize's own "growing a small remembered size" tests.
-    expect(placed.fontSize).toBe(14);
+    // A carried size already exists and the roomy cell's own ceiling is well
+    // above it, so it passes through exactly - fit, never grown.
+    expect(placed.fontSize).toBe(12);
     // Lowered by the box's bottom padding (0.12em), toward the cell's line.
+    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2 + (12 * 0.12 / PAGE_HEIGHT * 100), 5);
+  });
+
+  it('seeds the field-fill target on a document with nothing carried yet, and centres on that seeded height', () => {
+    // See fieldFontSize's own "no carried size yet" tests for the 14pt
+    // target's derivation - this proves the same seeding wired to a real
+    // placeTextOnCell call, left/minWidth/top math included.
+    const placed = placeTextOnCell(roomyCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT });
+    expect(placed.fontSize).toBe(14);
     expect(placed.top).toBeCloseTo(30 - (14 * 1.29 / PAGE_HEIGHT * 100) / 2 + (14 * 0.12 / PAGE_HEIGHT * 100), 5);
   });
 
   it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {
-    expect(placeTextOnCell(roomyCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT })).not.toHaveProperty('width');
+    expect(placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT })).not.toHaveProperty('width');
   });
 
   it('never lifts the box off the top of the page', () => {
@@ -219,25 +248,35 @@ describe('placeTextOnCell', () => {
     // the box's own height, not the cell's, decides whether centring would
     // go negative.
     const tinyNearTop: FieldRegion = { pageIndex: 0, left: 30, top: 0.05, width: 26, height: 0.3 };
-    expect(placeTextOnCell(tinyNearTop, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT }).top).toBe(0);
+    expect(placeTextOnCell(tinyNearTop, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT }).top).toBe(0);
   });
 
-  it('shrinks the font to fit a short row instead of overflowing into the next one', () => {
+  it('shrinks the carried size to fit a short row instead of overflowing into the next one', () => {
     // This is the actual bug: an unshrunk 12pt box in this 1.4%-tall cell is
     // ~15.5pt of box in an ~11.8pt row - it visibly crosses into the next
     // printed line. The returned fontSize must be small enough that the
     // box's own one-line height (fontSize * 1.29em, in page percent) is no
     // taller than the cell.
-    const placed = placeTextOnCell(shortCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
     expect(placed.fontSize).toBeLessThan(12);
     const boxHeightPercent = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
     expect(boxHeightPercent).toBeLessThanOrEqual(shortCell.height + 1e-9);
   });
 
   it('re-centres on the shrunk box\'s own height, not the unshrunk one', () => {
-    const placed = placeTextOnCell(shortCell, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
     const shrunkEm = (placed.fontSize / PAGE_HEIGHT) * 100;
     expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - (shrunkEm * 1.29) / 2 + shrunkEm * 0.12, 5);
+  });
+
+  it('the next field after a narrow one gets the carried size back - shrinking never writes back to it', () => {
+    // shortCell shrinks a 12pt carried size (as above); a roomy cell placed
+    // right after, still with the same 12pt carried size, must not have
+    // inherited that shrink.
+    const shrunk = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    expect(shrunk.fontSize).toBeLessThan(12);
+    const next = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    expect(next.fontSize).toBe(12);
   });
 
   describe('on a cell whose printed caption hugs a wall', () => {
@@ -261,7 +300,7 @@ describe('placeTextOnCell', () => {
     const captionLeft = 12.288; // where the printed caption starts
 
     it('spans the strip beside the caption, not the whole cell', () => {
-      const placed = placeTextOnCell(captioned, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
       expect(placed.left).toBe(5.568);
       expect(placed.minWidth).toBe(6.720);
     });
@@ -271,7 +310,7 @@ describe('placeTextOnCell', () => {
       // says, and on this form that is the right one - so the span's right
       // edge is where the first character lands, in the export as much as on
       // screen. Spanning the whole cell would start it on the caption.
-      const placed = placeTextOnCell(captioned, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
       expect(placed.left + placed.minWidth).toBeLessThanOrEqual(captionLeft);
     });
 
@@ -280,54 +319,16 @@ describe('placeTextOnCell', () => {
       // writing line leaves the bounds already equal to the strip, so no
       // `writable` is published and nothing here has to know which case it is.
       const { writable, ...band } = captioned;
-      const placed = placeTextOnCell(band, { fontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(band, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
       expect(placed.left).toBe(band.left);
       expect(placed.minWidth).toBe(band.width);
     });
   });
 });
 
-describe('combFontSize', () => {
-  const cellPercent = IDENTITY_RUN.width / IDENTITY_RUN.cells; // 11.34pt cells
-
-  it('keeps the remembered size when it fits the printed cell', () => {
-    expect(combFontSize(12, cellPercent, PAGE_WIDTH)).toBe(12);
-  });
-
-  it('shrinks a size whose characters would not fit the cell', () => {
-    // A comb whose cells are narrower than the characters in them has stopped
-    // doing the one thing it exists for.
-    expect(combFontSize(24, cellPercent, PAGE_WIDTH)).toBeCloseTo(11.344 / 0.6, 1);
-  });
-
-  it("never goes below the editor's own minimum", () => {
-    expect(combFontSize(12, 0.1, PAGE_WIDTH)).toBe(6);
-  });
-
-  it('also fits the digits inside a height, when the caller has one to give', () => {
-    // 7.04pt of height on 11.34pt-wide cells: width alone allows 18.9pt, a
-    // 12pt default's 8.6pt digits are too tall, the cap-height rule says 9.78pt.
-    const size = combFontSize(12, cellPercent, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT);
-    expect(size).toBeCloseTo(7.0384 / 0.72, 1);
-    expect(size * 0.72).toBeLessThanOrEqual((IDENTITY_RUN.height / 100) * PAGE_HEIGHT + 1e-9);
-  });
-
-  it('leaves a size alone when the ink is tall enough for it', () => {
-    // A closed 10.9pt box (the health declaration): 12pt digits are 8.6pt, they fit.
-    expect(combFontSize(12, cellPercent, PAGE_WIDTH, 1.297, PAGE_HEIGHT)).toBe(12);
-  });
-
-  it('takes the stricter of the two bounds', () => {
-    // Wide, short teeth: height says 9.78pt, width would allow 18.9pt.
-    expect(combFontSize(24, cellPercent, PAGE_WIDTH, IDENTITY_RUN.height, PAGE_HEIGHT)).toBeCloseTo(7.0384 / 0.72, 1);
-    // Narrow, tall boxes: width says 8.3pt, height would allow 15pt.
-    expect(combFontSize(24, 5 / 595.275 * 100, PAGE_WIDTH, 1.297, PAGE_HEIGHT)).toBeCloseTo(5 / 0.6, 1);
-  });
-});
-
 describe('placeCombOnRegion', () => {
-  const place = (region = IDENTITY_RUN, fontSize = 12, fontFamily = 'Arimo') => placeCombOnRegion(region, {
-    fontSize, fontFamily, pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
+  const place = (region = IDENTITY_RUN, carriedFontSize: number | null = 12, fontFamily = 'Arimo') => placeCombOnRegion(region, {
+    carriedFontSize, fontFamily, pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
   });
 
   it('takes the span and the cell count from the paper', () => {
@@ -337,7 +338,7 @@ describe('placeCombOnRegion', () => {
     expect(placement.combCells).toBe(9);
   });
 
-  it('keeps the form-wide size on open teeth - they divide the field, they do not bound its height', () => {
+  it('keeps the carried size on open teeth - they divide the field, they do not bound its height', () => {
     // Form 101's identity comb: 4-7pt ticks hanging from the rule of a 23pt
     // field, the same height as the name cells beside it. Sizing digits to
     // the ticks made this one field smaller than its neighbours (live
@@ -345,14 +346,55 @@ describe('placeCombOnRegion', () => {
     expect(place().fontSize).toBe(12);
   });
 
+  it('shrinks a carried size whose characters would not fit the cell', () => {
+    // A comb whose cells are narrower than the characters in them has stopped
+    // doing the one thing it exists for.
+    expect(place(IDENTITY_RUN, 24).fontSize).toBeCloseTo(11.344 / COMB_MIN_CELL_EM, 1);
+  });
+
+  it("never goes below the editor's own minimum", () => {
+    // A pitch of 0.1pt-wide cells: width says (0.1/100*PAGE_WIDTH)/COMB_MIN_CELL_EM, well under MIN_FONT_SIZE_PT.
+    const sliver: CombRegion = { ...IDENTITY_RUN, width: 0.1 * IDENTITY_RUN.cells };
+    expect(place(sliver, 12).fontSize).toBe(MIN_FONT_SIZE_PT);
+  });
+
+  it('shrinks a narrow comb only - the next field gets the carried size back', () => {
+    const sliver: CombRegion = { ...IDENTITY_RUN, width: 0.1 * IDENTITY_RUN.cells };
+    const shrunk = place(sliver, 12);
+    expect(shrunk.fontSize).toBeLessThan(12);
+    // Same carried size, an ordinary (not narrow) comb right after: no drag-down.
+    expect(place(IDENTITY_RUN, 12).fontSize).toBe(12);
+  });
+
   it('fits the digits inside a closed box, with the margin a hand would leave', () => {
     // The health declaration's closed 10.8pt boxes: 12pt digits (8.6pt) are
-    // inside the 80% fill line, so the default is untouched there...
-    expect(place({ ...IDENTITY_RUN, boxed: true, height: 1.283 }).fontSize).toBe(12);
-    // ...and a box only as tall as the identity ticks would shrink them.
-    expect(place({ ...IDENTITY_RUN, boxed: true }).fontSize).toBeCloseTo(
-      combFontSize(12, IDENTITY_RUN.width / 9, PAGE_WIDTH, IDENTITY_RUN.height * 0.8, PAGE_HEIGHT), 5,
-    );
+    // inside the 80% fill line, so the carried size is untouched there...
+    expect(place({ ...IDENTITY_RUN, boxed: true, height: 1.283 }, 12).fontSize).toBe(12);
+    // ...and a box only as tall as the identity ticks would shrink them: width
+    // alone would allow far more than 12, so the cap-height ceiling binds.
+    const shrunkToHeight = place({ ...IDENTITY_RUN, boxed: true }, 12).fontSize;
+    expect(shrunkToHeight).toBeLessThan(12);
+    const digitHeightPoints = (IDENTITY_RUN.height * 0.8 / 100) * PAGE_HEIGHT;
+    expect(shrunkToHeight).toBeCloseTo(digitHeightPoints / COMB_CAP_HEIGHT_EM, 5);
+  });
+
+  it('takes the stricter of a width and a height ceiling together', () => {
+    // Wide, short teeth (IDENTITY_RUN's own cells, boxed): height binds.
+    const wideShort = place({ ...IDENTITY_RUN, boxed: true }, 24).fontSize;
+    const digitHeightPoints = (IDENTITY_RUN.height * 0.8 / 100) * PAGE_HEIGHT;
+    expect(wideShort).toBeCloseTo(digitHeightPoints / COMB_CAP_HEIGHT_EM, 1);
+    // Narrow, tall boxes: width binds instead.
+    const narrowTall: CombRegion = { ...IDENTITY_RUN, width: (5 / 595.275 * 100) * IDENTITY_RUN.cells, boxed: true, height: 1.297 };
+    expect(place(narrowTall, 24).fontSize).toBeCloseTo(5 / COMB_MIN_CELL_EM, 1);
+  });
+
+  it('seeds the carried size from the comb\'s own cell height, on a document with nothing carried yet', () => {
+    // See fieldFontSize's "no carried size yet" tests for the fill-target
+    // math; this proves it wired to a real boxed CombRegion whose cell
+    // height (not the digit-height fraction the ceiling above reads) is 22pt
+    // - the practice form's ID number comb, ground truth height.
+    const region: CombRegion = { ...IDENTITY_RUN, boxed: true, height: (22 / PAGE_HEIGHT) * 100 };
+    expect(place(region, null).fontSize).toBe(14);
   });
 
   it('centres the digits in the cell drawn around open teeth, where the neighbouring cells\' text sits', () => {
@@ -392,7 +434,7 @@ describe('placeCombOnRegion', () => {
     // when the paper has a line there.
     const boxedRun: CombRegion = { ...IDENTITY_RUN, boxed: true, height: 1.297 };
     const placement = placeCombOnRegion(boxedRun, {
-      fontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
+      carriedFontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT,
     });
     const em = (12 / PAGE_HEIGHT) * 100;
     const baseline = placement.top + em * baselineDropEm('Arimo');

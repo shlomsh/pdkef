@@ -58,17 +58,21 @@ export const FIELD_TEXT_INSET_EM = 0.25;
 // click point instead of hanging it below the pointer.
 export const TEXT_BOX_LINE_HEIGHT_EM = DEFAULT_LINE_HEIGHT_EM + TEXT_BOX_PADDING_EM * 2;
 
-// A single-line field's font grows toward a legible share of its own detected
-// height, not just shrinks a remembered size down to fit (SNG-10 follow-up):
-// a generously tall lone box ("Full name" on the practice form, 22pt) left a
-// 12pt remembered font filling barely half of it, because `cellFontSize` used
-// to only ever cap a size from above. Chosen so the box (fontSize *
+// A document with no carried font size yet takes one from the first field
+// that needs it: a legible share of that field's own detected height, not a
+// flat default (SNG-10 follow-up, generalized under SIGN-32). A generously
+// tall lone box ("Full name" on the practice form, 22pt) left a 12pt default
+// filling barely half of it. Chosen so the box (fontSize *
 // TEXT_BOX_LINE_HEIGHT_EM) clears the field at the cap without touching its
 // walls: 14 * 1.29 = 18.06pt inside a field that must be at least
 // FIELD_FONT_MAX_PT / FIELD_FONT_FILL_RATIO = ~21.5pt tall for the cap to
-// engage at all, comfortably under 22pt.
-export const FIELD_FONT_FILL_RATIO = 0.65;   // Share of a detected field's own height its font grows to fill
-export const FIELD_FONT_MAX_PT = 14;         // Cap so a very tall field doesn't render oversized single-line text
+// engage at all, comfortably under 22pt. Read by combPlacement.ts's
+// fieldFontSize - the one function every placement path fits to, including
+// the fields this comment was written for - never by a call that already has
+// a carried size to fit instead: see that function's own doc for why growth
+// stops there, once, rather than repeating on every placement.
+export const FIELD_FONT_FILL_RATIO = 0.65;   // Share of a field's own height a fresh carried size grows to fill
+export const FIELD_FONT_MAX_PT = 14;         // Cap so a very tall field doesn't seed an oversized single-line size
 
 // Comb layout (one character per cell, for pre-printed form boxes)
 export const MIN_COMB_WIDTH_PCT = 2;                    // Absolute floor for the side-handle drag, so the box stays grabbable
