@@ -331,52 +331,6 @@ _None._
 
 _None._
 
-## Module boundaries
-
-### Open
-
-_None._
-
-### In progress
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
-
-### Blocked
-
-_None._
-
-### Done
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
-| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
-| ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
-| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
-| ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
-| ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
-| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
-| ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
-| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
-| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
-| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
-| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
-| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
-| ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
-| QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
-| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
-| QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
-| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
-
-### Retired
-
-| ID | Priority | Task |
-| --- | --- | --- |
-| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
-| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
-
 ## Architecture debt
 
 ### Open
@@ -713,3 +667,36 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | LOC-04 | P3 | [LOC-04](backlog/tasks/LOC-04.md) · Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot |
+
+## Module boundaries
+
+### Done
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-15 | P1 | [ARCH-15](backlog/tasks/ARCH-15.md) · Module boundaries: the target layout, the dependency rules, and a checker that ratchets today's violations down |
+| ARCH-16 | P1 | [ARCH-16](backlog/tasks/ARCH-16.md) · Move the shared shell and the editor UI out of src/components into src/shell and src/editor-ui |
+| ARCH-17 | P1 | [ARCH-17](backlog/tasks/ARCH-17.md) · One folder per tool: Compress, Split, Edit pages, PDF to image, Image to PDF, Unlock/Protect and Redact into src/tools/ |
+| ARCH-18 | P1 | [ARCH-18](backlog/tasks/ARCH-18.md) · Merge and Sign into src/tools/, once the merge-tool epic's branch has landed |
+| ARCH-19 | P2 | [ARCH-19](backlog/tasks/ARCH-19.md) · The editor core stops importing Preact components: fix the four src/editor to src/components leaks |
+| ARCH-20 | P2 | [ARCH-20](backlog/tasks/ARCH-20.md) · Adopt Nx on the drawn boundaries: one project per module, tags that enforce the rules, affected-only tests in CI and locally |
+| ARCH-22 | P2 | [ARCH-22](backlog/tasks/ARCH-22.md) · App source lives under src/; scripts/ depends on src/, never the other way around |
+| ARCH-23 | P1 | [ARCH-23](backlog/tasks/ARCH-23.md) · Narrow the fonts project's tool-sign edge to the text pipeline, not all of src/tools/sign/ |
+| ARCH-24 | P2 | [ARCH-24](backlog/tasks/ARCH-24.md) · Field detection is a capability with one entry point, not a pipeline the Sign tool assembles |
+| ARCH-25 | P2 | [ARCH-25](backlog/tasks/ARCH-25.md) · Define common: shared code needs two consumers, and the checker says so |
+| ARCH-26 | P3 | [ARCH-26](backlog/tasks/ARCH-26.md) · Rule 9 counts the site once; site-only shell modules move to src/site-lib/ |
+| ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
+| ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
+| ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
+| ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
+| QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
+| QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
+| QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
+| QUAL-09 | P2 | [QUAL-09](backlog/tasks/QUAL-09.md) · A webkit-only e2e job, so the chromium shards stop paying 51s to install a browser they do not run |
+
+### Retired
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| ARCH-21 | P3 | [ARCH-21](backlog/tasks/ARCH-21.md) · Split the site project so a page-only or content-only commit narrows instead of running everything |
+| QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
