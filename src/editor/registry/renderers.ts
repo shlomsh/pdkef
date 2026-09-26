@@ -63,7 +63,7 @@ export function createElementRenderers(
       ? renderRedactionSurface('whiteout', element.color)
       : h(requireComponent('whiteout'), { element, messages, isActive: false, onResizeStart: () => {} }),
     blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
-    blur: () => renderRedactionSurface('blur'),
+    blur: ({ element }) => renderRedactionSurface('blur', undefined, element.strength),
   };
   return renderers;
 }

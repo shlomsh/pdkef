@@ -1,4 +1,6 @@
 import { h } from 'preact';
+import type { BlurStrength } from '../model/blurStrength.ts';
+import { blurRadius } from '../model/blurStrength.ts';
 
 /**
  * Visual interior for a Redact box. Geometry, handles, and toolbars stay in
@@ -11,10 +13,14 @@ import { h } from 'preact';
  * (highlighted while selected or hovered, transparent at rest) - that's
  * workspace-interaction chrome, not a redaction-surface visual, so it's owned
  * by the host's own CSS Module via `.active`/`.selected` classes instead.
+ *
+ * Blur's screen radius comes from blurStrength.ts, so this paint and the
+ * export flatten never disagree about what a strength level looks like.
  */
-export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', color?: string) {
+export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', color?: string, strength?: BlurStrength) {
   const isBlur = kind === 'blur';
   const isWhiteout = kind === 'whiteout';
+  const blurFilter = `blur(${blurRadius(strength).screenPx}px)`;
   return h('div', {
     class: `redact-surface redact-surface--${kind}`,
     style: {
@@ -22,8 +28,8 @@ export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', c
       inset: 0,
       pointerEvents: 'none',
       backgroundColor: isBlur ? 'rgba(255,255,255,0.1)' : (color || (isWhiteout ? '#ffffff' : '#000000')),
-      backdropFilter: isBlur ? 'blur(8px)' : 'none',
-      WebkitBackdropFilter: isBlur ? 'blur(8px)' : 'none',
+      backdropFilter: isBlur ? blurFilter : 'none',
+      WebkitBackdropFilter: isBlur ? blurFilter : 'none',
       border: isBlur ? '1px solid rgba(0,0,0,0.2)' : (isWhiteout ? 'none' : '1px solid #333'),
     },
   });
@@ -38,14 +44,15 @@ export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', c
  * with its own raw color literals, in the one file the sole-owner comment
  * above does not reach.
  */
-export function redactionDrawingPreviewStyle(kind: 'blackout' | 'blur' | 'whiteout', color?: string) {
+export function redactionDrawingPreviewStyle(kind: 'blackout' | 'blur' | 'whiteout', color?: string, strength?: BlurStrength) {
   const isBlur = kind === 'blur';
   const isWhiteout = kind === 'whiteout';
+  const blurFilter = `blur(${blurRadius(strength).screenPx}px)`;
   return {
     backgroundColor: isBlur ? 'rgba(255,255,255,0.1)' : (isWhiteout ? color : 'rgba(0, 0, 0, 0.7)'),
     opacity: isWhiteout && color !== '#000000' ? 0.7 : 1,
-    backdropFilter: isBlur ? 'blur(8px)' : 'none',
-    WebkitBackdropFilter: isBlur ? 'blur(8px)' : 'none',
+    backdropFilter: isBlur ? blurFilter : 'none',
+    WebkitBackdropFilter: isBlur ? blurFilter : 'none',
     border: isBlur || isWhiteout ? '2px dashed #000' : '2px dashed #ff4757',
   };
 }

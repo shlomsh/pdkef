@@ -47,6 +47,16 @@ describe('element registry schemas', () => {
     expect(getElementDefinition('rectangle').schema({ ...validElements.rectangle, width: Infinity })).toBe(false);
   });
 
+  it('accepts a blur with no strength, or a recognized strength', () => {
+    expect(getElementDefinition('blur').schema(validElements.blur)).toBe(true);
+    expect(getElementDefinition('blur').schema({ ...validElements.blur, strength: 'medium' })).toBe(true);
+  });
+
+  it('rejects a blur with an unrecognized strength', () => {
+    expect(getElementDefinition('blur').schema({ ...validElements.blur, strength: 'bogus' })).toBe(false);
+    expect(getElementDefinition('blur').schema({ ...validElements.blur, strength: 0.5 })).toBe(false);
+  });
+
   it('lets Redact ask each destructive type for its page-flatten instruction', () => {
     const context = { redaction: true } as any;
     expect(getElementDefinition('blackout').serialize(validElements.blackout, context)).toMatchObject({
