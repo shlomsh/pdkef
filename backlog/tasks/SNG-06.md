@@ -20,6 +20,10 @@ default everywhere (SNG-19), so desktop and iPad need their own checks.
 
 - [ ] Desktop: Tab and Shift+Tab walk the fill inputs in reading order, and Enter moves to the next
   field. Guarded by an e2e.
+- [ ] Desktop, keyboard only: Tab also reaches each checkbox, and Space ticks or clears it, so the form
+  can be finished without a mouse. On phones the keyboard's Next keeps skipping checkboxes and
+  signature spots (they are tapped where they are). First check whether a fill-mode checkbox takes
+  focus today.
 - [ ] Desktop: the font list opens beside the element (f2ba3495), and every toolbar control keeps the
   edit session in Safari and Chrome.
 - [ ] iPad (coarse pointer, wide screen): the font picker uses the desktop popover, not the phone
