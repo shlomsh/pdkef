@@ -1,5 +1,6 @@
 import { render } from 'preact';
 import type { ComponentChildren, ComponentProps } from 'preact';
+import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
@@ -7,7 +8,7 @@ import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
 import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
-import { SignToolContext, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
 
 const pageSize = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -123,6 +124,34 @@ function workspaceTree({ state, dispatch = vi.fn<(action: SignToolAction) => voi
 
 function mountWorkspace(args: WorkspaceTreeOptions): HTMLDivElement {
   return mount(workspaceTree(args));
+}
+
+// UNDO-04: the tests below need real history bookkeeping (session grouping,
+// coalescing), which a mocked dispatch never produces. This runs the same
+// `reducer` SignToolProvider does and stashes its live state onto a ref the
+// test can read after each `act()`, since there is no other probe onto
+// actionHistory from outside the tree.
+interface StatefulWorkspaceOptions {
+  initialState: SignToolState;
+  stateRef: { current: SignToolState };
+  props?: Partial<ComponentProps<typeof PdfWorkspace>>;
+  savedSignatures?: Partial<SavedSignaturesContextValue>;
+}
+
+function StatefulWorkspace({ initialState, stateRef, props = {}, savedSignatures = {} }: StatefulWorkspaceOptions) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  stateRef.current = state;
+  return (
+    <SignToolContext.Provider value={{ state, dispatch }}>
+      <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
+        <PdfWorkspace {...defaultProps(props)} />
+      </SavedSignaturesContext.Provider>
+    </SignToolContext.Provider>
+  );
+}
+
+function mountStatefulWorkspace(options: StatefulWorkspaceOptions): HTMLDivElement {
+  return mount(<StatefulWorkspace {...options} />);
 }
 
 describe('PdfWorkspace Component', () => {
@@ -753,6 +782,126 @@ describe('PdfWorkspace Component', () => {
       dispatchTouchEnd(container, [], point);
 
       expect(document.activeElement).not.toBe(textarea);
+    });
+  });
+
+  // UNDO-04: proves the wiring in `updateElement`/`editSession` (PdfWorkspace.tsx)
+  // through the real reducer, rather than just the unit tests on
+  // createUpdateEntry/pushCommand in isolation.
+  describe('Update history (UNDO-04)', () => {
+    it('folds several keystrokes in one edit session into a single history entry with a group', () => {
+      const stateRef: { current: SignToolState } = { current: testState() };
+      const initialState = testState({
+        elements: [textElement('text-1', { left: 20, top: 20, text: 'a' })],
+        activeElementId: 'text-1',
+        editingElementId: 'text-1',
+      });
+
+      host = mountStatefulWorkspace({ initialState, stateRef });
+
+      const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
+
+      act(() => {
+        textarea.value = 'ab';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      act(() => {
+        textarea.value = 'abc';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      act(() => {
+        textarea.value = 'abcd';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      expect(stateRef.current.actionHistory).toHaveLength(1);
+      const [entry] = stateRef.current.actionHistory;
+      if (entry.operation !== 'update') throw new Error('Expected an update entry');
+      expect(entry.type).toBe('EDIT_TEXT');
+      expect(entry.group).toBeTruthy();
+    });
+
+    it('a new edit session on the same element logs a second entry with a different group', () => {
+      const stateRef: { current: SignToolState } = { current: testState() };
+      const initialState = testState({
+        elements: [textElement('text-1', { left: 20, top: 20, text: 'a' })],
+        activeElementId: 'text-1',
+        editingElementId: 'text-1',
+      });
+
+      host = mountStatefulWorkspace({ initialState, stateRef });
+
+      const textarea = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor');
+      act(() => {
+        textarea.value = 'ab';
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      expect(stateRef.current.actionHistory).toHaveLength(1);
+      const [firstEntry] = stateRef.current.actionHistory;
+      if (firstEntry.operation !== 'update') throw new Error('Expected an update entry');
+      expect(firstEntry.group).toBeTruthy();
+
+      // Ends the session the same way a real deselect does: a click on blank
+      // page area (PdfWorkspace's `deactivateAll`, wired to the pages
+      // container's onClick).
+      const container = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['pages-container']}`), 'pages container');
+      act(() => {
+        container.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(stateRef.current.editingElementId).toBeNull();
+
+      // Reopens it the same way a real double-click does (TextNode's
+      // onDblClick -> DraggableWrapper's onBeginEdit), so PdfWorkspace's
+      // `editSession` memo (keyed on editingElementId) recomputes.
+      const display = required(host.querySelector<HTMLElement>('[data-editor-text-display]'), 'text display');
+      act(() => {
+        display.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      });
+      expect(stateRef.current.editingElementId).toBe('text-1');
+
+      const textareaAgain = required(host.querySelector<HTMLTextAreaElement>('textarea[data-editor-text-input]'), 'text editor (second session)');
+      act(() => {
+        textareaAgain.value = 'abx';
+        textareaAgain.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      expect(stateRef.current.actionHistory).toHaveLength(2);
+      const [secondEntry] = stateRef.current.actionHistory;
+      if (secondEntry.operation !== 'update') throw new Error('Expected an update entry');
+      expect(secondEntry.group).toBeTruthy();
+      expect(secondEntry.group).not.toBe(firstEntry.group);
+    });
+
+    it('a position change on an element that is not being edited logs an ungrouped MOVE_ELEMENT entry', () => {
+      const stateRef: { current: SignToolState } = { current: testState() };
+      const initialState = testState({
+        elements: [rectangleElement('rect-1', { left: 20, top: 20, width: 10, height: 10, color: '#1463ff', strokeWidth: 2 })],
+        activeElementId: 'rect-1',
+        editingElementId: null,
+      });
+
+      host = mountStatefulWorkspace({ initialState, stateRef });
+
+      const element = required(host.querySelector<HTMLElement>('[data-editor-element]'), 'element');
+      const pageWrapper = required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['page-wrapper']}`), 'page wrapper');
+      pageWrapper.getBoundingClientRect = () => rect(0, 0, 1000, 1000);
+
+      act(() => {
+        element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 300, clientY: 300 }));
+      });
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 400, clientY: 400 }));
+      });
+      act(() => {
+        window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 400, clientY: 400 }));
+      });
+
+      expect(stateRef.current.actionHistory).toHaveLength(1);
+      const [entry] = stateRef.current.actionHistory;
+      if (entry.operation !== 'update') throw new Error('Expected an update entry');
+      expect(entry.type).toBe('MOVE_ELEMENT');
+      expect(entry.group).toBeUndefined();
     });
   });
 });

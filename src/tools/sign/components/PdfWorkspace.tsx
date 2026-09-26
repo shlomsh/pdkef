@@ -228,9 +228,8 @@ export default function PdfWorkspace({
   });
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
-  // These are keyed on dispatch/remember* which are stable across renders, so
-  // useCallback gives us referential stability without the per-element closure
-  // allocation that was happening inside the .map() call.
+  // Hoisted so the map loop does not allocate a closure per element; several
+  // of these depend on `elements` and so change identity when it does.
 
   // A new id per text edit session, so a session's typing is one Undo step.
   const editSession = useMemo(() => uniqueId(), [editingElementId]);
