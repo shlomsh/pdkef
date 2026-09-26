@@ -101,16 +101,18 @@ re-deriving them.
     brings its own settings back.
   - An explicit choice also becomes the app default (SIGN-35): a new document starts from the person's
     latest choices, then the shipped defaults, and a key a document never set follows the latest choice.
-    The size and direction stay with the document (they describe the form's cells and language), and so
-    does a font the typing switched to. Seeding is not choosing: only the size seeds.
+    The direction stays with the document (it is the form's language), and so does a font the typing
+    switched to. Seeding is not choosing: only the size seeds, from the first field, and only while the
+    person has set no size anywhere; the seeded size stays with its document.
   - The signature pen colour and thickness and the saved signatures are the person's, not any
     document's. Never add a separate browser-wide "last used" preference for a form setting: it is a key
     of `DocumentStyle`, and the app-wide layer comes with it.
   - What the person sets explicitly carries forward: A-/A+, a resize drag, a font or colour pick,
     alignment, bold, italic, a date format, a symbol mark. What the app computes does not: a field's
     fit-shrink, a date's generated text.
-  - The first field's computed size, uncorrected, is the document's size. `fieldFontSize` is the one
-    sizing function, and a field only ever shrinks the carried size to fit itself.
+  - With no size chosen anywhere, the first field's computed size, uncorrected, is the document's size.
+    `fieldFontSize` is the one sizing function, and a field only ever shrinks the carried size to fit
+    itself.
   - Direction comes from typed letters. Until then every new box, free or on a field, starts in the
     document's direction, or for a field on a document with none yet, the page's printed direction.
     Digits and dates render LTR by design and never change the document's direction.
@@ -199,9 +201,17 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Without that rule a redo can re-insert an element a still-live later command assumed was gone.
   Undo->redo preserves exact z-order *because of* it: `restoreSnapshots` splices at
   `Math.min(index, restored.length)`.
-- **Undo covers add and delete only** (`HistoryOperation`), so redo does too. Moves, resizes, styling
-  and typing are deliberately untracked; "I nudged a box and can't get it back" is not a redo bug and
-  is not fixed by one - it needs a third `update` operation carrying before/after snapshots.
+- **Undo covers add, delete and update** (`HistoryOperation`, UNDO-04), so redo does too. An
+  `update` entry carries only the changed fields, `{ id, before, after }`, and is reverted in place.
+  It is logged at each tool's one choke point (`updateElement` in Sign's `PdfWorkspace.tsx` and in
+  `PdfRedactTool.tsx`) through `createUpdateEntry` (`src/editor/model/updateKind.ts`), never in
+  gesture code: the gesture controller already commits once per gesture, so one gesture is one step.
+  Typing is one step per text edit session (`group`), and the textarea's native undo still owns
+  Cmd/Ctrl+Z while it is focused. `pushCommand` folds same-element changes of one kind within 500ms
+  into one step, never while a redo is pending, and caps history at `MAX_HISTORY_DEPTH` (also on
+  restore). Drag-create dispatches `UPDATE_ELEMENT` directly and must stay unlogged: its `add` entry
+  is the step. No "Moved · Undo" chip. Undo does not roll back the carried or app-wide style
+  (SIGN-33/35): undoing a colour change leaves the next placement in that colour (open question, 2026-09-26).
 - **Redo must bump `documentRevision`,** exactly as undo does: SIGN-14 makes any edit revoke a
   prepared share file and a running export, and a redo that skipped it would let a stale export
   download against a changed document.
@@ -214,6 +224,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   toolbar's own already-positioned rect (feedback loop near the top edge).
 - Gesture-time measurement is read-only at pointer-down, never in a render effect (draft-restore sizing
   drift).
+- Every text box but a comb has the alignment control (SIGN-36): a free box's lines align within its
+  widest line, on screen and in the export alike (`textPdf.ts`). A comb places one character per cell.
 - Creation defaults come from the document's carried style (see "Document memory" above). Whiteout
   carries its own colour and never takes the text or shape colour.
 - Active-state visibility lives in the CSS cascade (`.sign-element.active .sign-element-actions`), never

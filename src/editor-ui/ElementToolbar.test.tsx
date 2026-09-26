@@ -160,9 +160,9 @@ describe('ElementToolbar alignment control', () => {
     return container.querySelector('button[title^="Text sits"], button[title^="Text is centred"]') as HTMLButtonElement | null;
   }
 
-  it('offers it only on a box spanning a detected cell - not a free box, not a comb', () => {
+  it('offers it on a field box and a free box, but not on a comb', () => {
     expect(mount({ text: '0528200202', minWidth: 13 })).not.toBeNull();
-    expect(mount({ text: '0528200202' })).toBeNull();
+    expect(mount({ text: '0528200202' })).not.toBeNull();
     expect(mount({ text: '038243085', width: 17 })).toBeNull();
   });
 
@@ -176,6 +176,18 @@ describe('ElementToolbar alignment control', () => {
     expect(centred.title).toBe('Text is centred in its field. Click to move it right');
     act(() => centred.click());
     expect(changes[1]).toEqual({ textAlign: 'right' });
+  });
+
+  it('on a free box with no textAlign, shows the direction\'s start edge and advances on click', () => {
+    const changes: Record<string, unknown>[] = [];
+    const ltr = mount({ text: 'hello' }, (change: Record<string, unknown>) => changes.push(change))!;
+    expect(ltr.title).toBe('Text sits at the left of its field. Click to centre it');
+    act(() => ltr.click());
+    expect(changes).toEqual([{ textAlign: 'center' }]);
+    // A strong-direction first letter (here Hebrew) decides the box's own
+    // direction ahead of the `textDirection` seed.
+    const rtl = mount({ text: 'שלום' }, (change: Record<string, unknown>) => changes.push(change))!;
+    expect(rtl.title).toBe('Text sits at the right of its field. Click to move it left');
   });
 });
 

@@ -8,7 +8,9 @@ import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../../editor/text/comb.js';
+import CombCells from './CombCells.tsx';
 import { englishSignMessages, type SignMessages } from '../../../../i18n/toolMessages';
+import { useTextFill } from '../../fill/FillContext.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
@@ -30,6 +32,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const isCoarsePointer = useCoarsePointer();
+  // SNG-15: null outside fill mode (docs/sign-fill-mode.md, "the text
+  // element's fill props travel by context"). FillLayer supplies it per
+  // element; production never provides TextFillContext, so this is always
+  // null there and every branch below that reads it is a no-op.
+  const fill = useTextFill();
   const [scaleFactor, setScaleFactor] = useState(1);
   const { getScaleFactor } = usePdfCoordinates();
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -197,6 +204,14 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     }
     onChange({ text });
   };
+  // SNG-15: the platform's own next/previous do the hopping (docs/sign-fill-mode.md).
+  // Only wired when `fill` is set (see the textarea below), so this is a no-op
+  // outside fill mode; the `fill` guard inside is defence in depth, not load-bearing.
+  const handleFillEnterKey = (event: KeyboardEvent) => {
+    if (!fill || event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
+    event.preventDefault();
+    fill.onEnter();
+  };
   // `isSpanResizing` (true for the whole grab-to-release span-handle gesture,
   // set in useElementResize.js) mounts the overlay *hidden*, so a first-ever
   // comb-creation drag has real, Preact-owned nodes to reflow from its very
@@ -265,68 +280,60 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           {(element.text || (spannedField ? '' : placeholder)) + '\u200B'}
         </div>
         {cells && (
-          <div
+          // Mounted-but-hidden while a span drag is still under the floor:
+          // text.ts's writeDOM reveals it the frame the drag makes a comb,
+          // and hides it again if the drag comes back down.
+          <CombCells
             key="comb"
-            className={elementStyles['text-comb']}
-            data-editor-text-comb
-            data-text-part="comb"
-            aria-hidden="true"
-            style={{
-              // Mounted-but-hidden while a span drag is still under the floor:
-              // text.ts's writeDOM reveals it the frame the drag makes a comb,
-              // and hides it again if the drag comes back down.
-              display: comb ? undefined : 'none',
-              fontFamily: renderedFontFamily,
-              fontWeight: typography.weight,
-              fontStyle: typography.style,
-              color: element.color || '#000000'
-            }}
-          >
-            {/* Editor-only guides. They exist to be lined up against the rules
-                printed on the page, and never reach the exported file. */}
-            {isActive && cells.slice(1).map((cell) => (
-              <span
-                key={`guide-${cell.index}`}
-                className={elementStyles['text-comb-guide']}
-                data-text-part="comb-guide"
-                style={{ left: `${(isRtl ? 1 - cell.index / cells.length : cell.index / cells.length) * 100}%` }}
-              />
-            ))}
-            {cells.map((cell) => (
-              <span
-                key={`cell-${cell.index}`}
-                className={elementStyles['text-comb-cell']}
-                data-text-part="comb-cell"
-                style={{ left: `${cell.centerFraction * 100}%` }}
-              >
-                {cell.char}
-              </span>
-            ))}
-          </div>
+            cells={cells}
+            isRtl={isRtl}
+            showGuides={isActive}
+            visible={comb}
+            color={element.color || '#000000'}
+            fontFamily={renderedFontFamily}
+            fontWeight={typography.weight}
+            fontStyle={typography.style}
+          />
         )}
         {/* Outside an edit session the textarea is inert: it cannot take the
             caret by click (pointer-events, via the class) or by Tab (tabIndex),
             and cannot be typed into (readOnly). That is what frees a plain click
             to select the element and Backspace to delete it, and it hands
             mousedown to the wrapper so a selected box can be dragged from
-            anywhere - previously the textarea swallowed it. */}
+            anywhere - previously the textarea swallowed it.
+
+            SNG-15: with `fill` set, none of that applies - this is a real fill
+            input (docs/sign-fill-mode.md), focusable and writable with no edit
+            session open, so iOS's own keyboard arrows can stop on it and typing
+            works before anything is "selected". `onInput` below is already
+            unconditional, so once the field stops being read-only/inert,
+            typing reaches `onChange` on its own - nothing else to wire. Its
+            focus does not call `onSelect`: `useFillFocus` drives selection and
+            editing in fill mode from the DOM focus event itself. */}
         <textarea
           key="input"
           ref={textareaRef}
           dir={placeholderDirection ?? textDirection}
           rows={1}
           cols={1}
-          className={`${elementStyles['text-input']}${isEditing ? '' : ` ${elementStyles['text-input-inert']}`}`}
+          className={`${elementStyles['text-input']}${fill ? ` ${elementStyles['text-input-fill']}` : (isEditing ? '' : ` ${elementStyles['text-input-inert']}`)}`}
           data-editor-text-input
           data-text-part="input"
+          data-fill-input={fill ? '' : undefined}
+          data-fill-key={fill ? fill.fillKey : undefined}
+          enterkeyhint={fill ? fill.enterKeyHint : undefined}
+          // Fill mode moves focus on every hop, and iOS applies a pending autocorrection
+          // as focus leaves: a name would be "corrected" into a word (SNG-15, iOS 26).
+          autocorrect={fill ? 'off' : undefined}
           aria-invalid={needsAttention || undefined}
           aria-describedby={fontMessage ? fontDescriptionId : undefined}
-          readOnly={!isEditing}
-          tabIndex={isEditing ? undefined : -1}
+          readOnly={fill ? false : !isEditing}
+          tabIndex={fill ? 0 : (isEditing ? undefined : -1)}
           value={element.text}
           placeholder={placeholder}
           onInput={handleInput}
-          onFocus={onSelect}
+          onFocus={fill ? undefined : onSelect}
+          onKeyDown={fill ? handleFillEnterKey : undefined}
           style={{
             textAlign,
             fontSize: `${textFontSize}px`,
@@ -360,6 +367,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         // itself is the authoritative type boundary, so preserve that input
         // compatibility while the registry remains type-driven.
         element={{ ...element, type: 'text' }}
+        // SNG-15: shown exactly as production shows them, fill mode or not -
+        // parity with production's own handles is the product goal
+        // (docs/sign-fill-mode.md). The only fill-mode difference kept
+        // anywhere in this element is native focus on the textarea, which
+        // DraggableWrapper.tsx owns.
         isActive={isActive}
         onResizeStart={onResizeStart}
         messages={messages}

@@ -1,0 +1,104 @@
+/*
+ * Fill mode (SNG-15): the chrome FieldSlot.tsx renders (docs/sign-fill-mode.md,
+ * "Hints"). Position, size and font all vary per slot instance and stay inline
+ * (styling.md's runtime-geometry boundary) - only state that is the same shape
+ * for every slot lives here. Colors are tokens from src/styles/global.css only.
+ */
+
+/* At rest: a faint frame and a trace of fill, so an empty form reads as
+   "these are the spots to write in" without competing with the page's own
+   print. The same color-mix idiom FormFieldHints.module.css already uses
+   for its own faint fill, at a lower strength since a slot sits directly on
+   top of the printed field rather than beside it.
+   Shared with .comb-overlay below: both sit exactly where the text element
+   the slot becomes will, so they take the same line-height rather than each
+   declaring its own copy of it. */
+.slot,
+.comb-overlay {
+  /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
+     slot has to sit exactly where the text element it becomes will. */
+  line-height: 1.05;
+}
+
+.slot {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  color: var(--color-text);
+  outline: none;
+  /* Nothing of ours sits on top of a slot, but this stays explicit: iOS
+     skips a field whose centre hit-test lands elsewhere (SNG-14), and a
+     slot must never inherit `pointer-events: none` from a layer that
+     otherwise lets taps pass through to production. */
+  pointer-events: auto;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+/* The comb-cell overlay FieldSlot.tsx draws on top of the real (transparent-text)
+   input: positioned exactly over it, and never the tap target itself. Runtime
+   geometry (left/top/width/height/font-size) stays inline; only these fixed
+   declarations move here. */
+.comb-overlay {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The real input's own comb-specific look, static apart from the caret colour
+   (which follows the live element's own colour and stays inline): the typed
+   text is invisible so the CombCells overlay above is what is actually seen. */
+.slot-comb {
+  color: transparent;
+}
+
+/* The droppable look (docs/sign-fill-mode.md, "Hints"): the target the
+   armed tool's own reach (fillReach.ts) would tap next. A solid frame, a
+   soft outer ring and a light fill - distinct from the faint rest state at
+   a glance, on a phone as much as a desktop. --color-primary-ring is the
+   palette's own translucent "ring" token, which is the soft half of this;
+   the clear, solid line is what :focus-visible below draws instead. */
+.slot.aimed {
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 4px var(--color-primary-ring);
+}
+
+/* A clear focus line, layered over either state above - the outline paints
+   outside the border box, so it never competes with the aimed ring's own
+   box-shadow. Same treatment as the sitewide default (global.css), made
+   explicit here since a focused slot is one of this component's own named
+   states rather than an incidental default. */
+.slot:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* FocusProxy.tsx: focused inside the touch handler so iOS raises the keyboard
+   before the real slot exists (MOBI-24). 16px so iOS never zooms the page to
+   focus it; fixed position, 1px and fully transparent so it is never seen. */
+.proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* On the page overlay while a tool other than Text is armed (docs/sign-fill-mode.md,
+   "What each tool reaches"): fill inputs stop taking taps, so a tap on a field
+   reaches that tool (Date lands in the field, a mark in its box) instead of
+   focusing the field for typing. The attribute is every fill input's own
+   (fillTypes.ts, FILL_INPUT_ATTR); it outranks .slot and .text-input-fill. */
+.taps-go-to-tool [data-fill-input] {
+  pointer-events: none;
+}

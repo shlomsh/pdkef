@@ -34,7 +34,7 @@ Why it matters beyond looks:
 
 ## Shlomi's answers (2026-09-25)
 
-1. **Flat vector, not fillable.** It teaches the rule that works on every form (tap to write, plus the spots we found), and it exercises the detection path most real forms take.
+1. **Flat vector, not fillable**, like most forms people bring, so the practice form behaves the way real ones do.
 2. **No Hebrew version.**
 3. **No Redact sample:** "there is no complexity there".
 
@@ -45,6 +45,7 @@ Why it matters beyond looks:
 - Its ground truth can no longer come from widgets (`generate-live-form-truth.mjs` reads widgets). Generate it from the content module's own layout, every drawn field's rect and kind, and re-record the baseline.
 - Audit every e2e spec that loads `sample.pdf`. Keep v1 as a fixture where a spec depends on its geometry.
 - Re-shoot the how-to-sign screenshots (iPhone, Android, Mac content pages) that show the practice form.
+- (Proposed, for Shlomi) Add what real forms ask for: a yes/no block, a "check the following if they apply" list, a "delete whichever does not apply" line, and a section for the employer, so the practice form teaches every mark and shows that some blanks are not yours.
 
 ## Acceptance
 

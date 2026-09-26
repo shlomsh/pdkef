@@ -274,12 +274,19 @@ describe('editor workspace preferences', () => {
       expect(getAppStyle({ userScope: scope })).toEqual({ color: '#222222' });
     });
 
-    it('never stores or reads back fontSize or direction', () => {
-      expect(rememberAppStyle({ color: '#333333', fontSize: 24, direction: 'rtl' }, { userScope: scope })).toBe(true);
+    it('never stores or reads back direction', () => {
+      expect(rememberAppStyle({ color: '#333333', direction: 'rtl' }, { userScope: scope })).toBe(true);
       const style = getAppStyle({ userScope: scope });
       expect(style).toEqual({ color: '#333333' });
-      expect(style).not.toHaveProperty('fontSize');
       expect(style).not.toHaveProperty('direction');
+    });
+
+    it('round-trips fontSize (SIGN-35 reopened), and drops a non-positive one alone', () => {
+      expect(rememberAppStyle({ fontSize: 24 }, { userScope: scope })).toBe(true);
+      expect(getAppStyle({ userScope: scope })).toEqual({ fontSize: 24 });
+
+      expect(rememberAppStyle({ color: '#333333', fontSize: -1 }, { userScope: scope })).toBe(true);
+      expect(getAppStyle({ userScope: scope })).toEqual({ color: '#333333', fontSize: 24 });
     });
 
     it('reads as empty on the wrong schema version or unparsable JSON', () => {
@@ -291,7 +298,7 @@ describe('editor workspace preferences', () => {
     });
 
     it('rejects a patch with only invalid or document-only keys and writes nothing', () => {
-      expect(rememberAppStyle({ fontSize: 24, direction: 'rtl', strokeWidth: -1 }, { userScope: scope })).toBe(false);
+      expect(rememberAppStyle({ direction: 'rtl', strokeWidth: -1 }, { userScope: scope })).toBe(false);
       expect(localStorage.getItem(appStyleKey)).toBeNull();
     });
 

@@ -34,7 +34,7 @@ where i chose another color already."
 
 ## Decisions (the lead's calls)
 
-- **Size and direction stay with the document.** They describe one form, not the person: the size is fitted
+- **Size and direction stay with the document** (the size part was reversed on 2026-09-26, see Reopened). They describe one form, not the person: the size is fitted
   to that form's cells (SIGN-32: "a new document does not inherit another document's size"), and the
   direction is the language it is filled in (SIGN-32 reopened: "not a browser-wide preference"). An
   app-wide size would stop a new form's first field from sizing itself, and an app-wide RTL would open
@@ -78,3 +78,26 @@ where i chose another color already."
   (`ElementToolbar`'s `canAlign` needs a box spanning a field). On a one-line box that hugs its text,
   alignment is invisible. It shows on wrapped text. This was already true within a document since
   SIGN-33, and now it also reaches new documents.
+
+## Reopened (2026-09-26): the size follows the person too
+
+Shlomi was asked whether the font size should follow the person across documents, and said yes.
+
+- The size joins the app-wide style. `DOCUMENT_ONLY_KEYS` is now only the direction.
+- An A-, an A+ or a resize drag in any document sets the size new documents start from. Each field
+  still only shrinks that size to fit its own cell (`fieldFontSize`).
+- Until the person has set a size anywhere, a document's first field still seeds the size from its own
+  height. That seed stays with the document: a computed size is not a choice.
+
+- [x] A size set in one document is where a new document's text starts, and a document with its own
+  size keeps it (unit tests, and the A/B/A e2e).
+- [x] SIGN-35's decisions, the editor rule and `CLAUDE.md` say only the direction stays per document.
+
+## Done (2026-09-26, reopened section)
+
+- `DOCUMENT_ONLY_KEYS` is the direction alone. An A-, an A+ or a resize drag now writes the size to the
+  document and the app-wide style (`chooseStyle.ts`). The first field's computed size still seeds only
+  its own document, and only when no size resolves.
+- Tests: `carriedPatch`, `preferenceStore` (the size round-trips, a bad one drops alone) and `chooseStyle`.
+  The A/B/A e2e now expects B's first text at A's size, and each document's own size back after the
+  reload.
