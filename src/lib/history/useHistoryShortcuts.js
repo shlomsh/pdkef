@@ -1,4 +1,4 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 
 // Global undo/redo shortcuts over the shared action-history model
 // (src/editor/model/actionHistory.ts, src/editor/model/historyStack.ts):
@@ -12,7 +12,14 @@ import { useEffect } from 'preact/hooks';
 // onRedo is optional: a caller with no redo wired yet (or a tool with no redo
 // concept at all) can pass undefined and Shift+Cmd/Ctrl+Z and Ctrl+Y simply
 // do nothing there.
+//
+// The listener subscribes once and reads the handlers from a ref written
+// during render. Re-subscribing per render left a gap: effects run after
+// paint, so a Redo pressed right after an Undo reached the previous render's
+// handler, whose redo stack was still empty, and was silently dropped.
 export function useHistoryShortcuts(onUndo, onRedo) {
+  const handlers = useRef({ onUndo, onRedo });
+  handlers.current = { onUndo, onRedo };
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -32,12 +39,12 @@ export function useHistoryShortcuts(onUndo, onRedo) {
       // Only once we know we are going to act on it. A redo chord with no
       // handler wired should fall through to the browser rather than become a
       // key that does nothing anywhere.
-      const handler = isUndoKey ? onUndo : onRedo;
+      const handler = isUndoKey ? handlers.current.onUndo : handlers.current.onRedo;
       if (!handler) return;
       e.preventDefault();
       handler();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onUndo, onRedo]);
+  }, []);
 }
