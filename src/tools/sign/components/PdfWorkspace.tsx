@@ -14,9 +14,8 @@ import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { EditorElement, EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
 import { createElementId } from '../../../editor/model/ids.ts';
 import { orderTypableFields } from '../../../editor/text/fieldOrder.ts';
-import { useSignTool } from './SignToolContext.tsx';
-import { carriedPatchFor } from '../../../editor/model/carriedPatch.ts';
-import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
+import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
@@ -26,7 +25,6 @@ import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
-import { detectTextDirection } from '../../../lib/signHelpers.js';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../signExportReadiness.ts';
@@ -37,7 +35,9 @@ import {
   captureElementSnapshots,
   type HistoryLogger,
 } from '../../../editor/model/actionHistory.ts';
-import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../../i18n/toolMessages';
+import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
+import { uniqueId } from '../../../editor/model/ids.ts';
+import { englishSignMessages, formatMessage, signElementTypeLabel, signUpdateDescription, type SignMessages } from '../../../i18n/toolMessages';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import formFieldHintStyles from './FormFieldHints.module.css';
@@ -190,9 +190,13 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carried },
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory },
     dispatch,
   } = useSignTool();
+  // SIGN-35: the document's resolved style - its own carried keys over the
+  // app-wide style (the person's latest choice in any document) - is what
+  // every placement below starts from, never `carried` alone.
+  const style = useDocumentStyle();
   useAutoFontProvisioning(elements);
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -214,21 +218,22 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
-    initialColor: activeTextElement?.color || carried.color,
-    initialWhiteoutColor: carried.whiteoutColor,
-    initialStrokeWidth: carried.strokeWidth,
-    // The document's carried style (SIGN-33), never the currently selected
-    // element's own - a comb shrunk to fit its own cell must not leak that
-    // shrink into the next, unrelated placement. See useWorkspaceGestures.ts's
-    // fieldFontSize-backed resolution. A fresh document (`carried` missing a
-    // key) falls back to auto-detecting direction from what is typed (as
-    // before); once typing or an explicit toggle has set it, every field
-    // placed after takes it, the same "whatever it ends up in carries" rule
-    // every carried key follows.
-    carried,
-    initialDateFormat: carried.dateFormat,
-    initialSymbolWidth: carried.symbolWidth,
-    initialSymbolMark: carried.symbolMark,
+    initialColor: activeTextElement?.color || style.color,
+    initialWhiteoutColor: style.whiteoutColor,
+    initialStrokeWidth: style.strokeWidth,
+    // The document's resolved style (SIGN-35: its own carried keys over the
+    // app-wide style), never the currently selected element's own - a comb
+    // shrunk to fit its own cell must not leak that shrink into the next,
+    // unrelated placement. See useWorkspaceGestures.ts's fieldFontSize-backed
+    // resolution. A key neither the document nor the app-wide style has yet
+    // falls back to auto-detecting direction from what is typed (as before);
+    // once typing or an explicit toggle has set it, every field placed after
+    // takes it, the same "whatever it ends up in carries" rule every carried
+    // key follows.
+    carried: style,
+    initialDateFormat: style.dateFormat,
+    initialSymbolWidth: style.symbolWidth,
+    initialSymbolMark: style.symbolMark,
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
@@ -236,7 +241,7 @@ export default function PdfWorkspace({
   });
 
   // --- Fill mode (SNG-15, docs/sign-fill-mode.md). Inert unless ?next=1. ---
-  // Slots take the document's carried font and size (SIGN-33), never the
+  // Slots take the document's resolved font and size (SIGN-35), never the
   // selected element's, so empty fields never re-layout as focus moves between
   // filled ones; a commit places exactly what a tap would.
   const fill = useFill();
@@ -257,10 +262,10 @@ export default function PdfWorkspace({
     order: fieldOrder,
     textElements: elements.filter((el): el is TextElement => el.type === 'text'),
     freeAt: fill.freeAt,
-    typography: { fontFamily: carried.font ?? DEFAULT_FONT_FAMILY, carriedFontSize: carried.fontSize ?? null },
+    typography: { fontFamily: style.font ?? DEFAULT_FONT_FAMILY, carriedFontSize: style.fontSize ?? null },
     pageSizeOf,
     directionOfPage,
-  }) : []), [fill.enabled, fieldOrder, elements, fill.freeAt, carried.font, carried.fontSize, pageSizeOf, directionOfPage]);
+  }) : []), [fill.enabled, fieldOrder, elements, fill.freeAt, style.font, style.fontSize, pageSizeOf, directionOfPage]);
   const fillPages = useMemo(() => fillItemsByPage(fillItems, numPages), [fillItems, numPages]);
   const reachTargetsByPage = useMemo(() => {
     const byPage = new Map<number, ReachTarget[]>();
@@ -281,13 +286,13 @@ export default function PdfWorkspace({
     const size = pageSizeOf(slot.pageIndex);
     return {
       id,
-      color: carried.color ?? DEFAULT_COLOR_BLUE,
-      carried,
+      color: style.color ?? DEFAULT_COLOR_BLUE,
+      carried: style,
       pageDirection: directionOfPage(slot.pageIndex),
       pageWidthPoints: size.width,
       pageHeightPoints: size.height,
     };
-  }, [pageSizeOf, carried, directionOfPage]);
+  }, [pageSizeOf, style, directionOfPage]);
 
   // The element this slot would become with `text` in it, for FieldSlot's
   // live comb layout and direction preview. A fixed id: it never reaches
@@ -298,25 +303,36 @@ export default function PdfWorkspace({
 
   // A slot left with text in it becomes a text element: one ADD_ELEMENT, one undo
   // step, built from exactly what handlePageClick places a tap with. Like a tap,
-  // the first placement seeds the document's carried font and size.
+  // the first placement seeds only the document's size (SIGN-35: seeding is not
+  // choosing, so the font is never seeded).
   const commitSlot = useCallback((slot: FillSlot, text: string) => {
     const element = elementForSlot(slot, text, slotElementBase(slot, createElementId()));
-    const seed: Partial<DocumentStyle> = {};
-    if (carried.font === undefined) seed.font = element.fontFamily;
-    if (carried.fontSize === undefined) seed.fontSize = element.fontSize;
-    if (Object.keys(seed).length > 0) dispatch({ type: 'SET_CARRIED', payload: seed });
+    if (style.fontSize === undefined) dispatch({ type: 'SET_CARRIED', payload: { fontSize: element.fontSize } });
     dispatch({ type: 'ADD_ELEMENT', payload: element });
     logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
-  }, [slotElementBase, carried, dispatch, logAction, t, elements.length]);
+  }, [slotElementBase, style, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
-  // These are keyed on dispatch/remember* which are stable across renders, so
-  // useCallback gives us referential stability without the per-element closure
-  // allocation that was happening inside the .map() call.
+  // Hoisted so the map loop does not allocate a closure per element; several
+  // of these depend on `elements` and so change identity when it does.
 
+  // A new id per text edit session, so a session's typing is one Undo step.
+  const editSession = useMemo(() => uniqueId(), [editingElementId]);
+
+  // Every move, resize, style change and keystroke passes through here; one
+  // gesture commits once (src/lib/gestures/controller.ts), typing groups by
+  // edit session, pushCommand folds bursts.
   const updateElement = useCallback((id: string, changes: EditorElementPatch) => {
+    const element = elements.find((e) => e.id === id);
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
-  }, [dispatch]);
+    const entry = element && createUpdateEntry(
+      element,
+      changes as Partial<EditorElement>,
+      (kind) => signUpdateDescription(t, kind, element.type),
+      editingElementId === id ? editSession : undefined,
+    );
+    if (entry) dispatch({ type: 'ADD_ACTION_HISTORY', payload: entry });
+  }, [dispatch, elements, editingElementId, editSession, t]);
 
   const deleteElement = useCallback((id: string) => {
     const el = elements.find(e => e.id === id);
@@ -347,11 +363,10 @@ export default function PdfWorkspace({
     // a resize drag, direction, alignment, bold, italic, date format, symbol
     // mark and size, line thickness, whiteout colour, signature width) becomes
     // this document's carried style, so the next element starts in it. A
-    // placement's own fit-shrink never comes through here, so it never carries.
-    if (element) {
-      const carriedPatch = carriedPatchFor(element, fields, detectTextDirection);
-      if (Object.keys(carriedPatch).length > 0) dispatch({ type: 'SET_CARRIED', payload: carriedPatch });
-    }
+    // placement's own fit-shrink never comes through here, so it never
+    // carries. SIGN-35: the same explicit change also writes the app-wide
+    // style, so a new document starts from it too - see chooseStyle.ts.
+    if (element) chooseStyle(element, fields, dispatch);
   }, [updateElement, elements, dispatch]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {

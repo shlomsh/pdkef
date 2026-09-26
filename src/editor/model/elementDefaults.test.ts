@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { elementDefaultsFor } from './elementDefaults.ts';
+import { elementDefaultsFor, resolveDocumentStyle } from './elementDefaults.ts';
 import type { DocumentStyle } from './documentStyle.ts';
 
 // Mirrors today's constants.js/SignDefaultsContext fallbacks (DEFAULT_FONT_FAMILY,
@@ -167,5 +167,47 @@ describe('elementDefaultsFor', () => {
   it('blackout/blur (Redact-only types) carry no document style', () => {
     expect(elementDefaultsFor({ color: '#ff0000' }, 'blackout', DEFAULTS)).toEqual({});
     expect(elementDefaultsFor({ color: '#ff0000' }, 'blur', DEFAULTS)).toEqual({});
+  });
+});
+
+// SIGN-35: the document's own choice, else the person's latest choice in any
+// document, else the shipped default - key by key.
+describe('resolveDocumentStyle', () => {
+  it('a new document with no app-wide style resolves to the shipped defaults', () => {
+    expect(resolveDocumentStyle({}, {}, DEFAULTS)).toEqual(DEFAULTS);
+  });
+
+  it('a new document starts from the app-wide style where the person chose one', () => {
+    const resolved = resolveDocumentStyle({}, { color: '#000000', bold: true }, DEFAULTS);
+    expect(resolved).toEqual({ ...DEFAULTS, color: '#000000', bold: true });
+  });
+
+  it("a document's own key wins over the app-wide style", () => {
+    const resolved = resolveDocumentStyle({ color: '#000000' }, { color: '#1463ff' }, DEFAULTS);
+    expect(resolved.color).toBe('#000000');
+  });
+
+  it('a key the document never set follows the app-wide style, alongside the keys it did set', () => {
+    const resolved = resolveDocumentStyle({ color: '#000000' }, { color: '#1463ff', dateFormat: 'mdy' }, DEFAULTS);
+    expect(resolved).toEqual({ ...DEFAULTS, color: '#000000', dateFormat: 'mdy' });
+  });
+
+  it('without defaults, an unset key stays unset so the caller keeps its contextual fallback', () => {
+    const resolved = resolveDocumentStyle({ fontSize: 14 }, { color: '#000000' });
+    expect(resolved).toEqual({ fontSize: 14, color: '#000000' });
+    expect('direction' in resolved).toBe(false);
+  });
+
+  it('an undefined value never masks a lower layer', () => {
+    const resolved = resolveDocumentStyle({ color: undefined }, { color: '#000000' }, DEFAULTS);
+    expect(resolved.color).toBe('#000000');
+  });
+
+  it('does not mutate its inputs', () => {
+    const carried = { color: '#000000' };
+    const appStyle = { bold: true };
+    resolveDocumentStyle(carried, appStyle, DEFAULTS);
+    expect(carried).toEqual({ color: '#000000' });
+    expect(appStyle).toEqual({ bold: true });
   });
 });

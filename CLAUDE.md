@@ -34,7 +34,7 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
-npm run check:fast        # the iteration loop: source guards, unit tests for what changed, typecheck (~20s)
+npm run check:fast        # the loop (~15s): guards, units for what changed, tsc (astro check on .astro/config edits)
 npm run check:push        # one pre-push command: the same CI oracle, narrowed to what the diff needs
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
 npm run test:e2e          # build + product e2e + font guards + export guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
@@ -43,7 +43,7 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 ```
 
 - **Iterate with `check:fast`; run `check:push` once before a push**, not after every edit and not once
-  per subagent. A subagent's brief names `check:fast` (or one spec) as its check. [tests]
+  per subagent. A subagent's brief names `check:fast -- --since <task start commit>` (or one spec). [tests]
 - E2E tests are sparse guardrails, roughly 1 e2e per 10 unit tests, only for what jsdom cannot prove
   (rendered rects, drag-time behaviour, page-edge behaviour, hydration/CSP flows). Playwright runs on
   4 workers (2 in CI); a spec that asserts a wall-clock budget goes in `PERF_BUDGETS` in
@@ -125,7 +125,8 @@ brackets carries the evidence; do not relearn it.
   exactly once on release, through `src/lib/gestures/controller.ts`. Never route `pointermove`
   through state or a store. Statically enforced by `check-gesture-golden-rule.js`. [editor]
 - **Sign's field detection and document memory are pure logic, apart from the UX.** Every setting a person
-  chooses is remembered per document, never per browser. Any Sign UX calls them and never re-derives them. [editor]
+  chooses is remembered per document and also becomes the default for new documents, except the size and
+  direction. Any Sign UX calls them and never re-derives them. [editor]
 - **Tools are one-shot; selection and text editing are separate states.** An armed tool disarms after
   one placement; double-click locks it; the "Stop" chip is the only exit on touch. [editor]
 - **Fonts render identically on screen and in the export.** Always resolve a family through

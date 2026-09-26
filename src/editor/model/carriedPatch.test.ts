@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { carriedPatchFor } from './carriedPatch.ts';
-import type { EditorElement, TextElement } from './editorModel.ts';
+import { appStylePatchFor, carriedPatchFor } from './carriedPatch.ts';
+import type { EditorElement, TextDirection, TextElement } from './editorModel.ts';
 
 // SIGN-33: one case per DocumentStyle key, mirroring PdfWorkspace.tsx's
 // makeOnChange field by field.
@@ -125,5 +125,46 @@ describe('carriedPatchFor', () => {
 
   it('a height-only resize carries nothing', () => {
     expect(carriedPatchFor(whiteoutElement, { height: 40 }, noDetect)).toEqual({});
+  });
+});
+
+// SIGN-35: what an explicit change also writes to the app-wide style.
+describe('appStylePatchFor', () => {
+  const appPatch = (
+    element: EditorElement,
+    patch: Parameters<typeof carriedPatchFor>[1],
+    detect: (text: string) => TextDirection | null = noDetect,
+  ) =>
+    appStylePatchFor(carriedPatchFor(element, patch, detect), patch);
+
+  it('a colour choice goes app-wide, text and whiteout alike', () => {
+    expect(appPatch(textElement, { color: '#000000' })).toEqual({ color: '#000000' });
+    expect(appPatch(whiteoutElement, { color: '#f5f0dc' })).toEqual({ whiteoutColor: '#f5f0dc' });
+  });
+
+  it('alignment, bold, italic, date format, symbol mark and size, thickness and signature width go app-wide', () => {
+    expect(appPatch(textElement, { textAlign: 'right', fontWeight: 'bold', fontStyle: 'italic', dateFormatId: 'mdy' }))
+      .toEqual({ textAlign: 'right', bold: true, italic: true, dateFormat: 'mdy' });
+    expect(appPatch(symbolElement, { mark: 'x', width: 8 })).toEqual({ symbolMark: 'x', symbolWidth: 8 });
+    expect(appPatch(symbolElement, { strokeWidth: 4 })).toEqual({ strokeWidth: 4 });
+    expect(appPatch(signatureElement, { width: 40 })).toEqual({ signatureWidth: 40 });
+  });
+
+  it('the size and direction stay with the document', () => {
+    expect(appPatch(textElement, { fontSize: 18 })).toEqual({});
+    expect(appPatch(textElement, { textDirection: 'rtl' })).toEqual({});
+    expect(appPatch(textElement, { text: 'שלום' }, () => 'rtl')).toEqual({});
+  });
+
+  it('a font picked from the menu goes app-wide', () => {
+    expect(appPatch(textElement, { fontFamily: 'Tinos', fontFamilyExplicit: true })).toEqual({ font: 'Tinos' });
+  });
+
+  it('a font the typing switched to belongs to the language, not the person', () => {
+    expect(appPatch(textElement, { text: 'שלום', fontFamily: 'Noto Sans Hebrew' }, () => 'rtl')).toEqual({});
+  });
+
+  it('keeps the rest of a mixed change when it drops the document-only keys', () => {
+    expect(appPatch(textElement, { color: '#d8342b', fontSize: 14, textDirection: 'rtl' })).toEqual({ color: '#d8342b' });
   });
 });

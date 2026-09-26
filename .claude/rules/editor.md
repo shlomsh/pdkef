@@ -88,15 +88,24 @@ re-deriving them.
   - `documentStyle.ts` holds the style: font, size, direction, colour, alignment, bold, italic, date
     format, symbol mark and size, line thickness, whiteout colour, signature width.
   - `carriedPatch.ts` decides what an explicit change carries.
-  - `elementDefaults.ts` decides what a new element starts from.
+  - `elementDefaults.ts` decides what a new element starts from. `resolveDocumentStyle` resolves the
+    three layers key by key: the document's own style, the app-wide style, the shipped defaults.
   - The state is `SignToolState.carried`, with one action, `SET_CARRIED`. It is saved in the draft's
     `extra.carried` and validated key by key in `draftValidation.ts`.
+  - The app-wide style (SIGN-35) is `SignToolState.appStyle`, with `SET_APP_STYLE`. It is one on-device
+    record (`preferenceStore.ts`'s `getAppStyle`/`rememberAppStyle`), read through the same validator,
+    re-read whenever a document opens, and never written into a draft. `chooseStyle.ts` writes both.
 - **The rules**, each guarded by `src/tools/sign/e2e/per-document-style.spec.js` (Shlomi's A/B/A) and
   unit tests:
-  - Every setting belongs to its document. A new document starts from the defaults. Going back to a
-    document, through recents or after a reload, brings its own settings back.
-  - Only the signature pen colour and thickness and the saved signatures follow the person across
-    documents. Never add a new browser-wide "last used" preference for a form setting.
+  - Every setting belongs to its document. Going back to a document, through recents or after a reload,
+    brings its own settings back.
+  - An explicit choice also becomes the app default (SIGN-35): a new document starts from the person's
+    latest choices, then the shipped defaults, and a key a document never set follows the latest choice.
+    The size and direction stay with the document (they describe the form's cells and language), and so
+    does a font the typing switched to. Seeding is not choosing: only the size seeds.
+  - The signature pen colour and thickness and the saved signatures are the person's, not any
+    document's. Never add a separate browser-wide "last used" preference for a form setting: it is a key
+    of `DocumentStyle`, and the app-wide layer comes with it.
   - What the person sets explicitly carries forward: A-/A+, a resize drag, a font or colour pick,
     alignment, bold, italic, a date format, a symbol mark. What the app computes does not: a field's
     fit-shrink, a date's generated text.
@@ -106,7 +115,8 @@ re-deriving them.
     document's direction, or for a field on a document with none yet, the page's printed direction.
     Digits and dates render LTR by design and never change the document's direction.
 - **Adding a setting** means one key in `DocumentStyle`, one validator line, one mapping in each of
-  `carriedPatch.ts` and `elementDefaults.ts`, and an A/B/A assertion. Never a `remember*` function, a
+  `carriedPatch.ts` and `elementDefaults.ts`, an A/B/A assertion, and a decision whether it is
+  document-only (`DOCUMENT_ONLY_KEYS`). Never a `remember*` function, a
   context value or a `localStorage` key.
 
 ## Gesture golden rule (drag, resize, and create)
@@ -189,9 +199,17 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Without that rule a redo can re-insert an element a still-live later command assumed was gone.
   Undo->redo preserves exact z-order *because of* it: `restoreSnapshots` splices at
   `Math.min(index, restored.length)`.
-- **Undo covers add and delete only** (`HistoryOperation`), so redo does too. Moves, resizes, styling
-  and typing are deliberately untracked; "I nudged a box and can't get it back" is not a redo bug and
-  is not fixed by one - it needs a third `update` operation carrying before/after snapshots.
+- **Undo covers add, delete and update** (`HistoryOperation`, UNDO-04), so redo does too. An
+  `update` entry carries only the changed fields, `{ id, before, after }`, and is reverted in place.
+  It is logged at each tool's one choke point (`updateElement` in Sign's `PdfWorkspace.tsx` and in
+  `PdfRedactTool.tsx`) through `createUpdateEntry` (`src/editor/model/updateKind.ts`), never in
+  gesture code: the gesture controller already commits once per gesture, so one gesture is one step.
+  Typing is one step per text edit session (`group`), and the textarea's native undo still owns
+  Cmd/Ctrl+Z while it is focused. `pushCommand` folds same-element changes of one kind within 500ms
+  into one step, never while a redo is pending, and caps history at `MAX_HISTORY_DEPTH` (also on
+  restore). Drag-create dispatches `UPDATE_ELEMENT` directly and must stay unlogged: its `add` entry
+  is the step. No "Moved · Undo" chip. Undo does not roll back the carried or app-wide style
+  (SIGN-33/35): undoing a colour change leaves the next placement in that colour (open question, 2026-09-26).
 - **Redo must bump `documentRevision`,** exactly as undo does: SIGN-14 makes any edit revoke a
   prepared share file and a running export, and a redo that skipped it would let a stale export
   download against a changed document.
