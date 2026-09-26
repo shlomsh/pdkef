@@ -609,7 +609,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SNG-03 | P1 | [SNG-03](backlog/tasks/SNG-03.md) · Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives the keyboard, and synchronous focus |
 | SNG-05 | P1 | [SNG-05](backlog/tasks/SNG-05.md) · The next-generation phone surface behind a flag: contextual bar, app-owned zoom, the chosen way through the page, and the finish |
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Desktop and iPad on the next-generation surface: sketches, parity, then retire the old editor paths |
 | SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
@@ -620,7 +619,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |
 | SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
@@ -643,6 +641,8 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| SNG-02 | P1 | [SNG-02](backlog/tasks/SNG-02.md) · Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it |
+| SNG-03 | P1 | [SNG-03](backlog/tasks/SNG-03.md) · Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives the keyboard, and synchronous focus |
 | SNG-11 | P1 | [SNG-11](backlog/tasks/SNG-11.md) · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it |
 | SNG-13 | P2 | [SNG-13](backlog/tasks/SNG-13.md) · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name |
 | SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
