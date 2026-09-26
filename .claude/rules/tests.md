@@ -182,3 +182,16 @@ touches an `.astro` file or a type config; CI always runs `astro check`. Port 41
 and Playwright reuses whatever holds it locally, so check:push refuses to start when another
 worktree's process (or one whose directory it cannot read) holds it. ARCH-32 is the next step:
 e2e by file-level reachability for core changes.
+
+## `npm run gate:ios`: Sign fill mode in the iOS Simulator (SNG-07)
+
+Real iOS Safari behaviour that Playwright's WebKit can't reproduce: native taps, the software keyboard,
+iOS's zoom on focus. `scripts/ios-gate/` drives a booted iPhone simulator through Appium's XCUITest
+driver and prints PASS / FAIL / MANUAL per scenario: tap a field (focus, keyboard up, no zoom out),
+type, the keyboard's Next, tap outside, and pinch then Next (zoom kept). Screenshots go to
+`$TMPDIR/pdkef-ios-gate/`.
+- Needs Xcode, a booted iPhone simulator, the preview on 4173 (`npm run build && npm run preview`), and
+  the driver once: `APPIUM_HOME=node_modules/.cache/appium npx appium driver install xcuitest@12.13.2`.
+- Run it by hand before a release and after a Sign mobile change. It is not in `check:push` or CI.
+- Pinch comes out MANUAL today: check zoom kept between fields on a real iPhone (SNG-20). Toolbar and
+  font sheet focus stay in Playwright's WebKit project (`fill-mode-phone-regressions.spec.js`).
