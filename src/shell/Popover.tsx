@@ -12,6 +12,7 @@ import {
   shift,
   autoUpdate
 } from '@floating-ui/react';
+import type { Middleware } from '@floating-ui/react';
 
 export function createPopoverMiddleware(offsetValue = 5, stablePosition = false, crossAxisOffset = 0) {
   return [
@@ -33,6 +34,7 @@ export default function Popover({
   offset: offsetValue = 5,
   crossAxisOffset = 0,
   stablePosition = false,
+  extraMiddleware,
 }: {
   trigger: any;
   content: any;
@@ -42,6 +44,11 @@ export default function Popover({
   offset?: number;
   crossAxisOffset?: number;
   stablePosition?: boolean;
+  /** SNG-17: middleware appended after `createPopoverMiddleware(...)`'s own
+   * list (e.g. `visualViewportClamp`). Passed in rather than imported here
+   * because `src/shell` must not import from `src/editor-ui` (module
+   * boundaries). */
+  extraMiddleware?: Middleware[];
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   
@@ -53,7 +60,10 @@ export default function Popover({
     onOpenChange: setOpen,
     placement,
     whileElementsMounted: autoUpdate,
-    middleware: createPopoverMiddleware(offsetValue, stablePosition, crossAxisOffset)
+    middleware: [
+      ...createPopoverMiddleware(offsetValue, stablePosition, crossAxisOffset),
+      ...(extraMiddleware ?? []),
+    ]
   });
 
   const click = useClick(context);
