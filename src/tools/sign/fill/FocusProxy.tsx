@@ -5,9 +5,23 @@
  * the real slot once it renders, with the keyboard already up.
  */
 import { useFill } from './FillContext.tsx';
+import { AUTOCORRECT_OFF } from './fillTypes.ts';
 import styles from './fill.module.css';
 
 export default function FocusProxy() {
   const { proxyRef } = useFill();
-  return <input ref={proxyRef} type="text" className={styles.proxy} tabIndex={-1} aria-hidden="true" autocomplete="off" />;
+  return (
+    <input
+      ref={proxyRef}
+      type="text"
+      className={styles.proxy}
+      tabIndex={-1}
+      aria-hidden="true"
+      autocomplete="off"
+      // The keyboard is raised on this element before focus moves to the real
+      // slot, so it carries the slot's own keyboard settings.
+      autocorrect={AUTOCORRECT_OFF}
+      spellcheck={false}
+    />
+  );
 }

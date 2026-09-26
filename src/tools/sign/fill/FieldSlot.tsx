@@ -6,7 +6,7 @@ import CombCells from '../components/nodes/CombCells.tsx';
 import { useCombCaret } from '../components/nodes/useCombCaret.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
-import type { EnterKeyHint, FillSlot } from './fillTypes.ts';
+import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from './fillTypes.ts';
 import styles from './fill.module.css';
 
 /**
@@ -138,8 +138,9 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
         aria-label={label}
         autocomplete="off"
         // Names, numbers and addresses are not prose, and iOS applies a pending
-        // autocorrection as focus leaves for the next field ("DJane" became "Do").
-        autocorrect="off"
+        // autocorrection as focus leaves for the next field (AUTOCORRECT_OFF).
+        autocorrect={AUTOCORRECT_OFF}
+        spellcheck={false}
         onInput={comb ? (event) => { handleInput(event); syncCaret(); } : handleInput}
         onKeyDown={handleKeyDown}
         onKeyUp={caretEvents.onKeyUp}

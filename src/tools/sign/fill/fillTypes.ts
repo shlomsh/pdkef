@@ -116,6 +116,16 @@ export interface TextFillProps {
 
 /** DOM contract: every fill input carries both attributes. */
 export const FILL_INPUT_ATTR = 'data-fill-input';
+
+/**
+ * The `autocorrect` value every fill input carries: iOS applies a pending
+ * autocorrection as focus hops away, so a name became a word ("Dana" to "Do").
+ * WebKit exposes `autocorrect` as a boolean IDL property, and Preact assigns a
+ * prop as a property whenever the element has one, so the string "off" is
+ * truthy and turns autocorrect ON. It has to be the real boolean `false`;
+ * Preact's JSX types only declare a string, hence the one cast, kept here.
+ */
+export const AUTOCORRECT_OFF = false as unknown as string;
 export const FILL_KEY_ATTR = 'data-fill-key';
 
 /** The fill key of a placed text element's input. */
