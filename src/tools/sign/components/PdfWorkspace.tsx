@@ -12,8 +12,8 @@ import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import type { EditorElement, EditorElementPatch } from '../../../editor/model/editorModel.ts';
-import { useSignTool } from './SignToolContext.tsx';
-import { carriedPatchFor } from '../../../editor/model/carriedPatch.ts';
+import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
+import { chooseStyle } from '../chooseStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
@@ -23,7 +23,6 @@ import { describeFormDetectionFailure } from '../formDetectionDetail.ts';
 import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
-import { detectTextDirection } from '../../../lib/signHelpers.js';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
 import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../signExportReadiness.ts';
@@ -176,9 +175,13 @@ export default function PdfWorkspace({
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
   const {
-    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carried },
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory },
     dispatch,
   } = useSignTool();
+  // SIGN-35: the document's resolved style - its own carried keys over the
+  // app-wide style (the person's latest choice in any document) - is what
+  // every placement below starts from, never `carried` alone.
+  const style = useDocumentStyle();
   useAutoFontProvisioning(elements);
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
@@ -200,21 +203,22 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
-    initialColor: activeTextElement?.color || carried.color,
-    initialWhiteoutColor: carried.whiteoutColor,
-    initialStrokeWidth: carried.strokeWidth,
-    // The document's carried style (SIGN-33), never the currently selected
-    // element's own - a comb shrunk to fit its own cell must not leak that
-    // shrink into the next, unrelated placement. See useWorkspaceGestures.ts's
-    // fieldFontSize-backed resolution. A fresh document (`carried` missing a
-    // key) falls back to auto-detecting direction from what is typed (as
-    // before); once typing or an explicit toggle has set it, every field
-    // placed after takes it, the same "whatever it ends up in carries" rule
-    // every carried key follows.
-    carried,
-    initialDateFormat: carried.dateFormat,
-    initialSymbolWidth: carried.symbolWidth,
-    initialSymbolMark: carried.symbolMark,
+    initialColor: activeTextElement?.color || style.color,
+    initialWhiteoutColor: style.whiteoutColor,
+    initialStrokeWidth: style.strokeWidth,
+    // The document's resolved style (SIGN-35: its own carried keys over the
+    // app-wide style), never the currently selected element's own - a comb
+    // shrunk to fit its own cell must not leak that shrink into the next,
+    // unrelated placement. See useWorkspaceGestures.ts's fieldFontSize-backed
+    // resolution. A key neither the document nor the app-wide style has yet
+    // falls back to auto-detecting direction from what is typed (as before);
+    // once typing or an explicit toggle has set it, every field placed after
+    // takes it, the same "whatever it ends up in carries" rule every carried
+    // key follows.
+    carried: style,
+    initialDateFormat: style.dateFormat,
+    initialSymbolWidth: style.symbolWidth,
+    initialSymbolMark: style.symbolMark,
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
@@ -259,11 +263,10 @@ export default function PdfWorkspace({
     // a resize drag, direction, alignment, bold, italic, date format, symbol
     // mark and size, line thickness, whiteout colour, signature width) becomes
     // this document's carried style, so the next element starts in it. A
-    // placement's own fit-shrink never comes through here, so it never carries.
-    if (element) {
-      const carriedPatch = carriedPatchFor(element, fields, detectTextDirection);
-      if (Object.keys(carriedPatch).length > 0) dispatch({ type: 'SET_CARRIED', payload: carriedPatch });
-    }
+    // placement's own fit-shrink never comes through here, so it never
+    // carries. SIGN-35: the same explicit change also writes the app-wide
+    // style, so a new document starts from it too - see chooseStyle.ts.
+    if (element) chooseStyle(element, fields, dispatch);
   }, [updateElement, elements, dispatch]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {

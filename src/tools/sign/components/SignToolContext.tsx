@@ -5,6 +5,7 @@ import { applyHistoryEntries, revertHistoryEntries, type ActionHistoryEntry } fr
 import { pushCommand, redoStep, undoStep } from '../../../editor/model/historyStack.ts';
 import type { EditorElement, EditorElementPatch, SignToolType } from '../../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
+import { resolveDocumentStyle } from '../../../editor/model/elementDefaults.ts';
 import { ensureMinimumElementSize } from '../../../editor/geometry/minimumSize.ts';
 
 /**
@@ -27,8 +28,14 @@ export type SignToolAction =
          * draft record. Absent (or `null`) resets to `{}` - a fresh document,
          * or one restored from a draft written before this existed, starts
          * over rather than inheriting whatever the previously loaded
-         * document had. */
+         * document had; its keys still fall through to the app-wide style
+         * (SIGN-35), then the tool's own defaults. */
         carried?: Partial<DocumentStyle> | null;
+        /** SIGN-35: the app-wide style, read again from `preferenceStore.ts`
+         * whenever a document opens, so a choice made in another tab applies
+         * to the next document. Absent leaves whatever is already loaded -
+         * unlike `carried`, opening a document never resets this. */
+        appStyle?: Partial<DocumentStyle>;
       };
     }
   | { type: 'SET_ELEMENTS'; payload: EditorElement[] }
@@ -45,6 +52,11 @@ export type SignToolAction =
    * direction change (PdfWorkspace's makeOnChange) - either way everything
    * placed after takes it, until the next explicit change to that key. */
   | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> }
+  /** SIGN-35: a partial patch merged into the app-wide style, the person's
+   * latest choice in any document - `chooseStyle.ts` dispatches this beside
+   * `SET_CARRIED` for the part of an explicit change that goes app-wide. Not
+   * part of the document, so it never bumps `documentRevision`. */
+  | { type: 'SET_APP_STYLE'; payload: Partial<DocumentStyle> }
   | {
       type: 'ENSURE_MINIMUM_SIZE';
       payload: {
@@ -85,6 +97,12 @@ export interface SignToolState {
    * `PdfWorkspace`'s `makeOnChange` sets a key explicitly (A-/A+, a font
    * pick, a typed script/direction change, and so on). */
   carried: Partial<DocumentStyle>;
+  /** SIGN-35: the person's latest choice in any document, saved on the
+   * device (`preferenceStore.ts`'s `getAppStyle`/`rememberAppStyle`), never
+   * in the draft. A key `carried` never set for this document falls through
+   * to this - see `elementDefaults.ts`'s `resolveDocumentStyle` and this
+   * file's `useDocumentStyle` hook. */
+  appStyle: Partial<DocumentStyle>;
 }
 
 export interface SignToolContextValue {
@@ -121,6 +139,7 @@ const initialState: SignToolState = {
   documentRevision: 0,
   draftBaselineRevision: 0,
   carried: {},
+  appStyle: {},
 };
 
 const nextDocumentRevision = (state: SignToolState) => (state.documentRevision ?? 0) + 1;
@@ -145,9 +164,15 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         documentRevision,
         draftBaselineRevision: documentRevision,
         // A fresh file (no payload field) or a pre-SIGN-33 draft (nothing to
-        // restore) both reset to `{}` - a new document must never inherit
-        // another document's style.
+        // restore) both reset to `{}` - a new document starts with no keys of
+        // its own, so every one of them falls through to the app-wide style
+        // (SIGN-35), then the tool's own defaults.
         carried: action.payload.carried ?? {},
+        // SIGN-35: absent leaves whatever app-wide style is already loaded -
+        // unlike `carried`, a document never resets this. PdfSignTool passes
+        // `getAppStyle()` here on every load, so a choice made in another tab
+        // applies to the next document opened in this one.
+        appStyle: action.payload.appStyle ?? state.appStyle,
       };
     }
     case 'SET_TOOL': {
@@ -262,6 +287,14 @@ export function reducer(state: SignToolState, action: SignToolAction): SignToolS
         carried: { ...state.carried, ...action.payload },
         documentRevision: nextDocumentRevision(state),
       };
+    // SIGN-35: the app-wide style is not part of the document - it never
+    // bumps documentRevision, so it never marks a draft dirty or invalidates
+    // a prepared export on its own.
+    case 'SET_APP_STYLE':
+      return {
+        ...state,
+        appStyle: { ...state.appStyle, ...action.payload },
+      };
     case 'ENSURE_MINIMUM_SIZE': {
       const { id, tool, rectWidth, rectHeight, startLeftPercent, startTopPercent } = action.payload;
       return {
@@ -330,4 +363,17 @@ export function useSignTool() {
     throw new Error('useSignTool must be used within a SignToolProvider');
   }
   return context;
+}
+
+/**
+ * SIGN-35: the document's resolved style - its own `carried` keys over the
+ * app-wide style, with no defaults layered in (callers keep their own
+ * fallbacks, same as `resolveDocumentStyle`'s two-argument overload).
+ */
+export function useDocumentStyle(): Partial<DocumentStyle> {
+  const { state } = useSignTool();
+  return useMemo(
+    () => resolveDocumentStyle(state.carried, state.appStyle),
+    [state.carried, state.appStyle],
+  );
 }
