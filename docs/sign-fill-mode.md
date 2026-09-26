@@ -52,16 +52,22 @@ contract; change them first, then the pieces.
      A signature beside a printed "☐ I agree" keeps its tap. With nothing armed and a typing session open, this also finishes that
      session (`finishTyping`): otherwise the fill input the person was typing in keeps its focus while
      the reducer ends its editing state underneath it.
-  4. On an existing editor element (not a fill input or its options bar): production's own path,
-     except that a touch on an element not yet selected does not claim the gesture (SNG-04), so the
-     page pans natively and a plain tap selects through the browser's synthesised mouse click.
-  5. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
+  4. On an existing editor element whose own fill input the tap landed on, even outside the
+     element's rendered box (its hit overhang, `EditorElement.module.css`'s `inset: -4px`, common on
+     short fields): focus that element's own input, not production's select path. This is what keeps a
+     tap on one field's edge from selecting that field while another field's input still holds the
+     keyboard - focus decides, not selection.
+  5. On an existing editor element otherwise (not a fill input, its options bar, or a tap that landed
+     on its own fill input): production's own path, except that a touch on an element not yet selected
+     does not claim the gesture (SNG-04), so the page pans natively and a plain tap selects through the
+     browser's synthesised mouse click.
+  6. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
      (MOBI-24). Date goes to production's `handlePageClick` at the target's centre, so its snap lands
      where the droppable look promised. Reach is 22 px, the printed label just above a field counts,
      and between two rows the label's row wins.
-  6. Typing or something selected, and away from every spot: finish that only.
-  7. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
-  8. Everything else: production's `handlePageClick`.
+  7. Typing or something selected, and away from every spot: finish that only.
+  8. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
+  9. Everything else: production's `handlePageClick`.
   With nothing armed, a tap on a detected tick box toggles it through production's own symbol path,
   even though no tool is armed.
 - **What each tool reaches** (`fillReachTargets`): Text (and 'none', which fill mode treats the same

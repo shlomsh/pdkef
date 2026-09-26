@@ -40,6 +40,15 @@ export interface FillTapInput {
    * claims the tap first (see `fillTapDecision`'s box-before-element rule).
    */
   onElement: boolean;
+  /**
+   * The fill key of the tapped element's own textarea (`[data-fill-key]`), when the
+   * element the tap landed on is a text element with a fill input; null otherwise (not a
+   * text element, or one with no fill input, e.g. production-only text). When set, a tap
+   * on that element's hit overhang (`EditorElement.module.css`'s `inset: -4px`, common on
+   * short fields) focuses this element's own input instead of selecting the element out
+   * from under another field's keyboard.
+   */
+  elementFillKey: string | null;
   /** The tap landed on an existing mark (`[data-editor-symbol]`, e.g. a placed ✓). */
   onMark: boolean;
   /** A text session is open somewhere on the page. */
@@ -86,14 +95,16 @@ function boxClaims(input: FillTapInput, target: ReachTarget): boolean {
  * What a tap on the page does in fill mode, in the order docs/sign-fill-mode.md fixes:
  * a real input always wins; then the element's own bar; then a detected box in reach
  * (`boxClaims`, production's rule "a mark covers the very target that toggles it"); then
- * a tap on an existing editor element, production's own path; then the rest of the armed
- * tool's reach (Text and None focus a fill field, Date is placed by production at its
- * centre); then closing a typing session; then a free slot for Text or None; and only then
- * production's plain tap path. The order is the behaviour, so it stays a short list of
- * guard clauses rather than a lookup table.
+ * a tap on an existing editor element that landed on that element's own fill input,
+ * which focuses it instead of selecting the element; then a tap on an existing editor
+ * element with no fill input of its own, production's own path; then the rest of the
+ * armed tool's reach (Text and None focus a fill field, Date is placed by production at
+ * its centre); then closing a typing session; then a free slot for Text or None; and only
+ * then production's plain tap path. The order is the behaviour, so it stays a short list
+ * of guard clauses rather than a lookup table.
  */
 export function fillTapDecision(input: FillTapInput): FillTapDecision {
-  const { onFillInput, onElementBar, onElement, typing, tool, reach, at } = input;
+  const { onFillInput, onElementBar, onElement, elementFillKey, typing, tool, reach, at } = input;
   if (onFillInput) return { type: 'native' };
   // The element's own options bar always wins - Delete, colour, font - even when a
   // detected box in reach would otherwise claim the tap first (see below). Not fill
@@ -107,6 +118,10 @@ export function fillTapDecision(input: FillTapInput): FillTapDecision {
     return { type: 'delegate', at: centreOf(box), tool: 'symbol', ...(typing ? { finishTyping: true } : {}) };
   }
   if (tool === 'mark' && box) return { type: 'delegate', at: centreOf(box) };
+  // A tap landed on the element's own hit overhang, not its textarea, while another fill
+  // input holds focus: focus wins over selection, so this element's own input gets the
+  // tap and the keyboard, rather than leaving a "selected here, typing there" split.
+  if (onElement && elementFillKey) return { type: 'focus', key: elementFillKey };
   if (onElement) return { type: 'delegate' };
   if ((tool === 'text' || tool === 'none') && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
   if (tool === 'date' && reach?.kind === 'fill') return { type: 'delegate', at: centreOf(reach) };

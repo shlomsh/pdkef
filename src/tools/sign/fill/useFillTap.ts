@@ -33,7 +33,7 @@ import { reachTarget } from './fillReach.ts';
 import { fillKeyOf, focusFillInput } from './fillDom.ts';
 import { classifyTouchTap, type TapGestureSample } from '../tapOutsideDeselect.ts';
 import { useFill } from './FillContext.tsx';
-import type { FillTapDecision, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
+import { FILL_KEY_ATTR, type FillTapDecision, type FillTool, type PagePoint, type ReachTarget } from './fillTypes.ts';
 
 type OnOverlay = { currentTarget: HTMLElement };
 
@@ -128,6 +128,15 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   const ownedByElement = (target: Element | null): boolean =>
     target?.closest('[data-editor-element]') != null && fillKeyOf(target) === null;
 
+  // The fill key of the tapped element's own textarea, when the element the tap landed on
+  // (its hit overhang included, not only its rendered box) is a text element with a fill
+  // input of its own. Null for a non-text element, or one production renders without one.
+  const elementFillKeyOf = (target: Element | null): string | null =>
+    target
+      ?.closest('[data-editor-element]')
+      ?.querySelector(`[${FILL_KEY_ATTR}]`)
+      ?.getAttribute(FILL_KEY_ATTR) ?? null;
+
   const sample = (touch: Touch): TapGestureSample => ({
     x: touch.clientX,
     y: touch.clientY,
@@ -147,6 +156,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       onFillInput: fillKeyOf(target) !== null,
       onElementBar: onElementBar(target),
       onElement: ownedByElement(target),
+      elementFillKey: elementFillKeyOf(target),
       onMark: target?.closest('[data-editor-symbol]') != null,
       typing: engagedAtPress.current,
       tool,
