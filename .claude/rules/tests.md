@@ -108,6 +108,13 @@ path, three callers - CI's `checks` job (`affected-scope.mjs --run unit`, which 
 (`scripts/check-fast.mjs` calls `selectUnitTests()` on its own diff) - so none of them can select a
 different test set for the same diff.
 
+Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
+`unit-scope.mjs`) leaves git's rename detection on (`-M`), unlike `changedFiles()`'s own deliberate
+`--no-renames` (kept there for Nx *ownership*, DEBT-03 - a rename must affect both its source and
+destination folder). A real move reports only its destination (status `A`) since the same import edges
+still exist there; only a genuine, unpaired deletion keeps status `D` and triggers the whole-suite
+widen.
+
 ## The iteration loop (`check:fast`, ARCH-30)
 
 `npm run check:fast -- --since <ref>` tests what changed since `<ref>` (working tree plus untracked),
@@ -122,13 +129,6 @@ output through `tail`. check:push and CI keep `astro check` and the whole-branch
 2026-09-26 (ARCH-30): the unit step has a floor near 9s for any Sign edit because
 `PdfSignTool.test.tsx` alone takes 6s, and 3 parallel runs nearly double it, so one check per task
 beats several.
-
-Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
-`unit-scope.mjs`) leaves git's rename detection on (`-M`), unlike `changedFiles()`'s own deliberate
-`--no-renames` (kept there for Nx *ownership*, DEBT-03 - a rename must affect both its source and
-destination folder). A real move reports only its destination (status `A`) since the same import edges
-still exist there; only a genuine, unpaired deletion keeps status `D` and triggers the whole-suite
-widen.
 
 ## Nx-decided scope (`scripts/affected-scope.mjs`, `docs/nx-affected-ci.md`) - e2e, fonts, export guards
 
