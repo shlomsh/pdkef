@@ -11,10 +11,8 @@ import type { PagePoint, TextFillProps } from './fillTypes.ts';
 export interface FillContextValue {
   /** `?next=1`. When false every other field is inert and production runs unchanged. */
   enabled: boolean;
-  /** A coarse pointer: the platform's bar above the keyboard is the control while typing. */
+  /** A coarse pointer: gates `nativeFocus` in DraggableWrapper, which skips the synchronous-focus dance for a fill input since a tap there is already native focus. */
   coarse: boolean;
-  /** A fill input has focus (useFillFocus). */
-  filling: boolean;
   /** The target a tap would reach for the armed tool, shown with the droppable look. */
   aimedKey: string | null;
   setAimedKey: (key: string | null) => void;
@@ -42,7 +40,6 @@ const noop = () => {};
 export const FILL_OFF: FillContextValue = {
   enabled: false,
   coarse: false,
-  filling: false,
   aimedKey: null,
   setAimedKey: noop,
   freeAt: null,

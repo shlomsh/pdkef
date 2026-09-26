@@ -160,7 +160,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   const closeFreeSlot = useCallback(() => setFreeAt(null), []);
 
-  const { filling } = useFillFocus({
+  useFillFocus({
     enabled,
     dispatch,
     textOf: (elementId) => {
@@ -172,7 +172,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const fillContextValue = useMemo<FillContextValue>(() => ({
     enabled,
     coarse,
-    filling,
     aimedKey,
     setAimedKey,
     freeAt,
@@ -181,7 +180,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     pendingFocusKey,
     setPendingFocusKey,
     proxyRef,
-  }), [enabled, coarse, filling, aimedKey, freeAt, openFreeSlot, closeFreeSlot, pendingFocusKey]);
+  }), [enabled, coarse, aimedKey, freeAt, openFreeSlot, closeFreeSlot, pendingFocusKey]);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);

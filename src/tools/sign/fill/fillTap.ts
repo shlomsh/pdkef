@@ -40,6 +40,8 @@ export interface FillTapInput {
    * claims the tap first (see `fillTapDecision`'s box-before-element rule).
    */
   onElement: boolean;
+  /** The tap landed on an existing mark (`[data-editor-symbol]`, e.g. a placed ✓). */
+  onMark: boolean;
   /** A text session is open somewhere on the page. */
   typing: boolean;
   tool: FillTool;
@@ -58,17 +60,37 @@ function centreOf(target: ReachTarget): PagePoint {
   };
 }
 
+/** Whether a page point falls inside a box, both in the same page-percent space. */
+function pointInBox(at: PagePoint, target: ReachTarget): boolean {
+  const { box } = target;
+  return (
+    at.pageIndex === target.pageIndex &&
+    at.x >= box.left &&
+    at.x <= box.left + box.width &&
+    at.y >= box.top &&
+    at.y <= box.top + box.height
+  );
+}
+
+/**
+ * A box in reach claims a tap that landed on an existing element only for the cases the
+ * box-first rule exists for: the element is a mark (a ✓ in its own box, or a selected
+ * mark's resize handle over the next box), or the tap is inside the box itself. A tap on
+ * a signature beside a printed "☐ I agree" stays the signature's.
+ */
+function boxClaims(input: FillTapInput, target: ReachTarget): boolean {
+  return !input.onElement || input.onMark || (input.at !== null && pointInBox(input.at, target));
+}
+
 /**
  * What a tap on the page does in fill mode, in the order docs/sign-fill-mode.md fixes:
- * a real input always wins; then a detected box's own reach, before anything about the
- * tap's DOM target is even considered (production's own rule, `useWorkspaceGestures.ts`
- * `handlePageClick`: "a mark covers the very target that toggles it" - a selected mark's
- * touch-sized resize handle can sit over the next box, and that box must still win); then
- * a tap that landed on an existing editor element is production's own path, unchanged;
- * then the rest of the armed tool's own reach (Text and None focus a fill field, Date is
- * placed by production at its centre), then closing a typing session, then opening a free
- * slot for Text or None, and only then production's plain tap path. The order is the
- * behaviour, so it stays a short list of guard clauses rather than a lookup table.
+ * a real input always wins; then the element's own bar; then a detected box in reach
+ * (`boxClaims`, production's rule "a mark covers the very target that toggles it"); then
+ * a tap on an existing editor element, production's own path; then the rest of the armed
+ * tool's reach (Text and None focus a fill field, Date is placed by production at its
+ * centre); then closing a typing session; then a free slot for Text or None; and only then
+ * production's plain tap path. The order is the behaviour, so it stays a short list of
+ * guard clauses rather than a lookup table.
  */
 export function fillTapDecision(input: FillTapInput): FillTapDecision {
   const { onFillInput, onElementBar, onElement, typing, tool, reach, at } = input;
@@ -77,19 +99,18 @@ export function fillTapDecision(input: FillTapInput): FillTapDecision {
   // detected box in reach would otherwise claim the tap first (see below). Not fill
   // mode's tap: do nothing at all, so the bar's own button click runs untouched.
   if (onElementBar) return { type: 'element' };
-  // A detected box wins before a tap on an existing element is treated as selection. With
-  // nothing armed, a box tapped while a typing session is open must also end that session
-  // (finishTyping): otherwise the fill input keeps focus while the reducer ends editing
-  // underneath it. Mark armed is a deliberate tool switch already, not this drift, so it
-  // does not carry finishTyping.
-  if (tool === 'none' && reach?.kind === 'box') {
-    return { type: 'delegate', at: centreOf(reach), tool: 'symbol', ...(typing ? { finishTyping: true } : {}) };
+  // With nothing armed, a box tapped while a typing session is open must also end that
+  // session (finishTyping): otherwise the fill input keeps focus while the reducer ends
+  // editing underneath it. Mark armed is a deliberate tool switch already, so it doesn't.
+  const box = reach?.kind === 'box' && boxClaims(input, reach) ? reach : null;
+  if (tool === 'none' && box) {
+    return { type: 'delegate', at: centreOf(box), tool: 'symbol', ...(typing ? { finishTyping: true } : {}) };
   }
-  if (tool === 'mark' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach) };
+  if (tool === 'mark' && box) return { type: 'delegate', at: centreOf(box) };
   if (onElement) return { type: 'delegate' };
   if ((tool === 'text' || tool === 'none') && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
   if (tool === 'date' && reach?.kind === 'fill') return { type: 'delegate', at: centreOf(reach) };
   if (typing) return { type: 'dismiss' };
   if ((tool === 'text' || tool === 'none') && at) return { type: 'freeSlot', at };
-  return at ? { type: 'delegate', at } : { type: 'delegate' };
+  return { type: 'delegate' };
 }

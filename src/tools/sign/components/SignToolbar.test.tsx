@@ -6,7 +6,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
-import { FillContext, FILL_OFF } from '../fill/FillContext.tsx';
+import { FillContext, FILL_OFF, type FillContextValue } from '../fill/FillContext.tsx';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../../../i18n/toolMessages';
@@ -1627,28 +1627,39 @@ describe('SignToolbar Component', () => {
   // hide while a fill input was focused on a coarse (touch) pointer; it no
   // longer does, on any pointer.
   it('stays visible, as the plain toolbar, while fill mode is on and a field is being filled on a touch screen', () => {
-    container = document.createElement('div');
-    document.body.appendChild(container);
-
-    act(() => {
-      render(
+    const renderToolbar = (fillContext: FillContextValue | null) => {
+      const host = document.createElement('div');
+      document.body.appendChild(host);
+      const toolbar = (
         <SignToolProvider>
-          <FillContext.Provider value={{ ...FILL_OFF, enabled: true, filling: true, coarse: true }}>
-            <SignToolbar
-              setAnnouncement={() => {}}
-              actionHistory={[]}
-              toggleFullscreen={() => {}}
-              isFullscreen={false}
-              onSavePdf={() => {}}
-            />
-          </FillContext.Provider>
-        </SignToolProvider>,
-        container,
+          <SignToolbar
+            setAnnouncement={() => {}}
+            actionHistory={[]}
+            toggleFullscreen={() => {}}
+            isFullscreen={false}
+            onSavePdf={() => {}}
+          />
+        </SignToolProvider>
       );
-    });
+      act(() => {
+        render(
+          fillContext ? <FillContext.Provider value={fillContext}>{toolbar}</FillContext.Provider> : toolbar,
+          host,
+        );
+      });
+      return { host, toolbar: query<HTMLElement>(host, '[role="toolbar"]') };
+    };
 
-    const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
-    expect(toolbar).not.toBeNull();
-    expect(toolbar.className.trim()).toBe(styles.toolbar);
+    const plain = renderToolbar(null);
+    const filling = renderToolbar({ ...FILL_OFF, enabled: true, coarse: true });
+
+    expect(filling.toolbar).not.toBeNull();
+    expect(filling.toolbar.className).toBe(plain.toolbar.className);
+    const buttonLabels = (root: HTMLElement) => Array.from(root.querySelectorAll('button'))
+      .map((button) => button.getAttribute('aria-label') || button.textContent);
+    expect(buttonLabels(filling.toolbar)).toEqual(buttonLabels(plain.toolbar));
+
+    document.body.removeChild(plain.host);
+    document.body.removeChild(filling.host);
   });
 });

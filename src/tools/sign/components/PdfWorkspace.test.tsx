@@ -644,6 +644,22 @@ describe('PdfWorkspace Component', () => {
       });
     }
 
+    // A touchend some other handler already called preventDefault() on before it bubbled
+    // here (e.g. fill mode's tap-to-place, useFillTap) - preventDefault() just sets a flag
+    // on the event object, so calling it before dispatch is enough to reproduce that.
+    function dispatchTouchEndPrevented(target: Element, remainingTouches: Touch[], endedTouch: Touch) {
+      act(() => {
+        const event = new TouchEvent('touchend', {
+          touches: remainingTouches,
+          changedTouches: [endedTouch],
+          bubbles: true,
+          cancelable: true,
+        });
+        event.preventDefault();
+        target.dispatchEvent(event);
+      });
+    }
+
     function pagesContainer(host: HTMLDivElement): HTMLDivElement {
       return required(host.querySelector<HTMLDivElement>(`.${workspaceStyles['pages-container']}`), 'pages container');
     }
@@ -659,6 +675,19 @@ describe('PdfWorkspace Component', () => {
       dispatchTouchEnd(container, [], point);
 
       expect(dispatch).toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
+    });
+
+    it('does not deselect a touchend another handler already preventDefault()ed (e.g. fill mode tap-to-place)', () => {
+      const dispatch = vi.fn<(action: SignToolAction) => void>();
+      const state = testState({ elements: [textElement('el-1')], activeElementId: 'el-1' });
+      host = mountWorkspace({ state, dispatch });
+
+      const container = pagesContainer(host);
+      const point = touchPoint(50, 60);
+      dispatchTouchStart(container, [point]);
+      dispatchTouchEndPrevented(container, [], point);
+
+      expect(dispatch).not.toHaveBeenCalledWith({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     });
 
     it('still deselects when the finger jitters a few px before release (within slop)', () => {

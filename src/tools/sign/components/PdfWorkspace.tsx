@@ -457,6 +457,10 @@ export default function PdfWorkspace({
     const end = readTapSample(endTouch, Date.now());
     resetTouchTap();
 
+    // A touchend another handler already preventDefault()ed (e.g. useFillTap's
+    // fill-mode tap-to-place, `?next=1`) was a tap on something, not blank space -
+    // don't undo what that handler just did by deselecting here.
+    if (e.defaultPrevented) return;
     if (selectedTool) return; // an armed tool's own overlay gesture owns this tap
     if (!classifyTouchTap(start, end, { multiTouch })) return;
     if (!isBlankAreaTarget(e.target, BLANK_AREA_EXCLUDED_SELECTOR)) return;
