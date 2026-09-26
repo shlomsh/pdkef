@@ -15,6 +15,7 @@ import {
   FONT_VERTICAL_METRICS,
   baselineOffsetEmFromMetrics,
   figureCentreEm,
+  resolveFontFamily,
   textBoxPaddingEm,
 } from './fonts.js';
 
@@ -96,6 +97,55 @@ export function baselineDropEm(fontFamily: string): number {
     ? baselineOffsetEmFromMetrics(metrics.ascent, metrics.descent)
     : HELVETICA_BASELINE_OFFSET_EM;
   return offset + textBoxPaddingEm(fontFamily);
+}
+
+/**
+ * How far a family's digit ink centre sits below a text box's own top, in em.
+ *
+ * `cellTextTop` and `placeCombOnRegion` both build a `top` from a target
+ * baseline, then lift it by `baselineDropEm` to get from that baseline to the
+ * box's own top - so working backwards, `top + em * inkCentreOffsetEm(family)`
+ * is the ink centre either of them placed, for any field kind (boxed cell,
+ * open comb, or a cell's writable strip), because the figure-centre term
+ * cancels the same way in every one of their formulas. This is the one fact
+ * SIGN-39's re-top needs: not which field an element sits on, or how it was
+ * first placed, just where its own top puts the ink relative to itself.
+ */
+function inkCentreOffsetEm(fontFamily: string): number {
+  return baselineDropEm(fontFamily) - figureCentreEm(fontFamily);
+}
+
+/**
+ * SIGN-39: an element's `top` is set once, at placement, for whichever font it
+ * was typed in (SIGN-38's `cellTextTop`/`placeCombOnRegion`). Changing the
+ * font afterwards - the usual flow, type then pick a handwriting font - never
+ * re-placed it, so the digits kept the old font's height: Arimo's date sat
+ * high, a handwriting phone number sat low, both on the same form (live
+ * report). This shifts `top` so whatever ink centre the *old* font had at
+ * that `top` is exactly where the *new* font's ink centre lands, for any text
+ * element - a comb's digits and a free line's own text alike, since
+ * `inkCentreOffsetEm` is a plain per-family constant, not a field property.
+ *
+ * A no-op whenever the two families *resolve* (`resolveFontFamily`, against
+ * this element's own text) to the same face - same family picked twice, or
+ * two Latin-only handwriting fonts both forced to the same Hebrew fallback -
+ * so an element with nothing to re-centre never gets a top it didn't ask for.
+ */
+export function topKeepingInkCentre(
+  top: number,
+  { fontSize, pageHeightPoints, fromFamily, toFamily, text }: {
+    fontSize: number;
+    pageHeightPoints: number;
+    fromFamily: string;
+    toFamily: string;
+    text: string;
+  },
+): number {
+  const from = resolveFontFamily(fromFamily, text);
+  const to = resolveFontFamily(toFamily, text);
+  if (from === to) return top;
+  const em = pageHeightPoints > 0 ? (fontSize / pageHeightPoints) * 100 : 0;
+  return top + em * (inkCentreOffsetEm(from) - inkCentreOffsetEm(to));
 }
 
 /** A field a text box can be typed into, tagged with the detector it came from. */

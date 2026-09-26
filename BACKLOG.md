@@ -8,9 +8,7 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 
 ### Open
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SIGN-39 | P2 | [SIGN-39](backlog/tasks/SIGN-39.md) · Changing a placed field element's font does not re-place it |
+_None._
 
 ### In progress
 
@@ -18,6 +16,7 @@ The canonical backlog is the task-file collection in [backlog/tasks/](backlog/ta
 | --- | --- | --- |
 | SIGN-37 | P1 | [SIGN-37](backlog/tasks/SIGN-37.md) · Typed signatures are saved sharp enough for the size they are placed at |
 | SIGN-38 | P1 | [SIGN-38](backlog/tasks/SIGN-38.md) · Text placed in a form cell sits at the same height in every font |
+| SIGN-39 | P2 | [SIGN-39](backlog/tasks/SIGN-39.md) · Changing a placed field element's font does not re-place it |
 
 ### Blocked
 
