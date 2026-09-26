@@ -171,5 +171,14 @@ dist guards; anything not on that allowlist defaults to "reaches dist," same fai
 every rule above. A diff that only needs Playwright still triggers a build even when it doesn't reach
 `dist/` on its own - Playwright cannot run against a stale one. A docs-only diff runs only `check:backlog` and
 `check:guidance`, as CI does; no resolvable base or an empty diff fails open (build and every dist
-guard). Before Playwright it warns when something already listens on 4173, since Playwright reuses
-it locally and may test an older build.
+guard).
+
+ARCH-31 (measured 2026-09-26: a `merge.test.js`-only push ran 67s of Playwright, and 50 of the last
+79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.*` files (plus
+docs) runs no Playwright for a unit test and only the changed specs otherwise, with the font and
+export guards only when one of their own specs changed (`narrowTestOnlyChange()`); a spec helper or
+fixture keeps the Nx verdict. The typecheck is check:fast's `chooseTypecheck()`: tsc unless the diff
+touches an `.astro` file or a type config; CI always runs `astro check`. Port 4173 is machine-wide
+and Playwright reuses whatever holds it locally, so check:push refuses to start when another
+worktree's process (or one whose directory it cannot read) holds it. ARCH-32 is the next step:
+e2e by file-level reachability for core changes.

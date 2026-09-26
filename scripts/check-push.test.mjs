@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileCannotReachDist, reachesDist, planSteps, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
+import { fileCannotReachDist, reachesDist, planSteps, narrowTestOnlyChange, portOwnerVerdict, ALWAYS_GUARD_STEPS, DIST_GUARD_STEPS, DOCS_ONLY_STEPS } from './check-push.mjs';
 import { deriveScope, wide } from './affected-scope.mjs';
 import { classify } from './change-scope.mjs';
 
@@ -141,16 +141,13 @@ describe('planSteps', () => {
     ]);
   });
 
-  it('a sign *.test.* -only change: build still runs for Playwright, but the dist guards do not', () => {
+  it('a sign *.test.* -only change (ARCH-31): unit tests only, no build, no Playwright', () => {
     const files = ['src/tools/sign/PdfSignTool.test.tsx'];
-    // Nx is directory-scoped: a test file still affects tool-sign (and, via
-    // export-guards' own coarse dependency on tool-sign, export-guards too)
-    // exactly like the source-only change above - only reachesDist differs.
-    const scope = deriveScope({ files, affected: ['tool-sign', 'export-guards'], roots: ROOTS, toolE2eExists: () => true });
-    expect(reachesDist(files)).toBe(false);
-    const steps = planSteps({ ...scope, docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) });
-    expect(steps).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build', 'e2e:product', 'e2e:perf', 'e2e:export-guards']);
-    expect(steps).not.toEqual(expect.arrayContaining(['test:csp']));
+    // Nx is directory-scoped: the test file still affects tool-sign and,
+    // through its coarse edge, export-guards. narrowTestOnlyChange drops both.
+    const nx = deriveScope({ files, affected: ['tool-sign', 'export-guards'], roots: ROOTS, toolE2eExists: () => true });
+    const scope = narrowTestOnlyChange({ ...nx, docsOnly: classify(files).docs_only, reachesDist: reachesDist(files) }, files);
+    expect(planSteps(scope)).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck']);
   });
 
   it('a backlog + src/lib mix: docs_only is false (not every file is docs) and the core project widens to everything', () => {
@@ -192,12 +189,13 @@ describe('planSteps', () => {
     ]);
   });
 
-  it('an e2e-spec-only change: no build from reachesDist alone, but build still runs because e2e is selected', () => {
+  it('an e2e-spec-only change: build runs for Playwright, which runs only that spec', () => {
     const files = ['e2e/home/handoff.spec.js'];
-    const scope = deriveScope({ files, affected: ['site-e2e'], roots: ROOTS, siteE2ePaths: ['e2e/home/'] });
-    expect(scope.e2e_paths).toBe('e2e/home/');
+    const nx = deriveScope({ files, affected: ['site-e2e'], roots: ROOTS, siteE2ePaths: ['e2e/home/'] });
     expect(reachesDist(files)).toBe(false);
-    const steps = planSteps({ ...scope, docsOnly: false, reachesDist: false });
+    const scope = narrowTestOnlyChange({ ...nx, docsOnly: false, reachesDist: false }, files);
+    expect(scope.e2e_paths).toBe('e2e/home/handoff.spec.js');
+    const steps = planSteps(scope);
     expect(steps).toEqual([...ALWAYS_GUARD_STEPS, 'unit', 'typecheck', 'build', 'e2e:product', 'e2e:perf']);
     expect(steps).not.toEqual(expect.arrayContaining(['test:csp', 'e2e:fonts', 'e2e:export-guards']));
   });
@@ -219,5 +217,50 @@ describe('planSteps', () => {
       'e2e:fonts',
       'e2e:export-guards',
     ]);
+  });
+});
+
+describe('narrowTestOnlyChange (ARCH-31)', () => {
+  const wideScope = { everything: true, e2e_paths: '', fonts: true, export_guards: true, reason: 'core' };
+
+  it('leaves the scope alone when any non-test file changed', () => {
+    const files = ['src/tools/merge/merge.test.js', 'src/tools/merge/merge.js'];
+    expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
+  });
+
+  it('leaves the scope alone for a spec helper or fixture, which is not a spec', () => {
+    const files = ['e2e/sign/fixtures/shapingGuardHarness.js', 'e2e/sign/hebrew-guard.spec.js'];
+    expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
+  });
+
+  it('leaves an empty or docs-only diff to the existing rules', () => {
+    expect(narrowTestOnlyChange(wideScope, [])).toBe(wideScope);
+    expect(narrowTestOnlyChange(wideScope, ['docs/x.md'])).toBe(wideScope);
+  });
+
+  it('unit tests plus docs select no Playwright at all', () => {
+    const scope = narrowTestOnlyChange(wideScope, ['src/lib/format.test.js', 'backlog/tasks/ARCH-31.md', 'scripts/check-push.test.mjs']);
+    expect(scope).toMatchObject({ everything: false, e2e_paths: '', fonts: false, export_guards: false });
+  });
+
+  it('a font guard spec runs the font guards, an export guard spec the export guards, nothing else', () => {
+    expect(narrowTestOnlyChange(wideScope, ['e2e/sign/hebrew-guard.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true, export_guards: false });
+    expect(narrowTestOnlyChange(wideScope, ['e2e/sign/noto-parity.spec.js'])).toMatchObject({ e2e_paths: '', fonts: true });
+    expect(narrowTestOnlyChange(wideScope, ['e2e/export/export-render-guard.spec.js'])).toMatchObject({ e2e_paths: '', fonts: false, export_guards: true });
+  });
+
+  it('a tool spec plus a unit test runs just that spec', () => {
+    const scope = narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/merge-share.spec.js', 'src/tools/merge/merge.test.js']);
+    expect(scope).toMatchObject({ everything: false, e2e_paths: 'src/tools/merge/e2e/merge-share.spec.js', fonts: false, export_guards: false });
+  });
+});
+
+describe('portOwnerVerdict (ARCH-31)', () => {
+  const root = '/w/arch-31';
+  it('free, own, foreign, unknown', () => {
+    expect(portOwnerVerdict({ ownerCwd: null, root })).toBe('free');
+    expect(portOwnerVerdict({ ownerCwd: root, root })).toBe('own');
+    expect(portOwnerVerdict({ ownerCwd: '/w/sng15-land', root })).toBe('foreign');
+    expect(portOwnerVerdict({ ownerCwd: undefined, root })).toBe('unknown');
   });
 });

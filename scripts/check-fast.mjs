@@ -46,7 +46,7 @@ export const GUARD_STEPS = [
 // What tsc cannot see or would see stale: `.astro` files themselves, the
 // configs that shape type resolution, the content schema behind
 // `.astro/types.d.ts`, and this file (never trust a narrowed run to validate
-// the code that chose to narrow it).
+// the code that chose to narrow it, here or in check:push).
 export const ASTRO_CHECK_TRIGGERS = [
   /\.astro$/,
   /^tsconfig(\..+)?\.json$/,
@@ -54,6 +54,7 @@ export const ASTRO_CHECK_TRIGGERS = [
   /^package(-lock)?\.json$/,
   /^src\/content\.config\.ts$/,
   /^scripts\/check-fast\.mjs$/,
+  /^scripts\/check-push\.mjs$/,
 ];
 
 // Pure. `files` is the changed-path list, or null when the base could not be
@@ -98,7 +99,8 @@ function runGuard(step) {
   return run('npm', ['run', '-s', step]);
 }
 
-function runTypecheck(tool) {
+// Exported for check-push.mjs (ARCH-31), which makes the same choice.
+export function runTypecheck(tool) {
   if (tool === 'astro') return run('npx', ['astro', 'check']);
   const cacheDir = join(ROOT, 'node_modules', '.cache');
   mkdirSync(cacheDir, { recursive: true });
