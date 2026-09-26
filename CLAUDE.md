@@ -123,6 +123,8 @@ brackets carries the evidence; do not relearn it.
 - **Gesture golden rule.** Drag, resize and create mutate the DOM during the gesture and commit state
   exactly once on release, through `src/lib/gestures/controller.ts`. Never route `pointermove`
   through state or a store. Statically enforced by `check-gesture-golden-rule.js`. [editor]
+- **Sign's field detection and document memory are pure logic, apart from the UX.** Every setting a person
+  chooses is remembered per document, never per browser. Any Sign UX calls them and never re-derives them. [editor]
 - **Tools are one-shot; selection and text editing are separate states.** An armed tool disarms after
   one placement; double-click locks it; the "Stop" chip is the only exit on touch. [editor]
 - **Fonts render identically on screen and in the export.** Always resolve a family through

@@ -75,6 +75,40 @@ retire with SNG-06.
 - Warnings you may find in old tickets about "the branch broke the PDF math" or per-frame `onChange`
   in `DraggableWrapper` describe one early wip snapshot and were fixed under E0.1. Do not act on them.
 
+## Document memory and field detection: pure, apart from the UX (SIGN-32..34)
+
+Shlomi, 2026-09-26: "the behavior of the detector and the memory of the sign tool should be completely
+detached from the overall sign tool UX". The Sign UX is being rewritten (SNG). These two capabilities are
+logic, not UI, and any UX (today's editor, fill mode, whatever comes next) calls them rather than
+re-deriving them.
+
+- **Field detection** lives only in `src/tools/sign/fields/`, as pure functions behind `detectFormFields`
+  (`test:detection-purity`). How the UI draws, walks or offers a found spot never feeds back into it.
+- **Document memory** lives only in `src/editor/model/`:
+  - `documentStyle.ts` holds the style: font, size, direction, colour, alignment, bold, italic, date
+    format, symbol mark and size, line thickness, whiteout colour, signature width.
+  - `carriedPatch.ts` decides what an explicit change carries.
+  - `elementDefaults.ts` decides what a new element starts from.
+  - The state is `SignToolState.carried`, with one action, `SET_CARRIED`. It is saved in the draft's
+    `extra.carried` and validated key by key in `draftValidation.ts`.
+- **The rules**, each guarded by `src/tools/sign/e2e/per-document-style.spec.js` (Shlomi's A/B/A) and
+  unit tests:
+  - Every setting belongs to its document. A new document starts from the defaults. Going back to a
+    document, through recents or after a reload, brings its own settings back.
+  - Only the signature pen colour and thickness and the saved signatures follow the person across
+    documents. Never add a new browser-wide "last used" preference for a form setting.
+  - What the person sets explicitly carries forward: A-/A+, a resize drag, a font or colour pick,
+    alignment, bold, italic, a date format, a symbol mark. What the app computes does not: a field's
+    fit-shrink, a date's generated text.
+  - The first field's computed size, uncorrected, is the document's size. `fieldFontSize` is the one
+    sizing function, and a field only ever shrinks the carried size to fit itself.
+  - Direction comes from typed letters. Until then every new box, free or on a field, starts in the
+    document's direction, or for a field on a document with none yet, the page's printed direction.
+    Digits and dates render LTR by design and never change the document's direction.
+- **Adding a setting** means one key in `DocumentStyle`, one validator line, one mapping in each of
+  `carriedPatch.ts` and `elementDefaults.ts`, and an A/B/A assertion. Never a `remember*` function, a
+  context value or a `localStorage` key.
+
 ## Gesture golden rule (drag, resize, and create)
 
 During `pointermove`, write the DOM directly (`style.transform`, `.width/.height/.left/.top`, SVG
@@ -170,9 +204,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   toolbar's own already-positioned rect (feedback loop near the top edge).
 - Gesture-time measurement is read-only at pointer-down, never in a render effect (draft-restore sizing
   drift).
-- Creation defaults are per tool family: text, symbols, lines and shapes inherit the remembered
-  drawing/text color, size, font and typed-language direction; whiteout uses its own remembered
-  whiteout color and never the text/shape color.
+- Creation defaults come from the document's carried style (see "Document memory" above). Whiteout
+  carries its own colour and never takes the text or shape colour.
 - Active-state visibility lives in the CSS cascade (`.sign-element.active .sign-element-actions`), never
   in conditional utility strings: replacing it once produced white text on a transparent background.
 - These need a real browser: rendered toolbar rects, toolbar following a DOM-mutated drag before
