@@ -390,9 +390,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
+_None._
 
 ### Blocked
 
@@ -405,6 +403,7 @@ _None._
 | UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
 | UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
 | UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
+| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-06 | P2 | [UNDO-06](backlog/tasks/UNDO-06.md) · The change-history dialog goes; Undo and Redo are the whole model |
 
 ### Retired
