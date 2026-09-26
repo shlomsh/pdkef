@@ -616,6 +616,7 @@ _None._
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |
 | SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too |
+| SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 ### In progress
 
