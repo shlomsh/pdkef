@@ -6,6 +6,7 @@ own next and previous replaces our own ∧ ∨ throughout.*
 - **The SNG-14 spike:** [backlog/tasks/SNG-14.md](../backlog/tasks/SNG-14.md) is the evidence behind every "SNG-14" citation here: measured on the iOS 26.2 Simulator, then run by Shlomi on his own iPhone and on desktop Chrome, 2026-09-25/26.
 - **App-wide UX rules:** [ux-design-guidelines.md](./ux-design-guidelines.md), cited as UX§n. This document adds only what an editor on a phone needs, and never restates them.
 - **Existing behaviour carried forward:** `.claude/rules/editor.md` and the code, cited at file:line.
+- **Field detection and per-document memory** are logic, not UX, and any next-gen surface calls them rather than re-deriving them: `.claude/rules/editor.md`, "Document memory and field detection". This document never restates them.
 - **Markers:**
   - "(proposed)" is a rule the owner has not yet ruled on.
   - "(open)" is a decision listed in §12.
