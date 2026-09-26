@@ -199,122 +199,133 @@
       "id": "t016",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.6097,
-        "y": 0.3305,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.6109,
+        "y": 0.3326,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "גרוש/ה / מצב משפחתי"
+      "label": "גרוש/ה / מצב משפחתי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t017",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.7227,
-        "y": 0.3305,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.7239,
+        "y": 0.3326,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "נשוי/אה / מצב משפחתי"
+      "label": "נשוי/אה / מצב משפחתי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t018",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.822,
-        "y": 0.3305,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.8232,
+        "y": 0.3326,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "רווק/ה / מצב משפחתי"
+      "label": "רווק/ה / מצב משפחתי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t019",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8876,
-        "y": 0.332,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.8888,
+        "y": 0.334,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "זכר / מין"
+      "label": "זכר / מין",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t020",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.7433,
-        "y": 0.346,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.7445,
+        "y": 0.348,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "פרוד/ה / מצב משפחתי"
+      "label": "פרוד/ה / מצב משפחתי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t021",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.822,
-        "y": 0.346,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.8232,
+        "y": 0.348,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "אלמן/ה / מצב משפחתי"
+      "label": "אלמן/ה / מצב משפחתי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t022",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.8876,
-        "y": 0.3474,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.8888,
+        "y": 0.3495,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "נקבה / מין"
+      "label": "נקבה / מין",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t023",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.5203,
-        "y": 0.3317,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.5215,
+        "y": 0.3338,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "כן / תושב ישראל"
+      "label": "כן / תושב ישראל",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t024",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.5203,
-        "y": 0.3471,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.5215,
+        "y": 0.3492,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "לא / תושב ישראל"
+      "label": "לא / תושב ישראל",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t025",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.207,
-        "y": 0.3297,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.2082,
+        "y": 0.3318,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "לא / חבר בקופת חולים"
+      "label": "לא / חבר בקופת חולים",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t026",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.207,
-        "y": 0.3452,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.2082,
+        "y": 0.3472,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "כן, שם הקופה / חבר בקופת חולים"
+      "label": "כן, שם הקופה / חבר בקופת חולים",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t027",
@@ -332,34 +343,37 @@
       "id": "t028",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4176,
-        "y": 0.3328,
-        "width": 0.0115,
-        "height": 0.0103
+        "x": 0.4186,
+        "y": 0.3345,
+        "width": 0.008,
+        "height": 0.0056
       },
-      "label": "כן. הכנסותיי מועברות לקיבוץ / חבר קיבוץ/מושב שיתופי"
+      "label": "כן. הכנסותיי מועברות לקיבוץ / חבר קיבוץ/מושב שיתופי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t029",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4546,
-        "y": 0.3319,
-        "width": 0.0128,
-        "height": 0.0114
+        "x": 0.4557,
+        "y": 0.3337,
+        "width": 0.0088,
+        "height": 0.0063
       },
-      "label": "לא / חבר קיבוץ/מושב שיתופי"
+      "label": "לא / חבר קיבוץ/מושב שיתופי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t030",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4546,
-        "y": 0.3473,
-        "width": 0.0128,
-        "height": 0.0114
+        "x": 0.4557,
+        "y": 0.3492,
+        "width": 0.0088,
+        "height": 0.0063
       },
-      "label": "כן. הכנסותיי אינן מועברות לקיבוץ (8) / חבר קיבוץ/מושב שיתופי"
+      "label": "כן. הכנסותיי אינן מועברות לקיבוץ (8) / חבר קיבוץ/מושב שיתופי",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t031",
@@ -411,67 +425,73 @@
       "id": "t035",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4246,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4013,
+        "y": 0.4267,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת חודש (2) / אני מקבל/ת"
+      "label": "משכורת חודש (2) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t036",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4389,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4013,
+        "y": 0.4409,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת בעד משרה נוספת (3) / אני מקבל/ת"
+      "label": "משכורת בעד משרה נוספת (3) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t037",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4531,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4014,
+        "y": 0.4552,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת חלקית (4) / אני מקבל/ת"
+      "label": "משכורת חלקית (4) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t038",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4674,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4014,
+        "y": 0.4694,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "שכר עבודה (עובד יומי) (5) / אני מקבל/ת"
+      "label": "שכר עבודה (עובד יומי) (5) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t039",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4816,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4014,
+        "y": 0.4837,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "קצבה (6) / אני מקבל/ת"
+      "label": "קצבה (6) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t040",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4002,
-        "y": 0.4959,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.4013,
+        "y": 0.4979,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "מלגה (1) / אני מקבל/ת"
+      "label": "מלגה (1) / אני מקבל/ת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "kind": "date",
@@ -1283,133 +1303,145 @@
       "id": "t106",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3973,
-        "y": 0.5395,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.3985,
+        "y": 0.5416,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "אין לי הכנסות אחרות"
+      "label": "אין לי הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t107",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3973,
-        "y": 0.5685,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.3985,
+        "y": 0.5706,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "יש לי הכנסות אחרות"
+      "label": "יש לי הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t108",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.1992,
-        "y": 0.5827,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.2004,
+        "y": 0.5847,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "שכר עבודה (יומי) (5) / הכנסות אחרות"
+      "label": "שכר עבודה (יומי) (5) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t109",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3973,
-        "y": 0.5827,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.3985,
+        "y": 0.5847,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת חודש (2) / הכנסות אחרות"
+      "label": "משכורת חודש (2) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t110",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.1992,
-        "y": 0.5957,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.2004,
+        "y": 0.5978,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "קצבה (6) / הכנסות אחרות"
+      "label": "קצבה (6) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t111",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3973,
-        "y": 0.5957,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.3985,
+        "y": 0.5978,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת בעד משרה נוספת (3) / הכנסות אחרות"
+      "label": "משכורת בעד משרה נוספת (3) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t112",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.1992,
-        "y": 0.6088,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.2004,
+        "y": 0.6109,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "מלגה (1) / הכנסות אחרות"
+      "label": "מלגה (1) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t113",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3974,
-        "y": 0.6088,
-        "width": 0.0141,
-        "height": 0.0126
+        "x": 0.3985,
+        "y": 0.6109,
+        "width": 0.0097,
+        "height": 0.0069
       },
-      "label": "משכורת חלקית (4) / הכנסות אחרות"
+      "label": "משכורת חלקית (4) / הכנסות אחרות",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t114",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3956,
-        "y": 0.6369,
-        "width": 0.014,
-        "height": 0.0126
+        "x": 0.3968,
+        "y": 0.639,
+        "width": 0.0098,
+        "height": 0.007
       },
-      "label": "אבקש לקבל נקודות זיכוי ומדרגות מס כנגד הכנסתי זו (סעיף ד)"
+      "label": "אבקש לקבל נקודות זיכוי ומדרגות מס כנגד הכנסתי זו (סעיף ד)",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t115",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3957,
-        "y": 0.6646,
-        "width": 0.014,
-        "height": 0.0126
+        "x": 0.3969,
+        "y": 0.6667,
+        "width": 0.0098,
+        "height": 0.007
       },
-      "label": "אני מקבל/ת נקודות זיכוי ומדרגות מס מהכנסה אחרת"
+      "label": "אני מקבל/ת נקודות זיכוי ומדרגות מס מהכנסה אחרת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t116",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3957,
-        "y": 0.6934,
-        "width": 0.014,
-        "height": 0.0126
+        "x": 0.3969,
+        "y": 0.6955,
+        "width": 0.0098,
+        "height": 0.007
       },
-      "label": "אין מפרישים עבורי לקרן השתלמות בגין הכנסתי האחרת"
+      "label": "אין מפרישים עבורי לקרן השתלמות בגין הכנסתי האחרת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t117",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.3957,
-        "y": 0.7342,
-        "width": 0.014,
-        "height": 0.0126
+        "x": 0.3969,
+        "y": 0.7363,
+        "width": 0.0098,
+        "height": 0.007
       },
-      "label": "אין מפרישים עבורי לקצבה/לביטוח אובדן כושר עבודה בגין הכנסתי האחרת"
+      "label": "אין מפרישים עבורי לקצבה/לביטוח אובדן כושר עבודה בגין הכנסתי האחרת",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t118",
@@ -1489,45 +1521,49 @@
       "id": "t124",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.4745,
-        "y": 0.8505,
-        "width": 0.0154,
-        "height": 0.0137
+        "x": 0.4758,
+        "y": 0.8528,
+        "width": 0.0106,
+        "height": 0.0075
       },
-      "label": "יש לבן/בת הזוג הכנסה מ:"
+      "label": "יש לבן/בת הזוג הכנסה מ:",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t125",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.6884,
-        "y": 0.8505,
-        "width": 0.0154,
-        "height": 0.0137
+        "x": 0.6897,
+        "y": 0.8528,
+        "width": 0.0106,
+        "height": 0.0075
       },
-      "label": "אין לבן/בת הזוג כל הכנסה"
+      "label": "אין לבן/בת הזוג כל הכנסה",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t126",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.1356,
-        "y": 0.8523,
-        "width": 0.0128,
-        "height": 0.0114
+        "x": 0.1367,
+        "y": 0.8542,
+        "width": 0.0089,
+        "height": 0.0064
       },
-      "label": "הכנסה אחרת / הכנסת בן/בת הזוג"
+      "label": "הכנסה אחרת / הכנסת בן/בת הזוג",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t127",
       "kind": "checkbox",
       "bounds": {
-        "x": 0.269,
-        "y": 0.8523,
-        "width": 0.0128,
-        "height": 0.0114
+        "x": 0.2701,
+        "y": 0.8542,
+        "width": 0.0089,
+        "height": 0.0064
       },
-      "label": "עבודה/קצבה/עסק / הכנסת בן/בת הזוג"
+      "label": "עבודה/קצבה/עסק / הכנסת בן/בת הזוג",
+      "notes": "snapped 2026-09-26 (SNG-09): bounds are the printed Zapf Dingbats square (the glyph's inner contour in the embedded font), was a loose box around the whole glyph"
     },
     {
       "id": "t128",
