@@ -3,6 +3,7 @@ import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStar
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
+import BlurStrengthMenu from './BlurStrengthMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
@@ -369,12 +370,24 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
-      {/* Redact's blackout and blur elements (element.type === 'blackout' | 'blur')
-          intentionally match no branch above: they have no per-element colour
-          (only whiteout does), so they fall straight through to the shared
-          duplicate + delete pair below with no divider in front of it - the
-          minimum shared chrome every redaction type now uses on selection,
-          instead of RedactBox's old separate inline red delete button. */}
+      {element.type === 'blur' && (
+        <>
+          <BlurStrengthMenu
+            value={element.strength}
+            onChange={(strength) => onChange({ strength })}
+            title={t.blurStrengthTitle}
+            labels={{ light: t.blurStrengthLight, medium: t.blurStrengthMedium, strong: t.blurStrengthStrong }}
+          />
+          <div className={styles.divider} />
+        </>
+      )}
+      {/* Redact's blackout element (element.type === 'blackout') intentionally
+          matches no branch above: it has no per-element colour (only whiteout
+          does) and no per-element strength (only blur does), so it falls
+          straight through to the shared duplicate + delete pair below with no
+          divider in front of it - the minimum shared chrome every redaction
+          type now uses on selection, instead of RedactBox's old separate
+          inline red delete button. */}
       <button
         type="button"
         className={buttonClass()}

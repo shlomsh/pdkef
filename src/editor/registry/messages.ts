@@ -184,6 +184,10 @@ export interface SignMessages {
   shapeColorTitle: string;
   signatureColorTitle: string;
   whiteoutColorTitle: string;
+  blurStrengthTitle: string;
+  blurStrengthLight: string;
+  blurStrengthMedium: string;
+  blurStrengthStrong: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;
   /** FontPickerMenu.tsx. */
