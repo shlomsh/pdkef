@@ -35,12 +35,14 @@ export interface DocumentStyle {
 
 /**
  * SIGN-35: the keys that describe one form rather than the person filling it,
- * so they never enter the app-wide style a new document starts from. The size
- * is fitted to that form's own cells (SIGN-32: a new document never inherits
- * another's size), and the direction is the language that form is filled in
- * (SIGN-32 reopened: never a browser-wide preference).
+ * so they never enter the app-wide style a new document starts from. The
+ * direction is the language that form is filled in (SIGN-32 reopened: never a
+ * browser-wide preference), so it stays with the document. The size used to
+ * stay here too, but Shlomi wants a size he sets to follow him, so it joined
+ * the app-wide style on 2026-09-26 (SIGN-35 reopened) and this list is now
+ * direction alone.
  */
-export const DOCUMENT_ONLY_KEYS: readonly (keyof DocumentStyle)[] = ['fontSize', 'direction'];
+export const DOCUMENT_ONLY_KEYS: readonly (keyof DocumentStyle)[] = ['direction'];
 
 /** SIGN-35: `style` without its document-only keys - what may enter the
  * app-wide style, or be read back from it. */
