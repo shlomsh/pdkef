@@ -13,7 +13,7 @@ import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
  * unset keys (colour, alignment, bold, italic, date format, symbol mark and
  * size, line thickness, whiteout colour, signature width, and a font only when
  * picked from the font menu), resolved document -> app-wide -> shipped default.
- * Size and direction never go app-wide; they stay document-only.
+ * Only the direction never goes app-wide; it stays document-only.
  *
  * jsdom cannot prove any of this - it needs rendered CSS (color, text-align,
  * font-weight, font-size), a real double-click-free UI flow through the actual
@@ -288,15 +288,18 @@ test('every setting a person chooses is remembered per document, and going back 
   await replaceWithFile(page, bufferB, 'sign-doc-b.pdf');
 
   const textB = await addTextAt(page, 0.3, 0.3);
-  // A's explicit choices (colour, alignment, bold, date format) are also the
-  // app-wide default, so B's first element starts from them - but not A's
-  // direction or size, which stay document-only (SIGN-35).
+  // A's explicit choices (colour, alignment, bold, date format, size) are
+  // also the app-wide default, so B's first element starts from them - but
+  // not A's direction, which stays document-only (SIGN-35 reopened). Both
+  // documents share a page size (see makeDocumentBuffer's comment), so the
+  // size is directly comparable: it follows the latest choice, not the
+  // document.
   await expect(textB.input).toHaveAttribute('dir', 'ltr');
   await expect(textB.input).toHaveCSS('text-align', 'right');
   await expect(textB.input).toHaveCSS('font-weight', '700');
   await expect(textB.input).toHaveCSS('color', 'rgb(216, 52, 43)'); // A's red, carried app-wide
   const sizeB0 = await fontSizePx(textB.input);
-  expect(sizeB0, "B's first element must not start at A's carried, larger size").not.toBeCloseTo(sizeAAfter, 0);
+  expect(sizeB0, "B's first element must start at A's app-wide size").toBeCloseTo(sizeAAfter, 0);
 
   await textB.input.fill('Employment form filled');
 
@@ -305,9 +308,8 @@ test('every setting a person chooses is remembered per document, and going back 
   await setTextColor(textB.element, DEFAULT_BLUE);
   await expect(textB.input).toHaveCSS('color', 'rgb(20, 99, 255)');
 
-  // No alignment choice here: a free box has no align control (only a box
-  // spanning a detected field does, ElementToolbar's canAlign), and B has no
-  // fields. B keeps following the app-wide alignment - see step 3.
+  await cycleAlign(textB.element, 1); // right -> left
+  await expect(textB.input).toHaveCSS('text-align', 'left');
 
   await textB.element.getByTitle('Bold', { exact: true }).click(); // un-bold
   await expect(textB.input).not.toHaveCSS('font-weight', '700');
@@ -354,8 +356,8 @@ test('every setting a person chooses is remembered per document, and going back 
 
   const textB2 = await addTextAt(page, 0.6, 0.3);
   await expect(textB2.input).toHaveAttribute('dir', 'ltr');
-  // B never chose an alignment, so it still follows the app-wide one (A's).
-  await expect(textB2.input).toHaveCSS('text-align', 'right');
+  // B chose left, so its own choice wins over the app-wide alignment.
+  await expect(textB2.input).toHaveCSS('text-align', 'left');
   await expect(textB2.input).not.toHaveCSS('font-weight', '700');
   await expect(textB2.input).toHaveCSS('color', 'rgb(20, 99, 255)');
   const sizeB2 = await fontSizePx(textB2.input);
