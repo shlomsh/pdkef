@@ -461,7 +461,9 @@ describe('FieldSlot component', () => {
       const cells = host.querySelectorAll(`.${elementStyles['text-comb-cell']}`);
       expect(cells.length).toBe(3);
       expect(Array.from(cells).map((cell) => cell.textContent)).toEqual(['1', '2', '3']);
-      expect(input.style.color).toBe('transparent');
+      // The transparent text colour is the static .slot-comb class now, not
+      // an inline style (styling.md: inline is for runtime geometry only).
+      expect(input.classList.contains(styles['slot-comb'])).toBe(true);
     });
 
     it('starts an RTL page\'s empty field slot dir="rtl", and flips to "ltr" on typed Latin letters', () => {
@@ -505,6 +507,7 @@ describe('FieldSlot component', () => {
 
       expect(host.querySelectorAll(`.${elementStyles['text-comb-cell']}`).length).toBe(0);
       expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
+      expect(requireElement<HTMLInputElement>(host, 'input').classList.contains(styles['slot-comb'])).toBe(false);
     });
   });
 });

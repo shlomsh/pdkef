@@ -9,7 +9,17 @@
    "these are the spots to write in" without competing with the page's own
    print. The same color-mix idiom FormFieldHints.module.css already uses
    for its own faint fill, at a lower strength since a slot sits directly on
-   top of the printed field rather than beside it. */
+   top of the printed field rather than beside it.
+   Shared with .comb-overlay below: both sit exactly where the text element
+   the slot becomes will, so they take the same line-height rather than each
+   declaring its own copy of it. */
+.slot,
+.comb-overlay {
+  /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
+     slot has to sit exactly where the text element it becomes will. */
+  line-height: 1.05;
+}
+
 .slot {
   position: absolute;
   display: block;
@@ -20,9 +30,6 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   color: var(--color-text);
-  /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
-     slot has to sit exactly where the text element it becomes will. */
-  line-height: 1.05;
   outline: none;
   /* Nothing of ours sits on top of a slot, but this stays explicit: iOS
      skips a field whose centre hit-test lands elsewhere (SNG-14), and a
@@ -30,6 +37,22 @@
      otherwise lets taps pass through to production. */
   pointer-events: auto;
   transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+
+/* The comb-cell overlay FieldSlot.tsx draws on top of the real (transparent-text)
+   input: positioned exactly over it, and never the tap target itself. Runtime
+   geometry (left/top/width/height/font-size) stays inline; only these fixed
+   declarations move here. */
+.comb-overlay {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The real input's own comb-specific look, static apart from the caret colour
+   (which follows the live element's own colour and stays inline): the typed
+   text is invisible so the CombCells overlay above is what is actually seen. */
+.slot-comb {
+  color: transparent;
 }
 
 /* The droppable look (docs/sign-fill-mode.md, "Hints"): the target the

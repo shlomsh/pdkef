@@ -115,7 +115,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
         type="text"
         data-fill-input
         data-fill-key={slot.key}
-        className={`${styles.slot}${aimed ? ` ${styles.aimed}` : ''}`}
+        className={`${styles.slot}${aimed ? ` ${styles.aimed}` : ''}${comb ? ` ${styles['slot-comb']}` : ''}`}
         enterKeyHint={enterKeyHint}
         dir={direction}
         aria-label={label}
@@ -138,23 +138,22 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
           '--text-pad-em': `${typography.paddingEm}em`,
           // In comb layout the cells below are what's seen; the input stays
           // underneath purely to take the typing, same as TextNode's own
-          // textarea does for a placed comb field.
-          color: comb ? 'transparent' : undefined,
+          // textarea does for a placed comb field. The static transparent
+          // text colour lives in .slot-comb; only the live caret colour
+          // (the element's own colour) needs to stay inline.
           ...(comb ? { caretColor: element.color || '#000000' } : {}),
         }}
       />
       {cells && (
         <div
           aria-hidden="true"
+          className={styles['comb-overlay']}
           style={{
-            position: 'absolute',
             left: `${box.left}%`,
             top: `${box.top}%`,
             width: `${box.width}%`,
             height: `${box.height}%`,
-            pointerEvents: 'none',
             fontSize: `${typography.size * scaleFactor}px`,
-            lineHeight: 1.05,
             '--text-pad-em': `${typography.paddingEm}em`,
           }}
         >

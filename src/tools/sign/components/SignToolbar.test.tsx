@@ -6,6 +6,7 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import ProductionSignToolbar from './SignToolbar.tsx';
 import { SignToolProvider, useSignTool, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
+import { FillContext, FILL_OFF } from '../fill/FillContext.tsx';
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import { SavedSignaturesContext } from './SavedSignaturesContext.tsx';
 import { hebrewSignMessages } from '../../../i18n/toolMessages';
@@ -1619,5 +1620,35 @@ describe('SignToolbar Component', () => {
         .searchParams.get('body')!;
       expect(okBody).not.toContain('Added automatically');
     });
+  });
+
+  // docs/sign-fill-mode.md, "The main toolbar stays visible while typing, on
+  // every pointer": SNG-15 reversed itself on 2026-09-26. The toolbar used to
+  // hide while a fill input was focused on a coarse (touch) pointer; it no
+  // longer does, on any pointer.
+  it('stays visible, as the plain toolbar, while fill mode is on and a field is being filled on a touch screen', () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+
+    act(() => {
+      render(
+        <SignToolProvider>
+          <FillContext.Provider value={{ ...FILL_OFF, enabled: true, filling: true, coarse: true }}>
+            <SignToolbar
+              setAnnouncement={() => {}}
+              actionHistory={[]}
+              toggleFullscreen={() => {}}
+              isFullscreen={false}
+              onSavePdf={() => {}}
+            />
+          </FillContext.Provider>
+        </SignToolProvider>,
+        container,
+      );
+    });
+
+    const toolbar = query<HTMLElement>(container, '[role="toolbar"]');
+    expect(toolbar).not.toBeNull();
+    expect(toolbar.className.trim()).toBe(styles.toolbar);
   });
 });
