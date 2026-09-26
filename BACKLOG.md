@@ -692,6 +692,7 @@ _None._
 | ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
 | ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
 | ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
+| ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
