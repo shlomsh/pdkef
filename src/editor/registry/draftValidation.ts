@@ -1,6 +1,7 @@
 import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
 import { isActionHistoryEntry, type ActionHistoryEntry, type HistoryElement } from '../model/actionHistory.ts';
+import { MAX_HISTORY_DEPTH } from '../model/historyStack.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { isDateFormatId } from '../text/dateFormat.ts';
@@ -254,6 +255,11 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
   if (actionHistory.length !== rawHistory.length) {
     console.error(`draftValidation: dropped ${rawHistory.length - actionHistory.length} invalid history command(s)`);
   }
+  // Each command is checked on its own (isActionHistoryEntry), so a malformed
+  // 'update' drops alone and the rest of the history survives. The depth cap
+  // pushCommand keeps is applied here too, so a draft saved before UNDO-04
+  // capped it comes back no deeper than one saved after.
+  actionHistory.splice(MAX_HISTORY_DEPTH);
   // SIGN-33: Sign-only, optional - a Redact record or a draft written before
   // this existed simply has none, and it comes back undefined rather than
   // failing the whole restore. Each key is validated on its own
