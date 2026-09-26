@@ -32,10 +32,19 @@
   margin-top: -1.1em;
 }
 
-/* A checkbox is already a real square on the page, so it is outlined as drawn
-   and the generous part is the tap test rather than the paint. */
+/* A checkbox is already a real square on the page, so the hint over it is a
+   soft tint of that square rather than an outline: at a phone's pinch-zoom
+   the base rule's 1px dashed frame read as heavy corner brackets stamped on
+   the printed square (Shlomi, iPhone, form 101, SNG-15). No border, no
+   outline - only a fill, sized to exactly this hint's own box - and the same
+   tint `.slot.aimed` uses for its own fill in fill.module.css, so a hint and
+   a slot read as one affordance. `.field-hint`'s own border and color-mix
+   background are overridden here at equal specificity, since this rule is
+   declared after it. */
 .field-hint-checkbox {
+  border: none;
   border-radius: 1px;
+  background: var(--color-primary-tint);
 }
 
 /* A free-text cell is also a real, already-closed rectangle - outlined as
@@ -49,13 +58,16 @@
 
 /* SNG-15 (docs/sign-fill-mode.md, "Hints"): the droppable look for a
    checkbox hint the armed tool's own reach (fillReach.ts) would tap next -
-   a solid frame, a soft outer ring and a light fill, the same shape
-   fill.module.css's .slot.aimed uses, so a slot and a printed checkbox read
-   as one affordance. Declared after .field-hint-checkbox so its border wins
-   the cascade at equal specificity; that rule's own border-radius still
-   applies, since this never touches it. Token colors only. */
-.field-hint-aimed {
-  border: 1.5px solid var(--color-primary);
+   the same soft tint as .field-hint-checkbox above, plus one thin inset
+   line, never an outer ring: at a phone's pinch-zoom the previous solid
+   border plus 4px outer glow was the same over-heavy look the plain armed
+   hint had (Shlomi, iPhone, form 101). Inset keeps every pixel inside this
+   hint's own box. Checkbox-only in practice (PdfWorkspace.tsx only ever
+   passes `aimedKey` to the checkbox call), scoped explicitly so an aimed
+   comb or cell hint - neither exists today - would not inherit this look
+   unstated. Token colors only. */
+.field-hint-checkbox.field-hint-aimed {
+  border: none;
   background: var(--color-primary-tint);
-  box-shadow: 0 0 0 4px var(--color-primary-ring);
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
