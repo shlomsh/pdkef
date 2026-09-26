@@ -6,6 +6,9 @@ import WhiteoutNode from './nodes/WhiteoutNode.tsx';
 import { FONT_PREVIEW_DELAY_MS } from '../../../editor-ui/FontPickerMenu.tsx';
 import { MIN_SHAPE_SIZE_PCT, MAX_SHAPE_SIZE_PCT } from '../../../constants/signGeometry.js';
 import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
+import { createPageGeometry } from '../../../editor/geometry/coords.js';
+import type { PageGeometry } from '../../../editor/geometry/coords.ts';
+import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 
 declare global {
   interface ParentNode {
@@ -25,6 +28,7 @@ type MountOptions = {
   isActive?: boolean;
   pageWidthPoints?: number;
   onChange?: ChangeHandler;
+  pageGeometry?: PageGeometry;
 };
 type FloatingCall = {
   placement: string | undefined;
@@ -211,9 +215,41 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
       expect(onChange).toHaveBeenCalledWith({ fontFamily: 'Caveat', fontFamilyExplicit: true });
       expect(document.body.querySelector('[data-font-picker-menu]')).toBeNull();
     });
+
+    // SIGN-39: without this, the box rendered at the old font's top while
+    // hovering, then jumped to the new font's top the instant the pick
+    // committed (live report, on a phone). The preview has to land exactly
+    // where Done will put it - the same one call `updateElement` commits with.
+    it('renders at the top a commit would use while previewing, and reverts to the original top when the preview ends', () => {
+      vi.useFakeTimers();
+      const pageGeometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
+      const onChange = vi.fn();
+      const element = { id: 'font-preview-top', type: 'text', left: 20, top: 30, text: '0123456789', fontFamily: 'Arimo', fontSize: 16 };
+      const { box } = mountInPageWrapper(element, { isActive: true, onChange, pageGeometry });
+
+      expect(box.style.top).toBe('30%');
+
+      act(() => { requiredElement<HTMLButtonElement>(box, 'button[title^="Font:"]').click(); });
+      const caveat = requiredElement<HTMLButtonElement>(document.body, '[data-font-name="Caveat"]');
+      act(() => { caveat.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); });
+      act(() => { vi.advanceTimersByTime(FONT_PREVIEW_DELAY_MS); });
+
+      const expectedTop = topKeepingInkCentre(30, {
+        fontSize: 16, pageHeightPoints: pageGeometry.height, fromFamily: 'Arimo', toFamily: 'Caveat', text: '0123456789',
+      });
+      expect(parseFloat(box.style.top)).toBeCloseTo(expectedTop, 9);
+      expect(parseFloat(box.style.top)).not.toBeCloseTo(30, 3);
+      expect(onChange).not.toHaveBeenCalled();
+
+      // Closing the picker (the same "cancel" the menu's own close button
+      // gives) ends the preview - never touched the model, so this is back to
+      // the element's own top exactly, not a second formula's answer.
+      act(() => { requiredElement<HTMLButtonElement>(box, 'button[title^="Font:"]').click(); });
+      expect(box.style.top).toBe('30%');
+    });
   });
 
-  function mountInPageWrapper(element: TestElement, { isActive = true, pageWidthPoints = 612, onChange = () => {} }: MountOptions = {}) {
+  function mountInPageWrapper(element: TestElement, { isActive = true, pageWidthPoints = 612, onChange = () => {}, pageGeometry }: MountOptions = {}) {
     const wrapper = document.createElement('div');
     wrapper.className = workspaceStyles['page-wrapper'];
     wrapper.getBoundingClientRect = pageRect;
@@ -231,6 +267,7 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
           onDelete={() => {}}
           onClone={() => {}}
           pageWidthPoints={pageWidthPoints}
+          pageGeometry={pageGeometry}
         >
           {editorElement.type === 'whiteout' ? whiteoutNode(editorElement) : textNode(editorElement)}
         </DraggableWrapper>,
