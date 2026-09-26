@@ -11,11 +11,14 @@ import { test, expect, devices } from '@playwright/test';
  *    `maximum-scale=1` stopped iOS zooming in on focus, but iOS re-applies
  *    the viewport meta on every focus change, so it also snapped his own
  *    pinch back to 1 the moment he moved to the next field.
- *    `viewportContent` (`src/tools/sign/fill/viewportZoomLock.ts`) now adds
- *    the clamp only while the page is at rest.
+ *    `viewportContent` (`src/tools/sign/fill/viewportZoomLock.ts`) adds that
+ *    clamp only at rest; zoomed, it holds minimum and maximum at the pinched
+ *    scale, since iOS otherwise re-zooms each focused field to 16px text
+ *    (3.97x became 2.12x on a 7.53px field, iOS Simulator).
  * 2. At rest the meta carries `maximum-scale=1` in fill mode (the iOS
- *    zoom-on-focus fix, b4519a2d), it is gone while zoomed, and the old
- *    editor (`?next=0`) never gets it.
+ *    zoom-on-focus fix, b4519a2d), the pinch scale is held while zoomed and
+ *    released while two fingers are down, and the old editor (`?next=0`)
+ *    never gets any of it.
  * 3. The practice form keeps fill mode (SNG-18, 3d5cc0d6): the practice
  *    form lives in the home page's launcher, which used to navigate to a
  *    bare `/sign/`, dropping `?next=1`.
@@ -29,10 +32,11 @@ import { test, expect, devices } from '@playwright/test';
  * stand-in, `pinchInPastRestingClamp`, loosens the resting clamp to
  * `maximum-scale=5` (the part iOS does for free) and then pinches for real.
  * Everything after that is the app's own doing and is what these tests
- * assert: its `visualViewport` 'resize' handler rewrites the meta to the
- * page's original content with no `maximum-scale` at all while zoomed, puts
- * `maximum-scale=1` back once the person pinches out to rest, and the pinch
- * survives an Enter to the next field. A regression that clamps while zoomed,
+ * assert: its `visualViewport` 'resize' handler holds the meta's limits at
+ * the settled pinch scale while zoomed, puts `maximum-scale=1` back once the
+ * person pinches out to rest, and the pinch survives an Enter to the next
+ * field. Chromium has no focus zoom, so the 16px re-zoom itself is proven only
+ * in the iOS Simulator (`npm run gate:ios`, SNG-20). A regression that clamps while zoomed,
  * on load or on focus, snaps Chromium's scale back to 1 on the spot, which is
  * the same outcome iOS shows the person on the next field.
  *
@@ -170,7 +174,7 @@ test('fill mode: moving to the next field keeps a pinch zoom (SNG-17, 9666ebc8)'
   }
 });
 
-test('fill mode: maximum-scale=1 at rest, gone while zoomed, back at rest (SNG-17, b4519a2d)', async ({ page }) => {
+test('fill mode: maximum-scale=1 at rest, the pinch scale held while zoomed, released under two fingers, back at rest (SNG-17)', async ({ page }) => {
   test.skip(!PINCH_STAND_IN_WORKS, 'Linux Chromium ignores the loosened viewport meta (SNG-21)');
   await openPracticeForm(page, '/sign/?next=1');
   await expect.poll(() => viewportMeta(page), { message: 'at rest, fill mode clamps iOS zoom-on-focus' }).toBe(`${ORIGINAL_META}, maximum-scale=1`);
@@ -178,17 +182,49 @@ test('fill mode: maximum-scale=1 at rest, gone while zoomed, back at rest (SNG-1
   await first.focus();
   expect(await viewportMeta(page), 'focusing a field at rest keeps the clamp').toMatch(CLAMP);
 
-  // Zoomed: the app's own resize handler replaces the loosened stand-in with
-  // the layout's original content, no maximum-scale of any kind.
+  // Zoomed: once the pinch settles, the app's own resize handler holds the
+  // limits at the pinched scale, rounded down, so iOS's focus zoom (toward
+  // 16px text) has nowhere to go.
   const box = await first.boundingBox();
-  await pinchInPastRestingClamp(page, { x: box.x + 10, y: box.y + box.height / 2 });
-  await expect.poll(() => viewportMeta(page), { message: 'while zoomed the meta is the layout original' }).toBe(ORIGINAL_META);
+  const zoomed = await pinchInPastRestingClamp(page, { x: box.x + 10, y: box.y + box.height / 2 });
+  const held = Math.floor(zoomed * 100) / 100;
+  await expect.poll(() => viewportMeta(page), { message: 'while zoomed the limits hold the pinch scale' })
+    .toBe(`${ORIGINAL_META}, minimum-scale=${held}, maximum-scale=${held}`);
 
-  // Back at rest, the clamp returns by itself. Each pinch halves the scale
-  // (the layout's minimum is 1), repeated since a synthesized pinch can stop
-  // short under load (measured: 1.70x left).
+  // Two fingers down release every limit, so a pinch back out is never held;
+  // lifting them puts the held scale back once the page settles.
+  const cdp = await page.context().newCDPSession(page);
+  const fingers = [{ x: 150, y: 300, id: 1 }, { x: 250, y: 300, id: 2 }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers });
+  await expect.poll(() => viewportMeta(page), { message: 'two fingers down release the limits' }).toBe(ORIGINAL_META);
+  // Held, not tapped: Chromium reads a quick two-finger tap as "zoom out".
+  await page.waitForTimeout(700);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  // Lifting them puts limits back for whatever scale is left. Chromium keeps
+  // no zoom of its own under min = max limits, so releasing them drops it to
+  // 1x here (iOS keeps the person's zoom apart from the page's limits); the
+  // app's decision is what's asserted, not Chromium's leftover scale.
   await expect.poll(async () => {
-    if ((await scaleOf(page)) > 1.001) await pinch(page, { x: 100, y: 100 }, 0.5);
+    const scale = await scaleOf(page);
+    const expected = scale > 1.01
+      ? `${ORIGINAL_META}, minimum-scale=${Math.floor(scale * 100) / 100}, maximum-scale=${Math.floor(scale * 100) / 100}`
+      : `${ORIGINAL_META}, maximum-scale=1`;
+    return (await viewportMeta(page)) === expected;
+  }, { message: 'lifting them puts the limits back for the scale that is left' }).toBe(true);
+  await cdp.detach();
+
+  // Back at rest, the clamp returns by itself. Chromium, unlike iOS, holds a
+  // pinch to the page's limits, so each round loosens them first (iOS's part,
+  // as pinchInPastRestingClamp does) and halves the scale; repeated since a
+  // synthesized pinch can stop short under load (measured: 1.70x left).
+  await expect.poll(async () => {
+    if ((await scaleOf(page)) > 1.001) {
+      await page.evaluate(() => {
+        const meta = document.querySelector('meta[name="viewport"]');
+        meta.setAttribute('content', meta.getAttribute('content').replace(/, *(?:minimum|maximum)-scale=[\d.]+/g, ''));
+      });
+      await pinch(page, { x: 100, y: 100 }, 0.5);
+    }
     return scaleOf(page);
   }, { message: 'pinched back out to rest' }).toBeCloseTo(1, 2);
   await expect.poll(() => viewportMeta(page), { message: 'pinching back out to rest restores the clamp' }).toBe(`${ORIGINAL_META}, maximum-scale=1`);
