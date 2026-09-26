@@ -85,3 +85,14 @@ Still open:
   detection and placement exact but did not find the ❑ glyphs, so it is not settled. Measure in the
   real app with `src/tools/sign/fields/corpus/scoring/forms/income-tax-101-2024.pdf`. SNG-09 territory.
 - Autocorrect, first-touch drag (SNG-04) and the app-owned camera (SNG-16), as listed above.
+
+## Branch work, 2026-09-26 (after his QA of a4e2f76b)
+
+Landing with: the comb caret in the next cell and `textElementLayout` (52202a5e); an open comb in a cell
+takes its row's size, and a slot is exactly its element's box (dd16d642); autocorrect really off on iOS,
+since WebKit's `autocorrect` is a boolean property and the string "off" turned it on (8149ee29); a cell
+slot is the cell's width and the comb caret counts graphemes (ca830e7a, review findings); SNG-04's first
+slice (b937c0ef). Shlomi checked combs, plain fields, autocorrect and one-finger scroll on his iPhone.
+
+Split out: the toolbar under native zoom (SNG-17, after SNG-16 was retired), the practice form dropping
+`?next=1` (SNG-18), ticks in form 101's glyph boxes (SNG-09, a separate session).

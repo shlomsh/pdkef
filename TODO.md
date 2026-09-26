@@ -415,6 +415,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
 | SNG-15 | P1 | [SNG-15](backlog/tasks/SNG-15.md) · Fill mode, slice 1: the production editor with every writing spot a real field the platform's own arrows hop |
 | SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
+| SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom |
+| SNG-18 | P2 | [SNG-18](backlog/tasks/SNG-18.md) · Opening the practice form keeps fill mode's ?next=1 |
 
 
 ## Migrated context and history

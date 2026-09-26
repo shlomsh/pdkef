@@ -32,3 +32,12 @@ The normative rules are `docs/sign-next-gen-guidelines.md`:
 - [ ] Every MOBI regression is a unit test of transitions, fed synthetic pointer streams. This includes the 2026-09-25 staggered-finger commit race and the create path's missing multi-touch guard.
 - [ ] Illegal states are unrepresentable: editing implies selected, and a pinch excludes a drag.
 - [ ] `useDraggableElement` and `useElementResize` keep their geometry and commit math, and lose their claim logic.
+
+## Slice 1, 2026-09-26: a finger scrolls over an element that is not selected (fill mode)
+
+`touchClaimsElement` (src/editor/gestures/touchClaim.ts) is the pure rule. `useDraggableElement` returns
+before select/preventDefault for a touch on an element not selected before it began, and
+`.element[data-touch-scroll]` lets one finger pan natively; a tap still arrives as the synthesised click
+and selects. Mouse and production (no `?next=1`) are unchanged. Shlomi confirmed on his iPhone.
+Still to do: the 8px slop before a selected element follows the finger, one constants table, and the
+machine and router this ticket describes.
