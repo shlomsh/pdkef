@@ -14,6 +14,7 @@ import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } fr
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 import { revealFieldAfterKeyboard } from '../useFieldNavigation.ts';
 import { useFill, useTextFill } from '../fill/FillContext.tsx';
+import { keepFillFocus } from '../fill/fillDom.ts';
 import compactBarFor from './compactBar.ts';
 
 import { cloneElement, toChildArray } from 'preact';
@@ -477,6 +478,7 @@ export default function DraggableWrapper<T extends EditorElement>({
         }}
         className={elementStyles.actions}
         data-editor-actions
+        onMouseDown={fillContext.enabled ? keepFillFocus : undefined}
         style={element.type === 'line' ? {
           position: 'absolute',
           left: `${Math.min(element.x1, element.x2) + Math.abs(element.x1 - element.x2) / 2}%`,
