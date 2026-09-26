@@ -570,11 +570,41 @@ describe('TextNode component', () => {
         .toEqual(['2', '7', '', '', '']);
     });
 
-    it('hides the textarea’s own text but keeps its caret, since the cells are what you see', () => {
+    it('hides the textarea’s own text and its own caret, since the cells (and their own caret) are what you see', () => {
       host = renderComb({ text: '270', color: '#112233' });
       const input = requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]');
       expect(input.style.color).toBe('transparent');
-      expect(input.style.caretColor).toBe('rgb(17, 34, 51)');
+      // No inline caretColor any more: the native caret is hidden by the
+      // static .text-display[data-comb="on"] .text-input rule instead,
+      // because it sits at the unspaced text position, not the cell
+      // boundary the next character lands at (CombCells' own caret does).
+      expect(input.style.caretColor).toBe('');
+    });
+
+    it('draws a comb caret at the textarea’s own selectionStart while editing', () => {
+      host = mount(
+        <TextNode
+          element={{ text: '270', width: 40 }}
+          isEditing
+          onChange={() => {}}
+        />
+      );
+      const input = requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]');
+
+      act(() => {
+        input.focus();
+        input.selectionStart = 2;
+        input.dispatchEvent(new Event('select', { bubbles: true }));
+      });
+
+      const caret = requireElement<HTMLSpanElement>(host, `.${elementStyles['text-comb-caret']}`);
+      // Boundary between cell 1 and cell 2 of 3, same math as the guide lines.
+      expect(caret.style.left).toBe(`${(2.5 / 3) * 100}%`); // the centre of cell 2
+
+      act(() => {
+        input.blur();
+      });
+      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).toBeNull();
     });
 
     it('mirrors cell position for RTL content, so the first character typed lands nearest the right edge', () => {

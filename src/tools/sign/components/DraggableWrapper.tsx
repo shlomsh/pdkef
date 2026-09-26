@@ -3,7 +3,7 @@ import { useFloating, offset, shift, size, autoUpdate } from '@floating-ui/react
 import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js';
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { getEffectiveTextDirection, textAnchorsRightEdge } from '../../../lib/signHelpers.js';
+import { getEffectiveTextDirection, textElementLayout } from '../../../lib/signHelpers.js';
 import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
@@ -387,7 +387,6 @@ export default function DraggableWrapper<T extends EditorElement>({
   // still follows the text - comb.js mirrors the cell centres for RTL inside
   // the fixed span, and a cell box aligns its text right. signHelpers'
   // textAnchorsRightEdge is the one answer to "which edge is `left`".
-  const isRtlText = !!view.usesRtlAnchoring && textAnchorsRightEdge(element);
   const isLine = !!view.isLine;
   const isShape = !!view.isShape;
   const isSymbol = !!view.isSymbol;
@@ -398,19 +397,11 @@ export default function DraggableWrapper<T extends EditorElement>({
     height: '100%',
     pointerEvents: 'none',
     transform: 'none',
-  } : {
+  } : element.type === 'text' ? textElementLayout(element).box : {
     top: `${element.top}%`,
-    // An intrinsically sized type can still opt individual elements into an
-    // explicit width (comb text): the span is the whole point there, and the
-    // height stays intrinsic either way.
-    width: element.width && (!view.usesIntrinsicSize || view.allowsExplicitWidth) ? `${element.width}%` : 'auto',
-    // A box on a detected form cell is at least the cell's span wide and
-    // still intrinsically sized past it (editorModel.ts, `minWidth`).
-    ...('minWidth' in element && element.minWidth ? { minWidth: `${element.minWidth}%` } : {}),
-    height: 'height' in element && element.height && !view.usesIntrinsicSize ? `${element.height}%` : 'auto',
-    ...(isRtlText
-      ? { right: `${100 - element.left}%` }
-      : { left: `${element.left}%` }),
+    width: element.width ? `${element.width}%` : 'auto',
+    height: 'height' in element && element.height ? `${element.height}%` : 'auto',
+    left: `${element.left}%`,
   };
 
   return (

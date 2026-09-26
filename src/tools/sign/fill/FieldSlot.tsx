@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
-import { resolveTypography } from '../../../editor/text/fonts.js';
-import { getEffectiveTextDirection } from '../../../lib/signHelpers.js';
+import { textElementLayout } from '../../../lib/signHelpers.js';
 import { combLayout, isComb } from '../../../editor/text/comb.js';
 import CombCells from '../components/nodes/CombCells.tsx';
+import { useCombCaret } from '../components/nodes/useCombCaret.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import type { EnterKeyHint, FillSlot } from './fillTypes.ts';
@@ -19,19 +19,22 @@ import styles from './fill.module.css';
  * should reach it (fillTap.ts) and what a commit turns into (a `TextElement`
  * via `placeTextOnField`, elsewhere) are all decided above it, never here.
  *
- * Font size and family are resolved exactly as TextNode.tsx resolves them -
- * the same `resolveTypography` call, the same scaleFactor derived from the
- * page's own rendered width via `usePdfCoordinates` - so a slot reads
- * identically to the text element it becomes the instant `ADD_ELEMENT`
- * fires. Nothing should visibly jump on commit.
+ * Position and typography both come from `textElementLayout` (signHelpers.js),
+ * called on `elementOf(value)` - the exact element `ADD_ELEMENT` would commit -
+ * the same function TextNode.tsx calls on the placed element, with the same
+ * scaleFactor derived from the page's own rendered width via
+ * `usePdfCoordinates`. So a slot reads identically to the text element it
+ * becomes the instant it commits; nothing visibly jumps.
  *
  * Comb fields (`slot.placement.combCells`) draw their cells live, the same
  * way TextNode.tsx draws them while editing a placed comb field: the real
- * input keeps taking the typing (transparent text, a visible caret), and a
- * `CombCells` overlay on top renders `combLayout` of the input's own live
- * value - `elementOf(value)`, the same `elementForSlot` call the commit
- * uses, so the cells the slot shows are exactly the cells the committed
- * element will show. A `letter-spacing` approximation was considered and
+ * input keeps taking the typing (transparent text, no native caret - see
+ * `.slot-comb`), and a `CombCells` overlay on top renders `combLayout` of
+ * the input's own live value plus a caret bar of its own, at `caretIndex`
+ * (the input's live `selectionStart`) - `elementOf(value)`, the same
+ * `elementForSlot` call the commit uses, so the cells the slot shows are
+ * exactly the cells the committed element will show. A `letter-spacing`
+ * approximation was considered and
  * rejected: it adds a fixed gap after each glyph's own (variable) advance
  * rather than pinning characters to fixed-width cells, so it drifts from
  * the printed pitch in precisely the way `comb.js`'s own docstring says a
@@ -75,26 +78,34 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
     return () => observer.disconnect();
   }, [pageWidthPoints]);
 
-  const { box, fontFamily, fontSize } = slot.placement;
-  // No text yet, so this never substitutes a family - fonts.js's covers('',
-  // ...) is vacuously true, so the family the placement already chose is
-  // always kept. Called anyway, rather than reading fontFamily straight off
-  // the placement, so weight/style/padding come from the one shared rule
-  // TextNode itself resolves through, not a second copy of it.
-  const typography = resolveTypography(fontFamily, '', 'normal', 'normal', fontSize);
-
   // The element this slot would become right now, with whatever is typed so
-  // far - the one source of truth signHelpers.js's getEffectiveTextDirection
-  // and comb.js's isComb/combLayout both read, so the slot never re-derives
-  // either on its own (SIGN-34's "one rule for every box" applies here too).
+  // far - the one source of truth `textElementLayout` (signHelpers.js) reads
+  // for both geometry and typography, so the slot can never drift from the
+  // text element it becomes on commit (elsewhere TextNode.tsx calls the same
+  // function on the same element shape). comb.js's isComb/combLayout read
+  // the same element too (SIGN-34's "one rule for every box" applies here).
   const element = elementOf(value);
-  const direction = getEffectiveTextDirection(element);
+  const layout = textElementLayout(element, scaleFactor);
+  const direction = layout.direction;
   const comb = isComb(element);
   const cells = comb ? combLayout(element, direction === 'rtl') : null;
+  // A field slot's element always carries a comb `width` or a cell
+  // `minWidth` (placeTextOnField always sets one or the other), so `layout.box`
+  // already has a real span. A free slot (nothing detected) has neither - a
+  // committed free text box only gets a width once it is measured on screen
+  // (TextNode's own auto-sizing measure div), which a bare `<input>` cannot
+  // reproduce - so it keeps its own placement's span instead.
+  const box = slot.field ? layout.box : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
 
   const handleInput = (event: Event) => {
     setValue((event.currentTarget as HTMLInputElement).value);
   };
+
+  // The comb caret (useCombCaret.ts): null while the input has no focus, the
+  // live selectionStart while it does. The real input's own caret is hidden
+  // for a comb (.slot-comb below) because it sits at the unspaced text
+  // position, not the cell boundary the next character lands at.
+  const { caretIndex, caretEvents, sync: syncCaret } = useCombCaret(inputRef, comb);
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key !== 'Enter' || event.shiftKey || event.isComposing) return;
@@ -105,6 +116,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   const handleBlur = (event: FocusEvent) => {
     const text = (event.currentTarget as HTMLInputElement).value.trim();
     if (text) onCommit(text);
+    caretEvents.onBlur?.();
     onLeave?.();
   };
 
@@ -123,25 +135,23 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
         // Names, numbers and addresses are not prose, and iOS applies a pending
         // autocorrection as focus leaves for the next field ("DJane" became "Do").
         autocorrect="off"
-        onInput={handleInput}
+        onInput={comb ? (event) => { handleInput(event); syncCaret(); } : handleInput}
         onKeyDown={handleKeyDown}
+        onKeyUp={caretEvents.onKeyUp}
+        onFocus={caretEvents.onFocus}
+        onClick={caretEvents.onClick}
+        onSelect={caretEvents.onSelect}
         onBlur={handleBlur}
         style={{
-          left: `${box.left}%`,
-          top: `${box.top}%`,
-          width: `${box.width}%`,
-          height: `${box.height}%`,
-          fontSize: `${typography.size * scaleFactor}px`,
-          fontFamily: typography.family,
-          fontWeight: typography.weight,
-          fontStyle: typography.style,
-          '--text-pad-em': `${typography.paddingEm}em`,
-          // In comb layout the cells below are what's seen; the input stays
-          // underneath purely to take the typing, same as TextNode's own
-          // textarea does for a placed comb field. The static transparent
-          // text colour lives in .slot-comb; only the live caret colour
-          // (the element's own colour) needs to stay inline.
-          ...(comb ? { caretColor: element.color || '#000000' } : {}),
+          ...box,
+          fontSize: `${layout.font.fontSize}px`,
+          fontFamily: layout.font.fontFamily,
+          fontWeight: layout.font.fontWeight,
+          fontStyle: layout.font.fontStyle,
+          '--text-pad-em': `${layout.font.paddingEm}em`,
+          // The committed element's own ink; a comb's input text stays
+          // transparent (.slot-comb), the overlay draws it.
+          ...(comb ? {} : { color: element.color }),
         }}
       />
       {cells && (
@@ -149,12 +159,9 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
           aria-hidden="true"
           className={styles['comb-overlay']}
           style={{
-            left: `${box.left}%`,
-            top: `${box.top}%`,
-            width: `${box.width}%`,
-            height: `${box.height}%`,
-            fontSize: `${typography.size * scaleFactor}px`,
-            '--text-pad-em': `${typography.paddingEm}em`,
+            ...box,
+            fontSize: `${layout.font.fontSize}px`,
+            '--text-pad-em': `${layout.font.paddingEm}em`,
           }}
         >
           <CombCells
@@ -162,10 +169,11 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
             isRtl={direction === 'rtl'}
             showGuides={false}
             visible
+            caretIndex={caretIndex}
             color={element.color || '#000000'}
-            fontFamily={typography.family}
-            fontWeight={typography.weight}
-            fontStyle={typography.style}
+            fontFamily={layout.font.fontFamily}
+            fontWeight={layout.font.fontWeight}
+            fontStyle={layout.font.fontStyle}
           />
         </div>
       )}
