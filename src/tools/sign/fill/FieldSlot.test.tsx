@@ -380,6 +380,29 @@ describe('FieldSlot component', () => {
       expect(input.style.width).toBe('33.25%');
       expect(input.style.height).toBe('4%');
     });
+
+    it('carries no inline height for a field slot, leaving the box height to fill.module.css\'s .slot rule', () => {
+      // jsdom cannot compute the calc() the class rule uses, but an inline
+      // height would beat it regardless (textElementLayout's box has
+      // height: 'auto' for a field slot) - this is what iOS's ~3x pill bug
+      // came from, so the regression is an inline style existing at all.
+      const slot = fillSlot({ field: {} as FillSlot['field'], placement: { box: { left: 0, top: 0, width: 1, height: 1 }, fontSize: 12, fontFamily: 'Arimo' } });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={(text) => textElementOf(text, { left: 15, top: 60, minWidth: 20 })}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      expect(input.style.height).toBe('');
+    });
   });
 
   describe('geometry matches textElementLayout (not slot.placement)', () => {

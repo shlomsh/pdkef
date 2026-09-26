@@ -16,8 +16,13 @@
 .slot,
 .comb-overlay {
   /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
-     slot has to sit exactly where the text element it becomes will. */
-  line-height: 1.05;
+     slot has to sit exactly where the text element it becomes will.
+     The box itself must equal .text-input's own padded line box (1.05em
+     line-height plus its top and bottom padding), not just the line-height:
+     a slot's `height: auto` measured ~3x that on iOS (WebKit's own intrinsic
+     input height, not its line-height), so the pill grew past the printed
+     strip while the comb overlay's digits stayed pinned to the top. */
+  height: calc(1.05em + 2 * var(--text-pad-em, .12em));
 }
 
 .slot {
@@ -25,8 +30,18 @@
   display: block;
   box-sizing: border-box;
   margin: 0;
-  padding: 0 4px;
-  border: 1px solid var(--color-border);
+  /* Same padding as .text-input (EditorElement.module.css), so the text
+     baseline lands identically before and after the slot becomes it. */
+  padding: var(--text-pad-em, .12em) 4px;
+  /* iOS ignores an explicit height on an input with its native appearance;
+     these two make it honour the height above instead. */
+  -webkit-appearance: none;
+  appearance: none;
+  /* The at-rest frame, drawn without taking any box space: a border would
+     shrink the content box by 2px and shift the text off the printed
+     baseline the committed element sits on. */
+  border: 0;
+  box-shadow: inset 0 0 0 1px var(--color-border);
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   color: var(--color-text);
@@ -65,9 +80,11 @@
    palette's own translucent "ring" token, which is the soft half of this;
    the clear, solid line is what :focus-visible below draws instead. */
 .slot.aimed {
-  border: 1.5px solid var(--color-primary);
   background: var(--color-primary-tint);
-  box-shadow: 0 0 0 4px var(--color-primary-ring);
+  /* Same solid line as before, now inset (border stays 0 above) plus the
+     same outer ring, combined into one box-shadow since .slot no longer has
+     a border to draw the solid line with. */
+  box-shadow: inset 0 0 0 1.5px var(--color-primary), 0 0 0 4px var(--color-primary-ring);
 }
 
 /* A clear focus line, layered over either state above - the outline paints

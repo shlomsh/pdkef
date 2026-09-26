@@ -95,7 +95,12 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   // committed free text box only gets a width once it is measured on screen
   // (TextNode's own auto-sizing measure div), which a bare `<input>` cannot
   // reproduce - so it keeps its own placement's span instead.
-  const box = slot.field ? layout.box : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
+  // A field slot's layout.box carries height: 'auto' (textElementLayout); an
+  // inline style beats the class, so drop it here and let fill.module.css's
+  // .slot rule size the box instead (it must equal .text-input's own padded
+  // line box, which `calc()` cannot compute in this object).
+  const { height: _fieldSlotHeight, ...fieldBox } = layout.box;
+  const box = slot.field ? fieldBox : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
 
   const handleInput = (event: Event) => {
     setValue((event.currentTarget as HTMLInputElement).value);

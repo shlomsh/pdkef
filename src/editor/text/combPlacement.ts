@@ -238,11 +238,12 @@ export function cellRegionAt(
  * No carried size yet: the field's own writable height decides it -
  * `FIELD_FONT_FILL_RATIO` (~0.65) of `seedHeightPoints`, capped at
  * `FIELD_FONT_MAX_PT` so a very tall field doesn't render an oversized single
- * line, floored at `MIN_FONT_SIZE_PT`. A comb passes its own cell height the
- * same way a cell passes its writable height - not the boxed digit-height
- * fraction `heightCeilingPoints` uses, so a comb an empty document starts on
- * carries the same size a same-height cell would, not one already shrunk
- * toward its own box-fill margin. Free text (or any field too short to
+ * line, floored at `MIN_FONT_SIZE_PT`. An open comb inside a printed cell
+ * seeds from its writable strip, the same height a cell in the same row
+ * seeds from - not the boxed digit-height fraction `heightCeilingPoints`
+ * uses, so a comb an empty document starts on carries the same size a
+ * same-height cell in its row would, not one already shrunk toward its own
+ * box-fill margin. Free text (or any field too short to
  * measure, `seedHeightPoints` left at 0) has no height to grow toward and
  * takes `DEFAULT_FONT_SIZE_PT` instead. Either way, the returned size IS the
  * carried size from then on - the caller adopts it because it knows it asked
@@ -387,11 +388,16 @@ export function placeCombOnRegion(
   const digitHeightPercent = region.boxed ? region.height * COMB_BOX_FILL : 0;
   const digitHeightPoints = pageHeightPoints > 0 ? (digitHeightPercent / 100) * pageHeightPoints : 0;
   const heightCeilingPoints = digitHeightPoints > 0 ? digitHeightPoints / COMB_CAP_HEIGHT_EM : undefined;
-  // Seeding a fresh carried size reads the whole cell, not the digit-height
-  // fraction above: an empty document that starts on a comb carries the same
-  // size a cell of the same height would, never one already shrunk toward
-  // this comb's own box-fill margin (see fieldFontSize's own doc).
-  const seedHeightPoints = pageHeightPoints > 0 ? (region.height / 100) * pageHeightPoints : 0;
+  // Seeding a fresh carried size reads the strip a person writes in, not the
+  // digit-height fraction above: an open comb's teeth are only a few points
+  // tall, so seeding from `region.height` alone floored a birth-date comb to
+  // MIN_FONT_SIZE_PT while the name cells in the same row, seeded from their
+  // own writable strip, landed near 12pt (form 101, live report). A boxed
+  // comb has no `writable` and keeps seeding from its own bounds, which are
+  // already the box. Either way this is the whole strip, never this comb's
+  // own box-fill margin (see fieldFontSize's own doc).
+  const seedArea = region.writable ?? region;
+  const seedHeightPoints = pageHeightPoints > 0 ? (seedArea.height / 100) * pageHeightPoints : 0;
   const size = fieldFontSize(carriedFontSize, { seedHeightPoints, widthCeilingPoints, heightCeilingPoints });
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   // A closed cell is a box and text belongs in the middle of it; an open one is
