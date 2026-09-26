@@ -12,6 +12,7 @@ const base: FillTapInput = {
   onFillInput: false,
   onElementBar: false,
   onElement: false,
+  elementFillKey: null,
   onMark: false,
   typing: false,
   tool: 'other',
@@ -25,6 +26,7 @@ describe('fillTapDecision', () => {
       onFillInput: true,
       onElementBar: false,
       onElement: false,
+      elementFillKey: null,
       onMark: false,
       typing: true,
       tool: 'text',
@@ -173,6 +175,21 @@ describe('fillTapDecision', () => {
   it('a tap on an existing element with nothing else in reach is production\'s own plain path', () => {
     const input: FillTapInput = { ...base, onElement: true, tool: 'none' };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('a tap on a filled element\'s edge focuses its own input instead of selecting it', () => {
+    const input: FillTapInput = { ...base, onElement: true, elementFillKey: 'el:e1', tool: 'none' };
+    expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'el:e1' });
+  });
+
+  it('the same overhang tap with no fill key on the element still delegates, unaffected', () => {
+    const input: FillTapInput = { ...base, onElement: true, elementFillKey: null, tool: 'none' };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('a tap on the element\'s actions bar is unaffected by elementFillKey', () => {
+    const input: FillTapInput = { ...base, onElementBar: true, elementFillKey: 'el:e1', tool: 'none' };
+    expect(fillTapDecision(input)).toEqual({ type: 'element' });
   });
 
   it('an element\'s options bar wins over a box reach, nothing armed', () => {
