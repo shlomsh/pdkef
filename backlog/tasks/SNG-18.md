@@ -1,7 +1,7 @@
 ---
 id: "SNG-18"
 title: "Opening the practice form keeps fill mode's ?next=1"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "sign-next-gen"
 phase: "near-term"
