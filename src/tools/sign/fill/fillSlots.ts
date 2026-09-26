@@ -12,6 +12,7 @@
  * with text in it becomes.
  */
 import { fieldFontSize, placeTextOnField, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { resolveFontFamily } from '../../../editor/text/fonts.js';
 import { elementIsOnField } from '../../../editor/text/fieldOrder.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { TEXT_BOX_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
@@ -48,7 +49,11 @@ export function slotKey(field: TypableField): string {
  * guessed back from this already-merged box.
  */
 export function placementForField(field: TypableField, page: SlotPageContext): SlotPlacement {
-  const placed = placeTextOnField(field, page);
+  // A slot is still empty, so there is no text to switch coverage on yet,
+  // but every placement goes through fonts.js's resolution regardless
+  // (fonts-and-text.md) - the same rule elementForSlot follows once the
+  // slot actually has text in it.
+  const placed = placeTextOnField(field, { ...page, fontFamily: resolveFontFamily(page.fontFamily, '') });
   const span = 'combCells' in placed ? placed.width : placed.minWidth;
   const area = field.region.writable ?? field.region;
   return {

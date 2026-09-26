@@ -258,7 +258,7 @@ describe('detectCellCandidates -> placeTextOnCell: where the typed box goes', ()
     text('/', { left: 88, top: 29, width: 1.5, height: 2.2 }),
   ];
   const detect = () => detectCellCandidates(ink, geometry, 0, [caption, ...separators]);
-  const place = (cell) => placeTextOnCell(cell, { fontSize: 12, pageHeightPoints: 100 });
+  const place = (cell) => placeTextOnCell(cell, { fontSize: 12, pageHeightPoints: 100, fontFamily: 'Arimo' });
 
   it('stops the box at a real caption hugging the cell wall, instead of typing across it', () => {
     const [cell] = detect();

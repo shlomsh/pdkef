@@ -13,7 +13,7 @@
  * So the substitution is decided here, explicitly, and applied on both sides.
  */
 
-import { DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { COMB_CAP_HEIGHT_EM, DEFAULT_FONT_SIZE_PT, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { fontFileHasGlyph } from './fontCoverageLookup.js';
 import { DEFAULT_FONT_FAMILY, FONT_BY_FAMILY, FONT_MANIFEST, RETIRED_FONTS as RETIRED_FONT_MAP } from './fontManifest.js';
 import { findMissingGlyphs } from './textTransforms.js';
@@ -81,6 +81,30 @@ export function textBoxPaddingEm(fontFamily) {
   if (!metrics) return TEXT_BOX_PADDING_EM;
   const overhang = Math.max(0, (metrics.ascent + metrics.descent - DEFAULT_LINE_HEIGHT_EM) / 2);
   return Math.max(TEXT_BOX_PADDING_EM, overhang + VERTICAL_METRICS_SLACK_EM);
+}
+
+/**
+ * Where the midpoint of a font's digits' ink sits above the baseline, in em.
+ *
+ * A digit's own ink is not centred on the em box the way `ascent`/`descent`
+ * are - a face with generous descender room (loopy handwriting scripts) or a
+ * tall cap-height (some Brahmic faces) still draws "0123456789" in a band
+ * that sits higher or lower than the em box's own middle, and it is *that*
+ * band a person expects centred in a closed cell (SIGN-38): the same nominal
+ * font size at 14pt in a 22pt cell put Arimo's digit centre 1.71pt below the
+ * cell's middle, Gveret Levin's 3.26pt below and Pacifico's 7.75pt below (with
+ * Pacifico's baseline itself sitting below the cell). Read from each TTF's
+ * real digit outlines (`figureCentre` on the manifest, generated the same way
+ * `fontCoverage.test.js` checks `hhea` against the real asset bytes) rather
+ * than derived from ascent/descent, because no combination of those two
+ * numbers predicts it. Falls back to half the cap height for a family with no
+ * bundled figure, the same fallback `emBoxCentreBelowBaselineEm` in
+ * combPlacement.ts used before this existed.
+ */
+export function figureCentreEm(fontFamily) {
+  const metrics = FONT_VERTICAL_METRICS[fontFamily];
+  if (!metrics || typeof metrics.figureCentre !== 'number') return COMB_CAP_HEIGHT_EM / 2;
+  return metrics.figureCentre;
 }
 
 
