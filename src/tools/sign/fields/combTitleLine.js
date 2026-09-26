@@ -51,7 +51,6 @@ export function titleLineWritable(combs, { cells, checkboxes, textRuns }) {
     && !checkboxes.some((box) => intersects(run, box)));
   return combs.map((comb) => {
     if (comb.boxed || comb.writable || !(comb.cells > 0)) return comb;
-    if (tightestEnclosingCell(comb, cells)) return comb;
     const pitch = comb.width / comb.cells;
     const right = comb.left + comb.width;
     const bottom = comb.top + comb.height;
@@ -61,7 +60,8 @@ export function titleLineWritable(combs, { cells, checkboxes, textRuns }) {
       return overlapsTeeth && run.top < comb.top && gap >= 0 && gap <= pitch
         && comb.height <= MAX_TEETH_TO_LINE * run.height;
     });
-    if (onLine.length === 0) return comb;
+    // The cell test last: it scans every cell, and most combs have no title beside them.
+    if (onLine.length === 0 || tightestEnclosingCell(comb, cells)) return comb;
     const top = Math.min(...onLine.map((run) => run.top));
     return { ...comb, writable: { left: comb.left, top, width: comb.width, height: bottom - top } };
   });

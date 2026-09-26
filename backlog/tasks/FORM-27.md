@@ -76,3 +76,13 @@ y 81.5-99.4). Every recall and precision count is unchanged. Digits follow `writ
 table's ID sits on the name's baseline again (box top 392.3 -> 386.0pt) and the year on its title's
 (89.5 -> 85.2pt). Element corpus: three rows (teeth in a ruled column, teeth beside a title, text on
 the line above); the first two fail on the old code.
+
+Pinned on the real form 101 as well (`corpus/combRowHeight.test.js`): all 13 rows' ID and date
+combs carry their 21.9pt row as `writable`, their digits land on the name's line (within 0.1pt, 10
+of 13 rows have a detected name cell today), and the year sits on its title's baseline. It fails
+3/3 on the pre-FORM-27 detector.
+
+Performance: old and new detectors timed alternately in one process (25 runs each per scored form,
+medians, machine at load 10-17). Every form is within noise except form 101, which now builds and
+resolves its 26 table columns: +1 to +7ms (3-12%) on ~33-56ms. ภ.ง.ด.90, the slowest form, +1-5%
+(noise band). `combTitleLine.js` tests text before the cell scan so most combs skip it.
