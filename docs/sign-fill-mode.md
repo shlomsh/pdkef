@@ -40,24 +40,32 @@ contract; change them first, then the pieces.
   fill input.
 - **Taps** (`FillTapDecision`), in this order:
   1. On a fill input: native focus.
-  2. Within reach of a detected tick box, with the mark tool armed or nothing armed: production's
+  2. On an existing element's own options bar (`[data-editor-actions]`, Delete, colour, font): its
+     buttons always win, before the box-first rule below even runs - otherwise a detected box's own
+     reach could swallow a tap meant for the bar of an element sitting near or over it. Resize handles
+     (`[data-editor-resizer]`) deliberately stay out of this rule: a real resize is a drag, not a tap.
+  3. Within reach of a detected tick box, with the mark tool armed or nothing armed: production's
      `handlePageClick` at the box's centre, before a tap on an existing editor element is even looked
      at. Production's own rule (`useWorkspaceGestures.ts` `handlePageClick`, "a mark covers the very
      target that toggles it"): a selected mark's touch-sized resize handle can sit over the next box,
-     and the box still wins.
-  3. On an existing editor element (not a fill input): production's own path, unchanged.
-  4. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
+     and the box still wins. With nothing armed and a typing session open, this also finishes that
+     session (`finishTyping`): otherwise the fill input the person was typing in keeps its focus while
+     the reducer ends its editing state underneath it.
+  4. On an existing editor element (not a fill input or its options bar): production's own path,
+     unchanged.
+  5. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
      (MOBI-24). Date goes to production's `handlePageClick` at the target's centre, so its snap lands
      where the droppable look promised. Reach is 22 px, the printed label just above a field counts,
      and between two rows the label's row wins.
-  5. Typing or something selected, and away from every spot: finish that only.
-  6. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
-  7. Everything else: production's `handlePageClick`.
+  6. Typing or something selected, and away from every spot: finish that only.
+  7. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
+  8. Everything else: production's `handlePageClick`.
   With nothing armed, a tap on a detected tick box toggles it through production's own symbol path,
   even though no tool is armed.
-- **What each tool reaches** (`fillReachTargets`): Text, every fill input; Date, the empty detected
-  slots; a mark, the detected tick boxes; any other tool, nothing. While a tool other than Text is armed,
-  fill inputs don't take taps (`taps-go-to-tool`), so the tap reaches that tool.
+- **What each tool reaches** (`fillReachTargets`): Text (and 'none', which fill mode treats the same
+  as Text), every fill input; Date, the empty detected slots; a mark, the detected tick boxes; any
+  other tool, nothing. While a tool other than Text is armed, fill inputs don't take taps
+  (`taps-go-to-tool`), so the tap reaches that tool.
 - **Hints.** A slot shows a faint frame at rest. The target a tap would reach for the armed tool
   (`FillTool`) gets a distinct "droppable" look while the mouse hovers or a finger is down near it.
   With nothing in reach there is no preview.
@@ -158,17 +166,32 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - `focusFillInput(key)` and `focusNextFillInput(fromKey)`: DOM order is reading order;
   - `boxKey(region)` for tick-box reach targets.
 - **Gestures.** In fill mode the overlay's handlers go through `useFillTap`, which asks
-  `fillTapDecision`. Touch decides on `touchend`, and a decision it carries out calls `preventDefault`,
-  so no click follows. Native and delegate let the click through, and the click decides again. The mouse
+  `fillTapDecision`. Touch decides on `touchend`. A `delegate` with a resolved point (e.g. a detected
+  tick box's centre) runs right there at `touchend` and calls `preventDefault`, with no
+  `stopPropagation`: the touch may have started on an existing editor element whose own `touchstart`
+  handler (`DraggableWrapper`) already preventDefaulted to own a drag, which kills iOS's synthesized
+  click, so waiting for it would mean the tap never runs - and the window still has to see this
+  `touchend`, since the gesture controller (`src/lib/gestures/controller.ts`) finishes that same drag
+  there. Production's own `handlePageClick` mirrors this: it skips its own `stopPropagation` on an
+  event whose `type` is `'touchend'`, for the same reason. Native and a plain `delegate` (no resolved
+  point) wait for the click iOS synthesizes afterward, and that click never decides again. The mouse
   reads "typing" at `mousedown`, before the default blur. The decisions:
   - `native`: leave the event alone;
+  - `element`: the tap landed on an existing element's own options bar, not fill mode's tap at all -
+    leave the event alone, so the bar's own button click fires. Distinct from `native`: `native`'s own
+    handling of the click that follows a touch tap calls `stopPropagation`, which would swallow the
+    bar's click before it ever reached the button;
   - `focus`: `focusFillInput(key)` synchronously;
   - `dismiss`: blur;
   - `freeSlot`: the proxy dance above. `openFreeSlot(at)` opens the slot and sets the pending focus
     key to its key, so the gesture only focuses the proxy and calls it;
-  - `delegate`: production's `handlePageClick`, at the corrected point when one is given.
-- **The armed tool, as `FillTool`** (`fillToolOf`): no tool or Text is 'text', Date is 'date', the symbol
-  tool is 'mark', anything else is 'other'.
+  - `delegate`: production's `handlePageClick`, at the corrected point when one is given. A
+    `finishTyping` delegate (nothing armed, a box toggle while typing) calls `dismiss()` first, so the
+    fill input does not keep focus once the reducer ends its editing state.
+- **The armed tool, as `FillTool`** (`fillToolOf`): no tool is `'none'` (fill mode treats it like Text:
+  every fill input, and a tap on nothing opens a free slot - plus the detected tick boxes, where a tap
+  runs production's own symbol toggle), Text is `'text'`, Date is `'date'`, the symbol tool is `'mark'`,
+  anything else is `'other'`.
 - **The aim.** A mouse hovering with no button down (pointer events, so iOS's synthesized mouse events
   never count), or a finger down, sets the aimed key from `reachTarget`. It clears when the touch ends
   or is cancelled, and when the pointer leaves the page.

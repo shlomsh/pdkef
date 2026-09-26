@@ -375,6 +375,46 @@ describe('useFillTap', () => {
     expect(setAimedKey).toHaveBeenLastCalledWith(null);
   });
 
+  it('leaves a touch on an element\'s options bar near a box completely alone', () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
+    const element = document.createElement('div');
+    element.setAttribute('data-editor-element', '');
+    const bar = document.createElement('div');
+    bar.setAttribute('data-editor-actions', '');
+    element.appendChild(bar);
+    overlay.appendChild(element);
+
+    const touch = fakeTouch(1, 500, 500);
+    handlers.onTouchStart(touchEvent(overlay, bar, [touch], [touch]), 0);
+    const endEvent = touchEvent(overlay, bar, [], [fakeTouch(1, 500, 500)]);
+    handlers.onTouchEnd(endEvent, 0);
+
+    expect(delegate).not.toHaveBeenCalled();
+    expect(endEvent.preventDefault).not.toHaveBeenCalled();
+
+    const click = mouseEvent(overlay, bar, 500, 500);
+    handlers.onClickCapture(click, 0);
+    expect(delegate).not.toHaveBeenCalled();
+    expect(click.stopPropagation).not.toHaveBeenCalled();
+  });
+
+  it('calls dismiss before delegate when a box toggle also finishes typing (touchend)', () => {
+    const { handlers, overlay, delegate, dismiss } = setup({
+      tool: 'none',
+      targetsOf: () => [target('box', 'box:1')],
+      engaged: () => true,
+    });
+
+    const touch = fakeTouch(1, 500, 500);
+    handlers.onTouchStart(touchEvent(overlay, overlay, [touch], [touch]), 0);
+    const endEvent = touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]);
+    handlers.onTouchEnd(endEvent, 0);
+
+    expect(dismiss).toHaveBeenCalledTimes(1);
+    expect(delegate).toHaveBeenCalledTimes(1);
+    expect(dismiss.mock.invocationCallOrder[0]).toBeLessThan(delegate.mock.invocationCallOrder[0]);
+  });
+
   it('aims a hovering mouse near a target, ignores a touch pointer, and clears on leave', () => {
     const { handlers, overlay, setAimedKey } = setup({ targetsOf: () => [target('fill', 'slot:z')] });
 

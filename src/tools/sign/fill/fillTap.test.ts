@@ -8,12 +8,21 @@ const reachOf = (kind: ReachTarget['kind'], key = 'k'): ReachTarget => (
   { kind, key, pageIndex: 0, box: { left: 10, top: 10, width: 20, height: 10 } }
 );
 
-const base: FillTapInput = { onFillInput: false, onElement: false, typing: false, tool: 'other', reach: null, at: null };
+const base: FillTapInput = {
+  onFillInput: false,
+  onElementBar: false,
+  onElement: false,
+  typing: false,
+  tool: 'other',
+  reach: null,
+  at: null,
+};
 
 describe('fillTapDecision', () => {
   it('lets a fill input take native focus, above every other rule', () => {
     const input: FillTapInput = {
       onFillInput: true,
+      onElementBar: false,
       onElement: false,
       typing: true,
       tool: 'text',
@@ -133,6 +142,40 @@ describe('fillTapDecision', () => {
   it('a tap on an existing element with nothing else in reach is production\'s own plain path', () => {
     const input: FillTapInput = { ...base, onElement: true, tool: 'none' };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('an element\'s options bar wins over a box reach, nothing armed', () => {
+    const input: FillTapInput = { ...base, onElementBar: true, tool: 'none', reach: reachOf('box', 'box-6') };
+    expect(fillTapDecision(input)).toEqual({ type: 'element' });
+  });
+
+  it('an element\'s options bar wins over a box reach, Mark armed', () => {
+    const input: FillTapInput = { ...base, onElementBar: true, tool: 'mark', reach: reachOf('box', 'box-7') };
+    expect(fillTapDecision(input)).toEqual({ type: 'element' });
+  });
+
+  it('an element\'s options bar wins even over a fill input tap', () => {
+    // onFillInput still wins above it - the bar only matters once that rule has fallen
+    // through - but the bar must never fall through to the box-first rule below it.
+    const input: FillTapInput = { ...base, onElementBar: true, onFillInput: true, tool: 'text' };
+    expect(fillTapDecision(input)).toEqual({ type: 'native' });
+  });
+
+  it('sets finishTyping on a box toggle (nothing armed) while a typing session is open', () => {
+    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('box', 'box-8'), typing: true };
+    expect(fillTapDecision(input)).toEqual({
+      type: 'delegate',
+      at: { pageIndex: 0, x: 20, y: 15 },
+      tool: 'symbol',
+      finishTyping: true,
+    });
+  });
+
+  it('does not set finishTyping on a box toggle (nothing armed) when not typing', () => {
+    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('box', 'box-9'), typing: false };
+    const decision = fillTapDecision(input);
+    expect(decision).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
+    expect((decision as { finishTyping?: boolean }).finishTyping).toBeUndefined();
   });
 });
 

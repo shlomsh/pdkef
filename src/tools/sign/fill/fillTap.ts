@@ -24,6 +24,17 @@ export interface FillTapInput {
   /** The tap landed on an existing fill input: let the browser focus it natively. */
   onFillInput: boolean;
   /**
+   * The tap landed on an existing editor element's own options bar
+   * (`[data-editor-actions]`, inside `[data-editor-element]`, see `DraggableWrapper.tsx`):
+   * Delete, colour, font and the rest of that bar. Its buttons always win, checked before
+   * the box-first rule below even runs - otherwise a detected box's own reach (which
+   * fires ahead of `onElement`, see that rule's own comment) would swallow a tap on the
+   * bar of an element sitting near or over a box. Resize handles (`[data-editor-resizer]`)
+   * deliberately stay out of this: a real resize is a drag, not a tap, and a selected
+   * mark's 44px handle overlapping the next box is the bug the box-first rule fixed.
+   */
+  onElementBar: boolean;
+  /**
    * The tap landed inside an existing editor element's own DOM (e.g. a placed mark's
    * resize handle), but not on a fill input. Production owns it, unless a detected box
    * claims the tap first (see `fillTapDecision`'s box-before-element rule).
@@ -60,10 +71,20 @@ function centreOf(target: ReachTarget): PagePoint {
  * behaviour, so it stays a short list of guard clauses rather than a lookup table.
  */
 export function fillTapDecision(input: FillTapInput): FillTapDecision {
-  const { onFillInput, onElement, typing, tool, reach, at } = input;
+  const { onFillInput, onElementBar, onElement, typing, tool, reach, at } = input;
   if (onFillInput) return { type: 'native' };
-  // A detected box wins before a tap on an existing element is treated as selection.
-  if (tool === 'none' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach), tool: 'symbol' };
+  // The element's own options bar always wins - Delete, colour, font - even when a
+  // detected box in reach would otherwise claim the tap first (see below). Not fill
+  // mode's tap: do nothing at all, so the bar's own button click runs untouched.
+  if (onElementBar) return { type: 'element' };
+  // A detected box wins before a tap on an existing element is treated as selection. With
+  // nothing armed, a box tapped while a typing session is open must also end that session
+  // (finishTyping): otherwise the fill input keeps focus while the reducer ends editing
+  // underneath it. Mark armed is a deliberate tool switch already, not this drift, so it
+  // does not carry finishTyping.
+  if (tool === 'none' && reach?.kind === 'box') {
+    return { type: 'delegate', at: centreOf(reach), tool: 'symbol', ...(typing ? { finishTyping: true } : {}) };
+  }
   if (tool === 'mark' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach) };
   if (onElement) return { type: 'delegate' };
   if ((tool === 'text' || tool === 'none') && reach?.kind === 'fill') return { type: 'focus', key: reach.key };

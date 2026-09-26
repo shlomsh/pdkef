@@ -75,6 +75,15 @@ export type FillTool = 'none' | 'text' | 'date' | 'mark' | 'other';
 export type FillTapDecision =
   /** The tap landed on a fill input: let the browser focus it natively. */
   | { type: 'native' }
+  /**
+   * The tap landed on an existing element's own options bar (Delete, colour, font):
+   * not fill mode's tap at all. Do nothing - leave the event alone so the bar's own
+   * button click fires. Distinct from `native`: `native`'s own touch handling stops a
+   * click that follows a touch tap (so it never re-reaches the workspace's blank-area
+   * deselect), and that same stop would swallow the bar's own click before it ever
+   * reaches the button.
+   */
+  | { type: 'element' }
   /** Within reach of a fill input: focus it now, inside the touch handler (MOBI-24). */
   | { type: 'focus'; key: string }
   /** Typing, and the tap is away from every spot: finish typing, nothing else. */
@@ -88,8 +97,11 @@ export type FillTapDecision =
    * droppable look promised. `tool` is set when nothing is armed and the tap landed on
    * a detected tick box: production's tap path runs as if that tool were armed (always
    * 'symbol' today), so a tap on a printed checkbox toggles it even with nothing armed.
+   * `finishTyping` is set when that same box toggle (nothing armed) also has to close a
+   * typing session already open elsewhere: without it, the fill input the person was
+   * typing in keeps focus while the reducer ends its editing state underneath it.
    */
-  | { type: 'delegate'; at?: PagePoint; tool?: 'symbol' };
+  | { type: 'delegate'; at?: PagePoint; tool?: 'symbol'; finishTyping?: boolean };
 
 /**
  * What fill mode hands a text element's renderer (TextNode) through TextFillContext.
