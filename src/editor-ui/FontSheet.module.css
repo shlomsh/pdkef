@@ -1,0 +1,78 @@
+/* SNG-17: the phone font picker. A bottom sheet docked to the viewport, not
+   Popover's floating card - `Popover`'s Floating UI positioning is meaningless
+   for a full-width sheet, so this is a native `<dialog>` opened with
+   `showModal()` (top layer; `<dialog open>` alone renders invisibly under a
+   real fullscreen element, per the fullscreen-dialog-top-layer lesson). */
+.sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0;
+  width: 100%;
+  max-width: none;
+  max-height: 45vh;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg), 0 -4px 20px rgba(0, 0, 0, .08);
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet::backdrop {
+  background: rgba(0, 0, 0, .32);
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  margin: .5rem auto 0;
+  flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .6rem .75rem;
+  flex-shrink: 0;
+}
+
+.headerButton {
+  border: none;
+  background: transparent;
+  color: var(--color-primary-text);
+  font-size: .9rem;
+  font-weight: 500;
+  padding: .4rem .5rem;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.headerButton:hover {
+  background: var(--color-surface-sunken);
+}
+
+.doneButton {
+  font-weight: 700;
+}
+
+.title {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  padding: 0 .75rem .75rem;
+  overflow-y: auto;
+  min-height: 0;
+}

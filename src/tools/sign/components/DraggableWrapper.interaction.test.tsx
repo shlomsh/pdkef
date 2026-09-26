@@ -161,6 +161,23 @@ describe('DraggableWrapper interaction/visual states (E1.4)', () => {
   });
 
   describe('font picker preview', () => {
+    // These tests are about the desktop popover path
+    // (FontPickerMenu.tsx's mouseenter-hover preview and
+    // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
+    // this, src/test/setup.js's blanket `matchMedia` stub (matches: true for
+    // any query, tuned for ArmHint's `pointer: fine` query) would also make
+    // `(pointer: coarse)` match, and the font trigger would open the sheet
+    // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the
+    // same fix.
+    beforeEach(() => {
+      const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+      Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+    });
+
+    afterEach(() => {
+      delete (window as any).matchMedia;
+    });
+
     it('repaints the real text node after the hover delay without committing, then restores it when the menu closes', () => {
       vi.useFakeTimers();
       const onChange = vi.fn();

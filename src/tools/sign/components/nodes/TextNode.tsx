@@ -1,6 +1,6 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'preact/hooks';
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
-import useCoarsePointer from '../../useCoarsePointer.ts';
+import useCoarsePointer from '../../../../editor-ui/hooks/useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
 import { fieldTextInset, strongTextDirection, textElementLayout } from '../../../../lib/signHelpers.js';
 import { resolveFontSubstitution } from '../../../../editor/text/fonts.js';
