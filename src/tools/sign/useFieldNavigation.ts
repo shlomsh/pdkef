@@ -53,9 +53,10 @@ export interface FieldNavigationOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   initialColor?: string;
-  /** The document's carried style (SIGN-33); a key absent from it means the
-   * document has none yet - see useWorkspaceGestures.ts's identical prop for
-   * the tap path this mirrors. */
+  /** The document's resolved style (SIGN-35): the document's own `carried`
+   * keys over the app-wide style, from `useDocumentStyle()` in
+   * SignToolContext; this hook applies its own shipped defaults. See useWorkspaceGestures.ts's
+   * identical prop for the tap path this mirrors. */
   carried?: Partial<DocumentStyle>;
   pageSizes?: PageGeometry[];
   nextElementIndex?: number;
@@ -404,11 +405,13 @@ export default function useFieldNavigation({
 
     // Seeded only by an actual placement - `existing` above already returned
     // for a field that already has a box, so reaching here always means one
-    // is about to be created.
-    const seed: Partial<DocumentStyle> = {};
-    if (carriedFont === null) seed.font = resolvedFont;
-    if (carriedFontSize === null) seed.fontSize = snapped.fontSize;
-    if (seed.font !== undefined || seed.fontSize !== undefined) dispatch({ type: 'SET_CARRIED', payload: seed });
+    // is about to be created. SIGN-35: the font is never seeded - seeding is
+    // not choosing. A seeded font would freeze this document against the
+    // person's later choices elsewhere, and the three layers (document,
+    // app-wide, shipped default) already resolve every field to the same
+    // font without it. The size still seeds: it is document-only and
+    // measured from this first field.
+    if (carriedFontSize === null) dispatch({ type: 'SET_CARRIED', payload: { fontSize: snapped.fontSize } });
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
