@@ -283,10 +283,9 @@ function buildClosedCells(ink) {
       const spansBand = (edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE;
       const risesFromFloor = (edge) => edge.y0 <= bottom + BAND_TOLERANCE
         && Math.min(edge.y1, top) - bottom >= MIN_FLOOR_RISE_FRACTION * height;
-      const bandEdgeX = bandEdges
-        .filter((edge) => spansBand(edge) || risesFromFloor(edge))
-        .map((edge) => edge.x);
-      const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
+      const edgeXs = (keep) => distinctPositions(bandEdges.filter(keep).map((edge) => edge.x), POS_TOLERANCE)
+        .sort((a, b) => a - b);
+      const xs = edgeXs((edge) => spansBand(edge) || risesFromFloor(edge));
       // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
       // box: an instructional/explanatory panel on both spike forms (one bordered paragraph, no
       // internal rule), but also the ordinary shape of a lone labelled field on a Western form (a
@@ -315,52 +314,55 @@ function buildClosedCells(ink) {
       // width, which also carries whatever unrelated wall happens to bound the same band (this
       // band's own top/bottom rules run the width of the page, so `xs` here reaches page margins
       // far outside the address row's own box).
-      const bandCells = [];
+      const columnsBetween = (walls) => {
+        const columns = [];
+        for (let j = 0; j < walls.length - 1; j += 1) {
+          const left = walls[j];
+          const right = walls[j + 1];
+          const width = right - left;
+          if (width < MIN_TICK_CELL_WIDTH) continue;
+          const crosses = (rule) => rule.x0 < right && rule.x1 > left;
+          const reaches = (rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
+          if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
+          if (inside.some(reaches) || outside.some(crosses)) continue;
 
-      for (let j = 0; j < xs.length - 1; j += 1) {
-        const left = xs[j];
-        const right = xs[j + 1];
-        const width = right - left;
-        if (width < MIN_TICK_CELL_WIDTH) continue;
-        const crosses = (rule) => rule.x0 < right && rule.x1 > left;
-        const reaches = (rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
-        if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
-        if (inside.some(reaches) || outside.some(crosses)) continue;
+          const topCoverage = ruledCoverage(nearRules[i], top, left, right, BAND_TOLERANCE);
+          const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right, BAND_TOLERANCE);
+          if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
 
-        const topCoverage = ruledCoverage(nearRules[i], top, left, right, BAND_TOLERANCE);
-        const bottomCoverage = ruledCoverage(nearRules[k], bottom, left, right, BAND_TOLERANCE);
-        if (topCoverage < CLOSED_EDGE_COVERAGE || bottomCoverage < CLOSED_EDGE_COVERAGE) continue;
+          const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);
+          const rightCoverage = verticalCoverage(bandEdges, right, bottom, top);
+          // A floor tick is closed by construction - it is only ever partial-height, that is what
+          // makes it a tick rather than a wall - so it is exempt from the full-height coverage a
+          // spanning wall needs. `closure` still carries its real (lower) coverage number, so a
+          // tick-bounded cell is never mistaken for one closed by real walls on every side.
+          const isFloorTick = (x) => bandEdges.some(
+            (edge) => Math.abs(edge.x - x) <= POS_TOLERANCE && risesFromFloor(edge),
+          );
+          if ((leftCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(left))
+            || (rightCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(right))) continue;
 
-        const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);
-        const rightCoverage = verticalCoverage(bandEdges, right, bottom, top);
-        // A floor tick is closed by construction - it is only ever partial-height, that is what
-        // makes it a tick rather than a wall - so it is exempt from the full-height coverage a
-        // spanning wall needs. `closure` still carries its real (lower) coverage number, so a
-        // tick-bounded cell is never mistaken for one closed by real walls on every side.
-        const isFloorTick = (x) => bandEdges.some(
-          (edge) => Math.abs(edge.x - x) <= POS_TOLERANCE && risesFromFloor(edge),
-        );
-        if ((leftCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(left))
-          || (rightCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(right))) continue;
-
-        const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-        // This column is an underline field only when a wall's own coverage was actually too low
-        // to close it on the ordinary rule above, and it was let in *because* that wall is a floor
-        // tick (FORM-26 part A). Checking `isTick` alone is not enough: a real wall whose ink falls
-        // a point or two short of the band's own top (rounding, stroke width) still rises past
-        // `MIN_FLOOR_RISE_FRACTION` and would wrongly read as a tick despite already closing its
-        // side at full coverage - measured on irs-1040-2024, where two such near-full walls (a
-        // date line's separator, a line-item's own box) were misread as floor ticks and published
-        // as spurious one-line fields with a borrowed nearby number as their "caption". Tying the
-        // flag to the same coverage gate the exemption above just used keeps a wall a wall whenever
-        // its own coverage already qualifies it.
-        const floorTicked = (leftCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(left))
-          || (rightCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(right));
-        bandCells.push({
-          left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
-          floorTicked, nextRuleY: floorTicked ? nextRuleBelow(left, right) : null,
-        });
-      }
+          const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
+          // This column is an underline field only when a wall's own coverage was actually too low
+          // to close it on the ordinary rule above, and it was let in *because* that wall is a floor
+          // tick (FORM-26 part A). Checking `isTick` alone is not enough: a real wall whose ink falls
+          // a point or two short of the band's own top (rounding, stroke width) still rises past
+          // `MIN_FLOOR_RISE_FRACTION` and would wrongly read as a tick despite already closing its
+          // side at full coverage - measured on irs-1040-2024, where two such near-full walls (a
+          // date line's separator, a line-item's own box) were misread as floor ticks and published
+          // as spurious one-line fields with a borrowed nearby number as their "caption". Tying the
+          // flag to the same coverage gate the exemption above just used keeps a wall a wall whenever
+          // its own coverage already qualifies it.
+          const floorTicked = (leftCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(left))
+            || (rightCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(right));
+          columns.push({
+            left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
+            floorTicked, nextRuleY: floorTicked ? nextRuleBelow(left, right) : null,
+          });
+        }
+        return columns;
+      };
+      const bandCells = columnsBetween(xs);
       // The floor-ticked group's own span: only the columns actually bounded by a tick, not the
       // band's other columns or the coincidental page-wide walls `xs` also picked up (FORM-26 part
       // A) - form 101's own row caption sits over one column of the group, not centred over it,
@@ -370,6 +372,23 @@ function buildClosedCells(ink) {
         const rowLeft = Math.min(...ticked.map((c) => c.left));
         const rowRight = Math.max(...ticked.map((c) => c.right));
         for (const c of ticked) { c.rowLeft = rowLeft; c.rowRight = rowRight; }
+        // Floor ticks divide a ruled column only when they divide it into captioned fields
+        // (FORM-27). An open comb's own teeth stand on the same floor and rise just as far - form
+        // 101's children table: 7.2pt teeth in a 21.9pt row, 0.33 of it - and read as ticks they
+        // chopped the identity and birth-date columns into per-digit slivers, which have no
+        // caption and were dropped, taking the printed cell with them. So the column between the
+        // band's real walls is built as well, tagged `tickDivided`, and `detectCellCandidates`
+        // keeps it unless a captioned floor-ticked column inside it survives. Only a wall column
+        // that actually holds a floor-ticked one is added: a column the ticks did not divide is
+        // already in `bandCells` as it is.
+        const holdsTicked = (column) => ticked.some(
+          (c) => c.left >= column.left - POS_TOLERANCE && c.right <= column.right + POS_TOLERANCE,
+        );
+        const walls = edgeXs(spansBand);
+        const wallLone = walls.length === 2;
+        for (const column of columnsBetween(walls)) {
+          if (holdsTicked(column)) bandCells.push({ ...column, lone: wallLone, tickDivided: true });
+        }
       }
       cells.push(...bandCells);
     }
@@ -810,18 +829,26 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     });
   }
 
+  // A wall column the floor ticks divided (`tickDivided`, FORM-27) yields to them only when one of
+  // them survived as a captioned field: the address row's ticks are real dividers, a comb's teeth
+  // are not, and without captions the printed column is the field.
+  const sameBand = (a, b) => Math.abs(a.top - b.top) <= POS_TOLERANCE && Math.abs(a.bottom - b.bottom) <= POS_TOLERANCE;
+  const dividedByCaptionedTicks = (column) => resolved.some(({ cell }) => cell.floorTicked && sameBand(cell, column)
+    && cell.left >= column.left - POS_TOLERANCE && cell.right <= column.right + POS_TOLERANCE);
+  const fields = resolved.filter(({ cell }) => !cell.tickDivided || !dividedByCaptionedTicks(cell));
+
   // table-cell vs text: a column that recurs across >=3 row bands (same left/right within
   // POS_TOLERANCE) is a real repeating table row; a one-off labelled field (the common case
   // here - a header row over one blank data row) stays `text`.
   const columnCounts = new Map();
-  for (const r of resolved) {
+  for (const r of fields) {
     const key = columnKey(r.cell);
     columnCounts.set(key, (columnCounts.get(key) || 0) + 1);
   }
 
   const candidates = [];
   let index = 0;
-  for (const r of resolved) {
+  for (const r of fields) {
     const kind = r.kind === 'text' && columnCounts.get(columnKey(r.cell)) >= 3 ? 'table-cell' : r.kind;
 
     candidates.push({
