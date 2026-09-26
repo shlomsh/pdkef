@@ -62,6 +62,10 @@
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-primary) 6%, transparent);
   color: var(--color-text);
+  /* The caret in the ink it types, not the platform's blue (Shlomi, iPhone):
+     `color` is set inline to the element's own colour. .slot-comb below keeps
+     its caret transparent, drawing its own. */
+  caret-color: currentColor;
   outline: none;
   /* Nothing of ours sits on top of a slot, but this stays explicit: iOS
      skips a field whose centre hit-test lands elsewhere (SNG-14), and a
