@@ -397,6 +397,31 @@ describe('placeCombOnRegion', () => {
     expect(place(region, null).fontSize).toBe(14);
   });
 
+  it('seeds an open comb inside a printed cell from its writable strip, the same size a cell in its row seeds from', () => {
+    // Form 101's birth-date comb: teeth about 0.5% of the page tall (~4.2pt),
+    // hanging inside a printed cell whose writable strip is about 2.2% of the
+    // page (~18.5pt) - the same strip height the name cells sharing that row
+    // seed from. Seeding from the teeth alone floored this comb to
+    // MIN_FONT_SIZE_PT while its row read at ~11.8pt (live report, form 101).
+    const stripHeight = 2.2;
+    const openCombInCell: CombRegion = {
+      ...IDENTITY_RUN,
+      height: 0.5,
+      writable: { left: IDENTITY_RUN.left, top: IDENTITY_RUN.top, width: IDENTITY_RUN.width, height: stripHeight },
+    };
+    const rowCell: FieldRegion = {
+      pageIndex: 0,
+      left: 10,
+      top: 27,
+      width: 20,
+      height: stripHeight,
+    };
+    const combSize = place(openCombInCell, null).fontSize;
+    const cellSize = placeTextOnCell(rowCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT }).fontSize;
+    expect(combSize).toBe(cellSize);
+    expect(combSize).toBeGreaterThan(MIN_FONT_SIZE_PT);
+  });
+
   it('centres the digits in the cell drawn around open teeth, where the neighbouring cells\' text sits', () => {
     // The identity comb's 23pt cell on form 101, its label in the top corner
     // leaving a 14pt strip above the rule. A 12pt box (15.5pt) centred there
