@@ -20,11 +20,15 @@ function Harness({
   onSelect = () => {},
   onChange = () => {},
   onTap,
+  touchNeedsSelection = false,
+  isSelected = false,
 }: {
   apiRef: ApiRef;
   onSelect?: (e: Event) => void;
   onChange?: (changes: Record<string, number>) => void;
   onTap?: (() => void) | null;
+  touchNeedsSelection?: boolean;
+  isSelected?: boolean;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +46,8 @@ function Harness({
     onSelect,
     onChange,
     onTap: onTap ?? null,
+    touchNeedsSelection,
+    isSelected,
   });
 
   apiRef.current = { handlePointerDown };
@@ -70,12 +76,30 @@ function mount({
   onSelect,
   onChange,
   onTap,
-}: { onSelect?: (e: Event) => void; onChange?: (changes: Record<string, number>) => void; onTap?: (() => void) | null } = {}) {
+  touchNeedsSelection,
+  isSelected,
+}: {
+  onSelect?: (e: Event) => void;
+  onChange?: (changes: Record<string, number>) => void;
+  onTap?: (() => void) | null;
+  touchNeedsSelection?: boolean;
+  isSelected?: boolean;
+} = {}) {
   const host = document.createElement('div');
   document.body.appendChild(host);
   const apiRef: ApiRef = { current: null };
   act(() => {
-    render(<Harness apiRef={apiRef} onSelect={onSelect} onChange={onChange} onTap={onTap} />, host);
+    render(
+      <Harness
+        apiRef={apiRef}
+        onSelect={onSelect}
+        onChange={onChange}
+        onTap={onTap}
+        touchNeedsSelection={touchNeedsSelection}
+        isSelected={isSelected}
+      />,
+      host
+    );
   });
   const wrapper = host.querySelector('div') as HTMLDivElement;
   wrapper.getBoundingClientRect = pageRect;
@@ -340,5 +364,74 @@ describe('useDraggableElement MOBI-21 tap detection (review fixes)', () => {
 
     expect(onChange).not.toHaveBeenCalled();
     expect(onTap).not.toHaveBeenCalled();
+  });
+});
+
+// SNG-04: docs/sign-next-gen-guidelines.md §2.2, fill mode's touch-vs-scroll
+// rule. `dispatchMouseDown`/`dispatchMouseUp` (no `touches`) exercise the
+// "mouse is unchanged" half; touch cases drive `touchNeedsSelection`.
+describe('useDraggableElement SNG-04 (fill mode touch claim)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('does not select or drag an unselected element on a touch, in fill mode', () => {
+    const onSelect = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onSelect, onChange, touchNeedsSelection: true, isSelected: false });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(320, 400)]); // past the 8px tolerance - would be a drag otherwise
+    dispatchTouchEnd(touch(320, 400));
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('leaves the touchstart unprevented for an unselected element in fill mode, so native scroll proceeds', () => {
+    const { el } = mount({ touchNeedsSelection: true, isSelected: false });
+
+    const seen: TouchEvent[] = [];
+    el.addEventListener('touchstart', (e) => { seen.push(e as TouchEvent); });
+    dispatchTouchStart(el, [touch(300, 400)]);
+
+    expect(seen).toHaveLength(1);
+    expect(seen[0].defaultPrevented).toBe(false);
+  });
+
+  it('still drags an already-selected element on a touch, in fill mode', () => {
+    const onChange = vi.fn();
+    const { el } = mount({ onChange, touchNeedsSelection: true, isSelected: true });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(320, 400)]);
+    dispatchTouchEnd(touch(320, 400));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('drags an unselected element on a touch outside fill mode, unchanged', () => {
+    const onSelect = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onSelect, onChange, touchNeedsSelection: false, isSelected: false });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(320, 400)]);
+    dispatchTouchEnd(touch(320, 400));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('never blocks a mouse gesture, even when touchNeedsSelection is true and the element is unselected', () => {
+    const onSelect = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onSelect, onChange, touchNeedsSelection: true, isSelected: false });
+
+    dispatchMouseDown(el, 300, 400);
+    dispatchMouseUp(320, 400);
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 });

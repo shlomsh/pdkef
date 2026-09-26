@@ -1,7 +1,7 @@
 ---
 id: "SNG-16"
 title: "Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render)"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"

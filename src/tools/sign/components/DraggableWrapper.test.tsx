@@ -531,3 +531,131 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
     expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
   });
 });
+
+// SNG-04 (docs/sign-next-gen-guidelines.md §2.2): fill mode only. A finger
+// meant to scroll over an already-placed, unselected element must not drag
+// it; a one-finger swipe there is native panning instead. Wired through
+// DraggableWrapper's own `touchNeedsSelection: fillContext.enabled` and
+// `isSelected: isActive` - the pure decision itself is
+// `touchClaimsElement` (src/editor/gestures/touchClaim.test.ts).
+describe('DraggableWrapper touch-vs-scroll in fill mode (SNG-04)', () => {
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  function touchPoint(clientX: number, clientY: number) {
+    return { clientX, clientY } as Touch;
+  }
+
+  function dispatchTouchStart(target: EventTarget, touches: Touch[]) {
+    let event: TouchEvent | null = null;
+    act(() => {
+      event = new TouchEvent('touchstart', { touches, changedTouches: touches, bubbles: true, cancelable: true });
+      target.dispatchEvent(event);
+    });
+    return event as unknown as TouchEvent;
+  }
+
+  function dispatchTouchMove(touches: Touch[]) {
+    act(() => {
+      window.dispatchEvent(
+        new TouchEvent('touchmove', { touches, changedTouches: touches, bubbles: true, cancelable: true })
+      );
+    });
+  }
+
+  function dispatchTouchEnd(lastTouch: Touch) {
+    act(() => {
+      window.dispatchEvent(
+        new TouchEvent('touchend', { touches: [], changedTouches: [lastTouch], bubbles: true, cancelable: true })
+      );
+    });
+  }
+
+  function mountFillMode({
+    isActive,
+    onSelect = vi.fn(),
+    onChange = vi.fn(),
+  }: {
+    isActive: boolean;
+    onSelect?: (e: Event) => void;
+    onChange?: TextChange;
+  }) {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse: true }}>
+          <DraggableWrapper
+            element={element}
+            isActive={isActive}
+            onBeginEdit={() => {}}
+            onSelect={onSelect}
+            onChange={onChange}
+            onDelete={() => {}}
+            onClone={() => {}}
+            pageWidthPoints={612}
+          >
+            {textNode(element)}
+          </DraggableWrapper>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    const box = requiredElement<HTMLDivElement>(wrapper, `.${elementStyles.element}`);
+    // The dragged node measures itself via getBoundingClientRect at pointer-down.
+    box.getBoundingClientRect = () => new DOMRect(140, 90, 80, 20);
+    return { wrapper, box };
+  }
+
+  it('does not select or drag an unselected element on a touchmove past 8px, in fill mode', () => {
+    const onSelect = vi.fn();
+    const onChange = vi.fn();
+    const { box } = mountFillMode({ isActive: false, onSelect, onChange });
+
+    const startEvent = dispatchTouchStart(box, [touchPoint(300, 400)]);
+    dispatchTouchMove([touchPoint(320, 400)]);
+    dispatchTouchEnd(touchPoint(320, 400));
+
+    expect(startEvent.defaultPrevented).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('carries `data-touch-scroll` on an unselected element in fill mode', () => {
+    const { box } = mountFillMode({ isActive: false });
+
+    expect(box.hasAttribute('data-touch-scroll')).toBe(true);
+  });
+
+  it('drops `data-touch-scroll` once the element is active/selected', () => {
+    const { box } = mountFillMode({ isActive: true });
+
+    expect(box.hasAttribute('data-touch-scroll')).toBe(false);
+  });
+
+  it('still drags an already-selected (active) element in fill mode', () => {
+    const onChange = vi.fn();
+    const { box } = mountFillMode({ isActive: true, onChange });
+
+    dispatchTouchStart(box, [touchPoint(300, 400)]);
+    dispatchTouchMove([touchPoint(320, 400)]);
+    dispatchTouchEnd(touchPoint(320, 400));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});

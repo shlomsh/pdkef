@@ -173,6 +173,14 @@ export default function DraggableWrapper<T extends EditorElement>({
     // raises one for a touch gesture, so click-selects / double-click-edits
     // exactly as before.
     onTap: isCoarsePointer && element.type === 'text' && !isEditing ? beginEditFromTap : null,
+    // SNG-04: fill mode only. `fillContext.enabled` (not `nativeFocus`, which
+    // also requires a coarse pointer) is the one flag that means "this is
+    // fill mode" - a one-finger swipe over an element not yet selected must
+    // scroll the page instead of dragging it (docs/sign-next-gen-guidelines.md
+    // §2.2). Outside fill mode this is always false, so nothing here changes
+    // production's drag-selects-and-moves-in-one-gesture behaviour.
+    touchNeedsSelection: fillContext.enabled,
+    isSelected: isActive,
   });
 
   // MOBI-24: iOS raises the keyboard only for a focus() made while the touch
@@ -397,7 +405,11 @@ export default function DraggableWrapper<T extends EditorElement>({
     height: '100%',
     pointerEvents: 'none',
     transform: 'none',
-  } : element.type === 'text' ? textElementLayout(element).box : {
+    // An intrinsically sized type (text) takes the one box rule its slot
+    // preview shares (signHelpers' textElementLayout): a comb's explicit
+    // span, a cell's minWidth, the RTL right-edge anchor. Keyed on the view
+    // flag, not the type name, so the wrapper stays type-agnostic.
+  } : view.usesIntrinsicSize ? textElementLayout(element).box : {
     top: `${element.top}%`,
     width: element.width ? `${element.width}%` : 'auto',
     height: 'height' in element && element.height ? `${element.height}%` : 'auto',
@@ -422,6 +434,13 @@ export default function DraggableWrapper<T extends EditorElement>({
       // corner default), and are always present now - see EditorElement's
       // `[data-editor-text] .resizer.left/.right`.
       data-editor-text={element.type === 'text' || undefined}
+      // SNG-04: present only while a fill-mode touch would otherwise be
+      // claimed for a drag it shouldn't own yet - an unselected element in
+      // fill mode. EditorElement.module.css's `[data-touch-scroll]` rule
+      // switches `touch-action` back to allowing one-finger panning; once
+      // selected the attribute drops and the ordinary pinch-zoom-only rule
+      // (JS owns single-finger drag) applies again.
+      data-touch-scroll={(fillContext.enabled && !isActive) || undefined}
       style={style}
       onMouseDown={!isLine ? handlePointerDown : undefined}
       onTouchStart={!isLine ? handlePointerDown : undefined}

@@ -1,7 +1,7 @@
 ---
 id: "SNG-04"
 title: "One interaction machine and one input router, pure and synchronous, with the MOBI history as tests"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
