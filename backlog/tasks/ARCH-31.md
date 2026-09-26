@@ -1,7 +1,7 @@
 ---
 id: "ARCH-31"
 title: "check:push stops testing what a change cannot reach: test-only diffs, the typecheck, another worktree's preview"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -35,3 +35,13 @@ root file). 4 non-docs pushes changed only test files.
    (Playwright reuses it locally and would test that worktree's build); it only warned before.
 
 Not here: narrowing e2e by file-level reachability for core changes is ARCH-32.
+
+## Result
+
+- `narrowTestOnlyChange()`: replayed over the same 79 pushes, 4 narrow from 11-12 e2e paths to the 1-2
+  specs they changed; a unit-test-only push (the 96s `merge.test.js` case) drops its 67s of Playwright
+  and the build. Only `.spec.js` narrows (Playwright discovers nothing else).
+- Typecheck: 48 of the 67 non-docs pushes now take tsc (~2-5s) instead of `astro check` (17-29s).
+- Port guard: with a server from another directory on 4173, check:push stopped in 1.9s naming it.
+- Reviewer's dormant notes, not changed: a narrowed single spec still launches the `perf` project for
+  zero tests (a few seconds), and Playwright path filters are substrings (no colliding paths today).
