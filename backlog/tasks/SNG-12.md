@@ -10,6 +10,8 @@ depends_on: ["SNG-05", "FORM-03"]
 
 # SNG-12 · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions
 
+*Premise update 2026-09-25:* the editor is now raster-first and never claims what a form needs; a model would change that only on documents where it is proven.
+
 *Filed 2026-09-25, postponed by Shlomi the same day:* "postpone integration with a strong LLM model to a
 future step, this is yet to be resolved how the user hooks up their own llm. once we reach high grades it
 will change the UX mental model."

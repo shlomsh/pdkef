@@ -1,4 +1,4 @@
-import type { ActionHistoryEntry, HistoryElement } from './actionHistory.ts';
+import { canCoalesce, coalesceUpdates, type ActionHistoryEntry, type HistoryElement } from './actionHistory.ts';
 
 /**
  * Pure undo/redo stack bookkeeping over the existing ActionHistoryEntry shape.
@@ -42,13 +42,36 @@ export interface HistoryStep<TElement extends HistoryElement> extends HistorySta
   entry: ActionHistoryEntry<TElement>;
 }
 
-/** Logs a new command. Always clears `future`: seeing new work committed makes any undone-and-not-yet-redone command stale. */
+/**
+ * How many steps back Undo reaches. `past` is persisted with the draft, and
+ * moves and typing push far more entries through it than add and delete ever
+ * did, so the oldest step falls off once this is reached.
+ */
+export const MAX_HISTORY_DEPTH = 100;
+
+/**
+ * Logs a new command. Always clears `future`: seeing new work committed makes
+ * any undone-and-not-yet-redone command stale.
+ *
+ * An update that `canCoalesce` with the newest command folds into it instead
+ * of becoming its own step (one text edit session, or a burst of nudges), and
+ * a fold that adds up to no change removes that step. Only while nothing is
+ * undone: with a non-empty `future` the newest past entry is an older step
+ * the person has already walked back to, and folding into it would make one
+ * Undo revert two separate things.
+ */
 export function pushCommand<TElement extends HistoryElement>(
   past: readonly ActionHistoryEntry<TElement>[],
-  _future: readonly ActionHistoryEntry<TElement>[],
+  future: readonly ActionHistoryEntry<TElement>[],
   entry: ActionHistoryEntry<TElement>,
 ): HistoryStack<TElement> {
-  return { past: [entry, ...past], future: [] };
+  const [top, ...rest] = past;
+  if (future.length === 0 && top && canCoalesce(top, entry)
+    && top.operation === 'update' && entry.operation === 'update') {
+    const folded = coalesceUpdates(top, entry);
+    return { past: folded ? [folded, ...rest] : rest, future: [] };
+  }
+  return { past: [entry, ...past].slice(0, MAX_HISTORY_DEPTH), future: [] };
 }
 
 /**

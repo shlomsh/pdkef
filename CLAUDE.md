@@ -62,8 +62,9 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - **One subagent, one task, and small ones.** Research and exploration never happen on the main thread.
   The lead makes the design call, then splits the work into narrow briefs (one change, one guard, one
   doc edit, one measurement) run in parallel; a brief names the concrete shape, not a goal to search
-  for. No fire-and-forget: read each agent's diff while it runs and stop one that drifts. A harder
-  problem gets more subagents working in parallel, not more patience from one.
+  for. Write the contract between the pieces first, give each agent disjoint files, and integrate and
+  test each piece yourself as it lands. No fire-and-forget: read each agent's diff while it runs and stop
+  one that drifts. A harder problem gets more subagents working in parallel, not more patience from one.
 - **Mechanical edits go to the `implementer` agent** (`.claude/agents/implementer.md`): named files,
   one `check:fast`. Builds, previews and viewport sweeps run once in the lead or one verifier, starting
   from 3-4 viewports; wall time tracks brief size, at about 8s per tool call plus reasoning.

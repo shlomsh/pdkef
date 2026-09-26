@@ -120,7 +120,10 @@ export interface WorkspaceGestureOptions {
   messages?: Partial<SignMessages>;
 }
 
-export type PageClickEvent = MouseEvent & { currentTarget: HTMLElement };
+// A touch event only reaches here with `at` already resolved (useFillTap's delegate,
+// SNG-15): its own coordinates are never read in that case, only when `at` is absent -
+// see the `at ??` reads below, which stay behind a plain click from production itself.
+export type PageClickEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 export type PagePointerEvent = GestureEvent & { currentTarget: HTMLElement };
 
 interface BoxPlacementPatch {
@@ -208,16 +211,41 @@ export default function useWorkspaceGestures({
   /**
    * Handles a click on a page overlay for point-placement tools
    * (text, symbol, signature). No-ops for drag-drawn tools.
+   *
+   * `at` (page percent) places at that point instead of the click's own: fill
+   * mode (SNG-15) passes a detected field's or tick box's centre when its reach
+   * found one near the tap, so the snap below lands where its droppable look
+   * promised. `toolOverride` lets fill mode run this as if a different tool
+   * were armed: a tap on a detected tick box with nothing armed passes
+   * 'symbol', so it runs production's own checkbox toggle rather than opening
+   * a text slot. Production itself never passes either.
    */
-  const handlePageClick = (e: PageClickEvent, pageIndex: number) => {
-    if (!selectedTool) return;
+  const handlePageClick = (
+    e: PageClickEvent,
+    pageIndex: number,
+    at?: { x: number; y: number },
+    toolOverride?: SignToolType,
+  ) => {
+    // Stops this tap from reaching the workspace's blank-area deselect - except on a
+    // touchend fill mode already delegated (useFillTap.ts's `decision.at !== undefined`
+    // path): that touch was already preventDefaulted, so no click ever follows it to
+    // stop, and stopping the touchend itself would keep the gesture controller
+    // (src/lib/gestures/controller.ts) from finishing a drag or resize that began on
+    // this element's own touchstart (DraggableWrapper, useElementResize) - it listens
+    // for touchend on window in the bubble phase. Production never passes a touch
+    // event here, so production's own behaviour is unchanged.
+    const stopUnlessTouchEnd = () => {
+      if (e.type !== 'touchend') e.stopPropagation();
+    };
+    const tool = toolOverride ?? selectedTool;
+    if (!tool) return;
     // 'date' has no registry entry of its own - it places an ordinary
     // TextElement (see editorModel.ts's SignToolType comment), prefilled below.
-    const definition = getElementDefinition(selectedTool === 'date' ? 'text' : selectedTool);
+    const definition = getElementDefinition(tool === 'date' ? 'text' : tool);
     if (definition.creation.mode !== 'point') {
-      if (definition.creation.mode === 'external' && selectedTool === 'signature') {
+      if (definition.creation.mode === 'external' && tool === 'signature') {
         const container = e.currentTarget;
-        const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageSizes[pageIndex]);
+        const { x: leftPercent, y: topPercent } = at ?? getPointerPercent(e, container, pageSizes[pageIndex]);
         if (activeSignature) {
           placeSignatureAt(activeSignature.dataUrl, activeSignature.aspectRatio, pageIndex, leftPercent, topPercent);
           dispatch({ type: 'DISARM_TOOL' });
@@ -230,7 +258,7 @@ export default function useWorkspaceGestures({
     }
     const container = e.currentTarget;
     const pageGeometry = pageSizes[pageIndex];
-    const { x: leftPercent, y: topPercent } = getPointerPercent(e, container, pageGeometry);
+    const { x: leftPercent, y: topPercent } = at ?? getPointerPercent(e, container, pageGeometry);
     // A text box's on-screen height is its font size (points) scaled by the same
     // factor the page itself is rendered at, so as a share of the page it is just
     // em-height / page height in points — no DOM measurement needed.
@@ -248,7 +276,7 @@ export default function useWorkspaceGestures({
     // itself so the field it lands on (if any) can settle this placement's
     // font size once, not patch it in a second time below.
     const point = { x: leftPercent, y: topPercent };
-    const snapsToFields = selectedTool === 'text' || selectedTool === 'date';
+    const snapsToFields = tool === 'text' || tool === 'date';
     const combRegion = snapsToFields
       ? combRegionAt(formRegions.combs, point, pageIndex)
       : null;
@@ -298,7 +326,7 @@ export default function useWorkspaceGestures({
     });
     // A date on an 8-cell comb starts digits-only so the printed dividers do
     // the separating; this does not touch the remembered format.
-    if (selectedTool === 'date' && newEl.type === 'text') {
+    if (tool === 'date' && newEl.type === 'text') {
       const dateValue = toIsoDateString(new Date());
       const rememberedFormatId = isDateFormatId(initialDateFormat) ? initialDateFormat : 'locale';
       const dateFormatId = combRegion
@@ -325,7 +353,7 @@ export default function useWorkspaceGestures({
       newEl.textDirection = carriedDirection ?? formRegions.pageDirections?.[pageIndex] ?? 'ltr';
     }
     if (newEl.type === 'text') Object.assign(newEl, carriedTextStyle(carried));
-    const checkboxRegion = selectedTool === 'symbol'
+    const checkboxRegion = tool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
 
@@ -336,7 +364,7 @@ export default function useWorkspaceGestures({
       ? elements.find((element) => symbolIsInCheckbox(element, checkboxRegion))
       : null;
     if (existingCheckboxMark) {
-      e.stopPropagation();
+      stopUnlessTouchEnd();
       const snapshots = captureElementSnapshots(elements, (element) => element.id === existingCheckboxMark.id);
       dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -355,9 +383,11 @@ export default function useWorkspaceGestures({
     // A mark covers the very target that toggles it. Check for a detected-box
     // toggle above before treating clicks on an editor element as selection or
     // dragging gestures; ordinary annotations still retain that behaviour.
-    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
+    // A corrected point (`at`) means fill mode already resolved this tap to a
+    // detected target, even when it landed on a neighbouring element's handle.
+    if (!at && (e.target as Element | null)?.closest('[data-editor-element]')) return;
 
-    e.stopPropagation();
+    stopUnlessTouchEnd();
     // A comb takes the run's span and cell count; a free-text cell gives the
     // box the cell's span as `minWidth`, never `width`, with its font size
     // fieldFontSize's answer (already resolved above, as `fieldPlacement`)
@@ -395,7 +425,7 @@ export default function useWorkspaceGestures({
     // element the user never asked for. A locked tool stays armed. Landing on
     // a detected field is still one placement, so it disarms the same way.
     dispatch({ type: 'DISARM_TOOL' });
-    if (selectedTool === 'text') {
+    if (tool === 'text') {
       // A box you just placed opens ready to type - the one case where placing
       // and editing are the same intent. This replaces the old per-element
       // `autoFocus` flag, so the caret has exactly one owner.
@@ -404,7 +434,7 @@ export default function useWorkspaceGestures({
       setAnnouncement(combRegion
         ? formatMessage(t.addedTextBoxCombAnnouncementTemplate, { cells: combRegion.cells })
         : t.addedTextBoxAnnouncement);
-    } else if (selectedTool === 'date') {
+    } else if (tool === 'date') {
       // Already has its content, unlike a freshly placed (empty) text box, so
       // this selects it for the format control rather than opening a typing
       // session on text nobody is about to retype.

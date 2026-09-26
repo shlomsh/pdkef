@@ -2,6 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 import FormFieldHints from './FormFieldHints.tsx';
+import { boxKey } from '../fill/fillDom.ts';
 import styles from './FormFieldHints.module.css';
 
 /**
@@ -67,5 +68,54 @@ describe('FormFieldHints', () => {
     const hints = host!.querySelectorAll(`.${styles['field-hint']}`);
     expect(hints[0]?.className).toContain(styles['field-hint-checkbox']);
     expect(hints[1]?.className).toContain(styles['field-hint-cell']);
+  });
+
+  /**
+   * SNG-15 (docs/sign-fill-mode.md, "Hints"): the checkbox hint a tap would
+   * reach next gets the same droppable look a slot gets, keyed by the
+   * region's own `boxKey` - the identical reach key `fillReach.ts` and
+   * `PdfWorkspace.tsx` use, so a hint lights up exactly when it is the
+   * target `aimedKey` names, never by array position.
+   */
+  describe('aimedKey', () => {
+    it('marks the hint whose boxKey matches aimedKey as aimed', () => {
+      const region = box();
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      act(() => {
+        render(
+          <FormFieldHints regions={[region]} kind="checkbox" pageIndex={0} aimedKey={boxKey(region)} />,
+          host!,
+        );
+      });
+      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      expect(hint?.className).toContain(styles['field-hint-aimed']);
+      expect(hint?.hasAttribute('data-aimed')).toBe(true);
+    });
+
+    it('leaves every other hint unmarked', () => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      act(() => {
+        render(
+          <FormFieldHints regions={[box()]} kind="checkbox" pageIndex={0} aimedKey="box:0:99.00:99.00" />,
+          host!,
+        );
+      });
+      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      expect(hint?.className).not.toContain(styles['field-hint-aimed']);
+      expect(hint?.getAttribute('data-aimed')).toBeNull();
+    });
+
+    it('marks nothing when aimedKey is left at its null default', () => {
+      host = document.createElement('div');
+      document.body.appendChild(host);
+      act(() => {
+        render(<FormFieldHints regions={[box()]} kind="checkbox" pageIndex={0} />, host!);
+      });
+      const hint = host!.querySelector(`.${styles['field-hint']}`);
+      expect(hint?.className).not.toContain(styles['field-hint-aimed']);
+      expect(hint?.getAttribute('data-aimed')).toBeNull();
+    });
   });
 });

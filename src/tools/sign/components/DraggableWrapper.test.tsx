@@ -5,6 +5,8 @@ import DraggableWrapper from './DraggableWrapper.tsx';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import TextNode from './nodes/TextNode.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import { FillContext, TextFillContext, FILL_OFF } from '../fill/FillContext.tsx';
+import type { TextFillProps } from '../fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
 
 type TextChange = (changes: EditorElementPatch<TextElement>) => void;
@@ -424,5 +426,108 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
 
     act(() => next.click());
     expect(fieldNav.onNext).toHaveBeenCalledTimes(1);
+  });
+});
+
+// SNG-15: fill props on a coarse pointer (docs/sign-fill-mode.md) render
+// production's own element options bar and resize handles, unchanged - the
+// product goal is parity with production. The only difference fill mode
+// makes is that a tap on the textarea is native focus (no MOBI-21
+// synchronous-focus dance), covered by the DraggableWrapper unit tests
+// above. `fieldNav` (and so `.quick-field-nav`) stays off in fill mode,
+// but that is PdfWorkspace.tsx's own gate (it never supplies `fieldNav`
+// while `fill.enabled`), not something this component decides.
+describe('DraggableWrapper fill mode (SNG-15)', () => {
+  let container: HTMLDivElement;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+  });
+
+  afterEach(() => {
+    act(() => render(null, container));
+    container.remove();
+  });
+
+  const fill: TextFillProps = { fillKey: 'el:1', enterKeyHint: 'next', onEnter: vi.fn() };
+
+  function mountFillCase(coarse: boolean) {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse }}>
+          <TextFillContext.Provider value={fill}>
+            <DraggableWrapper
+              element={element}
+              isActive
+              onBeginEdit={() => {}}
+              onSelect={() => {}}
+              onChange={() => {}}
+              onDelete={() => {}}
+              onClone={() => {}}
+              pageWidthPoints={612}
+            >
+              {textNode(element)}
+            </DraggableWrapper>
+          </TextFillContext.Provider>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    return wrapper;
+  }
+
+  it('renders the element options bar and resize handles on a coarse pointer, with no quick-field-nav', () => {
+    const wrapper = mountFillCase(true);
+
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
+    expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
+  });
+
+  it('keeps the resize handles and the floating toolbar on a fine pointer', () => {
+    const wrapper = mountFillCase(false);
+
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
+  });
+
+  it('renders production chrome as today when fill props are absent, even on a coarse pointer', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse: true }}>
+          <DraggableWrapper
+            element={element}
+            isActive
+            onBeginEdit={() => {}}
+            onSelect={() => {}}
+            onChange={() => {}}
+            onDelete={() => {}}
+            onClone={() => {}}
+            pageWidthPoints={612}
+          >
+            {textNode(element)}
+          </DraggableWrapper>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
   });
 });

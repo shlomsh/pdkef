@@ -5,6 +5,8 @@ import RawTextNode from './TextNode.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import { WYSIWYG_STRING_CASES } from '../../../../test/fixtures/wysiwygStrings.js';
+import { TextFillContext } from '../../fill/FillContext.tsx';
+import type { TextFillProps } from '../../fill/fillTypes.ts';
 import type { EditorElementPatch, TextElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
@@ -604,5 +606,123 @@ describe('TextNode component', () => {
       expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
       expect(requireElement<HTMLTextAreaElement>(host, '[data-editor-text-input]').style.color).toBe('rgb(0, 0, 0)');
     });
+  });
+});
+
+// SNG-15: fill mode's per-element props travel by TextFillContext, never by a
+// renderer prop (docs/sign-fill-mode.md, "the seams between the pieces").
+// TextNode reads it with useTextFill() and, when it is set, turns the
+// textarea into a real fill input - focusable and writable with no edit
+// session open, so iOS's own keyboard arrows can stop on it. Every test here
+// renders with isEditing false: the point is that fill mode needs no edit
+// session at all, unlike production's own inert-until-editing textarea.
+describe('TextNode fill mode (SNG-15)', () => {
+  let host = document.createElement('div');
+
+  afterEach(() => {
+    if (host.isConnected) {
+      act(() => render(null, host));
+      document.body.removeChild(host);
+    }
+  });
+
+  function fillProps(overrides: Partial<TextFillProps> = {}): TextFillProps {
+    return { fillKey: 'el:text-1', enterKeyHint: 'next', onEnter: vi.fn(), ...overrides };
+  }
+
+  function mountFilled(fill: TextFillProps | null, element: TextFixture = { text: 'Hello', fontSize: 12 }, onSelect = vi.fn()) {
+    return mount(
+      <TextFillContext.Provider value={fill}>
+        <TextNode
+          element={element}
+          isActive={false}
+          isEditing={false}
+          onChange={() => {}}
+          onSelect={onSelect}
+          onBeginEdit={() => {}}
+          onResizeStart={() => {}}
+          pageWidthPoints={600}
+        />
+      </TextFillContext.Provider>,
+    );
+  }
+
+  it('turns the textarea into a real fill input, with no edit session open', () => {
+    const fill = fillProps({ fillKey: 'el:text-7', enterKeyHint: 'done' });
+    host = mountFilled(fill);
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    expect(textarea.readOnly).toBe(false);
+    expect(textarea.tabIndex).toBe(0);
+    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(false);
+    expect(textarea.classList.contains(elementStyles['text-input-fill'])).toBe(true);
+    expect(textarea.getAttribute('data-fill-input')).toBe('');
+    expect(textarea.getAttribute('data-fill-key')).toBe('el:text-7');
+    expect(textarea.getAttribute('enterkeyhint')).toBe('done');
+    expect(textarea.getAttribute('autocorrect')).toBe('off');
+  });
+
+  it('calls onEnter and prevents default on a plain Enter', () => {
+    const onEnter = vi.fn();
+    host = mountFilled(fillProps({ onEnter }));
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    act(() => { textarea.dispatchEvent(event); });
+
+    expect(onEnter).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('leaves Shift+Enter alone, so a filled field can still start a new line', () => {
+    const onEnter = vi.fn();
+    host = mountFilled(fillProps({ onEnter }));
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true });
+    act(() => { textarea.dispatchEvent(event); });
+
+    expect(onEnter).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('leaves Enter alone mid-composition, so an IME commit is not read as a field move', () => {
+    const onEnter = vi.fn();
+    host = mountFilled(fillProps({ onEnter }));
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true });
+    act(() => { textarea.dispatchEvent(event); });
+
+    expect(onEnter).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('does not call onSelect on focus, since useFillFocus drives selection in fill mode', () => {
+    const onSelect = vi.fn();
+    host = mountFilled(fillProps(), { text: 'Hello', fontSize: 12 }, onSelect);
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    act(() => { textarea.focus(); });
+
+    expect(document.activeElement).toBe(textarea);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('stays exactly as today - inert, and onSelect on focus - when no provider supplies fill props', () => {
+    const onSelect = vi.fn();
+    host = mountFilled(null, { text: 'Hello', fontSize: 12 }, onSelect);
+    const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+    expect(textarea.readOnly).toBe(true);
+    expect(textarea.tabIndex).toBe(-1);
+    expect(textarea.classList.contains(elementStyles['text-input-inert'])).toBe(true);
+    expect(textarea.hasAttribute('data-fill-input')).toBe(false);
+    expect(textarea.hasAttribute('data-fill-key')).toBe(false);
+    expect(textarea.hasAttribute('enterkeyhint')).toBe(false);
+    expect(textarea.hasAttribute('autocorrect')).toBe(false);
+
+    act(() => { textarea.focus(); });
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
