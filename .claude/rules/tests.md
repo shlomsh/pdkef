@@ -5,6 +5,7 @@ paths:
   - "playwright.config.js"
   - "scripts/affected-scope.mjs"
   - "scripts/change-scope.mjs"
+  - "scripts/check-fast.mjs"
   - "scripts/*.test.mjs"
   - "docs/nx-affected-ci.md"
   - "e2e/**"
@@ -104,8 +105,8 @@ units - only `WIDEN_RULES` or the fail-open cases above do; Nx's `CORE_PROJECTS`
 forces `everything` for e2e/font/export scope, which is unrelated and unaffected by this. One code
 path, three callers - CI's `checks` job (`affected-scope.mjs --run unit`, which now delegates here),
 `check:push` (`runUnitByImpact` on its own once-resolved `resolveUnitScope()`), and `check:fast`
-(`test:changed` is `node scripts/unit-scope.mjs --run`) - so none of them can select a different test
-set for the same diff.
+(`scripts/check-fast.mjs` calls `selectUnitTests()` on its own diff) - so none of them can select a
+different test set for the same diff.
 
 Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, used only by
 `unit-scope.mjs`) leaves git's rename detection on (`-M`), unlike `changedFiles()`'s own deliberate
@@ -113,6 +114,21 @@ Renames are a special case: `changedFilesWithStatus()` (in `change-scope.mjs`, u
 destination folder). A real move reports only its destination (status `A`) since the same import edges
 still exist there; only a genuine, unpaired deletion keeps status `D` and triggers the whole-suite
 widen.
+
+## The iteration loop (`check:fast`, ARCH-30)
+
+`npm run check:fast -- --since <ref>` tests what changed since `<ref>` (working tree plus untracked),
+not the whole branch: the lead passes each subagent the commit its task started from. Without
+`--since` the base is the merge-base with `origin/main`; a ref that does not resolve or is not an
+ancestor of HEAD fails open to the whole suite and `astro check`. Its typecheck is `tsc --noEmit` with an
+incremental cache in `node_modules/.cache/` (5s cold, 2s warm), and `astro check` (18-21s whatever
+changed) only when the diff touches an `.astro` file, a tsconfig, `astro.config.mjs`, the package
+manifest, `src/content.config.ts` or `check-fast.mjs` itself (`chooseTypecheck()`). It ends with one
+`check:fast PASS|FAIL ...` line with per-step seconds; read that instead of re-running or piping the
+output through `tail`. check:push and CI keep `astro check` and the whole-branch base. Measured on
+2026-09-26 (ARCH-30): the unit step has a floor near 9s for any Sign edit because
+`PdfSignTool.test.tsx` alone takes 6s, and 3 parallel runs nearly double it, so one check per task
+beats several.
 
 ## Nx-decided scope (`scripts/affected-scope.mjs`, `docs/nx-affected-ci.md`) - e2e, fonts, export guards
 

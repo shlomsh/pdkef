@@ -2,8 +2,9 @@
 // it as an ordinary TextElement with computed initial content - see
 // useWorkspaceGestures.ts's 'date' tool branch). A handful of common patterns
 // plus a browser-locale default, so a placed date matches how dates are
-// written where the person is, with an explicit override remembered for next
-// time (preferenceStore.ts's `dateFormat` key).
+// written where the person is, with an explicit override carried by the
+// document (SIGN-33's `carried.dateFormat`) and remembered as the app-wide
+// default for new documents (SIGN-35's `documentStyle.ts`/`preferenceStore.ts`).
 
 // No spelled-out-month ('long') option: it bakes in whatever language
 // Intl.DateTimeFormat resolves for the browser's own locale, which has no

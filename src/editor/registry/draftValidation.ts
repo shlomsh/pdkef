@@ -1,6 +1,9 @@
 import type { EditorElement, ElementType } from '../model/editorModel.ts';
 import type { DocumentStyle } from '../model/documentStyle.ts';
-import { isActionHistoryEntry, type ActionHistoryEntry, type HistoryElement } from '../model/actionHistory.ts';
+import {
+  isActionHistoryEntry, revertHistoryEntries, type ActionHistoryEntry, type HistoryElement,
+} from '../model/actionHistory.ts';
+import { MAX_HISTORY_DEPTH } from '../model/historyStack.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
 import { isDateFormatId } from '../text/dateFormat.ts';
@@ -110,8 +113,10 @@ export function migrateDraftRecord(record: unknown): unknown {
  * object, so a corrupt `strokeWidth` cannot cost the document its carried
  * font. `migrateLegacyCarried` below folds a SIGN-32 draft's flat
  * `carriedFont`/`carriedFontSize`/`carriedDirection` fields into this shape.
+ * The app-wide style (SIGN-35, preferenceStore.ts's `getAppStyle`) is read
+ * back through this same validator.
  */
-function validateCarriedStyle(value: unknown): Partial<DocumentStyle> {
+export function validateDocumentStyle(value: unknown): Partial<DocumentStyle> {
   if (!isRecord(value)) return {};
   const carried: Partial<DocumentStyle> = {};
   if (hasString(value, 'font') && (value.font as string)) carried.font = value.font as string;
@@ -203,6 +208,54 @@ export function validateDraftElements<TElement extends HistoryElement = DraftEle
   return { valid, droppedCount };
 }
 
+/**
+ * Drops any 'update' history entry whose patches would corrupt an element -
+ * `isActionHistoryEntry` checks an update's shape only, never its values, so a
+ * persisted `after: { type: 'bogus' }` would otherwise pass validation and
+ * crash the renderer the moment Undo or Redo wrote it onto a live element.
+ * Walks `history` newest-first from the already-validated live `elements`
+ * (history is newest-first, and reverting walks back in time): for an update
+ * entry, each changed element is looked up in the walk's current state; if
+ * present, both `{ ...element, ...before }` and `{ ...element, ...after }`
+ * must be a valid element, or the whole entry is dropped and left unreverted.
+ * An update whose element is absent at that point is kept, since applying it
+ * is a no-op. Every kept entry (add and delete included) is then reverted
+ * into the walk state so older entries are checked against elements as they
+ * existed at that point in time - a kept newer delete brings its elements
+ * back for an older update on them to be checked against.
+ */
+export function dropUnsafeUpdates<TElement extends HistoryElement>(
+  elements: readonly TElement[],
+  history: readonly ActionHistoryEntry<TElement>[],
+  isElement: (value: unknown) => value is TElement,
+): ActionHistoryEntry<TElement>[] {
+  let current = elements;
+  const kept: ActionHistoryEntry<TElement>[] = [];
+  let droppedCount = 0;
+
+  for (const entry of history) {
+    if (entry.operation === 'update') {
+      const byId = new Map(current.map((element) => [element.id, element]));
+      const safe = entry.updates.every((update) => {
+        const element = byId.get(update.id);
+        if (!element) return true;
+        return isElement({ ...element, ...update.before }) && isElement({ ...element, ...update.after });
+      });
+      if (!safe) {
+        droppedCount += 1;
+        continue;
+      }
+    }
+    kept.push(entry);
+    current = revertHistoryEntries(current, [entry]);
+  }
+
+  if (droppedCount > 0) {
+    console.error(`draftValidation: dropped ${droppedCount} update(s) that would corrupt an element`);
+  }
+  return kept;
+}
+
 export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftElement> {
   fileName: string;
   fileType?: string;
@@ -252,13 +305,23 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
   if (actionHistory.length !== rawHistory.length) {
     console.error(`draftValidation: dropped ${rawHistory.length - actionHistory.length} invalid history command(s)`);
   }
+  // Each command is checked on its own (isActionHistoryEntry), so a malformed
+  // 'update' drops alone and the rest of the history survives. Shape alone
+  // does not catch a corrupted value (an `after.type` of a real string that
+  // is not a real type), so dropUnsafeUpdates checks each update's patches
+  // against the walked element state before a later undo/redo can write them
+  // onto a live element.
+  const safeHistory = dropUnsafeUpdates(valid, actionHistory, isElement);
+  // The depth cap pushCommand keeps is applied here too, so a draft saved
+  // before UNDO-04 capped it comes back no deeper than one saved after.
+  safeHistory.splice(MAX_HISTORY_DEPTH);
   // SIGN-33: Sign-only, optional - a Redact record or a draft written before
   // this existed simply has none, and it comes back undefined rather than
   // failing the whole restore. Each key is validated on its own
-  // (validateCarriedStyle), and a SIGN-32 draft's flat carriedFont/
+  // (validateDocumentStyle), and a SIGN-32 draft's flat carriedFont/
   // carriedFontSize/carriedDirection fields migrate into it.
   const carried: Partial<DocumentStyle> | undefined = isRecord(record.extra)
-    ? migrateLegacyCarried(record.extra, validateCarriedStyle(record.extra.carried))
+    ? migrateLegacyCarried(record.extra, validateDocumentStyle(record.extra.carried))
     : undefined;
 
   return {
@@ -266,6 +329,6 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory, carried } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory: safeHistory, carried } : undefined,
   };
 }

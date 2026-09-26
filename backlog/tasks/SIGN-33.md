@@ -26,7 +26,8 @@ everything else a person sets while filling a form.
 - One **document style** per document, carried from element to element exactly as SIGN-32 carries the font
   and size: the first use seeds it, an explicit change updates it, and a field's fit-shrink never writes
   back. It is saved with the document's draft and restored with it. A new document starts from the
-  defaults.
+  person's latest choices, then the defaults (SIGN-35 refined this on 2026-09-26: every explicit choice
+  also becomes the app default for new documents, except the size and direction).
 - **Per document:** font, font size, direction, text colour, alignment, bold, italic, date format, symbol
   mark (✓ ✗ •), symbol size, shape line thickness, whiteout colour, signature width.
 - **Stays with the person, across documents:** the signature pad's pen colour and thickness, and the
@@ -52,7 +53,7 @@ everything else a person sets while filling a form.
 - [x] Shlomi's A/B/A example is an e2e spec against a real build, with a real reload, and it is green.
 - [x] Unit tests: each key seeds, carries and restores; a malformed key drops alone; a SIGN-32 draft
   migrates; a new document starts from the defaults; the signature pen stays browser-wide.
-- [ ] No per-document key is left in `preferenceStore.ts`.
+- [x] No per-document key is left in `preferenceStore.ts` (done in SIGN-35).
 
 ## Done (2026-09-26)
 
@@ -71,6 +72,6 @@ everything else a person sets while filling a form.
   and PdfWorkspace's whiteout test.
 - **Left, deliberately:**
   - The now-unused keys in `preferenceStore.ts`. Redact still reads `lastWhiteoutColor`, and the rest are dead
-    keys. The rewrite removes them with the store's own tests.
+    keys. SIGN-35 removed them with the store's own tests.
   - A new **free** text box still starts LTR until typed into (`getEffectiveTextDirection`, a reported bug
     earlier). Only a field-spanned box takes the carried direction. That is Shlomi's call.

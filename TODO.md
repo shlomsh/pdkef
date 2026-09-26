@@ -45,6 +45,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
+| SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
 
 
 ## Editor module boundaries (architecture)
@@ -297,6 +298,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
 | ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
 | ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
+| ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { EditorElement } from './editorModel.ts';
-import { captureAddedElement, createActionEntry, type ActionHistoryEntry } from './actionHistory.ts';
-import { pushCommand, redoStep, revertCommands, undoStep } from './historyStack.ts';
+import { captureAddedElement, createActionEntry, type ActionHistoryEntry, type UpdateHistoryEntry } from './actionHistory.ts';
+import { MAX_HISTORY_DEPTH, pushCommand, redoStep, revertCommands, undoStep } from './historyStack.ts';
 
 const shape: EditorElement = {
   id: 'shape', type: 'rectangle', pageIndex: 0, left: 10, top: 10, width: 20, height: 20,
@@ -15,6 +15,21 @@ function makeEntry(id: string): ActionHistoryEntry<EditorElement> {
     }),
     id,
   };
+}
+
+function makeUpdateEntry(
+  overrides: Partial<UpdateHistoryEntry<EditorElement>> = {},
+): UpdateHistoryEntry<EditorElement> {
+  return {
+    ...createActionEntry<EditorElement>({
+      operation: 'update',
+      type: 'MOVE_ELEMENT',
+      pageIndex: 0,
+      description: 'Moved',
+      updates: [{ id: shape.id, before: { left: 10 }, after: { left: 20 } }],
+    }),
+    ...overrides,
+  } as UpdateHistoryEntry<EditorElement>;
 }
 
 describe('historyStack', () => {
@@ -113,5 +128,50 @@ describe('historyStack', () => {
     const result = revertCommands([c, b, a], [], new Set(['c', 'a']));
     expect(result.past).toEqual([b]);
     expect(result.future).toEqual([]);
+  });
+
+  it('pushCommand folds a coalescable update into the top, past length unchanged and id kept', () => {
+    const top = makeUpdateEntry({ id: 'top-id', timestamp: 1000 });
+    const incoming = makeUpdateEntry({ id: 'incoming-id', timestamp: 1200 });
+
+    const result = pushCommand([top], [], incoming);
+    expect(result.past).toHaveLength(1);
+    expect(result.past[0].id).toBe('top-id');
+    expect(result.future).toEqual([]);
+  });
+
+  it('pushCommand removes the top when the fold nets to nothing', () => {
+    const top = makeUpdateEntry({
+      timestamp: 1000,
+      updates: [{ id: shape.id, before: { left: 10 }, after: { left: 30 } }],
+    });
+    const incoming = makeUpdateEntry({
+      timestamp: 1200,
+      updates: [{ id: shape.id, before: { left: 30 }, after: { left: 10 } }],
+    });
+
+    const result = pushCommand([top], [], incoming);
+    expect(result.past).toEqual([]);
+    expect(result.future).toEqual([]);
+  });
+
+  it('pushCommand does not fold when future is non-empty, and still clears future', () => {
+    const top = makeUpdateEntry({ id: 'top-id', timestamp: 1000 });
+    const incoming = makeUpdateEntry({ id: 'incoming-id', timestamp: 1200 });
+
+    const result = pushCommand([top], [makeEntry('stale-redo')], incoming);
+    expect(result.past).toEqual([incoming, top]);
+    expect(result.future).toEqual([]);
+  });
+
+  it('pushCommand caps past at MAX_HISTORY_DEPTH, dropping the oldest', () => {
+    let past: ActionHistoryEntry<EditorElement>[] = [];
+    for (let i = 0; i < 101; i += 1) {
+      ({ past } = pushCommand(past, [], makeEntry(`entry-${i}`)));
+    }
+    expect(past).toHaveLength(MAX_HISTORY_DEPTH);
+    expect(past[0].id).toBe('entry-100');
+    expect(past[past.length - 1].id).toBe('entry-1');
+    expect(past.some((entry) => entry.id === 'entry-0')).toBe(false);
   });
 });

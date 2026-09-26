@@ -386,7 +386,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
 
 ### In progress
@@ -404,6 +403,7 @@ _None._
 | UNDO-01 | P2 | [UNDO-01](backlog/tasks/UNDO-01.md) · Redo for Sign and Redact, on the keyboard and in the Undo dialog |
 | UNDO-02 | P2 | [UNDO-02](backlog/tasks/UNDO-02.md) · Edit Pages gets undo and redo, the destructive tool that has neither |
 | UNDO-03 | P3 | [UNDO-03](backlog/tasks/UNDO-03.md) · A Redo control in the editor toolbar, once its width is measured |
+| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-06 | P2 | [UNDO-06](backlog/tasks/UNDO-06.md) · The change-history dialog goes; Undo and Redo are the whole model |
 
 ### Retired
@@ -574,6 +574,7 @@ Every task in these epics is done or retired. They collapse here so the board ab
 | SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
+| SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
 
 ### Retired
 
@@ -692,6 +693,7 @@ _None._
 | ARCH-27 | P3 | [ARCH-27](backlog/tasks/ARCH-27.md) · Replay real pushes through a path map and decide whether Nx still earns its place |
 | ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
 | ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
+| ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-08 | P2 | [QUAL-08](backlog/tasks/QUAL-08.md) · Measure ARCH-20 on a week of real commits: how often does CI actually narrow, and by how much |
