@@ -203,8 +203,10 @@ export default defineConfig({
       // blank in the field but not under Playwright's chromium project (see
       // that spec's header comment and the MERGE-01 ticket's Root cause
       // section), so it runs here too as the one other engine this suite
-      // exercises.
-      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js', '**/thumbnail-render.spec.js', '**/merge-mobile.spec.js', '**/merge-direction-a.spec.js', '**/merge-share.spec.js'],
+      // exercises. fill-mode-phone-regressions.spec.js added for SNG-17: a
+      // tap on a <button> does not focus it in WebKit, so the fill input
+      // blurs to <body>; those bugs reproduce only in this engine.
+      testMatch: ['**/recent-files.spec.js', '**/redact-mobile-export.spec.js', '**/thumbnail-render.spec.js', '**/merge-mobile.spec.js', '**/merge-direction-a.spec.js', '**/merge-share.spec.js', '**/fill-mode-phone-regressions.spec.js'],
       use: { ...devices['iPhone 15'] },
     },
   ],
