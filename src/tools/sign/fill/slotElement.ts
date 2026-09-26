@@ -14,6 +14,7 @@
  */
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { fieldFontSize, placeTextOnField } from '../../../editor/text/combPlacement.ts';
+import { resolveFontFamily } from '../../../editor/text/fonts.js';
 import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
 import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
@@ -54,11 +55,21 @@ export function elementForSlot(slot: FillSlot, text: string, base: SlotElementBa
 
   const { carried } = base;
   const fontFamily = carried.font ?? DEFAULT_FONT_FAMILY;
+  // What actually renders and embeds this text (SIGN-38): a document
+  // carried in Arimo that switches to Hebrew mid-field places through
+  // Gveret Levin or Arimo, per resolveFontFamily's coverage rule, same as
+  // TextNode.tsx resolves at render time - `placeTextOnField`'s digit
+  // centring has to be measured against that font's real metrics, not the
+  // carried family's, or the box lands where Arimo's digits sit while
+  // Gveret Levin's actually draw somewhere else. The element itself still
+  // stores the raw carried `fontFamily` below, exactly as the tap-creation
+  // path does, and lets rendering resolve it from the text as it changes.
+  const resolvedFamily = resolveFontFamily(fontFamily, text);
   const carriedFontSize = carried.fontSize ?? null;
   const snapped = slot.field
     ? placeTextOnField(slot.field, {
       carriedFontSize,
-      fontFamily,
+      fontFamily: resolvedFamily,
       pageWidthPoints: base.pageWidthPoints,
       pageHeightPoints: base.pageHeightPoints,
     })

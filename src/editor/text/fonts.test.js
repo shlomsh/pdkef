@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import fontkit from '@pdf-lib/fontkit';
-import { DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
+import { COMB_CAP_HEIGHT_EM, DEFAULT_LINE_HEIGHT_EM, TEXT_BOX_PADDING_EM } from '../../constants/signGeometry.js';
 import { WYSIWYG_STRING_CASES } from '../../test/fixtures/wysiwygStrings.js';
 import {
   RETIRED_FONTS,
@@ -29,6 +29,7 @@ import {
   resolveFontSubstitution,
   resolveTypography,
   textBoxPaddingEm,
+  figureCentreEm,
 } from './fonts.js';
 
 // One representative string per script, matching fontCoverage.test.js's probes.
@@ -389,6 +390,33 @@ describe('FONT_VERTICAL_METRICS', () => {
       expect(metrics.descent).toBeCloseTo(descent, 3);
     }
   });
+
+  /**
+   * SIGN-38: `figureCentre` is a hardcoded snapshot too, of where each
+   * bundled Regular TTF's own "0123456789" ink actually sits - not derived
+   * from ascent/descent, because no combination of those predicts it (see
+   * `figureCentreEm`'s own doc). Checked against the real digit outlines the
+   * same way the block above checks ascent/descent, so a swapped font file
+   * can't silently drift the table stale and let every field's digits land
+   * at the wrong height again.
+   */
+  it("matches the real digit ink centre of the bundled Regular TTF", () => {
+    for (const [family, metrics] of Object.entries(FONT_VERTICAL_METRICS)) {
+      if (typeof metrics.figureCentre !== 'number') continue;
+      const file = join(FONT_DIR, regularFileFor(family));
+      const font = fontkit.create(readFileSync(file));
+      const run = font.layout('0123456789');
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (const glyph of run.glyphs) {
+        lo = Math.min(lo, glyph.bbox.minY);
+        hi = Math.max(hi, glyph.bbox.maxY);
+      }
+      const centre = (lo + hi) / (2 * font.unitsPerEm);
+      // Table values are rounded to 4dp; allow the same rounding tolerance.
+      expect(metrics.figureCentre).toBeCloseTo(centre, 4);
+    }
+  });
 });
 
 describe('textBoxPaddingEm', () => {
@@ -401,6 +429,17 @@ describe('textBoxPaddingEm', () => {
   it('falls back to the baseline padding for an unknown family', () => {
     expect(textBoxPaddingEm('Comic Sans MS')).toBe(TEXT_BOX_PADDING_EM);
     expect(textBoxPaddingEm(undefined)).toBe(TEXT_BOX_PADDING_EM);
+  });
+});
+
+describe('figureCentreEm', () => {
+  it('returns the bundled manifest value for a known family', () => {
+    expect(figureCentreEm('Arimo')).toBe(FONT_VERTICAL_METRICS.Arimo.figureCentre);
+  });
+
+  it('falls back to half the comb cap height for an unknown family', () => {
+    expect(figureCentreEm('Comic Sans MS')).toBe(COMB_CAP_HEIGHT_EM / 2);
+    expect(figureCentreEm(undefined)).toBe(COMB_CAP_HEIGHT_EM / 2);
   });
 
   // Real regression: Heebo (a plain text font, not even a script face) has an

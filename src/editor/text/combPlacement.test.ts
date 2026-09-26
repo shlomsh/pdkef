@@ -11,6 +11,7 @@ import {
   type FieldRegion,
 } from './combPlacement.ts';
 import { combCellCenterFraction } from './comb.js';
+import { figureCentreEm } from './fonts.js';
 import { COMB_CAP_HEIGHT_EM, COMB_MIN_CELL_EM, MIN_FONT_SIZE_PT, TEXT_BOX_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 
 // A4 in PDF points, the size both evidence forms are. Never a 0x0 rect: every
@@ -219,27 +220,32 @@ describe('placeTextOnCell', () => {
     // way the text will read - a box with a span has no growing edge to
     // anchor - and not the cell's middle (43), which used to hang the box's
     // right half out over the next column.
-    const placed = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     expect(placed.left).toBe(30);
     expect(placed.minWidth).toBe(26);
     // A carried size already exists and the roomy cell's own ceiling is well
     // above it, so it passes through exactly - fit, never grown.
     expect(placed.fontSize).toBe(12);
-    // Lowered by the box's bottom padding (0.12em), toward the cell's line.
-    expect(placed.top).toBeCloseTo(30 - (12 * 1.29 / PAGE_HEIGHT * 100) / 2 + (12 * 0.12 / PAGE_HEIGHT * 100), 5);
+    // SIGN-38: the digits' own ink centred on the cell's middle (Arimo's
+    // figureCentreEm), not the font's whole em box, then dropped by the same
+    // small padding every font keeps toward the writing line and lifted back
+    // to the box's top by Arimo's own baseline drop.
+    const em12 = (12 / PAGE_HEIGHT) * 100;
+    expect(placed.top).toBeCloseTo(30 + em12 * (figureCentreEm('Arimo') + 0.12 - baselineDropEm('Arimo')), 5);
   });
 
   it('seeds the field-fill target on a document with nothing carried yet, and centres on that seeded height', () => {
     // See fieldFontSize's own "no carried size yet" tests for the 14pt
     // target's derivation - this proves the same seeding wired to a real
     // placeTextOnCell call, left/minWidth/top math included.
-    const placed = placeTextOnCell(roomyCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(roomyCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     expect(placed.fontSize).toBe(14);
-    expect(placed.top).toBeCloseTo(30 - (14 * 1.29 / PAGE_HEIGHT * 100) / 2 + (14 * 0.12 / PAGE_HEIGHT * 100), 5);
+    const em14 = (14 / PAGE_HEIGHT) * 100;
+    expect(placed.top).toBeCloseTo(30 + em14 * (figureCentreEm('Arimo') + 0.12 - baselineDropEm('Arimo')), 5);
   });
 
   it('gives the span as minWidth, never width, so the box stays plain text and not a comb', () => {
-    expect(placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT })).not.toHaveProperty('width');
+    expect(placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' })).not.toHaveProperty('width');
   });
 
   it('never lifts the box off the top of the page', () => {
@@ -248,7 +254,7 @@ describe('placeTextOnCell', () => {
     // the box's own height, not the cell's, decides whether centring would
     // go negative.
     const tinyNearTop: FieldRegion = { pageIndex: 0, left: 30, top: 0.05, width: 26, height: 0.3 };
-    expect(placeTextOnCell(tinyNearTop, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT }).top).toBe(0);
+    expect(placeTextOnCell(tinyNearTop, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' }).top).toBe(0);
   });
 
   it('shrinks the carried size to fit a short row instead of overflowing into the next one', () => {
@@ -257,25 +263,28 @@ describe('placeTextOnCell', () => {
     // printed line. The returned fontSize must be small enough that the
     // box's own one-line height (fontSize * 1.29em, in page percent) is no
     // taller than the cell.
-    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     expect(placed.fontSize).toBeLessThan(12);
     const boxHeightPercent = (placed.fontSize * 1.29 / PAGE_HEIGHT) * 100;
     expect(boxHeightPercent).toBeLessThanOrEqual(shortCell.height + 1e-9);
   });
 
   it('re-centres on the shrunk box\'s own height, not the unshrunk one', () => {
-    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const placed = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     const shrunkEm = (placed.fontSize / PAGE_HEIGHT) * 100;
-    expect(placed.top).toBeCloseTo(shortCell.top + shortCell.height / 2 - (shrunkEm * 1.29) / 2 + shrunkEm * 0.12, 5);
+    expect(placed.top).toBeCloseTo(
+      shortCell.top + shortCell.height / 2 + shrunkEm * (figureCentreEm('Arimo') + 0.12 - baselineDropEm('Arimo')),
+      5,
+    );
   });
 
   it('the next field after a narrow one gets the carried size back - shrinking never writes back to it', () => {
     // shortCell shrinks a 12pt carried size (as above); a roomy cell placed
     // right after, still with the same 12pt carried size, must not have
     // inherited that shrink.
-    const shrunk = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const shrunk = placeTextOnCell(shortCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     expect(shrunk.fontSize).toBeLessThan(12);
-    const next = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+    const next = placeTextOnCell(roomyCell, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
     expect(next.fontSize).toBe(12);
   });
 
@@ -300,7 +309,7 @@ describe('placeTextOnCell', () => {
     const captionLeft = 12.288; // where the printed caption starts
 
     it('spans the strip beside the caption, not the whole cell', () => {
-      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
       expect(placed.left).toBe(5.568);
       expect(placed.minWidth).toBe(6.720);
     });
@@ -310,7 +319,7 @@ describe('placeTextOnCell', () => {
       // says, and on this form that is the right one - so the span's right
       // edge is where the first character lands, in the export as much as on
       // screen. Spanning the whole cell would start it on the caption.
-      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(captioned, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
       expect(placed.left + placed.minWidth).toBeLessThanOrEqual(captionLeft);
     });
 
@@ -319,9 +328,56 @@ describe('placeTextOnCell', () => {
       // writing line leaves the bounds already equal to the strip, so no
       // `writable` is published and nothing here has to know which case it is.
       const { writable, ...band } = captioned;
-      const placed = placeTextOnCell(band, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT });
+      const placed = placeTextOnCell(band, { carriedFontSize: 12, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
       expect(placed.left).toBe(band.left);
       expect(placed.minWidth).toBe(band.width);
+    });
+  });
+
+  describe('SIGN-38: the digits\' own centre lands at the same height in every font', () => {
+    // 14pt in a 22pt cell - the exact live-report measurement (a spread of
+    // 0.07pt to 7.75pt between fonts' digit centres and the cell's own
+    // middle, before this fix). A cell tall enough that the carried size
+    // passes straight through unshrunk, so only the vertical formula is
+    // under test.
+    // top: 30, not 0 - away from the page edge, so the "never lifts off the
+    // top of the page" clamp (Math.max(0, top)) never engages and masks the
+    // formula under test, the way Pacifico's own generous ascent otherwise
+    // would at the page's very top.
+    const cell22pt: FieldRegion = { pageIndex: 0, left: 30, top: 30, width: 26, height: (22 / PAGE_HEIGHT) * 100 };
+    const inkCentreAboveTop = (family: string, fontSize = 14) => {
+      const placed = placeTextOnCell(cell22pt, { carriedFontSize: fontSize, pageHeightPoints: PAGE_HEIGHT, fontFamily: family });
+      const em = (fontSize / PAGE_HEIGHT) * 100;
+      const baseline = placed.top + em * baselineDropEm(family);
+      return baseline - em * figureCentreEm(family);
+    };
+
+    it('puts every family\'s digit centre the same small distance below the cell\'s own middle, regardless of the font', () => {
+      // The formula's whole point: figureCentreEm cancels out of
+      // baseline - em*figureCentreEm, so what is left is the cell's middle
+      // plus the one deliberate, font-independent drop toward the writing
+      // line (TEXT_BOX_PADDING_EM) - never the font's own ascent/descent.
+      const em = (14 / PAGE_HEIGHT) * 100;
+      const target = cell22pt.top + cell22pt.height / 2 + em * 0.12;
+      for (const family of ['Arimo', 'Gveret Levin', 'Caveat', 'Pacifico']) {
+        expect(inkCentreAboveTop(family)).toBeCloseTo(target, 6);
+      }
+    });
+
+    it('agrees across fonts to within 0.02em', () => {
+      const centres = ['Arimo', 'Gveret Levin', 'Caveat', 'Pacifico'].map((family) => inkCentreAboveTop(family));
+      const em = (14 / PAGE_HEIGHT) * 100;
+      for (const centre of centres) {
+        expect(Math.abs(centre - centres[0])).toBeLessThan(0.02 * em);
+      }
+    });
+
+    it('leaves Arimo\'s own top within 0.05pt of the pre-SIGN-38 formula (Shlomi\'s approved look)', () => {
+      const placed = placeTextOnCell(cell22pt, { carriedFontSize: 14, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' });
+      const em = (14 / PAGE_HEIGHT) * 100;
+      const oldTopPercent = cell22pt.top + cell22pt.height / 2 - (em * TEXT_BOX_LINE_HEIGHT_EM) / 2 + em * 0.12;
+      const diffPt = ((placed.top - oldTopPercent) / 100) * PAGE_HEIGHT;
+      expect(Math.abs(diffPt)).toBeLessThan(0.05);
     });
   });
 });
@@ -417,7 +473,7 @@ describe('placeCombOnRegion', () => {
       height: stripHeight,
     };
     const combSize = place(openCombInCell, null).fontSize;
-    const cellSize = placeTextOnCell(rowCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT }).fontSize;
+    const cellSize = placeTextOnCell(rowCell, { carriedFontSize: null, pageHeightPoints: PAGE_HEIGHT, fontFamily: 'Arimo' }).fontSize;
     expect(combSize).toBe(cellSize);
     expect(combSize).toBeGreaterThan(MIN_FONT_SIZE_PT);
   });
@@ -431,7 +487,14 @@ describe('placeCombOnRegion', () => {
     const placement = place(inCell);
     const strip = inCell.writable!;
     const em = (placement.fontSize / PAGE_HEIGHT) * 100;
-    expect(placement.top + (em * 1.29) / 2).toBeCloseTo(strip.top + strip.height / 2 + em * 0.12, 3);
+    // Same cellTextTop rule the name cells beside it place through
+    // (SIGN-38): the digits' own ink centred on the strip's middle, plus the
+    // font-independent drop toward the writing line, less Arimo's own
+    // baseline drop back up to the box's top.
+    expect(placement.top).toBeCloseTo(
+      strip.top + strip.height / 2 + em * (figureCentreEm('Arimo') + 0.12 - baselineDropEm('Arimo')),
+      3,
+    );
     expect(placement.top).toBeLessThan(place().top);
     expect(placement.fontSize).toBe(12);
   });
@@ -465,11 +528,15 @@ describe('placeCombOnRegion', () => {
     const baseline = placement.top + em * baselineDropEm('Arimo');
     const cellMiddle = boxedRun.top + boxedRun.height / 2;
 
-    // The font's em box straddles the cell's middle rather than resting on its
-    // floor, so the baseline sits below the middle by half the em box.
+    // SIGN-38: the digits' own ink is centred on the cell's middle
+    // (figureCentreEm), not the font's whole em box - so the baseline sits
+    // below the middle by exactly the digits' own ink-to-baseline distance,
+    // not by half the em box (ascent+descent, which for Arimo puts the
+    // digits' own centre 1.71pt off the cell's middle at 14pt in a 22pt
+    // cell - the bug this fixes).
     expect(baseline).toBeGreaterThan(cellMiddle);
     expect(baseline).toBeLessThan(boxedRun.top + boxedRun.height);
-    expect(baseline - cellMiddle).toBeCloseTo(em * (0.905 - 0.212) / 2, 3);
+    expect(baseline - cellMiddle).toBeCloseTo(em * figureCentreEm('Arimo'), 3);
   });
 
   it('places the same run differently depending on whether its cells are closed', () => {

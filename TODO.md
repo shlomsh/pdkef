@@ -48,6 +48,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
 | SIGN-36 | P1 | [SIGN-36](backlog/tasks/SIGN-36.md) · Every text box can be aligned, and the download matches what the screen shows |
 | SIGN-37 | P1 | [SIGN-37](backlog/tasks/SIGN-37.md) · Typed signatures are saved sharp enough for the size they are placed at |
+| SIGN-38 | P1 | [SIGN-38](backlog/tasks/SIGN-38.md) · Text placed in a form cell sits at the same height in every font |
+| SIGN-39 | P2 | [SIGN-39](backlog/tasks/SIGN-39.md) · Changing a placed field element's font does not re-place it |
 
 
 ## Editor module boundaries (architecture)

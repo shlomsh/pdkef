@@ -146,6 +146,30 @@ describe('elementForSlot', () => {
     }).fontSize);
   });
 
+  it('places through the resolved family, not the raw carried one, once the text needs a switch (SIGN-38)', () => {
+    // Caveat is Latin-only, so Hebrew text forces a substitution
+    // (resolveFontSubstitution) to Gveret Levin - the digit-centring geometry
+    // has to be measured against whatever will actually render and embed
+    // this text, or the box lands where Caveat's metrics put it while
+    // Gveret Levin's own ink sits somewhere else.
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, { ...page, fontFamily: 'Caveat' }))[0];
+    const slotBase = { ...base, carried: { ...base.carried, font: 'Caveat' } };
+
+    const element = elementForSlot(slot, 'שלום', slotBase);
+    const resolvedPlacement = placeTextOnField(field, {
+      carriedFontSize: 12,
+      fontFamily: 'Gveret Levin',
+      pageWidthPoints: PAGE_WIDTH,
+      pageHeightPoints: PAGE_HEIGHT,
+    });
+
+    // The stored family is still the raw carried one, exactly as a tap
+    // creates it - rendering resolves it from the text, same as TextNode.tsx.
+    expect(element.fontFamily).toBe('Caveat');
+    expect(element.top).toBe(resolvedPlacement.top);
+  });
+
   it('gives each call the requested id and a fresh, empty-text-free element otherwise identical in shape', () => {
     const field: TypableField = { kind: 'cell', region: { pageIndex: 1, left: 10, top: 10, width: 20, height: 2 } };
     const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];

@@ -14,6 +14,7 @@ import {
 import {
   FONT_VERTICAL_METRICS,
   baselineOffsetEmFromMetrics,
+  figureCentreEm,
   textBoxPaddingEm,
 } from './fonts.js';
 
@@ -95,20 +96,6 @@ export function baselineDropEm(fontFamily: string): number {
     ? baselineOffsetEmFromMetrics(metrics.ascent, metrics.descent)
     : HELVETICA_BASELINE_OFFSET_EM;
   return offset + textBoxPaddingEm(fontFamily);
-}
-
-/**
- * How far the middle of a font's em box sits below its baseline, in em.
- *
- * Used to centre text in a closed cell: the em box runs from `ascent` above
- * the baseline to `descent` below it, so its middle is this far down, and
- * putting *that* on the cell's middle is what centres the digits. Falls back
- * to half the Helvetica line for a family with no bundled metrics.
- */
-function emBoxCentreBelowBaselineEm(fontFamily: string): number {
-  const metrics = FONT_VERTICAL_METRICS[fontFamily];
-  if (!metrics) return 0;
-  return (metrics.ascent - metrics.descent) / 2;
 }
 
 /** A field a text box can be typed into, tagged with the detector it came from. */
@@ -282,15 +269,29 @@ export function fieldFontSize(
 
 /**
  * Where a one-line box's top goes in a cell's blank strip (page percent,
- * `em` being the font size in page percent): centred, then lowered by the
- * box's bottom padding. An answer is written down on the cell's line, and
- * dead centre left form 101's phone number looking hung off the caption
- * above it (live report). Only the padding crosses the strip's bottom, never
- * the glyphs. One rule for a cell's text and for open comb teeth inside a
- * cell, because they share a row and have to line up.
+ * `em` being the font size in page percent): the digits' own ink centred on
+ * the strip's middle, then dropped by the same small amount every font keeps
+ * toward the writing line, and lifted back up by the box's own baseline drop
+ * to get from the baseline to the box's top.
+ *
+ * Centring the *em box* here (SIGN-38's bug) instead of the digits' own ink
+ * put every family at a different height: Arimo's digit centre landed 1.71pt
+ * below the cell's middle at 14pt in a 22pt cell, Gveret Levin's 3.26pt below,
+ * Pacifico's 7.75pt below (with Pacifico's baseline itself sitting below the
+ * cell) - because a font's ascent/descent describe its whole em box, not
+ * where "0123456789" actually draws ink inside it. `figureCentreEm` is that
+ * real, per-font distance, read from the TTF outlines. The `+
+ * TEXT_BOX_PADDING_EM` keeps today's small downward nudge toward the writing
+ * line (approved for Arimo, which this formula must reproduce within 0.05pt -
+ * see combPlacement.test.ts): without it every font centred dead on the
+ * strip read as hanging off a caption printed above it (live report, form
+ * 101's phone number). One rule for a cell's text and for open comb teeth
+ * inside a cell, because they share a row and have to line up.
  */
-function cellTextTop(strip: { top: number; height: number }, em: number): number {
-  return strip.top + strip.height / 2 - (em * TEXT_BOX_LINE_HEIGHT_EM) / 2 + em * TEXT_BOX_PADDING_EM;
+function cellTextTop(strip: { top: number; height: number }, em: number, fontFamily: string): number {
+  const centre = strip.top + strip.height / 2;
+  const baseline = centre + em * (figureCentreEm(fontFamily) + TEXT_BOX_PADDING_EM);
+  return baseline - em * baselineDropEm(fontFamily);
 }
 
 /**
@@ -334,7 +335,11 @@ function cellTextTop(strip: { top: number; height: number }, em: number): number
  */
 export function placeTextOnCell(
   region: FieldRegion,
-  { carriedFontSize, pageHeightPoints }: { carriedFontSize: number | null; pageHeightPoints: number },
+  { carriedFontSize, pageHeightPoints, fontFamily }: {
+    carriedFontSize: number | null;
+    pageHeightPoints: number;
+    fontFamily: string;
+  },
 ): { left: number; top: number; minWidth: number; fontSize: number } {
   // The blank part of the cell, not the cell: a labelled cell's answer goes
   // under (or beside) its printed label, and centring on the whole cell put
@@ -347,7 +352,7 @@ export function placeTextOnCell(
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   return {
     left: area.left,
-    top: Math.max(0, cellTextTop(area, em)),
+    top: Math.max(0, cellTextTop(area, em, fontFamily)),
     minWidth: area.width,
     fontSize: size,
   };
@@ -402,10 +407,12 @@ export function placeCombOnRegion(
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   // A closed cell is a box and text belongs in the middle of it; an open one is
   // a row of teeth hanging from the line you write on, and text belongs on that
-  // line. Centring in the first case means putting the font's em-box middle on
-  // the cell's middle, which is the same thing your eye does.
+  // line. Centring in the first case means putting the digits' own ink middle
+  // (`figureCentreEm`, SIGN-38) on the cell's middle, which is the same thing
+  // your eye does - not the font's whole em-box middle, which a font's real
+  // ascent/descent can put well off the ink itself (see cellTextTop's doc).
   const baselinePercent = region.boxed
-    ? region.top + region.height / 2 + em * emBoxCentreBelowBaselineEm(fontFamily)
+    ? region.top + region.height / 2 + em * figureCentreEm(fontFamily)
     : region.top + region.height;
   let top = baselinePercent - em * baselineDropEm(fontFamily);
   // Open teeth inside a printed cell (`writable`, from fieldRegions.js): the
@@ -415,7 +422,7 @@ export function placeCombOnRegion(
   // though, when the strip is shorter than the box.
   if (!region.boxed && region.writable) {
     const strip = region.writable;
-    top = Math.min(top, cellTextTop(strip, em));
+    top = Math.min(top, cellTextTop(strip, em, fontFamily));
   }
   return {
     left: region.left,
@@ -456,5 +463,5 @@ export function placeTextOnField(
 ): CombPlacement | { left: number; top: number; minWidth: number; fontSize: number } {
   return field.kind === 'comb'
     ? placeCombOnRegion(field.region, { carriedFontSize, fontFamily, pageWidthPoints, pageHeightPoints })
-    : placeTextOnCell(field.region, { carriedFontSize, pageHeightPoints });
+    : placeTextOnCell(field.region, { carriedFontSize, pageHeightPoints, fontFamily });
 }
