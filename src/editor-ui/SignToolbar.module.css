@@ -94,6 +94,11 @@
 .button:hover { background: var(--color-primary-tint); border-color: var(--color-primary); color: var(--color-text); }
 .button:active { transform: scale(.96); }
 .active { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-surface); }
+/* An armed tool keeps its fill under the pointer: `.button:hover` outranks
+   `.active` (two classes' worth against one), so without this a hovered armed
+   button showed the plain hover tint and read as not armed. Darker, the way
+   .download's own hover is. */
+.active:hover { background: var(--color-primary-hover); border-color: var(--color-primary-hover); color: var(--color-surface); }
 /* A locked tool stays armed across placements, so it needs to read as a
    different state from "armed for the next click" - a ring, not a new colour,
    since the button is already carrying .active's fill. */
