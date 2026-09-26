@@ -9,6 +9,7 @@ import { textElementLayout } from '../../../lib/signHelpers.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
+import { slotFrame } from './slotFrame.ts';
 
 function fillSlot(overrides: Partial<FillSlot> = {}): FillSlot {
   return {
@@ -503,6 +504,147 @@ describe('FieldSlot component', () => {
       expect(input.style.width).toBe(expected.box.minWidth);
       expect(input.style.fontSize).toBe(`${expected.font.fontSize}px`);
       expect(input.style.fontFamily).toBe(expected.font.fontFamily);
+    });
+  });
+
+  describe('the frame a field slot draws at rest (slotFrame.ts)', () => {
+    it('takes its inline top/height from the frame, and its padding from slotFrame, for a field taller than the line', () => {
+      // mount()'s page wrapper is 600x800 (editor.md's "mock a realistic
+      // page rect"), so 1% of the page height is 8px. This field (30%-36%,
+      // 48px) is comfortably taller than one 12pt line, so the frame equals
+      // the field itself - the regression this ticket fixes (a frame short
+      // of the printed field).
+      const field: FillSlot['field'] = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 30, width: 40, height: 6 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 30, width: 40, height: 6 }, fontSize: 12, fontFamily: 'Arimo' },
+      });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 10, top: 31, minWidth: 40 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const layout = textElementLayout(cellElementOf(''), 1) as { font: { fontSize: number; paddingEm: number } };
+      const expectedFrame = slotFrame({
+        field: field.region,
+        element: { top: 31 },
+        fontSizePx: layout.font.fontSize,
+        padEm: layout.font.paddingEm,
+        pageHeightPx: 800,
+      });
+
+      // The field dominates: the frame is the field's own top/height.
+      expect(expectedFrame.top).toBeCloseTo(30, 6);
+      expect(expectedFrame.height).toBeCloseTo(6, 6);
+      expect(input.style.top).toBe(`${expectedFrame.top}%`);
+      expect(input.style.height).toBe(`${expectedFrame.height}%`);
+      expect(input.style.paddingTop).toBe(`${expectedFrame.paddingTopPx}px`);
+      expect(input.style.paddingBottom).toBe(`${expectedFrame.paddingBottomPx}px`);
+    });
+
+    it('grows the frame past a short field to cover a taller text line, still with slotFrame\'s own padding', () => {
+      // This field (30%-30.5%, 4px) is far shorter than one 12pt line, so
+      // the frame has to grow to the element's own padded box instead of
+      // clipping the frame to the printed field.
+      const field: FillSlot['field'] = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 30, width: 40, height: 0.5 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 30, width: 40, height: 0.5 }, fontSize: 12, fontFamily: 'Arimo' },
+      });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 10, top: 30, minWidth: 40 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const layout = textElementLayout(cellElementOf(''), 1) as { font: { fontSize: number; paddingEm: number } };
+      const expectedFrame = slotFrame({
+        field: field.region,
+        element: { top: 30 },
+        fontSizePx: layout.font.fontSize,
+        padEm: layout.font.paddingEm,
+        pageHeightPx: 800,
+      });
+
+      // The frame is taller than the field it was clipped to before this
+      // fix (the reported regression), and its top/bottom padding come out
+      // to the plain text padding since the element's own box now decides
+      // both edges.
+      expect(expectedFrame.height).toBeGreaterThan(0.5);
+      expect(input.style.top).toBe(`${expectedFrame.top}%`);
+      expect(input.style.height).toBe(`${expectedFrame.height}%`);
+      expect(input.style.paddingTop).toBe(`${expectedFrame.paddingTopPx}px`);
+      expect(input.style.paddingBottom).toBe(`${expectedFrame.paddingBottomPx}px`);
+    });
+
+    it('leaves a free slot (no field) on its own CSS padding, with no inline padding at all', () => {
+      const slot = fillSlot();
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={textElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      expect(input.style.paddingTop).toBe('');
+      expect(input.style.paddingBottom).toBe('');
+    });
+
+    it('keeps the comb overlay on the element\'s own box, unaffected by the frame', () => {
+      // A tall comb field (5%-25%) whose element sits near its top: the
+      // input's own frame has to cover the whole field, but the overlay
+      // that draws the comb digits stays pinned to the element's own line.
+      const field: FillSlot['field'] = { kind: 'comb', region: { pageIndex: 0, left: 10, top: 5, width: 40, height: 20, cells: 3 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 5, width: 40, height: 20 }, fontSize: 12, fontFamily: 'Arimo', combCells: 3 },
+      });
+      const combElementOf = (text: string) => textElementOf(text, { left: 10, top: 6, width: 40, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const overlay = requireElement<HTMLDivElement>(host, `.${styles['comb-overlay']}`);
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const expectedElementBox = textElementLayout(combElementOf(''), 1) as { box: Record<string, string> };
+
+      expect(overlay.style.top).toBe(expectedElementBox.box.top);
+      expect(overlay.style.left).toBe(expectedElementBox.box.left);
+      // The input's own frame covers the whole 20%-tall field, so its top
+      // sits above the overlay's (the element's own, narrower) top.
+      expect(input.style.top).not.toBe(overlay.style.top);
     });
   });
 

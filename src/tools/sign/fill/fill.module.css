@@ -21,7 +21,13 @@
      line-height plus its top and bottom padding), not just the line-height:
      a slot's `height: auto` measured ~3x that on iOS (WebKit's own intrinsic
      input height, not its line-height), so the pill grew past the printed
-     strip while the comb overlay's digits stayed pinned to the top. */
+     strip while the comb overlay's digits stayed pinned to the top.
+     For a field slot's own INPUT, this is only the default: FieldSlot.tsx
+     sets an inline top/height (slotFrame.ts's frame, the union of the
+     printed field and this padded line box) that overrides it, so the
+     frame always covers the whole detected field even when it is taller
+     than one line. The comb overlay and a free slot's input keep this
+     rule as their real height. */
   height: calc(1.05em + 2 * var(--text-pad-em, .12em));
 }
 
@@ -31,7 +37,11 @@
   box-sizing: border-box;
   margin: 0;
   /* Same padding as .text-input (EditorElement.module.css), so the text
-     baseline lands identically before and after the slot becomes it. */
+     baseline lands identically before and after the slot becomes it.
+     A field slot's top/bottom padding is overridden inline (slotFrame.ts's
+     frame, via FieldSlot.tsx) once the frame has grown past one line; this
+     stays the real padding for a free slot and the left/right value for
+     both. */
   padding: var(--text-pad-em, .12em) 4px;
   /* iOS ignores an explicit height on an input with its native appearance;
      these two make it honour the height above instead. */

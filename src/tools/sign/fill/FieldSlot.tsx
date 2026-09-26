@@ -7,6 +7,7 @@ import { useCombCaret } from '../components/nodes/useCombCaret.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from './fillTypes.ts';
+import { slotFrame } from './slotFrame.ts';
 import styles from './fill.module.css';
 
 /**
@@ -58,8 +59,12 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   onLeave?: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const { getScaleFactor } = usePdfCoordinates();
+  const { getScaleFactor, getDimensions } = usePdfCoordinates();
   const [scaleFactor, setScaleFactor] = useState(1);
+  // The page's own rendered height in CSS px (slotFrame.ts): field slots need
+  // it to convert the field's and the element's page-percent tops into the
+  // same px the frame and its padding are computed in.
+  const [pageHeightPx, setPageHeightPx] = useState(0);
   // Mirrors the real, uncontrolled input's value (never drives it) so the
   // comb preview and the direction can follow every keystroke, the same as
   // TextNode's own textarea does through committed element state.
@@ -71,7 +76,10 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   useLayoutEffect(() => {
     const pageWrapper = inputRef.current?.closest(`.${workspaceStyles['page-wrapper']}`) || null;
     if (!pageWrapper) return undefined;
-    const updateScale = () => setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));
+    const updateScale = () => {
+      setScaleFactor(getScaleFactor(pageWrapper, pageWidthPoints));
+      setPageHeightPx(getDimensions(pageWrapper).height);
+    };
     updateScale();
     const observer = new ResizeObserver(updateScale);
     observer.observe(pageWrapper);
@@ -108,7 +116,26 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   const fieldBox = fieldBoxRaw.width === 'auto' && fieldBoxRaw.minWidth
     ? { ...fieldBoxRaw, width: fieldBoxRaw.minWidth }
     : fieldBoxRaw;
-  const box = slot.field ? fieldBox : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
+  // The frame a field slot's own INPUT sits in (slotFrame.ts): the union of
+  // the printed field and the element's full padded line box, so the frame
+  // always covers the whole detected field even when the text line is
+  // shorter or sits above/below it. Left/width stay `fieldBox`'s own
+  // (including the cell-width pin above); only top/height and the input's
+  // own padding come from the frame. `pageHeightPx` is 0 until the page
+  // wrapper is first measured, so there is nothing to frame yet.
+  const fieldRegion = slot.field?.region ? (slot.field.region.writable ?? slot.field.region) : null;
+  const frame = fieldRegion && pageHeightPx > 0
+    ? slotFrame({
+      field: fieldRegion,
+      element,
+      fontSizePx: layout.font.fontSize,
+      padEm: layout.font.paddingEm,
+      pageHeightPx,
+    })
+    : null;
+  const box = slot.field
+    ? (frame ? { ...fieldBox, top: `${frame.top}%`, height: `${frame.height}%` } : fieldBox)
+    : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
 
   const handleInput = (event: Event) => {
     setValue((event.currentTarget as HTMLInputElement).value);
@@ -163,6 +190,14 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
           fontWeight: layout.font.fontWeight,
           fontStyle: layout.font.fontStyle,
           '--text-pad-em': `${layout.font.paddingEm}em`,
+          // A field slot's own padding comes from the frame (slotFrame.ts),
+          // not the CSS default: it is whatever is left between the frame's
+          // (possibly field-sized) edges and the text line itself, so the
+          // line still lands exactly where the committed element's line
+          // will even though the box around it had to grow to cover the
+          // field. A free slot keeps the CSS default (fill.module.css's
+          // .slot rule).
+          ...(frame ? { paddingTop: `${frame.paddingTopPx}px`, paddingBottom: `${frame.paddingBottomPx}px` } : {}),
           // The committed element's own ink; a comb's input text stays
           // transparent (.slot-comb), the overlay draws it.
           ...(comb ? {} : { color: element.color }),
@@ -173,7 +208,11 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
           aria-hidden="true"
           className={styles['comb-overlay']}
           style={{
-            ...box,
+            // The overlay draws the element's own box, not the frame: it
+            // paints the comb digits on the element's own line, and that
+            // line never moves regardless of how big the frame around the
+            // input has to be to cover the field.
+            ...fieldBox,
             fontSize: `${layout.font.fontSize}px`,
             '--text-pad-em': `${layout.font.paddingEm}em`,
           }}
