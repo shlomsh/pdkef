@@ -394,6 +394,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |
 | FORM-26 | P1 | [FORM-26](backlog/tasks/FORM-26.md) · Ticks rising from an underline divide a row into columns |
 | FORM-27 | P1 | [FORM-27](backlog/tasks/FORM-27.md) · An open comb's field is its printed row: teeth never split their own cell, and a lone comb takes its title line's height |
+| FORM-28 | P1 | [FORM-28](backlog/tasks/FORM-28.md) · A comb captioned above in its own box writes in the strip under the caption |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |

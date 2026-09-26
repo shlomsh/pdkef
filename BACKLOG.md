@@ -597,6 +597,7 @@ _None._
 | FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
 | FORM-26 | P1 | [FORM-26](backlog/tasks/FORM-26.md) · Ticks rising from an underline divide a row into columns |
 | FORM-27 | P1 | [FORM-27](backlog/tasks/FORM-27.md) · An open comb's field is its printed row: teeth never split their own cell, and a lone comb takes its title line's height |
+| FORM-28 | P1 | [FORM-28](backlog/tasks/FORM-28.md) · A comb captioned above in its own box writes in the strip under the caption |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Retired
