@@ -3,9 +3,9 @@ import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
 import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, getTextAlign, textAnchorsRightEdge } from './signHelpers.js';
 
 describe('sign text direction helpers', () => {
-  it('defaults empty and neutral legacy fields to English/LTR', () => {
-    expect(getEffectiveTextDirection({ text: '', textDirection: 'rtl' })).toBe('ltr');
-    expect(getEffectiveTextDirection({ text: '  () ', textDirection: 'rtl' })).toBe('ltr');
+  it('an empty or neutral box starts in its seeded (the document\'s) direction; digits stay LTR (SIGN-34)', () => {
+    expect(getEffectiveTextDirection({ text: '', textDirection: 'rtl' })).toBe('rtl');
+    expect(getEffectiveTextDirection({ text: '' })).toBe('ltr');
     expect(getEffectiveTextDirection({ text: '27/05/2008', textDirection: 'rtl' })).toBe('ltr');
   });
 
@@ -59,9 +59,10 @@ describe('textAnchorsRightEdge', () => {
     expect(textAnchorsRightEdge({ type: 'text', text: 'שלום' })).toBe(true);
   });
 
-  it('is false for LTR or neutral text, whatever direction was seeded', () => {
+  it('is false for LTR text; an empty free box follows its seeded direction (SIGN-34)', () => {
     expect(textAnchorsRightEdge({ type: 'text', text: 'Hello' })).toBe(false);
-    expect(textAnchorsRightEdge({ type: 'text', text: '', textDirection: 'rtl' })).toBe(false);
+    expect(textAnchorsRightEdge({ type: 'text', text: '', textDirection: 'rtl' })).toBe(true);
+    expect(textAnchorsRightEdge({ type: 'text', text: '' })).toBe(false);
   });
 
   it('is false for a comb or a form-cell box: a fixed span stays left-anchored', () => {

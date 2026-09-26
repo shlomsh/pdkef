@@ -44,6 +44,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
 | SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
+| SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
 
 
 ## Editor module boundaries (architecture)

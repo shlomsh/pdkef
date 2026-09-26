@@ -901,10 +901,10 @@ describe('PdfSignTool UI flow', () => {
     const editedTextInput = textInputs[0];
     const nextTextInput = textInputs[1];
 
-    // A new field has no typed language yet, so it uses the product's
-    // English/LTR default rather than inheriting the previous Hebrew field.
-    expect(nextTextInput.getAttribute('dir')).toBe('ltr');
-    expect(nextTextInput.style.textAlign).toBe('left');
+    // A new box starts in the document's direction (SIGN-34): the Hebrew
+    // typed before carries, until the new box gets typed letters of its own.
+    expect(nextTextInput.getAttribute('dir')).toBe('rtl');
+    expect(nextTextInput.style.textAlign).toBe('right');
     expect(nextTextInput.style.color).toBe('rgb(216, 52, 43)');
     expect(nextTextInput.style.fontSize).toBe(editedTextInput.style.fontSize);
 

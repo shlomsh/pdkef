@@ -524,8 +524,8 @@ describe('sign.js pure functions', () => {
       expect(getEffectiveTextDirection({ type: 'text', text: 'مرحبا' })).toBe('rtl');
     });
 
-    it('uses English/LTR for empty legacy text even when it stores RTL direction', () => {
-      expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('ltr');
+    it('starts empty text in its seeded (the document\'s) direction (SIGN-34)', () => {
+      expect(getEffectiveTextDirection({ type: 'text', text: '', textDirection: 'rtl' })).toBe('rtl');
     });
 
     it('should render digits and date/ID punctuation left-to-right regardless of a stale or inherited textDirection', () => {
