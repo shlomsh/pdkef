@@ -20,6 +20,9 @@
 .signature-menu { border-radius: 12px; padding: .25rem; }
 .thickness-menu { min-width: 100px; padding: .15rem; cursor: default; }
 .thickness-menu-list { display: flex; flex-direction: column; gap: .05rem; }
+.blur-strength-menu { min-width: 120px; padding: .15rem; cursor: default; }
+.blur-strength-menu-list { display: flex; flex-direction: column; gap: .05rem; }
+.blur-strength-item.is-selected { background: var(--color-primary-soft); color: var(--color-primary-text); }
 .color-picker { display: flex; align-items: center; gap: 4px; }
 .color-swatch { width: 18px; height: 18px; padding: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.15) inset; transition: transform .1s ease; }
 .color-swatch:hover { transform: scale(1.12); }
