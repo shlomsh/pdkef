@@ -214,7 +214,7 @@ test.describe('Redact editor browser guardrails', () => {
       await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
       // Whiteout is the only type with a per-element colour control - its
       // toolbar carries one extra button (colour trigger, duplicate, delete)
-      // over blackout/blur's two (duplicate, delete).
+      // over blackout's two (duplicate, delete).
       await expect(toolbar.locator('button')).toHaveCount(3);
       const boxRect = await getBox(whiteout, 'whiteout box');
       const toolbarRect = await getBox(toolbar, 'whiteout toolbar');
@@ -255,10 +255,17 @@ test.describe('Redact editor browser guardrails', () => {
       const toolbar = blur.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
       await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
-      await expect(toolbar.locator('button'), 'blur has no colour control - only duplicate and delete').toHaveCount(2);
+      // Blur has no colour, but it has a strength picker (SITE-41): trigger, duplicate, delete.
+      await expect(toolbar.locator('button'), 'blur carries its strength trigger, duplicate and delete').toHaveCount(3);
       const boxRect = await getBox(blur, 'blur box');
       const toolbarRect = await getBox(toolbar, 'blur toolbar');
       offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
+
+      // The strength a person picks is the blur the box paints.
+      await expect(blur.locator('.redact-surface')).toHaveCSS('backdrop-filter', 'blur(8px)');
+      await toolbar.locator('[data-editor-blur-strength-trigger]').click();
+      await page.locator('[data-editor-blur-strength="light"]').click();
+      await expect(blur.locator('.redact-surface')).toHaveCSS('backdrop-filter', 'blur(4px)');
     }
 
     await dragBy(page, blur, 2000, -2000);
