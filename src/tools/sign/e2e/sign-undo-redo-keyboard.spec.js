@@ -80,6 +80,17 @@ async function measureRelative(page, id) {
   }, id);
 }
 
+/** The largest edge offset between an element's current rect and `rect`. */
+async function distanceFrom(page, id, rect) {
+  const now = await measureRelative(page, id);
+  return Math.max(
+    Math.abs(now.left - rect.left),
+    Math.abs(now.top - rect.top),
+    Math.abs(now.width - rect.width),
+    Math.abs(now.height - rect.height),
+  );
+}
+
 /** Places a Symbols-tool element (no textarea involved, so focus never lands
  * on an INPUT/TEXTAREA and the undo/redo shortcut listener stays live). */
 async function addSymbol(page, xRatio, yRatio) {
@@ -175,12 +186,12 @@ test.describe('Sign editor keyboard undo/redo', () => {
     // stays live for this real Cmd/Ctrl+Z.
     await page.keyboard.press(`${MODIFIER}+z`);
     await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
-    const afterUndo = await measureRelative(page, placed.id);
-    closeEnough(afterUndo, placed.rect);
+    // The keypress returns before the re-render, so poll the position rather
+    // than measuring once.
+    await expect.poll(() => distanceFrom(page, placed.id, placed.rect)).toBeLessThan(1);
 
     await page.keyboard.press(`Shift+${MODIFIER}+z`);
     await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
-    const afterRedo = await measureRelative(page, placed.id);
-    closeEnough(afterRedo, moved);
+    await expect.poll(() => distanceFrom(page, placed.id, moved)).toBeLessThan(1);
   });
 });
