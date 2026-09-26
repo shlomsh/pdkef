@@ -613,13 +613,13 @@ _None._
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
 | SNG-19 | P1 | [SNG-19](backlog/tasks/SNG-19.md) · Fill mode becomes Sign's default; the old editor moves behind ?next=0 |
+| SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |
 
 ### In progress
 
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
-| SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |
 | SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
 | SNG-15 | P1 | [SNG-15](backlog/tasks/SNG-15.md) · Fill mode, slice 1: the production editor with every writing spot a real field the platform's own arrows hop |
@@ -635,6 +635,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SNG-01 | P1 | [SNG-01](backlog/tasks/SNG-01.md) · Plan of record for the next-generation Sign editor, with the learnings that led to it |
+| SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-10 | P1 | [SNG-10](backlog/tasks/SNG-10.md) · Practice form v2: the sketches' Employee details form becomes the app's own example form |
 
 ### Retired

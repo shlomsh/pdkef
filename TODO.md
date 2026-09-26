@@ -421,6 +421,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom |
 | SNG-18 | P2 | [SNG-18](backlog/tasks/SNG-18.md) · Opening the practice form keeps fill mode's ?next=1 |
 | SNG-19 | P1 | [SNG-19](backlog/tasks/SNG-19.md) · Fill mode becomes Sign's default; the old editor moves behind ?next=0 |
+| SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |
 
 
 ## Migrated context and history
