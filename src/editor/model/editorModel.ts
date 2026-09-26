@@ -1,3 +1,5 @@
+import type { BlurStrength } from './blurStrength.ts';
+
 // Shared element model for the Sign/Redact canvas editors, expressed as a
 // discriminated union over the flat `type` field. This is the first TypeScript
 // foothold (backlog E4.1) toward a framework-agnostic editor core (E4.2) and a
@@ -203,8 +205,9 @@ export interface WhiteoutElement extends ElementBase, BoxGeometry {
 /** Opaque destructive-redaction box, flattened by redact.js on export. */
 export interface BlackoutElement extends ElementBase, BoxGeometry { type: 'blackout'; }
 
-/** Blurred destructive-redaction box, flattened by redact.js on export. */
-export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; }
+/** Blurred destructive-redaction box, flattened by redact.js on export.
+ * `strength` picks the blur level (blurStrength.ts); absent means 'strong'. */
+export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; strength?: BlurStrength; }
 
 /**
  * The full editor element model: a discriminated union keyed on `type`. Narrow

@@ -158,6 +158,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
 | QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
 | SITE-40 | P3 | [SITE-40](backlog/tasks/SITE-40.md) · Redact's toolbar packs 4+4+2 once 'Compress it' appears |
+| SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
 
 
 ## Search acquisition: competitive keyword gaps
