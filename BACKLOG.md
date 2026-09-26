@@ -512,9 +512,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FORM-26 | P1 | [FORM-26](backlog/tasks/FORM-26.md) · Ticks rising from an underline divide a row into columns |
+_None._
 
 ### Blocked
 
@@ -534,6 +532,7 @@ _None._
 | FORM-22 | P2 | [FORM-22](backlog/tasks/FORM-22.md) · A CI guard keeps field detection pure |
 | FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
 | FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
+| FORM-26 | P1 | [FORM-26](backlog/tasks/FORM-26.md) · Ticks rising from an underline divide a row into columns |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 
 ### Retired
