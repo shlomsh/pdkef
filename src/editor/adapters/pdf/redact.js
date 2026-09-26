@@ -3,6 +3,7 @@ import { getPdfjs } from './pdfjsLoader.js';
 import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
+import { resolveBlurStrength, blurRadius } from '../../model/blurStrength.ts';
 
 /**
  * Applies redactions to a PDF by permanently flattening pages containing redaction marks.
@@ -57,19 +58,30 @@ export async function redactPdf(file, elements, onProgress) {
         getElementDefinition(element.type).serialize(element, { redaction: true }),
       );
 
-      // If there are any blur instructions, create a blurred copy of the entire canvas
-      // This is much faster and cleaner than trying to blur individual sub-regions
-      let blurredCanvas;
-      if (instructions.some((instruction) => instruction?.kind === 'blur')) {
-        blurredCanvas = document.createElement('canvas');
-        blurredCanvas.width = canvas.width;
-        blurredCanvas.height = canvas.height;
-        const bCtx = blurredCanvas.getContext('2d');
-        // 24px blur at 2.5x scale provides an extremely strong, unreadable blur
-        bCtx.filter = 'blur(24px)';
+      // Each blur box pastes from a blurred copy of the entire page canvas at
+      // its own strength, which is much faster and cleaner than blurring
+      // individual sub-regions. Build one blurred canvas per distinct strength
+      // present on this page, before any box is painted; the radius for each
+      // strength comes from blurStrength.ts, which also resolves an absent or
+      // unknown strength to 'strong' (today's 24px look).
+      const blurredCanvases = new Map();
+      const buildBlurredCanvas = (strength) => {
+        const bCanvas = document.createElement('canvas');
+        bCanvas.width = canvas.width;
+        bCanvas.height = canvas.height;
+        const bCtx = bCanvas.getContext('2d');
+        bCtx.filter = `blur(${blurRadius(strength).exportPx}px)`;
         bCtx.drawImage(canvas, 0, 0);
+        return bCanvas;
+      };
+      for (const instruction of instructions) {
+        if (instruction?.kind !== 'blur') continue;
+        const strength = resolveBlurStrength(instruction.element.strength);
+        if (!blurredCanvases.has(strength)) {
+          blurredCanvases.set(strength, buildBlurredCanvas(strength));
+        }
       }
-      
+
       // Draw the registry-provided redaction instructions.
       for (const instruction of instructions) {
         if (!instruction) continue;
@@ -80,8 +92,9 @@ export async function redactPdf(file, elements, onProgress) {
         const h = (element.height / 100) * viewport.height;
         
         if (instruction.kind === 'blur') {
-          // Paste the blurred section over the original
-          ctx.drawImage(blurredCanvas, x, y, w, h, x, y, w, h);
+          // Paste the blurred section over the original, at this box's own strength
+          const strength = resolveBlurStrength(element.strength);
+          ctx.drawImage(blurredCanvases.get(strength), x, y, w, h, x, y, w, h);
         } else {
           // Solid color redact box (defaults to black)
           ctx.fillStyle = element.color || '#000000';
