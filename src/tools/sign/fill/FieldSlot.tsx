@@ -99,7 +99,15 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   // inline style beats the class, so drop it here and let fill.module.css's
   // .slot rule size the box instead (it must equal .text-input's own padded
   // line box, which `calc()` cannot compute in this object).
-  const { height: _fieldSlotHeight, ...fieldBox } = layout.box;
+  const { height: _fieldSlotHeight, ...fieldBoxRaw } = layout.box;
+  // An <input> cannot shrink-wrap the way the committed div does: with
+  // width: 'auto' plus a cell minWidth, the input takes its own intrinsic
+  // width (measured 207.5px against a 196px cell) instead of the cell. Pin
+  // it to the cell itself - what the committed element looks like while the
+  // text still fits.
+  const fieldBox = fieldBoxRaw.width === 'auto' && fieldBoxRaw.minWidth
+    ? { ...fieldBoxRaw, width: fieldBoxRaw.minWidth }
+    : fieldBoxRaw;
   const box = slot.field ? fieldBox : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
 
   const handleInput = (event: Event) => {

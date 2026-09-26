@@ -495,7 +495,12 @@ describe('FieldSlot component', () => {
       expect(input.style.left).toBe(expected.box.left);
       expect(input.style.top).toBe(expected.box.top);
       expect(input.style.minWidth).toBe(expected.box.minWidth);
-      expect(input.style.width).toBe(expected.box.width);
+      // Not a tautological 'auto' === 'auto': textElementLayout gives a
+      // detected cell width: 'auto' plus minWidth (the div shrink-wraps to
+      // it), but an <input> cannot shrink-wrap, so FieldSlot pins width to
+      // the cell itself - the same value as minWidth.
+      expect(expected.box.width).toBe('auto');
+      expect(input.style.width).toBe(expected.box.minWidth);
       expect(input.style.fontSize).toBe(`${expected.font.fontSize}px`);
       expect(input.style.fontFamily).toBe(expected.font.fontFamily);
     });
