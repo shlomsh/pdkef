@@ -118,7 +118,10 @@ export interface WorkspaceGestureOptions {
   messages?: Partial<SignMessages>;
 }
 
-export type PageClickEvent = MouseEvent & { currentTarget: HTMLElement };
+// A touch event only reaches here with `at` already resolved (useFillTap's delegate,
+// SNG-15): its own coordinates are never read in that case, only when `at` is absent -
+// see the `at ??` reads below, which stay behind a plain click from production itself.
+export type PageClickEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 export type PagePointerEvent = GestureEvent & { currentTarget: HTMLElement };
 
 interface BoxPlacementPatch {
@@ -367,7 +370,9 @@ export default function useWorkspaceGestures({
     // A mark covers the very target that toggles it. Check for a detected-box
     // toggle above before treating clicks on an editor element as selection or
     // dragging gestures; ordinary annotations still retain that behaviour.
-    if ((e.target as Element | null)?.closest('[data-editor-element]')) return;
+    // A corrected point (`at`) means fill mode already resolved this tap to a
+    // detected target, even when it landed on a neighbouring element's handle.
+    if (!at && (e.target as Element | null)?.closest('[data-editor-element]')) return;
 
     e.stopPropagation();
     // A comb takes the run's span and cell count; a free-text cell gives the

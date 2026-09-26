@@ -663,10 +663,11 @@ export default function PdfWorkspace({
                         if (fill.enabled) fillTap.onMouseDown();
                         handleOverlayPointerDown(e, pageIdx);
                       }}
-                      onTouchStart={(e) => {
-                        if (fill.enabled) fillTap.onTouchStart(e, pageIdx);
-                        handleOverlayPointerDown(e, pageIdx);
-                      }}
+                      // Capture, not bubble: an element's own touchstart stops
+                      // propagation (makeOnSelect), and fill mode must still see a
+                      // touch that starts on a mark to untick its box at touchend.
+                      onTouchStartCapture={fill.enabled ? (e) => fillTap.onTouchStart(e, pageIdx) : undefined}
+                      onTouchStart={(e) => handleOverlayPointerDown(e, pageIdx)}
                       onTouchEnd={fill.enabled ? (e) => fillTap.onTouchEnd(e, pageIdx) : undefined}
                       onTouchCancel={fill.enabled ? fillTap.onTouchCancel : undefined}
                       onPointerMove={fill.enabled ? (e) => fillTap.onPointerMove(e, pageIdx) : undefined}

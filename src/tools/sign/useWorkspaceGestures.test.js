@@ -314,6 +314,35 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     );
     expect(setAnnouncement).toHaveBeenCalledWith('Removed symbol from the printed box.');
   });
+
+  // Fill mode (SNG-15): nothing armed, a tap on a detected box runs this same
+  // path through toolOverride, at the box's centre.
+  it('places a mark in an empty detected box through the symbol override with nothing armed', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: null,
+      formRegions: { combs: [], checkboxes: [checkbox] },
+    });
+    // The tap landed on a neighbouring mark's handle; fill mode already resolved it.
+    const event = { ...makeClickEvent(500, 500, overlay), target: { closest: () => ({}), tagName: 'DIV' } };
+
+    handlePageClick(event, 0, { x: 50, y: 50 }, 'symbol');
+
+    expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', pageIndex: 0 });
+  });
+
+  it('still ignores a click on an element when no corrected point is given', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      formRegions: { combs: [], checkboxes: [checkbox] },
+    });
+    const event = { ...makeClickEvent(500, 500, overlay), target: { closest: () => ({}), tagName: 'DIV' } };
+
+    handlePageClick(event, 0);
+
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'ADD_ELEMENT')).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
