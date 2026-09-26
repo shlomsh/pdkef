@@ -172,7 +172,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
 
 ### Blocked
 
