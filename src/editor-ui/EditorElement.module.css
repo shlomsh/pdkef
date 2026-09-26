@@ -20,6 +20,14 @@
    computed intersection along the touched element's ancestor chain), so a
    handle gets the same pinch-zoom allowance with no rule of its own. */
 .element { position: absolute; z-index: 1; cursor: move; user-select: none; touch-action: pinch-zoom; outline: 1px dashed transparent; outline-offset: -1px; border-radius: 4px; transition: outline-color .15s ease; }
+/* SNG-04: fill mode only, and only while unselected - `useDraggableElement`'s
+   touchstart handler already bails out with no side effects for an
+   unselected touch there, so this is the other half: letting the browser
+   read the same one-finger gesture as native panning instead of pinch-zoom-
+   only. Selecting the element (a tap, delivered as iOS's synthesised mouse
+   click once the touch is let through) drops `data-touch-scroll`, and the
+   `.element` rule above - single-finger drag JS-owned - applies again. */
+.element[data-touch-scroll] { touch-action: pan-x pan-y pinch-zoom; }
 .element.active { z-index: 50; outline-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary-ring); background: rgba(238, 243, 255, .4); }
 .symbol { padding: 0; }
 .element:hover { outline-color: var(--color-muted-light); }

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import usePdfCoordinates from './usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import { textAnchorsRightEdge } from '../../lib/signHelpers.js';
+import { touchClaimsElement } from '../../editor/gestures/touchClaim.ts';
 import {
   DEFAULT_FALLBACK_ELEMENT_WIDTH_PCT,
   DEFAULT_FALLBACK_ELEMENT_HEIGHT_PCT
@@ -54,6 +55,14 @@ const TAP_HOLD_LIMIT_MS = 500;
  *                                           element has one at all; passing nothing keeps the old
  *                                           behaviour exactly. Never called for a mouse gesture,
  *                                           so the desktop click/double-click model is untouched.
+ * @param {boolean} [params.touchNeedsSelection] - SNG-04: fill mode only. When true, a touch that
+ *                                           lands on an element not yet selected must not claim the
+ *                                           gesture at all - see `touchClaimsElement` and the
+ *                                           `selectedRef` read at the top of `handlePointerDown`.
+ * @param {boolean} [params.isSelected]     - SNG-04: whether this element is selected right now,
+ *                                           read into `selectedRef` on every render so the pointer
+ *                                           handler can consult it synchronously (never through
+ *                                           state - the gesture golden rule).
  */
 export default function useDraggableElement({
   element,
@@ -63,8 +72,19 @@ export default function useDraggableElement({
   onSelect,
   onChange,
   onTap = null,
+  touchNeedsSelection = false,
+  isSelected = false,
 }) {
   const { getPointerCoords, getDeltaPercent, getElementPercentSize } = usePdfCoordinates();
+
+  // SNG-04: a ref, not state, kept in sync every render so `handlePointerDown`
+  // (an event handler, not a render) can read "was this element selected the
+  // instant before this touch began" synchronously - reading `isSelected`
+  // directly would close over whatever value was current when the handler
+  // was created, which is stale the moment a re-render changes it without
+  // recreating the closure passed to onTouchStart.
+  const selectedRef = useRef(isSelected);
+  selectedRef.current = isSelected;
 
   const dragStartPos = useRef({ x: 0, y: 0, left: 0, top: 0 });
   const isDragging = useRef(false);
@@ -98,6 +118,21 @@ export default function useDraggableElement({
       e.target.closest('[data-editor-actions]') ||
       e.target.closest('[data-editor-resizer]')
     ) {
+      return;
+    }
+
+    // SNG-04 (docs/sign-next-gen-guidelines.md §2.2): in fill mode, a touch
+    // that lands on an element not yet selected must not claim the gesture -
+    // no select, no preventDefault, no drag. Returning here with no side
+    // effects leaves the touchstart alone, so `.element[data-touch-scroll]`
+    // (EditorElement.module.css) is free to let the browser pan the page
+    // natively, and a plain tap still arrives as iOS's synthesised mouse
+    // click afterwards, which the mouse path below already handles by
+    // selecting. Mouse gestures never reach this branch (`touchNeedsSelection`
+    // is only ever true for fill mode, and this check only runs `'touches'
+    // in e`), so click-selects/drags-in-one-gesture on a fine pointer is
+    // unaffected.
+    if ('touches' in e && !touchClaimsElement({ touchNeedsSelection, wasSelected: selectedRef.current })) {
       return;
     }
 
