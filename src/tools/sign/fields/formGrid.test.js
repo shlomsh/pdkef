@@ -222,9 +222,13 @@ describe('checkbox glyphs', () => {
     const reloaded = await PDFDocument.load(bytes);
     const { checkboxes } = detectPageRegions(reloaded.getPage(0), 0);
     expect(checkboxes).toHaveLength(2);
-    expect(checkboxes[0].left).toBeCloseTo(20, 5);
-    expect(checkboxes[1].left).toBeCloseTo(20.8333, 3);
-    expect(checkboxes.every((box) => box.top > 23 && box.top < 25)).toBe(true);
+    // Each region is the glyph's shadow-free square (SNG-09): ❏ starts 0.64pt
+    // into its glyph, ❑ 0.66pt into its own at 125pt (pdf-lib writes no
+    // /Widths for a standard font, so the walker advances by 500/1000 em).
+    expect(checkboxes[0].left).toBeCloseTo(120.64 / 6, 5);
+    expect(checkboxes[1].left).toBeCloseTo(125.66 / 6, 5);
+    expect(checkboxes[0].top).toBeCloseTo((800 - 606.62) / 8, 5);
+    expect(checkboxes[1].top).toBeCloseTo((800 - 606.6) / 8, 5);
   });
 
   it('finds a native AcroForm checkbox widget', async () => {

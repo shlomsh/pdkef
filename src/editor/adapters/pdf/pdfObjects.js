@@ -33,6 +33,20 @@ const FALLBACK_DESCENT = -0.25;
 const CHECKBOX_GLYPHS = new Set(['\u2610', '\u25a1', '\u274f', '\u2751']);
 // In the standard Zapf Dingbats encoding these are ❏ and ❑ respectively.
 const ZAPF_DINGBATS_CHECKBOX_CODES = new Set([0x6f, 0x71]);
+// The square a person sees inside each of those glyphs, in glyph space
+// (1000/em) as [x0, y0, x1, y1]. The font-wide ascent/descent box is wrong
+// for them: it runs from the descender to the ascender across the whole
+// advance, so a tick centred on it lands low and to the right, over the drop
+// shadow (SNG-09, measured 2026-09-26: ~0.6pt right, ~0.6pt low on form 101).
+// Provenance: the inner (hole) contour of a74/a75 in the ZapfDingbats subset
+// embedded in income-tax-101-2024.pdf (UIVCMF+ZapfDingbats, read with
+// @pdf-lib/fontkit). The outer contour, x[35,725] y[0,692] for ❑, includes
+// the shadow. pdf.js's FoxitDingbats, drawn when a file does not embed the
+// font, agrees: ❑ exactly, ❏ within 8/1000 em (x[64,597] y[126,662]).
+const ZAPF_DINGBATS_CHECKBOX_SQUARES = new Map([
+  [0x6f, [64, 134, 590, 662]],
+  [0x71, [66, 123, 598, 660]],
+]);
 
 function lookupDict(context, value) {
   const resolved = context.lookup(value);
@@ -262,14 +276,17 @@ function isCheckboxGlyph(font, code) {
     || CHECKBOX_GLYPHS.has(font?.toUnicode.get(code));
 }
 
-/** Axis-aligned PDF-space bounds of a text glyph under its current transform. */
-function textGlyphBox(tm, ctm, advance, ascent, descent) {
+/**
+ * Axis-aligned PDF-space bounds of a text-space rectangle under the current
+ * text and graphics transforms.
+ */
+function textGlyphBox(tm, ctm, x0, y0, x1, y1) {
   const trm = multiplyMatrix(tm, ctm);
   const corners = [
-    applyMatrix(trm, 0, descent),
-    applyMatrix(trm, advance, descent),
-    applyMatrix(trm, 0, ascent),
-    applyMatrix(trm, advance, ascent),
+    applyMatrix(trm, x0, y0),
+    applyMatrix(trm, x1, y0),
+    applyMatrix(trm, x0, y1),
+    applyMatrix(trm, x1, y1),
   ];
   const xs = corners.map((corner) => corner[0]);
   const ys = corners.map((corner) => corner[1]);
@@ -333,8 +350,14 @@ export function collectCheckboxGlyphs(page) {
       const advance = (
         glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)
       ) * horizontalScale;
-      if (isCheckboxGlyph(font, code)) {
-        boxes.push(textGlyphBox(tm, ctm, advance, ascent, descent));
+      const square = font?.isZapfDingbats ? ZAPF_DINGBATS_CHECKBOX_SQUARES.get(code) : undefined;
+      if (square) {
+        const [x0, y0, x1, y1] = square;
+        const sx = (fontSize * horizontalScale) / 1000;
+        const sy = fontSize / 1000;
+        boxes.push(textGlyphBox(tm, ctm, x0 * sx, y0 * sy + rise, x1 * sx, y1 * sy + rise));
+      } else if (isCheckboxGlyph(font, code)) {
+        boxes.push(textGlyphBox(tm, ctm, 0, descent, advance, ascent));
       }
       tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
     }
