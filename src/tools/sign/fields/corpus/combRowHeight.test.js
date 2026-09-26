@@ -108,3 +108,17 @@ describe('form 101, tax year', () => {
     expect(Math.abs(baseline - ptY(title.top + title.height))).toBeLessThan(1);
   });
 });
+
+describe('form 101, combs captioned above in their own box (FORM-28)', () => {
+  // Points: the box's caption bottom and the comb's floor rule, measured on the rendered page.
+  it.each([
+    ['passport number', 392.5, 13, 244.4, 266.1],
+    ['deduction-file number', 28.7, 9, 164.7, 182.6],
+  ])('the %s comb writes in the strip under its caption', (_, left, cells, top, bottom) => {
+    const comb = found.combs.find((c) => c.cells === cells && near(c.left, left));
+    expect(comb).toBeDefined();
+    expect(comb.writable).toBeDefined();
+    expect(Math.abs(ptY(comb.writable.top) - top)).toBeLessThan(0.2);
+    expect(Math.abs(ptY(comb.writable.top + comb.writable.height) - bottom)).toBeLessThan(0.2);
+  });
+});

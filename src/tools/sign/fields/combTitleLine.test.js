@@ -38,4 +38,31 @@ describe('titleLineWritable', () => {
     const out = titleLineWritable([comb, boxed], { cells: [cell], checkboxes: [], textRuns: [title] });
     expect(out.map((c) => c.writable)).toEqual([undefined, undefined]);
   });
+
+  describe('a caption above, in the comb\'s own box (FORM-28)', () => {
+    // A box from y 5 (its roof rule) to the comb's floor at 28; the caption y 6-10 over the comb.
+    const roof = { left: 8, top: 5, width: 20, height: 0 };
+    const caption = { str: 'מספר דרכון', left: 12, top: 6, width: 10, height: 4 };
+    const page = (extra) => ({ cells: [], checkboxes: [], textRuns: [caption], rules: [roof], maxHeight: 30, ...extra });
+
+    it('writes in the strip under the caption', () => {
+      const [out] = titleLineWritable([comb], page());
+      expect(out.writable).toEqual({ left: 10, top: 10, width: 16, height: 18 });
+    });
+
+    it('needs a caption: a bare rule above says nothing', () => {
+      const [out] = titleLineWritable([comb], page({ textRuns: [] }));
+      expect(out.writable).toBeUndefined();
+    });
+
+    it('needs the roof to span the whole comb, within the tallest box', () => {
+      expect(titleLineWritable([comb], page({ rules: [{ ...roof, width: 10 }] }))[0].writable).toBeUndefined();
+      expect(titleLineWritable([comb], page({ maxHeight: 20 }))[0].writable).toBeUndefined();
+    });
+
+    it('leaves teeth that are most of the strip alone', () => {
+      const tall = { ...comb, top: 13, height: 15 };
+      expect(titleLineWritable([tall], page())[0].writable).toBeUndefined();
+    });
+  });
 });
