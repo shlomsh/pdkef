@@ -1,7 +1,7 @@
 ---
 id: "SNG-02"
 title: "Three mobile sketches for the next-generation Sign; Shlomi picks one and we polish it"
-status: "in_progress"
+status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -52,6 +52,8 @@ Each sketch covers the same moments:
   4. The document gets the room: "the document should take most of the real estate, we should be extra conscious to unneeded paddings, margins, redundant multilines etc."
   5. The bar follows the moment: "right actions should appear in right context."
   - Full model and its consequences: `docs/sign-next-gen.md` §5 item 6, `docs/sign-next-gen-guidelines.md` §1 and §12.
+
+- **2026-09-26, retired (Shlomi):** the sketches assumed an app-owned zoom and a new surface. The direction became fill mode instead (SNG-15: the production editor, native zoom, the keyboard's own arrows between fields), and the app-owned camera was retired with SNG-16. The rules from the pick that still hold were carried into fill mode: handles only after a direct tap (SNG-04), the document gets the room, and the bar follows the moment (SNG-17's one-row bar and font bottom sheet). No sketch is being polished.
 
 ## Acceptance
 
