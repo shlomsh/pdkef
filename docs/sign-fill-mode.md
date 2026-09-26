@@ -31,20 +31,30 @@ contract; change them first, then the pieces.
     (`SET_ACTIVE_ELEMENT_ID`, then `SET_EDITING_ELEMENT_ID`).
   - When focus leaves every fill input, editing ends. A text element left empty is deleted.
   - The reducer's invariant (editing is null or equals active) holds throughout.
-- **Quiet while typing.** A text element focused through fill mode shows no handles and no element
-  toolbar on a touch screen. On a fine pointer, production's element toolbar stays, since a desktop has
-  no bar above the keyboard.
-- **A page can't add buttons to iOS's bar.** On a touch screen, our toolbar hides while a fill input
-  has focus. On desktop it always stays.
+- **Native focus, not quiet chrome.** On a touch screen a focused text element shows production's own
+  element options bar and resize handles, exactly as production does - parity with production is the
+  goal. The only difference fill mode makes is that a tap on its textarea is native focus, with no
+  MOBI-21 synchronous-focus dance, and production's own field navigation (the desktop Tab handler,
+  `.field-nav`, `.quick-field-nav`) stays off.
+- **The main toolbar stays visible while typing, on every pointer.** It no longer hides for a focused
+  fill input.
 - **Taps** (`FillTapDecision`), in this order:
   1. On a fill input: native focus.
-  2. Within reach of the armed tool's target: Text focuses it inside the touch handler (MOBI-24). Date
-     and a mark go to production's `handlePageClick` at the target's centre, so its snap lands where the
-     droppable look promised. Reach is 22 px, the printed label just above a field counts, and between
-     two rows the label's row wins.
-  3. Typing or something selected, and away from every spot: finish that only.
-  4. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
-  5. Everything else: production's `handlePageClick`.
+  2. Within reach of a detected tick box, with the mark tool armed or nothing armed: production's
+     `handlePageClick` at the box's centre, before a tap on an existing editor element is even looked
+     at. Production's own rule (`useWorkspaceGestures.ts` `handlePageClick`, "a mark covers the very
+     target that toggles it"): a selected mark's touch-sized resize handle can sit over the next box,
+     and the box still wins.
+  3. On an existing editor element (not a fill input): production's own path, unchanged.
+  4. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
+     (MOBI-24). Date goes to production's `handlePageClick` at the target's centre, so its snap lands
+     where the droppable look promised. Reach is 22 px, the printed label just above a field counts,
+     and between two rows the label's row wins.
+  5. Typing or something selected, and away from every spot: finish that only.
+  6. Text armed (fill mode treats no tool as Text), nothing in reach: open a free slot there.
+  7. Everything else: production's `handlePageClick`.
+  With nothing armed, a tap on a detected tick box toggles it through production's own symbol path,
+  even though no tool is armed.
 - **What each tool reaches** (`fillReachTargets`): Text, every fill input; Date, the empty detected
   slots; a mark, the detected tick boxes; any other tool, nothing. While a tool other than Text is armed,
   fill inputs don't take taps (`taps-go-to-tool`), so the tap reaches that tool.
@@ -82,7 +92,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | `FocusProxy.tsx` | component | the hidden input a free-slot tap focuses first |
 | `useFillFocus.ts` | hook | focus-driven editing, and `filling` |
 | `useFillTap.ts` | hook | the overlay's taps and hover, adapted to `fillTapDecision` and `reachTarget` |
-| `fill.module.css` | styles | the slot frame, the droppable look, the toolbar hidden while filling on touch |
+| `fill.module.css` | styles | the slot frame, the droppable look |
 
 Existing files change only at their seams:
 - `PdfSignTool.tsx`: the flag, mounting the hooks, and turning off the Tab navigation and fullscreen.
@@ -129,9 +139,12 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
     - `enterkeyhint`;
     - Enter (no Shift, not composing) calls `onEnter`.
   - Its focus no longer selects: `useFillFocus` does that.
-  - `DraggableWrapper` is quiet when it has `TextFillContext` on a coarse pointer (`useFill().coarse`).
-    Quiet hides the element toolbar and `.quick-field-nav`, and leaves a tap on the textarea to native
-    focus. It is also passed to `TextNode`, which renders the resize handles and hides them.
+  - `DraggableWrapper` renders its element options bar and `TextNode` its resize handles exactly as
+    production does, whether or not `TextFillContext` is set - `.quick-field-nav` stays off in fill
+    mode only because `fieldNav` is never supplied there (PdfWorkspace.tsx). The one thing
+    `TextFillContext` on a coarse pointer (`useFill().coarse`) still changes is `DraggableWrapper`'s own
+    `nativeFocus`: a tap on the textarea is left to native focus instead of MOBI-21's synchronous-focus
+    dance, since fill mode's textarea is already focusable and writable.
 - **The focus proxy.**
   - The workspace renders one hidden input for `proxyRef`:
     - fixed at the top left, one pixel, fully transparent, `tabIndex` -1, `aria-hidden`;
@@ -159,5 +172,5 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
 - **The aim.** A mouse hovering with no button down (pointer events, so iOS's synthesized mouse events
   never count), or a finger down, sets the aimed key from `reachTarget`. It clears when the touch ends
   or is cancelled, and when the pointer leaves the page.
-- **The toolbar.** With no tool armed, `SignToolbar` shows Text as chosen in fill mode, and it hides
-  while `filling && coarse`.
+- **The toolbar.** With no tool armed, `SignToolbar` shows Text as chosen in fill mode. It stays
+  visible while filling, on every pointer.
