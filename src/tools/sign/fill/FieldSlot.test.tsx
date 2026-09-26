@@ -105,7 +105,50 @@ describe('FieldSlot component', () => {
     expect(input.getAttribute('dir')).toBe('ltr');
     expect(input.getAttribute('aria-label')).toBe('First name');
     expect(input.getAttribute('autocomplete')).toBe('off');
-    expect(input.getAttribute('autocorrect')).toBe('off');
+    // autocorrect is the boolean `false`, not the string "off" (see the
+    // WebKit boolean-IDL-property test below): jsdom has no `autocorrect`
+    // DOM property, so Preact falls back to the attribute path, and a
+    // boolean `false` value there removes the attribute rather than
+    // writing it - there is nothing named "autocorrect" for jsdom to show.
+    expect(input.hasAttribute('autocorrect')).toBe(false);
+  });
+
+  it('sets the real boolean false on WebKit, where autocorrect is a boolean IDL property, not the truthy string "off"', () => {
+    // WebKit exposes HTMLElement.autocorrect as a boolean IDL property
+    // reflecting the "on"/"off" content attribute. jsdom has no such
+    // property, so this stub reproduces it for the duration of the test:
+    // the bug was that Preact writes a *string* prop as a DOM property
+    // whenever `name in dom`, and ToBoolean("off") is true, turning
+    // autocorrect ON. Fails before the fix (autocorrect === true from the
+    // old `autocorrect="off"` string), passes after (the real `false`).
+    Object.defineProperty(HTMLInputElement.prototype, 'autocorrect', {
+      configurable: true,
+      get() {
+        return this.getAttribute('autocorrect') !== 'off';
+      },
+      set(v) {
+        this.setAttribute('autocorrect', v ? 'on' : 'off');
+      },
+    });
+    try {
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={textElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      expect(input.autocorrect).toBe(false);
+    } finally {
+      delete (HTMLInputElement.prototype as { autocorrect?: unknown }).autocorrect;
+    }
   });
 
   it('sets "done" as the enterkeyhint on the last field, per the enterKeyHint prop', () => {

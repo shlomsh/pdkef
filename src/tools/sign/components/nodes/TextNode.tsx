@@ -12,6 +12,7 @@ import CombCells from './CombCells.tsx';
 import { useCombCaret } from './useCombCaret.ts';
 import { englishSignMessages, type SignMessages } from '../../../../i18n/toolMessages';
 import { useTextFill } from '../../fill/FillContext.tsx';
+import { AUTOCORRECT_OFF } from '../../fill/fillTypes.ts';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
@@ -334,7 +335,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           enterkeyhint={fill ? fill.enterKeyHint : undefined}
           // Fill mode moves focus on every hop, and iOS applies a pending autocorrection
           // as focus leaves: a name would be "corrected" into a word (SNG-15, iOS 26).
-          autocorrect={fill ? 'off' : undefined}
+          autocorrect={fill ? AUTOCORRECT_OFF : undefined}
+          spellcheck={fill ? false : undefined}
           aria-invalid={needsAttention || undefined}
           aria-describedby={fontMessage ? fontDescriptionId : undefined}
           readOnly={fill ? false : !isEditing}

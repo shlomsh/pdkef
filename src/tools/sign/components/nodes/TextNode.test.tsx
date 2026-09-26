@@ -689,7 +689,40 @@ describe('TextNode fill mode (SNG-15)', () => {
     expect(textarea.getAttribute('data-fill-input')).toBe('');
     expect(textarea.getAttribute('data-fill-key')).toBe('el:text-7');
     expect(textarea.getAttribute('enterkeyhint')).toBe('done');
-    expect(textarea.getAttribute('autocorrect')).toBe('off');
+    // autocorrect is the boolean `false`, not the string "off" (see the
+    // WebKit boolean-IDL-property test below): jsdom has no `autocorrect`
+    // DOM property, so Preact falls back to the attribute path, and a
+    // boolean `false` value there removes the attribute rather than
+    // writing it.
+    expect(textarea.hasAttribute('autocorrect')).toBe(false);
+  });
+
+  it('sets the real boolean false on WebKit, where autocorrect is a boolean IDL property, not the truthy string "off"', () => {
+    // Same bug as FieldSlot's fill input: WebKit's HTMLElement.autocorrect
+    // is a boolean IDL property reflecting the "on"/"off" content
+    // attribute, so Preact writing the string "off" as a DOM property
+    // turns autocorrect ON (ToBoolean("off") === true). jsdom has no such
+    // property, so this stub reproduces it for the duration of the test.
+    // Fails before the fix (autocorrect === true from the old string),
+    // passes after (the real `false`).
+    Object.defineProperty(HTMLTextAreaElement.prototype, 'autocorrect', {
+      configurable: true,
+      get() {
+        return this.getAttribute('autocorrect') !== 'off';
+      },
+      set(v) {
+        this.setAttribute('autocorrect', v ? 'on' : 'off');
+      },
+    });
+    try {
+      const fill = fillProps({ fillKey: 'el:text-7', enterKeyHint: 'done' });
+      host = mountFilled(fill);
+      const textarea = requireElement<HTMLTextAreaElement>(host, 'textarea');
+
+      expect(textarea.autocorrect).toBe(false);
+    } finally {
+      delete (HTMLTextAreaElement.prototype as { autocorrect?: unknown }).autocorrect;
+    }
   });
 
   it('calls onEnter and prevents default on a plain Enter', () => {
