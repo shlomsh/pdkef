@@ -4,6 +4,7 @@ import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
 import RecentFiles, { type RecentFileItem } from './RecentFiles.tsx';
 import styles from './FileDropzone.module.css';
 import { SAMPLE_FILE_NAME, SAMPLE_PREVIEW_SRC } from './sampleDocument.ts';
+import { withFillModeParam } from './withFillModeParam.ts';
 import { tools } from '../data/tools.js';
 import { englishFileDropzoneMessages, formatMessage, type FileDropzoneMessages } from '../i18n/toolMessages';
 import type { RecentFilesMessages } from '../i18n/toolMessages';
@@ -70,7 +71,7 @@ export default function FileDropzone({
         fileName: file.name, fileType: file.type || 'application/pdf', fileBytes: await file.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
-      window.location.href = toolHref(tool);
+      window.location.href = withFillModeParam(toolHref(tool), window.location.search);
     } catch {
       setError(messages.handoffFailed);
       setBusy(false);
@@ -110,7 +111,7 @@ export default function FileDropzone({
     if (busy || !recent.cacheId || !recent.tool) return;
     setBusy(true);
     setCurrentEntry(recent.tool, recent.cacheId);
-    window.location.href = toolHref(recent.tool);
+    window.location.href = withFillModeParam(toolHref(recent.tool), window.location.search);
   };
 
   useEffect(() => {
