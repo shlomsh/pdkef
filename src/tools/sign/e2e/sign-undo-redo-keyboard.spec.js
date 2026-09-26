@@ -148,4 +148,39 @@ test.describe('Sign editor keyboard undo/redo', () => {
     const aStillThere = await measureRelative(page, a.id);
     closeEnough(aStillThere, a.rect);
   });
+
+  test('undoing a drag-move restores the pre-drag position, then redo moves it again', async ({ page }) => {
+    await openSignTool(page);
+
+    const placed = await addSymbol(page, 0.4, 0.4);
+
+    // Drag it to a clearly different spot, the same mouse-driven pattern
+    // sign-editor.spec.js uses to move a placed whiteout box (move to the
+    // element's centre, down, move to the target, up).
+    const locator = page.locator(`[data-editor-element-id="${placed.id}"]`);
+    const box = await locator.boundingBox();
+    if (!box) throw new Error('placed element has no bounding box');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2 + 60);
+    await page.mouse.up();
+
+    const moved = await measureRelative(page, placed.id);
+    expect(Math.abs(moved.left - placed.rect.left)).toBeGreaterThan(40);
+    expect(Math.abs(moved.top - placed.rect.top)).toBeGreaterThan(40);
+    await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
+
+    // Nothing here ever focuses a textarea (Symbols has none), so the mouse
+    // drag above leaves focus on the page and the keyboard shortcut listener
+    // stays live for this real Cmd/Ctrl+Z.
+    await page.keyboard.press(`${MODIFIER}+z`);
+    await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
+    const afterUndo = await measureRelative(page, placed.id);
+    closeEnough(afterUndo, placed.rect);
+
+    await page.keyboard.press(`Shift+${MODIFIER}+z`);
+    await expect(page.locator('[data-editor-element-id]')).toHaveCount(1);
+    const afterRedo = await measureRelative(page, placed.id);
+    closeEnough(afterRedo, moved);
+  });
 });
