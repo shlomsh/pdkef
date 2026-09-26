@@ -512,7 +512,6 @@ _None._
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
 | SNG-14 | P1 | [SNG-14](backlog/tasks/SNG-14.md) · Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page |
 | SNG-15 | P1 | [SNG-15](backlog/tasks/SNG-15.md) · Fill mode, slice 1: the production editor with every writing spot a real field the platform's own arrows hop |
-| SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
 
 ### Blocked
 
@@ -531,6 +530,7 @@ _None._
 | --- | --- | --- |
 | SNG-11 | P1 | [SNG-11](backlog/tasks/SNG-11.md) · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it |
 | SNG-13 | P2 | [SNG-13](backlog/tasks/SNG-13.md) · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name |
+| SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
 
 # Closed epics
 

@@ -1,7 +1,7 @@
 ---
 id: "SNG-16"
 title: "Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render)"
-status: "in_progress"
+status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -29,3 +29,14 @@ Also in scope:
 - [ ] No self-zoom on any hop, and each field framed legibly above the keyboard (iOS Simulator and
   Shlomi's iPhone).
 - [ ] Pinch zooms the page and never the browser. Text stays sharp at every zoom.
+
+## Retired 2026-09-26: zoom stays native
+
+Shlomi tried the first wiring on his iPhone (Chrome on iOS) and it broke the screen: the page overflowed
+sideways and the toolbar was pushed off. His call: drop the app-owned camera and keep iOS's native zoom.
+The pieces that had landed on `claude/sign-nextgen-plan` were reverted the same day, so nothing of it
+ships: the pure math (5f3a2fd8) and the page scale lock plus `PdfPageCanvas`'s `renderScale` (b553c686).
+Revert those reverts to pick it up again.
+
+What stays open without it: after typing, iOS can stay zoomed on a field with the toolbar off screen
+(SNG-15's "Zoom hides the toolbar"). Any fix now has to work with native zoom.
