@@ -86,6 +86,10 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   // comb preview and the direction can follow every keystroke, the same as
   // TextNode's own textarea does through committed element state.
   const [value, setValue] = useState('');
+  // SNG-15: whether the real input currently has focus, so the visible focus
+  // line can be drawn on the separate field-frame element below (a plain CSS
+  // `:focus-visible` on the input itself cannot reach a sibling).
+  const [focused, setFocused] = useState(false);
 
   // The same measurement TextNode.tsx makes for its own fontSize: the page
   // can be shown at any rendered width, so points only become the right CSS
@@ -165,6 +169,24 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   const box = slot.field
     ? (frame ? { ...fieldBox, top: `${frame.top}%`, height: `${frame.height}%` } : fieldBox)
     : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
+  // SNG-15: the visible frame (at-rest border, aimed and focus states) is
+  // drawn on this separate box, never on `box` above - `box` is the INPUT's
+  // own box, which `frame` (slotFrame.ts) may enlarge past the printed field
+  // so a tall element's line still fits inside it. Drawing the ring on that
+  // enlarged box is what let a focused field's ring cover the printed label
+  // above it, and let two adjacent fields' at-rest frames overlap. `fieldRegion`
+  // (already computed above) is the printed field's own box in page percent,
+  // never enlarged, so neighbouring fields' frames can never touch. Only a
+  // field slot needs this: a free slot's own `box` already is its whole
+  // placement, nothing to enlarge past.
+  const fieldFrameBox = fieldRegion
+    ? {
+      left: `${fieldRegion.left}%`,
+      top: `${fieldRegion.top}%`,
+      width: `${fieldRegion.width}%`,
+      height: `${fieldRegion.height}%`,
+    }
+    : null;
 
   const handleInput = (event: Event) => {
     setValue((event.currentTarget as HTMLInputElement).value);
@@ -183,20 +205,37 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
   };
 
   const handleBlur = (event: FocusEvent) => {
+    setFocused(false);
     const text = (event.currentTarget as HTMLInputElement).value.trim();
     if (text) onCommit(text);
     caretEvents.onBlur?.();
     onLeave?.();
   };
 
+  const handleFocus = () => {
+    setFocused(true);
+    caretEvents.onFocus?.();
+  };
+
   return (
     <>
+      {fieldFrameBox && (
+        // SNG-15: the visible at-rest/aimed/focus chrome, sized to the
+        // printed field only (see `fieldFrameBox` above) - never the input's
+        // own (possibly enlarged) box. Rendered before the input so the
+        // input's text always paints on top of this tint, never under it.
+        <div
+          aria-hidden="true"
+          className={`${styles['field-frame']}${aimed ? ` ${styles.aimed}` : ''}${focused ? ` ${styles.focused}` : ''}`}
+          style={fieldFrameBox}
+        />
+      )}
       <input
         ref={inputRef}
         type="text"
         data-fill-input
         data-fill-key={slot.key}
-        className={`${styles.slot}${aimed ? ` ${styles.aimed}` : ''}${comb ? ` ${styles['slot-comb']}` : ''}`}
+        className={`${styles.slot}${fieldFrameBox ? ` ${styles['field-slot']}` : ''}${aimed ? ` ${styles.aimed}` : ''}${comb ? ` ${styles['slot-comb']}` : ''}`}
         enterKeyHint={enterKeyHint}
         dir={direction}
         aria-label={label}
@@ -208,7 +247,7 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
         onInput={comb ? (event) => { handleInput(event); syncCaret(); } : handleInput}
         onKeyDown={handleKeyDown}
         onKeyUp={caretEvents.onKeyUp}
-        onFocus={caretEvents.onFocus}
+        onFocus={handleFocus}
         onClick={caretEvents.onClick}
         onSelect={caretEvents.onSelect}
         onBlur={handleBlur}

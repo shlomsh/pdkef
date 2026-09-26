@@ -614,6 +614,94 @@ describe('FieldSlot component', () => {
       expect(input.style.paddingTop).toBe('');
       expect(input.style.paddingBottom).toBe('');
     });
+  });
+
+  describe('the visible frame chrome stays inside the printed field (SNG-15)', () => {
+    it('draws the at-rest/aimed/focus chrome on a separate element sized to the printed field, never the (possibly enlarged) input box', () => {
+      // A field far shorter than one line, so the input's own box grows past
+      // it (see the "grows the frame past a short field" test above) - the
+      // case that let a focused field's ring cover the printed label above
+      // it, and let two such frames overlap a neighbour.
+      const field: FillSlot['field'] = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 30, width: 40, height: 0.5 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 30, width: 40, height: 0.5 }, fontSize: 12, fontFamily: 'Arimo' },
+      });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 10, top: 30, minWidth: 40 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const frame = requireElement<HTMLDivElement>(host, `.${styles['field-frame']}`);
+
+      // The frame stays at the printed field's own box...
+      expect(frame.style.left).toBe('10%');
+      expect(frame.style.top).toBe('30%');
+      expect(frame.style.width).toBe('40%');
+      expect(frame.style.height).toBe('0.5%');
+      // ...even though the input's own box had to grow past it to cover the
+      // element's full padded line (the regression the frame itself fixes).
+      expect(Number.parseFloat(input.style.height)).toBeGreaterThan(0.5);
+
+      // The input's own at-rest/aimed/focus chrome is switched off in favour
+      // of the frame's.
+      expect(input.classList.contains(styles['field-slot'])).toBe(true);
+      expect(frame.classList.contains(styles.focused)).toBe(false);
+      act(() => { input.focus(); });
+      expect(frame.classList.contains(styles.focused)).toBe(true);
+      act(() => { input.blur(); });
+      expect(frame.classList.contains(styles.focused)).toBe(false);
+    });
+
+    it('carries the aimed class onto the frame, not the input, for a field slot', () => {
+      const field: FillSlot['field'] = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 30, width: 40, height: 6 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 30, width: 40, height: 6 }, fontSize: 12, fontFamily: 'Arimo' },
+      });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 10, top: 31, minWidth: 40 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={true}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const frame = requireElement<HTMLDivElement>(host, `.${styles['field-frame']}`);
+      expect(frame.classList.contains(styles.aimed)).toBe(true);
+    });
+
+    it('draws no separate frame for a free slot, which has no printed field to stay inside', () => {
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={textElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      expect(host.querySelector(`.${styles['field-frame']}`)).toBeNull();
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      expect(input.classList.contains(styles['field-slot'])).toBe(false);
+    });
 
     it('keeps the comb overlay on the element\'s own box, unaffected by the frame', () => {
       // A tall comb field (5%-25%) whose element sits near its top: the
