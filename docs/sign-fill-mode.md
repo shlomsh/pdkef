@@ -53,7 +53,8 @@ contract; change them first, then the pieces.
      session (`finishTyping`): otherwise the fill input the person was typing in keeps its focus while
      the reducer ends its editing state underneath it.
   4. On an existing editor element (not a fill input or its options bar): production's own path,
-     unchanged.
+     except that a touch on an element not yet selected does not claim the gesture (SNG-04), so the
+     page pans natively and a plain tap selects through the browser's synthesised mouse click.
   5. Within reach of the armed tool's target otherwise: Text focuses it inside the touch handler
      (MOBI-24). Date goes to production's `handlePageClick` at the target's centre, so its snap lands
      where the droppable look promised. Reach is 22 px, the printed label just above a field counts,
