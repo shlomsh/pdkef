@@ -319,7 +319,7 @@ test('every setting a person chooses is remembered per document, and going back 
   // Whatever A had stays A's: a fresh element, placed off any existing box,
   // must start in A's carried choices, not the defaults and not B's.
   const textA2 = await addTextAt(page, 0.78, 0.42);
-  // A free box's direction follows its own typing (signHelpers.js getEffectiveTextDirection); only a field-spanned box takes the carried direction.
+  await expect(textA2.input).toHaveAttribute('dir', 'rtl');
   await expect(textA2.input).toHaveCSS('text-align', 'right');
   await expect(textA2.input).toHaveCSS('font-weight', '700');
   await expect(textA2.input).toHaveCSS('color', 'rgb(216, 52, 43)');

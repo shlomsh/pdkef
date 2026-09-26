@@ -111,6 +111,14 @@ describe('carriedPatchFor', () => {
     expect(carriedPatchFor(textElement, { fontStyle: 'normal' }, noDetect)).toEqual({ italic: false });
   });
 
+  it('a date\'s generated text never carries a direction (SIGN-34)', () => {
+    const detectLtr = () => 'ltr' as const;
+    const date: TextElement = { ...textElement, dateValue: '2026-09-26', dateFormatId: 'locale' };
+    expect(carriedPatchFor(date, { text: 'September 26, 2026' }, detectLtr)).toEqual({});
+    expect(carriedPatchFor(textElement, { text: 'September 26, 2026', dateFormatId: 'long' }, detectLtr))
+      .toEqual({ dateFormat: 'long' });
+  });
+
   it('a move patch (geometry only) carries nothing', () => {
     expect(carriedPatchFor(textElement, { left: 50, top: 60 }, noDetect)).toEqual({});
   });

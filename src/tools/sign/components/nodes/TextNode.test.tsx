@@ -181,7 +181,7 @@ describe('TextNode component', () => {
     expect(onChange).toHaveBeenCalledWith({ text: 'שלומי' });
   });
 
-  it('derives direction from typed text across neutral, RTL, and digit-only transitions', () => {
+  it('derives direction from typed text; an empty box keeps its seeded direction (SIGN-34)', () => {
     const renderNode = (text: string): HTMLTextAreaElement => {
       act(() => {
         render(
@@ -201,7 +201,7 @@ describe('TextNode component', () => {
     };
 
     host = mount(<div />);
-    expect(renderNode('').dir).toBe('ltr');
+    expect(renderNode('').dir).toBe('rtl');
     expect(renderNode('مرحبا').dir).toBe('rtl');
     expect(renderNode('27/05/2008').dir).toBe('ltr');
   });

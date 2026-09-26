@@ -56,7 +56,10 @@ export function carriedPatchFor(
   if (element.type === 'text') {
     if ('textDirection' in patch && patch.textDirection) {
       carried.direction = patch.textDirection;
-    } else if ('text' in patch && patch.text !== undefined) {
+    } else if ('text' in patch && patch.text !== undefined && !('dateFormatId' in patch) && !element.dateValue) {
+      // Only typed text says which language the person writes in. A date's
+      // text is generated from its format (a locale date reads "September"
+      // even on a Hebrew form), so it never carries a direction (SIGN-34).
       const typedDirection = detectDirection(patch.text);
       if (typedDirection) carried.direction = typedDirection;
     }
