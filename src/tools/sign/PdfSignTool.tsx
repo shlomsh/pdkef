@@ -168,6 +168,20 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
 
   const closeFreeSlot = useCallback(() => setFreeAt(null), []);
 
+  // SNG-17: iOS zooms the page in on any focused field under 16px and never
+  // zooms back, which leaves the toolbar off screen; in fill mode nearly every
+  // tap focuses a field. `maximum-scale=1` stops that zoom-on-focus, while iOS
+  // still honours the person's own pinch (measured 2026-09-26: iOS 26
+  // Simulator in Safari, and Shlomi's iPhone in Chrome). Fill mode only, at
+  // runtime, so production's static viewport meta is untouched.
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const meta = document.querySelector('meta[name="viewport"]');
+    const original = meta?.getAttribute('content') ?? '';
+    meta?.setAttribute('content', `${original}, maximum-scale=1`);
+    return () => meta?.setAttribute('content', original);
+  }, [enabled]);
+
   useFillFocus({
     enabled,
     dispatch,
