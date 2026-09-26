@@ -224,6 +224,17 @@ export default function useWorkspaceGestures({
     at?: { x: number; y: number },
     toolOverride?: SignToolType,
   ) => {
+    // Stops this tap from reaching the workspace's blank-area deselect - except on a
+    // touchend fill mode already delegated (useFillTap.ts's `decision.at !== undefined`
+    // path): that touch was already preventDefaulted, so no click ever follows it to
+    // stop, and stopping the touchend itself would keep the gesture controller
+    // (src/lib/gestures/controller.ts) from finishing a drag or resize that began on
+    // this element's own touchstart (DraggableWrapper, useElementResize) - it listens
+    // for touchend on window in the bubble phase. Production never passes a touch
+    // event here, so production's own behaviour is unchanged.
+    const stopUnlessTouchEnd = () => {
+      if (e.type !== 'touchend') e.stopPropagation();
+    };
     const tool = toolOverride ?? selectedTool;
     if (!tool) return;
     // 'date' has no registry entry of its own - it places an ordinary
@@ -351,7 +362,7 @@ export default function useWorkspaceGestures({
       ? elements.find((element) => symbolIsInCheckbox(element, checkboxRegion))
       : null;
     if (existingCheckboxMark) {
-      e.stopPropagation();
+      stopUnlessTouchEnd();
       const snapshots = captureElementSnapshots(elements, (element) => element.id === existingCheckboxMark.id);
       dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -374,7 +385,7 @@ export default function useWorkspaceGestures({
     // detected target, even when it landed on a neighbouring element's handle.
     if (!at && (e.target as Element | null)?.closest('[data-editor-element]')) return;
 
-    e.stopPropagation();
+    stopUnlessTouchEnd();
     // A comb takes the run's span and cell count; a free-text cell gives the
     // box the cell's span as `minWidth`, never `width`, with its font size
     // fieldFontSize's answer (already resolved above, as `fieldPlacement`)

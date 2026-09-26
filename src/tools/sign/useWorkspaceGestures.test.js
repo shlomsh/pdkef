@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useWorkspaceGestures from './useWorkspaceGestures.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { formatDate, toIsoDateString } from '../../editor/text/dateFormat.ts';
+import { startGesture } from '../../lib/gestures/controller.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -329,6 +330,58 @@ describe('useWorkspaceGestures – symbol remembered settings', () => {
     handlePageClick(event, 0, { x: 50, y: 50 }, 'symbol');
 
     expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', pageIndex: 0 });
+  });
+
+  // SNG-15 finding 1: a touchend that fill mode already resolved (a corrected point,
+  // toolOverride) must not stopPropagation, or the gesture controller
+  // (src/lib/gestures/controller.ts) listening for touchend on window never sees it, and
+  // a drag or resize that began on the element's own touchstart never finishes.
+  it('places a mark from a touchend event without calling stopPropagation', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: null,
+      formRegions: { combs: [], checkboxes: [checkbox] },
+    });
+    const event = { ...makeClickEvent(500, 500, overlay), type: 'touchend' };
+
+    handlePageClick(event, 0, { x: 50, y: 50 }, 'symbol');
+
+    expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', pageIndex: 0 });
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+  });
+
+  it('removes an existing mark from a touchend event without calling stopPropagation', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const existing = {
+      id: 'checked-box', type: 'symbol', pageIndex: 0,
+      left: 48, top: 48.0833333333, width: 4, height: 4,
+      mark: 'check', color: '#1463ff',
+    };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'symbol',
+      formRegions: { combs: [], checkboxes: [checkbox] },
+      elements: [existing],
+    });
+    const event = { ...makeClickEvent(500, 500, overlay), type: 'touchend' };
+
+    handlePageClick(event, 0);
+
+    expect(dispatch).toHaveBeenCalledWith({ type: 'DELETE_ELEMENT', payload: existing.id });
+    expect(event.stopPropagation).not.toHaveBeenCalled();
+  });
+
+  it('places a mark from an ordinary click event and still calls stopPropagation', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: null,
+      formRegions: { combs: [], checkboxes: [checkbox] },
+    });
+    const event = { ...makeClickEvent(500, 500, overlay), type: 'click' };
+
+    handlePageClick(event, 0, { x: 50, y: 50 }, 'symbol');
+
+    expect(firstAddElement(dispatch)).toMatchObject({ type: 'symbol', pageIndex: 0 });
+    expect(event.stopPropagation).toHaveBeenCalled();
   });
 
   it('still ignores a click on an element when no corrected point is given', () => {
@@ -806,5 +859,53 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
     handlePageClick(event, 0);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SNG-15 finding 1 - integration guard: a real gesture on window must still
+// finish after a touchend handlePageClick already delegated for (fillTap.ts's
+// 'delegate' with a resolved point). Real DOM events and the real gesture
+// controller, so this proves stopPropagation's absence end to end rather than
+// only that handlePageClick's own event mock was not called.
+// ---------------------------------------------------------------------------
+
+describe('useWorkspaceGestures - a live gesture finishes after a delegated touchend', () => {
+  it('lets the window\'s own touchend listener (the gesture controller) run after handlePageClick', () => {
+    const checkbox = { pageIndex: 0, left: 49, top: 49, width: 2, height: 2 };
+    const { handlePageClick } = useWorkspaceGestures({
+      selectedTool: null,
+      dispatch: vi.fn(),
+      activeSignature: null,
+      setTempPlacement: vi.fn(),
+      setDialogOpen: vi.fn(),
+      placeSignatureAt: vi.fn(),
+      logAction: vi.fn(),
+      setAnnouncement: vi.fn(),
+      formRegions: { combs: [], checkboxes: [checkbox] },
+    });
+
+    // A drag or resize that began on this element's own touchstart, exactly as
+    // DraggableWrapper/useElementResize start one: startGesture listens for
+    // touchend on window, in the bubble phase.
+    const commit = vi.fn();
+    startGesture({
+      computePatch: () => ({}),
+      writeDOM: () => {},
+      commit,
+    });
+
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    // The overlay's own touchend handler, wired the way PdfWorkspace wires
+    // useFillTap's delegate callback to handlePageClick.
+    el.addEventListener('touchend', (nativeEvent) => {
+      handlePageClick(nativeEvent, 0, { x: 50, y: 50 }, 'symbol');
+    });
+
+    el.dispatchEvent(new Event('touchend', { bubbles: true }));
+
+    expect(commit).toHaveBeenCalledTimes(1);
+    document.body.removeChild(el);
   });
 });

@@ -138,9 +138,14 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     scrollTop: document.scrollingElement?.scrollTop ?? 0,
   });
 
+  // The element's own options bar (Delete, colour, font) always wins over the box-first
+  // rule below it in fillTapDecision - see FillTapInput.onElementBar's own comment.
+  const onElementBar = (target: Element | null): boolean => target?.closest('[data-editor-actions]') != null;
+
   const decide = (target: Element | null, at: PagePoint, overlay: HTMLElement): FillTapDecision =>
     fillTapDecision({
       onFillInput: fillKeyOf(target) !== null,
+      onElementBar: onElementBar(target),
       onElement: ownedByElement(target),
       typing: engagedAtPress.current,
       tool,
@@ -194,7 +199,12 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     const target = event.target as Element | null;
     const at = pointAt(event.clientX, event.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
+    // Not fill mode's tap at all: leave the event completely alone so the bar's own
+    // button click fires. 'native' would stopPropagation here on a click that follows a
+    // touch tap (below), which would swallow this click before it ever reaches the button.
+    if (decision.type === 'element') return;
     if (decision.type === 'delegate') {
+      if (decision.finishTyping) dismiss();
       delegate(event, pageIndex, decision.at, decision.tool);
       return;
     }
@@ -259,6 +269,9 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     const target = event.target as Element | null;
     const at = pointAt(touch.clientX, touch.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
+    // Not fill mode's tap at all: leave the touch, and the click iOS synthesizes from it,
+    // completely alone so the bar's own button gets a real tap.
+    if (decision.type === 'element') return;
     if (act(decision)) {
       // Suppresses the click iOS would otherwise synthesize from this touch.
       event.preventDefault();
@@ -271,6 +284,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       // elsewhere on this element (DraggableWrapper) may have already killed.
       // preventDefault alone suppresses the click. No stopPropagation: the gesture
       // controller finishes an element's drag on the window's own touchend.
+      if (decision.finishTyping) dismiss();
       delegate(event, pageIndex, decision.at, decision.tool);
       event.preventDefault();
       handledTouchAtRef.current = Date.now();
