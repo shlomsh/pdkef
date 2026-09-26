@@ -1,7 +1,7 @@
 ---
 id: "SIGN-35"
 title: "A style chosen in a document also becomes the app default for new documents"
-status: "done"
+status: "in_progress"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -78,3 +78,17 @@ where i chose another color already."
   (`ElementToolbar`'s `canAlign` needs a box spanning a field). On a one-line box that hugs its text,
   alignment is invisible. It shows on wrapped text. This was already true within a document since
   SIGN-33, and now it also reaches new documents.
+
+## Reopened (2026-09-26): the size follows the person too
+
+Shlomi was asked whether the font size should follow the person across documents, and said yes.
+
+- The size joins the app-wide style. `DOCUMENT_ONLY_KEYS` is now only the direction.
+- An A-, an A+ or a resize drag in any document sets the size new documents start from. Each field
+  still only shrinks that size to fit its own cell (`fieldFontSize`).
+- Until the person has set a size anywhere, a document's first field still seeds the size from its own
+  height. That seed stays with the document: a computed size is not a choice.
+
+- [ ] A size set in one document is where a new document's text starts, and a document with its own
+  size keeps it (unit tests, and the A/B/A e2e).
+- [ ] SIGN-35's decisions, the editor rule and `CLAUDE.md` say only the direction stays per document.
