@@ -9,11 +9,17 @@
  * A touch tap decides exactly once. `onTouchStart` only sets the aimed key (the
  * droppable look) and never acts. `onTouchEnd` decides, gated by `classifyTouchTap` so a
  * scroll or drag is never read as a tap. It carries out 'focus', 'dismiss' and
- * 'freeSlot' itself and calls `preventDefault`, so iOS synthesizes no click. For
- * 'native' and 'delegate' it lets the click come, and `onClickCapture` carries out that
- * same decision without deciding again: the focus a tap causes can move the page under
- * the finger (iOS scrolls the field into view), so the click's own point is not the tap's.
- * Only a mouse click decides in `onClickCapture`.
+ * 'freeSlot' itself and calls `preventDefault`, so iOS synthesizes no click. A
+ * 'delegate' decision that already resolved a point (`decision.at !== undefined`, e.g. a
+ * detected tick box's centre) is carried out there too, for the same reason: the touch
+ * may have started on an existing editor element (a mark sitting in a printed box, a
+ * selected mark's resize handle), and `DraggableWrapper` preventDefaults that element's
+ * own `touchstart` to own the drag, which kills iOS's synthesized click - so waiting for
+ * the click would mean the tap never runs. A plain 'delegate' (no point - production's
+ * own tap path, which still needs the click's own coordinates) and 'native' still wait:
+ * `onClickCapture` carries out that same decision without deciding again, since the focus
+ * a tap causes can move the page under the finger (iOS scrolls the field into view), so
+ * the click's own point is not the tap's. Only a mouse click decides in `onClickCapture`.
  *
  * A free slot's own focus is a special case (MOBI-24): iOS only raises the keyboard for a
  * focus made synchronously inside a touch handler, before the slot's own input even
@@ -49,7 +55,7 @@ export interface UseFillTapOptions {
    * the decision ran as if a different tool were armed (nothing armed, a tap on a
    * detected tick box: 'symbol').
    */
-  delegate: (event: FillMouseEvent, pageIndex: number, at?: PagePoint, tool?: 'symbol') => void;
+  delegate: (event: FillMouseEvent | FillTouchEvent, pageIndex: number, at?: PagePoint, tool?: 'symbol') => void;
   /** Finish typing and deselect (PdfWorkspace's deactivateAll). */
   dismiss: () => void;
 }
@@ -76,12 +82,24 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   const touchIdRef = useRef<number | null>(null);
   const multiTouchRef = useRef(false);
   const engagedAtPress = useRef(false);
-  // A touch decides once, at touchend. The click iOS synthesizes afterwards only carries
-  // out a 'native' or 'delegate' decision made there, never decides again: by then the
-  // focus that tap caused may have moved the page under the finger (the toolbar hides,
-  // iOS scrolls the field into view), so the click's own point is no longer the tap's.
-  // Measured on iOS 26: deciding again sent the focus to whatever field slid under it.
+  // A touch decides once, at touchend. A 'native' or plain 'delegate' (no resolved point)
+  // decision made there waits for the click iOS synthesizes afterwards to carry it out,
+  // and that click never decides again: by then the focus that tap caused may have moved
+  // the page under the finger (the toolbar hides, iOS scrolls the field into view), so the
+  // click's own point is no longer the tap's. Measured on iOS 26: deciding again sent the
+  // focus to whatever field slid under it. A 'delegate' that already resolved a point does
+  // not go through this ref at all - see onTouchEnd - because the touch may have started
+  // on an existing editor element (a mark in a printed box, a resize handle overlapping
+  // the next box), whose own touchstart handler (DraggableWrapper) preventDefaults to own
+  // the drag, and that kills iOS's synthesized click before it can ever carry the decision
+  // out.
   const touchTapRef = useRef<{ decision: FillTapDecision; time: number } | null>(null);
+  // Set at touchend, for the window below, when a delegate-with-point decision already
+  // ran there (see onTouchEnd). `preventDefault` on the touch is what actually stops the
+  // browser from synthesizing a click in the real bug this guards; this is only the
+  // belt-and-braces backstop so a click that fires anyway (a browser quirk, or a test)
+  // is swallowed instead of running the decision a second time.
+  const handledTouchAtRef = useRef<number | null>(null);
 
   /** A browser client point, on this page, in the percent model fillTap.ts decides over. */
   const pointAt = (clientX: number, clientY: number, overlay: HTMLElement, pageIndex: number): PagePoint => {
@@ -123,6 +141,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   const decide = (target: Element | null, at: PagePoint, overlay: HTMLElement): FillTapDecision =>
     fillTapDecision({
       onFillInput: fillKeyOf(target) !== null,
+      onElement: ownedByElement(target),
       typing: engagedAtPress.current,
       tool,
       reach: reachAt(at, overlay),
@@ -157,6 +176,12 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
   };
 
   const onClickCapture = (event: FillMouseEvent, pageIndex: number) => {
+    const handledAt = handledTouchAtRef.current;
+    handledTouchAtRef.current = null;
+    if (handledAt !== null && Date.now() - handledAt < TOUCH_CLICK_WINDOW_MS) {
+      event.stopPropagation();
+      return;
+    }
     const touchTap = touchTapRef.current;
     touchTapRef.current = null;
     if (touchTap && Date.now() - touchTap.time < TOUCH_CLICK_WINDOW_MS) {
@@ -167,12 +192,6 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       return;
     }
     const target = event.target as Element | null;
-    if (ownedByElement(target)) {
-      // Exactly production's own path: no corrected point, since nothing here found a
-      // reach target to correct it to.
-      delegate(event, pageIndex);
-      return;
-    }
     const at = pointAt(event.clientX, event.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
     if (decision.type === 'delegate') {
@@ -212,6 +231,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     }
     const touch = event.changedTouches[0];
     touchTapRef.current = null;
+    handledTouchAtRef.current = null;
     touchStartRef.current = sample(touch);
     touchIdRef.current = touch.identifier;
     multiTouchRef.current = false;
@@ -237,11 +257,6 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     // and the decision below both read clientX/Y off this changedTouches entry instead.
     if (!start || !classifyTouchTap(start, sample(touch), { multiTouch })) return;
     const target = event.target as Element | null;
-    if (ownedByElement(target)) {
-      // Production's own tap: the click carries it out exactly as production would.
-      touchTapRef.current = { decision: { type: 'delegate' }, time: Date.now() };
-      return;
-    }
     const at = pointAt(touch.clientX, touch.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
     if (act(decision)) {
@@ -250,12 +265,25 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
       event.stopPropagation();
       return;
     }
-    // 'native' and 'delegate': the synthesized click carries this decision out as is.
+    if (decision.type === 'delegate' && decision.at !== undefined) {
+      // Already resolved a point - production's own coordinates are not needed, so this
+      // runs now rather than waiting for a click that a touchstart preventDefault
+      // elsewhere on this element (DraggableWrapper) may have already killed.
+      // preventDefault alone suppresses the click. No stopPropagation: the gesture
+      // controller finishes an element's drag on the window's own touchend.
+      delegate(event, pageIndex, decision.at, decision.tool);
+      event.preventDefault();
+      handledTouchAtRef.current = Date.now();
+      return;
+    }
+    // 'native' and a plain 'delegate' (no point): the synthesized click carries this
+    // decision out, with its own coordinates.
     touchTapRef.current = { decision, time: Date.now() };
   };
 
   const onTouchCancel = () => {
     touchTapRef.current = null;
+    handledTouchAtRef.current = null;
     touchStartRef.current = null;
     touchIdRef.current = null;
     multiTouchRef.current = false;

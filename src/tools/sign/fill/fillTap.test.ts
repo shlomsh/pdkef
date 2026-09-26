@@ -8,12 +8,13 @@ const reachOf = (kind: ReachTarget['kind'], key = 'k'): ReachTarget => (
   { kind, key, pageIndex: 0, box: { left: 10, top: 10, width: 20, height: 10 } }
 );
 
-const base: FillTapInput = { onFillInput: false, typing: false, tool: 'other', reach: null, at: null };
+const base: FillTapInput = { onFillInput: false, onElement: false, typing: false, tool: 'other', reach: null, at: null };
 
 describe('fillTapDecision', () => {
   it('lets a fill input take native focus, above every other rule', () => {
     const input: FillTapInput = {
       onFillInput: true,
+      onElement: false,
       typing: true,
       tool: 'text',
       reach: reachOf('box'),
@@ -112,6 +113,26 @@ describe('fillTapDecision', () => {
     const decision = fillTapDecision(input);
     expect(decision).toEqual({ type: 'delegate' });
     expect((decision as { tool?: string }).tool).toBeUndefined();
+  });
+
+  it('a box reach wins over a tap that landed on an existing element, nothing armed', () => {
+    const input: FillTapInput = { ...base, onElement: true, tool: 'none', reach: reachOf('box', 'box-4') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
+  });
+
+  it('a box reach wins over a tap that landed on an existing element, Mark armed', () => {
+    const input: FillTapInput = { ...base, onElement: true, tool: 'mark', reach: reachOf('box', 'box-5') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
+  });
+
+  it('a tap on an existing element still beats a fill reach: the element wins over a text field', () => {
+    const input: FillTapInput = { ...base, onElement: true, tool: 'none', reach: reachOf('fill', 'slot-5') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('a tap on an existing element with nothing else in reach is production\'s own plain path', () => {
+    const input: FillTapInput = { ...base, onElement: true, tool: 'none' };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 });
 

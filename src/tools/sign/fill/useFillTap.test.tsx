@@ -202,7 +202,31 @@ describe('useFillTap', () => {
     const event = mouseEvent(overlay, element, 500, 500);
     handlers.onClickCapture(event, 0);
 
-    expect(delegate).toHaveBeenCalledWith(event, 0);
+    expect(delegate).toHaveBeenCalledWith(event, 0, undefined, undefined);
+  });
+
+  it('a tap on an existing element still toggles a box in reach: nothing armed, symbol tool', () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
+    const element = document.createElement('div');
+    element.setAttribute('data-editor-element', '');
+    overlay.appendChild(element);
+
+    const event = mouseEvent(overlay, element, 500, 500);
+    handlers.onClickCapture(event, 0);
+
+    expect(delegate).toHaveBeenCalledWith(event, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
+  });
+
+  it('a tap on an existing element with no box in reach is production\'s own plain path', () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'none' });
+    const element = document.createElement('div');
+    element.setAttribute('data-editor-element', '');
+    overlay.appendChild(element);
+
+    const event = mouseEvent(overlay, element, 500, 500);
+    handlers.onClickCapture(event, 0);
+
+    expect(delegate).toHaveBeenCalledWith(event, 0, undefined, undefined);
   });
 
   it('delegates to the box centre when Mark is armed and a tick box is in reach', () => {
@@ -248,18 +272,30 @@ describe('useFillTap', () => {
     expect(delegate).not.toHaveBeenCalled();
   });
 
-  it('carries a touch tap\'s delegate decision to its click at the touch\'s own point', () => {
+  // Was 'carries a touch tap's delegate decision to its click at the touch's own point':
+  // a delegate decision that already resolves a point used to wait for the synthesized
+  // click, like 'native' does. It no longer can (see the file-header comment and
+  // onTouchEnd): it now runs at touchend itself, and the click that follows must not
+  // repeat it.
+  it('runs a delegate decision with a resolved point at touchend itself, not the click that follows', () => {
     const { handlers, overlay, delegate } = setup({ tool: 'mark', targetsOf: () => [target('box', 'box:1')] });
 
     const touch = fakeTouch(1, 500, 500);
     handlers.onTouchStart(touchEvent(overlay, overlay, [touch], [touch]), 0);
-    handlers.onTouchEnd(touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]), 0);
-    // The click lands far from any box: it still places at the box the tap reached.
-    const click = mouseEvent(overlay, overlay, 50, 950);
-    handlers.onClickCapture(click, 0);
+    const endEvent = touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]);
+    handlers.onTouchEnd(endEvent, 0);
 
     expect(delegate).toHaveBeenCalledTimes(1);
-    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 }, undefined);
+    expect(delegate).toHaveBeenCalledWith(endEvent, 0, { pageIndex: 0, x: 50, y: 50 }, undefined);
+    expect(endEvent.preventDefault).toHaveBeenCalled();
+    // The window must still see this touchend: the gesture controller finishes a drag there.
+    expect(endEvent.stopPropagation).not.toHaveBeenCalled();
+
+    // The click iOS would still synthesize (were it not already suppressed above) must
+    // not decide again.
+    const click = mouseEvent(overlay, overlay, 50, 950);
+    handlers.onClickCapture(click, 0);
+    expect(delegate).toHaveBeenCalledTimes(1);
   });
 
   it("forwards the decision's tool to delegate: nothing armed, a tick box in reach, runs as the symbol tool", () => {
@@ -271,16 +307,33 @@ describe('useFillTap', () => {
     expect(delegate).toHaveBeenCalledWith(event, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
   });
 
-  it("carries a touch tap's delegated tool to its click", () => {
+  // Was "carries a touch tap's delegated tool to its click": same reasoning as above, and
+  // this is the exact bug (a mark sitting in a printed checkbox, or a resize handle
+  // overlapping the next box): the tap's own target is inside an existing editor
+  // element, whose DraggableWrapper preventDefaults touchstart to own the drag, killing
+  // iOS's synthesized click. The decision must run at touchend, from the touch's own
+  // point, or it never runs at all.
+  it('runs a delegate decision at touchend when the touch started on an existing editor element (the mark-in-a-box bug)', () => {
     const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
+    const element = document.createElement('div');
+    element.setAttribute('data-editor-element', '');
+    overlay.appendChild(element);
 
     const touch = fakeTouch(1, 500, 500);
-    handlers.onTouchStart(touchEvent(overlay, overlay, [touch], [touch]), 0);
-    handlers.onTouchEnd(touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]), 0);
-    const click = mouseEvent(overlay, overlay, 50, 950);
-    handlers.onClickCapture(click, 0);
+    handlers.onTouchStart(touchEvent(overlay, element, [touch], [touch]), 0);
+    const endEvent = touchEvent(overlay, element, [], [fakeTouch(1, 500, 500)]);
+    handlers.onTouchEnd(endEvent, 0);
 
-    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
+    expect(delegate).toHaveBeenCalledTimes(1);
+    expect(delegate).toHaveBeenCalledWith(endEvent, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
+    expect(endEvent.preventDefault).toHaveBeenCalled();
+    expect(endEvent.stopPropagation).not.toHaveBeenCalled();
+
+    // No click follows in the real bug (DraggableWrapper's touchstart preventDefault
+    // kills it), but even one that did must not decide again.
+    const click = mouseEvent(overlay, element, 500, 500);
+    handlers.onClickCapture(click, 0);
+    expect(delegate).toHaveBeenCalledTimes(1);
   });
 
   it('does not act on a touch that moved past the tap slop: a scroll or drag is not a tap', () => {
