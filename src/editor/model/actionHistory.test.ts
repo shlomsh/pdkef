@@ -228,6 +228,20 @@ describe('canCoalesce', () => {
     expect(canCoalesce(top, incoming)).toBe(false);
   });
 
+  it('is false for the same type touching different fields (Bold then Italic)', () => {
+    const top = makeUpdateEntry({
+      timestamp: 1000,
+      type: 'STYLE_ELEMENT',
+      updates: [{ id: middle.id, before: { fontWeight: 'normal' }, after: { fontWeight: 'bold' } }],
+    });
+    const incoming = makeUpdateEntry({
+      timestamp: 1100,
+      type: 'STYLE_ELEMENT',
+      updates: [{ id: middle.id, before: { fontStyle: 'normal' }, after: { fontStyle: 'italic' } }],
+    });
+    expect(canCoalesce(top, incoming)).toBe(false);
+  });
+
   it('is false for a different type', () => {
     const top = makeUpdateEntry({ timestamp: 1000, type: 'MOVE_ELEMENT' });
     const incoming = makeUpdateEntry({ timestamp: 1200, type: 'RESIZE_ELEMENT' });

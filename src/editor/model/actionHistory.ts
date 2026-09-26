@@ -119,8 +119,10 @@ export const COALESCE_WINDOW_MS = 500;
 /**
  * Whether `incoming` folds into `top` rather than becoming its own step: both
  * change the same single element, and either they share a text edit session
- * (`group`), or they are the same kind of change within COALESCE_WINDOW_MS of
- * the last one folded in (a burst of nudges, A+ presses or colour picks).
+ * (`group`), or they are the same kind of change to the same fields within
+ * COALESCE_WINDOW_MS of the last one folded in (a burst of nudges, A+ presses
+ * or colour picks). Bold then Italic in quick succession are both style
+ * changes but touch different fields, so they stay two steps.
  */
 export function canCoalesce<TElement extends HistoryElement>(
   top: ActionHistoryEntry<TElement>,
@@ -131,7 +133,13 @@ export function canCoalesce<TElement extends HistoryElement>(
   if (top.updates[0].id !== incoming.updates[0].id) return false;
   if (top.group || incoming.group) return top.group === incoming.group;
   const elapsed = incoming.timestamp - top.timestamp;
-  return top.type === incoming.type && elapsed >= 0 && elapsed <= COALESCE_WINDOW_MS;
+  return top.type === incoming.type && elapsed >= 0 && elapsed <= COALESCE_WINDOW_MS
+    && sameFields(top.updates[0].after, incoming.updates[0].after);
+}
+
+function sameFields(a: object, b: object): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => key in b);
 }
 
 function sameValue(a: unknown, b: unknown): boolean {
