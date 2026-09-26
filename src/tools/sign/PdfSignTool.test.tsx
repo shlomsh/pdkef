@@ -127,6 +127,44 @@ describe('PdfSignTool UI flow', () => {
     expect(fileBar.textContent).toContain('test_agreement.pdf');
   });
 
+  // SNG-15: fullscreen works in fill mode exactly as in production.
+  it('toggles fullscreen in fill mode (?next=1) same as production', async () => {
+    const originalUrl = window.location.href;
+    window.history.pushState({}, '', '?next=1');
+    try {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfSignTool />, container);
+      });
+
+      const input = query<HTMLInputElement>(container, 'input[type="file"]');
+      const file = makePdfFile('test_agreement.pdf');
+
+      await act(async () => {
+        setInputFiles(input, [file]);
+      });
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      const fullscreenButton = required(
+        container.querySelector<HTMLButtonElement>('button[title="Full screen"]'),
+        'the Full screen button',
+      );
+
+      await act(async () => {
+        fullscreenButton.click();
+      });
+
+      const workspace = query(container, `.${workspaceStyles.workspace}`);
+      expect(workspace.className).toContain(workspaceStyles['pseudo-fullscreen']);
+    } finally {
+      window.history.pushState({}, '', originalUrl);
+    }
+  });
+
   // FORM-11. The detector runs once per document and used to report nothing in
   // any outcome, so a total failure and an ordinary form were the same silence
   // - the state that let a broken detector ship unnoticed. jsdom's pdf.js stub

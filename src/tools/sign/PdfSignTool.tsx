@@ -267,10 +267,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   }, [file, documentRevision, clearPrepared]);
 
   const toggleFullscreen = () => {
-    // Off in fill mode (docs/sign-fill-mode.md): fullscreen makes
-    // `.workspace` the scroller, and iOS's arrows can't reach an off-screen
-    // field inside it.
-    if (enabled) return;
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
       return;

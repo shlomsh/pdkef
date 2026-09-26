@@ -28,13 +28,14 @@ export function focusFillInput(key: string, root: ParentNode = document): boolea
 
 /**
  * Move to the fill input after the one holding `fromKey`; on the last one, end typing.
- * Called from a key event, so iOS keeps its keyboard up across the move.
+ * Called from a key event, so iOS keeps its keyboard up across the move. The next field may be
+ * off screen, so the platform is left to scroll it into view.
  */
 export function focusNextFillInput(fromKey: string, root: ParentNode = document): void {
   const inputs = fillInputs(root);
   const index = inputs.findIndex((el) => el.getAttribute(FILL_KEY_ATTR) === fromKey);
   const next = index >= 0 ? inputs[index + 1] : undefined;
-  if (next) next.focus({ preventScroll: true });
+  if (next) next.focus();
   else (inputs[index] ?? (document.activeElement as HTMLElement | null))?.blur();
 }
 
