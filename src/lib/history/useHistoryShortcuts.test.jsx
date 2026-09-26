@@ -35,6 +35,17 @@ describe('useHistoryShortcuts', () => {
     container.remove();
   });
 
+  it('a chord pressed before the re-render effects flush reaches the newest handler', () => {
+    act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
+    const latestRedo = vi.fn();
+    // A plain render (no act) commits the new props but leaves effects
+    // pending, which is the gap a real Redo right after an Undo lands in.
+    render(<Harness onUndo={onUndo} onRedo={latestRedo} />, container);
+    dispatchKeyDown({ key: 'z', metaKey: true, shiftKey: true });
+    expect(latestRedo).toHaveBeenCalledTimes(1);
+    expect(onRedo).not.toHaveBeenCalled();
+  });
+
   it('Cmd+Z undoes and does not redo', () => {
     act(() => render(<Harness onUndo={onUndo} onRedo={onRedo} />, container));
     act(() => dispatchKeyDown({ key: 'z', metaKey: true }));
