@@ -99,27 +99,67 @@
 }
 
 /* The droppable look (docs/sign-fill-mode.md, "Hints"): the target the
-   armed tool's own reach (fillReach.ts) would tap next. A solid frame, a
-   soft outer ring and a light fill - distinct from the faint rest state at
-   a glance, on a phone as much as a desktop. --color-primary-ring is the
-   palette's own translucent "ring" token, which is the soft half of this;
-   the clear, solid line is what :focus-visible below draws instead. */
+   armed tool's own reach (fillReach.ts) would tap next. A free slot (no
+   printed field to stay inside) still draws this on the input itself. A
+   field slot draws it on `.field-frame` instead (below), sized to the
+   printed field, so this never shows for one. */
 .slot.aimed {
   background: var(--color-primary-tint);
-  /* Same solid line as before, now inset (border stays 0 above) plus the
-     same outer ring, combined into one box-shadow since .slot no longer has
-     a border to draw the solid line with. */
-  box-shadow: inset 0 0 0 1.5px var(--color-primary), 0 0 0 4px var(--color-primary-ring);
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
 
-/* A clear focus line, layered over either state above - the outline paints
-   outside the border box, so it never competes with the aimed ring's own
-   box-shadow. Same treatment as the sitewide default (global.css), made
-   explicit here since a focused slot is one of this component's own named
-   states rather than an incidental default. */
+/* A clear focus line, inset so it can never grow past the printed field or
+   the input's own box (SNG-15: an outward outline on a field slot covered
+   the printed label above it, and its own offset let it overlap the next
+   field on a dense form). A free slot draws this on the input itself; a
+   field slot draws it on `.field-frame` instead (below). */
 .slot:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+
+/* SNG-15: a field slot's own INPUT may be taller/wider than the printed
+   field (slotFrame.ts's frame, the union of the field and the padded line
+   box, so a tall line still fits) - switch its own chrome off in favour of
+   `.field-frame`, a sibling sized to the printed field alone, so neither an
+   at-rest border nor a focus line can ever reach past that field into a
+   neighbour or the label above it. The input keeps its tap target and its
+   text; only the visible chrome moves.
+   Placed after `.aimed`/`:focus-visible` above so it wins at equal
+   specificity, whichever states are also present. */
+.slot.field-slot,
+.slot.field-slot.aimed,
+.slot.field-slot:focus-visible {
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+}
+
+/* The chrome a field slot's own `.field-frame` draws, sized to the printed
+   field only (FieldSlot.tsx's `fieldFrameBox`) - never the input's own
+   (possibly enlarged) box, so it can never overlap a neighbour or cover the
+   label above it. Radius 2px, tighter than `.slot`'s 4px, since this frame
+   sits directly on the printed field rather than the padded input box. */
+.field-frame {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+
+.field-frame.aimed {
+  background: var(--color-primary-tint);
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
+}
+
+/* Placed after `.aimed` so a focused-and-aimed slot keeps the aimed fill but
+   shows this thinner, more precise line - the one state a person is looking
+   right at, per SNG-15's decided design. */
+.field-frame.focused {
+  box-shadow: inset 0 0 0 1.5px var(--color-primary);
 }
 
 /* FocusProxy.tsx: focused inside the touch handler so iOS raises the keyboard
