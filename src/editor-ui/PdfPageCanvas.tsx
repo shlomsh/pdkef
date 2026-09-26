@@ -10,6 +10,7 @@ export default function PdfPageCanvas({
   pageNum,
   pageGeometry,
   onViewportReady,
+  renderScale = 1.5,
 }: {
   pdfDocument: PDFDocumentProxy | null;
   pageNum: number;
@@ -19,6 +20,12 @@ export default function PdfPageCanvas({
    * multi-page workspace has stopped growing; callers that omit it retain the
    * existing rendering behavior. */
   onViewportReady?: (pageNum: number) => void;
+  /** Optional pdf.js render scale. Defaults to 1.5 so Sign and Redact are
+   * byte-for-byte unchanged when they don't pass it. SNG-16's fill-mode
+   * camera passes zoom x devicePixelRatio, capped by the iOS canvas limit
+   * (computed by its caller); CSS still sizes the canvas to 100% of the page
+   * wrapper, so only sharpness changes, never layout. */
+  renderScale?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -35,7 +42,7 @@ export default function PdfPageCanvas({
         // and export. CropBox is intrinsic to pdf.js's page.view, from which
         // that geometry was built, so the canvas and overlay share one frame.
         const viewport = page.getViewport({
-          scale: 1.5,
+          scale: renderScale,
           rotation: pageGeometry?.rotation ?? page.rotate,
         }); // sharp rendering
         const canvas = canvasRef.current;
@@ -64,7 +71,7 @@ export default function PdfPageCanvas({
       renderTask?.cancel?.();
       page?.cleanup?.();
     };
-  }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady]);
+  }, [pdfDocument, pageNum, pageGeometry?.rotation, onViewportReady, renderScale]);
 
   return (
     <canvas
