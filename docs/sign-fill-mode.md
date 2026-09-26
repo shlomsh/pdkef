@@ -1,6 +1,7 @@
 # Fill mode: the contract (SNG-15)
 
-Fill mode brings the model SNG-14 proved into the production Sign editor, opt-in with `?next=1`. Every
+Fill mode brings the model SNG-14 proved into the production Sign editor. Since SNG-19 it is Sign's
+default; `?next=0` opens the old editor until SNG-06 retires it. Every
 writing spot is a real, focusable input in reading order. The platform's own next and previous do the
 hopping: the arrows above the iOS keyboard, the return key's "next", and Tab on desktop. Everything
 else is production's own: signature, shapes, colour, thickness, text formatting, date formats, undo,
@@ -99,7 +100,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | File | Kind | Owns |
 | --- | --- | --- |
 | `fillTypes.ts` | types | the contract (lead) |
-| `fillMode.ts` | pure | `isFillMode(search)`: `?next=1` |
+| `fillMode.ts` | pure | `isFillMode(search)`: false only for `?next=0` |
 | `fillOrder.ts` | pure | `fillOrder(items, boxOf, directionOfPage)` over `inReadingOrder` (shared with `orderTypableFields`), `enterKeyHint(index, count)` |
 | `fillSlots.ts` | pure | `detectedSlots(order, textElements, placementFor)`, `freeSlot(at, placement)`, `slotKey(field)` |
 | `slotElement.ts` | pure | `elementForSlot(slot, text, defaults)`: the `TextElement` a filled slot becomes |
@@ -129,7 +130,8 @@ Existing files change only at their seams:
 - Reuse production: `orderTypableFields`, `elementIsOnField`, `placeTextOnField`, `startEdge`'s RTL rule,
   the reducer's actions, `TextNode`, `DraggableWrapper`, `FormFieldHints`. Don't re-implement any of
   them.
-- Nothing changes when `?next=1` is absent. Every existing test stays green unchanged.
+- Since SNG-19, fill mode is what runs when `next` is absent. `?next=0` still gets the old editor's
+  unchanged behaviour.
 - The gesture golden rule, the fonts invariant and the MOBI-24 synchronous focus all hold.
 - No em dashes.
 
@@ -146,7 +148,7 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   - a pending focus key;
   - the focus proxy's ref.
 
-  Without `?next=1` it is `FILL_OFF`, and every consumer behaves as production does today.
+  Only with `?next=0` is it `FILL_OFF`, and every consumer behaves as the old editor does.
 - **The text element's fill props** travel by context, not by renderer prop, so the editor core's
   renderer map learns nothing about fill mode.
   - `FillLayer` wraps each text element in `TextFillContext` (`FillContext.tsx`) with its

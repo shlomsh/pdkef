@@ -50,7 +50,7 @@ async function openSignTool(page) {
   });
 
   await collectCspViolations(page);
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   // Wait for the client:load island to finish hydrating before touching the file
   // input. The <input type=file> opens the OS picker even unhydrated, but its
   // Preact onChange only attaches after hydration — an early setFiles is silently

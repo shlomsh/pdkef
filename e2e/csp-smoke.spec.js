@@ -23,7 +23,7 @@ const routes = [
   '/pdf-to-image',
   '/image-to-pdf',
   '/unlock',
-  '/sign',
+  '/sign?next=0',
   '/redact',
   '/edit-pdf',
   '/licenses',

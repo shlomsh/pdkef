@@ -14,19 +14,23 @@ describe('isFillMode', () => {
     expect(isFillMode('?lang=he&next=1')).toBe(true);
   });
 
-  it('is false with no query string at all', () => {
-    expect(isFillMode('')).toBe(false);
+  it('is true with no query string at all (fill mode is the default)', () => {
+    expect(isFillMode('')).toBe(true);
   });
 
-  it('is false when next is absent', () => {
-    expect(isFillMode('?lang=he')).toBe(false);
+  it('is true when next is absent', () => {
+    expect(isFillMode('?lang=he')).toBe(true);
   });
 
-  it('is false for any value other than exactly "1"', () => {
-    expect(isFillMode('?next=true')).toBe(false);
+  it('is true for any value other than exactly "0"', () => {
+    expect(isFillMode('?next=true')).toBe(true);
+    expect(isFillMode('?next=1')).toBe(true);
+    expect(isFillMode('?next=')).toBe(true);
+    expect(isFillMode('?next')).toBe(true);
+  });
+
+  it('is false for exactly ?next=0 (keeps the old editor)', () => {
     expect(isFillMode('?next=0')).toBe(false);
-    expect(isFillMode('?next=')).toBe(false);
-    expect(isFillMode('?next')).toBe(false);
   });
 
   it('reads the first value when next appears twice', () => {

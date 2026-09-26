@@ -66,7 +66,7 @@ async function purgeAppCaches(page) {
 }
 
 async function openSignToolWithFile(page, buffer, name = 'offline-e2e.pdf') {
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

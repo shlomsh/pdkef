@@ -34,7 +34,7 @@ const FORM_101 = path.resolve(
 const EDGE_SLACK_PX = 3;
 
 async function openWithFixture(page, { file = FIXTURE, name = 'health-declaration.pdf' } = {}) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

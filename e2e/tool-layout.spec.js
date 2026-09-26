@@ -7,7 +7,7 @@ const toolRoutes = [
   '/pdf-to-image',
   '/image-to-pdf',
   '/unlock',
-  '/sign',
+  '/sign?next=0',
   '/redact',
   '/edit-pdf',
 ];
@@ -85,7 +85,7 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
 // a collapse followed by an inverse shift when the hint is rejected.
 test('uses the hydrated Sign/Redact density geometry for a validated first-paint restore only', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
 
   const measureHero = () => page.evaluate(() => {
     const hero = document.querySelector('.tool-hero');
@@ -140,7 +140,7 @@ test('uses the hydrated Sign/Redact density geometry for a validated first-paint
 // boundary without making the layout suite depend on draft-store internals.
 test('does not create inverse CLS when a validated restore marker is later rejected', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
 
   await page.evaluate(async () => {
     document.documentElement.setAttribute('data-view-density', 'condensed');

@@ -30,7 +30,7 @@ async function makePdfBuffer(label) {
 
 async function openSignTool(page, buffer, fileName) {
   await page.addInitScript(() => { localStorage.clear(); });
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
@@ -131,7 +131,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   const reopened = await context.newPage();
   await reopened.setViewportSize({ width: 900, height: 900 });
   await measureRestoreCls(reopened);
-  await reopened.goto('/sign/');
+  await reopened.goto('/sign/?next=0');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
   await expect(reopened.locator('html')).toHaveAttribute('data-view-density', 'relaxed');
@@ -148,7 +148,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   await reopened.goto('/');
   await putSecondEntryOnPointer(reopened, fileB, 'sign-restore-b.pdf');
 
-  await reopened.goto('/sign/');
+  await reopened.goto('/sign/?next=0');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[class*="page-overlay"]')).toBeVisible({ timeout: 10_000 });
   // B has no work of its own on this entry - nothing restores onto it.
@@ -159,7 +159,7 @@ test('Sign resumes a closed tab\'s work, and moving the pointer to a second file
   // back: opening B never touched it.
   await reopened.goto('/');
   await reopened.evaluate((id) => localStorage.setItem('pdf-toolkit:workspace:current:sign', id), entryAId);
-  await reopened.goto('/sign/');
+  await reopened.goto('/sign/?next=0');
   await reopened.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(reopened.locator('[data-editor-text-input]')).toHaveValue('signed by A', { timeout: 10_000 });
 });
@@ -172,7 +172,7 @@ test('Sign ignores a stale saved-work pointer before its first paint', async ({ 
     localStorage.setItem('pdf-toolkit:workspace:current:sign', 'sha256:stale');
   });
 
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(page.getByText('Choose file', { exact: true })).toBeVisible();
   // A pointer without a matching recent-file index row cannot restore. Do not

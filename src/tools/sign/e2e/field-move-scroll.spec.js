@@ -83,7 +83,7 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true
 /** Same setup as form-field-nav-phone.spec.js: /sign, the health-declaration
  * page-1 geometry fixture, Text armed, field hints showing. */
 async function openWithFixture(page) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

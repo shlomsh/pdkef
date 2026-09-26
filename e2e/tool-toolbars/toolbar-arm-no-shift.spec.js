@@ -115,7 +115,7 @@ for (const vp of VIEWPORTS) {
     for (const fixture of ['form with detected fields', 'plain PDF']) {
       test(`Sign, ${fixture}: every tool`, async ({ page }) => {
         const hasFields = fixture !== 'plain PDF';
-        const toolbar = await openTool(page, '/sign', 'PDF annotations', '[class*="page-overlay"]',
+        const toolbar = await openTool(page, '/sign?next=0', 'PDF annotations', '[class*="page-overlay"]',
           hasFields ? FIELDS_FIXTURE : await plainPdf());
         if (hasFields) await settleFieldDetection(page, toolbar);
         await saveTypedSignature(page, toolbar);

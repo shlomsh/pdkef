@@ -94,7 +94,7 @@ function shapedRun(family, { text, direction = 'rtl' }) {
 test.describe('Vazirmatn Arabic-family font shaping parity (Guard A)', () => {
   for (const [label, sample] of Object.entries(SAMPLES)) {
     test(`${FAMILY} (${label}): fontkit's shaped advance matches the browser's measureText`, async ({ page }) => {
-      await page.goto('/sign');
+      await page.goto('/sign?next=0');
       const browserWidth = await page.evaluate(async ({ family: familyName, text, size }) => {
         await document.fonts.load(`${size}px "${familyName}"`, text);
         await document.fonts.ready;

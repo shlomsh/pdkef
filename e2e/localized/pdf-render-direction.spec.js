@@ -15,7 +15,7 @@ import fontkit from '@pdf-lib/fontkit';
 test.use({ serviceWorkers: 'block' });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const HEBREW_PAGE = '/he/sign/';
+const HEBREW_PAGE = '/he/sign/?next=0';
 
 async function makeTextPdf() {
   const pdf = await PDFDocument.create();
@@ -55,7 +55,7 @@ test('the Hebrew edition paints a PDF page pixel-identically to the English one'
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
   const buffer = await makeTextPdf();
-  const english = await renderedPageBitmap(page, '/sign/', buffer);
+  const english = await renderedPageBitmap(page, '/sign/?next=0', buffer);
   const hebrew = await renderedPageBitmap(page, HEBREW_PAGE, buffer);
   expect(hebrew, 'page bitmap digest differs between /he/sign/ and /sign/').toBe(english);
 });

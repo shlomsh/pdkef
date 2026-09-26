@@ -71,7 +71,7 @@ async function openInFillMode(page, file, name) {
 async function detectedRegions(browser) {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
