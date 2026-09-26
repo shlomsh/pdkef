@@ -1,7 +1,7 @@
 ---
 id: "SNG-09"
 title: "Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -33,6 +33,39 @@ When nothing credible is found, place the box at the tap exactly as today. A wro
 snap, so **precision beats reach**.
 
 This runs on device, on the pixels pdf.js already rendered. There is no OCR and no model.
+
+## A tick centres in its box: Zapf Dingbats checkboxes (done 2026-09-26)
+
+**Bug.** On form 101 all 67 checkbox regions come from the text-glyph path (`collectCheckboxGlyphs`,
+`src/editor/adapters/pdf/pdfObjects.js`). Page 1 has 30 × ❏ (Zapf code 0x6f) and 6 × ❑ (0x71); page 2
+has 31 × ❏. The region was the glyph's advance by the font-wide Ascent/Descent (819/-143), which takes in
+the drop shadow and the descender space. `placeSymbolOnRegion` centres the mark's ink on the region
+correctly, so the tick landed off the square. Measured on screen before the fix, a tick on רווק/ה sat
+0.61pt right and 0.86pt low of the square's centre: right and down, not "up and to the right".
+
+**Fix.** The two Zapf checkbox codes carry the square a person sees, in glyph space, and it goes through
+the same text matrix, size, Tz and rise as before: ❏ x[64,590] y[134,662], ❑ x[66,598] y[123,660]
+per 1000 em. These are the inner (hole) contours of a74/a75 in the subset embedded in form 101, read with
+@pdf-lib/fontkit. pdf.js's FoxitDingbats (drawn when a file does not embed the font) agrees: ❑ exactly,
+❏ within 8/1000 em. The advances (762, 759) match the standard ZapfDingbats widths. Other checkbox glyphs
+(☐ □ ❏ ❑ in any other font) keep the advance-by-ascent box.
+
+**Guards.**
+- `pdfObjects.test.js`: the square, the square under Tm/Tz/Ts, and an unchanged non-Zapf ☐.
+- `corpus/zapfCheckboxSquare.test.js`: runs the real detector on form 101 and checks all 67 regions
+  against the font's inner contour, placed by pdf.js's text layer, within 0.1pt. It was red before the
+  fix, with a worst edge off by 3.3pt.
+
+**Scored corpus.** The 36 glyph-backed checkbox truth boxes on itc101 page 1 were loose boxes around the
+whole glyph, and would have matched the square below IoU 0.5. They were snapped to the printed square,
+the FORM-26 precedent. Every scored number holds exactly, so there was no baseline re-record, only a
+note.
+
+**On screen** (dev server, desktop 1024px, 2026-09-26). The ✓ tool armed, and fill mode (`?next=1`) with
+nothing armed, both put the tick in the square. A pdf.js render at 8× puts the ❏ interior at x
+363.625-369.375pt, y 280.0-285.75pt from the top. The detected region is the same within 0.07pt. The
+tick's ink centre is 0.02pt right and 0.09pt below the square's centre, and the ink sits inside the square
+on every side. Not yet checked on a phone.
 
 ## Where it lives (from the form-detection session, 2026-09-25)
 
