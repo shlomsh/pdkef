@@ -408,7 +408,10 @@ export default function DraggableWrapper<T extends EditorElement>({
     // An intrinsically sized type (text) takes the one box rule its slot
     // preview shares (signHelpers' textElementLayout): a comb's explicit
     // span, a cell's minWidth, the RTL right-edge anchor. Keyed on the view
-    // flag, not the type name, so the wrapper stays type-agnostic.
+    // flag, not the type name, so the wrapper stays type-agnostic. The
+    // fallback below always anchors left: RTL anchoring lives only in
+    // textElementLayout, so a type that sets usesRtlAnchoring must also set
+    // usesIntrinsicSize (today only text sets either).
   } : view.usesIntrinsicSize ? textElementLayout(element).box : {
     top: `${element.top}%`,
     width: element.width ? `${element.width}%` : 'auto',
