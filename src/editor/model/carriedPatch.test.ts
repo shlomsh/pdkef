@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { appStylePatchFor, carriedPatchFor } from './carriedPatch.ts';
-import type { EditorElement, TextElement } from './editorModel.ts';
+import type { EditorElement, TextDirection, TextElement } from './editorModel.ts';
 
 // SIGN-33: one case per DocumentStyle key, mirroring PdfWorkspace.tsx's
 // makeOnChange field by field.
@@ -130,7 +130,11 @@ describe('carriedPatchFor', () => {
 
 // SIGN-35: what an explicit change also writes to the app-wide style.
 describe('appStylePatchFor', () => {
-  const appPatch = (element: EditorElement, patch: Parameters<typeof carriedPatchFor>[1], detect = noDetect) =>
+  const appPatch = (
+    element: EditorElement,
+    patch: Parameters<typeof carriedPatchFor>[1],
+    detect: (text: string) => TextDirection | null = noDetect,
+  ) =>
     appStylePatchFor(carriedPatchFor(element, patch, detect), patch);
 
   it('a colour choice goes app-wide, text and whiteout alike', () => {

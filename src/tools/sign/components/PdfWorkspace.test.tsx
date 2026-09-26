@@ -44,6 +44,10 @@ function testState(overrides: Partial<SignToolState> = {}): SignToolState {
     redoHistory: [],
     documentRevision: 0,
     carried: {},
+    // SIGN-35: the app-wide style layer PdfWorkspace now resolves alongside
+    // `carried` (useDocumentStyle) - empty by default so every existing test
+    // still exercises `carried` alone.
+    appStyle: {},
     ...overrides,
   };
 }

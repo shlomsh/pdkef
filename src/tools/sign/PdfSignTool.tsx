@@ -8,7 +8,7 @@ import type {
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
-import { SignToolProvider, useSignTool } from './components/SignToolContext.tsx';
+import { SignToolProvider, useDocumentStyle, useSignTool } from './components/SignToolContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
 import PdfWorkspace from './components/PdfWorkspace.tsx';
 import SignatureDialog from './components/SignatureDialog.tsx';
@@ -24,6 +24,7 @@ import useFieldNavigation from './useFieldNavigation.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
+  getAppStyle,
   getSavedSignatures,
   setSavedSignatures as persistSavedSignatures,
   subscribeToSavedSignatures,
@@ -130,8 +131,15 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // line thickness, whiteout colour, signature width) is this document's
   // carried style (SIGN-33): `carried` in the SignTool reducer, round-tripped
   // through the draft's `extra.carried`, never a browser-wide preference.
-  // PdfWorkspace's makeOnChange writes it (editor/model/carriedPatch.ts), and
-  // every placement path reads it.
+  // PdfWorkspace's makeOnChange writes it through chooseStyle.ts
+  // (editor/model/carriedPatch.ts), and every placement path reads it. SIGN-35:
+  // the same explicit change also writes the app-wide style - the person's
+  // latest choice in any document, saved on the device (preferenceStore.ts)
+  // - so a key this document never set falls through to it instead of the
+  // shipped defaults. `useDocumentStyle()` below is the one resolved view;
+  // `carried` itself stays this document's own keys only, which is what
+  // useEditorDraftPersistence writes to the draft.
+  const style = useDocumentStyle();
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
@@ -355,8 +363,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
             actionHistory: preset.actionHistory,
             // Absent for a fresh pick or a pre-SIGN-33 draft - the reducer
             // treats that the same as an explicit null, resetting to `{}` so
-            // a new document never inherits another document's style.
+            // a new document never inherits another document's own choices.
             carried: preset.carried,
+            // SIGN-35: read again whenever a document opens, so a choice made
+            // in another tab applies to the next document.
+            appStyle: getAppStyle(),
           },
         });
         dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
@@ -468,8 +479,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     pageSizes,
     logAction,
     setAnnouncement,
-    initialColor: carried.color ?? DEFAULT_INK_COLOR,
-    carried,
+    initialColor: style.color ?? DEFAULT_INK_COLOR,
+    carried: style,
     messages: t,
   });
 
@@ -515,7 +526,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // Width defaults to whatever the last placed/resized signature used, so
     // consecutive placements of the same signature keep its size instead of
     // resetting to the default every time.
-    const widthPercent = carried.signatureWidth ?? DEFAULT_START_WIDTH_PCT;
+    const widthPercent = style.signatureWidth ?? DEFAULT_START_WIDTH_PCT;
 
     // Calculate page wrapper dimension
     let pageWrapperHeight = 800;

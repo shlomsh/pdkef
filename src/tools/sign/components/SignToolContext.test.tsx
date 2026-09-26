@@ -78,6 +78,7 @@ describe('SignToolContext Reducer', () => {
     redoHistory: [],
     documentRevision: 0,
     carried: {},
+    appStyle: {},
   };
 
   it('SET_TOOL sets selectedTool', () => {
@@ -157,6 +158,39 @@ describe('SignToolContext Reducer', () => {
         payload: { elements: [], actionHistory: [], carried: null },
       });
       expect(restoredNull.carried).toEqual({});
+    });
+  });
+
+  // SIGN-35: the app-wide style is a separate, non-document layer - it is
+  // read again on every LOAD_DOCUMENT (unlike `carried`, it is never reset)
+  // and merging into it is never a document edit.
+  describe('app-wide style', () => {
+    it('SET_APP_STYLE merges a partial patch into appStyle and does not bump documentRevision', () => {
+      const withColor = reducer(initialState, { type: 'SET_APP_STYLE', payload: { color: '#000000' } });
+      expect(withColor.appStyle).toEqual({ color: '#000000' });
+      expect(withColor.documentRevision).toBe(0);
+
+      const withFont = reducer(withColor, { type: 'SET_APP_STYLE', payload: { font: 'David' } });
+      expect(withFont.appStyle).toEqual({ color: '#000000', font: 'David' });
+      expect(withFont.documentRevision).toBe(0);
+    });
+
+    it('LOAD_DOCUMENT with an appStyle payload replaces it', () => {
+      const withStyle = reducer(initialState, { type: 'SET_APP_STYLE', payload: { color: '#000000' } });
+      const loaded = reducer(withStyle, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], appStyle: { color: '#0000ff' } },
+      });
+      expect(loaded.appStyle).toEqual({ color: '#0000ff' });
+    });
+
+    it('LOAD_DOCUMENT without an appStyle payload keeps whatever is already loaded', () => {
+      const withStyle = reducer(initialState, { type: 'SET_APP_STYLE', payload: { color: '#000000' } });
+      const loaded = reducer(withStyle, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
+      expect(loaded.appStyle).toEqual({ color: '#000000' });
+      // `carried` still resets to {} on the very same load - the two layers
+      // are independent.
+      expect(loaded.carried).toEqual({});
     });
   });
 
