@@ -129,10 +129,11 @@ export interface TextElement extends ElementBase {
    */
   minWidth?: number;
   /**
-   * Where the text sits inside a field-spanned box (`minWidth`), when the
-   * person has chosen: absent follows the form's direction - see
-   * signHelpers' getTextAlign. A free box hugs its text and a comb places
-   * per cell, so neither has anywhere for this to show.
+   * Where the text sits, when the person has chosen: absent follows the
+   * form's direction - see signHelpers' getTextAlign. A field-spanned box
+   * (`minWidth`) aligns within its cell; a free box's lines align within
+   * its own widest line. A comb places one character per cell, so it has
+   * nowhere for this to show.
    */
   textAlign?: TextAlign;
   /**

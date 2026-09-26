@@ -148,23 +148,29 @@ export async function serializeText(element: TextElement, { page, pdfWidth, pdfX
     return { fallbackLine: null, lineWidth, runs, runWidths: runWidths as number[] };
   });
 
-  // Where a line starts. A free box hugs its text: an LTR line starts at
-  // pdfX, an RTL one ends there (DraggableWrapper's `right: 100 - left`). A
-  // box on a detected form cell (`minWidth`, editorModel.ts) is left-anchored
-  // and at least the cell wide, growing only when a line outgrows it - the
+  // Where a line starts. The anchor is unchanged: an LTR box's left edge, an
+  // RTL box's right edge, is pdfX. A free box has no fixed span, so its own
+  // widest line is its box, and each line aligns within it exactly as the
+  // textarea's text-align does (getTextAlign, `TextNode.tsx`). A box on a
+  // detected form cell (`minWidth`, editorModel.ts) is left-anchored and at
+  // least the cell wide, growing only when a line outgrows it - the
   // wrapper's `min-width` on screen - and its lines sit against whichever
-  // edge getTextAlign says, exactly as the textarea's text-align does.
+  // edge getTextAlign says, with room from the aligned wall for a cell that
+  // has it (`inset`). With no explicit textAlign, getTextAlign gives the
+  // direction's start edge, which is why this reduces to the old
+  // anchor-only placement for a free box that never chose an alignment.
   const widestLine = Math.max(0, ...measured.map((line) => line.lineWidth));
   const spanPoints = element.minWidth ? (element.minWidth / 100) * pdfWidth : 0;
   const boxWidth = Math.max(spanPoints, widestLine);
+  const boxLeft = element.minWidth ? pdfX : (isRtl ? pdfX - widestLine : pdfX);
   const align = getTextAlign(element);
   // Set in from the aligned wall only as far as the cell has room for - the
-  // same number TextNode pads the textarea with (`fieldTextInset`).
+  // same number TextNode pads the textarea with (`fieldTextInset`). A free
+  // box gets no inset: it hugs its own widest line exactly.
   const inset = element.minWidth ? fieldTextInset(spanPoints, widestLine, fontSizeInPoints) : 0;
   const lineStart = (lineWidth: number) => {
-    if (!element.minWidth) return isRtl ? pdfX - lineWidth : pdfX;
-    if (align === 'center') return pdfX + (boxWidth - lineWidth) / 2;
-    return align === 'right' ? pdfX + boxWidth - lineWidth - inset : pdfX + inset;
+    if (align === 'center') return boxLeft + (boxWidth - lineWidth) / 2;
+    return align === 'right' ? boxLeft + boxWidth - lineWidth - inset : boxLeft + inset;
   };
 
   measured.forEach(({ fallbackLine, lineWidth, runs, runWidths }, lineIndex) => {

@@ -84,15 +84,15 @@ export function fieldTextInset(spanWidth, textWidth, fontSize) {
  * Which edge of its box a text element's lines sit against: an explicit
  * `textAlign`, else the start edge of the text's own direction.
  *
- * Only a field-spanned box (`minWidth`) has room for this to show - a free
- * box hugs its text and a comb places one character per cell. For that box,
- * text with no letters of its own (a phone number, a date) follows the
- * FORM's direction - the seed `textDirection` carries - rather than the
- * digits' own LTR: on a Hebrew form a phone number belongs at the right of
- * its cell like the Hebrew answers around it, not at the left (live report).
- * Layout direction (`getEffectiveTextDirection`) deliberately stays LTR for
- * that text - digits still read left to right - only the alignment follows
- * the form.
+ * A field-spanned box (`minWidth`) aligns within its cell; a free box's
+ * lines align within its own widest line. A comb places one character per
+ * cell, so it has nothing to align. On a field-spanned box, text with no
+ * letters of its own (a phone number, a date) follows the FORM's direction
+ * - the seed `textDirection` carries - rather than the digits' own LTR: on
+ * a Hebrew form a phone number belongs at the right of its cell like the
+ * Hebrew answers around it, not at the left (live report). Layout direction
+ * (`getEffectiveTextDirection`) deliberately stays LTR for that text -
+ * digits still read left to right - only the alignment follows the form.
  */
 export function getTextAlign(element) {
   if (element.textAlign) return element.textAlign;
