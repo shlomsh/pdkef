@@ -52,12 +52,17 @@ where fill mode calls production's own path unchanged, not that the step was re-
 | Reload restores the draft | pass | same code | |
 | Download | pass | same code | every mark and text in the PDF |
 
+Shlomi's iPhone QA, 2026-09-26 (Chrome on iOS, Gboard):
+- **Fullscreen did nothing** in fill mode: a guard turned it off, for a reason a Simulator probe did not
+  reproduce. The guard is gone.
+- **"Next" didn't bring the next field into view.** Chrome shows no ∧ ∨, so the return key is its only
+  hop, and it focused the next field with `preventScroll`. It now lets the platform scroll; the
+  Simulator follows focus down the page.
+- ✓ to ✗ on a ticked box: the element bar already does it. No change.
+
 Open, not fixed here:
 - **Zoom hides the toolbar.** After typing, iOS stays zoomed in on the field and the toolbar is off
   screen, so Undo looks missing. SNG-16 (the app-owned camera).
 - **Autocorrect.** iOS changed "Dana" to "Do" in a slot that carries `autocorrect="off"`.
-- **Fullscreen.** With fill mode's guard removed for a probe, ∨ reached a field below the fold and
-  iOS scrolled it into view, so the documented reason for turning fullscreen off did not reproduce on
-  the Simulator. Still off; Shlomi to confirm on his iPhone before it comes back.
 - **A drag starts on first touch**, so a finger that means to scroll over a filled field moves it.
   SNG-04 decides the fix; UNDO-04 makes a move undoable. Both need Shlomi's go-ahead.

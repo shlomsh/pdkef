@@ -71,11 +71,11 @@ contract; change them first, then the pieces.
   With nothing in reach there is no preview.
 - **Keys.**
   - `enterkeyhint` is "next" on every fill input but the last, where it is "done".
-  - Enter moves to the next fill input, or on the last one ends typing.
+  - Enter moves to the next fill input and lets the platform scroll it into view (Chrome on iOS has
+    no ∧ ∨, so this is its only hop), or on the last one ends typing.
   - Esc ends typing (production's global handler already does this).
 - **Off in fill mode:** production's own field navigation (the desktop Tab handler, `.field-nav`,
-  `.quick-field-nav`) and fullscreen. Fullscreen makes `.workspace` the scroller, and iOS's arrows can't
-  reach an off-screen field inside it.
+  `.quick-field-nav`).
 - **Zoom stays native in this slice.** The page layout is fit-width with no horizontal overflow, so iOS
   only ever zooms in on a small input. The app-owned camera (a locked scale, layout zoom, framing, a
   canvas re-render) is SNG-16.
@@ -103,7 +103,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | `fill.module.css` | styles | the slot frame, the droppable look |
 
 Existing files change only at their seams:
-- `PdfSignTool.tsx`: the flag, mounting the hooks, and turning off the Tab navigation and fullscreen.
+- `PdfSignTool.tsx`: the flag, mounting the hooks, and turning off the Tab navigation.
 - `PdfWorkspace.tsx`: splits text into `FillLayer`.
 - `TextNode.tsx` and `DraggableWrapper.tsx`: read `TextFillContext`.
 - `useWorkspaceGestures.ts`: `handlePageClick` takes an optional corrected point.
