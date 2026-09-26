@@ -1,7 +1,7 @@
 ---
 id: "UNDO-04"
 title: "History covers moves, resizes, styling and typing, not just add and delete"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "undo-and-redo"
 phase: "near-term"

@@ -386,12 +386,13 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| UNDO-04 | P1 | [UNDO-04](backlog/tasks/UNDO-04.md) · History covers moves, resizes, styling and typing, not just add and delete |
 
 ### Blocked
 
