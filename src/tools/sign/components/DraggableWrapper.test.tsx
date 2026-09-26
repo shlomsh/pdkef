@@ -429,14 +429,15 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
   });
 });
 
-// SNG-15: quiet = fill props on a coarse pointer (docs/sign-fill-mode.md,
-// "the seams between the pieces"). A page cannot add its own buttons to the
-// bar iOS already puts above a fill input's keyboard, so quiet drops the
-// floating toolbar, `.quick-field-nav` and the resize handles entirely - not
-// merely hides them, since a page cannot ask iOS to route around a hidden
-// element either. On a fine pointer (desktop, no keyboard bar to make room
-// for) fill mode keeps production's own chrome, unchanged.
-describe('DraggableWrapper quiet (SNG-15 fill mode)', () => {
+// SNG-15: fill props on a coarse pointer (docs/sign-fill-mode.md) render
+// production's own element options bar and resize handles, unchanged - the
+// product goal is parity with production. The only difference fill mode
+// makes is that a tap on the textarea is native focus (no MOBI-21
+// synchronous-focus dance), covered by the DraggableWrapper unit tests
+// above. `fieldNav` (and so `.quick-field-nav`) stays off in fill mode,
+// but that is PdfWorkspace.tsx's own gate (it never supplies `fieldNav`
+// while `fill.enabled`), not something this component decides.
+describe('DraggableWrapper fill mode (SNG-15)', () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
@@ -451,7 +452,7 @@ describe('DraggableWrapper quiet (SNG-15 fill mode)', () => {
 
   const fill: TextFillProps = { fillKey: 'el:1', enterKeyHint: 'next', onEnter: vi.fn() };
 
-  function mountQuietCase(coarse: boolean) {
+  function mountFillCase(coarse: boolean) {
     const wrapper = document.createElement('div');
     wrapper.className = workspaceStyles['page-wrapper'];
     wrapper.getBoundingClientRect = pageRect;
@@ -484,16 +485,16 @@ describe('DraggableWrapper quiet (SNG-15 fill mode)', () => {
     return wrapper;
   }
 
-  it('renders no resize handles, no toolbar and no quick-field-nav on a coarse pointer', () => {
-    const wrapper = mountQuietCase(true);
+  it('renders the element options bar and resize handles on a coarse pointer, with no quick-field-nav', () => {
+    const wrapper = mountFillCase(true);
 
-    expect(wrapper.querySelector('[data-editor-actions]')).toBeNull();
-    expect(wrapper.querySelector('[data-editor-resizer]')).toBeNull();
+    expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
+    expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
     expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
   });
 
   it('keeps the resize handles and the floating toolbar on a fine pointer', () => {
-    const wrapper = mountQuietCase(false);
+    const wrapper = mountFillCase(false);
 
     expect(wrapper.querySelector('[data-editor-actions]')).not.toBeNull();
     expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();

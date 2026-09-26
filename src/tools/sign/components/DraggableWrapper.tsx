@@ -39,10 +39,6 @@ type DraggableChildProps = {
   onResizeStart?: NodeResizeStart;
   handlePointerDown?: (event: MouseEvent | TouchEvent) => void;
   isSpanResizing?: boolean;
-  /** SNG-15: this wrapper's own `quiet` (fill props on a coarse pointer,
-   * docs/sign-fill-mode.md). Only TextNode reads it, to hide its resize
-   * handles; every other node type ignores the extra prop. */
-  quiet?: boolean;
 };
 
 export default function DraggableWrapper<T extends EditorElement>({
@@ -103,16 +99,21 @@ export default function DraggableWrapper<T extends EditorElement>({
   // form as ~84px of document. Desktop (a fine pointer) never sees this - the
   // full toolbar renders exactly as before.
   const isCoarsePointer = useCoarsePointer();
-  // SNG-15: quiet when this element carries fill props on a coarse pointer
-  // (docs/sign-fill-mode.md, "the seams between the pieces"). Both hooks are
-  // called unconditionally, every render - `&&` may only combine their
-  // results, never decide which one runs. Null/false outside fill mode, so
-  // `quiet` is always false there and every branch below that reads it is a
-  // no-op. On a fine pointer fill mode keeps production's own chrome - a
-  // desktop has no bar above the keyboard to make room for.
+  // SNG-15: on a coarse pointer, a focused fill input needs no MOBI-21
+  // synchronous-focus dance (docs/sign-fill-mode.md) - a tap there is already
+  // native focus, since fill mode's textarea is focusable and writable with
+  // no edit session open. That is the only difference fill mode makes here:
+  // the element options bar and TextNode's resize handles render exactly as
+  // production's do (parity is the product goal), and production's own field
+  // navigation (`fieldNav`, `.quick-field-nav`) stays off in fill mode
+  // because PdfWorkspace.tsx never supplies it while `fill.enabled`. Both
+  // hooks are called unconditionally, every render - `&&` may only combine
+  // their results, never decide which one runs. Null/false outside fill
+  // mode, so `nativeFocus` is always false there and the one branch below
+  // that reads it is a no-op.
   const textFill = useTextFill();
   const fillContext = useFill();
-  const quiet = textFill !== null && fillContext.coarse;
+  const nativeFocus = textFill !== null && fillContext.coarse;
   // Starts collapsed on every fresh edit session (a new field reached by
   // Next/Previous mounts its own DraggableWrapper instance with this at its
   // default false; re-entering an edit session on the same box resets it via
@@ -187,11 +188,12 @@ export default function DraggableWrapper<T extends EditorElement>({
   // raises can land on top of the box; `revealFieldAfterKeyboard` lifts it
   // back into view once the keyboard is up.
   function beginEditFromTap() {
-    // SNG-15: quiet means the textarea is already a real fill input (TextNode.tsx),
-    // so a tap there is native focus - MOBI-21's synchronous-focus dance below
-    // would be redundant, and calling it a second time on the same element is
-    // exactly the double-focus dance fill mode exists to avoid.
-    if (quiet) return;
+    // SNG-15: nativeFocus means the textarea is already a real fill input
+    // (TextNode.tsx), so a tap there is native focus - MOBI-21's
+    // synchronous-focus dance below would be redundant, and calling it a
+    // second time on the same element is exactly the double-focus dance
+    // fill mode exists to avoid.
+    if (nativeFocus) return;
     const input = elementRef.current?.querySelector<HTMLTextAreaElement>('[data-editor-text-input]');
     if (input) {
       input.readOnly = false;
@@ -433,11 +435,14 @@ export default function DraggableWrapper<T extends EditorElement>({
       onTouchStart={!isLine ? handlePointerDown : undefined}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Element options bar. SNG-15: quiet renders none of it - no floating
-          toolbar, no `.quick-field-nav` - since a page cannot add its own
-          buttons to the bar iOS already puts above a fill input's keyboard
-          (docs/sign-fill-mode.md). */}
-      {!quiet && <div
+      {/* Element options bar. SNG-15: rendered exactly as production does,
+          fill mode or not - parity with production's own chrome is the
+          product goal (docs/sign-fill-mode.md). `fieldNav` (and so the
+          compact Previous/Next/Aa bar and `.quick-field-nav` below) is
+          already off in fill mode: PdfWorkspace.tsx never supplies it while
+          `fill.enabled`, so `compactEditingEligible` is false there and this
+          renders `ElementToolbar` same as production. */}
+      <div
         ref={(node) => {
           actionsRef.current = node;
           if (node && refs.floating !== node) {
@@ -528,7 +533,7 @@ export default function DraggableWrapper<T extends EditorElement>({
             />
           </>
         )}
-      </div>}
+      </div>
 
       {/* Render element depending on type */}
       {toChildArray(children).map((child) => {
@@ -541,7 +546,6 @@ export default function DraggableWrapper<T extends EditorElement>({
           onResizeStart: handleResizeStart,
           handlePointerDown,
           isSpanResizing,
-          quiet
         });
       })}
     </div>

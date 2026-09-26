@@ -16,7 +16,7 @@ import elementStyles from '../../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../../editor/model/editorModel.ts';
 import type { ElementNodeChange, NodeResizeStart } from '../nodeProps.ts';
 
-export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, quiet = false, messages }: {
+export default function TextNode({ element, isActive, isEditing, onChange, onSelect, onBeginEdit, onResizeStart, pageWidthPoints, isSpanResizing = false, messages }: {
   element: TextElement;
   isActive: boolean;
   isEditing: boolean;
@@ -26,11 +26,6 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   onResizeStart: NodeResizeStart;
   pageWidthPoints: number;
   isSpanResizing?: boolean;
-  /** SNG-15: DraggableWrapper's own quiet = fill props on a coarse pointer
-   * (docs/sign-fill-mode.md). Hides only the resize handles - everything
-   * else quiet touches (the toolbar, `.quick-field-nav`) is DraggableWrapper's
-   * own render, not this component's. */
-  quiet?: boolean;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. */
   messages?: Partial<SignMessages>;
@@ -372,10 +367,12 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
         // itself is the authoritative type boundary, so preserve that input
         // compatibility while the registry remains type-driven.
         element={{ ...element, type: 'text' }}
-        // SNG-15: DraggableWrapper's `quiet` hides only the handles here -
-        // the box can still be active (comb guides, the font notice) while
-        // filling, it just shows nothing above the keyboard's own bar.
-        isActive={isActive && !quiet}
+        // SNG-15: shown exactly as production shows them, fill mode or not -
+        // parity with production's own handles is the product goal
+        // (docs/sign-fill-mode.md). The only fill-mode difference kept
+        // anywhere in this element is native focus on the textarea, which
+        // DraggableWrapper.tsx owns.
+        isActive={isActive}
         onResizeStart={onResizeStart}
         messages={messages}
         style={{ '--half-height': `${halfHeight}px` }}
