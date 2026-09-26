@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useFillFocus, type UseFillFocusOptions } from './useFillFocus.ts';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
+import { FILL_KEEP_SESSION_ATTR } from './fillDom.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 
 // No @testing-library/preact-hooks in this repo - see useCoarsePointer.test.tsx
@@ -127,6 +128,33 @@ describe('useFillFocus', () => {
     expect(actionTypes(dispatch)).toEqual([]);
 
     act(() => { bold.blur(); });
+    act(() => { vi.runAllTimers(); });
+    expect(actionTypes(dispatch)).toEqual([
+      { type: 'SET_EDITING_ELEMENT_ID', payload: null },
+      { type: 'SET_ACTIVE_ELEMENT_ID', payload: null },
+    ]);
+  });
+
+  it('focus moving into a [data-fill-keep-session] element keeps the editing state', () => {
+    vi.useFakeTimers();
+    const dispatch = vi.fn();
+    const textOf = vi.fn().mockReturnValue('hi');
+    mount({ enabled: true, dispatch, textOf });
+    const el1 = fillInput('el:1');
+    const sheet = document.createElement('div');
+    sheet.setAttribute(FILL_KEEP_SESSION_ATTR, '');
+    document.body.appendChild(sheet);
+    const sheetButton = document.createElement('button');
+    sheet.appendChild(sheetButton);
+
+    act(() => { el1.focus(); });
+    dispatch.mockClear();
+    act(() => { sheetButton.focus(); });
+    act(() => { vi.runAllTimers(); });
+
+    expect(actionTypes(dispatch)).toEqual([]);
+
+    act(() => { sheetButton.blur(); });
     act(() => { vi.runAllTimers(); });
     expect(actionTypes(dispatch)).toEqual([
       { type: 'SET_EDITING_ELEMENT_ID', payload: null },

@@ -8,6 +8,22 @@ import type { PercentBox } from '../../../editor/text/combPlacement.ts';
 
 const SELECTOR = `[${FILL_INPUT_ATTR}]`;
 
+/**
+ * A focus-move target carrying this attribute keeps the fill session open, same as moving into
+ * a fill input itself (useFillFocus.ts). Used by chrome that focuses itself outside the normal
+ * bar-button case, e.g. a phone font bottom sheet or a `<dialog>`.
+ */
+export const FILL_KEEP_SESSION_ATTR = 'data-fill-keep-session';
+
+/**
+ * Fill mode: a press on an element's own bar must not blur its fill input, since focus is the
+ * edit session (useFillFocus). Text-entry controls inside the bar (font search, colour input)
+ * still take focus.
+ */
+export function keepFillFocus(event: MouseEvent): void {
+  if (!(event.target as Element | null)?.closest('input, select, textarea')) event.preventDefault();
+}
+
 /** Every fill input in document order. */
 export function fillInputs(root: ParentNode = document): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(SELECTOR));

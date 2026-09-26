@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
-import { focusFillInput, focusNextFillInput } from './fillDom.ts';
+import { focusFillInput, focusNextFillInput, keepFillFocus } from './fillDom.ts';
 
 /**
  * Fake fill inputs, not jsdom: `fillInputs(root)` only reads `root.querySelectorAll`, `getAttribute`
@@ -48,5 +48,29 @@ describe('focusFillInput', () => {
 
     expect(found).toBe(true);
     expect(target.focus).toHaveBeenCalledWith({ preventScroll: true });
+  });
+});
+
+describe('keepFillFocus', () => {
+  function fakeMouseEvent(target: { closest: (selector: string) => unknown }) {
+    return { target, preventDefault: vi.fn() } as unknown as MouseEvent & { preventDefault: ReturnType<typeof vi.fn> };
+  }
+
+  it('prevents default for a plain button, so the fill input keeps focus', () => {
+    const button = { closest: () => null };
+    const event = fakeMouseEvent(button);
+
+    keepFillFocus(event);
+
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a text-entry control (font search, colour input) alone', () => {
+    const input = { closest: (selector: string) => (selector === 'input, select, textarea' ? input : null) };
+    const event = fakeMouseEvent(input);
+
+    keepFillFocus(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,7 @@
  * dispatched between two hops.
  */
 import { useEffect, useRef } from 'preact/hooks';
-import { fillKeyOf } from './fillDom.ts';
+import { fillKeyOf, FILL_KEEP_SESSION_ATTR } from './fillDom.ts';
 import { focusActions } from './fillFocusActions.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
 
@@ -59,13 +59,19 @@ export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions)
 
     // Deferred, and always reading document.activeElement rather than
     // event.relatedTarget: iOS's own next/previous arrows can move focus
-    // without ever setting it (docs/sign-fill-mode.md).
+    // without ever setting it (docs/sign-fill-mode.md). WebKit also never
+    // focuses a plain button on tap, so a press on the element's own bar
+    // (Aa, text direction) leaves document.activeElement on body, not the
+    // button - keepFillFocus (fillDom.ts) prevents that by default; the
+    // check below also keeps the session for chrome that deliberately
+    // focuses itself, such as a font bottom sheet or a <dialog>.
     const onFocusOut = () => {
       window.clearTimeout(pendingTimer);
       pendingTimer = window.setTimeout(() => {
         const active = document.activeElement;
         const key = fillKeyOf(active);
         if (key !== null) move(key);
+        else if (active?.closest(`[${FILL_KEEP_SESSION_ATTR}]`)) return;
         else if (!active || active === document.body) move(null);
       }, 0);
     };
