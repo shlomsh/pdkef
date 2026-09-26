@@ -1,7 +1,7 @@
 ---
 id: "SIGN-36"
 title: "Every text box can be aligned, and the download matches what the screen shows"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -36,8 +36,20 @@ matches the screen.
 
 ## Acceptance
 
-- [ ] Unit tests: the control shows on a free box and on a field box, but not on a comb. A free box's
+- [x] Unit tests: the control shows on a free box and on a field box, but not on a comb. A free box's
   exported lines sit left, centred and right within the widest line, for LTR and RTL.
-- [ ] The A/B/A e2e chooses an alignment on a free box in document B, and B keeps it after a reload.
-- [ ] Checked in a real browser: a multi-line free box, centred, looks the same on screen and in the
+- [x] The A/B/A e2e chooses an alignment on a free box in document B, and B keeps it after a reload.
+- [x] Checked in a real browser: a multi-line free box, centred, looks the same on screen and in the
   download, at desktop and phone width.
+
+## Done (2026-09-26)
+
+- `ElementToolbar`: `canAlign` is every text box but a comb.
+- `textPdf.ts`: a free box's lines align within its widest line, and the anchor is unchanged. With no
+  chosen alignment the output is unchanged too, which a unit test proves for LTR and RTL.
+- Tests: `ElementToolbar.test.tsx` and `text.test.ts` (a free box, left, centre and right, LTR and RTL).
+  The A/B/A e2e aligns B's free box, and B keeps it after the reload.
+- Browser check: a two-line free box, centred, on a real build. The export puts line 1 at 0.398 of the
+  box width (the expected value). On screen it sits at 0.406 at 1280px, measured from the screenshot's
+  ink; the gap is glyph side-bearing. Right-aligned exports at 0.796. At 390px it was checked by eye from
+  a 4x screenshot, because the page is scaled down there.

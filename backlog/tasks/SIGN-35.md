@@ -1,7 +1,7 @@
 ---
 id: "SIGN-35"
 title: "A style chosen in a document also becomes the app default for new documents"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -89,6 +89,15 @@ Shlomi was asked whether the font size should follow the person across documents
 - Until the person has set a size anywhere, a document's first field still seeds the size from its own
   height. That seed stays with the document: a computed size is not a choice.
 
-- [ ] A size set in one document is where a new document's text starts, and a document with its own
+- [x] A size set in one document is where a new document's text starts, and a document with its own
   size keeps it (unit tests, and the A/B/A e2e).
-- [ ] SIGN-35's decisions, the editor rule and `CLAUDE.md` say only the direction stays per document.
+- [x] SIGN-35's decisions, the editor rule and `CLAUDE.md` say only the direction stays per document.
+
+## Done (2026-09-26, reopened section)
+
+- `DOCUMENT_ONLY_KEYS` is the direction alone. An A-, an A+ or a resize drag now writes the size to the
+  document and the app-wide style (`chooseStyle.ts`). The first field's computed size still seeds only
+  its own document, and only when no size resolves.
+- Tests: `carriedPatch`, `preferenceStore` (the size round-trips, a bad one drops alone) and `chooseStyle`.
+  The A/B/A e2e now expects B's first text at A's size, and each document's own size back after the
+  reload.
