@@ -14,6 +14,7 @@ import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } fr
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
 import { revealFieldAfterKeyboard } from '../useFieldNavigation.ts';
 import { useFill, useTextFill } from '../fill/FillContext.tsx';
+import compactBarFor from './compactBar.ts';
 
 import { cloneElement, toChildArray } from 'preact';
 import type { ComponentChildren, VNode } from 'preact';
@@ -126,10 +127,21 @@ export default function DraggableWrapper<T extends EditorElement>({
   // Whether this element could show the one-row bar at all - typing on a
   // touch device, on the one element actually in the edit session (fieldNav
   // is null for every other DraggableWrapper - see the prop doc above).
-  const compactEditingEligible = element.type === 'text' && isEditing && isCoarsePointer && !!fieldNav;
+  // SNG-17: also eligible in fill mode, which never supplies a fieldNav
+  // (docs/sign-fill-mode.md - the keyboard's own Next/Previous covers it
+  // there) but still renders text elements inside the same phone-width page
+  // wrapper the full bar overflows. See compactBar.ts for the rule itself.
+  const compactEditingEligible = compactBarFor({
+    isText: element.type === 'text',
+    isEditing,
+    coarse: isCoarsePointer,
+    hasFieldNav: !!fieldNav,
+    fillMode: fillContext.enabled,
+  });
   // MOBI-16's proposed shape: Previous, Next, Aa replaces the full toolbar by
   // default; tapping Aa reveals today's controls, and the same toggle folds
-  // back - see the collapse button beside the full toolbar below.
+  // back - see the collapse button beside the full toolbar below. SNG-17:
+  // in fill mode there is no fieldNav, so the row is Aa alone.
   const useCompactEditingBar = compactEditingEligible && !showFormatting;
   const renderedElement = previewFontFamily && element.type === 'text'
     ? { ...element, fontFamily: previewFontFamily }
@@ -482,33 +494,37 @@ export default function DraggableWrapper<T extends EditorElement>({
       >
         {useCompactEditingBar ? (
           <>
-            <span className={elementStyles['quick-field-nav']} dir={fieldNav!.direction}>
-              <button
-                type="button"
-                className={controlStyles['element-button']}
-                onClick={fieldNav!.onPrevious}
-                disabled={!fieldNav!.hasPrevious}
-                aria-label={t.previousFieldLabel}
-                title={t.previousFieldLabel}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                className={controlStyles['element-button']}
-                onClick={fieldNav!.onNext}
-                disabled={!fieldNav!.hasNext}
-                aria-label={t.nextFieldLabel}
-                title={t.nextFieldLabel}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
-            </span>
-            <div className={controlStyles.divider} />
+            {fieldNav && (
+              <>
+                <span className={elementStyles['quick-field-nav']} dir={fieldNav.direction}>
+                  <button
+                    type="button"
+                    className={controlStyles['element-button']}
+                    onClick={fieldNav.onPrevious}
+                    disabled={!fieldNav.hasPrevious}
+                    aria-label={t.previousFieldLabel}
+                    title={t.previousFieldLabel}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={controlStyles['element-button']}
+                    onClick={fieldNav.onNext}
+                    disabled={!fieldNav.hasNext}
+                    aria-label={t.nextFieldLabel}
+                    title={t.nextFieldLabel}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </span>
+                <div className={controlStyles.divider} />
+              </>
+            )}
             <button
               type="button"
               className={[controlStyles['element-button'], controlStyles['font-trigger']].join(' ')}

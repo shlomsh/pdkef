@@ -78,6 +78,9 @@ contract; change them first, then the pieces.
   - Esc ends typing (production's global handler already does this).
 - **Off in fill mode:** production's own field navigation (the desktop Tab handler, `.field-nav`,
   `.quick-field-nav`).
+- **On a phone (SNG-17):** editing a text element still gets production's compact one-row bar (the
+  Aa disclosure that expands the full formatting row), just without the Previous/Next pair, since fill
+  mode's own keyboard Next/Previous already moves between fields.
 - **Zoom stays native in this slice.** The page layout is fit-width with no horizontal overflow, so iOS
   only ever zooms in on a small input. The app-owned camera (a locked scale, layout zoom, framing, a
   canvas re-render) is SNG-16.

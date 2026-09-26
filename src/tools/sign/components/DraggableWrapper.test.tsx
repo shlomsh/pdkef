@@ -500,6 +500,43 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
     expect(wrapper.querySelector('[data-editor-resizer]')).not.toBeNull();
   });
 
+  it('SNG-17: collapses to Aa alone (no Previous/Next) in fill mode while editing on a coarse pointer', () => {
+    const wrapper = document.createElement('div');
+    wrapper.className = workspaceStyles['page-wrapper'];
+    wrapper.getBoundingClientRect = pageRect;
+    container.appendChild(wrapper);
+    const element = createTextElement({ id: 'el-1', left: 20, top: 10, text: 'Hi', fontSize: 12 });
+
+    act(() => {
+      render(
+        <FillContext.Provider value={{ ...FILL_OFF, enabled: true, coarse: true }}>
+          <TextFillContext.Provider value={fill}>
+            <DraggableWrapper
+              element={element}
+              isActive
+              isEditing
+              onBeginEdit={() => {}}
+              onSelect={() => {}}
+              onChange={() => {}}
+              onDelete={() => {}}
+              onClone={() => {}}
+              pageWidthPoints={612}
+            >
+              {textNode(element)}
+            </DraggableWrapper>
+          </TextFillContext.Provider>
+        </FillContext.Provider>,
+        wrapper,
+      );
+    });
+
+    expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
+    expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
+    expect(wrapper.querySelector('button[aria-label="Next field"]')).toBeNull();
+    expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
+    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+  });
+
   it('renders production chrome as today when fill props are absent, even on a coarse pointer', () => {
     const wrapper = document.createElement('div');
     wrapper.className = workspaceStyles['page-wrapper'];
