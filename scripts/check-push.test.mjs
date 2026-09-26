@@ -233,6 +233,10 @@ describe('narrowTestOnlyChange (ARCH-31)', () => {
     expect(narrowTestOnlyChange(wideScope, files)).toBe(wideScope);
   });
 
+  it('leaves a non-.js spec to the Nx verdict, since Playwright would never discover it', () => {
+    expect(narrowTestOnlyChange(wideScope, ['src/tools/merge/e2e/new.spec.ts'])).toBe(wideScope);
+  });
+
   it('leaves an empty or docs-only diff to the existing rules', () => {
     expect(narrowTestOnlyChange(wideScope, [])).toBe(wideScope);
     expect(narrowTestOnlyChange(wideScope, ['docs/x.md'])).toBe(wideScope);
