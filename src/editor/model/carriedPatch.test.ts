@@ -150,8 +150,11 @@ describe('appStylePatchFor', () => {
     expect(appPatch(signatureElement, { width: 40 })).toEqual({ signatureWidth: 40 });
   });
 
-  it('the size and direction stay with the document', () => {
-    expect(appPatch(textElement, { fontSize: 18 })).toEqual({});
+  it('the size goes app-wide (SIGN-35 reopened)', () => {
+    expect(appPatch(textElement, { fontSize: 18 })).toEqual({ fontSize: 18 });
+  });
+
+  it('the direction stays with the document', () => {
     expect(appPatch(textElement, { textDirection: 'rtl' })).toEqual({});
     expect(appPatch(textElement, { text: 'שלום' }, () => 'rtl')).toEqual({});
   });
@@ -165,6 +168,7 @@ describe('appStylePatchFor', () => {
   });
 
   it('keeps the rest of a mixed change when it drops the document-only keys', () => {
-    expect(appPatch(textElement, { color: '#d8342b', fontSize: 14, textDirection: 'rtl' })).toEqual({ color: '#d8342b' });
+    expect(appPatch(textElement, { color: '#d8342b', fontSize: 14, textDirection: 'rtl' }))
+      .toEqual({ color: '#d8342b', fontSize: 14 });
   });
 });

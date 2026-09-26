@@ -411,8 +411,9 @@ export default function useWorkspaceGestures({
     // seeded font would freeze this document against the person's later
     // choices elsewhere, and the three layers (document, app-wide, shipped
     // default) already resolve every field to the same font without it. The
-    // size still seeds: it is document-only and measured from this first
-    // field.
+    // size still seeds: it is computed from this first field, not chosen, so
+    // it stays with the document. Once the person has set a size anywhere,
+    // the resolved style already carries it and nothing here seeds again.
     if (snapsToFields && carriedFontSize === null) {
       dispatch({ type: 'SET_CARRIED', payload: { fontSize: resolvedFontSize } });
     }

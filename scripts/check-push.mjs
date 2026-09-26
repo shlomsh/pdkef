@@ -22,11 +22,13 @@
 // Usage: npm run check:push
 
 import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve as resolvePath } from 'node:path';
+import { dirname, join, resolve as resolvePath } from 'node:path';
 import { resolveBase, changedFiles, classify, isDocsOnly } from './change-scope.mjs';
 import { resolveScope, runE2eProduct, runE2ePerf, runFonts, runExportGuards } from './affected-scope.mjs';
 import { resolveUnitScope, runUnitByImpact } from './unit-scope.mjs';
+import { chooseTypecheck, runTypecheck } from './check-fast.mjs';
 
 const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -96,6 +98,48 @@ export function fileCannotReachDist(file) {
 export function reachesDist(files) {
   if (files.length === 0) return true;
   return files.some((file) => !fileCannotReachDist(file));
+}
+
+// ---------------------------------------------------------------------------
+// ARCH-31: a diff of only test files cannot change what a browser sees. Nx
+// decides by folder, so a tool's unit test used to select that tool's e2e and
+// every site-wide spec (measured: a `merge.test.js`-only change ran 67s of
+// Playwright). When every non-docs file is a unit test (`*.test.*`) or a
+// Playwright spec (`*.spec.js`), the unit tests run by impact as always and
+// Playwright runs only the changed specs: the font guards and export guards
+// only when one of their own specs changed (the globs mirror FONT_GUARDS and
+// EXPORT_GUARDS in playwright.config.js). Anything else in the diff, a spec
+// helper or fixture included, keeps the Nx verdict.
+const isUnitTest = (f) => /\.test\.[^/]+$/.test(f);
+// Only `.spec.js`: Playwright's testMatch discovers nothing else, so any other
+// `.spec.*` keeps the Nx verdict rather than narrowing to a spec that never runs.
+const isSpec = (f) => /\.spec\.js$/.test(f);
+const isFontGuardSpec = (f) => /(^|\/)sign\/[^/]+-(guard|parity)\.spec\.js$/.test(f);
+const isExportGuardSpec = (f) => /(^|\/)export\/(export-render-guard|language-acceptance)\.spec\.js$/.test(f);
+
+export function narrowTestOnlyChange(scope, files) {
+  const code = files.filter((f) => !isDocsOnly(f));
+  if (code.length === 0 || !code.every((f) => isUnitTest(f) || isSpec(f))) return scope;
+  const specs = code.filter(isSpec);
+  const productSpecs = specs.filter((f) => !isFontGuardSpec(f) && !isExportGuardSpec(f));
+  return {
+    ...scope,
+    everything: false,
+    e2e_paths: productSpecs.join(' '),
+    fonts: specs.some(isFontGuardSpec),
+    export_guards: specs.some(isExportGuardSpec),
+    reason: specs.length ? `test files only: Playwright runs the ${specs.length} changed spec(s)` : 'unit test files only: no Playwright',
+  };
+}
+
+// ARCH-31: Playwright reuses whatever listens on 4173 locally, and the port
+// is machine-wide, so another worktree's preview means testing that
+// worktree's build. `ownerCwd` is the listening process's working directory
+// (null when the port is free, undefined when it could not be read).
+export function portOwnerVerdict({ ownerCwd, root }) {
+  if (ownerCwd === null) return 'free';
+  if (ownerCwd === undefined) return 'unknown';
+  return ownerCwd === root ? 'own' : 'foreign';
 }
 
 // ---------------------------------------------------------------------------
@@ -171,7 +215,6 @@ function runNpm(script) {
 
 const STEP_RUNNERS = {
   'check-class-resolution': () => spawnSync('node', ['scripts/check-class-resolution.js'], { stdio: 'inherit', cwd: ROOT }).status ?? 1,
-  typecheck: () => runNpm('typecheck'),
   build: () => runNpm('build'),
   'test:csp': () => runNpm('test:csp'),
   'test:seo': () => runNpm('test:seo'),
@@ -209,9 +252,18 @@ function printScope({ base, dirty, scope, unitScope }) {
   console.error(lines.join('\n'));
 }
 
-function previewAlreadyRunning() {
+function previewOwnerCwd() {
   const r = spawnSync('lsof', ['-ti', 'tcp:4173', '-sTCP:LISTEN'], { encoding: 'utf8' });
-  return r.status === 0 && r.stdout.trim() !== '';
+  const pid = r.status === 0 ? r.stdout.trim().split('\n')[0] : '';
+  if (!pid) return null;
+  const cwd = spawnSync('lsof', ['-a', '-p', pid, '-d', 'cwd', '-Fn'], { encoding: 'utf8' });
+  const line = (cwd.stdout || '').split('\n').find((l) => l.startsWith('n'));
+  if (!line) return undefined;
+  try {
+    return realpathSync(line.slice(1));
+  } catch {
+    return undefined;
+  }
 }
 
 function main() {
@@ -224,25 +276,36 @@ function main() {
   const unitScope = resolveUnitScope({ explicitBase: base ?? undefined });
   const build = reachesDist(files);
 
-  const scope = { ...nxScope, docsOnly, reachesDist: build };
+  const scope = narrowTestOnlyChange({ ...nxScope, docsOnly, reachesDist: build }, files);
+  const typecheck = chooseTypecheck({ files: base ? files : null, astroTypesExist: existsSync(join(ROOT, '.astro', 'types.d.ts')) });
   printScope({ base, dirty, scope, unitScope });
+  console.error(`  typecheck:      ${typecheck.tool} (${typecheck.reason}; CI always runs astro check)`);
 
   const steps = planSteps(scope);
   const timings = [];
   let failed = null;
 
-  if (steps.some((id) => id.startsWith('e2e:')) && previewAlreadyRunning()) {
-    console.error('check:push: something is already listening on 4173. Playwright reuses it locally, so it may test an older build; stop it unless it serves this worktree\'s dist/.');
+  if (steps.some((id) => id.startsWith('e2e:'))) {
+    const ownerCwd = previewOwnerCwd();
+    const verdict = portOwnerVerdict({ ownerCwd, root: realpathSync(ROOT) });
+    if (verdict === 'foreign' || verdict === 'unknown') {
+      console.error(`check:push: port 4173 is held by ${verdict === 'foreign' ? ownerCwd : 'a process whose directory could not be read'}. Playwright would reuse it and test that build, not this worktree's. Run again once it is free.`);
+      process.exit(1);
+    }
+    if (verdict === 'own') {
+      console.error("check:push: this worktree's own preview is already on 4173; Playwright reuses it and it serves the dist/ the build step writes.");
+    }
   }
 
   for (const id of steps) {
     const t0 = Date.now();
     let status;
     if (id === 'unit') status = runUnitByImpact(unitScope);
-    else if (id === 'e2e:product') status = runE2eProduct(nxScope);
-    else if (id === 'e2e:perf') status = runE2ePerf(nxScope);
-    else if (id === 'e2e:fonts') status = runFonts(nxScope);
-    else if (id === 'e2e:export-guards') status = runExportGuards(nxScope);
+    else if (id === 'typecheck') status = runTypecheck(typecheck.tool);
+    else if (id === 'e2e:product') status = runE2eProduct(scope);
+    else if (id === 'e2e:perf') status = runE2ePerf(scope);
+    else if (id === 'e2e:fonts') status = runFonts(scope);
+    else if (id === 'e2e:export-guards') status = runExportGuards(scope);
     else status = STEP_RUNNERS[id]();
     const seconds = (Date.now() - t0) / 1000;
     timings.push({ id, seconds, status });

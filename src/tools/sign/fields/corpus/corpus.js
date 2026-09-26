@@ -339,6 +339,77 @@ const PRINTED = [
     ],
     expect: { ...none, cells: 2 },
   },
+  // The three rows below pin MIN_FLOOR_RISE_FRACTION and captionBelowFloor directly (FORM-26),
+  // on the same shape form 101's private-address row draws: one ruled box, an inner underline
+  // near its floor, and short ticks standing on that underline dividing the writing strip above
+  // it into columns - never a full-height wall, which is what tells `buildClosedCells` a tick
+  // from an ordinary interior divider. All three share one 240x28 box (x 40-280, y 200-228) with
+  // an underline 7pt above its floor (y 207, so the writable band above it is 21pt) and two ticks
+  // at x 110 and 200, splitting it into three columns of 70/90/80pt.
+  {
+    name: 'an underline with two ticks rising past the floor-rise floor, captioned below',
+    why: 'FORM-26: ticks 7.5pt off a 21pt band (0.357, past MIN_FLOOR_RISE_FRACTION\'s 0.3) split '
+      + 'the writing strip into three columns; a caption printed in the strip below the underline, '
+      + 'inside each column\'s own x-range, is what `captionBelowFloor` reads as that column\'s '
+      + "label - measured, this is 3 one-line text cells, one per column.",
+    doc: {
+      ink: [
+        { ink: 'rect', x: 40, y: 200, width: 240, height: 28 },
+        { ink: 'line', x: 40, y: 207, x2: 280, y2: 207 },
+        { ink: 'line', x: 110, y: 207, x2: 110, y2: 214.5 },
+        { ink: 'line', x: 200, y: 207, x2: 200, y2: 214.5 },
+      ],
+    },
+    // Page-percent, page 400x300: three short captions in the strip between the underline
+    // (y 207) and the box's own floor (y 200), each centred in its column's x-range.
+    text: [
+      { str: 'Street', left: 16.25, top: 31.667, width: 5, height: 1 },
+      { str: 'Number', left: 36.25, top: 31.667, width: 5, height: 1 },
+      { str: 'City', left: 57.5, top: 31.667, width: 5, height: 1 },
+    ],
+    expect: { ...none, cells: 3 },
+  },
+  {
+    name: 'the same box with ticks rising only 0.2 of the band',
+    why: 'FORM-26: measured - ticks at 4.2pt off the same 21pt band (0.2, short of '
+      + "MIN_FLOOR_RISE_FRACTION's 0.3) never qualify as a floor rise, so the band keeps only its "
+      + "two outer walls (xs.length 2) and every one of its three stacked bands (top-to-underline, "
+      + "underline-to-floor, top-to-floor) is read as a lone undivided box instead. A lone box "
+      + "needs a caption above it (SNG-10's `headerAbove`), and every caption here sits below the "
+      + 'underline, address-block style, so none qualifies - this is the pre-FORM-26 behaviour, '
+      + 'and it publishes nothing at all.',
+    doc: {
+      ink: [
+        { ink: 'rect', x: 40, y: 200, width: 240, height: 28 },
+        { ink: 'line', x: 40, y: 207, x2: 280, y2: 207 },
+        { ink: 'line', x: 110, y: 207, x2: 110, y2: 211.2 },
+        { ink: 'line', x: 200, y: 207, x2: 200, y2: 211.2 },
+      ],
+    },
+    text: [
+      { str: 'Street', left: 16.25, top: 31.667, width: 5, height: 1 },
+      { str: 'Number', left: 36.25, top: 31.667, width: 5, height: 1 },
+      { str: 'City', left: 57.5, top: 31.667, width: 5, height: 1 },
+    ],
+    expect: none,
+  },
+  {
+    name: 'the same ticked underline with no captions at all',
+    why: 'FORM-26: measured - the ticks still pass MIN_FLOOR_RISE_FRACTION and split the band '
+      + 'into three floor-ticked columns exactly as the first row above, but `captionBelowFloor` '
+      + 'finds nothing under any of them, and a floor-ticked column with no caption below is not a '
+      + 'field (README\'s "a column with no caption below is not emitted") - all three are dropped, '
+      + 'not published as unlabelled cells.',
+    doc: {
+      ink: [
+        { ink: 'rect', x: 40, y: 200, width: 240, height: 28 },
+        { ink: 'line', x: 40, y: 207, x2: 280, y2: 207 },
+        { ink: 'line', x: 110, y: 207, x2: 110, y2: 214.5 },
+        { ink: 'line', x: 200, y: 207, x2: 200, y2: 214.5 },
+      ],
+    },
+    expect: none,
+  },
   {
     name: 'an undivided decorative panel',
     why: 'SNG-10: an empty lone box (no interior wall) with no label printed above it is still a '

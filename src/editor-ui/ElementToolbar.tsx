@@ -38,9 +38,10 @@ export default function ElementToolbar({
   // comb.js's isComb), so clearing it here is what actually turns it off.
   const setFontSize = (fontSize: number) => onChange(isComb(element) ? { fontSize, width: 0 } : { fontSize });
   const textDirection = element.type === 'text' ? getEffectiveTextDirection(element) : 'ltr';
-  // Only a box spanning a detected form cell has room to align in; a free box
-  // hugs its text and a comb places one character per cell.
-  const canAlign = element.type === 'text' && !!element.minWidth && !isComb(element);
+  // A field box aligns within its detected cell; a free box's lines align
+  // within its own widest line. A comb places one character per cell, so it
+  // has nothing to align.
+  const canAlign = element.type === 'text' && !isComb(element);
   const textAlign: 'left' | 'center' | 'right' = canAlign ? getTextAlign(element) : 'left';
   const NEXT_ALIGN = { left: 'center', center: 'right', right: 'left' } as const;
   const alignTitle = { left: t.alignLeftTitle, center: t.alignCenterTitle, right: t.alignRightTitle }[textAlign];

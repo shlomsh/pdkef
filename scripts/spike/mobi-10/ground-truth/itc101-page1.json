@@ -165,32 +165,35 @@
       "bounds": {
         "x": 0.1838,
         "y": 0.2946,
-        "width": 0.1092,
+        "width": 0.1566,
         "height": 0.0119
       },
-      "label": "עיר/ישוב / כתובת פרטית"
+      "label": "עיר/ישוב / כתובת פרטית",
+      "note": "FORM-26 (2026-09-26): x-range snapped to the printed ink. The row's columns are divided by short ticks standing on the underline at x=108.44, 202.61, 228.79pt and closed by the box wall at 392.5pt, each caption centred under its own column; the earlier boxes split city/number at 174pt, where nothing is printed, and ran the street box to 540pt, into the passport column."
     },
     {
       "id": "t014",
       "kind": "text",
       "bounds": {
-        "x": 0.293,
+        "x": 0.3404,
         "y": 0.2946,
-        "width": 0.0942,
+        "width": 0.044,
         "height": 0.0119
       },
-      "label": "מספר / כתובת פרטית"
+      "label": "מספר / כתובת פרטית",
+      "note": "FORM-26 (2026-09-26): x-range snapped to the printed ink. The row's columns are divided by short ticks standing on the underline at x=108.44, 202.61, 228.79pt and closed by the box wall at 392.5pt, each caption centred under its own column; the earlier boxes split city/number at 174pt, where nothing is printed, and ran the street box to 540pt, into the passport column."
     },
     {
       "id": "t015",
       "kind": "text",
       "bounds": {
-        "x": 0.3871,
+        "x": 0.3843,
         "y": 0.2946,
-        "width": 0.52,
+        "width": 0.275,
         "height": 0.0119
       },
-      "label": "רחוב/שכונה / כתובת פרטית"
+      "label": "רחוב/שכונה / כתובת פרטית",
+      "note": "FORM-26 (2026-09-26): x-range snapped to the printed ink. The row's columns are divided by short ticks standing on the underline at x=108.44, 202.61, 228.79pt and closed by the box wall at 392.5pt, each caption centred under its own column; the earlier boxes split city/number at 174pt, where nothing is printed, and ran the street box to 540pt, into the passport column."
     },
     {
       "id": "t016",
