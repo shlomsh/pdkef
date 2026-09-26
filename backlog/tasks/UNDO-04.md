@@ -77,7 +77,7 @@ Branch `claude/undo-04-update-history`.
   `sign-undo-redo-keyboard.spec.js` "undoing a drag-move restores the pre-drag position" (a Symbols
   element, the same `updateElement` path as a signature). A typing session was probed in a real build:
   one Undo clears the whole session.
-- **Open, for Shlomi**: Undo does not roll back the carried style (SIGN-33), so undoing a colour change
+- **Open, for Shlomi**: Undo does not roll back the carried or app-wide style (SIGN-33/35), so undoing a colour change
   leaves the next placement in that colour. Recorded in `.claude/rules/editor.md`.
 - **Left as is**: a line dragged against the page edge has its endpoints clamped separately, so it is
   labelled "Resized line". Label only.
