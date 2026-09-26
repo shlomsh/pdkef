@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
+import { combCharacters } from '../../../../editor/text/comb.js';
 
 /**
  * Tracks the live caret position for a comb field (CombCells.tsx), shared by
@@ -33,7 +34,18 @@ export function useCombCaret(ref: RefObject<HTMLInputElement | HTMLTextAreaEleme
 
   const sync = () => {
     const el = ref.current;
-    setCaretIndex(document.activeElement === el ? (el?.selectionStart ?? null) : null);
+    if (document.activeElement !== el || !el) {
+      setCaretIndex(null);
+      return;
+    }
+    // comb cells are graphemes (combCharacters splits on \p{M}+|\P{M}\p{M}*,
+    // keeping a base letter and its nikud in one cell), but selectionStart
+    // counts UTF-16 code units - with a base+combining-mark string typed,
+    // that lands the caret cells ahead of where the next character belongs.
+    // Re-derive the index by re-splitting the text up to the caret through
+    // comb.js's own function, so the two can never disagree on what a cell is.
+    const upToCaret = el.value.slice(0, el.selectionStart ?? 0);
+    setCaretIndex(combCharacters({ text: upToCaret }).length);
   };
 
   useEffect(() => {
