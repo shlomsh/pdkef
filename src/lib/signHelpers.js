@@ -1,4 +1,5 @@
 import { FIELD_TEXT_INSET_EM } from '../constants/signGeometry.js';
+import { resolveTypography } from '../editor/text/fonts.js';
 
 // "First strong character", per UAX #9: a run's direction comes from its first
 // character that has an inherent one, and *every* letter has one - not just the
@@ -115,6 +116,39 @@ export function textAnchorsRightEdge(element) {
     && !element.width
     && !element.minWidth
     && getEffectiveTextDirection(element) === 'rtl';
+}
+
+/**
+ * A text element's full on-page layout: the outer box (page-percent) and the
+ * typography (CSS px, scaled from PDF points), computed the one way
+ * DraggableWrapper positions a placed text element and TextNode renders its
+ * font. A fill-mode slot (FieldSlot.tsx) calls this on `elementOf(value)` -
+ * the exact element the slot becomes - so its preview matches the committed
+ * element instead of drifting from its own `slot.placement` (the reported
+ * bug: while typing, the preview sat lower, smaller, and higher in its box
+ * than the committed text).
+ */
+export function textElementLayout(element, scaleFactor = 1) {
+  const typography = resolveTypography(element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize);
+  const isRtlText = textAnchorsRightEdge(element);
+  return {
+    box: {
+      top: `${element.top}%`,
+      width: element.width ? `${element.width}%` : 'auto',
+      ...(element.minWidth ? { minWidth: `${element.minWidth}%` } : {}),
+      height: 'auto',
+      ...(isRtlText ? { right: `${100 - element.left}%` } : { left: `${element.left}%` }),
+    },
+    font: {
+      fontSize: typography.size * scaleFactor,
+      fontFamily: typography.family,
+      fontWeight: typography.weight,
+      fontStyle: typography.style,
+      paddingEm: typography.paddingEm,
+    },
+    textAlign: getTextAlign(element),
+    direction: getEffectiveTextDirection(element),
+  };
 }
 
 export function hexToRgbFractions(hex, fallback = '#000000') {

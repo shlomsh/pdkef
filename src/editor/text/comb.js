@@ -90,6 +90,17 @@ export function combCellCenterFraction(index, cellCount, isRtl = false) {
 }
 
 /**
+ * Where the caret sits for a given character index: the centre of the cell
+ * the next character lands in, where that character will be drawn (Shlomi,
+ * 2026-09-26: a caret on the boundary read as the start of the next column).
+ * Once every cell is full it sits on the trailing edge of the last one.
+ */
+export function combCaretFraction(index, cellCount, isRtl = false) {
+  if (index >= cellCount) return isRtl ? 0 : 1;
+  return combCellCenterFraction(Math.max(0, index), cellCount, isRtl);
+}
+
+/**
  * The laid-out cells: `char` is empty for a cell the text does not reach, which
  * is what a form with trailing blank boxes looks like.
  */

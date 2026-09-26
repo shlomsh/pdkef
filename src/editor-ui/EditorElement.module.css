@@ -107,6 +107,10 @@
 /* Comb layout. The span is explicit, so the grid column is pinned to it and the
    measure (kept only for the one-line height) can no longer widen the box. */
 .text-display[data-comb="on"] { grid-template-columns: 100%; overflow: hidden; }
+/* The textarea's own caret sits at the unspaced text position, not the cell
+   boundary the next character lands at, so it is hidden - CombCells draws
+   a caret of its own instead (TextNode.tsx's caretIndex). */
+.text-display[data-comb="on"] .text-input { caret-color: transparent; }
 /* A box on a detected form cell (`minWidth`, editorModel.ts): the wrapper is
    at least the cell wide, and the one grid column has to be the wrapper's
    width rather than the measure's, or `text-align: right` on RTL text would
@@ -124,6 +128,23 @@
    decides where the glyph goes, never the font's advance width. */
 .text-comb-cell { position: absolute; top: var(--text-pad-em, .12em); transform: translateX(-50%); white-space: pre; }
 .text-comb-guide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--color-primary); opacity: .55; }
+/* The comb caret (CombCells.tsx): the real input's own caret is hidden
+   because it sits at the unspaced text position, not the cell boundary the
+   next character lands at - this bar stands in at that boundary instead.
+   `currentColor` follows the overlay's own text colour, never a literal.
+   Thin (native-caret width, em-based so it scales with the font) and one
+   text line tall - `top` matches `.text-comb-cell`'s own top, and the height
+   is `.text-display`'s line-height, not the whole padded box: a flat 2px
+   running the full cell height read as a thick bar covering the row (live
+   report), not a caret. `translateX(-50%)` centres it on its own width,
+   whatever that resolves to, the same way the cells centre on theirs. */
+.text-comb-caret { position: absolute; top: var(--text-pad-em, .12em); height: 1.05em; width: max(1px, 0.06em); background: currentColor; transform: translateX(-50%); }
+@media (prefers-reduced-motion: no-preference) {
+  .text-comb-caret { animation: text-comb-caret-blink 1s step-end infinite; }
+}
+@keyframes text-comb-caret-blink {
+  50% { opacity: 0; }
+}
 /* Text's side handles always set the comb span (dragging one is what turns
    comb on - see useElementResize.js), never the font size, so they sit
    mid-edge with a horizontal cursor instead of at the corners - unlike a box

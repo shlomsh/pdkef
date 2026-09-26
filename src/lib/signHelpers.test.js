@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WYSIWYG_STRING_CASES } from '../test/fixtures/wysiwygStrings.js';
-import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, getTextAlign, textAnchorsRightEdge } from './signHelpers.js';
+import { detectTextDirection, dominantTextDirection, getEffectiveTextDirection, getTextAlign, textAnchorsRightEdge, textElementLayout } from './signHelpers.js';
 
 describe('sign text direction helpers', () => {
   it('an empty or neutral box starts in its seeded (the document\'s) direction; digits stay LTR (SIGN-34)', () => {
@@ -126,5 +126,47 @@ describe('getTextAlign', () => {
   it('gives a free box the start edge of its own text, never a remembered seed', () => {
     expect(getTextAlign({ type: 'text', text: '0528200202', textDirection: 'rtl' })).toBe('left');
     expect(getTextAlign({ type: 'text', text: 'שלום', textDirection: 'ltr' })).toBe('right');
+  });
+});
+
+describe('textElementLayout', () => {
+  it('sizes a plain LTR box: left-anchored, auto width/height, font scaled by scaleFactor', () => {
+    const element = { type: 'text', text: 'Hello', left: 20, top: 30, fontFamily: 'Arimo', fontSize: 12 };
+    const layout = textElementLayout(element, 2);
+
+    expect(layout.box).toEqual({ top: '30%', width: 'auto', height: 'auto', left: '20%' });
+    expect(layout.font.fontSize).toBe(24);
+    expect(layout.font.fontFamily).toBe('Arimo');
+    expect(layout.font.fontWeight).toBe('normal');
+    expect(layout.font.fontStyle).toBe('normal');
+    expect(layout.textAlign).toBe('left');
+    expect(layout.direction).toBe('ltr');
+  });
+
+  it('keeps a comb field left-anchored at its own fixed width, regardless of direction', () => {
+    const element = { type: 'text', text: '', left: 10, top: 5, width: 30, combCells: 3, fontFamily: 'Arimo', fontSize: 10, textDirection: 'rtl' };
+    const layout = textElementLayout(element);
+
+    expect(layout.box).toEqual({ top: '5%', width: '30%', height: 'auto', left: '10%' });
+    // A comb's span is fixed by the paper, so it never right-anchors even
+    // when its own reading direction is RTL (textAnchorsRightEdge).
+    expect(layout.direction).toBe('rtl');
+  });
+
+  it('keeps a detected-cell box left-anchored with a minWidth floor', () => {
+    const element = { type: 'text', text: '', left: 40, top: 12, minWidth: 22, fontFamily: 'Arimo', fontSize: 11, textDirection: 'rtl' };
+    const layout = textElementLayout(element);
+
+    expect(layout.box).toEqual({ top: '12%', width: 'auto', minWidth: '22%', height: 'auto', left: '40%' });
+    expect(layout.direction).toBe('rtl');
+  });
+
+  it('right-anchors a free RTL box instead of left-anchoring it', () => {
+    const element = { type: 'text', text: 'שלום', left: 60, top: 15, fontFamily: 'Arimo', fontSize: 12 };
+    const layout = textElementLayout(element);
+
+    expect(layout.box).toEqual({ top: '15%', width: 'auto', height: 'auto', right: '40%' });
+    expect(layout.direction).toBe('rtl');
+    expect(layout.textAlign).toBe('right');
   });
 });

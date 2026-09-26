@@ -48,11 +48,14 @@
   pointer-events: none;
 }
 
-/* The real input's own comb-specific look, static apart from the caret colour
-   (which follows the live element's own colour and stays inline): the typed
-   text is invisible so the CombCells overlay above is what is actually seen. */
+/* The real input's own comb-specific look: the typed text is invisible so the
+   CombCells overlay above is what is actually seen, and the native caret is
+   hidden too - it sits at the unspaced text position, not the cell boundary
+   the next character lands at, so CombCells draws a caret of its own instead
+   (FieldSlot.tsx's caretIndex). */
 .slot-comb {
   color: transparent;
+  caret-color: transparent;
 }
 
 /* The droppable look (docs/sign-fill-mode.md, "Hints"): the target the

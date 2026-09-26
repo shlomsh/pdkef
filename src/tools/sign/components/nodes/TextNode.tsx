@@ -2,13 +2,14 @@ import { useState, useLayoutEffect, useRef, useEffect, useMemo, useId } from 'pr
 import ElementResizers from '../../../../editor-ui/ElementResizers.tsx';
 import useCoarsePointer from '../../useCoarsePointer.ts';
 import usePdfCoordinates from '../../../../editor-ui/hooks/usePdfCoordinates.js';
-import { fieldTextInset, getEffectiveTextDirection, getTextAlign, strongTextDirection } from '../../../../lib/signHelpers.js';
-import { resolveFontSubstitution, resolveTypography } from '../../../../editor/text/fonts.js';
+import { fieldTextInset, strongTextDirection, textElementLayout } from '../../../../lib/signHelpers.js';
+import { resolveFontSubstitution } from '../../../../editor/text/fonts.js';
 import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../../editor/text/comb.js';
 import CombCells from './CombCells.tsx';
+import { useCombCaret } from './useCombCaret.ts';
 import { englishSignMessages, type SignMessages } from '../../../../i18n/toolMessages';
 import { useTextFill } from '../../fill/FillContext.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
@@ -122,18 +123,21 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
     element.textDirection
   ]);
 
-  const textDirection = getEffectiveTextDirection(element);
   // SIGN-08: the one typography descriptor shared with the exporter
   // (registry/text.ts) and the toolbar (ElementToolbar.tsx) - face, the
   // weight/style actually rendered (clamped to a real bundled file, never
   // the raw element flags: a stale draft or family switch can carry
   // `fontWeight: 'bold'` with no real bold face, and rendering that flag
   // directly used to paint a browser-synthesized bold on screen while the
-  // export silently embedded Regular underneath it), and size.
-  const typography = useMemo(() => resolveTypography(element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize), [
-    element.fontFamily, element.text, element.fontWeight, element.fontStyle, element.fontSize,
+  // export silently embedded Regular underneath it), and size. Shared with
+  // FieldSlot.tsx (the fill-mode preview) through `textElementLayout`, so
+  // the two can never drift on what a text element looks like on screen.
+  const layout = useMemo(() => textElementLayout(element, scaleFactor), [
+    element, scaleFactor,
   ]);
-  const textFontSize = typography.size * scaleFactor;
+  const textDirection = layout.direction;
+  const typography = layout.font;
+  const textFontSize = typography.fontSize;
   // Render the family the exporter will embed, not the one that was picked, so
   // the browser never quietly patches in a system font for glyphs the chosen
   // file lacks — that fallback is what a PDF cannot reproduce.
@@ -143,7 +147,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   // Same value as support.family (both resolve through fonts.js against the
   // same inputs) - read from the shared descriptor so there is one source for
   // what actually renders, not two calls that merely happen to agree today.
-  const renderedFontFamily = typography.family;
+  const renderedFontFamily = typography.fontFamily;
   const fontMessage = describeTextFontSupport(support, t);
   const fontDescriptionId = useId();
   const needsAttention = support.status === 'incompatible';
@@ -173,6 +177,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const isRtl = textDirection === 'rtl';
   const comb = isComb(element);
   const spannedField = !comb && !!element.minWidth;
+  // The comb caret (useCombCaret.ts): null while the textarea has no focus,
+  // the live selectionStart while it does. The real textarea's own caret is
+  // hidden too (see the textarea's style below) since CombCells draws a
+  // caret of its own, at caretIndex.
+  const { caretIndex, caretEvents, sync: syncCaret } = useCombCaret(textareaRef, comb);
   // That clipped placeholder takes its own script's direction, not the box's,
   // so it loses its end rather than its start: in an RTL box the English copy
   // overflowed leftward and a narrow cell showed "ype your text". Direction,
@@ -181,7 +190,7 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
   const placeholderDirection = spannedField && !element.text ? strongTextDirection(placeholder) : null;
   const textAlign = placeholderDirection
     ? (placeholderDirection === 'rtl' ? 'right' : 'left')
-    : getTextAlign(element);
+    : layout.textAlign;
   const handleInput = (event: Event) => {
     const text = (event.currentTarget as HTMLTextAreaElement).value;
     // A new text box starts with the app's neutral default, not a meaningful
@@ -266,8 +275,8 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           style={{
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
-            fontWeight: typography.weight,
-            fontStyle: typography.style
+            fontWeight: typography.fontWeight,
+            fontStyle: typography.fontStyle
           }}
         >
           {/* Kept measuring the real text even in comb layout, where the span
@@ -289,10 +298,11 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
             isRtl={isRtl}
             showGuides={isActive}
             visible={comb}
+            caretIndex={caretIndex}
             color={element.color || '#000000'}
             fontFamily={renderedFontFamily}
-            fontWeight={typography.weight}
-            fontStyle={typography.style}
+            fontWeight={typography.fontWeight}
+            fontStyle={typography.fontStyle}
           />
         )}
         {/* Outside an edit session the textarea is inert: it cannot take the
@@ -331,20 +341,24 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           tabIndex={fill ? 0 : (isEditing ? undefined : -1)}
           value={element.text}
           placeholder={placeholder}
-          onInput={handleInput}
-          onFocus={fill ? undefined : onSelect}
+          onInput={comb ? (event) => { handleInput(event); syncCaret(); } : handleInput}
+          onFocus={(event) => { if (!fill) onSelect(event); caretEvents.onFocus?.(); }}
+          onBlur={caretEvents.onBlur}
+          onKeyUp={caretEvents.onKeyUp}
+          onClick={caretEvents.onClick}
+          onSelect={caretEvents.onSelect}
           onKeyDown={fill ? handleFillEnterKey : undefined}
           style={{
             textAlign,
             fontSize: `${textFontSize}px`,
             fontFamily: renderedFontFamily,
-            fontWeight: typography.weight,
-            fontStyle: typography.style,
+            fontWeight: typography.fontWeight,
+            fontStyle: typography.fontStyle,
             // In comb layout the cells above are what you see; the textarea
-            // stays underneath purely to take the typing, so only its caret
-            // shows through.
+            // stays underneath purely to take the typing. Its own caret is
+            // hidden too (.text-display[data-comb="on"] .text-input) since
+            // CombCells draws a caret of its own, at caretIndex below.
             color: comb ? 'transparent' : (element.color || '#000000'),
-            ...(comb ? { caretColor: element.color || '#000000' } : {})
           }}
         />
       </div>

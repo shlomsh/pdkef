@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { combCellCenterFraction, combCellCount, combCharacters, combLayout, isComb } from './comb.js';
+import { combCaretFraction, combCellCenterFraction, combCellCount, combCharacters, combLayout, isComb } from './comb.js';
 
 describe('comb layout', () => {
   it('is derived from having an explicit width, not a separate flag', () => {
@@ -91,6 +91,33 @@ describe('comb layout', () => {
       expect(combCellCenterFraction(0, 8)).toBeCloseTo(combCellCenterFraction(0, 8, false));
       expect(combLayout({ type: 'text', width: 10, text: '27' }))
         .toEqual(combLayout({ type: 'text', width: 10, text: '27' }, false));
+    });
+  });
+
+  describe('combCaretFraction: the centre of the cell the next character lands in', () => {
+    it('sits in the middle of cell 0 before anything is typed', () => {
+      expect(combCaretFraction(0, 4)).toBeCloseTo(0.125);
+    });
+
+    it('sits where the next character will be drawn, the same centre combLayout uses', () => {
+      for (const index of [1, 2, 3]) {
+        expect(combCaretFraction(index, 4)).toBeCloseTo(combCellCenterFraction(index, 4));
+      }
+    });
+
+    it('sits on the trailing edge of the last cell once every cell is full', () => {
+      expect(combCaretFraction(4, 4)).toBeCloseTo(1);
+    });
+
+    it('mirrors for RTL', () => {
+      expect(combCaretFraction(0, 4, true)).toBeCloseTo(0.875);
+      expect(combCaretFraction(1, 4, true)).toBeCloseTo(0.625);
+      expect(combCaretFraction(4, 4, true)).toBeCloseTo(0);
+    });
+
+    it('clamps an out-of-range index rather than drawing off the field', () => {
+      expect(combCaretFraction(-1, 4)).toBeCloseTo(0.125);
+      expect(combCaretFraction(9, 4)).toBeCloseTo(1);
     });
   });
 });

@@ -5,6 +5,7 @@ import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
+import { textElementLayout } from '../../../lib/signHelpers.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
@@ -34,8 +35,14 @@ function textElementOf(text: string, overrides: Partial<TextElement> = {}): Text
     id: 'fill-slot-preview',
     type: 'text',
     pageIndex: 0,
-    left: 0,
-    top: 0,
+    // Matches fillSlot()'s own default placement (left 12.5, top 30,
+    // Arimo 12pt), so a test that doesn't override either one still gets a
+    // slot that reads as coming from the same spot it would in production
+    // (elementForSlot builds the element from the very same placement).
+    left: 12.5,
+    top: 30,
+    fontFamily: 'Arimo',
+    fontSize: 12,
     text,
     color: '#1463ff',
     ...overrides,
@@ -348,7 +355,11 @@ describe('FieldSlot component', () => {
   });
 
   describe('position', () => {
-    it('places the input from slot.placement.box, in page-percent', () => {
+    it('places a free slot (no field) at elementOf(value)\'s own left/top, keeping the placement\'s span', () => {
+      // A free slot's committed element has no width of its own (it only gets
+      // one once it is measured on screen, which a bare <input> cannot do),
+      // so the span still comes from the placement - but the position comes
+      // from the element, same as every other geometry FieldSlot reads.
       const slot = fillSlot({ placement: { box: { left: 8, top: 22.5, width: 33.25, height: 4 }, fontSize: 12, fontFamily: 'Arimo' } });
       host = mount(
         <FieldSlot
@@ -357,7 +368,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
-          elementOf={textElementOf}
+          elementOf={(text) => textElementOf(text, { left: 8, top: 22.5 })}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -368,6 +379,59 @@ describe('FieldSlot component', () => {
       expect(input.style.top).toBe('22.5%');
       expect(input.style.width).toBe('33.25%');
       expect(input.style.height).toBe('4%');
+    });
+  });
+
+  describe('geometry matches textElementLayout (not slot.placement)', () => {
+    it('a comb field slot sits exactly where textElementLayout(elementOf(value)) says', () => {
+      const slot = fillSlot({ field: {} as FillSlot['field'], placement: { box: { left: 0, top: 0, width: 1, height: 1 }, fontSize: 12, fontFamily: 'Arimo', combCells: 3 } });
+      const combElementOf = (text: string) => textElementOf(text, { left: 30, top: 40, width: 25, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const expected = textElementLayout(combElementOf(''), 1) as { box: Record<string, string>; font: Record<string, string | number> };
+
+      expect(input.style.left).toBe(expected.box.left);
+      expect(input.style.top).toBe(expected.box.top);
+      expect(input.style.width).toBe(expected.box.width);
+      expect(input.style.fontSize).toBe(`${expected.font.fontSize}px`);
+      expect(input.style.fontFamily).toBe(expected.font.fontFamily);
+    });
+
+    it('a plain (non-comb) field slot on a detected cell sits exactly where textElementLayout(elementOf(value)) says', () => {
+      const slot = fillSlot({ field: {} as FillSlot['field'], placement: { box: { left: 0, top: 0, width: 1, height: 1 }, fontSize: 12, fontFamily: 'Arimo' } });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 15, top: 60, minWidth: 20 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const expected = textElementLayout(cellElementOf(''), 1) as { box: Record<string, string>; font: Record<string, string | number> };
+
+      expect(input.style.left).toBe(expected.box.left);
+      expect(input.style.top).toBe(expected.box.top);
+      expect(input.style.minWidth).toBe(expected.box.minWidth);
+      expect(input.style.width).toBe(expected.box.width);
+      expect(input.style.fontSize).toBe(`${expected.font.fontSize}px`);
+      expect(input.style.fontFamily).toBe(expected.font.fontFamily);
     });
   });
 
@@ -412,17 +476,16 @@ describe('FieldSlot component', () => {
   });
 
   describe('typography', () => {
-    it('resolves fontFamily and fontSize the way TextNode.tsx does, through fonts.js', () => {
-      const slot = fillSlot({ placement: { box: { left: 0, top: 0, width: 40, height: 6 }, fontSize: 16, fontFamily: 'Arimo' } });
+    it('resolves fontFamily and fontSize from elementOf(value), the way TextNode.tsx does, through fonts.js', () => {
       // scale is 1: the mocked page wrapper is 600px wide, matching pageWidthPoints.
       host = mount(
         <FieldSlot
-          slot={slot}
+          slot={fillSlot()}
           enterKeyHint="next"
           aimed={false}
           pageWidthPoints={600}
           label="First name"
-          elementOf={textElementOf}
+          elementOf={(text) => textElementOf(text, { fontSize: 16 })}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -489,6 +552,68 @@ describe('FieldSlot component', () => {
       });
 
       expect(input.getAttribute('dir')).toBe('ltr');
+    });
+
+    it('draws the caret at selectionStart while the comb slot is focused', () => {
+      const combElementOf = (text: string) => textElementOf(text, { width: 40, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      act(() => {
+        input.value = '12';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        // A real .focus() (not a dispatched event) is what jsdom's own
+        // document.activeElement tracks, which syncCaret reads.
+        input.focus();
+        input.selectionStart = 1;
+        input.dispatchEvent(new Event('select', { bubbles: true }));
+      });
+
+      const caret = requireElement<HTMLSpanElement>(host, `.${elementStyles['text-comb-caret']}`);
+      // Boundary between cell 0 and cell 1 of 3, same math as the guide lines.
+      expect(caret.style.left).toBe(`${(1.5 / 3) * 100}%`); // the centre of cell 1
+      // The native caret is hidden by the static .slot-comb rule (caret-color:
+      // transparent in fill.module.css), never an inline style.
+      expect(input.style.caretColor).toBe('');
+    });
+
+    it('shows no caret once the comb slot blurs', () => {
+      const combElementOf = (text: string) => textElementOf(text, { width: 40, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      act(() => {
+        input.focus();
+        input.selectionStart = 1;
+      });
+      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).not.toBeNull();
+
+      act(() => {
+        input.blur();
+      });
+      expect(host.querySelector(`.${elementStyles['text-comb-caret']}`)).toBeNull();
     });
 
     it('renders no comb cells for a non-comb slot', () => {
