@@ -264,6 +264,57 @@ describe('visualViewportClamp', () => {
     expect(after.left).toBeCloseTo(0 + 4, 5);
   });
 
+  it('with counterScaled: false, uses the full layout size even at scale > 1 (SNG-17: an ordinary popover carries no counter-scale transform)', () => {
+    // A box whose layout width (150) overflows the visible viewport (200,
+    // minus margins) on its own. At the default counterScaled: true this
+    // scale-3 mock would divide the layout width down to 50 before measuring
+    // overflow, and 50 fits with room to spare - masking the very overflow
+    // an uncounter-scaled popover actually has. counterScaled: false must
+    // measure against the full 150 instead, and clamp accordingly.
+    const scale = 3;
+    installVisualViewport({ scale, offsetLeft: 0, offsetTop: 0, width: 200, height: 300 });
+    const scenario: Scenario = {
+      x: 100, y: 100, floatingWidth: 150, floatingHeight: 50,
+      referenceRect: { x: 100, y: 100 },
+      referenceViewportRect: { left: 100, top: 100, width: 10, height: 10 },
+      placement: 'top-end',
+    };
+    // Non-vacuity: at counterScaled: false the box really does hang off the
+    // right edge at rest (visible width = layout width here).
+    const before = visibleRect(scenario, scenario.x, scenario.y, 1);
+    expect(before.right).toBeGreaterThan(200);
+
+    const result = runClamp(scenario, { counterScaled: false });
+    expect(result.x).not.toBeUndefined();
+    // visibleRect() always divides by the scale passed to it, so passing 1
+    // here reimplements the counterScaled: false geometry (visible = layout).
+    const after = visibleRect(scenario, result.x!, scenario.y, 1);
+    expect(after.left).toBeGreaterThanOrEqual(0 + 4 - 0.01);
+    expect(after.right).toBeLessThanOrEqual(200 - 4 + 0.01);
+  });
+
+  it('shifts a box placed left of the visible slice back into it (SNG-17: FontPickerMenu off screen to the left)', () => {
+    // Reproduces the SNG-17 repro shape: a popover anchored near the
+    // toolbar's leading edge ends up with a negative x once flip()/shift()
+    // measure against a viewport iOS misreports with the keyboard up, so its
+    // left edge sits to the left of the visible slice's own left edge (0 in
+    // this frame).
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 400, height: 500 });
+    const scenario: Scenario = {
+      x: -60, y: 40, floatingWidth: 220, floatingHeight: 260,
+      referenceRect: { x: -20, y: 30 },
+      referenceViewportRect: { left: -20, top: 30, width: 28, height: 28 },
+      placement: 'bottom-end',
+    };
+    const before = visibleRect(scenario, scenario.x, scenario.y, 1);
+    expect(before.left, 'non-vacuity: this really starts left of the visible slice').toBeLessThan(0);
+
+    const result = runClamp(scenario, { counterScaled: false });
+    expect(result.x).not.toBeUndefined();
+    const after = visibleRect(scenario, result.x!, scenario.y, 1);
+    expect(after.left).toBeCloseTo(0 + 4, 5);
+  });
+
   it('accounts for an offsetParent-relative/viewport delta (reference rects do not coincide)', () => {
     // Floating UI's own coordinate space (rects.reference / state.x/y) is
     // offset from getBoundingClientRect()'s viewport space by a constant -

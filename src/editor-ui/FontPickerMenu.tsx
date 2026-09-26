@@ -5,8 +5,17 @@ import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/f
 import { getFontSupport } from '../editor/text/textFontSupport.js';
 import { englishSignMessages, formatMessage } from '../i18n/toolMessages';
 import type { SignMessages } from '../editor/registry/messages';
+import visualViewportClamp, { getStickyToolShellRect } from './hooks/visualViewportClamp.ts';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
+
+// SNG-17: hoisted so the middleware array is not rebuilt every render (both
+// factories are pure, so one instance is fine to reuse across opens/closes).
+// `counterScaled: false` because the font list carries no CSS counter-scale
+// transform, unlike Sign/Redact's own floating toolbar.
+const FONT_MENU_EXTRA_MIDDLEWARE = [
+  visualViewportClamp({ counterScaled: false, getExcludedRect: getStickyToolShellRect }),
+];
 
 const collator = new Intl.Collator('en', { sensitivity: 'base' });
 
@@ -143,6 +152,7 @@ export default function FontPickerMenu({
       placement="bottom-end"
       crossAxisOffset={-36}
       stablePosition
+      extraMiddleware={FONT_MENU_EXTRA_MIDDLEWARE}
       trigger={
         <button
           type="button"

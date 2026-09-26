@@ -124,9 +124,20 @@ export function visibleViewportOrigin(vv: VisualViewport): { left: number; top: 
 export default function visualViewportClamp({
   margin = VISUAL_VIEWPORT_CLAMP_MARGIN_PX,
   getExcludedRect,
+  counterScaled = true,
 }: {
   margin?: number;
   getExcludedRect?: () => DOMRect | null;
+  /**
+   * SNG-17: `true` (default) is Sign/Redact's own floating toolbar, which is
+   * held at a fixed physical size under pinch-zoom by a CSS counter-scale
+   * transform (see the file header) - its visible size is its layout size
+   * divided by `currentScale()`, anchored at the placement's transform-origin
+   * corner. An ordinary popover (e.g. FontPickerMenu's font list) carries no
+   * such transform: pass `false` so its visible size is simply its layout
+   * size, with no origin-corner adjustment (scale treated as 1).
+   */
+  counterScaled?: boolean;
 } = {}): Middleware {
   return {
     name: 'visualViewportClamp',
@@ -144,7 +155,7 @@ export default function visualViewportClamp({
       const deltaX = refViewportRect.left - rects.reference.x;
       const deltaY = refViewportRect.top - rects.reference.y;
 
-      const scale = currentScale();
+      const scale = counterScaled ? currentScale() : 1;
       const layoutWidth = rects.floating.width;
       const layoutHeight = rects.floating.height;
       const visibleWidth = layoutWidth / scale;
