@@ -34,7 +34,7 @@ where i chose another color already."
 
 ## Decisions (the lead's calls)
 
-- **Size and direction stay with the document.** They describe one form, not the person: the size is fitted
+- **Size and direction stay with the document** (the size part was reversed on 2026-09-26, see Reopened). They describe one form, not the person: the size is fitted
   to that form's cells (SIGN-32: "a new document does not inherit another document's size"), and the
   direction is the language it is filled in (SIGN-32 reopened: "not a browser-wide preference"). An
   app-wide size would stop a new form's first field from sizing itself, and an app-wide RTL would open
