@@ -1,3 +1,4 @@
+/// <reference types="@vercel/analytics" />
 /**
  * Anonymous maintenance telemetry boundary.
  *

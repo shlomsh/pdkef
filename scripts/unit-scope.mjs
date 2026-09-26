@@ -55,8 +55,9 @@ function isTestFile(f) {
 // This file is the oracle deciding what narrows for units - never trust a
 // narrowed run to validate the code that decided to narrow it, the same
 // reasoning scripts/affected-scope.mjs's ORACLE_FILES gives for itself. The
-// two scripts it computes the diff and the Nx scope with count too.
-export const ORACLE_FILES = new Set(['scripts/unit-scope.mjs', 'scripts/change-scope.mjs', 'scripts/affected-scope.mjs']);
+// two scripts it computes the diff and the Nx scope with count too, and so
+// does check-fast.mjs (ARCH-30), which decides the loop's base and typecheck.
+export const ORACLE_FILES = new Set(['scripts/unit-scope.mjs', 'scripts/change-scope.mjs', 'scripts/affected-scope.mjs', 'scripts/check-fast.mjs']);
 
 // The one pure, exported, unit-tested table every blind spot in the ARCH-28
 // inventory turned into a rule. `tests: 'all'` widens the whole push to the
