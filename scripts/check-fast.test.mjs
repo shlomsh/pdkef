@@ -21,6 +21,7 @@ describe('chooseTypecheck', () => {
     'package-lock.json',
     'src/content.config.ts',
     'scripts/check-fast.mjs',
+    'scripts/check-push.mjs',
   ])('runs astro check when %s changed', (file) => {
     expect(chooseTypecheck({ ...ok, files: ['src/lib/pdfRender.js', file] }).tool).toBe('astro');
   });

@@ -143,6 +143,20 @@ const MIN_CELL_WIDTH = 15;
  */
 const MIN_TICK_CELL_WIDTH = 6;
 const MIN_TICK_COLUMN_ROWS = 3;
+/**
+ * A vertical that does not span a whole band still counts as a column edge when it starts at the
+ * band's own floor rule and rises at least this fraction of the band's height: a tick rising from
+ * an underline to divide the writing strip above it, not a wall (FORM-26). Form 101's private-
+ * address row prints one ruled box with an inner underline; a person writes in the ~23pt band
+ * above it, and short ticks standing on the underline - not spanning the whole band - split that
+ * writing strip into street/number/city columns. Measured on the scored corpus (2026-09-26): those
+ * three ticks reach 0.330 of the 22.7pt band above the underline (rise 7.49pt), while the tallest
+ * floor-anchored noise in the same band - short decorative strokes under a caption, and the
+ * postcode comb's own teeth - reaches at most 0.239 (rise 5.43pt). 0.3 sits with margin above the
+ * noise and below the real ticks; both stray heights the band-spanning check already excludes stay
+ * excluded here too.
+ */
+const MIN_FLOOR_RISE_FRACTION = 0.3;
 /** The blank remainder (after any hugging label) must be at least this large. */
 const MIN_BLANK_WIDTH = 25;
 const MIN_BLANK_HEIGHT = 8;
@@ -263,8 +277,14 @@ function buildClosedCells(ink) {
       }
 
       const bandEdges = edges.filter((edge) => edge.y1 > bottom - BAND_TOLERANCE && edge.y0 < top + BAND_TOLERANCE);
+      // A column edge either spans the whole band (an ordinary ruled wall), or starts at the
+      // band's own floor and rises far enough into it to be a tick dividing the writing strip
+      // above an underline, rather than a wall - see MIN_FLOOR_RISE_FRACTION's doc comment.
+      const spansBand = (edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE;
+      const risesFromFloor = (edge) => edge.y0 <= bottom + BAND_TOLERANCE
+        && Math.min(edge.y1, top) - bottom >= MIN_FLOOR_RISE_FRACTION * height;
       const bandEdgeX = bandEdges
-        .filter((edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE)
+        .filter((edge) => spansBand(edge) || risesFromFloor(edge))
         .map((edge) => edge.x);
       const xs = distinctPositions(bandEdgeX, POS_TOLERANCE).sort((a, b) => a - b);
       // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
@@ -280,6 +300,22 @@ function buildClosedCells(ink) {
       // ambiguous.
       if (xs.length < 2) continue;
       const lone = xs.length === 2;
+      // The next rule down the page below this band's floor that actually crosses a column, if
+      // any. A floor-ticked column's caption is printed in the strip between the floor and this
+      // rule (FORM-26 part B, see `captionBelowFloor`). Scoped to the column's own x-range like
+      // every other rule lookup here: an unrelated box's rule a few points lower elsewhere on the
+      // page would otherwise close the strip over the caption.
+      const nextRuleBelow = (left, right) => rules.reduce(
+        (best, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
+          && (best === null || rule.y > best) ? rule.y : best),
+        null,
+      );
+      // Columns built for this band, collected before push so a floor-ticked group's own span
+      // (below) can be measured across only the columns it actually contains - not `xs`'s full
+      // width, which also carries whatever unrelated wall happens to bound the same band (this
+      // band's own top/bottom rules run the width of the page, so `xs` here reaches page margins
+      // far outside the address row's own box).
+      const bandCells = [];
 
       for (let j = 0; j < xs.length - 1; j += 1) {
         const left = xs[j];
@@ -297,13 +333,45 @@ function buildClosedCells(ink) {
 
         const leftCoverage = verticalCoverage(bandEdges, left, bottom, top);
         const rightCoverage = verticalCoverage(bandEdges, right, bottom, top);
-        if (leftCoverage < CLOSED_EDGE_COVERAGE || rightCoverage < CLOSED_EDGE_COVERAGE) continue;
+        // A floor tick is closed by construction - it is only ever partial-height, that is what
+        // makes it a tick rather than a wall - so it is exempt from the full-height coverage a
+        // spanning wall needs. `closure` still carries its real (lower) coverage number, so a
+        // tick-bounded cell is never mistaken for one closed by real walls on every side.
+        const isFloorTick = (x) => bandEdges.some(
+          (edge) => Math.abs(edge.x - x) <= POS_TOLERANCE && risesFromFloor(edge),
+        );
+        if ((leftCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(left))
+          || (rightCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(right))) continue;
 
         const closure = Math.min(topCoverage, bottomCoverage, leftCoverage, rightCoverage);
-        cells.push({
+        // This column is an underline field only when a wall's own coverage was actually too low
+        // to close it on the ordinary rule above, and it was let in *because* that wall is a floor
+        // tick (FORM-26 part A). Checking `isTick` alone is not enough: a real wall whose ink falls
+        // a point or two short of the band's own top (rounding, stroke width) still rises past
+        // `MIN_FLOOR_RISE_FRACTION` and would wrongly read as a tick despite already closing its
+        // side at full coverage - measured on irs-1040-2024, where two such near-full walls (a
+        // date line's separator, a line-item's own box) were misread as floor ticks and published
+        // as spurious one-line fields with a borrowed nearby number as their "caption". Tying the
+        // flag to the same coverage gate the exemption above just used keeps a wall a wall whenever
+        // its own coverage already qualifies it.
+        const floorTicked = (leftCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(left))
+          || (rightCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(right));
+        bandCells.push({
           left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
+          floorTicked, nextRuleY: floorTicked ? nextRuleBelow(left, right) : null,
         });
       }
+      // The floor-ticked group's own span: only the columns actually bounded by a tick, not the
+      // band's other columns or the coincidental page-wide walls `xs` also picked up (FORM-26 part
+      // A) - form 101's own row caption sits over one column of the group, not centred over it,
+      // so the group's writable height is read once across this span in `detectCellCandidates`.
+      const ticked = bandCells.filter((c) => c.floorTicked);
+      if (ticked.length > 0) {
+        const rowLeft = Math.min(...ticked.map((c) => c.left));
+        const rowRight = Math.max(...ticked.map((c) => c.right));
+        for (const c of ticked) { c.rowLeft = rowLeft; c.rowRight = rowRight; }
+      }
+      cells.push(...bandCells);
     }
   }
   return cells;
@@ -365,6 +433,42 @@ function headerAbove(cell, textItems) {
     const overlap = Math.min(item.x1, cell.right) - Math.max(item.x0, cell.left);
     const itemWidth = item.x1 - item.x0;
     if (itemWidth <= 0 || overlap / itemWidth < 0.5) continue; // must sit in this column
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = item;
+    }
+  }
+  return best;
+}
+
+/**
+ * A floor-ticked column's label: the caption printed *below* its floor rule, inside the column's
+ * own x-range - מיקוד / עיר/ישוב / מספר / רחוב/שכונה on form 101's private-address row, each
+ * printed under its own tick-divided column rather than above the band the way `headerAbove`
+ * looks (FORM-26 part B). `headerAbove` searches up to `HEADER_SEARCH_HEIGHT` above a cell, and
+ * from a floor-ticked column that reach sails past the row entirely and borrows an unrelated
+ * caption higher up the page (form 101's date-of-birth label, measured 2026-09-26) - a floor-ticked
+ * column never calls it.
+ *
+ * The search window is bounded below by the next rule under this column (`cell.nextRuleY`, computed
+ * per column in `buildClosedCells`) when there is one close by, and otherwise by
+ * `LONE_CAPTION_GAP` - reused rather than a fresh constant, since both ask the same question, "is
+ * this caption actually close to what it names": form 101's own gap (floor 582.71 to the row's
+ * outer bottom rule 575.79, 6.92pt) sits well inside it.
+ */
+function captionBelowFloor(cell, textItems) {
+  const limit = cell.nextRuleY !== null && cell.nextRuleY !== undefined
+    ? Math.max(cell.nextRuleY, cell.bottom - LONE_CAPTION_GAP)
+    : cell.bottom - LONE_CAPTION_GAP;
+  let best = null;
+  let bestGap = Infinity;
+  for (const item of textItems) {
+    if (!item.str || !item.str.trim()) continue;
+    const centerY = (item.y0 + item.y1) / 2;
+    if (centerY > cell.bottom + POS_TOLERANCE || centerY < limit) continue; // not in the strip below
+    const centerX = (item.x0 + item.x1) / 2;
+    if (centerX < cell.left - POS_TOLERANCE || centerX > cell.right + POS_TOLERANCE) continue; // not this column
+    const gap = cell.bottom - centerY;
     if (gap < bestGap) {
       bestGap = gap;
       best = item;
@@ -574,6 +678,57 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const resolved = [];
   for (const cell of closedCells) {
     const ownText = textInsideCell(cell, textItemsPoints);
+    if (cell.floorTicked) {
+      // The field is one written line standing on the floor rule, not the whole band above it
+      // (FORM-26 part A). Its height is whatever `writableArea`'s own 'band' carve gives the
+      // *row* - the same rule a normal caption-above-a-blank cell already carves by, read once
+      // across the row's whole span (`rowLeft`/`rowRight`) rather than per column, because form
+      // 101's own row caption ("כתובת פרטית") sits over one column only, not centred, yet the
+      // whole row's writable strip stops at the same height under it. Falling back to the band's
+      // own real top when nothing carves it - no invented ceiling either way.
+      const row = {
+        left: cell.rowLeft,
+        right: cell.rowRight,
+        bottom: cell.bottom,
+        top: cell.top,
+        width: cell.rowRight - cell.rowLeft,
+        height: cell.top - cell.bottom,
+      };
+      const rowOwnText = textInsideCell(row, textItemsPoints);
+      const rowWritable = writableArea(row, rowOwnText);
+      const carvedTop = rowWritable && rowWritable.carve === 'band' ? rowWritable.area.top : cell.top;
+      const field = {
+        left: cell.left,
+        right: cell.right,
+        bottom: cell.bottom,
+        top: Math.min(cell.top, carvedTop),
+      };
+      // Its label is the caption printed below the floor, in this column - never `headerAbove`,
+      // which searches upward and would borrow an unrelated caption higher up the page. No
+      // caption below means this is not a real field (FORM-26 part B): this is what keeps a
+      // column with no printed name - a stray floor-anchored tick pair, or a divider inside
+      // another field's own comb - from being published as one.
+      const caption = captionBelowFloor(cell, textItemsPoints);
+      if (!caption) continue;
+      const label = caption.str.trim();
+      const fieldOwnText = textInsideCell(field, textItemsPoints);
+      resolved.push({
+        bounds: toPagePercentBox(geometry, {
+          x0: field.left, y0: field.bottom, x1: field.right, y1: field.top,
+        }),
+        enclosureBounds: field.top === cell.top ? undefined : toPagePercentBox(geometry, {
+          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
+        }),
+        writableBounds: undefined,
+        cell,
+        kind: classifyKind(fieldOwnText, label),
+        label,
+        ownTextCount: fieldOwnText.length,
+        coverage: 0,
+        closure: cell.closure,
+      });
+      continue;
+    }
     if (cell.narrow) {
       // Too narrow to hold a label or a written answer, so the text tests below say nothing
       // about it: a tick cell is admitted by its column and disqualified by any text at all.

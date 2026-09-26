@@ -46,6 +46,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
 | SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
+| SIGN-36 | P1 | [SIGN-36](backlog/tasks/SIGN-36.md) · Every text box can be aligned, and the download matches what the screen shows |
 
 
 ## Editor module boundaries (architecture)
@@ -299,6 +300,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | ARCH-28 | P1 | [ARCH-28](backlog/tasks/ARCH-28.md) · Unit tests run by file impact, not by project: a core-folder change runs the tests that import it |
 | ARCH-29 | P1 | [ARCH-29](backlog/tasks/ARCH-29.md) · One local pre-push command runs exactly what CI would run for the diff |
 | ARCH-30 | P1 | [ARCH-30](backlog/tasks/ARCH-30.md) · A subagent's check:fast costs what its own edit touched, not what the branch has changed |
+| ARCH-31 | P1 | [ARCH-31](backlog/tasks/ARCH-31.md) · check:push stops testing what a change cannot reach: test-only diffs, the typecheck, another worktree's preview |
+| ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it |
 | QUAL-05 | P3 | [QUAL-05](backlog/tasks/QUAL-05.md) · Shard the product e2e across two CI jobs, the last fixed-cost cut before affected-only tests |
 | QUAL-06 | P2 | [QUAL-06](backlog/tasks/QUAL-06.md) · Shard the font guards: the font-guards job is the long pole on every run where it runs |
 | QUAL-07 | P3 | [QUAL-07](backlog/tasks/QUAL-07.md) · Skip the second product-e2e shard when the affected set is small enough for one |
@@ -386,6 +389,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FORM-23 | P2 | [FORM-23](backlog/tasks/FORM-23.md) · One typed vocabulary for field kinds and candidates |
 | FORM-24 | P3 | [FORM-24](backlog/tasks/FORM-24.md) · One home for the ink edge builders |
 | FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |
+| FORM-26 | P1 | [FORM-26](backlog/tasks/FORM-26.md) · Ticks rising from an underline divide a row into columns |
 | MOBI-11 | P2 | [MOBI-11](backlog/tasks/MOBI-11.md) · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling |
 | MOBI-33 | P3 | [MOBI-33](backlog/tasks/MOBI-33.md) · Decide whether Sign gets a review layer for the proposed field map, or stays hints-only |
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
