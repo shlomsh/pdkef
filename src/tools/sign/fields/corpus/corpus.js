@@ -12,6 +12,11 @@
  * that must NOT be detected.
  */
 
+import { expect } from 'vitest';
+
+/** A page-percent value asserted to a hundredth, for a row that pins a derived box. */
+const near = (value) => expect.closeTo(value, 2);
+
 /** The rectangle most single-element cases use: a wide field, upper left. */
 const FIELD = { x: 40, y: 200, width: 200, height: 20 };
 /** A checkbox-sized square, inside `formGrid.js`'s 4-16pt band. */
@@ -155,6 +160,53 @@ const PRINTED = [
     doc: { ink: [{ ink: 'combTeeth', x: 40, y: 200, pitch: 14, cells: 9 }] },
     expect: { ...none, combs: 1 },
     comb: { cells: 9, boxed: false },
+  },
+  // The two rows below give an open comb its field's height (FORM-27). Page 400x300, so a percent
+  // is 4pt across and 3pt down; `writable` is asserted to a hundredth of a percent.
+  {
+    name: 'comb teeth standing in a ruled table column',
+    why: "FORM-27: form 101's children table. 7.5pt teeth rise 0.357 of a 21pt row, past FORM-26's "
+      + 'MIN_FLOOR_RISE_FRACTION, so read as floor ticks they cut the column into uncaptioned slivers '
+      + 'and the comb lost its cell. Ticks that divide a column into no captioned field leave the '
+      + 'ruled column standing, and the comb takes it as `writable` (the fill frame and the digits '
+      + 'follow it); the empty column beside it stays a cell of its own.',
+    doc: {
+      ink: [
+        { ink: 'cellRow', x: 40, y: 201, width: 240, height: 21, columns: 2 },
+        { ink: 'combTeeth', x: 160, y: 201, pitch: 120 / 9, cells: 9, toothHeight: 7.5 },
+      ],
+    },
+    expect: { ...none, combs: 1, cells: 1 },
+    comb: {
+      cells: 9,
+      boxed: false,
+      writable: { left: near(40), top: near(26), width: near(30), height: near(7) },
+    },
+  },
+  {
+    name: 'comb teeth beside a title on the same line',
+    why: "FORM-27: form 101's tax year. No cell encloses the teeth, so the title printed beside them, "
+      + 'on their line, says how tall the field is: `writable` runs from the title\'s top down to '
+      + 'the comb\'s rule.',
+    doc: { ink: [{ ink: 'combTeeth', x: 40, y: 200, pitch: 14, cells: 4 }] },
+    // A 14pt title 4pt right of the comb (x 100-160, y 197-211), overlapping the 6pt teeth.
+    text: [{ str: 'Tax year', left: 25, top: 89 / 3, width: 15, height: 14 / 3 }],
+    expect: { ...none, combs: 1 },
+    comb: {
+      cells: 4,
+      boxed: false,
+      writable: { left: near(10), top: near(89 / 3), width: near(14), height: near(11 / 3) },
+    },
+  },
+  {
+    name: 'comb teeth under a line of text that ends above them',
+    why: 'FORM-27: a caption on the line above does not share the teeth\'s line, so it lends no '
+      + 'height; the comb keeps no `writable`, as before.',
+    doc: { ink: [{ ink: 'combTeeth', x: 40, y: 200, pitch: 14, cells: 4 }] },
+    // x 100-160, y 208-222: its bottom is 2pt above the teeth's top (206).
+    text: [{ str: 'Tax year', left: 25, top: 26, width: 15, height: 14 / 3 }],
+    expect: { ...none, combs: 1 },
+    comb: expect.not.objectContaining({ writable: expect.anything() }),
   },
   {
     name: 'a run of closed comb boxes',
