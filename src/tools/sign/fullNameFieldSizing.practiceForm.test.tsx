@@ -13,17 +13,23 @@ import { describe, expect, it, vi } from 'vitest';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import type { FormFieldRegions } from './useFormFieldRegions.ts';
 import { placeTextOnField } from '../../editor/text/combPlacement.ts';
-import { DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT, TEXT_BOX_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
+import { DEFAULT_FONT_FAMILY, TEXT_BOX_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 
 /**
- * SNG-10 follow-up: a tap on the practice form's detected "Full name" box
- * (a lone, caption-less cell, 22pt tall - `formCells.js`'s new lone-box rule
- * is what makes it detectable at all) used to hand a fresh session's 12pt
- * remembered font straight through, because `cellFontSize` only ever shrunk
- * a size that overflowed the field, never grew one that under-filled it. The
- * owner's report: the placeholder rendered at "roughly a third of the box
- * height", and on a phone the new box sat as a thin strip in the field's
- * middle.
+ * SNG-10 follow-up, generalized under SIGN-32: a tap on the practice form's
+ * detected "Full name" box (a lone, caption-less cell, 22pt tall -
+ * `formCells.js`'s new lone-box rule is what makes it detectable at all) used
+ * to hand a fresh session's 12pt remembered font straight through, because
+ * the sizing function only ever shrunk a size that overflowed the field,
+ * never grew one that under-filled it. The owner's report: the placeholder
+ * rendered at "roughly a third of the box height", and on a phone the new box
+ * sat as a thin strip in the field's middle.
+ *
+ * Today the fix is stated as SIGN-32's carried-size rule: a document with no
+ * carried size yet takes one from the first field that needs it, seeded from
+ * that field's own height - this is that seeding, on a document with nothing
+ * carried (`carriedFontSize: null`). `carriedFontSize.practiceForm.test.tsx`
+ * carries this same real geometry on through the rest of the form.
  *
  * This drives the real hook against the real practice form (same product
  * path as `useFormFieldRegions.practiceForm.test.tsx`), then feeds the
@@ -105,7 +111,9 @@ describe('Full name field sizing on the SNG-10 practice form (product path)', ()
       const placement = placeTextOnField(
         { kind: 'cell', region: fullName! },
         {
-          fontSize: DEFAULT_FONT_SIZE_PT,
+          // A document with nothing carried yet: this is the seeding case,
+          // not the ordinary shrink-only fit (SIGN-32).
+          carriedFontSize: null,
           fontFamily: DEFAULT_FONT_FAMILY,
           pageWidthPoints,
           pageHeightPoints,
@@ -113,11 +121,12 @@ describe('Full name field sizing on the SNG-10 practice form (product path)', ()
       );
       const fontSize = (placement as { fontSize: number }).fontSize;
 
-      // A fresh 12pt default no longer passes straight through: it grows
-      // toward the field's own fill target. The intended range from the
-      // task brief - roughly 60-70% of the field, capped 12-14pt - resolves
-      // to exactly 14pt on this 22pt field (FIELD_FONT_MAX_PT caps it before
-      // the ratio would carry it past 14).
+      // Seeded, not passed straight through: it grows toward the field's own
+      // fill target. The intended range from the task brief - roughly
+      // 60-70% of the field, capped 12-14pt - resolves to exactly 14pt on
+      // this 22pt field (FIELD_FONT_MAX_PT caps it before the ratio would
+      // carry it past 14). This computed size, uncorrected, becomes the
+      // carried size for the rest of the document.
       expect(fontSize).toBeGreaterThanOrEqual(12);
       expect(fontSize).toBeLessThanOrEqual(14);
 

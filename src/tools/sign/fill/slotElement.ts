@@ -13,81 +13,74 @@
  * makes the same point about its first two callers.
  */
 import { getElementDefinition } from '../../../editor/registry/index.ts';
-import { placeTextOnField } from '../../../editor/text/combPlacement.ts';
+import { fieldFontSize, placeTextOnField } from '../../../editor/text/combPlacement.ts';
+import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
+import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import type { TextDirection, TextElement } from '../../../editor/model/editorModel.ts';
-import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
+import { DEFAULT_FONT_FAMILY, DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
 import type { FillSlot } from './fillTypes.ts';
 
 /**
- * The creation defaults a `FillSlot` does not itself carry - the same
- * remembered settings `handlePageClick`/`goTo` seed a fresh box with,
- * resolved once by the caller so building the element stays a pure function
- * of its three arguments rather than this module reaching into app state.
+ * What a `FillSlot` does not itself carry, resolved by the caller so building
+ * the element stays a pure function of its three arguments: the same inputs
+ * `handlePageClick` places a tap with (SIGN-33's carried style).
  */
 export interface SlotElementBase {
   /** The new element's id (`createElementId()`). */
   id: string;
+  /** The colour a tap would place with (the carried colour, or the tool default). */
   color: string;
-  fontFamily: string;
-  fontSize: number;
-  /**
-   * Resolved by the caller exactly as `goTo`/`handlePageClick` resolve it
-   * before ever reaching `create()`: a field slot takes the form's own
-   * printed direction, a free slot the product's remembered one. Null lets
-   * export auto-detect from the typed text, the same as any other free box.
-   */
-  direction: TextDirection | null;
-  /** The page's size in PDF points. Only a field slot's comb/cell fit uses
-   * them - see `placeTextOnField`; a free slot ignores both. */
+  /** The document's carried style. */
+  carried: Partial<DocumentStyle>;
+  /** The page's printed direction, for a field slot when the document carries none. */
+  pageDirection: TextDirection | null;
+  /** The page's size in PDF points, for a field slot's comb/cell fit. */
   pageWidthPoints: number;
   pageHeightPoints: number;
 }
 
 /**
- * The TextElement `slot` becomes once left with `text` in it.
- *
- * A field slot places through `placeTextOnField` exactly as `goTo` and
- * `handlePageClick` do, so its span becomes `width` (with `combCells`) for a
- * comb or `minWidth` for a cell - the two are mutually exclusive, never both,
- * see that module's own docstring - decided here from the field's own
- * `kind`, never by re-deriving it from the slot's already-merged display
- * box. A free slot has no field to place on, so - exactly like
- * `handlePageClick`'s own unsnapped branch - nothing is layered over
- * `create()`'s plain, intrinsically sized box; its position is the slot's
- * own resting box, the only place a free slot's geometry survives once the
- * tap that opened it is gone, so the element lands exactly where the slot
- * the person was just looking at sat, with no jump on commit.
+ * The TextElement `slot` becomes once left with `text` in it: exactly what
+ * `handlePageClick` places for a tap on the same spot. A field slot snaps
+ * through `placeTextOnField` (a comb's `width` and `combCells`, a cell's
+ * `minWidth`) and takes the carried direction, else the page's printed one.
+ * A free slot keeps `create()`'s plain box at the slot's own resting spot,
+ * so nothing jumps on commit. Both take the carried alignment, weight and
+ * style (`carriedTextStyle`).
  */
 export function elementForSlot(slot: FillSlot, text: string, base: SlotElementBase): TextElement {
   const create = getElementDefinition('text').creation.create;
   if (!create) throw new Error('the text element definition has no create()');
 
+  const { carried } = base;
+  const fontFamily = carried.font ?? DEFAULT_FONT_FAMILY;
+  const carriedFontSize = carried.fontSize ?? null;
+  const snapped = slot.field
+    ? placeTextOnField(slot.field, {
+      carriedFontSize,
+      fontFamily,
+      pageWidthPoints: base.pageWidthPoints,
+      pageHeightPoints: base.pageHeightPoints,
+    })
+    : null;
+  const point = slot.field
+    ? { left: slot.field.region.left, top: slot.field.region.top }
+    : { left: slot.placement.box.left, top: slot.placement.box.top };
+
   // whiteoutColor/strokeWidth are dead weight for a text element (text.ts's
-  // create() never reads them) but CreateContext still requires them, the
-  // same way goTo hardcodes them rather than threading them through options
-  // nobody placing text ever needs.
-  const context = {
+  // create() never reads them), but CreateContext requires them.
+  const placed = create({
     id: base.id,
     pageIndex: slot.pageIndex,
+    point,
     color: base.color,
     whiteoutColor: '#ffffff',
     strokeWidth: DEFAULT_STROKE_WIDTH,
-    font: base.fontFamily,
-    fontSize: base.fontSize,
-    direction: base.direction,
-  };
-
-  if (slot.field) {
-    const placed = create({ ...context, point: { left: slot.field.region.left, top: slot.field.region.top } });
-    const snapped = placeTextOnField(slot.field, {
-      fontSize: base.fontSize,
-      fontFamily: base.fontFamily,
-      pageWidthPoints: base.pageWidthPoints,
-      pageHeightPoints: base.pageHeightPoints,
-    });
-    return { ...placed, ...snapped, text };
-  }
-
-  const placed = create({ ...context, point: { left: slot.placement.box.left, top: slot.placement.box.top } });
-  return { ...placed, text };
+    font: fontFamily,
+    fontSize: snapped ? snapped.fontSize : fieldFontSize(carriedFontSize),
+    direction: carried.direction ?? null,
+  });
+  const element: TextElement = { ...placed, ...(snapped ?? {}), text, ...carriedTextStyle(carried) };
+  if (slot.field) element.textDirection = carried.direction ?? base.pageDirection ?? 'ltr';
+  return element;
 }

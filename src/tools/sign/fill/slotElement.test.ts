@@ -3,6 +3,7 @@ import { elementForSlot, type SlotElementBase } from './slotElement.ts';
 import { detectedSlots, freeSlot, placementForField, placementForFree } from './fillSlots.ts';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { carriedTextStyle } from '../../../editor/model/elementDefaults.ts';
 import { DEFAULT_STROKE_WIDTH } from '../../../constants/signGeometry.js';
 
 // A4 in PDF points, matching combPlacement.test.ts and fieldOrder.test.ts.
@@ -12,34 +13,41 @@ const PAGE_HEIGHT = 841.89;
 const base: SlotElementBase = {
   id: 'el-fresh',
   color: '#1463ff',
-  fontFamily: 'Arimo',
-  fontSize: 12,
-  direction: 'rtl',
+  carried: { font: 'Arimo', fontSize: 12 },
+  pageDirection: 'rtl',
   pageWidthPoints: PAGE_WIDTH,
   pageHeightPoints: PAGE_HEIGHT,
 };
-const page = { fontSize: base.fontSize, fontFamily: base.fontFamily, pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT };
+const page = { carriedFontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT };
 
 /**
- * What production's own two-step recipe builds for the same field -
- * `useFieldNavigation.ts`'s `goTo`, reproduced directly rather than imported,
- * since `goTo` also dispatches and scrolls and is not a pure function. This
- * is the reference `elementForSlot` has to match exactly.
+ * What production's own tap on the same field builds - `useWorkspaceGestures.ts`'s
+ * `handlePageClick`, reproduced directly rather than called, since it also
+ * dispatches and announces. This is the reference `elementForSlot` has to match.
  */
-function productionElement(field: TypableField) {
+function productionElement(field: TypableField, slotBase: SlotElementBase = base) {
+  const { carried } = slotBase;
   const create = getElementDefinition('text').creation.create!;
+  const fontFamily = carried.font ?? 'Arimo';
+  const snapped = placeTextOnField(field, {
+    carriedFontSize: carried.fontSize ?? null,
+    fontFamily,
+    pageWidthPoints: PAGE_WIDTH,
+    pageHeightPoints: PAGE_HEIGHT,
+  });
   const newEl = create({
-    id: base.id,
+    id: slotBase.id,
     pageIndex: field.region.pageIndex,
     point: { left: field.region.left, top: field.region.top },
-    color: base.color,
+    color: slotBase.color,
     whiteoutColor: '#ffffff',
     strokeWidth: DEFAULT_STROKE_WIDTH,
-    font: base.fontFamily,
-    fontSize: base.fontSize,
-    direction: base.direction,
+    font: fontFamily,
+    fontSize: snapped.fontSize,
+    direction: carried.direction ?? null,
   });
-  const snapped = placeTextOnField(field, page);
+  newEl.textDirection = carried.direction ?? slotBase.pageDirection ?? 'ltr';
+  Object.assign(newEl, carriedTextStyle(carried));
   return { ...newEl, ...snapped };
 }
 
@@ -88,17 +96,54 @@ describe('elementForSlot', () => {
     expect(element).not.toHaveProperty('minWidth');
     expect(element).not.toHaveProperty('combCells');
     expect(element.text).toBe('hello');
-    expect(element.fontSize).toBe(base.fontSize);
-    expect(element.fontFamily).toBe(base.fontFamily);
+    expect(element.fontSize).toBe(12);
+    expect(element.fontFamily).toBe('Arimo');
     expect(element.color).toBe(base.color);
   });
 
-  it('carries a resolved direction onto the element, and omits it when null, same as create()', () => {
+  it("gives a field slot the page's printed direction while the document carries none", () => {
     const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
     const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
 
-    expect(elementForSlot(slot, 'x', { ...base, direction: 'ltr' }).textDirection).toBe('ltr');
-    expect(elementForSlot(slot, 'x', { ...base, direction: null }).textDirection).toBeUndefined();
+    expect(elementForSlot(slot, 'x', { ...base, pageDirection: 'ltr' }).textDirection).toBe('ltr');
+    expect(elementForSlot(slot, 'x', { ...base, pageDirection: 'rtl' }).textDirection).toBe('rtl');
+    expect(elementForSlot(slot, 'x', { ...base, pageDirection: null }).textDirection).toBe('ltr');
+  });
+
+  it("lets the document's carried direction win over the page's, as a tap does", () => {
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+    const slotBase = { ...base, carried: { ...base.carried, direction: 'rtl' as const }, pageDirection: 'ltr' as const };
+
+    expect(elementForSlot(slot, 'x', slotBase).textDirection).toBe('rtl');
+  });
+
+  it("takes the document's carried alignment, weight and style", () => {
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, page))[0];
+    const slotBase = { ...base, carried: { ...base.carried, bold: true, italic: true, textAlign: 'center' as const } };
+
+    const element = elementForSlot(slot, 'x', slotBase);
+
+    expect(element.fontWeight).toBe('bold');
+    expect(element.fontStyle).toBe('italic');
+    expect(element.textAlign).toBe('center');
+    expect(element).toEqual({ ...productionElement(field, slotBase), text: 'x' });
+  });
+
+  it('seeds its size from the field, like a tap, while the document carries no size', () => {
+    const field: TypableField = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 10, width: 20, height: 2 } };
+    const slot = detectedSlots([field], [], (f) => placementForField(f, { ...page, carriedFontSize: null }))[0];
+    const slotBase = { ...base, carried: { font: 'Arimo' } };
+
+    const element = elementForSlot(slot, 'x', slotBase);
+
+    expect(element.fontSize).toBe(placeTextOnField(field, {
+      carriedFontSize: null,
+      fontFamily: 'Arimo',
+      pageWidthPoints: PAGE_WIDTH,
+      pageHeightPoints: PAGE_HEIGHT,
+    }).fontSize);
   });
 
   it('gives each call the requested id and a fresh, empty-text-free element otherwise identical in shape', () => {

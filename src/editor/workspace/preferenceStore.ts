@@ -11,9 +11,14 @@ export interface EditorPreferences {
   penThickness: number;
   lastColor: string;
   lastWhiteoutColor: string;
-  lastFont: string;
-  lastFontSize: number;
-  lastDirection: string;
+  // lastFont/lastFontSize/lastDirection left this browser-wide preference
+  // store under SIGN-32: a document's font, size and direction are carried
+  // with its own draft (SignToolState.carried, a Partial<DocumentStyle>
+  // round-tripped through useEditorDraftPersistence's `extra.carried` -
+  // SIGN-33 folded the three separate fields into it), not a cross-document
+  // browser setting - a document filled in Hebrew must never set the
+  // direction of the next, unrelated document. Checked before removal: no
+  // other consumer (Redact never read any of the three keys).
   lastSymbolWidth: number;
   lastSymbolMark: 'check' | 'x' | 'dot';
   lastSignatureWidth: number;
@@ -32,8 +37,7 @@ export const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
 const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   penColor: 'pdf-toolkit:penColor', penThickness: 'pdf-toolkit:penThickness',
   lastColor: 'pdf-toolkit:lastColor', lastWhiteoutColor: 'pdf-toolkit:lastWhiteoutColor',
-  lastFont: 'pdf-toolkit:lastFont', lastFontSize: 'pdf-toolkit:lastFontSize',
-  lastDirection: 'pdf-toolkit:lastDirection', lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
+  lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
   lastSymbolMark: 'pdf-toolkit:lastSymbolMark', lastSignatureWidth: 'pdf-toolkit:lastSignatureWidth',
   dateFormat: 'pdf-toolkit:dateFormat',
 };
@@ -98,19 +102,19 @@ function readSavedSignatures(value: unknown): SavedSignature[] | null {
 
 const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPreferences[K] | null } = {
   penColor: readString, penThickness: readPositiveNumber, lastColor: readString,
-  lastWhiteoutColor: readString, lastFont: readString, lastFontSize: readPositiveNumber,
-  lastDirection: readString, lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
+  lastWhiteoutColor: readString,
+  lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
   lastSignatureWidth: readPositiveNumber, dateFormat: readString,
 };
 const LEGACY_WRITERS: { [K in EditorPreferenceKey]: (value: EditorPreferences[K]) => string } = {
   penColor: String, penThickness: String, lastColor: String, lastWhiteoutColor: String,
-  lastFont: String, lastFontSize: String, lastDirection: String, lastSymbolWidth: String,
+  lastSymbolWidth: String,
   lastSymbolMark: String, lastSignatureWidth: String, dateFormat: String,
 };
 
 function isPreferenceValue<K extends EditorPreferenceKey>(key: K, value: unknown): value is EditorPreferences[K] {
   switch (key) {
-    case 'lastFontSize': case 'penThickness': case 'lastSymbolWidth': case 'lastSignatureWidth':
+    case 'penThickness': case 'lastSymbolWidth': case 'lastSignatureWidth':
       return typeof value === 'number' && Number.isFinite(value) && value > 0;
     case 'lastSymbolMark': return value === 'check' || value === 'x' || value === 'dot';
     default: return typeof value === 'string' && value.length > 0;

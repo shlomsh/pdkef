@@ -1,6 +1,8 @@
 import { createElementId } from '../../editor/model/ids.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
+import { carriedTextStyle } from '../../editor/model/elementDefaults.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { placeTextOnField } from '../../editor/text/combPlacement.ts';
@@ -18,7 +20,6 @@ import {
   DEFAULT_COLOR_BLUE,
   DEFAULT_STROKE_WIDTH,
   DEFAULT_FONT_FAMILY,
-  DEFAULT_FONT_SIZE_PT,
   PAGE_HEIGHT_DEFAULT_PTS,
   PAGE_WIDTH_DEFAULT_PTS,
 } from '../../constants/signGeometry.js';
@@ -39,7 +40,8 @@ import {
 type FieldNavigationAction =
   | { type: 'ADD_ELEMENT'; payload: EditorElement }
   | { type: 'SET_ACTIVE_ELEMENT_ID'; payload: string | null }
-  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null };
+  | { type: 'SET_EDITING_ELEMENT_ID'; payload: string | null }
+  | { type: 'SET_CARRIED'; payload: Partial<DocumentStyle> };
 
 export interface FieldNavigationOptions {
   elements: EditorElement[];
@@ -51,8 +53,10 @@ export interface FieldNavigationOptions {
   logAction: HistoryLogger<EditorElement>;
   setAnnouncement: (message: string) => void;
   initialColor?: string;
-  initialFont?: string;
-  initialFontSize?: number;
+  /** The document's carried style (SIGN-33); a key absent from it means the
+   * document has none yet - see useWorkspaceGestures.ts's identical prop for
+   * the tap path this mirrors. */
+  carried?: Partial<DocumentStyle>;
   pageSizes?: PageGeometry[];
   nextElementIndex?: number;
   /** LOC-16: same optional/English-default shape as useWorkspaceGestures.ts's `messages`. */
@@ -315,13 +319,17 @@ export default function useFieldNavigation({
   logAction,
   setAnnouncement,
   initialColor = DEFAULT_COLOR_BLUE,
-  initialFont = DEFAULT_FONT_FAMILY,
-  initialFontSize = DEFAULT_FONT_SIZE_PT,
+  carried = {},
   pageSizes = [],
   nextElementIndex = elements.length,
   messages,
 }: FieldNavigationOptions): FieldNavigation {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  // Unpacked once, locally, so the rest of this hook reads the same three
+  // names it always has - only `carried` (SIGN-33) is the prop now.
+  const carriedFont = carried.font ?? null;
+  const carriedFontSize = carried.fontSize ?? null;
+  const carriedDirection: TextDirection | null = carried.direction ?? null;
 
   const order = orderTypableFields(
     formRegions.combs,
@@ -354,13 +362,33 @@ export default function useFieldNavigation({
     const pageWidthPoints = pageGeometry?.width || PAGE_WIDTH_DEFAULT_PTS;
     const pageHeightPoints = pageGeometry?.height || PAGE_HEIGHT_DEFAULT_PTS;
     const id = createElementId();
-    // Seeded from the FORM's own printed direction, not the product's usual
-    // English/LTR default a free placement gets (PdfWorkspace.tsx) - a field
-    // reached by Next is sitting on one specific spot on a page whose own
-    // text already reads a given way, and getEffectiveTextDirection only
-    // honours this seed for a field-spanned box in the first place (see its
-    // own doc), so a free box elsewhere is never affected by it.
-    const direction = formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
+    // The document's carried direction (SIGN-32 reopened) wins once it has
+    // one, the same priority useWorkspaceGestures.ts's tap path gives it -
+    // see that hook's identical comment for why. Only a document with
+    // nothing carried yet falls back to the FORM's own printed direction, not
+    // the product's usual English/LTR default a free placement gets
+    // (PdfWorkspace.tsx): a field reached by Next is sitting on one specific
+    // spot on a page whose own text already reads a given way, and
+    // getEffectiveTextDirection only honours this seed for a field-spanned
+    // box in the first place (see its own doc), so a free box elsewhere is
+    // never affected by it.
+    const direction = carriedDirection ?? formRegions.pageDirections[field.region.pageIndex] ?? 'ltr';
+    // The size and family this element takes - the document's carried
+    // values, or (SIGN-32) seeded from this field's own height when the
+    // document has none yet; see useWorkspaceGestures.ts's identical
+    // resolution for the tap path this mirrors, and combPlacement.ts's
+    // fieldFontSize for the one function both read.
+    const resolvedFont = carriedFont ?? DEFAULT_FONT_FAMILY;
+    // A comb takes the run's span and cell count; a free-text cell takes its
+    // span as `minWidth` - see placeTextOnField's own docstring. Shared with
+    // the tap path so a field reached by Next looks exactly like one reached
+    // by tapping it (MOBI-04's placement, MOBI-32's font-fit).
+    const snapped = placeTextOnField(field, {
+      carriedFontSize,
+      fontFamily: resolvedFont,
+      pageWidthPoints,
+      pageHeightPoints,
+    });
     const newEl = definition.creation.create({
       id,
       pageIndex: field.region.pageIndex,
@@ -368,21 +396,19 @@ export default function useFieldNavigation({
       color: initialColor,
       whiteoutColor: '#ffffff',
       strokeWidth: DEFAULT_STROKE_WIDTH,
-      font: initialFont,
-      fontSize: initialFontSize,
+      font: resolvedFont,
+      fontSize: snapped.fontSize,
       direction,
     });
-    // A comb takes the run's span and cell count; a free-text cell takes its
-    // span as `minWidth` - see placeTextOnField's own docstring. Shared with
-    // the tap path so a field reached by Next looks exactly like one reached
-    // by tapping it (MOBI-04's placement, MOBI-... 's font-fit).
-    const snapped = placeTextOnField(field, {
-      fontSize: initialFontSize,
-      fontFamily: initialFont,
-      pageWidthPoints,
-      pageHeightPoints,
-    });
-    const placed = { ...newEl, ...snapped };
+    const placed = { ...newEl, ...snapped, ...(newEl.type === 'text' ? carriedTextStyle(carried) : {}) };
+
+    // Seeded only by an actual placement - `existing` above already returned
+    // for a field that already has a box, so reaching here always means one
+    // is about to be created.
+    const seed: Partial<DocumentStyle> = {};
+    if (carriedFont === null) seed.font = resolvedFont;
+    if (carriedFontSize === null) seed.fontSize = snapped.fontSize;
+    if (seed.font !== undefined || seed.fontSize !== undefined) dispatch({ type: 'SET_CARRIED', payload: seed });
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });

@@ -138,21 +138,30 @@
 }
 .launcher > .error { grid-column: 1 / -1; }
 
-/* Two rows reserved from first paint so real recents land in place; the
-   picker never shrinks; tiles scale with the row so two rows fit at
-   1280x720. */
-@media (min-width: 1024px) and (min-height: 561px) {
+/* Two rows reserved from first paint so real recents land in place, top
+   aligned with the picker right under them; the picker never shrinks and
+   always stays on screen. Tablets reserve the same two rows (MOBI-36). */
+@media (min-width: 768px) and (min-height: 561px) {
   .launcher {
     display: flex;
     flex-direction: column;
     height: 100%;
-    justify-content: flex-end;
+    justify-content: flex-start;
     /* Stretches the recents section to fill the cell's cross axis. */
     align-items: stretch;
+    /* A full tile's last text line would otherwise sit 16px off the picker. */
+    row-gap: 28px;
   }
   .launcher > [data-home-recents] {
-    flex: 0 1 376px;
-    min-height: 0;
+    /* On a short window this shrinks to one floored row and scrolls, so
+       the picker below stays visible; its height never depends on the count. */
+    flex: 0 1 calc(376px + 8px);
+    min-height: calc(var(--recent-row-floor) + 8px);
+    overflow-y: auto;
+    /* Room for the tiles' 4px focus ring inside the scroller (the 8px above),
+       cancelled by the margin so nothing moves. */
+    padding: 4px;
+    margin: -4px;
   }
   .launcher > .tile {
     flex: 0 0 auto;

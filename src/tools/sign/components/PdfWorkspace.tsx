@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS } from '../../../constants/signGeometry.js';
+import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY } from '../../../constants/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
@@ -15,7 +15,8 @@ import type { EditorElement, EditorElementPatch, TextElement } from '../../../ed
 import { createElementId } from '../../../editor/model/ids.ts';
 import { orderTypableFields } from '../../../editor/text/fieldOrder.ts';
 import { useSignTool } from './SignToolContext.tsx';
-import { useSignDefaults } from './SignDefaultsContext.tsx';
+import { carriedPatchFor } from '../../../editor/model/carriedPatch.ts';
+import type { DocumentStyle } from '../../../editor/model/documentStyle.ts';
 import { useSavedSignatures } from './SavedSignaturesContext.tsx';
 import SignToolbar from './SignToolbar.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
@@ -188,26 +189,18 @@ export default function PdfWorkspace({
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const placementGestureRef = useRef<(() => void) | null>(null);
   useEffect(() => () => placementGestureRef.current?.(), []);
-  const { state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory }, dispatch } = useSignTool();
-  useAutoFontProvisioning(elements);
   const {
-    lastColor, lastWhiteoutColor, lastFont, lastFontSize, lastThickness, lastSymbolWidth, lastSymbolMark, lastDateFormat,
-    rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat
-  } = useSignDefaults();
+    state: { selectedTool, elements, activeElementId, editingElementId, actionHistory, redoHistory, carried },
+    dispatch,
+  } = useSignTool();
+  useAutoFontProvisioning(elements);
   const { activeSignature } = useSavedSignatures();
   const activeElement = elements.find((el) => el.id === activeElementId);
   const activeTextElement = activeElement?.type === 'text' ? activeElement : null;
-  const initialFont = activeTextElement?.fontFamily || lastFont;
-  const initialFontSize = activeTextElement?.fontSize || lastFontSize;
   // One preflight projection feeds every export affordance. It is intentionally
   // derived here, where the top toolbar, bottom actions, and review navigation
   // meet, rather than recreated in each of those presentation components.
   const exportReadiness = useMemo(() => getSignExportReadiness(elements), [elements]);
-
-  // A fresh field starts from the product's English/LTR default. Direction is
-  // then derived from what is typed into that field; it must never inherit the
-  // language/direction of a selected or previously edited text element.
-  const initialTextDirection = 'ltr';
 
   // --- Gesture handlers (extracted) ---
   const { handlePageClick, handleOverlayPointerDown } = useWorkspaceGestures({
@@ -221,15 +214,21 @@ export default function PdfWorkspace({
     placeSignatureAt,
     logAction,
     setAnnouncement,
-    initialColor: activeTextElement?.color || lastColor,
-    initialWhiteoutColor: lastWhiteoutColor,
-    initialStrokeWidth: lastThickness,
-    initialFont,
-    initialFontSize,
-    initialDirection: initialTextDirection,
-    initialDateFormat: lastDateFormat,
-    initialSymbolWidth: lastSymbolWidth,
-    initialSymbolMark: lastSymbolMark,
+    initialColor: activeTextElement?.color || carried.color,
+    initialWhiteoutColor: carried.whiteoutColor,
+    initialStrokeWidth: carried.strokeWidth,
+    // The document's carried style (SIGN-33), never the currently selected
+    // element's own - a comb shrunk to fit its own cell must not leak that
+    // shrink into the next, unrelated placement. See useWorkspaceGestures.ts's
+    // fieldFontSize-backed resolution. A fresh document (`carried` missing a
+    // key) falls back to auto-detecting direction from what is typed (as
+    // before); once typing or an explicit toggle has set it, every field
+    // placed after takes it, the same "whatever it ends up in carries" rule
+    // every carried key follows.
+    carried,
+    initialDateFormat: carried.dateFormat,
+    initialSymbolWidth: carried.symbolWidth,
+    initialSymbolMark: carried.symbolMark,
     pageSizes,
     nextElementIndex: elements.length,
     gestureCancelRef: placementGestureRef,
@@ -237,8 +236,9 @@ export default function PdfWorkspace({
   });
 
   // --- Fill mode (SNG-15, docs/sign-fill-mode.md). Inert unless ?next=1. ---
-  // Slots take the remembered font, not the selected element's, so empty fields
-  // never re-layout as focus moves between filled ones; a commit uses the same.
+  // Slots take the document's carried font and size (SIGN-33), never the
+  // selected element's, so empty fields never re-layout as focus moves between
+  // filled ones; a commit places exactly what a tap would.
   const fill = useFill();
   const fillTool = fillToolOf(selectedTool);
   const pageSizeOf = useCallback(
@@ -257,10 +257,10 @@ export default function PdfWorkspace({
     order: fieldOrder,
     textElements: elements.filter((el): el is TextElement => el.type === 'text'),
     freeAt: fill.freeAt,
-    typography: { fontFamily: lastFont, fontSize: lastFontSize },
+    typography: { fontFamily: carried.font ?? DEFAULT_FONT_FAMILY, carriedFontSize: carried.fontSize ?? null },
     pageSizeOf,
     directionOfPage,
-  }) : []), [fill.enabled, fieldOrder, elements, fill.freeAt, lastFont, lastFontSize, pageSizeOf, directionOfPage]);
+  }) : []), [fill.enabled, fieldOrder, elements, fill.freeAt, carried.font, carried.fontSize, pageSizeOf, directionOfPage]);
   const fillPages = useMemo(() => fillItemsByPage(fillItems, numPages), [fillItems, numPages]);
   const reachTargetsByPage = useMemo(() => {
     const byPage = new Map<number, ReachTarget[]>();
@@ -274,22 +274,25 @@ export default function PdfWorkspace({
   const enterKeyHintOf = (key: string) => enterKeyHint(fillItemIndex(fillItems, key), fillItems.length);
 
   // A slot left with text in it becomes a text element: one ADD_ELEMENT, one undo
-  // step. Direction as handlePageClick resolves it: a field takes its page's
-  // printed direction, a free spot the product default.
+  // step, built from exactly what handlePageClick places a tap with. Like a tap,
+  // the first placement seeds the document's carried font and size.
   const commitSlot = useCallback((slot: FillSlot, text: string) => {
     const size = pageSizeOf(slot.pageIndex);
     const element = elementForSlot(slot, text, {
       id: createElementId(),
-      color: lastColor,
-      fontFamily: lastFont,
-      fontSize: lastFontSize,
-      direction: slot.field ? directionOfPage(slot.pageIndex) : initialTextDirection,
+      color: carried.color ?? DEFAULT_COLOR_BLUE,
+      carried,
+      pageDirection: directionOfPage(slot.pageIndex),
       pageWidthPoints: size.width,
       pageHeightPoints: size.height,
     });
+    const seed: Partial<DocumentStyle> = {};
+    if (carried.font === undefined) seed.font = element.fontFamily;
+    if (carried.fontSize === undefined) seed.fontSize = element.fontSize;
+    if (Object.keys(seed).length > 0) dispatch({ type: 'SET_CARRIED', payload: seed });
     dispatch({ type: 'ADD_ELEMENT', payload: element });
     logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
-  }, [pageSizeOf, lastColor, lastFont, lastFontSize, directionOfPage, dispatch, logAction, t, elements.length]);
+  }, [pageSizeOf, carried, directionOfPage, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
   // These are keyed on dispatch/remember* which are stable across renders, so
@@ -325,37 +328,16 @@ export default function PdfWorkspace({
       ? { ...fields, dateFormatId: undefined, dateValue: undefined }
       : fields;
     updateElement(id, patch);
-    if (fields.color) {
-      if (element?.type === 'whiteout') {
-        rememberWhiteoutColor(fields.color);
-      } else {
-        rememberColor(fields.color);
-      }
+    // SIGN-33: whatever the person sets on an element (colour, font, A-/A+ or
+    // a resize drag, direction, alignment, bold, italic, date format, symbol
+    // mark and size, line thickness, whiteout colour, signature width) becomes
+    // this document's carried style, so the next element starts in it. A
+    // placement's own fit-shrink never comes through here, so it never carries.
+    if (element) {
+      const carriedPatch = carriedPatchFor(element, fields, detectTextDirection);
+      if (Object.keys(carriedPatch).length > 0) dispatch({ type: 'SET_CARRIED', payload: carriedPatch });
     }
-    if ('fontFamily' in fields && fields.fontFamily) rememberFont(fields.fontFamily);
-    if ('fontSize' in fields && fields.fontSize) rememberFontSize(fields.fontSize);
-    if ('strokeWidth' in fields && fields.strokeWidth) rememberThickness(fields.strokeWidth);
-    // A resized symbol sets the size for the next one placed, so repeated marks
-    // (check, x, dot) don't have to be re-sized one by one.
-    if (element?.type === 'symbol' && 'width' in fields && fields.width !== undefined) rememberSymbolWidth?.(fields.width);
-    // A switched symbol mark (check/x/dot) sets the mark for the next one
-    // placed, so it doesn't silently reset to the check mark default.
-    if (element?.type === 'symbol' && 'mark' in fields && fields.mark !== undefined) rememberSymbolMark?.(fields.mark);
-    // A resized signature sets the size for the next one placed, so signing
-    // multiple fields on the same form doesn't require re-sizing every time.
-    if (element?.type === 'signature' && 'width' in fields && fields.width !== undefined) rememberSignatureWidth?.(fields.width);
-    if (element?.type === 'text') {
-      if ('textDirection' in fields && fields.textDirection) {
-        rememberDirection(fields.textDirection);
-      } else if ('text' in fields && fields.text !== undefined) {
-        const typedDirection = detectTextDirection(fields.text);
-        if (typedDirection) rememberDirection(typedDirection);
-      }
-      // A format switched on one date field (ElementToolbar's cycling control)
-      // sets the format for the next 'date' tool placement, same as font/color.
-      if ('dateFormatId' in fields && fields.dateFormatId) rememberDateFormat(fields.dateFormatId);
-    }
-  }, [updateElement, elements, rememberColor, rememberWhiteoutColor, rememberFont, rememberFontSize, rememberDirection, rememberThickness, rememberSymbolWidth, rememberSymbolMark, rememberSignatureWidth, rememberDateFormat]);
+  }, [updateElement, elements, dispatch]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
     e.stopPropagation();

@@ -11,16 +11,17 @@
  * no visible jump; `slotElement.ts` is the other half, the element a slot
  * with text in it becomes.
  */
-import { placeTextOnField, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { fieldFontSize, placeTextOnField, type TypableField } from '../../../editor/text/combPlacement.ts';
 import { elementIsOnField } from '../../../editor/text/fieldOrder.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { TEXT_BOX_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 import type { FillSlot, PagePoint, SlotPlacement } from './fillTypes.ts';
 
-/** The remembered settings a placement is built from - the page-percent math
- * needs points to convert from, the font fit needs a size and family to fit. */
+/** What a placement is built from: the document's carried size (SIGN-33, null
+ * until the first placement seeds it) and family, and the page's size in points
+ * for the page-percent math - exactly what `handlePageClick` places a tap with. */
 interface SlotPageContext {
-  fontSize: number;
+  carriedFontSize: number | null;
   fontFamily: string;
   pageWidthPoints: number;
   pageHeightPoints: number;
@@ -91,13 +92,15 @@ export function placementForFree(at: PagePoint, page: SlotPageContext): SlotPlac
     : 0;
   const leadPercent = page.pageWidthPoints > 0 ? (FREE_SLOT_LEAD_POINTS / page.pageWidthPoints) * 100 : 0;
   const left = Math.max(0, Math.min(at.x - leadPercent, 100 - widthPercent));
+  // A free tap's own size rule in handlePageClick: the carried size, or the default.
+  const fontSize = fieldFontSize(page.carriedFontSize);
   const heightPercent = page.pageHeightPoints > 0
-    ? (page.fontSize * TEXT_BOX_LINE_HEIGHT_EM / page.pageHeightPoints) * 100
+    ? (fontSize * TEXT_BOX_LINE_HEIGHT_EM / page.pageHeightPoints) * 100
     : 0;
   const top = Math.max(0, at.y - heightPercent / 2);
   return {
     box: { left, top, width: widthPercent, height: heightPercent },
-    fontSize: page.fontSize,
+    fontSize,
     fontFamily: page.fontFamily,
   };
 }

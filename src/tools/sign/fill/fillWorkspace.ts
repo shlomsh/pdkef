@@ -78,8 +78,8 @@ export function fillItemIndex(items: FillItem[], key: string): number {
  * What `documentFillItems` builds a document's fill items from:
  * `PdfWorkspace`'s own state (the detected fields in reading order, the
  * placed text elements, the open free slot) plus what a fresh slot's
- * placement needs - the remembered typography and each page's size in PDF
- * points.
+ * placement needs - the document's carried typography and each page's size
+ * in PDF points.
  */
 export interface DocumentFillInput {
   /** orderTypableFields' output: every detected comb and cell, in reading order. */
@@ -88,8 +88,9 @@ export interface DocumentFillInput {
   textElements: TextElement[];
   /** Where a tap opened the one free slot (FillContext.freeAt), or null. */
   freeAt: PagePoint | null;
-  /** The remembered font (lastFont, lastFontSize): slots never follow the selected element's. */
-  typography: { fontFamily: string; fontSize: number };
+  /** The document's carried font and size (SIGN-33; size null until the first
+   * placement seeds it): slots never follow the selected element's. */
+  typography: { fontFamily: string; carriedFontSize: number | null };
   /** A page's size in PDF points. */
   pageSizeOf: (pageIndex: number) => { width: number; height: number };
   directionOfPage: (pageIndex: number) => TextDirection;

@@ -65,6 +65,9 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
   for. Write the contract between the pieces first, give each agent disjoint files, and integrate and
   test each piece yourself as it lands. No fire-and-forget: read each agent's diff while it runs and stop
   one that drifts. A harder problem gets more subagents working in parallel, not more patience from one.
+- **Mechanical edits go to the `implementer` agent** (`.claude/agents/implementer.md`): named files,
+  one `check:fast`. Builds, previews and viewport sweeps run once in the lead or one verifier, starting
+  from 3-4 viewports; wall time tracks brief size, at about 8s per tool call plus reasoning.
 - **Review is a separate subagent with zero shared context.** Self-review confirms assumptions, it
   doesn't test them. The reviewer is spawned fresh, and every objection it raises must quote the exact
   line it applies to.
