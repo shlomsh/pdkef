@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { offset, flip, shift } from '@floating-ui/react';
 import Popover from '../shell/Popover.tsx';
 import styles from './EditorControls.module.css';
 import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
@@ -9,11 +10,20 @@ import visualViewportClamp, { getStickyToolShellRect } from './hooks/visualViewp
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
-// SNG-17: hoisted so the middleware array is not rebuilt every render (both
-// factories are pure, so one instance is fine to reuse across opens/closes).
+// SNG-17: hoisted so the middleware array is not rebuilt every render (every
+// factory here is pure, so one instance is fine to reuse across opens/closes).
+// The list opens beside the element (`right-start`, against the closest
+// `[data-editor-element]` via `anchorClosest`) so it never covers the text
+// being styled; `flip` swaps to the other side near a page edge; `shift` only
+// slides along that side (vertical for left/right placements, `crossAxis`) and
+// is never allowed to slide onto the element itself (`mainAxis: false`), so
+// the list can only fall back to below/above when neither side fits at all.
 // `counterScaled: false` because the font list carries no CSS counter-scale
 // transform, unlike Sign/Redact's own floating toolbar.
-const FONT_MENU_EXTRA_MIDDLEWARE = [
+const FONT_MENU_MIDDLEWARE = [
+  offset(8),
+  flip({ fallbackPlacements: ['left-start', 'bottom-start', 'top-start'], crossAxis: false }),
+  shift({ crossAxis: true, mainAxis: false, padding: 5 }),
   visualViewportClamp({ counterScaled: false, getExcludedRect: getStickyToolShellRect }),
 ];
 
@@ -146,13 +156,14 @@ export default function FontPickerMenu({
     <Popover
       open={open}
       onOpenChange={handleOpenChange}
-      // The font trigger sits at the toolbar's leading edge. Opening toward
-      // its end side and then clearing the 28px trigger keeps the picker away
-      // from the text below, so hovering can preview the actual element.
-      placement="bottom-end"
-      crossAxisOffset={-36}
-      stablePosition
-      extraMiddleware={FONT_MENU_EXTRA_MIDDLEWARE}
+      // SNG-17: anchored to the element being styled, not the toolbar, so it
+      // opens beside the element and never hides the text underneath it -
+      // opening under the toolbar could land the list over the element near
+      // a page edge, where `shift()` had nowhere else to push it. `flip`
+      // above swaps to the other side there instead.
+      anchorClosest="[data-editor-element]"
+      placement="right-start"
+      middleware={FONT_MENU_MIDDLEWARE}
       trigger={
         <button
           type="button"

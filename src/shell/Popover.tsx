@@ -1,5 +1,5 @@
 import { cloneElement } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useCallback } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import {
   useFloating,
@@ -34,7 +34,8 @@ export default function Popover({
   offset: offsetValue = 5,
   crossAxisOffset = 0,
   stablePosition = false,
-  extraMiddleware,
+  middleware,
+  anchorClosest,
 }: {
   trigger: any;
   content: any;
@@ -44,14 +45,20 @@ export default function Popover({
   offset?: number;
   crossAxisOffset?: number;
   stablePosition?: boolean;
-  /** SNG-17: middleware appended after `createPopoverMiddleware(...)`'s own
-   * list (e.g. `visualViewportClamp`). Passed in rather than imported here
-   * because `src/shell` must not import from `src/editor-ui` (module
-   * boundaries). */
-  extraMiddleware?: Middleware[];
+  /** SNG-17: a full middleware list that replaces `createPopoverMiddleware(...)`
+   * entirely when given - `offset`/`crossAxisOffset`/`stablePosition` are then
+   * unused. Passed in rather than composed here because `src/shell` must not
+   * import from `src/editor-ui` (module boundaries), so a caller that needs an
+   * editor-ui middleware (e.g. `visualViewportClamp`) builds its own list. */
+  middleware?: Middleware[];
+  /** SNG-17: positions the floating element against the trigger's closest
+   * ancestor matching this selector, instead of the trigger itself. Falls
+   * back to the trigger when no ancestor matches. Interactions (click,
+   * dismiss) still bind to the trigger; only the position reference moves. */
+  anchorClosest?: string;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
-  
+
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
   const setOpen = setControlledOpen !== undefined ? setControlledOpen : setUncontrolledOpen;
 
@@ -60,11 +67,20 @@ export default function Popover({
     onOpenChange: setOpen,
     placement,
     whileElementsMounted: autoUpdate,
-    middleware: [
-      ...createPopoverMiddleware(offsetValue, stablePosition, crossAxisOffset),
-      ...(extraMiddleware ?? []),
-    ]
+    middleware: middleware ?? createPopoverMiddleware(offsetValue, stablePosition, crossAxisOffset),
   });
+
+  const [triggerEl, setTriggerEl] = useState<Element | null>(null);
+  const setTriggerRef = useCallback((node: Element | null) => {
+    refs.setReference(node);
+    setTriggerEl(node);
+  }, [refs]);
+
+  useEffect(() => {
+    if (!anchorClosest || !triggerEl) return;
+    const anchor = triggerEl.closest(anchorClosest);
+    refs.setPositionReference(anchor ?? triggerEl);
+  }, [anchorClosest, triggerEl, refs]);
 
   const click = useClick(context);
   const dismiss = useDismiss(context);
@@ -96,7 +112,7 @@ export default function Popover({
           rather than running both. Passed the trigger's props, it composes them:
           the trigger's handler runs, then the open/close one. */}
       {cloneElement(trigger, {
-        ref: refs.setReference,
+        ref: setTriggerRef,
         ...getReferenceProps(trigger.props)
       })}
       
