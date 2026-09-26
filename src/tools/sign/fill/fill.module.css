@@ -54,20 +54,6 @@
   outline-offset: 2px;
 }
 
-/*
- * Exported for later use, not applied by this file: on a coarse pointer, the
- * main toolbar hides while a fill input has focus (docs/sign-fill-mode.md -
- * "a page can't add buttons to iOS's own bar"). A fine pointer keeps its
- * toolbar, since a desktop has no on-screen keyboard bar to compete with.
- * The toolbar itself opts into this class once it reads `filling` from
- * useFillFocus.ts.
- */
-@media (pointer: coarse) {
-  .toolbar-hidden-while-filling {
-    display: none;
-  }
-}
-
 /* FocusProxy.tsx: focused inside the touch handler so iOS raises the keyboard
    before the real slot exists (MOBI-24). 16px so iOS never zooms the page to
    focus it; fixed position, 1px and fully transparent so it is never seen. */

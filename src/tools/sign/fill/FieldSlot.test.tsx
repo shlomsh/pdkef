@@ -3,9 +3,11 @@ import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
+import type { TextElement } from '../../../editor/model/editorModel.ts';
 
 function fillSlot(overrides: Partial<FillSlot> = {}): FillSlot {
   return {
@@ -17,6 +19,25 @@ function fillSlot(overrides: Partial<FillSlot> = {}): FillSlot {
       fontSize: 12,
       fontFamily: 'Arimo',
     },
+    ...overrides,
+  };
+}
+
+/**
+ * The default test double for `elementOf`: a plain (non-comb) text element
+ * with no explicit direction, so `getEffectiveTextDirection` falls through
+ * to detecting the typed text and then to 'ltr' - matching what a fresh,
+ * undirected document gives a free slot in production (elementForSlot).
+ */
+function textElementOf(text: string, overrides: Partial<TextElement> = {}): TextElement {
+  return {
+    id: 'fill-slot-preview',
+    type: 'text',
+    pageIndex: 0,
+    left: 0,
+    top: 0,
+    text,
+    color: '#1463ff',
     ...overrides,
   };
 }
@@ -60,6 +81,7 @@ describe('FieldSlot component', () => {
         aimed={false}
         pageWidthPoints={600}
         label="First name"
+        elementOf={textElementOf}
         onEnter={() => {}}
         onCommit={() => {}}
       />
@@ -71,7 +93,9 @@ describe('FieldSlot component', () => {
     expect(input.matches(`[${FILL_INPUT_ATTR}]`)).toBe(true);
     expect(input.getAttribute(FILL_KEY_ATTR)).toBe('slot:0:5.00:10.00');
     expect(input.getAttribute('enterkeyhint')).toBe('next');
-    expect(input.getAttribute('dir')).toBe('auto');
+    // Not "auto": the slot's direction comes from getEffectiveTextDirection
+    // on the element it would become (elementOf), same as every text box.
+    expect(input.getAttribute('dir')).toBe('ltr');
     expect(input.getAttribute('aria-label')).toBe('First name');
     expect(input.getAttribute('autocomplete')).toBe('off');
     expect(input.getAttribute('autocorrect')).toBe('off');
@@ -85,6 +109,7 @@ describe('FieldSlot component', () => {
         aimed={false}
         pageWidthPoints={600}
         label="Signature date"
+        elementOf={textElementOf}
         onEnter={() => {}}
         onCommit={() => {}}
       />
@@ -103,6 +128,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={onEnter}
           onCommit={() => {}}
         />
@@ -127,6 +153,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={onEnter}
           onCommit={() => {}}
         />
@@ -151,6 +178,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={onEnter}
           onCommit={() => {}}
         />
@@ -174,6 +202,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={onEnter}
           onCommit={() => {}}
         />
@@ -198,6 +227,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={onCommit}
         />
@@ -222,6 +252,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={onCommit}
         />
@@ -244,6 +275,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={onCommit}
         />
@@ -270,6 +302,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={onCommit}
           onLeave={onLeave}
@@ -295,6 +328,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={onCommit}
           onLeave={onLeave}
@@ -323,6 +357,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -345,6 +380,7 @@ describe('FieldSlot component', () => {
           aimed={true}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -363,6 +399,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -385,6 +422,7 @@ describe('FieldSlot component', () => {
           aimed={false}
           pageWidthPoints={600}
           label="First name"
+          elementOf={textElementOf}
           onEnter={() => {}}
           onCommit={() => {}}
         />
@@ -395,6 +433,78 @@ describe('FieldSlot component', () => {
       expect(input.style.fontSize).toBe('16px');
       expect(input.style.fontWeight).toBe('normal');
       expect(input.style.fontStyle).toBe('normal');
+    });
+  });
+
+  describe('comb preview and direction (elementOf)', () => {
+    it('draws three live cells for a comb slot with "123" typed, and hides the input text', () => {
+      const combElementOf = (text: string) => textElementOf(text, { width: 40, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      act(() => {
+        input.value = '123';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      const cells = host.querySelectorAll(`.${elementStyles['text-comb-cell']}`);
+      expect(cells.length).toBe(3);
+      expect(Array.from(cells).map((cell) => cell.textContent)).toEqual(['1', '2', '3']);
+      expect(input.style.color).toBe('transparent');
+    });
+
+    it('starts an RTL page\'s empty field slot dir="rtl", and flips to "ltr" on typed Latin letters', () => {
+      const rtlElementOf = (text: string) => textElementOf(text, { textDirection: 'rtl' });
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={rtlElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      expect(input.getAttribute('dir')).toBe('rtl');
+
+      act(() => {
+        input.value = 'Shlomi';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      expect(input.getAttribute('dir')).toBe('ltr');
+    });
+
+    it('renders no comb cells for a non-comb slot', () => {
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={textElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+
+      expect(host.querySelectorAll(`.${elementStyles['text-comb-cell']}`).length).toBe(0);
+      expect(host.querySelector(`.${elementStyles['text-comb']}`)).toBeNull();
     });
   });
 });

@@ -99,6 +99,11 @@ describe('FillLayer component', () => {
     const closeFreeSlot = vi.fn();
     const onEnter = vi.fn();
     const onCommitSlot = vi.fn();
+    // A plain, non-comb text element with no explicit direction is enough
+    // for FillLayer's own tests: FieldSlot.test.tsx covers what elementOf
+    // actually drives (comb preview, direction).
+    const slotElementOf = (slot: FillSlot, text: string) =>
+      ({ id: 'fill-slot-preview', type: 'text', pageIndex: slot.pageIndex, left: 0, top: 0, text } as any);
     host = mountHost(
       <FillContext.Provider
         value={{
@@ -118,6 +123,7 @@ describe('FillLayer component', () => {
           renderText={() => <TextStub />}
           onEnter={onEnter}
           onCommitSlot={onCommitSlot}
+          slotElementOf={slotElementOf}
         />
       </FillContext.Provider>
     );

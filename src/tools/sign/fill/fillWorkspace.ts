@@ -128,18 +128,21 @@ export function fillReachTargets(
     const { pageIndex, left, top, width, height } = boxOfItem(item);
     return { kind: 'fill', key: item.key, pageIndex, box: { left, top, width, height } };
   };
+  const boxTarget = (region: FieldRegion): ReachTarget => ({
+    kind: 'box',
+    key: boxKey(region),
+    pageIndex: region.pageIndex,
+    box: { left: region.left, top: region.top, width: region.width, height: region.height },
+  });
   switch (tool) {
+    case 'none':
+      return [...items.map(fillTarget), ...checkboxes.map(boxTarget)];
     case 'text':
       return items.map(fillTarget);
     case 'date':
       return items.filter((item) => item.kind === 'slot' && item.slot.field !== null).map(fillTarget);
     case 'mark':
-      return checkboxes.map((region): ReachTarget => ({
-        kind: 'box',
-        key: boxKey(region),
-        pageIndex: region.pageIndex,
-        box: { left: region.left, top: region.top, width: region.width, height: region.height },
-      }));
+      return checkboxes.map(boxTarget);
     case 'other':
       return [];
   }

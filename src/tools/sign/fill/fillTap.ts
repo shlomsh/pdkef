@@ -11,9 +11,10 @@
 import type { SignToolType } from '../../../editor/model/editorModel.ts';
 import type { FillTapDecision, FillTool, PagePoint, ReachTarget } from './fillTypes.ts';
 
-/** The armed tool as fill mode sees it (fillTypes.ts, FillTool). No tool is Text. */
+/** The armed tool as fill mode sees it (fillTypes.ts, FillTool). No tool is 'none'. */
 export function fillToolOf(selectedTool: SignToolType | null): FillTool {
-  if (selectedTool === null || selectedTool === 'text') return 'text';
+  if (selectedTool === null) return 'none';
+  if (selectedTool === 'text') return 'text';
   if (selectedTool === 'date') return 'date';
   if (selectedTool === 'symbol') return 'mark';
   return 'other';
@@ -42,19 +43,23 @@ function centreOf(target: ReachTarget): PagePoint {
 
 /**
  * What a tap on the page does in fill mode, in the order docs/sign-fill-mode.md fixes:
- * a real input always wins, then the armed tool's own reach (Text focuses what it
- * reaches; Date and a mark are placed by production at its centre), then closing a typing
- * session, then opening a free slot for Text, and only then production's own tap path.
- * The order is the behaviour, so it stays a short list of guard clauses rather than a
- * lookup table.
+ * a real input always wins, then the armed tool's own reach (Text and None focus what
+ * they reach; Date and a mark are placed by production at its centre; None on a tick box
+ * runs production's own toggle, as if the mark tool were armed), then closing a typing
+ * session, then opening a free slot for Text or None, and only then production's own tap
+ * path. The order is the behaviour, so it stays a short list of guard clauses rather
+ * than a lookup table.
  */
 export function fillTapDecision(input: FillTapInput): FillTapDecision {
   const { onFillInput, typing, tool, reach, at } = input;
   if (onFillInput) return { type: 'native' };
-  if (tool === 'text' && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
+  if ((tool === 'text' || tool === 'none') && reach?.kind === 'fill') return { type: 'focus', key: reach.key };
   if (tool === 'date' && reach?.kind === 'fill') return { type: 'delegate', at: centreOf(reach) };
   if (tool === 'mark' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach) };
+  // Nothing armed, and the tap reached a detected tick box: run production's own
+  // checkbox toggle (handlePageClick) as if the symbol tool were armed.
+  if (tool === 'none' && reach?.kind === 'box') return { type: 'delegate', at: centreOf(reach), tool: 'symbol' };
   if (typing) return { type: 'dismiss' };
-  if (tool === 'text' && at) return { type: 'freeSlot', at };
+  if ((tool === 'text' || tool === 'none') && at) return { type: 'freeSlot', at };
   return at ? { type: 'delegate', at } : { type: 'delegate' };
 }
