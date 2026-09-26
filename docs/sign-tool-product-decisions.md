@@ -21,7 +21,8 @@ assumptions in older design proposals, not the evidence or history in those docu
    within one element are not required. This does not authorize rejecting existing multilingual
    source PDFs or silently altering pasted text. Ordinary punctuation must remain usable.
 5. **Undo must cover add and delete.** Maintain these operations reliably. Broader undo for edits,
-   moves, or styling is optional follow-up work, not a prerequisite for this scope.
+   moves, or styling was optional follow-up work here; UNDO-04 (2026-09-26) added it: moves,
+   resizes, style changes and text edits are undo steps too, one per gesture or edit session.
 6. **Processing works offline.** Once the app and its required assets are available locally, tools
    must work with the internet disconnected. No processing server is required. Network access for
    version updates must not be necessary to open, edit, or export a document.
