@@ -35,7 +35,9 @@ import {
   captureElementSnapshots,
   type HistoryLogger,
 } from '../../../editor/model/actionHistory.ts';
-import { englishSignMessages, formatMessage, signElementTypeLabel, type SignMessages } from '../../../i18n/toolMessages';
+import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
+import { uniqueId } from '../../../editor/model/ids.ts';
+import { englishSignMessages, formatMessage, signElementTypeLabel, signUpdateDescription, type SignMessages } from '../../../i18n/toolMessages';
 import pdfToolStyles from '../../../shell/PdfTool.module.css';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import formFieldHintStyles from './FormFieldHints.module.css';
@@ -311,13 +313,26 @@ export default function PdfWorkspace({
   }, [slotElementBase, style, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
-  // These are keyed on dispatch/remember* which are stable across renders, so
-  // useCallback gives us referential stability without the per-element closure
-  // allocation that was happening inside the .map() call.
+  // Hoisted so the map loop does not allocate a closure per element; several
+  // of these depend on `elements` and so change identity when it does.
 
+  // A new id per text edit session, so a session's typing is one Undo step.
+  const editSession = useMemo(() => uniqueId(), [editingElementId]);
+
+  // Every move, resize, style change and keystroke passes through here; one
+  // gesture commits once (src/lib/gestures/controller.ts), typing groups by
+  // edit session, pushCommand folds bursts.
   const updateElement = useCallback((id: string, changes: EditorElementPatch) => {
+    const element = elements.find((e) => e.id === id);
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
-  }, [dispatch]);
+    const entry = element && createUpdateEntry(
+      element,
+      changes as Partial<EditorElement>,
+      (kind) => signUpdateDescription(t, kind, element.type),
+      editingElementId === id ? editSession : undefined,
+    );
+    if (entry) dispatch({ type: 'ADD_ACTION_HISTORY', payload: entry });
+  }, [dispatch, elements, editingElementId, editSession, t]);
 
   const deleteElement = useCallback((id: string) => {
     const el = elements.find(e => e.id === id);

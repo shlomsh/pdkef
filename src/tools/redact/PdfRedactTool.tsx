@@ -34,6 +34,7 @@ import {
   revertCommands,
   type HistoryStack,
 } from '../../editor/model/historyStack.ts';
+import { createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
@@ -57,6 +58,17 @@ const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whit
 
 function isRedactHistoryElement(value: unknown): value is RedactHistoryElement {
   return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
+}
+
+/**
+ * Labels an update entry in the same voice as `Added ${type} box`. Redact has
+ * no text elements, so a `text` kind (which cannot occur here) falls back to
+ * the style label rather than going unhandled.
+ */
+function describeRedactUpdate(kind: ElementUpdateKind, type: string): string {
+  if (kind === 'move') return `Moved ${type} box`;
+  if (kind === 'resize') return `Resized ${type} box`;
+  return `Changed ${type} box color`;
 }
 
 type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
@@ -176,12 +188,12 @@ export default function PdfRedactTool() {
   // and never cleared on mouseleave for the same reason.
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
 
-  // Undo history mirrors the Sign tool's atomic add/delete commands (see
-  // actionHistory.ts, useHistoryShortcuts.js). Add
-  // commands remove their captured elements; delete and clear-page commands
-  // restore complete snapshots at their original stacking indexes. Edits
-  // (color, move, resize) remain deliberately outside this required undo
-  // slice.
+  // Undo history mirrors the Sign tool's atomic add/delete/update commands
+  // (see actionHistory.ts, useHistoryShortcuts.js). Add commands remove
+  // their captured elements; delete and clear-page commands restore complete
+  // snapshots at their original stacking indexes. Moves, resizes and colour
+  // changes are 'update' commands, logged at updateElement's one choke point
+  // (UNDO-04).
   //
   // `past`/`future` are src/editor/model/historyStack.ts's own shape, held as
   // one state value rather than two: `future` (newest-undone-first, in-memory
@@ -589,8 +601,11 @@ export default function PdfRedactTool() {
   };
 
   const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
+    const element = elements.find((el) => el.id === id);
     setElements(prev => prev.map(el => (el.id === id ? { ...el, ...changes } : el)));
     markDocumentEdited();
+    const entry = element && createUpdateEntry(element, changes, (kind) => describeRedactUpdate(kind, element.type));
+    if (entry) setHistory((current) => pushCommand(current.past, current.future, entry));
   };
 
   // Delete tool: clicking a highlighted object queues it for removal by

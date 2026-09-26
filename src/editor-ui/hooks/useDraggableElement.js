@@ -234,32 +234,39 @@ export default function useDraggableElement({
       isDragging.current = false;
       if (elementRef.current) elementRef.current.style.transform = 'none';
 
-      const wrapper = getPageWrapper();
-      const { x: dxPercent, y: dyPercent } = getDeltaPercent(
-        dragOffset.current.x,
-        dragOffset.current.y,
-        wrapper,
-        pageGeometry,
-      );
+      // UNDO-04: a touch that never left the tap slop is not a move - a
+      // couple of pixels of finger jitter must not commit a position, which
+      // would log a near-invisible "Moved" undo step and drop the redo
+      // stack. Skip only the onChange call; everything else in commit
+      // (transform reset, dragOffset reset, the onTap call below) still runs.
+      if (!tapCandidate.current) {
+        const wrapper = getPageWrapper();
+        const { x: dxPercent, y: dyPercent } = getDeltaPercent(
+          dragOffset.current.x,
+          dragOffset.current.y,
+          wrapper,
+          pageGeometry,
+        );
 
-      if (element.type === 'line') {
-        onChange({
-          x1: Math.max(0, Math.min(100, element.x1 + dxPercent)),
-          y1: Math.max(0, Math.min(100, element.y1 + dyPercent)),
-          x2: Math.max(0, Math.min(100, element.x2 + dxPercent)),
-          y2: Math.max(0, Math.min(100, element.y2 + dyPercent)),
-        });
-      } else {
-        let newLeft = dragStartPos.current.left + dxPercent;
-        let newTop = dragStartPos.current.top + dyPercent;
-
-        if (textAnchorsRightEdge(element)) {
-          newLeft = Math.max(widthPercent, Math.min(100, newLeft));
+        if (element.type === 'line') {
+          onChange({
+            x1: Math.max(0, Math.min(100, element.x1 + dxPercent)),
+            y1: Math.max(0, Math.min(100, element.y1 + dyPercent)),
+            x2: Math.max(0, Math.min(100, element.x2 + dxPercent)),
+            y2: Math.max(0, Math.min(100, element.y2 + dyPercent)),
+          });
         } else {
-          newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));
+          let newLeft = dragStartPos.current.left + dxPercent;
+          let newTop = dragStartPos.current.top + dyPercent;
+
+          if (textAnchorsRightEdge(element)) {
+            newLeft = Math.max(widthPercent, Math.min(100, newLeft));
+          } else {
+            newLeft = Math.max(0, Math.min(100 - widthPercent, newLeft));
+          }
+          newTop = Math.max(0, Math.min(100 - heightPercent, newTop));
+          onChange({ left: newLeft, top: newTop });
         }
-        newTop = Math.max(0, Math.min(100 - heightPercent, newTop));
-        onChange({ left: newLeft, top: newTop });
       }
 
       dragOffset.current = { x: 0, y: 0 };

@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DRAFT_SCHEMA_VERSION,
+  dropUnsafeUpdates,
+  isDraftElement,
   migrateDraftRecord,
   validateDraftElements,
   validateDraftRecord,
+  type DraftElement,
 } from './draftValidation.ts';
 
 const bytesOf = (length = 4) => new ArrayBuffer(length);
@@ -256,6 +259,46 @@ describe('validateDraftRecord', () => {
     expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a valid add and a valid update in order, dropping only a malformed update', () => {
+    const validAdd = {
+      id: 'history-1', type: 'ADD_TEXT', operation: 'add', pageIndex: 0,
+      description: 'Added text box', timestamp: 10, elements: [{ element: goodText, index: 0 }],
+    };
+    const validUpdate = {
+      id: 'history-2', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 20,
+      updates: [{ id: goodText.id, before: { left: 10 }, after: { left: 20 } }],
+    };
+    const malformedUpdate = {
+      id: 'history-3', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 30,
+      updates: [{ id: goodText.id, before: { left: 20, top: 5 }, after: { left: 30 } }],
+    };
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText],
+      extra: { actionHistory: [validAdd, validUpdate, malformedUpdate] },
+    };
+
+    const result = validateDraftRecord(record);
+    expect(result?.extra?.actionHistory).toEqual([validAdd, validUpdate]);
+  });
+
+  it('caps a 150-entry history at 100, keeping the newest-first head', () => {
+    const entries = Array.from({ length: 150 }, (_, i) => ({
+      id: `history-${i}`, type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: i,
+      updates: [{ id: goodText.id, before: { left: i }, after: { left: i + 1 } }],
+    }));
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText],
+      extra: { actionHistory: entries },
+    };
+
+    const result = validateDraftRecord(record);
+    expect(result?.extra?.actionHistory).toHaveLength(100);
+    expect(result?.extra?.actionHistory).toEqual(entries.slice(0, 100));
+  });
+
   it('validates persisted history snapshots and drops malformed commands', () => {
     const validHistory = {
       id: 'history-1',
@@ -279,5 +322,78 @@ describe('validateDraftRecord', () => {
     const result = validateDraftRecord(record);
     expect(result?.extra?.actionHistory).toEqual([validHistory]);
     expect(errorSpy).toHaveBeenCalledWith('draftValidation: dropped 1 invalid history command(s)');
+  });
+});
+
+describe('dropUnsafeUpdates', () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    errorSpy.mockRestore();
+  });
+
+  it('drops an update whose after would produce an unrecognized type, the rest surviving in order', () => {
+    // Newest-first: h3 (valid), h2 (corrupt after.type), h1 (valid, older).
+    const h3 = {
+      id: 'h3', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 30, updates: [{ id: goodText.id, before: { left: 20 }, after: { left: 30 } }],
+    };
+    const h2 = {
+      id: 'h2', type: 'CORRUPT', operation: 'update', pageIndex: 0,
+      description: 'Corrupt', timestamp: 20, updates: [{ id: goodText.id, before: { type: 'text' }, after: { type: 'bogus' } }],
+    };
+    const h1 = {
+      id: 'h1', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 10, updates: [{ id: goodText.id, before: { left: 10 }, after: { left: 20 } }],
+    };
+
+    const result = dropUnsafeUpdates([goodText] as DraftElement[], [h3, h2, h1] as any, isDraftElement);
+    expect(result).toEqual([h3, h1]);
+    expect(errorSpy).toHaveBeenCalledWith('draftValidation: dropped 1 update(s) that would corrupt an element');
+  });
+
+  it('keeps a valid update on an element a newer delete entry removed, restoring it first', () => {
+    const deleteEntry = {
+      id: 'd1', type: 'DELETE_ELEMENT', operation: 'delete', pageIndex: 0,
+      description: 'Deleted', timestamp: 20, elements: [{ element: goodText, index: 0 }],
+    };
+    const updateEntry = {
+      id: 'u1', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 10, updates: [{ id: goodText.id, before: { left: 5 }, after: { left: 10 } }],
+    };
+
+    // The live document has no elements: the delete really happened.
+    const result = dropUnsafeUpdates([], [deleteEntry, updateEntry] as any, isDraftElement);
+    expect(result).toEqual([deleteEntry, updateEntry]);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps an update whose element is absent everywhere, applying it would be a no-op', () => {
+    const updateEntry = {
+      id: 'u1', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 10, updates: [{ id: 'ghost', before: { type: 'bogus' }, after: { type: 'also-bogus' } }],
+    };
+
+    const result = dropUnsafeUpdates([], [updateEntry] as any, isDraftElement);
+    expect(result).toEqual([updateEntry]);
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns a fully valid history unchanged', () => {
+    const validAdd = {
+      id: 'history-1', type: 'ADD_TEXT', operation: 'add', pageIndex: 0,
+      description: 'Added text box', timestamp: 10, elements: [{ element: goodText, index: 0 }],
+    };
+    const validUpdate = {
+      id: 'history-2', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 20,
+      updates: [{ id: goodText.id, before: { left: 10 }, after: { left: 20 } }],
+    };
+
+    const result = dropUnsafeUpdates([goodText] as DraftElement[], [validUpdate, validAdd] as any, isDraftElement);
+    expect(result).toEqual([validUpdate, validAdd]);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });

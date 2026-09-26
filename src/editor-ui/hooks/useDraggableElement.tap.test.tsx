@@ -292,4 +292,53 @@ describe('useDraggableElement MOBI-21 tap detection (review fixes)', () => {
 
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  // UNDO-04: a touch that stays inside the tap slop is not a move, so it
+  // must not commit a position - that would log a near-invisible "Moved"
+  // undo step and drop the redo stack.
+  it('calls onTap and not onChange for a touch tap with ~3px of movement', () => {
+    const onTap = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onTap, onChange });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(303, 400)]); // dx = 3px, inside the 8px tolerance
+    dispatchTouchEnd(touch(303, 400));
+
+    expect(onTap).toHaveBeenCalledTimes(1);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  // UNDO-04: past the tap slop this is a real move, so it still commits,
+  // and it is never read as a tap.
+  it('calls onChange with the moved position for a touch drag past 8px, and not onTap', () => {
+    const onTap = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onTap, onChange });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    dispatchTouchMove([touch(320, 400)]); // dx = 20px > TAP_MOVEMENT_TOLERANCE_PX
+    dispatchTouchEnd(touch(320, 400));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // UNDO-04: a long-press within the slop is neither a tap (held too long)
+  // nor a move (never left the slop), so it commits nothing at all.
+  it('calls neither onChange nor onTap for a touch long-press within the slop', () => {
+    vi.useFakeTimers();
+    const onTap = vi.fn();
+    const onChange = vi.fn();
+    const { el } = mount({ onTap, onChange });
+
+    dispatchTouchStart(el, [touch(300, 400)]);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    dispatchTouchEnd(touch(300, 400));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onTap).not.toHaveBeenCalled();
+  });
 });
