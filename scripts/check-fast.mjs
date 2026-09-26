@@ -8,7 +8,8 @@
 //                  subagent the lead hands a task's starting commit tests its
 //                  own edit, not everything its branch has changed since main.
 //                  Without it the base is the merge-base with origin/main, as
-//                  before. An unresolvable ref fails open to the whole suite.
+//                  before. A ref that does not resolve, or is not an ancestor
+//                  of HEAD, fails open to the whole suite and astro check.
 //
 //   typecheck      `astro check` costs 18-21s whatever changed. `tsc --noEmit`
 //                  with an incremental cache costs 5s cold and 2s warm and
@@ -17,7 +18,7 @@
 //                  touches something only it can see (chooseTypecheck below).
 //                  check:push and CI keep `astro check`, whole branch.
 //
-// It ends with one summary line, so an agent never re-runs it to find out
+// It always ends with one PASS/FAIL summary line, so an agent never re-runs it to find out
 // whether it passed.
 //
 // Usage: npm run check:fast [-- --since <ref>]
@@ -104,6 +105,14 @@ function runTypecheck(tool) {
   return run('npx', ['tsc', '--noEmit', '-p', '.', '--incremental', '--tsBuildInfoFile', join(cacheDir, 'check-fast.tsbuildinfo')]);
 }
 
+// A --since ref that resolves but is not an ancestor of HEAD (a mis-copied
+// SHA, a rebase since the task started) would silently shrink the diff, so it
+// fails open like an unresolvable one.
+function sinceIsUsable(since) {
+  if (since === undefined) return true;
+  return spawnSync('git', ['merge-base', '--is-ancestor', since, 'HEAD'], { cwd: ROOT, stdio: 'ignore' }).status === 0;
+}
+
 function timed(fn) {
   const start = performance.now();
   const status = fn();
@@ -113,11 +122,11 @@ function timed(fn) {
 function main(argv) {
   const args = parseArgs(argv);
   if (args.error) {
-    console.error(`check:fast: ${args.error}`);
+    console.log(`check:fast FAIL: ${args.error}`);
     return 2;
   }
 
-  const base = resolveBase(args.since);
+  const base = sinceIsUsable(args.since) ? resolveBase(args.since) : null;
   const files = base ? changedFilesWithStatus(base) : null;
   const unitScope = files
     ? selectUnitTests({ files, exists: (p) => existsSync(join(ROOT, p)) })

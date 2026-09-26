@@ -112,7 +112,8 @@ different test set for the same diff.
 
 `npm run check:fast -- --since <ref>` tests what changed since `<ref>` (working tree plus untracked),
 not the whole branch: the lead passes each subagent the commit its task started from. Without
-`--since` the base is the merge-base with `origin/main`. Its typecheck is `tsc --noEmit` with an
+`--since` the base is the merge-base with `origin/main`; a ref that does not resolve or is not an
+ancestor of HEAD fails open to the whole suite and `astro check`. Its typecheck is `tsc --noEmit` with an
 incremental cache in `node_modules/.cache/` (5s cold, 2s warm), and `astro check` (18-21s whatever
 changed) only when the diff touches an `.astro` file, a tsconfig, `astro.config.mjs`, the package
 manifest, `src/content.config.ts` or `check-fast.mjs` itself (`chooseTypecheck()`). It ends with one

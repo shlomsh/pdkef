@@ -1,7 +1,7 @@
 ---
 id: "ARCH-30"
 title: "A subagent's check:fast costs what its own edit touched, not what the branch has changed"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "module-boundaries"
 phase: "near-term"
@@ -56,3 +56,19 @@ load average at 5-7 throughout. SNG numbers come from a detached checkout of `a7
   7 tool calls; 62s of it was check:fast run twice, because the first run was piped through
   `tail -60` and the agent re-ran it to see the result. Research agents (80-496s, 13-56 tool calls)
   are bound by tool calls, not checks.
+
+## Result
+
+`npm run check:fast -- --since <ref>` (`scripts/check-fast.mjs`): the same seven guards, units from
+`selectUnitTests()` over the diff since `<ref>`, incremental `tsc` unless the diff touches an `.astro`
+file or a type config (`chooseTypecheck()`), one `PASS|FAIL` summary line. `window.va` is declared by a
+type reference in the two files that call it, so tsc is clean. check:push and CI are unchanged.
+
+| Same one-file Sign edit | before | after |
+| --- | --- | --- |
+| check:fast as before (merge-base, astro check) | ~28-30s | |
+| check:fast -- --since HEAD, tsc cold | | 15.0s (guards 1.2, units 8.9, tsc 4.9) |
+| check:fast -- --since HEAD, tsc warm | | 11.6s (guards 1.2, units 8.8, tsc 1.6) |
+| --since an unresolvable ref | | 34.9s (fails open: whole suite, astro check) |
+
+Follow-up, not done here: `PdfSignTool.test.tsx` alone sets a 6s floor for any Sign edit.

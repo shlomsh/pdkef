@@ -34,7 +34,7 @@ npm install
 npm run dev       # local dev server (astro dev)
 npm run build     # production build to dist/
 npm run preview   # preview the production build (serves dist/ from disk)
-npm run check:fast        # the iteration loop: guards, unit tests for what changed, tsc (~15s); -- --since <ref>
+npm run check:fast        # the loop (~15s): guards, units for what changed, tsc (astro check on .astro/config edits)
 npm run check:push        # one pre-push command: the same CI oracle, narrowed to what the diff needs
 npm test                  # whole unit suite (Vitest; jsdom only where vitest.config.js's DOM_TESTS says)
 npm run test:e2e          # build + product e2e + font guards + export guards, each narrowed by scripts/affected-scope.mjs (~1.5 min)
