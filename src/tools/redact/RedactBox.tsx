@@ -11,6 +11,7 @@ import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // MOBI-17: which corner of the bar actually touches the box it belongs to, so
 // the counter-scale below shrinks it away from that corner rather than its
@@ -54,6 +55,7 @@ export default function RedactBox({
   onHoverLeave,
   onDelete,
   onChangeColor,
+  onChangeStrength,
   onClone
 }: {
   el: any;
@@ -66,6 +68,7 @@ export default function RedactBox({
   onHoverLeave: (...args: any[]) => void;
   onDelete: (id: string) => void;
   onChangeColor: (id: string, color: string) => void;
+  onChangeStrength: (id: string, strength: BlurStrength) => void;
   onClone: (...args: any[]) => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
@@ -231,6 +234,7 @@ export default function RedactBox({
             element={el}
             onChange={(changes: any) => {
               if (changes.color) onChangeColor(el.id, changes.color);
+              if (changes.strength) onChangeStrength(el.id, changes.strength);
             }}
             onClone={onClone}
             onDelete={() => onDelete(el.id)}

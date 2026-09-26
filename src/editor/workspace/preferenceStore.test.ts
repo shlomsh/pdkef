@@ -45,6 +45,16 @@ describe('editor workspace preferences', () => {
     expect(getEditorPreference('penColor', { userScope: scope })).toBe('#123456');
   });
 
+  it('round-trips a valid blur strength and ignores an invalid stored value', () => {
+    expect(setEditorPreference('lastBlurStrength', 'light', { userScope: scope })).toBe(true);
+    expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBe('light');
+
+    const record = JSON.parse(localStorage.getItem(recordKey) ?? 'null');
+    record.values.lastBlurStrength = 'invisible';
+    localStorage.setItem(recordKey, JSON.stringify(record));
+    expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBeNull();
+  });
+
   it('migrates established unscoped preferences without discarding them', () => {
     const signatures = [{ id: 'sig-1', dataUrl: 'data:image/png;base64,abc', aspectRatio: 2 }];
     localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(signatures));

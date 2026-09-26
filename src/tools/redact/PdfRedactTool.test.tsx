@@ -898,7 +898,85 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
-      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(2);
+      // Blur additionally gets its own strength trigger (SITE-41), so its
+      // toolbar has one more button than blackout's plain duplicate/delete pair.
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(3);
+    });
+
+    it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
+      await act(async () => {
+        blurBtn.click();
+      });
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+
+      const box = required(container.querySelector(`.${REDACT_BOX}`), 'blur box');
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      const strengthTrigger = required(
+        box.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
+        'blur strength trigger',
+      );
+      await act(async () => { strengthTrigger.click(); });
+
+      const lightItem = required(
+        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
+        'light strength item',
+      );
+      await act(async () => { lightItem.click(); });
+
+      const surface = required(box.querySelector<HTMLElement>('.redact-surface--blur'), 'blur surface');
+      expect(surface.style.backdropFilter).toContain('blur(4px)');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(surface.style.backdropFilter).toContain('blur(8px)');
+    });
+
+    it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+
+      const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Blur')), 'Blur button');
+      await act(async () => { blurBtn.click(); });
+
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const firstBox = required(container.querySelector(`.${REDACT_BOX}`), 'first blur box');
+
+      await act(async () => {
+        firstBox.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+
+      const strengthTrigger = required(
+        firstBox.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
+        'blur strength trigger',
+      );
+      await act(async () => { strengthTrigger.click(); });
+      const lightItem = required(
+        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
+        'light strength item',
+      );
+      await act(async () => { lightItem.click(); });
+
+      await act(async () => { blurBtn.click(); });
+      await drawBox(drawArea, 50, 550, 200, 700);
+      const boxes = container.querySelectorAll(`.${REDACT_BOX}`);
+      const secondBox = boxes[boxes.length - 1] as HTMLElement;
+      const secondSurface = required(secondBox.querySelector<HTMLElement>('.redact-surface--blur'), 'second blur surface');
+
+      expect(secondSurface.style.backdropFilter).toContain('blur(4px)');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture

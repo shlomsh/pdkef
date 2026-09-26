@@ -46,6 +46,7 @@ import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
+import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blurStrength.ts';
 
 type RedactHistoryElement = {
   id: string;
@@ -79,6 +80,7 @@ interface RedactDrawingState {
   startY: number;
   type: DrawnRedactTool;
   color?: string;
+  strength?: BlurStrength;
 }
 
 type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
@@ -142,6 +144,7 @@ export default function PdfRedactTool() {
   const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
   const [toolLocked, setToolLocked] = useState(false);
   const [activeColor, setActiveColor] = useState('#ffffff');
+  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(DEFAULT_BLUR_STRENGTH);
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
@@ -173,6 +176,19 @@ export default function PdfRedactTool() {
   const rememberColor = (color: string) => {
     setActiveColor(color);
     setEditorPreference('lastWhiteoutColor', color);
+  };
+
+  useEffect(() => {
+    const stored = getEditorPreference('lastBlurStrength');
+    if (stored) setActiveBlurStrength(stored);
+    return subscribeToEditorPreference('lastBlurStrength', ({ value }) => {
+      if (value) setActiveBlurStrength(value);
+    });
+  }, []);
+
+  const rememberBlurStrength = (strength: BlurStrength) => {
+    setActiveBlurStrength(strength);
+    setEditorPreference('lastBlurStrength', strength);
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
@@ -485,7 +501,8 @@ export default function PdfRedactTool() {
     const origin = getPointerPercent(e, container);
     const type = activeStyle;
     const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
-    setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color });
+    const strength = type === 'blur' ? activeBlurStrength : undefined;
+    setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color, strength });
     cancelDrawingRef.current?.();
     cancelDrawingRef.current = startGesture({
       computePatch: (moveEvent) => {
@@ -511,7 +528,10 @@ export default function PdfRedactTool() {
         // the next real drag would do nothing at all.
         if (!patch || patch.width <= 1 || patch.height <= 1) return;
         const id = uniqueId();
-        const element: RedactHistoryElement = { id, pageIndex, ...patch, type, color };
+        const element: RedactHistoryElement = {
+          id, pageIndex, ...patch, type, color,
+          ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
+        };
         setElements(prev => [...prev, element]);
         markDocumentEdited();
         logAction('add', `ADD_${type.toUpperCase()}`, pageIndex, `Added ${type} box`, [captureAddedElement(element, elements.length)]);
@@ -716,6 +736,13 @@ export default function PdfRedactTool() {
   const changeElementColor = (id: string, color: string) => {
     updateElement(id, { color });
     rememberColor(color);
+  };
+
+  // Passed to ElementToolbar's onChange for blur boxes: applies the strength and
+  // remembers it, same as changeElementColor above for whiteout.
+  const changeBlurStrength = (id: string, strength: BlurStrength) => {
+    updateElement(id, { strength });
+    rememberBlurStrength(strength);
   };
 
   // Shared by all three redaction types' toolbar duplicate button (E7.5's
@@ -973,6 +1000,7 @@ export default function PdfRedactTool() {
                       onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
                       onDelete={deleteElement}
                       onChangeColor={changeElementColor}
+                      onChangeStrength={changeBlurStrength}
                       onClone={cloneElement}
                     />
                   ))}
@@ -1002,7 +1030,7 @@ export default function PdfRedactTool() {
                       style={{
                         position: 'absolute',
                         left: `${drawingState.startX}%`, top: `${drawingState.startY}%`, width: 0, height: 0,
-                        ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color),
+                        ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color, drawingState.strength),
                         zIndex: 20,
                         pointerEvents: 'none'
                       }}
