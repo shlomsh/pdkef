@@ -201,9 +201,17 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Without that rule a redo can re-insert an element a still-live later command assumed was gone.
   Undo->redo preserves exact z-order *because of* it: `restoreSnapshots` splices at
   `Math.min(index, restored.length)`.
-- **Undo covers add and delete only** (`HistoryOperation`), so redo does too. Moves, resizes, styling
-  and typing are deliberately untracked; "I nudged a box and can't get it back" is not a redo bug and
-  is not fixed by one - it needs a third `update` operation carrying before/after snapshots.
+- **Undo covers add, delete and update** (`HistoryOperation`, UNDO-04), so redo does too. An
+  `update` entry carries only the changed fields, `{ id, before, after }`, and is reverted in place.
+  It is logged at each tool's one choke point (`updateElement` in Sign's `PdfWorkspace.tsx` and in
+  `PdfRedactTool.tsx`) through `createUpdateEntry` (`src/editor/model/updateKind.ts`), never in
+  gesture code: the gesture controller already commits once per gesture, so one gesture is one step.
+  Typing is one step per text edit session (`group`), and the textarea's native undo still owns
+  Cmd/Ctrl+Z while it is focused. `pushCommand` folds same-element changes of one kind within 500ms
+  into one step, never while a redo is pending, and caps history at `MAX_HISTORY_DEPTH` (also on
+  restore). Drag-create dispatches `UPDATE_ELEMENT` directly and must stay unlogged: its `add` entry
+  is the step. No "Moved · Undo" chip. Undo does not roll back the carried or app-wide style
+  (SIGN-33/35): undoing a colour change leaves the next placement in that colour (open question, 2026-09-26).
 - **Redo must bump `documentRevision`,** exactly as undo does: SIGN-14 makes any edit revoke a
   prepared share file and a running export, and a redo that skipped it would let a stale export
   download against a changed document.

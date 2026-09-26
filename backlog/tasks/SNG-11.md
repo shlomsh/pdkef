@@ -1,7 +1,7 @@
 ---
 id: "SNG-11"
 title: "The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: []
 ---
 
 # SNG-11 · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it
+
+*Retired 2026-09-25:* the owner's raster-first premise takes whole-page detection out of the UI, so there is nothing for a floor to gate.
 
 *Filed 2026-09-25* from Shlomi's call that the next generation assumes only reasonable precision and recall
 (`docs/sign-next-gen.md` §5.6, `docs/sign-next-gen-guidelines.md` §1).

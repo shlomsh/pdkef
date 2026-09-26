@@ -46,3 +46,16 @@
   border-style: solid;
   border-radius: 3px;
 }
+
+/* SNG-15 (docs/sign-fill-mode.md, "Hints"): the droppable look for a
+   checkbox hint the armed tool's own reach (fillReach.ts) would tap next -
+   a solid frame, a soft outer ring and a light fill, the same shape
+   fill.module.css's .slot.aimed uses, so a slot and a printed checkbox read
+   as one affordance. Declared after .field-hint-checkbox so its border wins
+   the cascade at equal specificity; that rule's own border-radius still
+   applies, since this never touches it. Token colors only. */
+.field-hint-aimed {
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary-tint);
+  box-shadow: 0 0 0 4px var(--color-primary-ring);
+}
