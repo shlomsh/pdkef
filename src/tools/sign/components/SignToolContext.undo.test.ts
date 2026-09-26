@@ -5,6 +5,7 @@ import {
   captureElementSnapshots,
   createActionEntry,
 } from '../../../editor/model/actionHistory.ts';
+import { createUpdateEntry } from '../../../editor/model/updateKind.ts';
 import { reducer, type SignToolState } from './SignToolContext.tsx';
 
 const back: EditorElement = { id: 'back', type: 'text', pageIndex: 0, left: 5, top: 5, text: 'Back' };
@@ -151,5 +152,82 @@ describe('every case that changes the document clears the redo future', () => {
   it('CLEAR_PAGE clears it', () => {
     const withElement: SignToolState = { ...undoneState(), elements: [back] };
     expect(reducer(withElement, { type: 'CLEAR_PAGE', payload: 0 }).redoHistory).toEqual([]);
+  });
+});
+
+// UNDO-04: the update entries createUpdateEntry builds at PdfWorkspace.tsx's
+// updateElement choke point, exercised at the reducer only (no component
+// mount) - the repro that motivated the whole ticket (a move that could not
+// be undone), a text edit session collapsing into one step, and the
+// documentRevision bump SIGN-14 relies on.
+describe('SignTool logs moves, resizes, styling and typing as update entries', () => {
+  const signature: EditorElement = {
+    id: 'sig', type: 'signature', pageIndex: 0, left: 10, top: 10, width: 30, height: 15,
+  } as EditorElement;
+
+  it('undoes a move back to the pre-move position, then redoes, then a second undo removes the signature', () => {
+    let state = baseState([]);
+    state = reducer(state, { type: 'ADD_ELEMENT', payload: signature });
+    state = reducer(state, {
+      type: 'ADD_ACTION_HISTORY',
+      payload: createActionEntry({
+        operation: 'add', type: 'ADD_SIGNATURE', pageIndex: 0, description: 'Added signature',
+        elements: [captureAddedElement(signature, 0)],
+      }),
+    });
+
+    const moved = { ...signature, left: 40, top: 25 };
+    const updateEntry = createUpdateEntry(signature, { left: 40, top: 25 }, () => 'Moved Sign');
+    state = reducer(state, { type: 'UPDATE_ELEMENT', payload: { id: signature.id, changes: { left: 40, top: 25 } } });
+    state = reducer(state, { type: 'ADD_ACTION_HISTORY', payload: updateEntry! });
+    expect(state.elements.find((el) => el.id === signature.id)).toEqual(moved);
+
+    state = reducer(state, { type: 'UNDO' });
+    expect(state.elements.find((el) => el.id === signature.id)).toEqual(signature);
+
+    state = reducer(state, { type: 'REDO' });
+    expect(state.elements.find((el) => el.id === signature.id)).toEqual(moved);
+
+    state = reducer(state, { type: 'UNDO' }); // undo the move
+    state = reducer(state, { type: 'UNDO' }); // undo the add
+    expect(state.elements).toEqual([]);
+  });
+
+  it('collapses two text updates in the same edit session into one undo step', () => {
+    const textEl: EditorElement = { id: 'txt', type: 'text', pageIndex: 0, left: 5, top: 5, text: 'A' };
+    let state = baseState([textEl]);
+
+    const session = 'session-1';
+    const firstChange = { text: 'AB' };
+    const firstEntry = createUpdateEntry(textEl, firstChange, () => 'Edited text', session);
+    state = reducer(state, { type: 'UPDATE_ELEMENT', payload: { id: textEl.id, changes: firstChange } });
+    state = reducer(state, { type: 'ADD_ACTION_HISTORY', payload: firstEntry! });
+
+    const afterFirst = state.elements[0];
+    const secondChange = { text: 'ABC' };
+    const secondEntry = createUpdateEntry(afterFirst, secondChange, () => 'Edited text', session);
+    state = reducer(state, { type: 'UPDATE_ELEMENT', payload: { id: textEl.id, changes: secondChange } });
+    state = reducer(state, { type: 'ADD_ACTION_HISTORY', payload: secondEntry! });
+
+    expect(state.elements[0]).toEqual({ ...textEl, text: 'ABC' });
+    expect(state.actionHistory).toHaveLength(1);
+
+    state = reducer(state, { type: 'UNDO' });
+    expect(state.elements[0]).toEqual(textEl);
+  });
+
+  it('bumps documentRevision on an update entry undo and redo', () => {
+    let state = baseState([signature]);
+    const updateEntry = createUpdateEntry(signature, { left: 40, top: 25 }, () => 'Moved Sign');
+    state = reducer(state, { type: 'UPDATE_ELEMENT', payload: { id: signature.id, changes: { left: 40, top: 25 } } });
+    state = reducer(state, { type: 'ADD_ACTION_HISTORY', payload: updateEntry! });
+
+    const revisionAfterUpdate = state.documentRevision;
+    state = reducer(state, { type: 'UNDO' });
+    expect(state.documentRevision).toBeGreaterThan(revisionAfterUpdate);
+
+    const revisionAfterUndo = state.documentRevision;
+    state = reducer(state, { type: 'REDO' });
+    expect(state.documentRevision).toBeGreaterThan(revisionAfterUndo);
   });
 });

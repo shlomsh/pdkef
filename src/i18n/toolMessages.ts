@@ -18,6 +18,7 @@
  * props as JSON - a function couldn't cross that boundary at all).
  */
 import type { DocumentationLocaleId } from './documentationLocales';
+import type { ElementUpdateKind } from '../editor/model/updateKind.ts';
 
 export function formatMessage(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
@@ -43,6 +44,22 @@ export function signElementTypeLabel(t: SignMessages, type: string): string {
     case 'rectangle': return t.rectangleLabel;
     case 'line': return t.lineLabel;
     default: return type;
+  }
+}
+
+/**
+ * UNDO-04: the history description for a logged move, resize, style change or
+ * text edit, in the tool's own words - the same `{label}` interpolation
+ * `signElementTypeLabel` supplies the other description templates above.
+ */
+export function signUpdateDescription(t: SignMessages, kind: ElementUpdateKind, type: string): string {
+  const label = signElementTypeLabel(t, type);
+  switch (kind) {
+    case 'move': return formatMessage(t.movedElementDescriptionTemplate, { label });
+    case 'resize': return formatMessage(t.resizedElementDescriptionTemplate, { label });
+    case 'style': return formatMessage(t.styledElementDescriptionTemplate, { label });
+    case 'text': return t.editedTextDescription;
+    default: return t.editedTextDescription;
   }
 }
 
@@ -888,6 +905,10 @@ const englishSignMessages: SignMessages = {
   addedSignatureDescription: 'Added signature',
   deletedElementDescriptionTemplate: 'Deleted {label}',
   duplicatedElementDescriptionTemplate: 'Duplicated {label}',
+  movedElementDescriptionTemplate: 'Moved {label}',
+  resizedElementDescriptionTemplate: 'Resized {label}',
+  editedTextDescription: 'Edited text',
+  styledElementDescriptionTemplate: 'Changed {label} style',
   savingDocumentLayers: 'Saving document layers…',
   pdfMayBeProtectedOrEncrypted: 'The PDF may be password-protected or encrypted.',
   reviewingFirstIssueAnnouncement: 'Showing the first text field that needs attention.',
@@ -1106,6 +1127,10 @@ const hebrewSignMessages: SignMessages = {
   addedSignatureDescription: 'נוספה חתימה',
   deletedElementDescriptionTemplate: 'נמחק {label}',
   duplicatedElementDescriptionTemplate: 'שוכפל {label}',
+  movedElementDescriptionTemplate: 'הוזז {label}',
+  resizedElementDescriptionTemplate: 'שונה גודל {label}',
+  editedTextDescription: 'נערך טקסט',
+  styledElementDescriptionTemplate: 'שונה עיצוב {label}',
   savingDocumentLayers: 'שומרים את שכבות המסמך…',
   pdfMayBeProtectedOrEncrypted: 'ה-PDF עשוי להיות מוגן בסיסמה או מוצפן.',
   reviewingFirstIssueAnnouncement: 'מציגים את שדה הטקסט הראשון שדורש התייחסות.',

@@ -249,6 +249,13 @@ export interface SignMessages {
   addedSignatureDescription: string;
   deletedElementDescriptionTemplate: string;
   duplicatedElementDescriptionTemplate: string;
+  /** UNDO-04: labels for the move/resize/text/style update entries `updateElement`
+   * (PdfWorkspace.tsx) logs at its one choke point, via `signUpdateDescription`
+   * in src/i18n/toolMessages.ts. */
+  movedElementDescriptionTemplate: string;
+  resizedElementDescriptionTemplate: string;
+  editedTextDescription: string;
+  styledElementDescriptionTemplate: string;
   /** PdfWorkspace.tsx's own strings. */
   savingDocumentLayers: string;
   pdfMayBeProtectedOrEncrypted: string;
