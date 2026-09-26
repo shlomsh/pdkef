@@ -7,17 +7,19 @@
 import type { SavedSignature } from '../model/savedSignature.ts';
 import { appWideStyleOf, type DocumentStyle } from '../model/documentStyle.ts';
 import { validateDocumentStyle } from '../registry/draftValidation.ts';
+import { isBlurStrength, type BlurStrength } from '../model/blurStrength.ts';
 
 export interface EditorPreferences {
   penColor: string;
   penThickness: number;
   lastWhiteoutColor: string;
+  lastBlurStrength: BlurStrength;
   // A document's own style (font, size, colour, direction and the rest of
   // DocumentStyle) lives in its draft, not here (SIGN-33's `carried`). The
   // person's latest choice across documents lives in the separate app-wide
   // style below (SIGN-35's getAppStyle/rememberAppStyle). Only the
-  // signature pad's pen colour and thickness, and Redact's whiteout colour,
-  // are browser-wide preferences.
+  // signature pad's pen colour and thickness, and Redact's whiteout colour
+  // and blur strength, are browser-wide preferences.
 }
 
 export type EditorPreferenceKey = keyof EditorPreferences;
@@ -30,6 +32,7 @@ export const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
 const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   penColor: 'pdf-toolkit:penColor', penThickness: 'pdf-toolkit:penThickness',
   lastWhiteoutColor: 'pdf-toolkit:lastWhiteoutColor',
+  lastBlurStrength: 'pdf-toolkit:lastBlurStrength',
 };
 const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
@@ -90,17 +93,21 @@ function readSavedSignatures(value: unknown): SavedSignature[] | null {
   return new Set(parsed.map((signature) => signature.id)).size === parsed.length ? parsed : null;
 }
 
+function readBlurStrength(value: string): BlurStrength | null { return isBlurStrength(value) ? value : null; }
 const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPreferences[K] | null } = {
   penColor: readString, penThickness: readPositiveNumber, lastWhiteoutColor: readString,
+  lastBlurStrength: readBlurStrength,
 };
 const LEGACY_WRITERS: { [K in EditorPreferenceKey]: (value: EditorPreferences[K]) => string } = {
-  penColor: String, penThickness: String, lastWhiteoutColor: String,
+  penColor: String, penThickness: String, lastWhiteoutColor: String, lastBlurStrength: String,
 };
 
 function isPreferenceValue<K extends EditorPreferenceKey>(key: K, value: unknown): value is EditorPreferences[K] {
   switch (key) {
     case 'penThickness':
       return typeof value === 'number' && Number.isFinite(value) && value > 0;
+    case 'lastBlurStrength':
+      return isBlurStrength(value);
     default: return typeof value === 'string' && value.length > 0;
   }
 }
