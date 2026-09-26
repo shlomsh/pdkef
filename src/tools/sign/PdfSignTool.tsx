@@ -23,6 +23,7 @@ import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
 import useCoarsePointer from './useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
+import { viewportContent } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
 import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
 import { useFillFocus } from './fill/useFillFocus.ts';
@@ -174,12 +175,27 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // still honours the person's own pinch (measured 2026-09-26: iOS 26
   // Simulator in Safari, and Shlomi's iPhone in Chrome). Fill mode only, at
   // runtime, so production's static viewport meta is untouched.
+  //
+  // Regression fix: iOS re-applies the viewport meta on every focus change,
+  // so a static `maximum-scale=1` snapped Shlomi's pinch back to 1 the moment
+  // he moved to the next field. `viewportContent` (SNG-17) only adds the
+  // clamp while the page is at its resting scale, so a chosen pinch survives
+  // moving between fields; `visualViewport`'s 'resize' event keeps that
+  // decision current as the person zooms.
   useEffect(() => {
     if (!enabled) return undefined;
     const meta = document.querySelector('meta[name="viewport"]');
     const original = meta?.getAttribute('content') ?? '';
-    meta?.setAttribute('content', `${original}, maximum-scale=1`);
-    return () => meta?.setAttribute('content', original);
+    const apply = () => {
+      const next = viewportContent(original, window.visualViewport?.scale ?? 1);
+      if (meta?.getAttribute('content') !== next) meta?.setAttribute('content', next);
+    };
+    apply();
+    window.visualViewport?.addEventListener('resize', apply);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', apply);
+      meta?.setAttribute('content', original);
+    };
   }, [enabled]);
 
   useFillFocus({
