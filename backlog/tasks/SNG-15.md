@@ -28,7 +28,7 @@ The contract is `docs/sign-fill-mode.md` and `src/tools/sign/fill/fillTypes.ts`.
   Date, the mark, Undo and Redo away on a form, where a field nearly always has focus).
 - [ ] Without `?next=1` nothing changes, and every existing test stays green.
 - [ ] Every decision is a pure function with unit tests. A zero-context review passes.
-- [ ] Shlomi has tried it on his iPhone.
+- [x] Shlomi has tried it on his iPhone (2026-09-26, Chrome on iOS).
 
 ## Parity pass, 2026-09-26 (iOS 26 Simulator, iPhone 17 Pro, practice form)
 
@@ -66,3 +66,22 @@ Open, not fixed here:
 - **Autocorrect.** iOS changed "Dana" to "Do" in a slot that carries `autocorrect="off"`.
 - **A drag starts on first touch**, so a finger that means to scroll over a filled field moves it.
   SNG-04 decides the fix; UNDO-04 makes a move undoable. Both need Shlomi's go-ahead.
+
+## Landed 2026-09-26
+
+On main at a4e2f76b, behind `?next=1`, with SIGN-35 and UNDO-04 merged in. After his QA:
+- Fullscreen works in fill mode. Next (the return key) moves focus and the zoom follows.
+- Second review fixed: a box claims only a mark's tap or a tap inside it; a placed mark stays selected;
+  plain taps take production's click path; the dead `filling` state is gone.
+
+On the branch only (52202a5e), waiting for Shlomi's phone check before landing:
+- The comb caret is drawn by `CombCells` at the centre of the next cell (`useCombCaret`).
+- `textElementLayout` (signHelpers.js) is the one box and typography rule for DraggableWrapper,
+  TextNode and FieldSlot, so a slot previews exactly the element it becomes. This touches production's
+  text elements too.
+
+Still open:
+- **Ticks on form 101 look off-centre** (his screenshot, ❑ glyph boxes). A corpus measurement found
+  detection and placement exact but did not find the ❑ glyphs, so it is not settled. Measure in the
+  real app with `src/tools/sign/fields/corpus/scoring/forms/income-tax-101-2024.pdf`. SNG-09 territory.
+- Autocorrect, first-touch drag (SNG-04) and the app-owned camera (SNG-16), as listed above.
