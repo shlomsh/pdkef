@@ -87,7 +87,7 @@ const WIDTHS = [700, 768, 920, 1000, 1100, 1200, 1299, 1300, 1440, 1600];
 const MAX_DOWNLOAD_SHARE = 0.4;
 
 const tools = [
-  { name: 'Sign', path: '/sign?next=0', fixture: 'sign-desktop-one-line.pdf' },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-desktop-one-line.pdf' },
   { name: 'Redact', path: '/redact', fixture: 'redact-desktop-one-line.pdf' },
 ];
 
@@ -130,7 +130,7 @@ async function labelWidth(page, text) {
 test('Text leads and Sign follows the filling tools, labels show at the desktop anchor except the icon-only three, and none show below 1300px', async ({ page }) => {
   await stubSharePresent(page);
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await openTool(page, '/sign?next=0', 'sign-desktop-one-line-order.pdf');
+  await openTool(page, '/sign/?next=0', 'sign-desktop-one-line-order.pdf');
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   const leadingLabels = await page.evaluate(() => {

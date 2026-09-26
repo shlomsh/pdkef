@@ -11,5 +11,5 @@
 export function withFillModeParam(href: string, currentSearch: string): string {
   const next = new URLSearchParams(currentSearch).get('next');
   if (next === null) return href;
-  return href.includes('?') ? `${href}&next=${next}` : `${href}?next=${next}`;
+  return href.includes('?') ? `${href}&next=${encodeURIComponent(next)}` : `${href}?next=${encodeURIComponent(next)}`;
 }

@@ -90,7 +90,7 @@ function shapedRun(family, { text, direction }) {
 test.describe('Sriracha font shaping parity (Guard A, FONT-08b)', () => {
   for (const [label, sample] of Object.entries(SAMPLES)) {
     test(`${FAMILY} (${label}): fontkit's shaped advance matches the browser's measureText`, async ({ page }) => {
-      await page.goto('/sign?next=0');
+      await page.goto('/sign/?next=0');
       const browserWidth = await page.evaluate(async ({ family: familyName, text, size }) => {
         await document.fonts.load(`${size}px "${familyName}"`, text);
         await document.fonts.ready;

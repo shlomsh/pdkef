@@ -45,7 +45,7 @@ const rect = (locator) => locator.evaluate((el) => {
 });
 
 const tools = [
-  { name: 'Sign', path: '/sign?next=0', fixture: 'sign-phone-row.pdf', arm: 'Text' },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-phone-row.pdf', arm: 'Text' },
   { name: 'Redact', path: '/redact', fixture: 'redact-phone-row.pdf', arm: 'Blackout' },
 ];
 
