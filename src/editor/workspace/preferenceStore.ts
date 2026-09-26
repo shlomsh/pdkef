@@ -5,6 +5,8 @@
 // or colour must never stringify, broadcast, or risk evicting image bytes.
 
 import type { SavedSignature } from '../model/savedSignature.ts';
+import { appWideStyleOf, type DocumentStyle } from '../model/documentStyle.ts';
+import { validateDocumentStyle } from '../registry/draftValidation.ts';
 
 export interface EditorPreferences {
   penColor: string;
@@ -44,6 +46,9 @@ const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
 const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
 const SIGNATURE_LIBRARY_KEY_PREFIX = 'pdf-toolkit:saved-signatures:v1:';
+const APP_STYLE_KEY_PREFIX = 'pdf-toolkit:app-style:v1:';
+/** Increment only when the persisted app-wide style record shape changes. */
+export const APP_STYLE_RECORD_VERSION = 1;
 const TAB_ID_KEY = 'pdf-toolkit:editor-preferences-tab-id';
 const DEFAULT_EDITOR_USER_SCOPE = 'local-browser-profile';
 
@@ -180,6 +185,7 @@ export function getEditorUserScope(options: EditorPreferenceOptions = {}): strin
   return options.userScope !== undefined ? normaliseScope(options.userScope) : DEFAULT_EDITOR_USER_SCOPE;
 }
 function recordKey(scope: string): string { return `${RECORD_KEY_PREFIX}${encodeURIComponent(scope)}`; }
+function appStyleKey(scope: string): string { return `${APP_STYLE_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function signatureLibraryKey(scope: string): string { return `${SIGNATURE_LIBRARY_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function getTabId(): string {
   try {
@@ -309,4 +315,39 @@ export function subscribeToSavedSignatures(listener: (change: SavedSignatureChan
   const onStorage = (event: StorageEvent) => { if (event.key !== keyForScope && event.key !== null) return; const incoming = readSignatureLibrary(event.newValue); if (!incoming) { newest = null; listener({ value: null, revision: null, conflictPolicy: 'last-writer-wins' }); } else accept(incoming, true); };
   window.addEventListener('storage', onStorage);
   return () => { window.removeEventListener('storage', onStorage); listeners.delete(onLocal); if (!listeners.size) localSignatureListeners.delete(keyForScope); };
+}
+
+// SIGN-35: the app-wide style, the person's latest choice in any document, that
+// a new document's unset keys fall through to (elementDefaults.ts's
+// resolveDocumentStyle). One record, read back key by key through the same
+// validator a draft's `carried` uses, so one bad value drops alone, and never
+// holding a document-only key (documentStyle.ts's DOCUMENT_ONLY_KEYS).
+function readAppStyle(raw: string | null): Partial<DocumentStyle> {
+  if (raw === null) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isObject(parsed) || parsed.schemaVersion !== APP_STYLE_RECORD_VERSION) return {};
+    return appWideStyleOf(validateDocumentStyle(parsed.style));
+  } catch { return {}; }
+}
+
+/** The app-wide style new documents start from; `{}` when there is none or it cannot be read. */
+export function getAppStyle(options: EditorPreferenceOptions = {}): Partial<DocumentStyle> {
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return {};
+    return readAppStyle(localStorage.getItem(appStyleKey(scope)));
+  } catch { return {}; }
+}
+
+/** Merges an explicit choice into the app-wide style. false means it was not saved. */
+export function rememberAppStyle(patch: Partial<DocumentStyle>, options: EditorPreferenceOptions = {}): boolean {
+  const valid = appWideStyleOf(validateDocumentStyle(patch));
+  if (!Object.keys(valid).length) return false;
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return false;
+    const key = appStyleKey(scope);
+    const style = { ...readAppStyle(localStorage.getItem(key)), ...valid };
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: APP_STYLE_RECORD_VERSION, style }));
+    return true;
+  } catch { return false; }
 }
