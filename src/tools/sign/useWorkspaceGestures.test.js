@@ -67,8 +67,22 @@ function firstAddElement(dispatch) {
 // Default helpers used across tests
 // ---------------------------------------------------------------------------
 
-function makeHook(overrides = {}) {
+// SIGN-33 folded the hook's three flat carriedFont/carriedFontSize/
+// carriedDirection props into one `carried` object. Every test below still
+// passes the flat, pre-SIGN-33 names (deliberately - that is what reads as
+// "the remembered font", "the remembered size", "the remembered direction");
+// this helper is the one place that translates them into the shape the hook
+// actually takes now, so no single test had to be rewritten to know about
+// `carried` at all. A test that already knows to pass `carried` directly
+// (none do yet) still works: it wins over any flat key alongside it.
+function makeHook({ carriedFont, carriedFontSize, carriedDirection, carried, ...overrides } = {}) {
   const dispatch = vi.fn();
+  const mergedCarried = {
+    ...(carriedFont !== undefined ? { font: carriedFont ?? undefined } : {}),
+    ...(carriedFontSize !== undefined ? { fontSize: carriedFontSize ?? undefined } : {}),
+    ...(carriedDirection !== undefined ? { direction: carriedDirection ?? undefined } : {}),
+    ...carried,
+  };
   const hook = useWorkspaceGestures({
     selectedTool: overrides.selectedTool ?? 'text',
     dispatch,
@@ -79,6 +93,7 @@ function makeHook(overrides = {}) {
     logAction: vi.fn(),
     setAnnouncement: vi.fn(),
     ...overrides,
+    carried: mergedCarried,
   });
   return { dispatch, ...hook };
 }
@@ -105,40 +120,40 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
     expect(firstAddElement(dispatch)).toMatchObject({ type: 'text', color: '#ff3300' });
   });
 
-  it('applies the default font (Arimo) when no initialFont is provided', () => {
+  it('applies the default font (Arimo) when no carriedFont is provided', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ fontFamily: 'Arimo' });
   });
 
-  it('applies a custom initialFont to new text elements', () => {
+  it('applies a custom carriedFont to new text elements', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFont: 'Noto Sans Hebrew',
+      carriedFont: 'Noto Sans Hebrew',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ fontFamily: 'Noto Sans Hebrew' });
   });
 
-  it('applies the default fontSize (12) when no initialFontSize is provided', () => {
+  it('applies the default fontSize (12) when no carriedFontSize is provided', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ fontSize: 12 });
   });
 
-  it('applies a custom initialFontSize to new text elements', () => {
+  it('applies a custom carriedFontSize to new text elements', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFontSize: 24,
+      carriedFontSize: 24,
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ fontSize: 24 });
   });
 
-  it('does NOT set textDirection when initialDirection is null (auto-detect)', () => {
+  it('does NOT set textDirection when carriedDirection is null (auto-detect)', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: null,
+      carriedDirection: null,
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
@@ -148,7 +163,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('sets textDirection to "rtl" when the user previously chose RTL', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'rtl',
+      carriedDirection: 'rtl',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ textDirection: 'rtl' });
@@ -157,7 +172,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('sets textDirection to "ltr" when the user previously chose LTR explicitly', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ textDirection: 'ltr' });
@@ -167,9 +182,9 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
       initialColor: '#123456',
-      initialFont: 'David',
-      initialFontSize: 18,
-      initialDirection: 'rtl',
+      carriedFont: 'David',
+      carriedFontSize: 18,
+      carriedDirection: 'rtl',
     });
     handlePageClick(makeClickEvent(200, 300, overlay), 2);
     expect(firstAddElement(dispatch)).toMatchObject({
@@ -188,7 +203,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('centers a new text box vertically on the click point', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFontSize: 12,
+      carriedFontSize: 12,
       pageSizes: [{ width: 612, height: 792 }],
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -202,7 +217,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('scales the vertical centering with the remembered font size', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFontSize: 48,
+      carriedFontSize: 48,
       pageSizes: [{ width: 612, height: 792 }],
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -212,7 +227,7 @@ describe('useWorkspaceGestures – text element remembered settings', () => {
   it('never places a text box above the top of the page', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFontSize: 48,
+      carriedFontSize: 48,
       pageSizes: [{ width: 612, height: 792 }],
     });
     // Click 1px from the top: half the box would sit off-page.
@@ -334,7 +349,7 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
   it('places the box the same way whatever direction is predicted - the span has no anchored edge', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'rtl',
+      carriedDirection: 'rtl',
       formRegions: { combs: [], checkboxes: [], cells: [nameCell] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -344,13 +359,28 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     expect(added.textDirection).toBe('rtl');
   });
 
-  it('seeds the box with the page\'s printed direction, not the remembered one - a Hebrew form opens right-aligned even after an English field', () => {
-    // Reported live: on a Hebrew form, every field-spanned box opened with a
-    // left-aligned cursor. The placeholder is English but the person types
-    // their own language, and the page already says which way that reads.
+  it('takes the document\'s carried direction over the page\'s printed direction, once the document has one (SIGN-32 reopened)', () => {
+    // The person is actively filling this document in the direction they
+    // just typed in another field - a stronger, fresher signal than the
+    // page's own printed convention, so it wins on every field placed after.
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
+      formRegions: { combs: [], checkboxes: [], cells: [nameCell], pageDirections: ['rtl'] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(firstAddElement(dispatch).textDirection).toBe('ltr');
+  });
+
+  it('falls back to the page\'s printed direction when the document has nothing carried yet - a Hebrew form opens right-aligned', () => {
+    // Reported live: on a Hebrew form, every field-spanned box opened with a
+    // left-aligned cursor. The placeholder is English but the person types
+    // their own language, and the page already says which way that reads -
+    // this is only the fallback for a document with no carried direction of
+    // its own (see the test above for once one exists).
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      carriedDirection: null,
       formRegions: { combs: [], checkboxes: [], cells: [nameCell], pageDirections: ['rtl'] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -360,7 +390,7 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
   it('leaves a free tap away from any field on the remembered direction - the page seed is for field-spanned boxes only', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialDirection: 'ltr',
+      carriedDirection: 'ltr',
       formRegions: { combs: [], checkboxes: [], cells: [], pageDirections: ['rtl'] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -397,7 +427,7 @@ describe('useWorkspaceGestures – detected free-text cell snapping', () => {
     const statusCell = { pageIndex: 0, left: 44, top: 49.5, width: 12, height: 1 };
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'text',
-      initialFontSize: 24,
+      carriedFontSize: 24,
       formRegions: { combs: [], checkboxes: [], cells: [statusCell] },
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
@@ -600,7 +630,7 @@ describe('useWorkspaceGestures – date tool', () => {
     const { dispatch, handlePageClick } = makeHook({
       selectedTool: 'date',
       initialColor: '#ff3300',
-      initialFont: 'Noto Sans Hebrew',
+      carriedFont: 'Noto Sans Hebrew',
     });
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     expect(firstAddElement(dispatch)).toMatchObject({ color: '#ff3300', fontFamily: 'Noto Sans Hebrew' });
@@ -666,5 +696,86 @@ describe('useWorkspaceGestures – date tool', () => {
     expect(added.minWidth).toBeCloseTo(dateCell.width, 5);
     expect(added.width).toBeUndefined(); // never a comb
     expect(added.text).toBe(formatDate(todayIso, 'locale'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SIGN-32 — one carried font and size per document
+// ---------------------------------------------------------------------------
+
+describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
+  const overlay = makeOverlay();
+  // 20% of the 792pt fallback page (~158.4pt) - well past the ~21.5pt where
+  // FIELD_FONT_MAX_PT's cap engages, so seeding from it lands on the cap
+  // (14pt), not the field's own fill target.
+  const tallCell = { pageIndex: 0, left: 44, top: 44, width: 20, height: 20 };
+  // A comb whose cells are far narrower than a 20pt carried size at the
+  // default 612pt-wide fallback page (~1.33% = 8.16pt per cell).
+  const narrowComb = { pageIndex: 0, left: 44, top: 49, width: 12, height: 1, cells: 9 };
+
+  it('seeds the carried size from DEFAULT_FONT_SIZE_PT on free text, with nothing carried yet', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el.fontSize).toBe(12);
+    // SIGN-33: one SET_CARRIED dispatch, not two - see useWorkspaceGestures.ts's
+    // `seed` object, built once and dispatched once per placement.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 12 } });
+  });
+
+  it('seeds the carried size from a detected field\'s own height, not the default, on the first placement', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      formRegions: { combs: [], checkboxes: [], cells: [tallCell] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el.fontSize).toBe(14);
+    // The font seeds alongside the size - neither carriedFont nor
+    // carriedFontSize was provided, so both are still unset going in.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 14 } });
+  });
+
+  it('carries an explicit font/size forward without re-seeding', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      carriedFont: 'David',
+      carriedFontSize: 18,
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el).toMatchObject({ fontFamily: 'David', fontSize: 18 });
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);
+  });
+
+  it('shrinks a narrow comb only - the carried size itself is untouched, so the next field gets it back', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      carriedFontSize: 20,
+      formRegions: { combs: [narrowComb], checkboxes: [], cells: [] },
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el.fontSize).toBeLessThan(20);
+    // Nothing dispatched to change the carried size: a second placement in
+    // the same click (simulated by a fresh hook with the same carriedFontSize)
+    // would still start from 20, not from this comb's shrunk answer. The font
+    // still seeds on its own (carriedFont was never given), so this only
+    // checks that no SET_CARRIED patch ever carries a fontSize key.
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
+  });
+
+  it('never seeds the carried font/size from a symbol placement', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'symbol' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED')).toBe(false);
+  });
+
+  it('never seeds when a tap on an existing element short-circuits placement', () => {
+    const targetEl = { closest: (selector) => (selector === '[data-editor-element]' ? {} : null) };
+    const event = { ...makeClickEvent(500, 500, overlay), target: targetEl };
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
+    handlePageClick(event, 0);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });

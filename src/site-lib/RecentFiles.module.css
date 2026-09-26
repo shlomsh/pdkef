@@ -36,13 +36,14 @@
   .name { font-size: 0.72rem; line-height: 1.18; min-height: 2.36em; }
   .sub { font-size: 0.64rem; }
 }
-/* Two rows reserved from first paint so real recents land in place; the
-   picker never shrinks; tiles scale with the row so two rows fit at
-   1280x720. */
-@media (min-width: 1024px) and (min-height: 561px) {
+/* Two rows reserved from first paint so real recents land in place, each
+   floored at --recent-row-floor (HomePageLayout.astro) so a tile never clips. */
+@media (min-width: 768px) and (min-height: 561px) {
   .list {
-    height: 100%;
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    /* min-height, not height: in a short section the rows overflow and scroll
+       instead of being crushed. */
+    min-height: 100%;
+    grid-template-rows: repeat(2, minmax(var(--recent-row-floor), 1fr));
   }
   .document {
     min-height: 0;
@@ -54,6 +55,8 @@
     height: clamp(40px, calc(100cqh - 96px), 84px);
     width: auto;
     aspect-ratio: 16 / 21;
+    /* Otherwise flexbox squeezes the preview below its clamp when the row is tight. */
+    flex-shrink: 0;
   }
 }
 /* The same compaction, keyed on height instead of width, for a phone held in

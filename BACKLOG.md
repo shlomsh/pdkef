@@ -102,7 +102,6 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| MOBI-36 | P3 | [MOBI-36](backlog/tasks/MOBI-36.md) · Home launcher: tablet picker still moves when recents load |
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |
 | QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
@@ -121,6 +120,8 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MOBI-35 | P2 | [MOBI-35](backlog/tasks/MOBI-35.md) · Home launcher: pin the picker when recents load |
+| MOBI-36 | P3 | [MOBI-36](backlog/tasks/MOBI-36.md) · Home launcher: tablet picker still moves when recents load |
+| MOBI-37 | P2 | [MOBI-37](backlog/tasks/MOBI-37.md) · Home launcher: recents start level with the demo, dropzone higher |
 | QUAL-01 | P2 | [QUAL-01](backlog/tasks/QUAL-01.md) · --color-primary fails WCAG AA as link text |
 | QUAL-02 | P2 | [QUAL-02](backlog/tasks/QUAL-02.md) · Two competing header padding rules, where specificity beats the media query |
 | QUAL-03 | P3 | [QUAL-03](backlog/tasks/QUAL-03.md) · flatten.svg has the palette baked in as 31 hex literals |
@@ -570,6 +571,8 @@ Every task in these epics is done or retired. They collapse here so the board ab
 | SIGN-29 | P2 | [SIGN-29](backlog/tasks/SIGN-29.md) · Desktop toolbar wraps Download onto a full-width second row since the Date tool |
 | SIGN-30 | P1 | [SIGN-30](backlog/tasks/SIGN-30.md) · Double-click locks every Sign toolbar tool |
 | SIGN-31 | P2 | [SIGN-31](backlog/tasks/SIGN-31.md) · Double-tap locks Shapes and Sign on a phone |
+| SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
+| SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 
 ### Retired
 

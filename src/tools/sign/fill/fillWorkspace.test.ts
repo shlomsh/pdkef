@@ -128,7 +128,7 @@ describe('fillItemIndex', () => {
 describe('documentFillItems', () => {
   const pageSizeOf = () => ({ width: 612, height: 792 });
   const ltr = (): TextDirection => 'ltr';
-  const typography = { fontFamily: 'Arimo', fontSize: 12 };
+  const typography = { fontFamily: 'Arimo', carriedFontSize: 12 };
 
   it('turns an empty detected field into a slot item keyed by slotKey', () => {
     const items = documentFillItems({
@@ -186,7 +186,7 @@ describe('documentFillItems', () => {
       order: [FIELD],
       textElements: [],
       freeAt: null,
-      typography: { fontFamily: 'Rubik', fontSize: 14 },
+      typography: { fontFamily: 'Rubik', carriedFontSize: 14 },
       pageSizeOf,
       directionOfPage: ltr,
     });

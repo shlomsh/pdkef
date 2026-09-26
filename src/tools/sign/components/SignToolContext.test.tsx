@@ -77,6 +77,7 @@ describe('SignToolContext Reducer', () => {
     actionHistory: [],
     redoHistory: [],
     documentRevision: 0,
+    carried: {},
   };
 
   it('SET_TOOL sets selectedTool', () => {
@@ -103,6 +104,60 @@ describe('SignToolContext Reducer', () => {
     expect(loaded.documentRevision).toBe(8);
     expect(loaded.draftBaselineRevision).toBe(8);
     expect(reducer(loaded, { type: 'UPDATE_ELEMENT', payload: { id: 'restored-1', changes: { text: 'Edited' } } }).documentRevision).toBe(9);
+  });
+
+  // SIGN-33 (folding SIGN-32's carriedFont/carriedFontSize/carriedDirection
+  // into one carried style object): one carried style per document,
+  // belonging to the document (round-tripped through its draft), never the
+  // browser.
+  describe('carried style', () => {
+    it('SET_CARRIED merges a partial patch into carried and bumps documentRevision', () => {
+      const fontState = reducer(initialState, { type: 'SET_CARRIED', payload: { font: 'David' } });
+      expect(fontState.carried.font).toBe('David');
+      expect(fontState.documentRevision).toBe(1);
+
+      const sizeState = reducer(fontState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      expect(sizeState.carried.fontSize).toBe(18);
+      expect(sizeState.documentRevision).toBe(2);
+      // Setting one key never disturbs another already carried.
+      expect(sizeState.carried.font).toBe('David');
+
+      // A single patch can set several keys at once too.
+      const multiState = reducer(sizeState, { type: 'SET_CARRIED', payload: { direction: 'rtl', color: '#ff0000' } });
+      expect(multiState.carried).toEqual({ font: 'David', fontSize: 18, direction: 'rtl', color: '#ff0000' });
+      expect(multiState.documentRevision).toBe(3);
+    });
+
+    it('LOAD_DOCUMENT restores a draft\'s carried style', () => {
+      const loaded = reducer(initialState, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carried: { font: 'David', fontSize: 18, direction: 'rtl' } },
+      });
+      expect(loaded.carried).toEqual({ font: 'David', fontSize: 18, direction: 'rtl' });
+    });
+
+    it('LOAD_DOCUMENT resets to {} for a fresh document, even one opened after a document that carried style', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      expect(withCarry.carried.fontSize).toBe(18);
+
+      const fresh = reducer(withCarry, { type: 'LOAD_DOCUMENT', payload: { elements: [], actionHistory: [] } });
+      expect(fresh.carried).toEqual({});
+    });
+
+    it('LOAD_DOCUMENT resets to {} for a draft written before this existed (carried absent or null)', () => {
+      const withCarry = reducer(initialState, { type: 'SET_CARRIED', payload: { fontSize: 18 } });
+      const restoredAbsent = reducer(withCarry, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [] },
+      });
+      expect(restoredAbsent.carried).toEqual({});
+
+      const restoredNull = reducer(withCarry, {
+        type: 'LOAD_DOCUMENT',
+        payload: { elements: [], actionHistory: [], carried: null },
+      });
+      expect(restoredNull.carried).toEqual({});
+    });
   });
 
   it('increments the document revision for every change that can invalidate an export', () => {

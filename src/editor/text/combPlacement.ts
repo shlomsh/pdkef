@@ -2,6 +2,7 @@ import {
   COMB_BOX_FILL,
   COMB_CAP_HEIGHT_EM,
   COMB_MIN_CELL_EM,
+  DEFAULT_FONT_SIZE_PT,
   FIELD_FONT_FILL_RATIO,
   FIELD_FONT_MAX_PT,
   HELVETICA_BASELINE_OFFSET_EM,
@@ -227,72 +228,55 @@ export function cellRegionAt(
 }
 
 /**
- * The largest font size whose characters still fit the printed cell.
+ * The size a placement takes: the ONE function every path reads (SIGN-32) - a
+ * text cell, a comb, a date on either (an ordinary text element, same path),
+ * and free text with no field at all. A document carries one font size once
+ * anything has set it (`PdfSignTool`'s `SignToolState.carriedFontSize`,
+ * round-tripped through the draft); before that, `carriedFontSize` is `null`
+ * and this is the one place that seeds it.
  *
- * A comb whose cells are narrower than the characters in them has stopped
- * doing the one thing it exists for - the same rule `combWidthFloor` enforces
- * from the other direction when a side handle is dragged. Here the cell width
- * is fixed by the paper, so it is the font that has to give: someone whose
- * last text box was 24pt should not get a 24pt comb in an 11.3pt cell.
+ * No carried size yet: the field's own writable height decides it -
+ * `FIELD_FONT_FILL_RATIO` (~0.65) of `seedHeightPoints`, capped at
+ * `FIELD_FONT_MAX_PT` so a very tall field doesn't render an oversized single
+ * line, floored at `MIN_FONT_SIZE_PT`. A comb passes its own cell height the
+ * same way a cell passes its writable height - not the boxed digit-height
+ * fraction `heightCeilingPoints` uses, so a comb an empty document starts on
+ * carries the same size a same-height cell would, not one already shrunk
+ * toward its own box-fill margin. Free text (or any field too short to
+ * measure, `seedHeightPoints` left at 0) has no height to grow toward and
+ * takes `DEFAULT_FONT_SIZE_PT` instead. Either way, the returned size IS the
+ * carried size from then on - the caller adopts it because it knows it asked
+ * with `carriedFontSize: null`, not because this function says so twice.
+ *
+ * A carried size already exists: every path only ever shrinks it, never grows
+ * it, to whichever ceiling(s) the field in front of it actually enforces - a
+ * comb's cell-width ceiling and, boxed, its cap-height ceiling; a cell's own
+ * line-height ceiling; free text and an open comb's teeth pass none and get
+ * the carried size back untouched. That shrink belongs to this element alone
+ * and is never written back to the carried size - see `placeCombOnRegion`'s
+ * and `placeTextOnCell`'s own callers for why a narrow comb must not drag the
+ * next, roomier field down with it.
  */
-export function combFontSize(
-  preferredSize: number,
-  cellWidthPercent: number,
-  pageWidthPoints: number,
-  cellHeightPercent = 0,
-  pageHeightPoints = 0,
+export function fieldFontSize(
+  carriedFontSize: number | null,
+  ceilings: {
+    seedHeightPoints?: number;
+    widthCeilingPoints?: number;
+    heightCeilingPoints?: number;
+  } = {},
 ): number {
-  const cellPoints = (cellWidthPercent / 100) * pageWidthPoints;
-  if (!(cellPoints > 0)) return preferredSize;
-  let ceiling = cellPoints / COMB_MIN_CELL_EM;
-  // A closed box also bounds how tall a digit may stand: the largest size
-  // whose cap height (COMB_CAP_HEIGHT_EM) fits the height the caller passes.
-  // The caller passes nothing for an open run - its teeth are dividers
-  // hanging from the rule, not the field's height (form 101: 4-7pt ticks in
-  // a 23pt field), and sizing to them made the identity number smaller than
-  // the name cells beside it, which are the same height (live report).
-  const heightPoints = (cellHeightPercent / 100) * pageHeightPoints;
-  if (heightPoints > 0) ceiling = Math.min(ceiling, heightPoints / COMB_CAP_HEIGHT_EM);
-  return Math.max(MIN_FONT_SIZE_PT, Math.min(preferredSize, ceiling));
-}
-
-/**
- * The font size a one-line box takes on a detected free-text cell: large
- * enough to read as sized *for* the field, never taller than the field
- * itself.
- *
- * A free-text cell's `minWidth` (see `placeTextOnCell`) only ever grows the
- * box past the cell horizontally, the same way a hand-placed box grows - the
- * printed columns either side of it are somebody else's field, but there is
- * no printed rule stopping the box from widening into blank margin. Its
- * *height* has no such give: the row above and the row below are both real
- * fields too, so a box taller than the row it was placed on doesn't grow
- * past a boundary, it visibly sits on top of the next one. Someone whose
- * last text box was 24pt should not get a 24pt box in an 8pt-tall column.
- *
- * That half of the rule - `preferredSize` shrunk to `ceiling`, the largest
- * one-line box (`TEXT_BOX_LINE_HEIGHT_EM`) the cell's height admits - is the
- * whole of what this used to do, on the assumption that a detected cell was
- * always short enough for an ordinary remembered size to already overflow
- * it. SNG-10's lone-box detection broke that assumption: a generously tall
- * field (a caption-less "Full name" row, 22pt) left a 12pt remembered font
- * filling less than half of it, because nothing here ever raised a size that
- * already fit. `target` is the field's own answer to "how big should this
- * be" - `FIELD_FONT_FILL_RATIO` of its height, capped at `FIELD_FONT_MAX_PT`
- * so a very tall field doesn't render an oversized single line - and the
- * font grows to it whenever the remembered size was smaller, still bounded
- * by `ceiling` so a short field is never overflowed to reach the target.
- */
-export function cellFontSize(
-  preferredSize: number,
-  cellHeightPercent: number,
-  pageHeightPoints: number,
-): number {
-  const cellPoints = (cellHeightPercent / 100) * pageHeightPoints;
-  if (!(cellPoints > 0)) return preferredSize;
-  const ceiling = cellPoints / TEXT_BOX_LINE_HEIGHT_EM;
-  const target = Math.min(FIELD_FONT_MAX_PT, cellPoints * FIELD_FONT_FILL_RATIO);
-  return Math.max(MIN_FONT_SIZE_PT, Math.min(Math.max(preferredSize, target), ceiling));
+  if (carriedFontSize === null) {
+    const { seedHeightPoints = 0 } = ceilings;
+    return seedHeightPoints > 0
+      ? Math.max(MIN_FONT_SIZE_PT, Math.min(FIELD_FONT_MAX_PT, seedHeightPoints * FIELD_FONT_FILL_RATIO))
+      : DEFAULT_FONT_SIZE_PT;
+  }
+  const { widthCeilingPoints, heightCeilingPoints } = ceilings;
+  const limits = [widthCeilingPoints, heightCeilingPoints].filter(
+    (value): value is number => typeof value === 'number' && value > 0,
+  );
+  const ceiling = limits.length > 0 ? Math.min(...limits) : Infinity;
+  return Math.max(MIN_FONT_SIZE_PT, Math.min(carriedFontSize, ceiling));
 }
 
 /**
@@ -320,10 +304,10 @@ function cellTextTop(strip: { top: number; height: number }, em: number): number
  * editor's `dir`/`text-align`, the exporter's pen), and grows past the cell
  * only if more is typed than fits - the same way a free box grows.
  *
- * The font size is `cellFontSize`'s answer, not whatever was last used: a
+ * The font size is `fieldFontSize`'s answer, not whatever was last used: a
  * short row (an e-ticket's "Status" column, one line of ~9pt) given a
- * remembered 24pt box would render past its own row into the one below it,
- * same defect class `combFontSize` already guards a comb's cells against.
+ * carried 24pt box would render past its own row into the one below it,
+ * same defect class a comb's cells are guarded against below.
  *
  * `left` is the cell's left edge whichever way the text reads: a box with a
  * span has no growing edge to anchor (see signHelpers' `textAnchorsRightEdge`),
@@ -349,14 +333,16 @@ function cellTextTop(strip: { top: number; height: number }, em: number): number
  */
 export function placeTextOnCell(
   region: FieldRegion,
-  { fontSize, pageHeightPoints }: { fontSize: number; pageHeightPoints: number },
+  { carriedFontSize, pageHeightPoints }: { carriedFontSize: number | null; pageHeightPoints: number },
 ): { left: number; top: number; minWidth: number; fontSize: number } {
   // The blank part of the cell, not the cell: a labelled cell's answer goes
   // under (or beside) its printed label, and centring on the whole cell put
   // the top of the typed text against the label's baseline (live report,
   // form 101's employer row). See FieldRegion.writable.
   const area = region.writable ?? region;
-  const size = cellFontSize(fontSize, area.height, pageHeightPoints);
+  const areaHeightPoints = pageHeightPoints > 0 ? (area.height / 100) * pageHeightPoints : 0;
+  const heightCeilingPoints = areaHeightPoints > 0 ? areaHeightPoints / TEXT_BOX_LINE_HEIGHT_EM : undefined;
+  const size = fieldFontSize(carriedFontSize, { seedHeightPoints: areaHeightPoints, heightCeilingPoints });
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   return {
     left: area.left,
@@ -386,18 +372,27 @@ export function placeTextOnCell(
  */
 export function placeCombOnRegion(
   region: CombRegion,
-  { fontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
-    fontSize: number;
+  { carriedFontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
+    carriedFontSize: number | null;
     fontFamily: string;
     pageWidthPoints: number;
     pageHeightPoints: number;
   },
 ): CombPlacement {
   const cells = Math.max(1, Math.min(MAX_COMB_CELLS, Math.round(region.cells)));
+  const cellWidthPoints = pageWidthPoints > 0 ? ((region.width / cells) / 100) * pageWidthPoints : 0;
+  const widthCeilingPoints = cellWidthPoints > 0 ? cellWidthPoints / COMB_MIN_CELL_EM : undefined;
   // Only a closed box has a height to fit; open teeth are dividers, and the
   // digits on them keep the size every other field on the form gets.
-  const digitHeight = region.boxed ? region.height * COMB_BOX_FILL : 0;
-  const size = combFontSize(fontSize, region.width / cells, pageWidthPoints, digitHeight, pageHeightPoints);
+  const digitHeightPercent = region.boxed ? region.height * COMB_BOX_FILL : 0;
+  const digitHeightPoints = pageHeightPoints > 0 ? (digitHeightPercent / 100) * pageHeightPoints : 0;
+  const heightCeilingPoints = digitHeightPoints > 0 ? digitHeightPoints / COMB_CAP_HEIGHT_EM : undefined;
+  // Seeding a fresh carried size reads the whole cell, not the digit-height
+  // fraction above: an empty document that starts on a comb carries the same
+  // size a cell of the same height would, never one already shrunk toward
+  // this comb's own box-fill margin (see fieldFontSize's own doc).
+  const seedHeightPoints = pageHeightPoints > 0 ? (region.height / 100) * pageHeightPoints : 0;
+  const size = fieldFontSize(carriedFontSize, { seedHeightPoints, widthCeilingPoints, heightCeilingPoints });
   const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
   // A closed cell is a box and text belongs in the middle of it; an open one is
   // a row of teeth hanging from the line you write on, and text belongs on that
@@ -428,26 +423,32 @@ export function placeCombOnRegion(
 /**
  * The geometry a text box takes to sit on a detected field, whichever kind it
  * is - the one place a tap on a field (useWorkspaceGestures) and a Next/
- * Previous move onto one (the coming useFieldNavigation) both get it from, so
- * the two can never drift apart. A comb takes the run's span, cell count and
- * combFontSize's answer; a cell takes placeTextOnCell's answer (its left
+ * Previous move onto one (useFieldNavigation) both get it from, so the two
+ * can never drift apart. A comb takes the run's span, cell count and
+ * fieldFontSize's answer; a cell takes placeTextOnCell's answer (its left
  * edge, vertical middle re-centred on the box's own possibly-shrunk height,
- * and cellFontSize's answer) - neither kind needs a `direction` any more:
+ * and fieldFontSize's answer) - neither kind needs a `direction` any more:
  * a comb's span is fixed by the paper (no anchored edge to flip) and a cell
  * box is left-anchored with a minimum width for the same reason (see
  * signHelpers' `textAnchorsRightEdge`), so which edge the text reads toward
  * is purely a rendering/export question, never a placement one.
+ *
+ * `carriedFontSize` is the document's carried size, or `null` on a document
+ * that has none yet (SIGN-32). The caller passes `null` only when it means
+ * to adopt whatever this returns as the new carried size - see
+ * `fieldFontSize`'s own doc for why that adoption lives with the caller
+ * rather than in a second return value here.
  */
 export function placeTextOnField(
   field: TypableField,
-  { fontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
-    fontSize: number;
+  { carriedFontSize, fontFamily, pageWidthPoints, pageHeightPoints }: {
+    carriedFontSize: number | null;
     fontFamily: string;
     pageWidthPoints: number;
     pageHeightPoints: number;
   },
 ): CombPlacement | { left: number; top: number; minWidth: number; fontSize: number } {
   return field.kind === 'comb'
-    ? placeCombOnRegion(field.region, { fontSize, fontFamily, pageWidthPoints, pageHeightPoints })
-    : placeTextOnCell(field.region, { fontSize, pageHeightPoints });
+    ? placeCombOnRegion(field.region, { carriedFontSize, fontFamily, pageWidthPoints, pageHeightPoints })
+    : placeTextOnCell(field.region, { carriedFontSize, pageHeightPoints });
 }

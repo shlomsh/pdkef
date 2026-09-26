@@ -1,7 +1,9 @@
 import type { EditorElement, ElementType } from '../model/editorModel.ts';
+import type { DocumentStyle } from '../model/documentStyle.ts';
 import { isActionHistoryEntry, type ActionHistoryEntry, type HistoryElement } from '../model/actionHistory.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
+import { isDateFormatId } from '../text/dateFormat.ts';
 // The version constant lives with the draft layer in src/lib/drafts/ (it is
 // stamped there); re-exported so the editor-side callers and tests keep one
 // name for it. `migrateDraftRecord` below is where a bump gets its step.
@@ -101,6 +103,59 @@ export function migrateDraftRecord(record: unknown): unknown {
   return { ...migrated, schemaVersion: DRAFT_SCHEMA_VERSION };
 }
 
+/**
+ * The document's carried style (SIGN-33), validated one key at a time: a
+ * malformed value drops only that key - wrong type, an empty string, a
+ * non-positive number, or a value outside its enum - never the whole
+ * object, so a corrupt `strokeWidth` cannot cost the document its carried
+ * font. `migrateLegacyCarried` below folds a SIGN-32 draft's flat
+ * `carriedFont`/`carriedFontSize`/`carriedDirection` fields into this shape.
+ */
+function validateCarriedStyle(value: unknown): Partial<DocumentStyle> {
+  if (!isRecord(value)) return {};
+  const carried: Partial<DocumentStyle> = {};
+  if (hasString(value, 'font') && (value.font as string)) carried.font = value.font as string;
+  if (hasNumber(value, 'fontSize') && (value.fontSize as number) > 0) carried.fontSize = value.fontSize as number;
+  if (value.direction === 'ltr' || value.direction === 'rtl') carried.direction = value.direction;
+  if (hasString(value, 'color') && (value.color as string)) carried.color = value.color as string;
+  if (value.textAlign === 'left' || value.textAlign === 'center' || value.textAlign === 'right') {
+    carried.textAlign = value.textAlign;
+  }
+  if (typeof value.bold === 'boolean') carried.bold = value.bold;
+  if (typeof value.italic === 'boolean') carried.italic = value.italic;
+  if (isDateFormatId(value.dateFormat)) carried.dateFormat = value.dateFormat;
+  if (value.symbolMark === 'check' || value.symbolMark === 'x' || value.symbolMark === 'dot') {
+    carried.symbolMark = value.symbolMark;
+  }
+  if (hasNumber(value, 'symbolWidth') && (value.symbolWidth as number) > 0) carried.symbolWidth = value.symbolWidth as number;
+  if (hasNumber(value, 'strokeWidth') && (value.strokeWidth as number) > 0) carried.strokeWidth = value.strokeWidth as number;
+  if (hasString(value, 'whiteoutColor') && (value.whiteoutColor as string)) carried.whiteoutColor = value.whiteoutColor as string;
+  if (hasNumber(value, 'signatureWidth') && (value.signatureWidth as number) > 0) {
+    carried.signatureWidth = value.signatureWidth as number;
+  }
+  return carried;
+}
+
+/**
+ * A SIGN-32 draft's flat `carriedFont`/`carriedFontSize`/`carriedDirection`
+ * restore into `carried.font`/`fontSize`/`direction`, validated the same way
+ * as any other key - only when `extra.carried` itself does not already carry
+ * that key, so a SIGN-33 draft's own value always wins.
+ */
+function migrateLegacyCarried(extra: Record<string, unknown>, carried: Partial<DocumentStyle>): Partial<DocumentStyle> {
+  const migrated = { ...carried };
+  if (migrated.font === undefined && hasString(extra, 'carriedFont') && (extra.carriedFont as string)) {
+    migrated.font = extra.carriedFont as string;
+  }
+  if (migrated.fontSize === undefined && hasNumber(extra, 'carriedFontSize') && (extra.carriedFontSize as number) > 0) {
+    migrated.fontSize = extra.carriedFontSize as number;
+  }
+  if (migrated.direction === undefined && (extra.carriedDirection === 'ltr' || extra.carriedDirection === 'rtl')) {
+    migrated.direction = extra.carriedDirection;
+  }
+  return migrated;
+}
+
 export interface ValidatedElements<TElement extends HistoryElement = DraftElement> {
   valid: TElement[];
   droppedCount: number;
@@ -153,7 +208,12 @@ export interface ValidatedDraftRecord<TElement extends HistoryElement = DraftEle
   fileType?: string;
   fileBytes: ArrayBuffer;
   elements: TElement[];
-  extra?: { actionHistory?: ActionHistoryEntry<TElement>[] };
+  /** The document's carried style (SIGN-33) is Sign-only; a Redact record
+   * simply never carries one, and it comes back undefined for it. */
+  extra?: {
+    actionHistory?: ActionHistoryEntry<TElement>[];
+    carried?: Partial<DocumentStyle>;
+  };
 }
 
 function isNonEmptyArrayBuffer(value: unknown): value is ArrayBuffer {
@@ -192,12 +252,20 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
   if (actionHistory.length !== rawHistory.length) {
     console.error(`draftValidation: dropped ${rawHistory.length - actionHistory.length} invalid history command(s)`);
   }
+  // SIGN-33: Sign-only, optional - a Redact record or a draft written before
+  // this existed simply has none, and it comes back undefined rather than
+  // failing the whole restore. Each key is validated on its own
+  // (validateCarriedStyle), and a SIGN-32 draft's flat carriedFont/
+  // carriedFontSize/carriedDirection fields migrate into it.
+  const carried: Partial<DocumentStyle> | undefined = isRecord(record.extra)
+    ? migrateLegacyCarried(record.extra, validateCarriedStyle(record.extra.carried))
+    : undefined;
 
   return {
     fileName: record.fileName as string,
     fileType: typeof record.fileType === 'string' ? record.fileType : undefined,
     fileBytes: record.fileBytes,
     elements: valid,
-    extra: isRecord(record.extra) ? { actionHistory } : undefined,
+    extra: isRecord(record.extra) ? { actionHistory, carried } : undefined,
   };
 }

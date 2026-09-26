@@ -20,6 +20,7 @@ const baseState = (elements: EditorElement[]): SignToolState => ({
   actionHistory: [],
   redoHistory: [],
   documentRevision: 0,
+  carried: {},
 });
 
 describe('SignTool dependable undo', () => {

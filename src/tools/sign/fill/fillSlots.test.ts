@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectedSlots, freeSlot, placementForField, placementForFree, slotKey } from './fillSlots.ts';
 import { placeTextOnField, type CombRegion, type FieldRegion, type TypableField } from '../../../editor/text/combPlacement.ts';
+import { DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import type { SlotPlacement } from './fillTypes.ts';
 
@@ -8,7 +9,7 @@ import type { SlotPlacement } from './fillTypes.ts';
 // these fixtures read against the same real-world scale their own tests do.
 const PAGE_WIDTH = 595.275;
 const PAGE_HEIGHT = 841.89;
-const page = { fontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT };
+const page = { carriedFontSize: 12, fontFamily: 'Arimo', pageWidthPoints: PAGE_WIDTH, pageHeightPoints: PAGE_HEIGHT };
 
 // Income tax form 101's identity comb, as MOBI-03's detector reports it.
 const IDENTITY_RUN: CombRegion = { pageIndex: 0, left: 73.597, top: 27.277, width: 17.152, height: 0.836, cells: 9 };
@@ -75,6 +76,11 @@ describe('placementForFree', () => {
   it('starts before the tap, not on top of it', () => {
     const placement = placementForFree({ pageIndex: 0, x: 50, y: 50 }, page);
     expect(placement.box.left).toBeLessThan(50);
+  });
+
+  it('takes the default size while the document carries none, like a free tap', () => {
+    const placement = placementForFree({ pageIndex: 0, x: 50, y: 50 }, { ...page, carriedFontSize: null });
+    expect(placement.fontSize).toBe(DEFAULT_FONT_SIZE_PT);
   });
 
   it('is vertically centred on the tap', () => {

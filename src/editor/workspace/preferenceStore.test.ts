@@ -26,7 +26,7 @@ describe('editor workspace preferences', () => {
   });
 
   it('stores typed values in a versioned record scoped to the current user', () => {
-    expect(setEditorPreference('lastFontSize', 16, { userScope: scope })).toBe(true);
+    expect(setEditorPreference('lastSignatureWidth', 16, { userScope: scope })).toBe(true);
     expect(setEditorPreference('lastSymbolMark', 'x', { userScope: scope })).toBe(true);
     expect(setEditorPreference('penThickness', 2.5, { userScope: scope })).toBe(true);
 
@@ -34,27 +34,27 @@ describe('editor workspace preferences', () => {
     expect(record).toMatchObject({
       schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
       revision: 3,
-      values: { lastFontSize: 16, lastSymbolMark: 'x', penThickness: 2.5 },
+      values: { lastSignatureWidth: 16, lastSymbolMark: 'x', penThickness: 2.5 },
     });
     expect(record.updatedAt).toEqual(expect.any(Number));
     expect(record.writerId).toEqual(expect.stringMatching(/^tab-/));
-    expect(localStorage.getItem('pdf-toolkit:lastFontSize')).toBeNull();
-    expect(getEditorPreference('lastFontSize', { userScope: scope })).toBe(16);
+    expect(localStorage.getItem('pdf-toolkit:lastSignatureWidth')).toBeNull();
+    expect(getEditorPreference('lastSignatureWidth', { userScope: scope })).toBe(16);
     expect(getEditorPreference('lastSymbolMark', { userScope: scope })).toBe('x');
   });
 
   it('migrates established unscoped preferences without discarding them', () => {
     const signatures = [{ id: 'sig-1', dataUrl: 'data:image/png;base64,abc', aspectRatio: 2 }];
     localStorage.setItem('pdf-toolkit:signatures', JSON.stringify(signatures));
-    localStorage.setItem('pdf-toolkit:lastFontSize', '16');
+    localStorage.setItem('pdf-toolkit:lastSignatureWidth', '16');
 
     expect(getSavedSignatures()).toEqual(signatures);
-    expect(getEditorPreference('lastFontSize')).toBe(16);
+    expect(getEditorPreference('lastSignatureWidth')).toBe(16);
     const defaultRecordKey = `pdf-toolkit:editor-preferences:v1:${encodeURIComponent(getEditorUserScope() ?? '')}`;
     expect(JSON.parse(localStorage.getItem(defaultRecordKey) ?? 'null')).toMatchObject({
       schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
       revision: 0,
-      values: { lastFontSize: 16 },
+      values: { lastSignatureWidth: 16 },
     });
     expect(JSON.parse(localStorage.getItem(`pdf-toolkit:saved-signatures:v1:${encodeURIComponent(getEditorUserScope() ?? '')}`) ?? 'null')).toMatchObject({
       signatures,
@@ -80,11 +80,11 @@ describe('editor workspace preferences', () => {
     }));
 
     expect(getEditorPreference('lastColor', { userScope: scope })).toBe('#1a2b3c');
-    expect(setEditorPreference('lastFont', 'Arimo', { userScope: scope })).toBe(true);
+    expect(setEditorPreference('lastWhiteoutColor', '#fefefe', { userScope: scope })).toBe(true);
     expect(JSON.parse(localStorage.getItem(recordKey) ?? 'null')).toMatchObject({
       schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION,
       revision: 5,
-      values: { lastColor: '#1a2b3c', lastFont: 'Arimo' },
+      values: { lastColor: '#1a2b3c', lastWhiteoutColor: '#fefefe' },
     });
   });
 
@@ -98,10 +98,10 @@ describe('editor workspace preferences', () => {
       values: { savedSignatures: signatures, lastColor: '#abcdef' },
     }));
 
-    expect(setEditorPreference('lastFont', 'Arimo', { userScope: scope })).toBe(true);
+    expect(setEditorPreference('lastWhiteoutColor', '#fefefe', { userScope: scope })).toBe(true);
     expect(getSavedSignatures({ userScope: scope })).toEqual(signatures);
     expect(JSON.parse(localStorage.getItem(recordKey) ?? 'null')).toMatchObject({
-      values: { lastColor: '#abcdef', lastFont: 'Arimo' },
+      values: { lastColor: '#abcdef', lastWhiteoutColor: '#fefefe' },
     });
     expect(localStorage.getItem(recordKey)).not.toContain('savedSignatures');
     expect(JSON.parse(localStorage.getItem(signatureLibraryKey) ?? 'null')).toMatchObject({ signatures });

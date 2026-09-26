@@ -139,6 +139,93 @@ describe('validateDraftRecord', () => {
     errorSpy.mockRestore();
   });
 
+  // SIGN-33 folds SIGN-32's flat carriedFont/carriedFontSize/carriedDirection
+  // into one `carried` object, validated key by key: a bad value drops only
+  // itself, never the rest of the object.
+  const goodCarried = {
+    font: 'Caveat', fontSize: 13.5, direction: 'rtl', color: '#112233', textAlign: 'center',
+    bold: true, italic: false, dateFormat: 'iso', symbolMark: 'x', symbolWidth: 6, strokeWidth: 2,
+    whiteoutColor: '#ffffff', signatureWidth: 30,
+  };
+
+  it('keeps a fully valid carried style, key for key', () => {
+    const record = { fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { carried: goodCarried } };
+    expect(validateDraftRecord(record)?.extra?.carried).toEqual(goodCarried);
+  });
+
+  it.each([
+    ['font', 'empty string', { font: '' }],
+    ['font', 'wrong type', { font: 7 }],
+    ['fontSize', 'string', { fontSize: '18' }],
+    ['fontSize', 'negative', { fontSize: -5 }],
+    ['fontSize', 'zero', { fontSize: 0 }],
+    ['direction', 'unrelated string', { direction: 'up' }],
+    ['direction', 'wrong type', { direction: 1 }],
+    ['color', 'empty string', { color: '' }],
+    ['textAlign', 'unknown enum value', { textAlign: 'middle' }],
+    ['bold', 'wrong type', { bold: 'yes' }],
+    ['italic', 'wrong type', { italic: 1 }],
+    ['dateFormat', 'unknown format id', { dateFormat: 'not-a-format' }],
+    ['symbolMark', 'unknown mark', { symbolMark: 'star' }],
+    ['symbolWidth', 'zero', { symbolWidth: 0 }],
+    ['strokeWidth', 'negative', { strokeWidth: -1 }],
+    ['whiteoutColor', 'empty string', { whiteoutColor: '' }],
+    ['signatureWidth', 'negative', { signatureWidth: -10 }],
+  ])('drops only a malformed %s (%s), keeping every other key', (key, _label, badPatch) => {
+    const carried = { ...goodCarried, ...badPatch };
+    const record = { fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText], extra: { carried } };
+    const result = validateDraftRecord(record);
+    expect(result?.elements).toEqual([goodText]);
+    const resultCarried = result?.extra?.carried as Record<string, unknown>;
+    expect(resultCarried[key]).toBeUndefined();
+    const { [key]: _dropped, ...expectedRest } = goodCarried as Record<string, unknown>;
+    expect(resultCarried).toEqual(expectedRest);
+  });
+
+  it('an absent or non-record carried value comes back as {}, not undefined', () => {
+    const missing = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: {} });
+    expect(missing?.extra?.carried).toEqual({});
+    const notARecord = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [], extra: { carried: 'nope' } });
+    expect(notARecord?.extra?.carried).toEqual({});
+  });
+
+  it('extra missing entirely leaves carried undefined, not {}', () => {
+    const result = validateDraftRecord({ fileName: 'a.pdf', fileBytes: bytesOf(), elements: [] });
+    expect(result?.extra).toBeUndefined();
+  });
+
+  it('migrates a SIGN-32 draft\'s flat carriedFont/carriedFontSize/carriedDirection into carried', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { carriedFont: 'David', carriedFontSize: 18, carriedDirection: 'rtl' },
+    };
+    expect(validateDraftRecord(record)?.extra?.carried).toEqual({ font: 'David', fontSize: 18, direction: 'rtl' });
+  });
+
+  it('drops a malformed legacy carriedFont/carriedFontSize/carriedDirection during migration, the same rule as any other key', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { carriedFont: '', carriedFontSize: -5, carriedDirection: 'up' },
+    };
+    expect(validateDraftRecord(record)?.extra?.carried).toEqual({});
+  });
+
+  it('a SIGN-33 carried key always wins over a same-key SIGN-32 legacy field', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { carried: { font: 'Arimo' }, carriedFont: 'David', carriedFontSize: 18 },
+    };
+    expect(validateDraftRecord(record)?.extra?.carried).toEqual({ font: 'Arimo', fontSize: 18 });
+  });
+
+  it('a legacy field fills a key the SIGN-33 carried object never mentions', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [],
+      extra: { carried: { color: '#112233' }, carriedDirection: 'rtl' },
+    };
+    expect(validateDraftRecord(record)?.extra?.carried).toEqual({ color: '#112233', direction: 'rtl' });
+  });
+
   it('returns a validated record with valid elements on success', () => {
     const record = { fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: bytesOf(), elements: [goodText] };
     const result = validateDraftRecord(record);
