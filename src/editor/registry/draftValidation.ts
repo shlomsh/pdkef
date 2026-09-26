@@ -110,8 +110,10 @@ export function migrateDraftRecord(record: unknown): unknown {
  * object, so a corrupt `strokeWidth` cannot cost the document its carried
  * font. `migrateLegacyCarried` below folds a SIGN-32 draft's flat
  * `carriedFont`/`carriedFontSize`/`carriedDirection` fields into this shape.
+ * The app-wide style (SIGN-35, preferenceStore.ts's `getAppStyle`) is read
+ * back through this same validator.
  */
-function validateCarriedStyle(value: unknown): Partial<DocumentStyle> {
+export function validateDocumentStyle(value: unknown): Partial<DocumentStyle> {
   if (!isRecord(value)) return {};
   const carried: Partial<DocumentStyle> = {};
   if (hasString(value, 'font') && (value.font as string)) carried.font = value.font as string;
@@ -255,10 +257,10 @@ export function validateDraftRecord<TElement extends HistoryElement = DraftEleme
   // SIGN-33: Sign-only, optional - a Redact record or a draft written before
   // this existed simply has none, and it comes back undefined rather than
   // failing the whole restore. Each key is validated on its own
-  // (validateCarriedStyle), and a SIGN-32 draft's flat carriedFont/
+  // (validateDocumentStyle), and a SIGN-32 draft's flat carriedFont/
   // carriedFontSize/carriedDirection fields migrate into it.
   const carried: Partial<DocumentStyle> | undefined = isRecord(record.extra)
-    ? migrateLegacyCarried(record.extra, validateCarriedStyle(record.extra.carried))
+    ? migrateLegacyCarried(record.extra, validateDocumentStyle(record.extra.carried))
     : undefined;
 
   return {
