@@ -5,6 +5,7 @@ import { combLayout, isComb } from '../../../editor/text/comb.js';
 import CombCells from '../components/nodes/CombCells.tsx';
 import { useCombCaret } from '../components/nodes/useCombCaret.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
+import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from './fillTypes.ts';
 import { slotFrame } from './slotFrame.ts';
@@ -217,17 +218,26 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
             '--text-pad-em': `${layout.font.paddingEm}em`,
           }}
         >
-          <CombCells
-            cells={cells}
-            isRtl={direction === 'rtl'}
-            showGuides={false}
-            visible
-            caretIndex={caretIndex}
-            color={element.color || '#000000'}
-            fontFamily={layout.font.fontFamily}
-            fontWeight={layout.font.fontWeight}
-            fontStyle={layout.font.fontStyle}
-          />
+          {/* The committed element's own display shell (TextNode.tsx's
+              `.text-display[data-comb="on"]`), so the cells inherit its
+              line-height, grid and clipping from the one rule that draws the
+              committed comb, never a parallel copy. Without it the cells took
+              the page's inherited line-height (1.6 against 1.05) and every
+              digit sat 0.275em below where it lands on commit (form 101's
+              date of birth and postal code, Shlomi's phone). */}
+          <div className={elementStyles['text-display']} data-comb="on">
+            <CombCells
+              cells={cells}
+              isRtl={direction === 'rtl'}
+              showGuides={false}
+              visible
+              caretIndex={caretIndex}
+              color={element.color || '#000000'}
+              fontFamily={layout.font.fontFamily}
+              fontWeight={layout.font.fontWeight}
+              fontStyle={layout.font.fontStyle}
+            />
+          </div>
         </div>
       )}
     </>

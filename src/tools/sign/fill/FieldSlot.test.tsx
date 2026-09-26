@@ -6,6 +6,7 @@ import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
 import { textElementLayout } from '../../../lib/signHelpers.js';
+import { combLayout } from '../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
 import type { TextElement } from '../../../editor/model/editorModel.ts';
@@ -740,6 +741,54 @@ describe('FieldSlot component', () => {
       // The transparent text colour is the static .slot-comb class now, not
       // an inline style (styling.md: inline is for runtime geometry only).
       expect(input.classList.contains(styles['slot-comb'])).toBe(true);
+    });
+
+    it('draws each comb digit with the committed element\'s own geometry: its box, font, cells and display shell', () => {
+      // Form 101's postal code: seven open teeth. The overlay's digits have to
+      // land exactly where TextNode.tsx draws the committed element's, so
+      // everything that places them comes from the committed element's own
+      // sources: textElementLayout's box and font, combLayout's cells, and
+      // TextNode's `.text-display[data-comb="on"]` shell for the line-height
+      // (1.05, not the page's inherited 1.6, which put every digit 0.275em low).
+      const combElementOf = (text: string) => textElementOf(text, { left: 4.82, top: 30.2, width: 13.3, combCells: 7, fontSize: 10 });
+      host = mount(
+        <FieldSlot
+          slot={fillSlot()}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Postal code"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      act(() => {
+        input.value = '3785500';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+
+      const committed = combElementOf('3785500');
+      // The mocked page wrapper is 600px wide against 600pt: scale 1.
+      const layout = textElementLayout(committed, 1);
+      const box = layout.box as Record<string, string>;
+      const overlay = requireElement<HTMLDivElement>(host, `.${styles['comb-overlay']}`);
+      expect(overlay.style.left).toBe(box.left);
+      expect(overlay.style.top).toBe(box.top);
+      expect(overlay.style.width).toBe(box.width);
+      expect(overlay.style.fontSize).toBe(`${layout.font.fontSize}px`);
+      expect(overlay.style.getPropertyValue('--text-pad-em')).toBe(`${layout.font.paddingEm}em`);
+
+      const shell = overlay.firstElementChild as HTMLElement;
+      expect(shell.classList.contains(elementStyles['text-display'])).toBe(true);
+      expect(shell.getAttribute('data-comb')).toBe('on');
+      expect(shell.querySelector('[data-text-part="comb"]')).not.toBeNull();
+
+      const cells = Array.from(shell.querySelectorAll<HTMLElement>('[data-text-part="comb-cell"]'));
+      const expected = combLayout(committed, layout.direction === 'rtl');
+      expect(cells.map((cell) => cell.textContent)).toEqual(expected.map((cell) => cell.char));
+      expect(cells.map((cell) => cell.style.left)).toEqual(expected.map((cell) => `${cell.centerFraction * 100}%`));
     });
 
     it('starts an RTL page\'s empty field slot dir="rtl", and flips to "ltr" on typed Latin letters', () => {

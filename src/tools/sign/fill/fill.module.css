@@ -11,8 +11,10 @@
    for its own faint fill, at a lower strength since a slot sits directly on
    top of the printed field rather than beside it.
    Shared with .comb-overlay below: both sit exactly where the text element
-   the slot becomes will, so they take the same line-height rather than each
-   declaring its own copy of it. */
+   the slot becomes will, so they take the same height rather than each
+   declaring its own copy of it. The overlay's line-height is not declared
+   here at all: its cells sit in the committed element's own `.text-display`
+   shell (FieldSlot.tsx), which carries it. */
 .slot,
 .comb-overlay {
   /* Mirrors .text-display's own line-height (EditorElement.module.css) - a
@@ -71,6 +73,14 @@
 .comb-overlay {
   position: absolute;
   pointer-events: none;
+}
+
+/* The `.text-display` shell inside it (FieldSlot.tsx) fills the overlay's
+   one-line box, as the committed element's display fills its wrapper: that
+   rule clips a comb (`overflow: hidden`), so a shell only as tall as its
+   absolutely positioned cells would clip every digit away. */
+.comb-overlay > * {
+  height: 100%;
 }
 
 /* The real input's own comb-specific look: the typed text is invisible so the
