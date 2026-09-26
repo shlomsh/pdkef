@@ -612,7 +612,6 @@ _None._
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |
-| SNG-19 | P1 | [SNG-19](backlog/tasks/SNG-19.md) · Fill mode becomes Sign's default; the old editor moves behind ?next=0 |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |
 
 ### In progress
@@ -625,6 +624,7 @@ _None._
 | SNG-15 | P1 | [SNG-15](backlog/tasks/SNG-15.md) · Fill mode, slice 1: the production editor with every writing spot a real field the platform's own arrows hop |
 | SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom |
 | SNG-18 | P2 | [SNG-18](backlog/tasks/SNG-18.md) · Opening the practice form keeps fill mode's ?next=1 |
+| SNG-19 | P1 | [SNG-19](backlog/tasks/SNG-19.md) · Fill mode becomes Sign's default; the old editor moves behind ?next=0 |
 
 ### Blocked
 
