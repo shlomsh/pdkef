@@ -512,7 +512,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| FORM-27 | P1 | [FORM-27](backlog/tasks/FORM-27.md) · An open comb's field is its printed row: teeth never split their own cell, and a lone comb takes its title line's height |
 
 ### Blocked
 
