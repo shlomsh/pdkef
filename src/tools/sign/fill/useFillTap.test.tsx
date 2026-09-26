@@ -211,7 +211,7 @@ describe('useFillTap', () => {
     const event = mouseEvent(overlay, overlay, 500, 500);
     handlers.onClickCapture(event, 0);
 
-    expect(delegate).toHaveBeenCalledWith(event, 0, { pageIndex: 0, x: 50, y: 50 });
+    expect(delegate).toHaveBeenCalledWith(event, 0, { pageIndex: 0, x: 50, y: 50 }, undefined);
   });
 
   it('acts on a touch tap that starts and ends at the same point inside the tap window', () => {
@@ -259,7 +259,28 @@ describe('useFillTap', () => {
     handlers.onClickCapture(click, 0);
 
     expect(delegate).toHaveBeenCalledTimes(1);
-    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 });
+    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 }, undefined);
+  });
+
+  it("forwards the decision's tool to delegate: nothing armed, a tick box in reach, runs as the symbol tool", () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
+
+    const event = mouseEvent(overlay, overlay, 500, 500);
+    handlers.onClickCapture(event, 0);
+
+    expect(delegate).toHaveBeenCalledWith(event, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
+  });
+
+  it("carries a touch tap's delegated tool to its click", () => {
+    const { handlers, overlay, delegate } = setup({ tool: 'none', targetsOf: () => [target('box', 'box:1')] });
+
+    const touch = fakeTouch(1, 500, 500);
+    handlers.onTouchStart(touchEvent(overlay, overlay, [touch], [touch]), 0);
+    handlers.onTouchEnd(touchEvent(overlay, overlay, [], [fakeTouch(1, 500, 500)]), 0);
+    const click = mouseEvent(overlay, overlay, 50, 950);
+    handlers.onClickCapture(click, 0);
+
+    expect(delegate).toHaveBeenCalledWith(click, 0, { pageIndex: 0, x: 50, y: 50 }, 'symbol');
   });
 
   it('does not act on a touch that moved past the tap slop: a scroll or drag is not a tap', () => {

@@ -16,7 +16,7 @@ import { useFill, TextFillContext } from './FillContext.tsx';
 import { focusFillInput } from './fillDom.ts';
 import type { FillLayerProps } from './fillTypes.ts';
 
-export default function FillLayer({ items, pageWidthPoints, enterKeyHintOf, slotLabel, renderText, onEnter, onCommitSlot }: FillLayerProps) {
+export default function FillLayer({ items, pageWidthPoints, enterKeyHintOf, slotLabel, renderText, onEnter, onCommitSlot, slotElementOf }: FillLayerProps) {
   const { aimedKey, pendingFocusKey, setPendingFocusKey, closeFreeSlot } = useFill();
   // A slot a tap just opened takes focus from the focus proxy once it renders (docs/sign-fill-mode.md, "The focus proxy").
   useEffect(() => {
@@ -28,6 +28,7 @@ export default function FillLayer({ items, pageWidthPoints, enterKeyHintOf, slot
       {items.map((item) => (item.kind === 'slot' ? (
         <FieldSlot key={item.key} slot={item.slot} enterKeyHint={enterKeyHintOf(item.key)} aimed={item.key === aimedKey}
           pageWidthPoints={pageWidthPoints} label={slotLabel} onEnter={() => onEnter(item.key)}
+          elementOf={(text) => slotElementOf(item.slot, text)}
           onCommit={(text) => onCommitSlot(item.slot, text)} onLeave={item.slot.field === null ? closeFreeSlot : undefined} />
       ) : (
         <TextFillContext.Provider key={item.key} value={{ fillKey: item.key, enterKeyHint: enterKeyHintOf(item.key), onEnter: () => onEnter(item.key) }}>

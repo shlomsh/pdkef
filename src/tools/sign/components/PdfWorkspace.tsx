@@ -53,7 +53,7 @@ import useFillTap from '../fill/useFillTap.ts';
 import { fillToolOf } from '../fill/fillTap.ts';
 import { enterKeyHint } from '../fill/fillOrder.ts';
 import { boxOf, documentFillItems, fillItemIndex, fillItemsByPage, fillReachTargets } from '../fill/fillWorkspace.ts';
-import { elementForSlot } from '../fill/slotElement.ts';
+import { elementForSlot, type SlotElementBase } from '../fill/slotElement.ts';
 import { fillKeyOf, focusNextFillInput } from '../fill/fillDom.ts';
 import type { FillItem, FillSlot, ReachTarget } from '../fill/fillTypes.ts';
 import fillStyles from '../fill/fill.module.css';
@@ -273,26 +273,41 @@ export default function PdfWorkspace({
   }, [fill.enabled, fillTool, fillItems, fieldOrder, formRegions.checkboxes, pageSizeOf]);
   const enterKeyHintOf = (key: string) => enterKeyHint(fillItemIndex(fillItems, key), fillItems.length);
 
-  // A slot left with text in it becomes a text element: one ADD_ELEMENT, one undo
-  // step, built from exactly what handlePageClick places a tap with. Like a tap,
-  // the first placement seeds the document's carried font and size.
-  const commitSlot = useCallback((slot: FillSlot, text: string) => {
+  // The base elementForSlot needs beyond the slot and its text - shared by
+  // commitSlot (a real id, for the element that actually gets added) and
+  // slotElementOf (a fixed preview id, for the live comb layout and
+  // direction FieldSlot previews before anything is committed).
+  const slotElementBase = useCallback((slot: FillSlot, id: string): SlotElementBase => {
     const size = pageSizeOf(slot.pageIndex);
-    const element = elementForSlot(slot, text, {
-      id: createElementId(),
+    return {
+      id,
       color: carried.color ?? DEFAULT_COLOR_BLUE,
       carried,
       pageDirection: directionOfPage(slot.pageIndex),
       pageWidthPoints: size.width,
       pageHeightPoints: size.height,
-    });
+    };
+  }, [pageSizeOf, carried, directionOfPage]);
+
+  // The element this slot would become with `text` in it, for FieldSlot's
+  // live comb layout and direction preview. A fixed id: it never reaches
+  // ADD_ELEMENT, so nothing needs it to be unique.
+  const slotElementOf = useCallback((slot: FillSlot, text: string) =>
+    elementForSlot(slot, text, slotElementBase(slot, 'fill-slot-preview')),
+  [slotElementBase]);
+
+  // A slot left with text in it becomes a text element: one ADD_ELEMENT, one undo
+  // step, built from exactly what handlePageClick places a tap with. Like a tap,
+  // the first placement seeds the document's carried font and size.
+  const commitSlot = useCallback((slot: FillSlot, text: string) => {
+    const element = elementForSlot(slot, text, slotElementBase(slot, createElementId()));
     const seed: Partial<DocumentStyle> = {};
     if (carried.font === undefined) seed.font = element.fontFamily;
     if (carried.fontSize === undefined) seed.fontSize = element.fontSize;
     if (Object.keys(seed).length > 0) dispatch({ type: 'SET_CARRIED', payload: seed });
     dispatch({ type: 'ADD_ELEMENT', payload: element });
     logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
-  }, [pageSizeOf, carried, directionOfPage, dispatch, logAction, t, elements.length]);
+  }, [slotElementBase, carried, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
   // These are keyed on dispatch/remember* which are stable across renders, so
@@ -459,7 +474,7 @@ export default function PdfWorkspace({
     targetsOf: (pageIndex) => reachTargetsByPage.get(pageIndex) ?? [],
     pageGeometryOf: (pageIndex) => pageSizes[pageIndex],
     engaged: () => fillKeyOf(document.activeElement) !== null || activeElementId !== null,
-    delegate: (event, pageIndex, at) => handlePageClick(event, pageIndex, at),
+    delegate: (event, pageIndex, at, tool) => handlePageClick(event, pageIndex, at, tool),
     dismiss: deactivateAll,
   });
 
@@ -638,7 +653,7 @@ export default function PdfWorkspace({
                     />
 
                     <div
-                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
+                      className={`${workspaceStyles['page-overlay']}${fill.enabled && fillTool !== 'text' && fillTool !== 'none' ? ` ${fillStyles['taps-go-to-tool']}` : ''}`}
                       // Capture sees a tap on an existing checkbox mark before
                       // its wrapper consumes the bubble event, so the same
                       // detected square remains a real toggle target. Fill mode
@@ -679,6 +694,7 @@ export default function PdfWorkspace({
                             renderText={(el) => renderElement(el, size)}
                             onEnter={focusNextFillInput}
                             onCommitSlot={commitSlot}
+                            slotElementOf={slotElementOf}
                           />
                         </>
                       ) : pageElements.map((el) => renderElement(el, size))}

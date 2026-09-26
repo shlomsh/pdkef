@@ -60,12 +60,16 @@ export interface ReachTarget {
 
 /**
  * The armed tool as fill mode sees it (fillToolOf in fillTap.ts):
- * - 'text': no tool, or Text. Reaches every fill input; a tap on nothing opens a free slot.
+ * - 'none': nothing armed. Behaves as 'text' - reaches every fill input, and a tap on
+ *   nothing opens a free slot - and also reaches the detected tick boxes, where a tap
+ *   runs production's own symbol path (the toggle) rather than opening a text slot.
+ * - 'text': Text explicitly armed. Reaches every fill input; a tap on nothing opens a
+ *   free slot.
  * - 'date': reaches the empty detected slots only; production places the date at the slot's centre.
  * - 'mark': the symbol tool. Reaches the detected tick boxes; production places it at the box's centre.
  * - 'other': everything else, which production handles itself.
  */
-export type FillTool = 'text' | 'date' | 'mark' | 'other';
+export type FillTool = 'none' | 'text' | 'date' | 'mark' | 'other';
 
 /** What a tap on the page does in fill mode. */
 export type FillTapDecision =
@@ -81,9 +85,11 @@ export type FillTapDecision =
    * Everything else: production's own tap path (useWorkspaceGestures handlePageClick).
    * `at` is set when fill mode's reach found a tick box for an armed mark: the tap is
    * passed on at that box's centre, so production's tighter snap lands where the
-   * droppable look promised.
+   * droppable look promised. `tool` is set when nothing is armed and the tap landed on
+   * a detected tick box: production's tap path runs as if that tool were armed (always
+   * 'symbol' today), so a tap on a printed checkbox toggles it even with nothing armed.
    */
-  | { type: 'delegate'; at?: PagePoint };
+  | { type: 'delegate'; at?: PagePoint; tool?: 'symbol' };
 
 /**
  * What fill mode hands a text element's renderer (TextNode) through TextFillContext.
@@ -124,4 +130,6 @@ export interface FillLayerProps {
   renderText: (element: TextElement) => ComponentChildren;
   onEnter: (key: string) => void;
   onCommitSlot: (slot: FillSlot, text: string) => void;
+  /** The element this slot becomes with `text` in it (elementForSlot), for the live comb layout and direction. */
+  slotElementOf: (slot: FillSlot, text: string) => TextElement;
 }

@@ -210,15 +210,24 @@ export default function useWorkspaceGestures({
    * `at` (page percent) places at that point instead of the click's own: fill
    * mode (SNG-15) passes a detected field's or tick box's centre when its reach
    * found one near the tap, so the snap below lands where its droppable look
-   * promised. Production never passes it.
+   * promised. `toolOverride` lets fill mode run this as if a different tool
+   * were armed: a tap on a detected tick box with nothing armed passes
+   * 'symbol', so it runs production's own checkbox toggle rather than opening
+   * a text slot. Production itself never passes either.
    */
-  const handlePageClick = (e: PageClickEvent, pageIndex: number, at?: { x: number; y: number }) => {
-    if (!selectedTool) return;
+  const handlePageClick = (
+    e: PageClickEvent,
+    pageIndex: number,
+    at?: { x: number; y: number },
+    toolOverride?: SignToolType,
+  ) => {
+    const tool = toolOverride ?? selectedTool;
+    if (!tool) return;
     // 'date' has no registry entry of its own - it places an ordinary
     // TextElement (see editorModel.ts's SignToolType comment), prefilled below.
-    const definition = getElementDefinition(selectedTool === 'date' ? 'text' : selectedTool);
+    const definition = getElementDefinition(tool === 'date' ? 'text' : tool);
     if (definition.creation.mode !== 'point') {
-      if (definition.creation.mode === 'external' && selectedTool === 'signature') {
+      if (definition.creation.mode === 'external' && tool === 'signature') {
         const container = e.currentTarget;
         const { x: leftPercent, y: topPercent } = at ?? getPointerPercent(e, container, pageSizes[pageIndex]);
         if (activeSignature) {
@@ -251,7 +260,7 @@ export default function useWorkspaceGestures({
     // itself so the field it lands on (if any) can settle this placement's
     // font size once, not patch it in a second time below.
     const point = { x: leftPercent, y: topPercent };
-    const snapsToFields = selectedTool === 'text' || selectedTool === 'date';
+    const snapsToFields = tool === 'text' || tool === 'date';
     const combRegion = snapsToFields
       ? combRegionAt(formRegions.combs, point, pageIndex)
       : null;
@@ -301,7 +310,7 @@ export default function useWorkspaceGestures({
     });
     // A date on an 8-cell comb starts digits-only so the printed dividers do
     // the separating; this does not touch the remembered format.
-    if (selectedTool === 'date' && newEl.type === 'text') {
+    if (tool === 'date' && newEl.type === 'text') {
       const dateValue = toIsoDateString(new Date());
       const rememberedFormatId = isDateFormatId(initialDateFormat) ? initialDateFormat : 'locale';
       const dateFormatId = combRegion
@@ -328,7 +337,7 @@ export default function useWorkspaceGestures({
       newEl.textDirection = carriedDirection ?? formRegions.pageDirections?.[pageIndex] ?? 'ltr';
     }
     if (newEl.type === 'text') Object.assign(newEl, carriedTextStyle(carried));
-    const checkboxRegion = selectedTool === 'symbol'
+    const checkboxRegion = tool === 'symbol'
       ? checkboxRegionAt(formRegions.checkboxes, point, pageIndex)
       : null;
 
@@ -394,7 +403,7 @@ export default function useWorkspaceGestures({
     // element the user never asked for. A locked tool stays armed. Landing on
     // a detected field is still one placement, so it disarms the same way.
     dispatch({ type: 'DISARM_TOOL' });
-    if (selectedTool === 'text') {
+    if (tool === 'text') {
       // A box you just placed opens ready to type - the one case where placing
       // and editing are the same intent. This replaces the old per-element
       // `autoFocus` flag, so the caret has exactly one owner.
@@ -403,7 +412,7 @@ export default function useWorkspaceGestures({
       setAnnouncement(combRegion
         ? formatMessage(t.addedTextBoxCombAnnouncementTemplate, { cells: combRegion.cells })
         : t.addedTextBoxAnnouncement);
-    } else if (selectedTool === 'date') {
+    } else if (tool === 'date') {
       // Already has its content, unlike a freshly placed (empty) text box, so
       // this selects it for the format control rather than opening a typing
       // session on text nobody is about to retype.

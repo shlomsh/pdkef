@@ -12,7 +12,7 @@
  * 'freeSlot' itself and calls `preventDefault`, so iOS synthesizes no click. For
  * 'native' and 'delegate' it lets the click come, and `onClickCapture` carries out that
  * same decision without deciding again: the focus a tap causes can move the page under
- * the finger (the toolbar hides, iOS scrolls), so the click's own point is not the tap's.
+ * the finger (iOS scrolls the field into view), so the click's own point is not the tap's.
  * Only a mouse click decides in `onClickCapture`.
  *
  * A free slot's own focus is a special case (MOBI-24): iOS only raises the keyboard for a
@@ -44,8 +44,12 @@ export interface UseFillTapOptions {
   pageGeometryOf: (pageIndex: number) => PageGeometry | undefined;
   /** A fill input has focus or an element is selected; read at press time. */
   engaged: () => boolean;
-  /** Production's own tap path (handlePageClick), at `at` when given. */
-  delegate: (event: FillMouseEvent, pageIndex: number, at?: PagePoint) => void;
+  /**
+   * Production's own tap path (handlePageClick), at `at` when given. `tool` is set when
+   * the decision ran as if a different tool were armed (nothing armed, a tap on a
+   * detected tick box: 'symbol').
+   */
+  delegate: (event: FillMouseEvent, pageIndex: number, at?: PagePoint, tool?: 'symbol') => void;
   /** Finish typing and deselect (PdfWorkspace's deactivateAll). */
   dismiss: () => void;
 }
@@ -156,7 +160,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     const touchTap = touchTapRef.current;
     touchTapRef.current = null;
     if (touchTap && Date.now() - touchTap.time < TOUCH_CLICK_WINDOW_MS) {
-      if (touchTap.decision.type === 'delegate') delegate(event, pageIndex, touchTap.decision.at);
+      if (touchTap.decision.type === 'delegate') delegate(event, pageIndex, touchTap.decision.at, touchTap.decision.tool);
       // 'native': the input already has focus. A click that lands on the page after the
       // shift must not reach the workspace's blank-area deselect and take it away.
       else event.stopPropagation();
@@ -172,7 +176,7 @@ export default function useFillTap(options: UseFillTapOptions): FillTapHandlers 
     const at = pointAt(event.clientX, event.clientY, event.currentTarget, pageIndex);
     const decision = decide(target, at, event.currentTarget);
     if (decision.type === 'delegate') {
-      delegate(event, pageIndex, decision.at);
+      delegate(event, pageIndex, decision.at, decision.tool);
       return;
     }
     if (act(decision)) {

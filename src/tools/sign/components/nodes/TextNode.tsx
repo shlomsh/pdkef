@@ -8,6 +8,7 @@ import { getTextFontSupport } from '../../../../editor/text/textFontSupport.js';
 import { describeTextFontSupport } from '../textMessages.ts';
 import FontSupportNotice from '../FontSupportNotice.tsx';
 import { combLayout, isComb } from '../../../../editor/text/comb.js';
+import CombCells from './CombCells.tsx';
 import { englishSignMessages, type SignMessages } from '../../../../i18n/toolMessages';
 import { useTextFill } from '../../fill/FillContext.tsx';
 import workspaceStyles from '../../../../editor-ui/Workspace.module.css';
@@ -284,44 +285,20 @@ export default function TextNode({ element, isActive, isEditing, onChange, onSel
           {(element.text || (spannedField ? '' : placeholder)) + '\u200B'}
         </div>
         {cells && (
-          <div
+          // Mounted-but-hidden while a span drag is still under the floor:
+          // text.ts's writeDOM reveals it the frame the drag makes a comb,
+          // and hides it again if the drag comes back down.
+          <CombCells
             key="comb"
-            className={elementStyles['text-comb']}
-            data-editor-text-comb
-            data-text-part="comb"
-            aria-hidden="true"
-            style={{
-              // Mounted-but-hidden while a span drag is still under the floor:
-              // text.ts's writeDOM reveals it the frame the drag makes a comb,
-              // and hides it again if the drag comes back down.
-              display: comb ? undefined : 'none',
-              fontFamily: renderedFontFamily,
-              fontWeight: typography.weight,
-              fontStyle: typography.style,
-              color: element.color || '#000000'
-            }}
-          >
-            {/* Editor-only guides. They exist to be lined up against the rules
-                printed on the page, and never reach the exported file. */}
-            {isActive && cells.slice(1).map((cell) => (
-              <span
-                key={`guide-${cell.index}`}
-                className={elementStyles['text-comb-guide']}
-                data-text-part="comb-guide"
-                style={{ left: `${(isRtl ? 1 - cell.index / cells.length : cell.index / cells.length) * 100}%` }}
-              />
-            ))}
-            {cells.map((cell) => (
-              <span
-                key={`cell-${cell.index}`}
-                className={elementStyles['text-comb-cell']}
-                data-text-part="comb-cell"
-                style={{ left: `${cell.centerFraction * 100}%` }}
-              >
-                {cell.char}
-              </span>
-            ))}
-          </div>
+            cells={cells}
+            isRtl={isRtl}
+            showGuides={isActive}
+            visible={comb}
+            color={element.color || '#000000'}
+            fontFamily={renderedFontFamily}
+            fontWeight={typography.weight}
+            fontStyle={typography.style}
+          />
         )}
         {/* Outside an edit session the textarea is inert: it cannot take the
             caret by click (pointer-events, via the class) or by Tab (tabIndex),

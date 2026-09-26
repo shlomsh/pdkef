@@ -20,7 +20,6 @@ import type { FieldNavigation } from '../useFieldNavigation.ts';
 import type { FormDetectionState } from '../useFormFieldRegions.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
-import fillStyles from '../fill/fill.module.css';
 
 // The tools that live behind the Shapes button, so its pressed/locked state and
 // its lock target read from one list instead of three copies of the same array.
@@ -170,7 +169,7 @@ export default function SignToolbar({
   const isCoarsePointer = useCoarsePointer();
   // Fill mode (SNG-15), off (FILL_OFF) unless PdfSignTool.tsx provided a real
   // value - see docs/sign-fill-mode.md, "The toolbar".
-  const { enabled, filling, coarse } = useFill();
+  const { enabled } = useFill();
   // Fill mode treats no tool as Text (docs/sign-fill-mode.md, "The armed
   // tool"): a tap on the page writes text by default, so the button reads as
   // chosen without arming anything - a real click still arms it the usual
@@ -447,13 +446,8 @@ export default function SignToolbar({
   return (
     <>
       <ToolShell editor status={statusLine}>
-        {/* Fill mode (SNG-15): the platform's own bar above the keyboard is
-            the control while typing on a touch screen, so ours hides rather
-            than compete with it (docs/sign-fill-mode.md, "A page can't add
-            buttons to iOS's bar"). Off (`filling`/`coarse` both false)
-            leaves this exactly today's className. */}
         <div
-          className={`${styles.toolbar}${filling && coarse ? ` ${fillStyles['toolbar-hidden-while-filling']}` : ''}`}
+          className={styles.toolbar}
           role="toolbar"
           aria-label={t.toolbarLabel}
           dir={t.dir}

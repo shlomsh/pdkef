@@ -280,6 +280,17 @@ describe('fillReachTargets', () => {
   it("'other' returns no targets", () => {
     expect(fillReachTargets('other', [fieldSlot, textEl], [], boxOfItem)).toEqual([]);
   });
+
+  it("'none' returns every fill target plus every checkbox as a 'box' target", () => {
+    const region: FieldRegion = { pageIndex: 1, left: 5, top: 6, width: 7, height: 8 };
+    const targets = fillReachTargets('none', [fieldSlot, freeSlotItem, textEl], [region], boxOfItem);
+    expect(targets).toEqual([
+      { kind: 'fill', key: 'field-slot', pageIndex: 3, box },
+      { kind: 'fill', key: 'free-slot', pageIndex: 3, box },
+      { kind: 'fill', key: 'el:el-9', pageIndex: 3, box },
+      { kind: 'box', key: boxKey(region), pageIndex: 1, box: { left: 5, top: 6, width: 7, height: 8 } },
+    ]);
+  });
 });
 
 describe('fillItemsByPage', () => {

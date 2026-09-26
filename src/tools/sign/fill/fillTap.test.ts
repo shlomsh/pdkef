@@ -91,11 +91,33 @@ describe('fillTapDecision', () => {
   it('delegates to production with no point when there is none', () => {
     expect(fillTapDecision(base)).toEqual({ type: 'delegate' });
   });
+
+  it("focuses a fill target when nothing is armed ('none') and it is in reach, same as Text", () => {
+    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('fill', 'slot-4') };
+    expect(fillTapDecision(input)).toEqual({ type: 'focus', key: 'slot-4' });
+  });
+
+  it("delegates a tick box as the symbol tool when nothing is armed ('none')", () => {
+    const input: FillTapInput = { ...base, tool: 'none', reach: reachOf('box', 'box-2') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
+  });
+
+  it("opens a free slot when nothing is armed ('none'), not typing, and nothing is in reach", () => {
+    const input: FillTapInput = { ...base, tool: 'none', at: point(3, 4) };
+    expect(fillTapDecision(input)).toEqual({ type: 'freeSlot', at: point(3, 4) });
+  });
+
+  it("does not delegate as the symbol tool for a tick box when Text is explicitly armed", () => {
+    const input: FillTapInput = { ...base, tool: 'text', reach: reachOf('box', 'box-3') };
+    const decision = fillTapDecision(input);
+    expect(decision).toEqual({ type: 'delegate' });
+    expect((decision as { tool?: string }).tool).toBeUndefined();
+  });
 });
 
 describe('fillToolOf', () => {
-  it('treats no tool as Text', () => {
-    expect(fillToolOf(null)).toBe('text');
+  it('maps no tool to \'none\', and Text stays its own tool', () => {
+    expect(fillToolOf(null)).toBe('none');
     expect(fillToolOf('text')).toBe('text');
   });
 
