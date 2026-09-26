@@ -1,7 +1,7 @@
 ---
 id: "SNG-17"
 title: "Fill mode keeps the toolbar in reach under iOS's native zoom"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
