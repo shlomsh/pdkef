@@ -45,10 +45,11 @@ contract; change them first, then the pieces.
      reach could swallow a tap meant for the bar of an element sitting near or over it. Resize handles
      (`[data-editor-resizer]`) deliberately stay out of this rule: a real resize is a drag, not a tap.
   3. Within reach of a detected tick box, with the mark tool armed or nothing armed: production's
-     `handlePageClick` at the box's centre, before a tap on an existing editor element is even looked
-     at. Production's own rule (`useWorkspaceGestures.ts` `handlePageClick`, "a mark covers the very
-     target that toggles it"): a selected mark's touch-sized resize handle can sit over the next box,
-     and the box still wins. With nothing armed and a typing session open, this also finishes that
+     `handlePageClick` at the box's centre. On an existing element the box wins only when that
+     element is a mark or the tap is inside the box itself (`boxClaims`): production's own rule
+     (`useWorkspaceGestures.ts` `handlePageClick`, "a mark covers the very target that toggles it"),
+     where a ✓ sits in its box or a selected mark's touch-sized resize handle sits over the next box.
+     A signature beside a printed "☐ I agree" keeps its tap. With nothing armed and a typing session open, this also finishes that
      session (`finishTyping`): otherwise the fill input the person was typing in keeps its focus while
      the reducer ends its editing state underneath it.
   4. On an existing editor element (not a fill input or its options bar): production's own path,
@@ -98,7 +99,7 @@ All new files are in `src/tools/sign/fill/`. They are single-consumer, so they l
 | `FieldSlot.tsx` | component | the slot input: placement style, `enterkeyhint`, Enter, commit on blur |
 | `FillLayer.tsx` | component | one page's fill items in order: `FieldSlot`, or a caller-supplied render for text |
 | `FocusProxy.tsx` | component | the hidden input a free-slot tap focuses first |
-| `useFillFocus.ts` | hook | focus-driven editing, and `filling` |
+| `useFillFocus.ts` | hook | focus-driven editing |
 | `useFillTap.ts` | hook | the overlay's taps and hover, adapted to `fillTapDecision` and `reachTarget` |
 | `fill.module.css` | styles | the slot frame, the droppable look |
 
@@ -130,7 +131,6 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
 - **`FillContext`** (`FillContext.tsx`). `PdfSignTool` provides it; the workspace, the gestures and the
   toolbar read it. It holds:
   - the flag and the pointer kind;
-  - `filling`;
   - the aimed key;
   - the one free slot's point (`freeAt`);
   - a pending focus key;
@@ -173,8 +173,11 @@ These are the only places the pieces meet. Each is written down in code: `fillTy
   click, so waiting for it would mean the tap never runs - and the window still has to see this
   `touchend`, since the gesture controller (`src/lib/gestures/controller.ts`) finishes that same drag
   there. Production's own `handlePageClick` mirrors this: it skips its own `stopPropagation` on an
-  event whose `type` is `'touchend'`, for the same reason. Native and a plain `delegate` (no resolved
-  point) wait for the click iOS synthesizes afterward, and that click never decides again. The mouse
+  event whose `type` is `'touchend'`, for the same reason, and `PdfWorkspace`'s blank-area deselect
+  skips a `touchend` that is already `defaultPrevented`, so the mark it just placed stays selected.
+  Only a box's or a Date field's centre is a resolved point; every other production tap is a plain
+  `delegate`. Native and a plain `delegate` wait for the click iOS synthesizes afterward, and that
+  click never decides again. The mouse
   reads "typing" at `mousedown`, before the default blur. The decisions:
   - `native`: leave the event alone;
   - `element`: the tap landed on an existing element's own options bar, not fill mode's tap at all -

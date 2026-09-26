@@ -426,6 +426,7 @@ export default function DraggableWrapper<T extends EditorElement>({
       data-editor-element
       data-editor-active={isActive || undefined}
       data-editor-shape={isShape || undefined}
+      data-editor-symbol={isSymbol || undefined}
       // Text's side resize handles are mid-edge (unlike the box types' bottom-
       // corner default), and are always present now - see EditorElement's
       // `[data-editor-text] .resizer.left/.right`.

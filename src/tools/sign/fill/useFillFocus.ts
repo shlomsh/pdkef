@@ -13,7 +13,7 @@
  * deferred check lands on a no-op: no separate "editing ended" is ever
  * dispatched between two hops.
  */
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { fillKeyOf } from './fillDom.ts';
 import { focusActions } from './fillFocusActions.ts';
 import type { SignToolAction } from '../components/SignToolContext.tsx';
@@ -26,13 +26,7 @@ export interface UseFillFocusOptions {
   textOf: (elementId: string) => string | undefined;
 }
 
-export interface UseFillFocusResult {
-  /** A fill input holds the focus right now. */
-  filling: boolean;
-}
-
-export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions): UseFillFocusResult {
-  const [filling, setFilling] = useState(false);
+export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions): void {
   // The last fill key focus was on. A ref, not state: a focus move decides
   // synchronously and must never wait for a render.
   const lastKeyRef = useRef<string | null>(null);
@@ -52,7 +46,6 @@ export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions)
       const from = lastKeyRef.current;
       if (from === to) return;
       lastKeyRef.current = to;
-      setFilling(to !== null);
       for (const action of focusActions({ from, to }, textOfRef.current)) dispatchRef.current(action);
     };
 
@@ -62,7 +55,6 @@ export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions)
     const onFocusIn = (event: FocusEvent) => {
       const key = fillKeyOf(event.target as Element | null);
       if (key !== null) move(key);
-      else setFilling(false);
     };
 
     // Deferred, and always reading document.activeElement rather than
@@ -85,9 +77,6 @@ export function useFillFocus({ enabled, dispatch, textOf }: UseFillFocusOptions)
       document.removeEventListener('focusin', onFocusIn, true);
       document.removeEventListener('focusout', onFocusOut, true);
       lastKeyRef.current = null;
-      setFilling(false);
     };
   }, [enabled]);
-
-  return { filling };
 }

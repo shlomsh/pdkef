@@ -12,6 +12,7 @@ const base: FillTapInput = {
   onFillInput: false,
   onElementBar: false,
   onElement: false,
+  onMark: false,
   typing: false,
   tool: 'other',
   reach: null,
@@ -24,6 +25,7 @@ describe('fillTapDecision', () => {
       onFillInput: true,
       onElementBar: false,
       onElement: false,
+      onMark: false,
       typing: true,
       tool: 'text',
       reach: reachOf('box'),
@@ -47,9 +49,9 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
   });
 
-  it('never opens a free slot for Date: nothing in reach is production\'s own placement', () => {
+  it('never opens a free slot for Date: nothing in reach is production\'s own placement, and the fallback carries no point', () => {
     const input: FillTapInput = { ...base, tool: 'date', at: point(3, 4) };
-    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: point(3, 4) });
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
   it('delegates to a tick box centre when Mark is armed and it is in reach', () => {
@@ -93,9 +95,9 @@ describe('fillTapDecision', () => {
     expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
-  it('delegates to production with the tap point when nothing else matches', () => {
+  it('delegates to production with no point when nothing else matches: only a corrected point ever carries `at`', () => {
     const input: FillTapInput = { ...base, tool: 'mark', at: point(7, 8) };
-    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: point(7, 8) });
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
   });
 
   it('delegates to production with no point when there is none', () => {
@@ -124,13 +126,42 @@ describe('fillTapDecision', () => {
     expect((decision as { tool?: string }).tool).toBeUndefined();
   });
 
-  it('a box reach wins over a tap that landed on an existing element, nothing armed', () => {
-    const input: FillTapInput = { ...base, onElement: true, tool: 'none', reach: reachOf('box', 'box-4') };
+  it('an element that is not a mark, tapped outside the box, wins over a box reach, nothing armed', () => {
+    const input: FillTapInput = {
+      ...base, onElement: true, onMark: false, tool: 'none', reach: reachOf('box', 'box-4'), at: point(90, 90),
+    };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('an element that is not a mark, tapped outside the box, wins over a box reach, Mark armed', () => {
+    const input: FillTapInput = {
+      ...base, onElement: true, onMark: false, tool: 'mark', reach: reachOf('box', 'box-5'), at: point(90, 90),
+    };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate' });
+  });
+
+  it('a box reach wins over a tap that landed on a mark, nothing armed', () => {
+    const input: FillTapInput = { ...base, onElement: true, onMark: true, tool: 'none', reach: reachOf('box', 'box-4') };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
   });
 
-  it('a box reach wins over a tap that landed on an existing element, Mark armed', () => {
-    const input: FillTapInput = { ...base, onElement: true, tool: 'mark', reach: reachOf('box', 'box-5') };
+  it('a box reach wins over a tap that landed on a mark, Mark armed', () => {
+    const input: FillTapInput = { ...base, onElement: true, onMark: true, tool: 'mark', reach: reachOf('box', 'box-5') };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
+  });
+
+  it('a box reach wins when the tap point itself lands inside the box, not a mark, nothing armed', () => {
+    // Box is left 10, top 10, width 20, height 10; (15, 12) is inside it.
+    const input: FillTapInput = {
+      ...base, onElement: true, onMark: false, tool: 'none', reach: reachOf('box', 'box-4'), at: point(15, 12),
+    };
+    expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 }, tool: 'symbol' });
+  });
+
+  it('a box reach wins when the tap point itself lands inside the box, not a mark, Mark armed', () => {
+    const input: FillTapInput = {
+      ...base, onElement: true, onMark: false, tool: 'mark', reach: reachOf('box', 'box-5'), at: point(15, 12),
+    };
     expect(fillTapDecision(input)).toEqual({ type: 'delegate', at: { pageIndex: 0, x: 20, y: 15 } });
   });
 
