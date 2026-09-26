@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { pathToFileURL } from 'url';
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { redactPdf } from './redact.js';
 
@@ -24,6 +24,10 @@ const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQg
 describe('redactPdf library integration with real fixtures', () => {
   let originalToDataURL;
   let originalGetContext;
+  // Every time a mocked 2D context has `.filter` set, the value lands here in
+  // order. Only the blur flatten path in redact.js ever sets `.filter`, so
+  // this array's length is exactly the number of blurred canvases built.
+  let appliedFilters;
 
   beforeAll(() => {
     const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
@@ -59,8 +63,19 @@ describe('redactPdf library integration with real fixtures', () => {
           }
           return vi.fn();
         },
+        set(target, prop, value) {
+          target[prop] = value;
+          if (prop === 'filter' && value !== 'none') {
+            appliedFilters.push(value);
+          }
+          return true;
+        },
       });
     };
+  });
+
+  beforeEach(() => {
+    appliedFilters = [];
   });
 
   afterAll(() => {
@@ -146,6 +161,41 @@ describe('redactPdf library integration with real fixtures', () => {
     const details = await getPdfDocDetails(blob);
     expect(details.pageCount).toBe(5);
     expect(details.pageTexts).toEqual(['11', '12', '13', '', '15']);
+  });
+
+  it('blurs at strong (24px) when a blur box carries no strength', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+
+    expect(appliedFilters).toEqual(['blur(24px)']);
+  });
+
+  it('blurs at the box\'s own strength', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 'light', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+
+    expect(appliedFilters).toEqual(['blur(12px)']);
+  });
+
+  it('builds one blurred canvas per distinct strength on a page, not one per box', async () => {
+    const file = getFixtureFile('num-5.pdf');
+
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 'light', pageIndex: 3, left: 0, top: 0, width: 50, height: 50 },
+      { id: 'r2', type: 'blur', strength: 'strong', pageIndex: 3, left: 50, top: 50, width: 50, height: 50 },
+    ]);
+    expect(appliedFilters).toEqual(['blur(12px)', 'blur(24px)']);
+
+    appliedFilters = [];
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 'strong', pageIndex: 3, left: 0, top: 0, width: 50, height: 50 },
+      { id: 'r2', type: 'blur', strength: 'strong', pageIndex: 3, left: 50, top: 50, width: 50, height: 50 },
+    ]);
+    expect(appliedFilters).toEqual(['blur(24px)']);
   });
 
   it('reports progress once per page, ending at 1', async () => {
