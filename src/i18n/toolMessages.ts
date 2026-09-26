@@ -59,7 +59,6 @@ export function signUpdateDescription(t: SignMessages, kind: ElementUpdateKind, 
     case 'resize': return formatMessage(t.resizedElementDescriptionTemplate, { label });
     case 'style': return formatMessage(t.styledElementDescriptionTemplate, { label });
     case 'text': return t.editedTextDescription;
-    default: return t.editedTextDescription;
   }
 }
 
