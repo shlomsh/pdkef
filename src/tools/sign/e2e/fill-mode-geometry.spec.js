@@ -18,10 +18,10 @@ import { test, expect } from '@playwright/test';
  *    only as tall as one padded text line, short of the printed cell.
  * 3. Typed text in a plain (non-comb) field does not jump on commit: the slot's
  *    padding places the line exactly where the committed element's textarea
- *    draws it, even though the frame around it grew to cover the field. Two
- *    tests: the vertical half on a desktop, which holds; and both halves on a
- *    phone, an expected failure until the sideways jump this guard found is
- *    fixed (see that test).
+ *    draws it, even though the frame around it grew to cover the field; and
+ *    sideways, the slot sets the text in by the same `fieldTextInset` the
+ *    committed element uses, not a fixed 4px. Two tests: on a desktop and on
+ *    a phone.
  * 4. On desktop the font list opens beside the element, never over it
  *    (f2ba3495). It used to hang under the toolbar's font button, which near
  *    the page's left edge put it straight over the text being styled.
@@ -235,18 +235,21 @@ test.describe('fill mode on a phone', () => {
     }
   });
 
-  test('typed text in a plain field does not jump on commit (known bug on a phone)', async ({ page }) => {
-    // Found by this guard on 2026-09-26, so marked as an expected failure until
-    // it is fixed; Playwright turns the run red the moment it starts passing,
-    // so the mark cannot outlive the fix. Measured at 390px: the text moves
-    // about 2px sideways on blur in Chromium and WebKit alike (the slot pads it
-    // 4px from the cell wall, the committed element pads it fieldTextInset, a
-    // quarter em), and about 1px up in Chromium only (WebKit: 0.3px). The
-    // desktop test below guards the vertical half, which holds there.
-    test.fail(true, 'fill-mode plain slot text moves on commit: 4px slot padding vs fieldTextInset');
+  test('typed text in a plain field does not jump on commit', async ({ page }) => {
+    // Sideways: the slot used to pad its text 4px from the cell wall while the
+    // committed element pads it fieldTextInset (a quarter em), so it moved about
+    // 2px on blur at 390px in Chromium and WebKit alike. FieldSlot.tsx now takes
+    // the same inset.
+    // Up and down: Chromium with touch emulation (hasTouch) draws this input's
+    // text one CSS px lower than the same computed styles place it, and lower
+    // than it draws the same input without touch (0.00px) or on a bare page
+    // (0.00px); the slot's line box and the textarea's agree to 0.01px. WebKit,
+    // the phone that matters, shows 0.33px (one device pixel at 3x). So the
+    // vertical bound here is 1.1px, an engine allowance for Chromium only; the
+    // desktop test below keeps it at 1px.
     const { before, after } = await typeAndCommitPlainField(page);
     expect(Math.abs(after.cx - before.cx), 'the text\'s horizontal position, typing vs committed').toBeLessThan(1);
-    expect(Math.abs(after.cy - before.cy), 'the text\'s vertical position, typing vs committed').toBeLessThan(1);
+    expect(Math.abs(after.cy - before.cy), 'the text\'s vertical position, typing vs committed').toBeLessThan(1.1);
   });
 });
 
@@ -276,11 +279,12 @@ test.describe('fill mode on a desktop', () => {
   // The suite's desktop viewport, at a device scale that resolves ink to a third of a pixel.
   test.use({ deviceScaleFactor: 3 });
 
-  test('typed text in a plain field does not jump up or down on commit', async ({ page }) => {
+  test('typed text in a plain field does not jump on commit', async ({ page }) => {
     // The frame grew to cover the field (996d88ae); its padding is what keeps
-    // the line where the committed element draws it. Sideways: see the phone
-    // test above.
+    // the line where the committed element draws it; fieldTextInset keeps it
+    // in place sideways.
     const { before, after } = await typeAndCommitPlainField(page);
+    expect(Math.abs(after.cx - before.cx), 'the text\'s horizontal position, typing vs committed').toBeLessThan(1);
     expect(Math.abs(after.cy - before.cy), 'the text\'s vertical position, typing vs committed').toBeLessThan(1);
     expect(Math.abs((after.bottom - after.top) - (before.bottom - before.top)), 'the same glyphs, the same height').toBeLessThan(1);
   });

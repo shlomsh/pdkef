@@ -5,7 +5,7 @@ import FieldSlot from './FieldSlot.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
 import styles from './fill.module.css';
-import { textElementLayout } from '../../../lib/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../lib/signHelpers.js';
 import { combLayout } from '../../../editor/text/comb.js';
 import { FILL_INPUT_ATTR, FILL_KEY_ATTR } from './fillTypes.ts';
 import type { FillSlot } from './fillTypes.ts';
@@ -646,6 +646,92 @@ describe('FieldSlot component', () => {
       // The input's own frame covers the whole 20%-tall field, so its top
       // sits above the overlay's (the element's own, narrower) top.
       expect(input.style.top).not.toBe(overlay.style.top);
+    });
+  });
+
+  describe('sideways inset on a spanned field (fieldTextInset, SNG-15)', () => {
+    it('pads a plain field slot inline by fieldTextInset, symmetric, and aligns it by layout.textAlign', () => {
+      // jsdom has no canvas (src/test/setup.js), so textWidthPx measures 0
+      // for every value here - the same "no canvas" fallback the component
+      // itself falls back to. fieldTextInset with a 0 text width is still
+      // the real function under test: half the cell's slack, capped at a
+      // quarter em, exactly like TextNode.tsx's own inset does for an empty
+      // element.
+      const field: FillSlot['field'] = { kind: 'cell', region: { pageIndex: 0, left: 10, top: 30, width: 40, height: 6 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 30, width: 40, height: 6 }, fontSize: 12, fontFamily: 'Arimo' },
+      });
+      const cellElementOf = (text: string) => textElementOf(text, { left: 10, top: 30, minWidth: 40 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="Employer"
+          elementOf={cellElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+      const layout = textElementLayout(cellElementOf(''), 1) as { font: { fontSize: number }; textAlign: string };
+      // mount()'s page wrapper is 600px wide and pageWidthPoints is 600, so
+      // scaleFactor is 1: the cell's own span in CSS px is its page-percent
+      // width times the page width in points.
+      const spanWidthPx = (40 / 100) * 1 * 600;
+      const expectedInset = fieldTextInset(spanWidthPx, 0, layout.font.fontSize);
+
+      expect(expectedInset).toBeGreaterThan(0);
+      expect(input.style.paddingLeft).toBe(`${expectedInset}px`);
+      expect(input.style.paddingRight).toBe(`${expectedInset}px`);
+      expect(input.style.textAlign).toBe(layout.textAlign);
+    });
+
+    it('leaves a free slot (no field, no minWidth) with no inline left/right padding', () => {
+      const slot = fillSlot();
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="First name"
+          elementOf={textElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      expect(input.style.paddingLeft).toBe('');
+      expect(input.style.paddingRight).toBe('');
+    });
+
+    it('leaves a comb slot with no inline left/right padding: the overlay draws the digits, not the input', () => {
+      const field: FillSlot['field'] = { kind: 'comb', region: { pageIndex: 0, left: 10, top: 5, width: 40, height: 20, cells: 3 } };
+      const slot = fillSlot({
+        field,
+        placement: { box: { left: 10, top: 5, width: 40, height: 20 }, fontSize: 12, fontFamily: 'Arimo', combCells: 3 },
+      });
+      const combElementOf = (text: string) => textElementOf(text, { left: 10, top: 6, width: 40, combCells: 3 });
+      host = mount(
+        <FieldSlot
+          slot={slot}
+          enterKeyHint="next"
+          aimed={false}
+          pageWidthPoints={600}
+          label="ID number"
+          elementOf={combElementOf}
+          onEnter={() => {}}
+          onCommit={() => {}}
+        />
+      );
+      const input = requireElement<HTMLInputElement>(host, 'input');
+
+      expect(input.style.paddingLeft).toBe('');
+      expect(input.style.paddingRight).toBe('');
     });
   });
 

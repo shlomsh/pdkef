@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import usePdfCoordinates from '../../../editor-ui/hooks/usePdfCoordinates.js';
-import { textElementLayout } from '../../../lib/signHelpers.js';
+import { fieldTextInset, textElementLayout } from '../../../lib/signHelpers.js';
 import { combLayout, isComb } from '../../../editor/text/comb.js';
 import CombCells from '../components/nodes/CombCells.tsx';
 import { useCombCaret } from '../components/nodes/useCombCaret.ts';
@@ -10,6 +10,22 @@ import type { TextElement } from '../../../editor/model/editorModel.ts';
 import { AUTOCORRECT_OFF, type EnterKeyHint, type FillSlot } from './fillTypes.ts';
 import { slotFrame } from './slotFrame.ts';
 import styles from './fill.module.css';
+
+let measureContext: CanvasRenderingContext2D | null = null;
+
+/**
+ * The typed text's own advance width in CSS px: what the committed element's
+ * unpadded `.text-measure` span measures for `fieldTextInset` (TextNode.tsx).
+ * A bare `<input>` has no such span, so the same font draws the same text on
+ * a canvas instead. 0 for empty text, or where there is no canvas (jsdom).
+ */
+function textWidthPx(text: string, font: { fontSize: number; fontFamily: string; fontWeight: string; fontStyle: string }): number {
+  if (!text) return 0;
+  measureContext ??= document.createElement('canvas').getContext('2d');
+  if (!measureContext) return 0;
+  measureContext.font = `${font.fontStyle} ${font.fontWeight} ${font.fontSize}px ${font.fontFamily}`;
+  return measureContext.measureText(text).width;
+}
 
 /**
  * Fill mode (SNG-15): an empty writing spot, before it is ever left with
@@ -134,6 +150,18 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
       pageHeightPx,
     })
     : null;
+  // Sideways, a plain field slot sets its text in exactly as far as the
+  // committed element will: TextNode.tsx pads a box on a detected cell
+  // (`minWidth`, not a comb) by `fieldTextInset` on both sides instead of
+  // `.text-input`'s fixed 4px, and aligns it by `layout.textAlign`. The span
+  // is the cell in px (the input is pinned to it above); a text wider than
+  // the cell leaves no slack, so both come out 0. A free slot keeps the CSS
+  // default: a committed free box keeps `.text-input`'s 4px too. A comb's
+  // input text is transparent (the overlay draws it), so it needs neither.
+  const spannedField = !comb && !!element.minWidth;
+  const inlineInsetPx = spannedField
+    ? fieldTextInset((element.minWidth! / 100) * scaleFactor * pageWidthPoints, textWidthPx(value, layout.font), layout.font.fontSize)
+    : null;
   const box = slot.field
     ? (frame ? { ...fieldBox, top: `${frame.top}%`, height: `${frame.height}%` } : fieldBox)
     : { ...layout.box, width: `${slot.placement.box.width}%`, height: `${slot.placement.box.height}%` };
@@ -199,6 +227,9 @@ export default function FieldSlot({ slot, enterKeyHint, aimed, pageWidthPoints, 
           // field. A free slot keeps the CSS default (fill.module.css's
           // .slot rule).
           ...(frame ? { paddingTop: `${frame.paddingTopPx}px`, paddingBottom: `${frame.paddingBottomPx}px` } : {}),
+          ...(inlineInsetPx !== null
+            ? { paddingLeft: `${inlineInsetPx}px`, paddingRight: `${inlineInsetPx}px`, textAlign: layout.textAlign }
+            : {}),
           // The committed element's own ink; a comb's input text stays
           // transparent (.slot-comb), the overlay draws it.
           ...(comb ? {} : { color: element.color }),
