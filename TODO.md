@@ -46,6 +46,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
 | SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
+| SIGN-36 | P1 | [SIGN-36](backlog/tasks/SIGN-36.md) · Every text box can be aligned, and the download matches what the screen shows |
 
 
 ## Editor module boundaries (architecture)

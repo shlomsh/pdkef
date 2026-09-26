@@ -53,14 +53,14 @@ describe('chooseStyle (SIGN-35 dual write)', () => {
     expect(remember).not.toHaveBeenCalled();
   });
 
-  it('A+ (fontSize) goes to the document only', () => {
+  it('A+ (fontSize) goes to both (SIGN-35 reopened: the size follows the person)', () => {
     const dispatch = vi.fn();
     const remember = vi.fn();
     chooseStyle(textElement(), { fontSize: 18 }, dispatch, remember);
 
     expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { fontSize: 18 } });
-    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'SET_APP_STYLE' }));
-    expect(remember).not.toHaveBeenCalled();
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_APP_STYLE', payload: { fontSize: 18 } });
+    expect(remember).toHaveBeenCalledWith({ fontSize: 18 });
   });
 
   it('a geometry-only patch dispatches nothing and remembers nothing', () => {
