@@ -98,7 +98,7 @@ const tools = [
   // down at 239px of toolbar, so the counts this walks are twelve and eleven -
   // never ten or thirteen, the two counts that cannot be balanced at the 44px
   // floor.
-  { name: 'Sign', path: '/sign?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
+  { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
   { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340] },
 ];
 

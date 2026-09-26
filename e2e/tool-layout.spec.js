@@ -7,7 +7,7 @@ const toolRoutes = [
   '/pdf-to-image',
   '/image-to-pdf',
   '/unlock',
-  '/sign?next=0',
+  '/sign/?next=0',
   '/redact',
   '/edit-pdf',
 ];
