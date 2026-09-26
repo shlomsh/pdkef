@@ -178,12 +178,12 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
   // SIGN-32: Next/Previous shares the tap path's carried-size rule -
   // useWorkspaceGestures.test.js covers the tap side of the same contract.
   describe('carried font/size (SIGN-32)', () => {
-    it('seeds the carried font and size from the first field reached, with nothing carried yet', () => {
+    it('seeds the carried size from the first field reached, with nothing carried yet', () => {
       const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: null, carriedFontSize: null });
       goToNext();
       const el = addedElement(dispatch) as TextElement;
-      // SIGN-33: one SET_CARRIED dispatch, not two.
-      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: el.fontFamily, fontSize: el.fontSize } });
+      // SIGN-35: only the size seeds - seeding is not choosing.
+      expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { fontSize: el.fontSize } });
     });
 
     it('never re-seeds once the document already carries a font and size', () => {
@@ -196,13 +196,28 @@ describe('useFieldNavigation – creating a box on an empty field', () => {
       // rowRight's comb cells are far narrower than a 40pt carried size at the
       // default page width, so the placed box must be smaller than 40 even
       // though no SET_CARRIED patch carrying a fontSize is dispatched to
-      // change the carried value itself. The font still seeds on its own
-      // (carriedFont was never given here).
+      // change the carried value itself.
       const { goToNext, dispatch } = makeHook({ formRegions, carriedFontSize: 40 });
       goToNext();
       const el = addedElement(dispatch) as TextElement;
       expect(el.fontSize).toBeLessThan(40);
       expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
+    });
+
+    it('SIGN-35: with nothing carried, the placement\'s SET_CARRIED carries no font', () => {
+      const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: null, carriedFontSize: null });
+      goToNext();
+      const carriedCalls = dispatch.mock.calls.filter(([action]) => action.type === 'SET_CARRIED');
+      expect(carriedCalls.length).toBe(1);
+      expect(carriedCalls[0][0].payload).not.toHaveProperty('font');
+    });
+
+    it('SIGN-35: an app-wide font resolved into `carried` is used, and nothing seeds', () => {
+      const { goToNext, dispatch } = makeHook({ formRegions, carriedFont: 'Tinos' });
+      goToNext();
+      const el = addedElement(dispatch) as TextElement;
+      expect(el.fontFamily).toBe('Tinos');
+      expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'font' in action.payload)).toBe(false);
     });
   });
 });

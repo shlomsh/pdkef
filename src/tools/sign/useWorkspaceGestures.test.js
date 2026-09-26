@@ -706,9 +706,8 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
     expect(el.fontSize).toBe(12);
-    // SIGN-33: one SET_CARRIED dispatch, not two - see useWorkspaceGestures.ts's
-    // `seed` object, built once and dispatched once per placement.
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 12 } });
+    // SIGN-35: only the size seeds - seeding is not choosing.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { fontSize: 12 } });
   });
 
   it('seeds the carried size from a detected field\'s own height, not the default, on the first placement', () => {
@@ -719,9 +718,8 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     handlePageClick(makeClickEvent(500, 500, overlay), 0);
     const el = firstAddElement(dispatch);
     expect(el.fontSize).toBe(14);
-    // The font seeds alongside the size - neither carriedFont nor
-    // carriedFontSize was provided, so both are still unset going in.
-    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { font: 'Arimo', fontSize: 14 } });
+    // SIGN-35: only the size seeds, not the font.
+    expect(dispatch).toHaveBeenCalledWith({ type: 'SET_CARRIED', payload: { fontSize: 14 } });
   });
 
   it('carries an explicit font/size forward without re-seeding', () => {
@@ -747,9 +745,7 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     expect(el.fontSize).toBeLessThan(20);
     // Nothing dispatched to change the carried size: a second placement in
     // the same click (simulated by a fresh hook with the same carriedFontSize)
-    // would still start from 20, not from this comb's shrunk answer. The font
-    // still seeds on its own (carriedFont was never given), so this only
-    // checks that no SET_CARRIED patch ever carries a fontSize key.
+    // would still start from 20, not from this comb's shrunk answer.
     expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'fontSize' in action.payload)).toBe(false);
   });
 
@@ -765,5 +761,24 @@ describe('useWorkspaceGestures – carried font/size (SIGN-32)', () => {
     const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
     handlePageClick(event, 0);
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('SIGN-35: with nothing carried, the placement\'s SET_CARRIED carries no font', () => {
+    const { dispatch, handlePageClick } = makeHook({ selectedTool: 'text' });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const carriedCalls = dispatch.mock.calls.filter(([action]) => action.type === 'SET_CARRIED');
+    expect(carriedCalls.length).toBe(1);
+    expect(carriedCalls[0][0].payload).not.toHaveProperty('font');
+  });
+
+  it('SIGN-35: an app-wide font resolved into `carried` is used, and nothing seeds', () => {
+    const { dispatch, handlePageClick } = makeHook({
+      selectedTool: 'text',
+      carriedFont: 'Tinos',
+    });
+    handlePageClick(makeClickEvent(500, 500, overlay), 0);
+    const el = firstAddElement(dispatch);
+    expect(el.fontFamily).toBe('Tinos');
+    expect(dispatch.mock.calls.some(([action]) => action.type === 'SET_CARRIED' && 'font' in action.payload)).toBe(false);
   });
 });
