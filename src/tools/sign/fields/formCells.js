@@ -300,10 +300,16 @@ function buildClosedCells(ink) {
       // ambiguous.
       if (xs.length < 2) continue;
       const lone = xs.length === 2;
-      // The next rule down the page from this band's own floor, if any - `ys` is sorted top to
-      // bottom so it is the very next array slot. A floor-ticked column's caption is printed in
-      // the strip between the floor and this rule (FORM-26 part B, see `captionBelowFloor`).
-      const nextRuleY = k + 1 < ys.length ? ys[k + 1] : null;
+      // The next rule down the page below this band's floor that actually crosses a column, if
+      // any. A floor-ticked column's caption is printed in the strip between the floor and this
+      // rule (FORM-26 part B, see `captionBelowFloor`). Scoped to the column's own x-range like
+      // every other rule lookup here: an unrelated box's rule a few points lower elsewhere on the
+      // page would otherwise close the strip over the caption.
+      const nextRuleBelow = (left, right) => rules.reduce(
+        (best, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
+          && (best === null || rule.y > best) ? rule.y : best),
+        null,
+      );
       // Columns built for this band, collected before push so a floor-ticked group's own span
       // (below) can be measured across only the columns it actually contains - not `xs`'s full
       // width, which also carries whatever unrelated wall happens to bound the same band (this
@@ -352,7 +358,7 @@ function buildClosedCells(ink) {
           || (rightCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(right));
         bandCells.push({
           left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
-          floorTicked, nextRuleY,
+          floorTicked, nextRuleY: floorTicked ? nextRuleBelow(left, right) : null,
         });
       }
       // The floor-ticked group's own span: only the columns actually bounded by a tick, not the
@@ -444,8 +450,8 @@ function headerAbove(cell, textItems) {
  * caption higher up the page (form 101's date-of-birth label, measured 2026-09-26) - a floor-ticked
  * column never calls it.
  *
- * The search window is bounded below by the next rule down the page (`cell.nextRuleY`, computed
- * once per band in `buildClosedCells`) when there is one close by, and otherwise by
+ * The search window is bounded below by the next rule under this column (`cell.nextRuleY`, computed
+ * per column in `buildClosedCells`) when there is one close by, and otherwise by
  * `LONE_CAPTION_GAP` - reused rather than a fresh constant, since both ask the same question, "is
  * this caption actually close to what it names": form 101's own gap (floor 582.71 to the row's
  * outer bottom rule 575.79, 6.92pt) sits well inside it.
