@@ -4,7 +4,8 @@ import useDraggableElement from '../../../editor-ui/hooks/useDraggableElement.js
 import useElementResize from '../../../editor-ui/hooks/useElementResize.js';
 import { getElementDefinition } from '../../../editor/registry/index.ts';
 import { getEffectiveTextDirection, textElementLayout } from '../../../lib/signHelpers.js';
-import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX } from '../../../constants/signGeometry.js';
+import { TOOLBAR_FLOATING_OFFSET, LINE_TOOLBAR_MARGIN_TOP_PX, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
+import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import ElementToolbar from '../../../editor-ui/ElementToolbar.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import elementStyles from '../../../editor-ui/EditorElement.module.css';
@@ -144,8 +145,23 @@ export default function DraggableWrapper<T extends EditorElement>({
   // back - see the collapse button beside the full toolbar below. SNG-17:
   // in fill mode there is no fieldNav, so the row is Aa alone.
   const useCompactEditingBar = compactEditingEligible && !showFormatting;
+  // SIGN-39: the preview has to land where Done will actually put it, or the
+  // text visibly jumps the instant it commits (live report, on a phone). Same
+  // one-line rule Done's own commit uses (`topKeepingInkCentre`) - render-only,
+  // so a cancelled preview (previewFontFamily back to null) reverts to
+  // `element.top` exactly, untouched by anything here.
   const renderedElement = previewFontFamily && element.type === 'text'
-    ? { ...element, fontFamily: previewFontFamily }
+    ? {
+      ...element,
+      fontFamily: previewFontFamily,
+      top: topKeepingInkCentre(element.top, {
+        fontSize: element.fontSize ?? DEFAULT_FONT_SIZE_PT,
+        pageHeightPoints: pageGeometry?.height ?? 0,
+        fromFamily: element.fontFamily ?? DEFAULT_FONT_FAMILY,
+        toFamily: previewFontFamily,
+        text: element.text,
+      }),
+    }
     : element;
 
   // The element measures and positions itself relative to the page wrapper it lives
@@ -425,7 +441,10 @@ export default function DraggableWrapper<T extends EditorElement>({
     // fallback below always anchors left: RTL anchoring lives only in
     // textElementLayout, so a type that sets usesRtlAnchoring must also set
     // usesIntrinsicSize (today only text sets either).
-  } : view.usesIntrinsicSize ? textElementLayout(element).box : {
+    // SIGN-39: `renderedElement` (not `element`) so a font preview's re-top
+    // moves the box itself, not just the text painted inside it - the box's
+    // `top` is exactly what the change will commit.
+  } : view.usesIntrinsicSize ? textElementLayout(renderedElement).box : {
     top: `${element.top}%`,
     width: element.width ? `${element.width}%` : 'auto',
     height: 'height' in element && element.height ? `${element.height}%` : 'auto',
