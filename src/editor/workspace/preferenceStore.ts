@@ -11,22 +11,13 @@ import { validateDocumentStyle } from '../registry/draftValidation.ts';
 export interface EditorPreferences {
   penColor: string;
   penThickness: number;
-  lastColor: string;
   lastWhiteoutColor: string;
-  // lastFont/lastFontSize/lastDirection left this browser-wide preference
-  // store under SIGN-32: a document's font, size and direction are carried
-  // with its own draft (SignToolState.carried, a Partial<DocumentStyle>
-  // round-tripped through useEditorDraftPersistence's `extra.carried` -
-  // SIGN-33 folded the three separate fields into it), not a cross-document
-  // browser setting - a document filled in Hebrew must never set the
-  // direction of the next, unrelated document. Checked before removal: no
-  // other consumer (Redact never read any of the three keys).
-  lastSymbolWidth: number;
-  lastSymbolMark: 'check' | 'x' | 'dot';
-  lastSignatureWidth: number;
-  /** `editor/text/dateFormat.ts`'s DateFormatId, kept as a plain string here
-   * the same way the model does (editorModel.ts's dateFormatId comment). */
-  dateFormat: string;
+  // A document's own style (font, size, colour, direction and the rest of
+  // DocumentStyle) lives in its draft, not here (SIGN-33's `carried`). The
+  // person's latest choice across documents lives in the separate app-wide
+  // style below (SIGN-35's getAppStyle/rememberAppStyle). Only the
+  // signature pad's pen colour and thickness, and Redact's whiteout colour,
+  // are browser-wide preferences.
 }
 
 export type EditorPreferenceKey = keyof EditorPreferences;
@@ -38,10 +29,7 @@ export const SAVED_SIGNATURE_LIBRARY_VERSION = 1;
 
 const LEGACY_STORAGE_KEYS: { [K in EditorPreferenceKey]: string } = {
   penColor: 'pdf-toolkit:penColor', penThickness: 'pdf-toolkit:penThickness',
-  lastColor: 'pdf-toolkit:lastColor', lastWhiteoutColor: 'pdf-toolkit:lastWhiteoutColor',
-  lastSymbolWidth: 'pdf-toolkit:lastSymbolWidth',
-  lastSymbolMark: 'pdf-toolkit:lastSymbolMark', lastSignatureWidth: 'pdf-toolkit:lastSignatureWidth',
-  dateFormat: 'pdf-toolkit:dateFormat',
+  lastWhiteoutColor: 'pdf-toolkit:lastWhiteoutColor',
 };
 const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
@@ -89,9 +77,6 @@ function readPositiveNumber(value: string): number | null {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
-function readSymbolMark(value: string): EditorPreferences['lastSymbolMark'] | null {
-  return value === 'check' || value === 'x' || value === 'dot' ? value : null;
-}
 function isSavedSignature(value: unknown): value is SavedSignature {
   return Boolean(value && typeof value === 'object'
     && typeof (value as SavedSignature).id === 'string' && (value as SavedSignature).id.length > 0
@@ -106,22 +91,16 @@ function readSavedSignatures(value: unknown): SavedSignature[] | null {
 }
 
 const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPreferences[K] | null } = {
-  penColor: readString, penThickness: readPositiveNumber, lastColor: readString,
-  lastWhiteoutColor: readString,
-  lastSymbolWidth: readPositiveNumber, lastSymbolMark: readSymbolMark,
-  lastSignatureWidth: readPositiveNumber, dateFormat: readString,
+  penColor: readString, penThickness: readPositiveNumber, lastWhiteoutColor: readString,
 };
 const LEGACY_WRITERS: { [K in EditorPreferenceKey]: (value: EditorPreferences[K]) => string } = {
-  penColor: String, penThickness: String, lastColor: String, lastWhiteoutColor: String,
-  lastSymbolWidth: String,
-  lastSymbolMark: String, lastSignatureWidth: String, dateFormat: String,
+  penColor: String, penThickness: String, lastWhiteoutColor: String,
 };
 
 function isPreferenceValue<K extends EditorPreferenceKey>(key: K, value: unknown): value is EditorPreferences[K] {
   switch (key) {
-    case 'penThickness': case 'lastSymbolWidth': case 'lastSignatureWidth':
+    case 'penThickness':
       return typeof value === 'number' && Number.isFinite(value) && value > 0;
-    case 'lastSymbolMark': return value === 'check' || value === 'x' || value === 'dot';
     default: return typeof value === 'string' && value.length > 0;
   }
 }
