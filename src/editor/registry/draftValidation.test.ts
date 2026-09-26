@@ -256,6 +256,46 @@ describe('validateDraftRecord', () => {
     expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps a valid add and a valid update in order, dropping only a malformed update', () => {
+    const validAdd = {
+      id: 'history-1', type: 'ADD_TEXT', operation: 'add', pageIndex: 0,
+      description: 'Added text box', timestamp: 10, elements: [{ element: goodText, index: 0 }],
+    };
+    const validUpdate = {
+      id: 'history-2', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 20,
+      updates: [{ id: goodText.id, before: { left: 10 }, after: { left: 20 } }],
+    };
+    const malformedUpdate = {
+      id: 'history-3', type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: 30,
+      updates: [{ id: goodText.id, before: { left: 20, top: 5 }, after: { left: 30 } }],
+    };
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText],
+      extra: { actionHistory: [validAdd, validUpdate, malformedUpdate] },
+    };
+
+    const result = validateDraftRecord(record);
+    expect(result?.extra?.actionHistory).toEqual([validAdd, validUpdate]);
+  });
+
+  it('caps a 150-entry history at 100, keeping the newest-first head', () => {
+    const entries = Array.from({ length: 150 }, (_, i) => ({
+      id: `history-${i}`, type: 'MOVE_ELEMENT', operation: 'update', pageIndex: 0,
+      description: 'Moved', timestamp: i,
+      updates: [{ id: goodText.id, before: { left: i }, after: { left: i + 1 } }],
+    }));
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), elements: [goodText],
+      extra: { actionHistory: entries },
+    };
+
+    const result = validateDraftRecord(record);
+    expect(result?.extra?.actionHistory).toHaveLength(100);
+    expect(result?.extra?.actionHistory).toEqual(entries.slice(0, 100));
+  });
+
   it('validates persisted history snapshots and drops malformed commands', () => {
     const validHistory = {
       id: 'history-1',
