@@ -176,24 +176,47 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Simulator in Safari, and Shlomi's iPhone in Chrome). Fill mode only, at
   // runtime, so production's static viewport meta is untouched.
   //
-  // Regression fix: iOS re-applies the viewport meta on every focus change,
-  // so a static `maximum-scale=1` snapped Shlomi's pinch back to 1 the moment
-  // he moved to the next field. `viewportContent` (SNG-17) only adds the
-  // clamp while the page is at its resting scale, so a chosen pinch survives
-  // moving between fields; `visualViewport`'s 'resize' event keeps that
-  // decision current as the person zooms.
+  // Zoomed in, iOS re-zooms every focused field to its own 16px level, so
+  // `viewportContent` holds the limits at the person's pinch instead
+  // (SNG-17). They follow the pinch once it settles: `visualViewport`'s
+  // 'resize' fires through the gesture, and the meta is rewritten only after
+  // it goes quiet.
   useEffect(() => {
     if (!enabled) return undefined;
     const meta = document.querySelector('meta[name="viewport"]');
     const original = meta?.getAttribute('content') ?? '';
+    let pinching = false;
     const apply = () => {
-      const next = viewportContent(original, window.visualViewport?.scale ?? 1);
+      const next = viewportContent(original, window.visualViewport?.scale ?? 1, pinching);
       if (meta?.getAttribute('content') !== next) meta?.setAttribute('content', next);
     };
+    let settle: ReturnType<typeof setTimeout> | undefined;
+    const applyWhenSettled = () => {
+      clearTimeout(settle);
+      settle = setTimeout(apply, 250);
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length < 2) return;
+      pinching = true;
+      clearTimeout(settle);
+      apply();
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (!pinching || event.touches.length > 0) return;
+      pinching = false;
+      applyWhenSettled();
+    };
     apply();
-    window.visualViewport?.addEventListener('resize', apply);
+    window.visualViewport?.addEventListener('resize', applyWhenSettled);
+    document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
+    document.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
+    document.addEventListener('touchcancel', onTouchEnd, { capture: true, passive: true });
     return () => {
-      window.visualViewport?.removeEventListener('resize', apply);
+      clearTimeout(settle);
+      window.visualViewport?.removeEventListener('resize', applyWhenSettled);
+      document.removeEventListener('touchstart', onTouchStart, { capture: true });
+      document.removeEventListener('touchend', onTouchEnd, { capture: true });
+      document.removeEventListener('touchcancel', onTouchEnd, { capture: true });
       meta?.setAttribute('content', original);
     };
   }, [enabled]);
