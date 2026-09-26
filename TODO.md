@@ -47,6 +47,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
 | SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
 | SIGN-36 | P1 | [SIGN-36](backlog/tasks/SIGN-36.md) · Every text box can be aligned, and the download matches what the screen shows |
+| SIGN-37 | P1 | [SIGN-37](backlog/tasks/SIGN-37.md) · Typed signatures are saved sharp enough for the size they are placed at |
 
 
 ## Editor module boundaries (architecture)

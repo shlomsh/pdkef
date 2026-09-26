@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   MAX_SAVED_SIGNATURE_ENCODED_BYTES,
   MAX_SAVED_SIGNATURE_PIXELS,
+  TYPED_SIGNATURE_MAX_FONT_PX,
+  TYPED_SIGNATURE_MIN_FONT_PX,
   constrainSignatureDimensions,
   dataUrlEncodedBytes,
   encodeSignatureCanvas,
+  typedSignatureFontPx,
 } from './signatureImagePolicy.ts';
 
 describe('saved signature image policy', () => {
@@ -40,5 +43,33 @@ describe('saved signature image policy', () => {
       HTMLCanvasElement.prototype.getContext = originalContext;
       HTMLCanvasElement.prototype.toDataURL = originalToDataUrl;
     }
+  });
+});
+
+describe('typed signature font size (SIGN-37)', () => {
+  it('sizes a typical name within the clamp, with the canvas inside 90% of the pixel budget', () => {
+    const widthPerPx = 5;
+    const heightPerPx = 1.3;
+    const fontPx = typedSignatureFontPx({ widthPerPx, heightPerPx });
+    expect(fontPx).toBeGreaterThanOrEqual(TYPED_SIGNATURE_MIN_FONT_PX);
+    expect(fontPx).toBeLessThanOrEqual(TYPED_SIGNATURE_MAX_FONT_PX);
+    expect((widthPerPx * fontPx) * (heightPerPx * fontPx)).toBeLessThanOrEqual(0.9 * MAX_SAVED_SIGNATURE_PIXELS);
+  });
+
+  it('clamps a very long name down to the minimum font size', () => {
+    const fontPx = typedSignatureFontPx({ widthPerPx: 500, heightPerPx: 1.3 });
+    expect(fontPx).toBe(TYPED_SIGNATURE_MIN_FONT_PX);
+  });
+
+  it('clamps a short name up to the maximum font size', () => {
+    const fontPx = typedSignatureFontPx({ widthPerPx: 1, heightPerPx: 1.3 });
+    expect(fontPx).toBe(TYPED_SIGNATURE_MAX_FONT_PX);
+  });
+
+  it('returns the minimum font size for bad input', () => {
+    expect(typedSignatureFontPx({ widthPerPx: NaN, heightPerPx: 1.3 })).toBe(TYPED_SIGNATURE_MIN_FONT_PX);
+    expect(typedSignatureFontPx({ widthPerPx: 0, heightPerPx: 1.3 })).toBe(TYPED_SIGNATURE_MIN_FONT_PX);
+    expect(typedSignatureFontPx({ widthPerPx: -5, heightPerPx: 1.3 })).toBe(TYPED_SIGNATURE_MIN_FONT_PX);
+    expect(typedSignatureFontPx({ widthPerPx: 5, heightPerPx: Infinity })).toBe(TYPED_SIGNATURE_MIN_FONT_PX);
   });
 });

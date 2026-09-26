@@ -7,6 +7,24 @@ export const MAX_SAVED_SIGNATURE_ENCODED_BYTES = 750_000;
 
 export interface ImageDimensions { width: number; height: number; }
 
+export const TYPED_SIGNATURE_MIN_FONT_PX = 44;
+export const TYPED_SIGNATURE_MAX_FONT_PX = 240;
+
+/**
+ * A typed signature is rasterised once, at save time, and stored in the
+ * library before it is ever placed or resized (up to 90% of the page), so its
+ * resolution is fixed here rather than at placement. Returns the largest font
+ * size whose canvas (width = widthPerPx * fontPx, height = heightPerPx *
+ * fontPx) stays within 90% of the saved-signature pixel budget.
+ */
+export function typedSignatureFontPx({ widthPerPx, heightPerPx }: { widthPerPx: number; heightPerPx: number }): number {
+  if (!Number.isFinite(widthPerPx) || !Number.isFinite(heightPerPx) || widthPerPx <= 0 || heightPerPx <= 0) {
+    return TYPED_SIGNATURE_MIN_FONT_PX;
+  }
+  const fontPx = Math.floor(Math.sqrt((0.9 * MAX_SAVED_SIGNATURE_PIXELS) / (widthPerPx * heightPerPx)));
+  return Math.min(TYPED_SIGNATURE_MAX_FONT_PX, Math.max(TYPED_SIGNATURE_MIN_FONT_PX, fontPx));
+}
+
 /** Scales proportionally so an image never exceeds the documented one-megapixel cap. */
 export function constrainSignatureDimensions({ width, height }: ImageDimensions): ImageDimensions {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width < 1 || height < 1) return { width: 1, height: 1 };

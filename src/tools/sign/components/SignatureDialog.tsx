@@ -4,7 +4,7 @@ import ColorPicker from '../../../editor-ui/ColorPicker.tsx';
 import { HANDWRITING_FONTS, resolveFontFamily, textBoxPaddingEm } from '../../../editor/text/fonts.js';
 import { DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../../editor/workspace/preferenceStore.ts';
-import { encodeSignatureCanvas } from '../../../editor/workspace/signatureImagePolicy.ts';
+import { encodeSignatureCanvas, typedSignatureFontPx, TYPED_SIGNATURE_MIN_FONT_PX } from '../../../editor/workspace/signatureImagePolicy.ts';
 import { englishSignMessages, type SignMessages } from '../../../i18n/toolMessages';
 import styles from './SignatureDialog.module.css';
 import dialogStyles from '../../../shell/Dialog.module.css';
@@ -87,7 +87,7 @@ export default function SignatureDialog({
   };
 
   // Helper to trim empty space around drawings/typed text
-  const trimCanvas = (canvas: HTMLCanvasElement) => {
+  const trimCanvas = (canvas: HTMLCanvasElement, margin = 8) => {
     const ctx = canvas.getContext('2d')!;
     const width = canvas.width;
     const height = canvas.height;
@@ -117,7 +117,7 @@ export default function SignatureDialog({
     }
     
     // Add small margin around cropped area
-    const padding = 8;
+    const padding = margin;
     const croppedX = Math.max(0, minX - padding);
     const croppedY = Math.max(0, minY - padding);
     const croppedWidth = Math.min(width - croppedX, (maxX - minX) + padding * 2);
@@ -304,28 +304,40 @@ export default function SignatureDialog({
       // signature renders identically everywhere instead of taking whichever
       // Hebrew face the viewer's own OS happens to fall back to.
       const family = resolveFontFamily(typeFont, typedName);
-      const fontSizePx = 44;
-      const fontSpec = `${fontSizePx}px '${family}', cursive`;
+      const referenceFontPx = 100;
+      const referenceFontSpec = `${referenceFontPx}px '${family}', cursive`;
       // The face loads lazily via @font-face; drawing before it has actually
       // been fetched and parsed silently falls back to the generic 'cursive'
       // font, so the saved signature could look nothing like the preview the
       // user just picked. document.fonts.load() (unlike .check(), see
       // liveFontCoverage.js's note on why .check() can't be used for this
       // kind of question) actually triggers the fetch and resolves once the
-      // real face is ready to draw with.
+      // real face is ready to draw with. Load before measuring, so the
+      // reference-size measurement below already sees the real face.
       if (document.fonts) {
         try {
-          await document.fonts.load(fontSpec, typedName);
+          await document.fonts.load(referenceFontSpec, typedName);
         } catch {
           // Offline or a slow connection: draw with whatever is already
           // loaded rather than fail the save entirely.
         }
       }
 
+      // Measure once at a reference size to get the canvas's size per 1px of
+      // font size, then pick the largest font size that keeps the canvas
+      // within the saved-signature pixel budget (SIGN-37): the image is
+      // saved to the library before placement and can be resized up to 90%
+      // of the page, so its resolution is fixed here rather than guessed at
+      // a flat size that comes out blurry once stretched to a placed box.
+      const paddingEm = textBoxPaddingEm(family);
       const measureCanvas = document.createElement('canvas');
       const measureCtx = measureCanvas.getContext('2d')!;
-      measureCtx.font = fontSpec;
-      const textWidth = Math.max(1, Math.ceil(measureCtx.measureText(typedName).width));
+      measureCtx.font = referenceFontSpec;
+      const textWidth100 = Math.max(1, Math.ceil(measureCtx.measureText(typedName).width));
+      const widthPerPx = textWidth100 / referenceFontPx + paddingEm * 4;
+      const heightPerPx = DEFAULT_LINE_HEIGHT_EM + paddingEm * 2;
+      const fontSizePx = typedSignatureFontPx({ widthPerPx, heightPerPx });
+      const fontSpec = `${fontSizePx}px '${family}', cursive`;
 
       // Sized from the resolved font's own vertical metrics (fonts.js) -
       // the same padding rule the editor's text boxes use to fit a tall
@@ -333,7 +345,8 @@ export default function SignatureDialog({
       // clipping. A fixed 600x180 canvas clipped a long typed name
       // horizontally and could clip a tall face vertically; both dimensions
       // are now measured instead of guessed.
-      const paddingEm = textBoxPaddingEm(family);
+      measureCtx.font = fontSpec;
+      const textWidth = Math.max(1, Math.ceil(measureCtx.measureText(typedName).width));
       const canvasHeight = Math.ceil(fontSizePx * (DEFAULT_LINE_HEIGHT_EM + paddingEm * 2));
       const horizontalPadding = Math.ceil(fontSizePx * paddingEm * 2);
       const canvas = document.createElement('canvas');
@@ -348,7 +361,8 @@ export default function SignatureDialog({
       ctx.font = fontSpec;
       ctx.fillText(typedName, canvas.width / 2, canvas.height / 2);
 
-      const { dataUrl, aspectRatio } = trimCanvas(canvas);
+      const margin = Math.round((8 * fontSizePx) / TYPED_SIGNATURE_MIN_FONT_PX);
+      const { dataUrl, aspectRatio } = trimCanvas(canvas, margin);
       finalDataUrl = dataUrl;
       finalAspectRatio = aspectRatio;
     } else if (signatureMode === 'upload') {
