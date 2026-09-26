@@ -1,7 +1,7 @@
 ---
 id: "SIGN-35"
 title: "A style chosen in a document also becomes the app default for new documents"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -51,11 +51,30 @@ where i chose another color already."
 
 ## Acceptance
 
-- [ ] Unit tests for the three-layer resolution and for the dual write.
-- [ ] The per-document-style e2e covers Shlomi's scenario: in A set black; a new C starts black; in B set
+- [x] Unit tests for the three-layer resolution and for the dual write.
+- [x] The per-document-style e2e covers Shlomi's scenario: in A set black; a new C starts black; in B set
   blue; a new D starts blue; C, which never chose, now starts blue too; A is still black after a reload.
-- [ ] SIGN-33's A/B/A still holds with the app-wide layer in between.
-- [ ] SIGN-33's open line is done: no per-document key is left in `preferenceStore.ts` (Redact's
+- [x] SIGN-33's A/B/A still holds with the app-wide layer in between.
+- [x] SIGN-33's open line is done: no per-document key is left in `preferenceStore.ts` (Redact's
   `lastWhiteoutColor` stays, Redact reads it).
-- [ ] SIGN-33, `.claude/rules/editor.md` and `CLAUDE.md` say "a new document starts from your latest
+- [x] SIGN-33, `.claude/rules/editor.md` and `CLAUDE.md` say "a new document starts from your latest
   choices", not "from the defaults".
+
+## Done (2026-09-26)
+
+- **Model** (`src/editor/model/`): `resolveDocumentStyle` (the three layers), `appStylePatchFor` (what an
+  explicit change sends app-wide), `DOCUMENT_ONLY_KEYS` and `appWideStyleOf`.
+- **State:** `SignToolState.appStyle` with `SET_APP_STYLE`, which never bumps `documentRevision`.
+  `LOAD_DOCUMENT` re-reads it from the device. `useDocumentStyle()` is the one resolved view every
+  placement reads. The draft still saves only the document's own `carried`.
+- **Dual write:** `src/tools/sign/chooseStyle.ts`, one call from `makeOnChange`.
+- **Storage:** `getAppStyle`/`rememberAppStyle`, one record validated by `validateDocumentStyle` (the
+  draft's own validator, now exported). The dead per-document keys are gone. The pen and Redact's
+  `lastWhiteoutColor` stay.
+- **Seeding:** only the size seeds.
+- **Tests:** model, store, reducer, `chooseStyle`, and both placement hooks. The e2e is the A/B/A
+  plus Shlomi's scenario, green 6/6 on repeat.
+- **Noticed, not changed:** a free text box takes the carried alignment but has no align control
+  (`ElementToolbar`'s `canAlign` needs a box spanning a field). On a one-line box that hugs its text,
+  alignment is invisible. It shows on wrapped text. This was already true within a document since
+  SIGN-33, and now it also reaches new documents.
