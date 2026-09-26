@@ -35,7 +35,7 @@ const settle = (page) =>
   page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 
 test('a single-step scroll past the cards never strands one invisible', async ({ page }) => {
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await expect(cards(page).first()).toBeAttached();
 
   // One synchronous jump, with no intermediate frames at all - the case the
@@ -58,7 +58,7 @@ test('a single-step scroll past the cards never strands one invisible', async ({
 });
 
 test('the fade finishes while the card still shows only its own top edge', async ({ page }) => {
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
 
   // How much of the card is on screen, measured from its top edge down.
   const DONE = 200; // the budget; the design figure is ~150
@@ -163,7 +163,7 @@ test('the home-page footer takes over from the final sticky card', async ({ page
 
 test('prefers-reduced-motion leaves every card fully visible', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await expect(cards(page).first()).toBeAttached();
 
   // Including the cards still far below the fold: under reduced motion there

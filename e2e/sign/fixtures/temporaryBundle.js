@@ -39,9 +39,9 @@ export function useTemporaryBundle(test, { filename, build, remove }) {
      * accepted by CSP.
      *
      * @param {import('@playwright/test').Page} page
-     * @param {string} [url='/sign']
+     * @param {string} [url='/sign?next=0']
      */
-    async open(page, url = '/sign') {
+    async open(page, url = '/sign?next=0') {
       await page.route(`**/${filename}`, (route) => route.fulfill({ path: bundlePath }));
       await page.goto(url);
       await page.addScriptTag({ url: `/${filename}` });

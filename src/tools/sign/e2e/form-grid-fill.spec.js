@@ -34,7 +34,7 @@ const IDENTITY_RUN = { left: 73.597, top: 27.277, width: 17.152, cells: 9 };
 const NAME_CELL = { left: 52.73, top: 25.32, width: 20.87, height: 2.77 };
 
 async function openWithFixture(page) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
@@ -51,7 +51,7 @@ async function openWithFixture(page) {
 }
 
 async function openWithHealthFixture(page) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

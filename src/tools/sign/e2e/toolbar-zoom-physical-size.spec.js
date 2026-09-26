@@ -93,7 +93,7 @@ const TOLERANCE_PX = 2;
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 440, height: 956 } });
 
 async function openWithFixture(page, file) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

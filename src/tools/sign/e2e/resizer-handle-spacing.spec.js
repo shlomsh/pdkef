@@ -44,7 +44,7 @@ const FIXTURE = path.resolve(
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
 async function openWithFixture(page) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

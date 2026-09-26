@@ -95,7 +95,7 @@ test.describe('Hebrew font shaping parity (Guard A)', () => {
         // Any page carries the @font-face declarations (they live in the global
         // stylesheet, not a per-tool one) - /sign just also exercises the tool
         // that actually renders these families.
-        await page.goto('/sign');
+        await page.goto('/sign?next=0');
         const browserWidth = await page.evaluate(async ({ family: familyName, text, size }) => {
           await document.fonts.load(`${size}px "${familyName}"`, text);
           await document.fonts.ready;

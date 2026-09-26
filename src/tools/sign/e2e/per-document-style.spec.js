@@ -78,7 +78,7 @@ async function openFreshSignTool(page, buffer, fileName) {
     localStorage.clear();
     sessionStorage.setItem('sign33-cleared', '1');
   });
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
@@ -99,7 +99,7 @@ async function replaceWithFile(page, buffer, fileName) {
 }
 
 async function openRecent(page, fileName) {
-  await page.goto('/');
+  await page.goto('/?next=0');
   const tile = page.getByRole('button', { name: new RegExp(`Open recent PDF, ${fileName.replace('.', '\\.')}`) });
   await expect(tile).toHaveCount(1);
   await tile.click();

@@ -37,7 +37,7 @@ async function makeLongPdfBuffer() {
 
 async function openSignTool(page, buffer) {
   await page.addInitScript(() => localStorage.clear());
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
@@ -160,7 +160,7 @@ for (const restoreCase of RESTORE_CASES) {
     const restored = await context.newPage();
     await restored.setViewportSize(restoreCase.viewport);
     await installRestoreTrace(restored);
-    await restored.goto('/sign/');
+    await restored.goto('/sign/?next=0');
     await restored.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     await expect(restored.locator('[data-editor-text-input]')).toHaveValue('Saved before restoring');
     // The restored page count is in the identity at every width; below 560px

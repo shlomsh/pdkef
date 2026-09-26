@@ -18,7 +18,7 @@ async function makePdfBuffer() {
 }
 
 async function openSignTool(page) {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const fileChooserPromise = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

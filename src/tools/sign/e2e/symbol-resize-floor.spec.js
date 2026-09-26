@@ -33,7 +33,7 @@ const FIXTURE = path.join(
 test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
 test('nudging a checkbox smaller than the resize floor does not snap it up to that floor', async ({ page }) => {
-  await page.goto('/sign');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

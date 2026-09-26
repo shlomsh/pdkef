@@ -26,7 +26,7 @@ const SAMPLES = ORDER_VARIANT_GROUPS.filter((entry) => SAMPLE_IDS.includes(entry
 test.describe('Hebrew composition: the browser is order-insensitive (H7/H8 Tier 3)', () => {
   for (const family of HEBREW_CAPABLE_FONTS) {
     test(`${family}: typed, reordered, and precomposed input render pixel-identically`, async ({ page }) => {
-      await page.goto('/sign');
+      await page.goto('/sign?next=0');
 
       const result = await page.evaluate(async ({ familyName, samples }) => {
         const size = 200;

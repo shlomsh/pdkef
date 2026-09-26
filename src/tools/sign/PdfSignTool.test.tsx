@@ -78,6 +78,9 @@ describe('PdfSignTool UI flow', () => {
 
   beforeEach(() => {
     restoreFetch = mockFontFetch();
+    // This file exercises the old editor by default (SNG-19: fill mode is
+    // the default, so the old editor needs ?next=0 to stay reachable).
+    window.history.pushState({}, '', '?next=0');
   });
 
   afterEach(() => {
@@ -88,6 +91,7 @@ describe('PdfSignTool UI flow', () => {
     document.body.innerHTML = '';
     restoreFetch();
     vi.restoreAllMocks();
+    window.history.pushState({}, '', '/');
   });
 
   it('renders the initial file dropper zone', () => {

@@ -77,7 +77,7 @@ async function readArrows(page) {
 
 for (const doc of DOCUMENTS) {
   test(`the arrows read left-to-right as < > on ${doc.name}`, async ({ page }) => {
-    await page.goto('/sign/');
+    await page.goto('/sign/?next=0');
     await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
     const chooser = page.waitForEvent('filechooser');
     await page.getByText('Choose file', { exact: true }).click();

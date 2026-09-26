@@ -33,7 +33,7 @@ const PRACTICE_FORM = path.resolve(here, '..', '..', '..', '..', 'public', 'imag
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
 async function openPracticeForm(page) {
-  await page.goto('/sign/');
+  await page.goto('/sign/?next=0');
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();

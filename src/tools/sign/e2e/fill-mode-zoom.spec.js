@@ -14,8 +14,8 @@ import { test, expect, devices } from '@playwright/test';
  *    `viewportContent` (`src/tools/sign/fill/viewportZoomLock.ts`) now adds
  *    the clamp only while the page is at rest.
  * 2. At rest the meta carries `maximum-scale=1` in fill mode (the iOS
- *    zoom-on-focus fix, b4519a2d), it is gone while zoomed, and production
- *    (no `?next=1`) never gets it.
+ *    zoom-on-focus fix, b4519a2d), it is gone while zoomed, and the old
+ *    editor (`?next=0`) never gets it.
  * 3. The practice form keeps fill mode (SNG-18, 3d5cc0d6): the practice
  *    form lives in the home page's launcher, which used to navigate to a
  *    bare `/sign/`, dropping `?next=1`.
@@ -187,10 +187,10 @@ test('fill mode: maximum-scale=1 at rest, gone while zoomed, back at rest (SNG-1
   await expect.poll(() => viewportMeta(page), { message: 'pinching back out to rest restores the clamp' }).toBe(`${ORIGINAL_META}, maximum-scale=1`);
 });
 
-test('production (no ?next=1) never gets maximum-scale, with a field being typed in (SNG-17, b4519a2d)', async ({ page }) => {
+test('the old editor (?next=0) never gets maximum-scale, with a field being typed in (SNG-17, b4519a2d)', async ({ page }) => {
   // Its own test for a fresh context: a second load in the same one would
   // restore the practice form from recents instead of offering the picker.
-  await openPracticeForm(page, '/sign/');
+  await openPracticeForm(page, '/sign/?next=0');
   await expect(page.locator('[data-fill-input]'), 'production is not fill mode').toHaveCount(0);
   await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).click();
   const field = page.locator('[class*="field-hint-cell"]').first();
