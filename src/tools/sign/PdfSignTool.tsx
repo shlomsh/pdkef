@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
   EditorElement,
@@ -21,6 +21,12 @@ import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
+import useCoarsePointer from './useCoarsePointer.ts';
+import { isFillMode } from './fill/fillMode.ts';
+import { freeSlotKey } from './fill/fillSlots.ts';
+import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
+import { useFillFocus } from './fill/useFillFocus.ts';
+import type { PagePoint } from './fill/fillTypes.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isEditorElement } from '../../editor/registry/draftValidation.ts';
 import {
@@ -140,6 +146,49 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // `carried` itself stays this document's own keys only, which is what
   // useEditorDraftPersistence writes to the draft.
   const style = useDocumentStyle();
+
+  // Fill mode (SNG-15), opt-in on `?next=1` alone (docs/sign-fill-mode.md).
+  // Read once, lazily, rather than on every render: the island is
+  // prerendered (output: 'static'), so `window` may not exist yet, and the
+  // flag must not flip mid-session once a real `window.location.search` is
+  // available on hydration.
+  const [enabled] = useState(() => typeof window !== 'undefined' && isFillMode(window.location.search));
+  const coarse = useCoarsePointer();
+  const [aimedKey, setAimedKey] = useState<string | null>(null);
+  const [freeAt, setFreeAt] = useState<PagePoint | null>(null);
+  const [pendingFocusKey, setPendingFocusKey] = useState<string | null>(null);
+  const proxyRef = useRef<HTMLInputElement>(null);
+
+  // The workspace builds the free slot from `freeAt` with the typography a new text
+  // box takes; its key comes from the point alone, so focus can be queued now.
+  const openFreeSlot = useCallback((at: PagePoint) => {
+    setFreeAt(at);
+    setPendingFocusKey(freeSlotKey(at));
+  }, []);
+
+  const closeFreeSlot = useCallback(() => setFreeAt(null), []);
+
+  useFillFocus({
+    enabled,
+    dispatch,
+    textOf: (elementId) => {
+      const element = elements.find((el) => el.id === elementId);
+      return element?.type === 'text' ? element.text : undefined;
+    },
+  });
+
+  const fillContextValue = useMemo<FillContextValue>(() => ({
+    enabled,
+    coarse,
+    aimedKey,
+    setAimedKey,
+    freeAt,
+    openFreeSlot,
+    closeFreeSlot,
+    pendingFocusKey,
+    setPendingFocusKey,
+    proxyRef,
+  }), [enabled, coarse, aimedKey, freeAt, openFreeSlot, closeFreeSlot, pendingFocusKey]);
 
   // Saved signatures and active signature state
   const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>([]);
@@ -624,7 +673,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       // calling preventDefault when there is nowhere left to go
       // (hasNext/hasPrevious false) leaves Tab free to leave the field the
       // ordinary way, same as reaching the end of any other web form.
-      if (e.key === 'Tab' && activeElementId) {
+      //
+      // Off in fill mode (docs/sign-fill-mode.md): every fill input is a
+      // real, focusable element already in reading order, so native Tab
+      // needs no help finding the next one - this handler would otherwise
+      // fight the browser's own order with `fieldOrder.ts`'s.
+      if (!enabled && e.key === 'Tab' && activeElementId) {
         const goingForward = !e.shiftKey;
         if (goingForward ? fieldNavigation.hasNext : fieldNavigation.hasPrevious) {
           e.preventDefault();
@@ -659,7 +713,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // useWorkspaceGestures's handlers), so listing it here re-subscribes on
     // every render rather than risking a stale hasNext/hasPrevious closure -
     // cheap next to what a Tab press silently doing the wrong thing would cost.
-  }, [activeElementId, editingElementId, elements, fieldNavigation]);
+  }, [activeElementId, editingElementId, elements, fieldNavigation, enabled]);
 
   // Handle element copy and paste actions
   useEffect(() => {
@@ -885,33 +939,39 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
           <SavedSignaturesContext.Provider
             value={{ savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature: deleteSavedSignature }}
           >
-            <PdfWorkspace
-              status={status}
-              isPseudoFullscreen={isPseudoFullscreen}
-              workspaceRef={workspaceRef}
-              numPages={numPages}
-              pageSizes={pageSizes}
-              formRegions={formRegions}
-              pdfDocument={pdfDocument}
-              pageWrapperRefs={pageWrapperRefs}
-              setTempPlacement={setTempPlacement}
-              setDialogOpen={setDialogOpen}
-              logAction={logAction}
-              handleSavePdf={handleSavePdf}
-              handleDownloadPdf={handleDownloadPdf}
-              handleSharePdf={handleSharePdf}
-              setAnnouncement={setAnnouncement}
-              onUndo={undoLast}
-              onRedo={redoLast}
-              toggleFullscreen={toggleFullscreen}
-              isFullscreen={isFullscreen}
-              placeSignatureAt={placeSignatureAt}
-              canSharePdf={canSharePdf}
-              shareReady={shareReady}
-              errorDetail={errorDetail}
-              fieldNavigation={fieldNavigation}
-              messages={t}
-            />
+            {/* Fill mode (SNG-15): the workspace, its gestures and the
+                toolbar all read this through useFill(). Off (`FILL_OFF`)
+                keeps every consumer on production's current behaviour -
+                see FillContext.tsx and docs/sign-fill-mode.md. */}
+            <FillContext.Provider value={enabled ? fillContextValue : FILL_OFF}>
+              <PdfWorkspace
+                status={status}
+                isPseudoFullscreen={isPseudoFullscreen}
+                workspaceRef={workspaceRef}
+                numPages={numPages}
+                pageSizes={pageSizes}
+                formRegions={formRegions}
+                pdfDocument={pdfDocument}
+                pageWrapperRefs={pageWrapperRefs}
+                setTempPlacement={setTempPlacement}
+                setDialogOpen={setDialogOpen}
+                logAction={logAction}
+                handleSavePdf={handleSavePdf}
+                handleDownloadPdf={handleDownloadPdf}
+                handleSharePdf={handleSharePdf}
+                setAnnouncement={setAnnouncement}
+                onUndo={undoLast}
+                onRedo={redoLast}
+                toggleFullscreen={toggleFullscreen}
+                isFullscreen={isFullscreen}
+                placeSignatureAt={placeSignatureAt}
+                canSharePdf={canSharePdf}
+                shareReady={shareReady}
+                errorDetail={errorDetail}
+                fieldNavigation={fieldNavigation}
+                messages={t}
+              />
+            </FillContext.Provider>
           </SavedSignaturesContext.Provider>
       )}
 

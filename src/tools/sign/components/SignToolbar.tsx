@@ -11,6 +11,7 @@ import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hooks/toolArming.js';
 import useCoarsePointer from '../useCoarsePointer.ts';
+import { useFill } from '../fill/FillContext.tsx';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';
 import type { SavedSignature } from '../../../editor/model/savedSignature.ts';
@@ -166,6 +167,14 @@ export default function SignToolbar({
   // been gone"). The pointer question is asked in one place for both this and
   // DraggableWrapper's side of the same hand-off - see useCoarsePointer.ts.
   const isCoarsePointer = useCoarsePointer();
+  // Fill mode (SNG-15), off (FILL_OFF) unless PdfSignTool.tsx provided a real
+  // value - see docs/sign-fill-mode.md, "The toolbar".
+  const { enabled } = useFill();
+  // Fill mode treats no tool as Text (docs/sign-fill-mode.md, "The armed
+  // tool"): a tap on the page writes text by default, so the button reads as
+  // chosen without arming anything - a real click still arms it the usual
+  // way, and the button's own layout never moves (editor.md's arming rule).
+  const textChosen = selectedTool === 'text' || (enabled && selectedTool === null);
   const [showSigDropdown, setShowSigDropdown] = useState(false);
   const [showShapesDropdown, setShowShapesDropdown] = useState(false);
   // Which shape the Shapes button stands for once its menu has closed. The
@@ -362,7 +371,9 @@ export default function SignToolbar({
   const fillingFields = selectedTool === 'text' || selectedTool === 'date' || activeElement?.type === 'text';
   const elementNavTakesOver = isCoarsePointer && state.editingElementId !== null;
 
-  const fieldNav = fieldNavigation.hasFields && fillingFields && !elementNavTakesOver ? {
+  // Off in fill mode (docs/sign-fill-mode.md): the platform's own next/
+  // previous (iOS's keyboard arrows, Tab) does the hopping there instead.
+  const fieldNav = !enabled && fieldNavigation.hasFields && fillingFields && !elementNavTakesOver ? {
     hasNext: fieldNavigation.hasNext,
     hasPrevious: fieldNavigation.hasPrevious,
     onNext: fieldNavigation.goToNext,
@@ -435,7 +446,13 @@ export default function SignToolbar({
   return (
     <>
       <ToolShell editor status={statusLine}>
-        <div className={styles.toolbar} role="toolbar" aria-label={t.toolbarLabel} dir={t.dir} lang={t.lang}>
+        <div
+          className={styles.toolbar}
+          role="toolbar"
+          aria-label={t.toolbarLabel}
+          dir={t.dir}
+          lang={t.lang}
+        >
           {/* Order (2026-09-18, revised the same day as SIGN-29): the row
               reads in the order a form gets done. Text, Date, Symbols, Shapes
               and Whiteout come first - you fill the fields, tick the boxes,
@@ -452,9 +469,9 @@ export default function SignToolbar({
           <ArmHint tool="text" label={t.textButton} action={TOOL_COPY.text.action} locked={selectedTool === 'text' && toolLocked} autoShowTool={autoShowTool} hintTemplate={t.armHint} touchHintTemplate={t.armHintTouch}>
             <button
               type="button"
-              className={`${styles.button}${selectedTool === 'text' ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
+              className={`${styles.button}${textChosen ? ` ${styles.active}` : ''}${selectedTool === 'text' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('text')}
-              aria-pressed={selectedTool === 'text'}
+              aria-pressed={textChosen}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="4 7 4 4 20 4 20 7" />

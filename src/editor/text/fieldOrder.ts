@@ -1,5 +1,5 @@
 import type { TextDirection } from '../model/editorModel.ts';
-import type { CombRegion, FieldRegion, TypableField } from './combPlacement.ts';
+import type { CombRegion, FieldRegion, PercentBox, TypableField } from './combPlacement.ts';
 
 export type { TypableField };
 
@@ -40,25 +40,75 @@ export type { TypableField };
  */
 const ROW_TOLERANCE_PERCENT = 0.3;
 
-function centreY(field: TypableField): number {
-  return field.region.top + field.region.height / 2;
+function centreYOfBox(box: PercentBox): number {
+  return box.top + box.height / 2;
 }
 
-function startEdge(field: TypableField, direction: TextDirection): number {
+function startEdgeOfBox(box: PercentBox, direction: TextDirection): number {
   return direction === 'rtl'
-    ? -(field.region.left + field.region.width)
-    : field.region.left;
+    ? -(box.left + box.width)
+    : box.left;
+}
+
+function centreY(field: TypableField): number {
+  return centreYOfBox(field.region);
+}
+
+/**
+ * Page, then row, then the start edge, right to left on an RTL page: the
+ * reading-order core both `orderTypableFields` (detected fields) and fill
+ * mode's `fillOrder` (SNG-15, `src/tools/sign/fill/fillOrder.ts`) sort by, so
+ * a form's slots and its fields can never silently read two different ways.
+ * `boxOf` is what makes it generic - a `TypableField` keeps its box at
+ * `.region`, a fill item keeps its somewhere else entirely, and this core has
+ * no business knowing which.
+ *
+ * Row clustering is a single pass over the items sorted by top edge: an item
+ * joins the row being built while its vertical centre lies inside the band
+ * the row's members cover so far (plus `ROW_TOLERANCE_PERCENT`), so a comb
+ * and a taller cell on the same printed line land together and the next
+ * printed line, whose items start below the band, opens a new row.
+ */
+export function inReadingOrder<T>(
+  items: T[],
+  boxOf: (item: T) => PercentBox & { pageIndex: number },
+  directionOfPage: (pageIndex: number) => TextDirection,
+): T[] {
+  const pages = new Map<number, T[]>();
+  for (const item of items) {
+    const pageIndex = boxOf(item).pageIndex;
+    const list = pages.get(pageIndex) ?? [];
+    list.push(item);
+    pages.set(pageIndex, list);
+  }
+  const ordered: T[] = [];
+  for (const pageIndex of [...pages.keys()].sort((a, b) => a - b)) {
+    const direction = directionOfPage(pageIndex);
+    const byTop = [...pages.get(pageIndex)!].sort((a, b) => boxOf(a).top - boxOf(b).top);
+    let row: T[] = [];
+    let rowBottom = Number.NEGATIVE_INFINITY;
+    const flush = () => {
+      row.sort((a, b) => startEdgeOfBox(boxOf(a), direction) - startEdgeOfBox(boxOf(b), direction));
+      ordered.push(...row);
+      row = [];
+    };
+    for (const item of byTop) {
+      const box = boxOf(item);
+      if (row.length > 0 && centreYOfBox(box) > rowBottom + ROW_TOLERANCE_PERCENT) flush();
+      row.push(item);
+      rowBottom = Math.max(rowBottom, box.top + box.height);
+    }
+    flush();
+  }
+  return ordered;
 }
 
 /**
  * Every typable field on the document in fill order: page by page, rows top
- * to bottom, and within a row in the page's own reading direction.
- *
- * Row clustering is a single pass over the fields sorted by top edge: a
- * field joins the row being built while its vertical centre lies inside the
- * band the row's members cover so far (plus `ROW_TOLERANCE_PERCENT`), so a
- * comb and a taller cell on the same printed line land together and the next
- * printed line, whose fields start below the band, opens a new row.
+ * to bottom, and within a row in the page's own reading direction. A thin
+ * wrapper over `inReadingOrder` - a comb or cell region already is the box a
+ * field sorts by (`field.region`), so there is nothing left for this to do
+ * but tag the two detectors' output into one list first.
  */
 export function orderTypableFields(
   combs: CombRegion[],
@@ -69,31 +119,7 @@ export function orderTypableFields(
     ...combs.map((region) => ({ kind: 'comb' as const, region })),
     ...cells.map((region) => ({ kind: 'cell' as const, region })),
   ];
-  const pages = new Map<number, TypableField[]>();
-  for (const field of fields) {
-    const list = pages.get(field.region.pageIndex) ?? [];
-    list.push(field);
-    pages.set(field.region.pageIndex, list);
-  }
-  const ordered: TypableField[] = [];
-  for (const pageIndex of [...pages.keys()].sort((a, b) => a - b)) {
-    const direction = directionOfPage(pageIndex);
-    const byTop = [...pages.get(pageIndex)!].sort((a, b) => a.region.top - b.region.top);
-    let row: TypableField[] = [];
-    let rowBottom = Number.NEGATIVE_INFINITY;
-    const flush = () => {
-      row.sort((a, b) => startEdge(a, direction) - startEdge(b, direction));
-      ordered.push(...row);
-      row = [];
-    };
-    for (const field of byTop) {
-      if (row.length > 0 && centreY(field) > rowBottom + ROW_TOLERANCE_PERCENT) flush();
-      row.push(field);
-      rowBottom = Math.max(rowBottom, field.region.top + field.region.height);
-    }
-    flush();
-  }
-  return ordered;
+  return inReadingOrder(fields, (field) => field.region, directionOfPage);
 }
 
 /**

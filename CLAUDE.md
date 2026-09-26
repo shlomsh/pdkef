@@ -62,8 +62,9 @@ npm run test:e2e:fonts    # the 25 font screening guards, unconditionally; CI na
 - **One subagent, one task, and small ones.** Research and exploration never happen on the main thread.
   The lead makes the design call, then splits the work into narrow briefs (one change, one guard, one
   doc edit, one measurement) run in parallel; a brief names the concrete shape, not a goal to search
-  for. No fire-and-forget: read each agent's diff while it runs and stop one that drifts. A harder
-  problem gets more subagents working in parallel, not more patience from one.
+  for. Write the contract between the pieces first, give each agent disjoint files, and integrate and
+  test each piece yourself as it lands. No fire-and-forget: read each agent's diff while it runs and stop
+  one that drifts. A harder problem gets more subagents working in parallel, not more patience from one.
 - **Mechanical edits go to the `implementer` agent** (`.claude/agents/implementer.md`): named files,
   one `check:fast`. Builds, previews and viewport sweeps run once in the lead or one verifier, starting
   from 3-4 viewports; wall time tracks brief size, at about 8s per tool call plus reasoning.
@@ -124,7 +125,7 @@ brackets carries the evidence; do not relearn it.
   exactly once on release, through `src/lib/gestures/controller.ts`. Never route `pointermove`
   through state or a store. Statically enforced by `check-gesture-golden-rule.js`. [editor]
 - **Sign's field detection and document memory are pure logic, apart from the UX.** Every setting a person
-  chooses is remembered per document and also becomes the default for new documents, except the size and
+  chooses is remembered per document and also becomes the default for new documents, except the
   direction. Any Sign UX calls them and never re-derives them. [editor]
 - **Tools are one-shot; selection and text editing are separate states.** An armed tool disarms after
   one placement; double-click locks it; the "Stop" chip is the only exit on touch. [editor]

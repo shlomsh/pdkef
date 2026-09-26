@@ -86,10 +86,11 @@ export function carriedPatchFor(
  * SIGN-35: the part of an explicit change (`carried`, what `carriedPatchFor`
  * returned for `patch`) that also becomes the app-wide style every new
  * document starts from. Everything the person chose, except what describes
- * the form itself (`DOCUMENT_ONLY_KEYS`: size and direction) and a font the
- * typing switched to because the script needed it - that font belongs to the
- * language, like the direction. Only a font picked from the menu
- * (`fontFamilyExplicit: true`, ElementToolbar) goes app-wide.
+ * the form itself (`DOCUMENT_ONLY_KEYS`: direction) and a font the typing
+ * switched to because the script needed it - that font belongs to the
+ * language, like the direction. The size is app-wide now too (SIGN-35
+ * reopened): only a font picked from the menu (`fontFamilyExplicit: true`,
+ * ElementToolbar) goes app-wide alongside it.
  */
 export function appStylePatchFor(
   carried: Partial<DocumentStyle>,

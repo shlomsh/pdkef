@@ -1,4 +1,5 @@
 import type { CombRegion, FieldRegion } from '../../../editor/text/combPlacement.ts';
+import { boxKey } from '../fill/fillDom.ts';
 import styles from './FormFieldHints.module.css';
 
 /**
@@ -28,10 +29,20 @@ import styles from './FormFieldHints.module.css';
  * its own so it doesn't read as "this is a comb" (it isn't - typing more
  * than one character never splits into per-character boxes here).
  */
-export default function FormFieldHints({ regions, kind, pageIndex }: {
+export default function FormFieldHints({ regions, kind, pageIndex, aimedKey = null }: {
   regions: FieldRegion[] | CombRegion[];
   kind: 'comb' | 'checkbox' | 'cell';
   pageIndex: number;
+  /**
+   * SNG-15 (docs/sign-fill-mode.md, "Hints"): the reach target a tap would
+   * land on next for the armed tool, checkbox hints only - a comb or cell
+   * hint never renders in fill mode at all, since a slot draws its own frame
+   * over the field instead (PdfWorkspace.tsx). The hint whose own `boxKey`
+   * equals it gets the same droppable look a slot gets. Null outside fill
+   * mode (FillContext's default), so every existing caller renders exactly
+   * as before.
+   */
+  aimedKey?: string | null;
 }) {
   const pageRegions = regions.filter((region) => region.pageIndex === pageIndex);
   if (pageRegions.length === 0) return null;
@@ -46,18 +57,22 @@ export default function FormFieldHints({ regions, kind, pageIndex }: {
 
   return (
     <div className={styles['field-hints']} aria-hidden="true">
-      {pageRegions.map((region) => (
-        <span
-          key={`${region.left}-${region.top}-${region.width}`}
-          className={`${styles['field-hint']} ${modifierClass(region)}`}
-          style={{
-            left: `${region.left}%`,
-            top: `${region.top}%`,
-            width: `${region.width}%`,
-            height: `${region.height}%`,
-          }}
-        />
-      ))}
+      {pageRegions.map((region) => {
+        const aimed = aimedKey !== null && boxKey(region) === aimedKey;
+        return (
+          <span
+            key={`${region.left}-${region.top}-${region.width}`}
+            className={`${styles['field-hint']} ${modifierClass(region)}${aimed ? ` ${styles['field-hint-aimed']}` : ''}`}
+            data-aimed={aimed || undefined}
+            style={{
+              left: `${region.left}%`,
+              top: `${region.top}%`,
+              width: `${region.width}%`,
+              height: `${region.height}%`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

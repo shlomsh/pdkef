@@ -232,8 +232,9 @@ screenshot - the crop bug above hides inside a rect that measures perfectly.
 
 ## 17. Editors on a phone: the page is the work, the bar is where you act
 
-Added 2026-09-25 from the Sign next-generation review. After 34 mobile tickets in 76 days, each fix was
-locally right and the next edge sat right behind it. The full rules, with evidence, are in
+Added 2026-09-25 from the Sign next-generation review, revised 2026-09-26 after SNG-14 (the hop control
+is the platform's, not ours). After 34 mobile tickets in 76 days, each fix was locally right and the
+next edge sat right behind it. The full rules, with evidence, are in
 [sign-next-gen-guidelines.md](./sign-next-gen-guidelines.md). These are the parts every editing tool
 inherits:
 
@@ -241,20 +242,28 @@ inherits:
   fixed, contextual bar or sheet, never in a toolbar anchored to the element.
   - Every studied competitor that edits on a phone does this.
   - Ours broke under zoom, under the keyboard, and against the sticky strip.
+- **The document takes the screen.** One row of chrome, margins kept to a minimum around the page, and
+  no redundant line of copy.
 - **The editor owns its zoom.**
   - Pinch and the zoom buttons change the app's zoom. Safari never zooms the editing surface: `touch-action` goes on the surface and on every descendant.
   - Fit always shows the whole page (§16).
   - Safari's own zoom cannot be set from code, and a sticky bar rides out of view under it.
+- **Pinch is the zoom.** No layout switch, like jumping to a grid of pages, ever rides on a pinch by
+  accident; that needs a deliberate extra step or its own control.
 - **On touch, a swipe that starts on the page scrolls.** Only an element that was already selected
   moves. A second finger always cancels a one-finger gesture.
-- **Navigation that walks a document is ∧ ∨, never ‹ ›.** The order belongs to the document, and an
-  arrow must not change meaning with the language.
-- **Detection speeds the work up. It never gates it, never claims completeness, and never costs more
-  than it saves.** A scan finds nothing, so tapping anywhere to write is always the first-class path. A
-  missed field costs nothing, because a tap writes there anyway. A wrong guess costs one tap to dismiss
-  or correct. A guessed count or field name is never shown, and the copy says "the spots we found".
-  Until a model reads forms reliably, every tool assumes only reasonable precision and recall (owner,
-  2026-09-25; the Sign guidelines §1 hold the error budget).
+- **Move and resize are intentional.** Handles appear only after a direct tap on an element; arriving at
+  it by a hop (the platform's own next/previous, Sign guidelines §3), or touching it with a pinch, never
+  shows them.
+- **Navigation that walks a document is the platform's own next and previous, never an arrow of ours.**
+  iOS's ∧ ∨, desktop's Tab and Shift+Tab, Android's Next key: reading order belongs to the document, and
+  none of them change meaning with the UI's language (Sign guidelines §3).
+- **The app never claims what a form needs.** Even perfect detection cannot know which blanks are yours:
+  an employer's section, an optional box. Detection may suggest where to go, never what must be filled:
+  a wrong or missing suggestion costs one tap, and nothing is ever counted or flagged as missing.
+  The person chooses what to write, and the app helps only with where, at the fingertip, declining when
+  unsure. Every page is treated as an image, so a scan works like any PDF (owner, 2026-09-25; the Sign
+  guidelines §1).
 - **Every committed change is one undo step**, moves and typing included (UNDO-04). How undo announces
   itself on a phone is decided in the Sign guidelines §6.
 
@@ -280,5 +289,5 @@ Every tool review answers these.
     preview did, checked with a fixture that has real content near an edge, not a blank or centred one?
 13. On a phone, can anything cover what the person is editing, can a swipe on the page move something
     they had not selected, and does the tool still work on a scan where nothing is detected (§17)?
-14. Wherever the tool guesses, what does a wrong guess cost the person, and is it one tap to dismiss
-    or correct? Does anything count, name or promise what was only guessed (§17)?
+14. Does anything claim what the form needs (a gap, a count, a next field), and does every tap do
+    exactly what the person chose?

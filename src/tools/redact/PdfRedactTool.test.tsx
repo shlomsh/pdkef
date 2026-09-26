@@ -1705,6 +1705,93 @@ describe('PdfRedactTool UI flow', () => {
       );
       expect(undoControl.disabled).toBe(true);
     });
+
+    // UNDO-04: moves, resizes and colour changes are logged as 'update'
+    // commands at updateElement's one choke point, so they undo/redo like
+    // add/delete already did. Driven through a real drag on the box body
+    // (mousedown/mousemove/mouseup), the same DOM path drawBox and
+    // dragHandle above already exercise for creation and resize - not a
+    // direct updateElement() call.
+    it('moving a box is undoable: Undo restores its old position, Redo moves it again', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500); // box A: left ~10%, top ~20%
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const originalLeft = Math.round(parseFloat(box.style.left));
+      const originalTop = Math.round(parseFloat(box.style.top));
+
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+
+      const movedLeft = Math.round(parseFloat(box.style.left));
+      const movedTop = Math.round(parseFloat(box.style.top));
+      expect(movedLeft).not.toBe(originalLeft);
+      expect(movedTop).not.toBe(originalTop);
+
+      await pressUndoShortcut();
+      expect(boxLefts()).toHaveLength(1); // the box still exists
+      expect(Math.round(parseFloat(box.style.left))).toBe(originalLeft);
+      expect(Math.round(parseFloat(box.style.top))).toBe(originalTop);
+      expect(announcementRegion().textContent).toContain('Undid: Moved blackout box');
+
+      await pressRedoShortcut();
+      expect(Math.round(parseFloat(box.style.left))).toBe(movedLeft);
+      expect(Math.round(parseFloat(box.style.top))).toBe(movedTop);
+    });
+
+    it('changing a whiteout box color is undoable: Undo restores its old color', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
+      await act(async () => {
+        whiteoutBtn.click();
+      });
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      // Fill color lives on the surface child (renderRedactionSurface via
+      // createElementRenderers), not on the box's own geometry-only style -
+      // same selector the "remembered whiteout color" test above uses.
+      const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      const originalColor = surface.style.backgroundColor;
+
+      // Select the box, open its color picker trigger, then pick a preset
+      // swatch. The popover portals to document.body (Popover.tsx's
+      // createPortal), so the swatch is queried there rather than in `container`.
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
+      await act(async () => {
+        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      // Default whiteout color is #ffffff (no remembered color set by this
+      // test), so the first preset swatch (#000000, ColorPicker.tsx's
+      // PRESET_COLORS[0]) is always a genuine change.
+      const swatch = required(
+        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
+        'a preset color swatch',
+      );
+      await act(async () => {
+        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      const changedColor = surface.style.backgroundColor;
+      expect(changedColor).not.toBe(originalColor);
+
+      await pressUndoShortcut();
+      const restoredSurface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      expect(restoredSurface.style.backgroundColor).toBe(originalColor);
+      expect(announcementRegion().textContent).toContain('Undid: Changed whiteout box color');
+    });
   });
 
   // Design-review finding #5: the Download control never said what it would

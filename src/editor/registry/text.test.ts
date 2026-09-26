@@ -235,6 +235,60 @@ describe('text serialize alignment in a field-spanned box', () => {
   });
 });
 
+describe('text serialize alignment in a free box', () => {
+  // No minWidth, so the box is its own widest line. The stub font makes a
+  // string's width its character count times 10pt, so two lines of
+  // different length are distinguishable (20pt and 40pt). A strong-direction
+  // first letter decides the box's own direction (getEffectiveTextDirection),
+  // ahead of any `textDirection` seed - so the LTR case uses Latin ("AB" /
+  // "ABCD") and the RTL case uses Hebrew ("אב" / "אבגד"), each two lines.
+  async function serializeFree(element: Record<string, unknown>) {
+    const page = { drawText: vi.fn() };
+    await textDefinition.serialize(element as never, {
+      page, pdfWidth: 612, pdfHeight: 792, pdfX: 100, pdfY: 700,
+      loadCustomFont: async () => ({ widthOfTextAtSize: (text: string) => text.length * 10 }),
+      baselineOffset: () => 0.85,
+    } as never);
+    return page.drawText.mock.calls.map(([, options]) => Number(options.x.toFixed(3)));
+  }
+
+  const base = { type: 'text', id: 't1', pageIndex: 0, left: 10, top: 10, fontSize: 12, fontFamily: 'Arimo', color: '#000000' };
+  const ltr = { ...base, text: 'AB\nABCD' };
+  const rtl = { ...base, text: 'אב\nאבגד' };
+
+  it('aligns each line left within the widest line, LTR', async () => {
+    expect(await serializeFree({ ...ltr, textAlign: 'left' })).toEqual([100, 100]);
+  });
+
+  it('centres each line within the widest line, LTR', async () => {
+    expect(await serializeFree({ ...ltr, textAlign: 'center' })).toEqual([110, 100]);
+  });
+
+  it('aligns each line right within the widest line, LTR', async () => {
+    expect(await serializeFree({ ...ltr, textAlign: 'right' })).toEqual([120, 100]);
+  });
+
+  it('aligns each line left within the widest line, RTL', async () => {
+    expect(await serializeFree({ ...rtl, textAlign: 'left' })).toEqual([60, 60]);
+  });
+
+  it('centres each line within the widest line, RTL', async () => {
+    expect(await serializeFree({ ...rtl, textAlign: 'center' })).toEqual([70, 60]);
+  });
+
+  it('aligns each line right within the widest line, RTL', async () => {
+    expect(await serializeFree({ ...rtl, textAlign: 'right' })).toEqual([80, 60]);
+  });
+
+  it('with no textAlign, matches the previous behaviour: LTR lines start at pdfX', async () => {
+    expect(await serializeFree({ ...ltr })).toEqual([100, 100]);
+  });
+
+  it('with no textAlign, matches the previous behaviour: RTL lines end at pdfX', async () => {
+    expect(await serializeFree({ ...rtl })).toEqual([80, 60]);
+  });
+});
+
 describe('comb serialize', () => {
   // A 10%-wide comb on a 612pt page is 61.2pt across; the stub font reports
   // every glyph as 42pt wide, so each x is its cell centre minus 21.
