@@ -14,6 +14,7 @@ import { detectCellCandidates } from './formCells.js';
 import { detectLineCandidates } from './formLines.js';
 import { detectWidgetRegions } from './formWidgets.js';
 import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
+import { titleLineWritable } from './combTitleLine.js';
 
 /**
  * ARCH-24 step A: the one entry point onto field detection. `useFormFieldRegions.ts`
@@ -74,7 +75,9 @@ export type { PageTextRun, DetectionContext, SourceRegions, FieldSource };
  * other two ever looks at), appended to the same `cells` array. Both cell
  * sources run against the one `ink` this source already collected, and the
  * line pass is handed the other two's regions so it never re-reports ground
- * either of them already explains (`formLines.js`'s own module doc).
+ * either of them already explains (`formLines.js`'s own module doc). An open
+ * comb none of those cells encloses gets its `writable` from the text on its
+ * own line (`combTitleLine.js`, FORM-27).
  */
 const inkSource: FieldSource = {
   name: 'ink',
@@ -83,7 +86,8 @@ const inkSource: FieldSource = {
     const ink = collectPageInk(page);
     const cells = detectCellCandidates(ink, geometry, pageIndex, textRuns);
     const lines = detectLineCandidates(ink, geometry, pageIndex, textRuns, [...combs, ...checkboxes, ...cells]);
-    return { combs, checkboxes, cells: [...cells, ...lines] };
+    // A comb no cell encloses reads its height off the title printed on its line (FORM-27).
+    return { combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns }), checkboxes, cells: [...cells, ...lines] };
   },
 };
 

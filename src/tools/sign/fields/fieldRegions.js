@@ -88,6 +88,23 @@ function unclaimed(region, claimedBy) {
 }
 
 /**
+ * The tightest cell in `cells` around `region`, compared as printed boxes (a
+ * section frame can overlap it too), by the same overlap rule that decides a
+ * claim; `null` when none does. Exported so a comb that no cell encloses can
+ * be told apart by exactly the rule `absorbWritable` uses (`combTitleLine.js`).
+ *
+ * @param {object} region
+ * @param {Array} cells
+ * @returns {object|null}
+ */
+export function tightestEnclosingCell(region, cells) {
+  const enclosing = cells.filter((cell) => overlap(claimExtent(cell), claimExtent(region)));
+  if (enclosing.length === 0) return null;
+  const area = (c) => claimExtent(c).width * claimExtent(c).height;
+  return enclosing.reduce((best, c) => (area(c) < area(best) ? c : best));
+}
+
+/**
  * Gives every open, unclaimed-by-boxes comb in `combs` the bounds of the
  * tightest cell in `cells` that encloses it, as `writable` - the one piece of
  * `reconcileFields`'s old behaviour that is geometry, not precedence, and so
@@ -101,12 +118,8 @@ function unclaimed(region, claimedBy) {
 function absorbWritable(combs, cells) {
   return combs.map((comb) => {
     if (comb.boxed || comb.writable) return comb;
-    const enclosing = cells.filter((cell) => overlap(claimExtent(cell), claimExtent(comb)));
-    if (enclosing.length === 0) return comb;
-    // The tightest cell around the run, compared as printed boxes: a section
-    // frame can overlap it too.
-    const area = (c) => claimExtent(c).width * claimExtent(c).height;
-    const cell = enclosing.reduce((best, c) => (area(c) < area(best) ? c : best));
+    const cell = tightestEnclosingCell(comb, cells);
+    if (!cell) return comb;
     // A cell's own bounds are already the strip a person writes in, not the
     // ruled box around it (formCells.js, "What a cell candidate's bounds are").
     const { left, top, width, height } = cell;

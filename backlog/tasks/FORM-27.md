@@ -1,7 +1,7 @@
 ---
 id: "FORM-27"
 title: "An open comb's field is its printed row: teeth never split their own cell, and a lone comb takes its title line's height"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "form-understanding"
 phase: "near-term"
@@ -59,3 +59,20 @@ Keep the contract (bounds = teeth, `writable` = the printed field); fix what fee
   carries a `writable` reaching the title's top.
 - Element-corpus rows pin both shapes.
 - No scored form's recall or precision moves down.
+
+## Result (2026-09-26)
+
+Landed. `buildClosedCells` also builds the wall-bounded column around floor ticks (`tickDivided`),
+and `detectCellCandidates` keeps it unless a captioned floor-ticked column inside it survives, so the
+address row still splits and a comb's teeth no longer delete their cell. `combTitleLine.js` gives an
+open comb no cell encloses a `writable` up to the top of a text run on its own line: beside it within
+one cell pitch, not a checkbox's own glyph (form 101 prints its boxes as an "o"), and only when the
+teeth are at most 0.75 of the run's height (ภ.ง.ด.90's 0.91 amount boxes stay as they were).
+
+Measured on all ten scored forms: the only changed regions are form 101's 26 table combs and its
+start-date comb (the row cell back as `writable`, as before FORM-26) and its tax year (`writable`
+y 81.5-99.4). Every recall and precision count is unchanged. Digits follow `writable` as
+`placeCombOnRegion` already intends (Shlomi chose this over keeping them on the teeth): at 10pt the
+table's ID sits on the name's baseline again (box top 392.3 -> 386.0pt) and the year on its title's
+(89.5 -> 85.2pt). Element corpus: three rows (teeth in a ruled column, teeth beside a title, text on
+the line above); the first two fail on the old code.
