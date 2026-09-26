@@ -407,7 +407,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-03 | P1 | [SNG-03](backlog/tasks/SNG-03.md) · Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives the keyboard, and synchronous focus |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |
 | SNG-05 | P1 | [SNG-05](backlog/tasks/SNG-05.md) · The next-generation phone surface behind a flag: contextual bar, app-owned zoom, the chosen way through the page, and the finish |
-| SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Desktop and iPad on the next-generation surface: sketches, parity, then retire the old editor paths |
+| SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |
 | SNG-07 | P1 | [SNG-07](backlog/tasks/SNG-07.md) · Test the Sign editor where it breaks: WebKit iPhone project and an iOS Simulator release gate |
 | SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Redact on the next-generation machine, after consolidating its state |
 | SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |
@@ -420,6 +420,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
 | SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom |
 | SNG-18 | P2 | [SNG-18](backlog/tasks/SNG-18.md) · Opening the practice form keeps fill mode's ?next=1 |
+| SNG-19 | P1 | [SNG-19](backlog/tasks/SNG-19.md) · Fill mode becomes Sign's default; the old editor moves behind ?next=0 |
 
 
 ## Migrated context and history
