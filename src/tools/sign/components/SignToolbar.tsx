@@ -10,7 +10,7 @@ import ExportReadinessNotice from './ExportReadinessNotice.tsx';
 import EditorExportActions from '../../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../../shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint, useDoubleTap } from '../../../editor-ui/hooks/toolArming.js';
-import useCoarsePointer from '../useCoarsePointer.ts';
+import useCoarsePointer from '../../../editor-ui/hooks/useCoarsePointer.ts';
 import { useFill } from '../fill/FillContext.tsx';
 import { englishShellMessages, englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
 import type { ActionHistoryEntry } from '../../../editor/model/actionHistory.ts';

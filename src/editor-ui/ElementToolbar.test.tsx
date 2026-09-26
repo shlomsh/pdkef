@@ -5,13 +5,26 @@
 // element — rather than re-testing FontPickerMenu's own logic in isolation.
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, afterEach, vi } from 'vitest';
+import { describe, expect, it, afterEach, beforeEach, vi } from 'vitest';
 import ElementToolbar from './ElementToolbar.tsx';
 
 describe('ElementToolbar font picker wiring', () => {
   let container: HTMLDivElement | null;
 
+  // These tests are about the desktop popover path (FontPickerMenu.tsx's
+  // `[data-font-picker-menu]`), not the phone sheet SNG-17 added. Without
+  // this, src/test/setup.js's blanket `matchMedia` stub (matches: true for
+  // any query, tuned for ArmHint's `pointer: fine` query) would also make
+  // `(pointer: coarse)` match, and the font trigger would open the sheet
+  // instead - see FontPickerMenu.test.tsx's own `installMatchMedia` for the
+  // same fix.
+  beforeEach(() => {
+    const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+    Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+  });
+
   afterEach(() => {
+    delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
       container.remove();

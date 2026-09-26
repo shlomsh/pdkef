@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Popover from '../shell/Popover.tsx';
 import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
 import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
@@ -10,11 +10,33 @@ vi.mock('../shell/Popover.tsx', async (importOriginal) => {
   return { ...actual, default: vi.fn(actual.default) };
 });
 
+// SNG-17: a controllable MediaQueryList, same shape as
+// src/tools/sign/useCoarsePointer.test.tsx's own harness, since
+// useCoarsePointer (the local editor-ui copy of that same primitive) reads
+// `matchMedia('(pointer: coarse)')` on mount.
+function installMatchMedia(matches: boolean) {
+  const query = { matches, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+  Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+}
+
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
 
+  // src/test/setup.js stubs a missing `window.matchMedia` to always return
+  // `matches: true` (tuned for ArmHint's `(hover: hover) and (pointer: fine)`
+  // query), which - read for `(pointer: coarse)` too - would make every test
+  // here default to the phone sheet unless it says otherwise. Force the fine
+  // pointer as this suite's own default; the "on a phone" describe below
+  // overrides it per test.
+  beforeEach(() => {
+    installMatchMedia(false);
+  });
+
   afterEach(() => {
     vi.useRealTimers();
+    // Undo any installMatchMedia() call so later tests get useCoarsePointer's
+    // own no-matchMedia default (fine pointer), same as jsdom's own default.
+    delete (window as any).matchMedia;
     if (container) {
       act(() => render(null, container as any));
       container.remove();
@@ -219,5 +241,30 @@ describe('FontPickerMenu', () => {
     document.body.appendChild(container);
     act(() => render(<FontPickerMenu value={effective} text={text} onChange={() => {}} />, container as any));
     expect(container.querySelector('button')!.title).toBe('Font: Gveret Levin');
+  });
+
+  describe('on a phone (coarse pointer)', () => {
+    beforeEach(() => {
+      installMatchMedia(true);
+      // jsdom has no real <dialog> behaviour; see FontSheet.test.tsx.
+      HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) { this.open = true; });
+      HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) { this.open = false; });
+    });
+
+    it('opens the sheet, not the popover', () => {
+      const menu = openMenu('Arimo', 'Hello');
+      expect(menu).toBeNull();
+      expect(document.body.querySelector('[data-font-picker-sheet]')).not.toBeNull();
+    });
+  });
+
+  describe('on a mouse (fine pointer)', () => {
+    beforeEach(() => installMatchMedia(false));
+
+    it('still renders the popover', () => {
+      const menu = openMenu('Arimo', 'Hello');
+      expect(menu).not.toBeNull();
+      expect(document.body.querySelector('[data-font-picker-sheet]')).toBeNull();
+    });
   });
 });

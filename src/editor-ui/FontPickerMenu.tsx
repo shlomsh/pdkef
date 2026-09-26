@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { offset, flip, shift } from '@floating-ui/react';
 import Popover from '../shell/Popover.tsx';
 import styles from './EditorControls.module.css';
-import { FONT_STYLE_TAGS, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
-import { getFontSupport } from '../editor/text/textFontSupport.js';
 import { englishSignMessages, formatMessage } from '../i18n/toolMessages';
 import type { SignMessages } from '../editor/registry/messages';
 import visualViewportClamp, { getStickyToolShellRect } from './hooks/visualViewportClamp.ts';
+import useCoarsePointer from './hooks/useCoarsePointer.ts';
+import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
+import FontSheet, { FILL_KEEP_SESSION_ATTR } from './FontSheet.tsx';
 
 export const FONT_PREVIEW_DELAY_MS = 120;
 
@@ -26,26 +27,6 @@ const FONT_MENU_MIDDLEWARE = [
   shift({ crossAxis: true, mainAxis: false, padding: 5 }),
   visualViewportClamp({ counterScaled: false, getExcludedRect: getStickyToolShellRect }),
 ];
-
-const collator = new Intl.Collator('en', { sensitivity: 'base' });
-
-function cssFamily(family: string) {
-  const generic = FONT_STYLE_TAGS[family] === 'handwriting'
-    ? 'cursive'
-    : FONT_STYLE_TAGS[family] === 'mono'
-      ? 'monospace'
-      : FONT_STYLE_TAGS[family] === 'serif'
-        ? 'serif'
-        : 'sans-serif';
-  return `'${family}', ${generic}`;
-}
-
-// The catalogue is the source of truth. Labels are canonical family names,
-// rather than a mixture of language names and metric-compatible aliases, and
-// one alphabetic sort applies to both upright and handwriting faces.
-const FONT_OPTIONS = [...new Set([...TEXT_FONTS, ...HANDWRITING_FONTS])]
-  .sort(collator.compare)
-  .map((family) => ({ value: family, label: family, css: cssFamily(family) }));
 
 export default function FontPickerMenu({
   value,
@@ -71,20 +52,14 @@ export default function FontPickerMenu({
   messages?: Partial<SignMessages>;
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
+  const coarse = useCoarsePointer();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const previewTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   const current = FONT_OPTIONS.find((font) => font.value === value) || FONT_OPTIONS[0];
-  const options = open ? FONT_OPTIONS.map((font) => ({
-    ...font,
-    support: getFontSupport(font.value, text, fontWeight, fontStyle, drawnText),
-  })) : [];
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const visibleOptions = normalizedQuery
-    ? options.filter(({ value: family }) => family.toLocaleLowerCase().includes(normalizedQuery))
-    : options;
+  const options = computeFontOptions(open, text, fontWeight, fontStyle, drawnText);
 
   const clearPreviewTimer = () => {
     clearTimeout(previewTimer.current);
@@ -106,51 +81,41 @@ export default function FontPickerMenu({
   };
 
   useEffect(() => {
-    if (open) searchRef.current?.focus();
-  }, [open]);
+    // The sheet (coarse pointer) never autofocuses its search field - a
+    // person taps it - so this effect only runs the popover's own path.
+    if (open && !coarse) searchRef.current?.focus();
+  }, [open, coarse]);
 
   useEffect(() => () => clearPreviewTimer(), []);
 
-  // Whether a family needs to be fetched for offline use is no longer a
-  // decision surfaced here - it happens quietly in the background as soon as
-  // it's actually used (useAutoFontProvisioning). Keeping that out of this
-  // list is what leaves room for the font preview while scrolling.
-  const renderOption = (font: typeof options[number]) => {
-    const { family, missing, status } = font.support;
-    const incomplete = missing.length > 0;
-    const isActive = font.value === current.value;
-    const classNames = [
-      styles['font-menu-item'],
-      isActive && styles.active,
-      incomplete && styles['font-menu-item-unsupported'],
-    ].filter(Boolean).join(' ');
+  const triggerButton = (
+    <button
+      type="button"
+      className={`${styles['element-button']} ${styles['font-trigger']}`}
+      title={formatMessage(t.fontTriggerTitleTemplate, { name: current.label })}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+    >
+      Aa
+    </button>
+  );
+
+  if (coarse) {
     return (
-      <button
-        key={font.value}
-        type="button"
-        role="option"
-        aria-selected={isActive}
-        data-font-name={font.value}
-        data-font-support={status}
-        className={classNames}
-        style={{ fontFamily: font.css }}
-        onMouseEnter={() => schedulePreview(font.value)}
-        onMouseLeave={clearPreviewTimer}
-        onFocus={() => schedulePreview(font.value)}
-        onBlur={clearPreviewTimer}
-        onClick={() => {
-          clearPreviewTimer();
-          onChange(font.value);
-          handleOpenChange(false);
-        }}
-      >
-        {font.label}
-        {drawnText && incomplete && <span className={styles['font-menu-item-note']}>
-          {status === 'fallback' ? formatMessage(t.fallbackFontNoteTemplate, { family }) : t.doesntSupportText}
-        </span>}
-      </button>
+      <FontSheet
+        trigger={triggerButton}
+        value={value}
+        text={text}
+        drawnText={drawnText}
+        fontWeight={fontWeight}
+        fontStyle={fontStyle}
+        onChange={onChange}
+        onPreview={onPreview}
+        onPreviewEnd={onPreviewEnd}
+        t={t}
+      />
     );
-  };
+  }
 
   return (
     <Popover
@@ -164,43 +129,41 @@ export default function FontPickerMenu({
       anchorClosest="[data-editor-element]"
       placement="right-start"
       middleware={FONT_MENU_MIDDLEWARE}
-      trigger={
-        <button
-          type="button"
-          className={`${styles['element-button']} ${styles['font-trigger']}`}
-          title={formatMessage(t.fontTriggerTitleTemplate, { name: current.label })}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          Aa
-        </button>
-      }
+      trigger={triggerButton}
       content={
         <div
           className={`${styles.popover} ${styles['font-menu']}`}
           data-font-picker-menu
+          // Portaled to <body> and autofocuses its search field below; in
+          // fill mode that focus must not read as a blur-to-body that ends
+          // the edit session (see FILL_KEEP_SESSION_ATTR's doc in
+          // FontSheet.tsx, shared with the phone sheet for the same reason).
+          {...{ [FILL_KEEP_SESSION_ATTR]: true }}
           onMouseLeave={() => {
             clearPreviewTimer();
             onPreviewEnd?.();
           }}
         >
-          <input
-            ref={searchRef}
-            type="search"
-            value={query}
-            className={styles['font-menu-search']}
-            placeholder={t.searchFontsPlaceholder}
-            aria-label={t.searchFontsPlaceholder}
-            onInput={(event) => {
+          <FontOptionsList
+            t={t}
+            options={options}
+            query={query}
+            onQueryChange={(nextQuery) => {
               clearPreviewTimer();
               onPreviewEnd?.();
-              setQuery(event.currentTarget.value);
+              setQuery(nextQuery);
             }}
+            currentValue={current.value}
+            drawnText={drawnText}
+            onActivate={(family) => {
+              clearPreviewTimer();
+              onChange(family);
+              handleOpenChange(false);
+            }}
+            onHoverPreview={schedulePreview}
+            onHoverEnd={clearPreviewTimer}
+            searchRef={searchRef}
           />
-          <div className={styles['font-menu-options']} role="listbox" aria-label={t.fontsListAriaLabel}>
-            {visibleOptions.map(renderOption)}
-            {visibleOptions.length === 0 && <p className={styles['font-menu-empty']}>{t.noFontsFound}</p>}
-          </div>
         </div>
       }
     />

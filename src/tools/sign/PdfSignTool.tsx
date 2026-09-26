@@ -21,7 +21,7 @@ import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
-import useCoarsePointer from './useCoarsePointer.ts';
+import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
 import { viewportContent } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
