@@ -105,13 +105,15 @@ export function reachesDist(files) {
 // decides by folder, so a tool's unit test used to select that tool's e2e and
 // every site-wide spec (measured: a `merge.test.js`-only change ran 67s of
 // Playwright). When every non-docs file is a unit test (`*.test.*`) or a
-// Playwright spec (`*.spec.*`), the unit tests run by impact as always and
+// Playwright spec (`*.spec.js`), the unit tests run by impact as always and
 // Playwright runs only the changed specs: the font guards and export guards
 // only when one of their own specs changed (the globs mirror FONT_GUARDS and
 // EXPORT_GUARDS in playwright.config.js). Anything else in the diff, a spec
 // helper or fixture included, keeps the Nx verdict.
 const isUnitTest = (f) => /\.test\.[^/]+$/.test(f);
-const isSpec = (f) => /\.spec\.[^/]+$/.test(f);
+// Only `.spec.js`: Playwright's testMatch discovers nothing else, so any other
+// `.spec.*` keeps the Nx verdict rather than narrowing to a spec that never runs.
+const isSpec = (f) => /\.spec\.js$/.test(f);
 const isFontGuardSpec = (f) => /(^|\/)sign\/[^/]+-(guard|parity)\.spec\.js$/.test(f);
 const isExportGuardSpec = (f) => /(^|\/)export\/(export-render-guard|language-acceptance)\.spec\.js$/.test(f);
 

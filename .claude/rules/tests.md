@@ -174,7 +174,7 @@ every rule above. A diff that only needs Playwright still triggers a build even 
 guard).
 
 ARCH-31 (measured 2026-09-26: a `merge.test.js`-only push ran 67s of Playwright, and 50 of the last
-79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.*` files (plus
+79 pushes ran every spec) narrows three things. A diff of only `*.test.*`/`*.spec.js` files (plus
 docs) runs no Playwright for a unit test and only the changed specs otherwise, with the font and
 export guards only when one of their own specs changed (`narrowTestOnlyChange()`); a spec helper or
 fixture keeps the Nx verdict. The typecheck is check:fast's `chooseTypecheck()`: tsc unless the diff
