@@ -1,8 +1,14 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import Popover from '../shell/Popover.tsx';
 import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
 import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+
+vi.mock('../shell/Popover.tsx', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../shell/Popover.tsx')>();
+  return { ...actual, default: vi.fn(actual.default) };
+});
 
 describe('FontPickerMenu', () => {
   let container: HTMLDivElement | null;
@@ -183,6 +189,27 @@ describe('FontPickerMenu', () => {
     expect(items.every((item) => item.textContent?.includes('Doesn’t support this text'))).toBe(true);
     expect(option(menu, 'Assistant').textContent).not.toContain('مرحبا');
     expect(option(menu, 'Scheherazade New').textContent).not.toContain('שלום');
+  });
+
+  it('opens beside the element, anchored to [data-editor-element], with side fallbacks before below/above', () => {
+    const menu = openMenu('Arimo', 'Hello');
+    expect(menu).not.toBeNull();
+
+    const call = (Popover as unknown as { mock: { calls: any[][] } }).mock.calls.at(-1)!;
+    const props = call[0];
+    expect(props.anchorClosest).toBe('[data-editor-element]');
+    expect(props.placement).toBe('right-start');
+    expect(props.placement).not.toBe('bottom-end');
+    expect(props.crossAxisOffset).toBeUndefined();
+    expect(props.stablePosition).toBeUndefined();
+
+    const middlewareNames = props.middleware.map((entry: { name: string }) => entry.name);
+    expect(middlewareNames).toEqual(['offset', 'flip', 'shift', 'visualViewportClamp']);
+    const flipEntry = props.middleware.find((entry: { name: string }) => entry.name === 'flip');
+    expect(flipEntry.options[0].fallbackPlacements).toEqual(['left-start', 'bottom-start', 'top-start']);
+    expect(flipEntry.options[0].crossAxis).toBe(false);
+    const shiftEntry = props.middleware.find((entry: { name: string }) => entry.name === 'shift');
+    expect(shiftEntry.options[0]).toEqual({ crossAxis: true, mainAxis: false, padding: 5 });
   });
 
   it('shows the effective canonical family in the trigger title', () => {
