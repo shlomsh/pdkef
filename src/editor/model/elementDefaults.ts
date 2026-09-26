@@ -53,6 +53,42 @@ export function carriedTextStyle(carried: Partial<DocumentStyle>): Pick<ElementC
   return style;
 }
 
+/**
+ * SIGN-35: the style a new element in this document starts from, resolved key
+ * by key through three layers: the document's own choice (`carried`), else
+ * the person's latest choice in any document (`appStyle`), else `defaults`.
+ * A key a document never set follows the person's latest choice; a key it
+ * did set is its own, whatever is chosen elsewhere later.
+ *
+ * `defaults` is optional because size, direction and alignment have
+ * contextual fallbacks the placement code owns (see `elementDefaultsFor`'s
+ * 'text' case): a caller that wants them left open passes no defaults and
+ * gets a partial style back.
+ */
+export function resolveDocumentStyle(
+  carried: Partial<DocumentStyle>,
+  appStyle: Partial<DocumentStyle>,
+  defaults: DocumentStyle,
+): DocumentStyle;
+export function resolveDocumentStyle(
+  carried: Partial<DocumentStyle>,
+  appStyle: Partial<DocumentStyle>,
+  defaults?: Partial<DocumentStyle>,
+): Partial<DocumentStyle>;
+export function resolveDocumentStyle(
+  carried: Partial<DocumentStyle>,
+  appStyle: Partial<DocumentStyle>,
+  defaults: Partial<DocumentStyle> = {},
+): Partial<DocumentStyle> {
+  const resolved: Record<string, unknown> = {};
+  for (const layer of [defaults, appStyle, carried]) {
+    for (const [key, value] of Object.entries(layer)) {
+      if (value !== undefined) resolved[key] = value;
+    }
+  }
+  return resolved as Partial<DocumentStyle>;
+}
+
 function carriedOrDefault<K extends keyof DocumentStyle>(
   carried: Partial<DocumentStyle>,
   defaults: DocumentStyle,

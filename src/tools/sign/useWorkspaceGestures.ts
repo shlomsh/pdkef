@@ -93,12 +93,14 @@ export interface WorkspaceGestureOptions {
   initialColor?: string;
   initialWhiteoutColor?: string;
   initialStrokeWidth?: number;
-  /** The document's carried style (SIGN-33); a key absent from it means the
-   * document has none yet - see combPlacement.ts's `fieldFontSize` for how
-   * a missing `fontSize` gets seeded from the field this hook places on, and
-   * SignToolContext.tsx's `SET_CARRIED` for where that seeding, and an
-   * explicit A-/A+/font-pick/direction change, lands. `direction` wins over
-   * a detected field's own printed direction (formRegions.pageDirections)
+  /** The document's resolved style (SIGN-35): the document's own `carried`
+   * keys over the app-wide style, from `useDocumentStyle()` in
+   * SignToolContext; this hook applies its own shipped defaults. A key absent
+   * from it means neither layer has one yet - see combPlacement.ts's `fieldFontSize`
+   * for how a missing `fontSize` gets seeded from the field this hook places
+   * on, and SignToolContext.tsx's `SET_CARRIED` for where that seeding, and
+   * an explicit A-/A+/font-pick/direction change, lands. `direction` wins
+   * over a detected field's own printed direction (formRegions.pageDirections)
    * once set, since it reflects what the person is actually typing on this
    * document right now; pageDirections is only the fallback for a document
    * that has not established one yet. */
@@ -401,15 +403,18 @@ export default function useWorkspaceGestures({
       }));
     const placed = snapped ? { ...newEl, ...snapped } : newEl;
 
-    // The carried font/size is only ever seeded by an actual placement, never
-    // by a click this function is about to no-op or redirect (the two early
+    // The carried size is only ever seeded by an actual placement, never by a
+    // click this function is about to no-op or redirect (the two early
     // returns above) - so this is deliberately the first point past both of
     // them, right beside the element that is about to carry the seeded value.
-    if (snapsToFields) {
-      const seed: Partial<DocumentStyle> = {};
-      if (carriedFont === null) seed.font = resolvedFont;
-      if (carriedFontSize === null) seed.fontSize = resolvedFontSize;
-      if (seed.font !== undefined || seed.fontSize !== undefined) dispatch({ type: 'SET_CARRIED', payload: seed });
+    // SIGN-35: the font is never seeded here - seeding is not choosing. A
+    // seeded font would freeze this document against the person's later
+    // choices elsewhere, and the three layers (document, app-wide, shipped
+    // default) already resolve every field to the same font without it. The
+    // size still seeds: it is document-only and measured from this first
+    // field.
+    if (snapsToFields && carriedFontSize === null) {
+      dispatch({ type: 'SET_CARRIED', payload: { fontSize: resolvedFontSize } });
     }
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
