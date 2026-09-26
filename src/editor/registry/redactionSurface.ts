@@ -1,6 +1,5 @@
 import { h } from 'preact';
-import type { BlurStrength } from '../model/blurStrength.ts';
-import { blurRadius } from '../model/blurStrength.ts';
+import { blurRadius, type BlurStrength } from '../model/blurStrength.ts';
 
 /**
  * Visual interior for a Redact box. Geometry, handles, and toolbars stay in
