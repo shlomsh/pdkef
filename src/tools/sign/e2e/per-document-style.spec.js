@@ -305,8 +305,9 @@ test('every setting a person chooses is remembered per document, and going back 
   await setTextColor(textB.element, DEFAULT_BLUE);
   await expect(textB.input).toHaveCSS('color', 'rgb(20, 99, 255)');
 
-  await cycleAlign(textB.element, 1); // right -> left (the cycle wraps)
-  await expect(textB.input).toHaveCSS('text-align', 'left');
+  // No alignment choice here: a free box has no align control (only a box
+  // spanning a detected field does, ElementToolbar's canAlign), and B has no
+  // fields. B keeps following the app-wide alignment - see step 3.
 
   await textB.element.getByTitle('Bold', { exact: true }).click(); // un-bold
   await expect(textB.input).not.toHaveCSS('font-weight', '700');
@@ -353,7 +354,8 @@ test('every setting a person chooses is remembered per document, and going back 
 
   const textB2 = await addTextAt(page, 0.6, 0.3);
   await expect(textB2.input).toHaveAttribute('dir', 'ltr');
-  await expect(textB2.input).toHaveCSS('text-align', 'left');
+  // B never chose an alignment, so it still follows the app-wide one (A's).
+  await expect(textB2.input).toHaveCSS('text-align', 'right');
   await expect(textB2.input).not.toHaveCSS('font-weight', '700');
   await expect(textB2.input).toHaveCSS('color', 'rgb(20, 99, 255)');
   const sizeB2 = await fontSizePx(textB2.input);
