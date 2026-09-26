@@ -92,8 +92,8 @@ describe('classifyElementUpdate', () => {
     expect(classifyElementUpdate(update(rect, { color: '#000000' }, { color: '#ff0000' }))).toBe('style');
   });
 
-  it('classifies {fontSize} as style', () => {
-    expect(classifyElementUpdate(update(text, { fontSize: 12 }, { fontSize: 18 }))).toBe('style');
+  it('classifies {fontSize} as resize (a text box resize drag commits only fontSize)', () => {
+    expect(classifyElementUpdate(update(text, { fontSize: 12 }, { fontSize: 18 }))).toBe('resize');
   });
 
   it('classifies {type: "ellipse", left, top, width, height} as style', () => {

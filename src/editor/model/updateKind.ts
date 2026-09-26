@@ -18,7 +18,8 @@ export const UPDATE_ENTRY_TYPES: Record<ElementUpdateKind, string> = {
 
 const POSITION_KEYS = new Set(['left', 'top']);
 const ENDPOINT_KEYS = new Set(['x1', 'y1', 'x2', 'y2']);
-const SIZE_KEYS = new Set(['width', 'height']);
+// A text box's resize drag commits `fontSize`, so A-/A+ read as a resize too.
+const SIZE_KEYS = new Set(['width', 'height', 'fontSize']);
 const TRANSLATION_EPSILON = 1e-6;
 
 /** A line whose two endpoints moved by the same amount was dragged, not reshaped. */
