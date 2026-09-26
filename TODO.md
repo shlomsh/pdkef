@@ -45,6 +45,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SIGN-32 | P1 | [SIGN-32](backlog/tasks/SIGN-32.md) · One font, size and direction per document: they carry from field to field, and each field only shrinks the size to fit |
 | SIGN-33 | P1 | [SIGN-33](backlog/tasks/SIGN-33.md) · Every setting a person chooses is remembered per document, and going back to a document brings its own back |
 | SIGN-34 | P1 | [SIGN-34](backlog/tasks/SIGN-34.md) · A new text box starts in the document's direction, free or on a field; a generated date never changes it |
+| SIGN-35 | P1 | [SIGN-35](backlog/tasks/SIGN-35.md) · A style chosen in a document also becomes the app default for new documents |
 
 
 ## Editor module boundaries (architecture)
