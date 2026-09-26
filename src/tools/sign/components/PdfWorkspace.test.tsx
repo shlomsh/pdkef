@@ -7,6 +7,7 @@ import PdfWorkspace from './PdfWorkspace.tsx';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
+import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import type { RectangleElement, SymbolElement, TextElement } from '../../../editor/model/editorModel.ts';
 import { SignToolContext, reducer, type SignToolAction, type SignToolState } from './SignToolContext.tsx';
 import { SavedSignaturesContext, type SavedSignaturesContextValue } from './SavedSignaturesContext.tsx';
@@ -136,11 +137,17 @@ interface StatefulWorkspaceOptions {
   stateRef: { current: SignToolState };
   props?: Partial<ComponentProps<typeof PdfWorkspace>>;
   savedSignatures?: Partial<SavedSignaturesContextValue>;
+  // SIGN-39: the undo/redo test below needs to dispatch 'UNDO' directly
+  // (PdfWorkspace's real Undo button only calls the mocked `onUndo` prop),
+  // so this stashes the reducer's own dispatch the same way stateRef stashes
+  // its state.
+  dispatchRef?: { current: (action: SignToolAction) => void };
 }
 
-function StatefulWorkspace({ initialState, stateRef, props = {}, savedSignatures = {} }: StatefulWorkspaceOptions) {
+function StatefulWorkspace({ initialState, stateRef, props = {}, savedSignatures = {}, dispatchRef }: StatefulWorkspaceOptions) {
   const [state, dispatch] = useReducer(reducer, initialState);
   stateRef.current = state;
+  if (dispatchRef) dispatchRef.current = dispatch;
   return (
     <SignToolContext.Provider value={{ state, dispatch }}>
       <SavedSignaturesContext.Provider value={defaultSavedSignatures(savedSignatures)}>
@@ -931,6 +938,61 @@ describe('PdfWorkspace Component', () => {
       if (entry.operation !== 'update') throw new Error('Expected an update entry');
       expect(entry.type).toBe('MOVE_ELEMENT');
       expect(entry.group).toBeUndefined();
+    });
+
+    // SIGN-39: picking a font from ElementToolbar's font menu is the one
+    // shared choke point (`updateElement` in PdfWorkspace.tsx) every font-pick
+    // UX goes through - proves the wiring end to end, through the real
+    // reducer, rather than only combPlacement.test.ts's unit tests on
+    // topKeepingInkCentre in isolation.
+    it('re-tops a text element on a font change, and undo restores the exact top', () => {
+      // Forces the desktop popover path (`[data-font-name]`), not the phone
+      // sheet SNG-17 added - see DraggableWrapper.interaction.test.tsx's own
+      // matchMedia override for why the blanket setup stub needs this.
+      const query = { matches: false, media: '(pointer: coarse)', addEventListener: () => {}, removeEventListener: () => {} };
+      Object.defineProperty(window, 'matchMedia', { value: vi.fn(() => query), configurable: true, writable: true });
+
+      const stateRef: { current: SignToolState } = { current: testState() };
+      const dispatchRef: { current: (action: SignToolAction) => void } = { current: () => {} };
+      const initialTop = 20;
+      const initialState = testState({
+        elements: [textElement('text-1', {
+          left: 20, top: initialTop, text: '0123456789', fontFamily: 'Arimo', fontSize: 16,
+        })],
+        activeElementId: 'text-1',
+      });
+
+      host = mountStatefulWorkspace({ initialState, stateRef, dispatchRef });
+
+      const element = required(host.querySelector<HTMLElement>('[data-editor-element]'), 'element');
+      act(() => {
+        required(element.querySelector<HTMLButtonElement>('button[title^="Font:"]'), 'font trigger').click();
+      });
+      act(() => {
+        required(document.body.querySelector<HTMLButtonElement>('[data-font-name="Caveat"]'), 'Caveat option').click();
+      });
+
+      const updated = stateRef.current.elements.find((e) => e.id === 'text-1') as TextElement;
+      expect(updated.fontFamily).toBe('Caveat');
+      const expectedTop = topKeepingInkCentre(initialTop, {
+        fontSize: 16,
+        pageHeightPoints: pageSize.height,
+        fromFamily: 'Arimo',
+        toFamily: 'Caveat',
+        text: '0123456789',
+      });
+      expect(updated.top).toBeCloseTo(expectedTop, 9);
+      // Caveat's digit ink sits lower in its em box than Arimo's (SIGN-38's
+      // doc on figureCentreEm), so this is not a no-op: the top actually moves.
+      expect(updated.top).not.toBeCloseTo(initialTop, 3);
+
+      act(() => { dispatchRef.current({ type: 'UNDO' }); });
+
+      const reverted = stateRef.current.elements.find((e) => e.id === 'text-1') as TextElement;
+      expect(reverted.fontFamily).toBe('Arimo');
+      expect(reverted.top).toBe(initialTop);
+
+      delete (window as any).matchMedia;
     });
   });
 });

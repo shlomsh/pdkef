@@ -7,6 +7,7 @@ import {
   fieldFontSize,
   placeCombOnRegion,
   placeTextOnCell,
+  topKeepingInkCentre,
   type CombRegion,
   type FieldRegion,
 } from './combPlacement.ts';
@@ -567,5 +568,46 @@ describe('placeCombOnRegion', () => {
 
   it('never lifts the box off the top of the page', () => {
     expect(place({ ...IDENTITY_RUN, top: 0, height: 0 }).top).toBe(0);
+  });
+});
+
+describe('topKeepingInkCentre', () => {
+  // SIGN-39: a text element's `top` is only ever placed once, for whichever
+  // font it was typed in - this is the function a font *change* runs through
+  // afterwards, so the digits' ink centre never moves under a picked font
+  // the way it did before (Arimo's date sat high, a handwriting phone number
+  // sat low, on the same form).
+  const digits = '0123456789';
+  const fontSize = 14;
+  const args = (fromFamily: string, toFamily: string) => ({
+    fontSize, pageHeightPoints: PAGE_HEIGHT, fromFamily, toFamily, text: digits,
+  });
+
+  it('is a no-op when the font does not actually change', () => {
+    expect(topKeepingInkCentre(30, args('Arimo', 'Arimo'))).toBe(30);
+  });
+
+  it('round-trips: Arimo to Caveat and back returns the original top', () => {
+    const toCaveat = topKeepingInkCentre(30, args('Arimo', 'Caveat'));
+    expect(toCaveat).not.toBeCloseTo(30, 3);
+    const backToArimo = topKeepingInkCentre(toCaveat, args('Caveat', 'Arimo'));
+    expect(backToArimo).toBeCloseTo(30, 9);
+  });
+
+  it("shifts up relative to Arimo for a font whose digit ink sits lower in its em box (Pacifico)", () => {
+    // SIGN-38's own doc: at 14pt in a 22pt cell, Arimo's digit centre landed
+    // 1.71pt below the cell's middle and Pacifico's 7.75pt below - Pacifico's
+    // ink sits lower in its em box, so keeping the *same* ink centre after
+    // switching to it means moving the box's own top upward (smaller `top`).
+    const toPacifico = topKeepingInkCentre(30, args('Arimo', 'Pacifico'));
+    expect(toPacifico).toBeLessThan(30);
+  });
+
+  it('matches the ink-centre identity directly: top + em * (baselineDropEm - figureCentreEm) is invariant', () => {
+    const top = 18.4;
+    const newTop = topKeepingInkCentre(top, args('Arimo', 'Gveret Levin'));
+    const em = (fontSize / PAGE_HEIGHT) * 100;
+    const inkCentre = (family: string, boxTop: number) => boxTop + em * (baselineDropEm(family) - figureCentreEm(family));
+    expect(inkCentre('Gveret Levin', newTop)).toBeCloseTo(inkCentre('Arimo', top), 9);
   });
 });

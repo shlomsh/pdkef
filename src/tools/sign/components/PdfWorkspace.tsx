@@ -1,6 +1,6 @@
 import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY } from '../../../constants/signGeometry.js';
+import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
@@ -26,6 +26,7 @@ import type { FieldNavigation } from '../useFieldNavigation.ts';
 import useWorkspaceGestures from '../useWorkspaceGestures.js';
 import type { PendingSignaturePlacement } from '../useWorkspaceGestures.ts';
 import { formatDate, isDateFormatId } from '../../../editor/text/dateFormat.ts';
+import { topKeepingInkCentre } from '../../../editor/text/combPlacement.ts';
 import { useAutoFontProvisioning } from '../useAutoFontProvisioning.js';
 import { getSignExportReadiness } from '../signExportReadiness.ts';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -324,15 +325,37 @@ export default function PdfWorkspace({
   // edit session, pushCommand folds bursts.
   const updateElement = useCallback((id: string, changes: EditorElementPatch) => {
     const element = elements.find((e) => e.id === id);
-    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes } });
+    // SIGN-39: a font change is committed here, the one choke point every UX
+    // path (toolbar font picker, phone bottom sheet's Done, fill mode) shares,
+    // so re-topping it here covers all of them without duplicating the call.
+    // A preview (ElementToolbar's onPreviewFont) never reaches this function -
+    // it only sets DraggableWrapper's local previewFontFamily for rendering -
+    // so reverting a preview never touched top in the first place.
+    const fontFamilyChange = element?.type === 'text'
+      ? (changes as EditorElementPatch<TextElement>).fontFamily
+      : undefined;
+    const patch = (element?.type === 'text' && typeof fontFamilyChange === 'string'
+      && fontFamilyChange !== element.fontFamily)
+      ? {
+        ...changes,
+        top: topKeepingInkCentre(element.top, {
+          fontSize: element.fontSize ?? DEFAULT_FONT_SIZE_PT,
+          pageHeightPoints: pageSizeOf(element.pageIndex).height,
+          fromFamily: element.fontFamily ?? DEFAULT_FONT_FAMILY,
+          toFamily: fontFamilyChange,
+          text: element.text,
+        }),
+      }
+      : changes;
+    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: patch } });
     const entry = element && createUpdateEntry(
       element,
-      changes as Partial<EditorElement>,
+      patch as Partial<EditorElement>,
       (kind) => signUpdateDescription(t, kind, element.type),
       editingElementId === id ? editSession : undefined,
     );
     if (entry) dispatch({ type: 'ADD_ACTION_HISTORY', payload: entry });
-  }, [dispatch, elements, editingElementId, editSession, t]);
+  }, [dispatch, elements, editingElementId, editSession, t, pageSizeOf]);
 
   const deleteElement = useCallback((id: string) => {
     const el = elements.find(e => e.id === id);

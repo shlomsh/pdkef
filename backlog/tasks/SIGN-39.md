@@ -1,7 +1,7 @@
 ---
 id: "SIGN-39"
 title: "Changing a placed field element's font does not re-place it"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "sign-tool-architecture"
 phase: "near-term"
