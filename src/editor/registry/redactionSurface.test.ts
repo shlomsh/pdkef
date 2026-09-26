@@ -17,6 +17,18 @@ describe('redactionDrawingPreviewStyle', () => {
     expect(preview.border).toBe('2px dashed #000');
   });
 
+  it('defaults to the strong radius when no strength is given', () => {
+    expect(renderRedactionSurface('blur').props.style.backdropFilter).toBe('blur(8px)');
+    expect(redactionDrawingPreviewStyle('blur').backdropFilter).toBe('blur(8px)');
+  });
+
+  it('reads a lighter radius for the light strength, in both the committed surface and the preview', () => {
+    expect(renderRedactionSurface('blur', undefined, 'light').props.style.backdropFilter).toBe('blur(4px)');
+    expect(renderRedactionSurface('blur', undefined, 'light').props.style.WebkitBackdropFilter).toBe('blur(4px)');
+    expect(redactionDrawingPreviewStyle('blur', undefined, 'light').backdropFilter).toBe('blur(4px)');
+    expect(redactionDrawingPreviewStyle('blur', undefined, 'light').WebkitBackdropFilter).toBe('blur(4px)');
+  });
+
   it('uses the remembered whiteout color at full opacity when it is black', () => {
     const preview = redactionDrawingPreviewStyle('whiteout', '#000000');
     expect(preview.backgroundColor).toBe('#000000');
