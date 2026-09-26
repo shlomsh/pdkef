@@ -1,5 +1,5 @@
 import type { PDFDocument, PDFPage } from '@cantoo/pdf-lib';
-import { createPageGeometry, type PageGeometry } from '../../../editor/geometry/coords.ts';
+import { createPageGeometry, toPagePercentBox, type PageGeometry } from '../../../editor/geometry/coords.ts';
 import type { CombRegion, FieldRegion } from '../../../editor/text/combPlacement.ts';
 import type {
   DetectedCell,
@@ -15,6 +15,10 @@ import { detectLineCandidates } from './formLines.js';
 import { detectWidgetRegions } from './formWidgets.js';
 import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 import { titleLineWritable } from './combTitleLine.js';
+import { horizontalRules } from './inkEdges.js';
+
+/** The tallest captioned box a comb's `writable` may reach up through, in points (formCells.js's row cap). */
+const MAX_CAPTIONED_BOX_POINTS = 45;
 
 /**
  * ARCH-24 step A: the one entry point onto field detection. `useFormFieldRegions.ts`
@@ -87,7 +91,16 @@ const inkSource: FieldSource = {
     const cells = detectCellCandidates(ink, geometry, pageIndex, textRuns);
     const lines = detectLineCandidates(ink, geometry, pageIndex, textRuns, [...combs, ...checkboxes, ...cells]);
     // A comb no cell encloses reads its height off the title printed on its line (FORM-27).
-    return { combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns }), checkboxes, cells: [...cells, ...lines] };
+    // A comb above which a caption is printed in its box reads its height from under that caption
+    // (FORM-28); both take the page's rules in page percent.
+    const rules = horizontalRules(ink, { includeRectSides: true })
+      .map((rule: { x0: number; x1: number; y: number }) => toPagePercentBox(geometry, { x0: rule.x0, y0: rule.y, x1: rule.x1, y1: rule.y }));
+    const maxHeight = toPagePercentBox(geometry, { x0: 0, y0: 0, x1: 1, y1: MAX_CAPTIONED_BOX_POINTS }).height;
+    return {
+      combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns, rules, maxHeight }),
+      checkboxes,
+      cells: [...cells, ...lines],
+    };
   },
 };
 
