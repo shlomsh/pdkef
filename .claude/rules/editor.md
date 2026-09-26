@@ -208,7 +208,8 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   Cmd/Ctrl+Z while it is focused. `pushCommand` folds same-element changes of one kind within 500ms
   into one step, never while a redo is pending, and caps history at `MAX_HISTORY_DEPTH` (also on
   restore). Drag-create dispatches `UPDATE_ELEMENT` directly and must stay unlogged: its `add` entry
-  is the step. No "Moved · Undo" chip.
+  is the step. No "Moved · Undo" chip. Undo does not roll back the document's carried style
+  (SIGN-33): undoing a colour change leaves the next placement in that colour (open question, 2026-09-26).
 - **Redo must bump `documentRevision`,** exactly as undo does: SIGN-14 makes any edit revoke a
   prepared share file and a running export, and a redo that skipped it would let a stale export
   download against a changed document.
