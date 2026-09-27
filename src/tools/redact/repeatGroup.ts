@@ -101,3 +101,13 @@ export function duplicateGroup<T extends GroupableElement>(
     repeatGroupId: newKey,
   }));
 }
+
+/** Whether a box belongs to a linked set of two or more. */
+export function isRepeated<T extends GroupableElement>(elements: readonly T[], element: T): boolean {
+  const key = groupKey(element);
+  let count = 0;
+  for (const other of elements) {
+    if (groupKey(other) === key && ++count > 1) return true;
+  }
+  return false;
+}
