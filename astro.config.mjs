@@ -179,7 +179,7 @@ export default defineConfig({
         // entry" pointer (pdf-toolkit:workspace:current:<slug>) instead of
         // the retired has-draft:<slug> hint key - see ToolPageLayout.astro's
         // comment on the script.
-        hashes: ['sha256-BXrhhszQYLGHQVqDk9hCMotW03BoNDl9qIR2iyQxdBc=']
+        hashes: ['sha256-/6NkfwQgTs+tAfl+ItXsJSCGQCbDsegQlJJPvZgAuyc=']
       },
       styleDirective: { src: ["'self'"] }
     }

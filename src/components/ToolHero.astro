@@ -64,7 +64,7 @@ const sentences = subhead.split(/(?<=\. )/);
 const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undefined;
 ---
 
-<!--
+{/*
   Hero geometry lives in these custom properties so the icon tile and the
   subhead/chip indent can never drift apart.
   --hero-icon      the square icon tile
@@ -76,7 +76,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   from the text once a longer h1 (e.g. Compress's) wrapped to two or three
   lines and the eye compared the icon against the whole block, not just line
   one.
--->
+*/}
 <header class="tool-hero mx-auto w-full max-w-[1280px] px-6 pb-8 pt-14 min-[1024px]:grid min-[1024px]:grid-cols-[minmax(0,1fr)_auto] min-[1024px]:items-center min-[1024px]:gap-x-6 min-[1024px]:px-8 min-[1024px]:pb-1 min-[1024px]:pt-6 [--hero-icon:clamp(44px,8vw,52px)] [--hero-indent:calc(var(--hero-icon)_+_1rem)] [--hero-title:2rem] min-[1024px]:[--hero-icon:2.75rem] min-[1024px]:[--hero-title:2rem]" data-hero-condensable={condensable ? '' : undefined} data-hero-phone-condensed={phoneCondensed ? '' : undefined}>
   <div class="mb-3 flex items-start justify-center gap-4 min-[1024px]:col-start-1 min-[1024px]:row-start-1 min-[1024px]:mb-0 min-[1024px]:justify-start">
     <div class="tool-hero-icon flex size-[var(--hero-icon)] shrink-0 items-center justify-center rounded-2xl border-0 shadow-[0_8px_18px_-8px_var(--color-primary-ring),inset_0_1px_0_rgba(255,255,255,0.5)]" data-tone={iconTone}>

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { computeBuildId } from './buildId.mjs';
+import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 import { shouldPrecache } from '../src/site-lib/precachePolicy.js';
 
 const distDir = path.join(process.cwd(), 'dist');
@@ -55,7 +56,8 @@ const worker = fs.readFileSync(workerPath, 'utf8');
 if (!worker.includes('__BUILD_ID__')) {
   throw new Error('dist/sw.js is missing the __BUILD_ID__ placeholder.');
 }
-fs.writeFileSync(workerPath, worker.replaceAll('__BUILD_ID__', buildId));
+// Minified on the way into dist/, source stays readable in public/.
+fs.writeFileSync(workerPath, minifyServiceWorker(worker.replaceAll('__BUILD_ID__', buildId)));
 
 // The same id, rendered where a person can read it (FORM-11). `sw.js` has no
 // `skipWaiting()` on purpose, so a browser can be serving a previous build for
