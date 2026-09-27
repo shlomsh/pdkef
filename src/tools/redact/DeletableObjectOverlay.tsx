@@ -15,9 +15,8 @@ export interface DeletablePdfObject {
  * object the PDF actually stores as a single piece (an image placement, or
  * whatever span of text the producing tool wrote in one `BT`/`ET` run).
  *
- * Only unmarked objects render here - once something is queued for deletion,
- * `DeleteMark` takes over that spot and shows the outline plus an undo
- * control, so the two never overlap.
+ * Only unmarked objects render here: once something is queued for deletion
+ * the page is drawn without it (RED-13), so there is nothing left to target.
  */
 export default function DeletableObjectOverlay({ objects, markedIds, onSelect }: {
   objects: DeletablePdfObject[];

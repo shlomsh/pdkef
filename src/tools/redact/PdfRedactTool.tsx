@@ -16,7 +16,6 @@ import useDeletePreviews from './useDeletePreviews.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
-import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { groupChanges, groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
@@ -515,9 +514,9 @@ export default function PdfRedactTool() {
 
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
     // No tool armed: a press on the page is a scroll or a deselect, never a new
-    // box. Delete mode has its own click targets (DeletableObjectOverlay /
-    // DeleteMark below) and never draws one either, so neither may start the
-    // drag gesture this function owns.
+    // box. Delete mode has its own click targets (DeletableObjectOverlay
+    // below) and never draws one either, so it may not start the drag
+    // gesture this function owns.
     if (!activeStyle || activeStyle === 'delete') return;
 
     const target = e.target as Element | null;
@@ -1254,15 +1253,11 @@ export default function PdfRedactTool() {
                     );
                   })}
 
-                  {/* Objects already queued for deletion - shown regardless of the active
-                      tool, same as redaction boxes above, so switching tools doesn't hide
-                      queued work. */}
-                  {elements.filter(el => el.pageIndex === i && el.type === 'delete').map(el => (
-                    <DeleteMark key={el.id} el={el} onDelete={deleteElement} />
-                  ))}
-
+                  {/* RED-13: an object queued for deletion has no mark of its own. The
+                      page is drawn without it (useDeletePreviews), so what you see is
+                      what you save, and the toolbar's Undo brings it back. */}
                   {/* Delete tool's hover targets: only shown while that tool is active,
-                      and only for objects not already marked (DeleteMark covers those). */}
+                      and only for objects still on the page. */}
                   {activeStyle === 'delete' && (
                     <DeletableObjectOverlay
                       objects={deletableObjects.filter((object) => object.pageIndex === i)}
