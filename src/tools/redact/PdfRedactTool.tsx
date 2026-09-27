@@ -456,6 +456,7 @@ export default function PdfRedactTool() {
       initialize: () => {
         renderedPageNumbersRef.current = new Set();
         setSizedPageCount(0);
+        setLifts([]); // a lift from the last file must never show over this one
         setShowWelcomeTip(!restored);
         setFile(selected);
         setPdfDocument(null);
