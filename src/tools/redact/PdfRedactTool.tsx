@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
+import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
@@ -11,18 +11,17 @@ import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } fr
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
-import useDeletableObjects from './useDeletableObjects.js';
-import useDeletePreviews from './useDeletePreviews.ts';
+import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
-import DeleteLift, { snapshotRect, type Lift } from './DeleteLift.tsx';
-import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
+import DeleteLift from './DeleteLift.tsx';
 import { groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
 import { findSetMembers, withoutFindSet } from './findSet.ts';
 import { linkedChanges, linkMembers, type LinkKind } from './links.ts';
+import type { RedactHistoryElement } from './redactElements.ts';
 import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar from './FindBar.tsx';
@@ -53,21 +52,9 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blurStrength.ts';
 
-// TODO(RED-14): alias this to RedactElement (redactElements.ts) once
-// repeatGroup.ts/findSet.ts/deleteObjects.ts's GroupableElement/FindSetElement/
-// LinkedElement/Cover constraints stop requiring an index signature - trying
-// the alias here today produces 16 tsc errors, all of the shape "Index
-// signature for type 'string' is missing in type 'WhiteoutElement & Links'",
-// because RedactElement is a closed discriminated union and those pure
-// modules are typed as `{ [key: string]: unknown }`-constrained generics.
-// Fixing it means widening those modules' own generic bounds, which is
-// outside this file.
-type RedactHistoryElement = {
-  id: string;
-  pageIndex: number;
-  type: RedactToolType;
-  [field: string]: unknown;
-};
+// RED-14: RedactHistoryElement itself now lives in redactElements.ts (see its
+// own comment there for why it isn't just RedactElement, and why that's also
+// what lets useDeleteTool.ts/useLinkedBoxes.ts import it without a cycle).
 
 const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whiteout', 'blackout', 'blur', 'delete']);
 
@@ -366,25 +353,6 @@ export default function PdfRedactTool() {
     setSizedPageCount(renderedPageNumbersRef.current.size);
   }, []);
 
-  // What the Delete tool can offer to click on: images and text runs the PDF
-  // itself stores as a single object, found by parsing the source file's own
-  // content streams (not what's on the page after any edits this session has
-  // queued - the source never changes until export, only `elements` does).
-  const deletableObjects: DeletablePdfObject[] = useDeletableObjects(file, fileBytesRef.current);
-  // RED-13: a page with Delete marks renders from the same rewritten content
-  // the download writes, so the deleted text/image disappears on screen
-  // rather than only being outlined.
-  const deletePreviews = useDeletePreviews(fileBytesRef.current, elements);
-  const [lifts, setLifts] = useState<Lift[]>([]);
-  const markedForDeletionIds = useMemo(
-    () => new Set<string>(elements.flatMap((element) => (
-      element.type === 'delete' && typeof element.sourceObjectId === 'string'
-        ? [element.sourceObjectId]
-        : []
-    ))),
-    [elements],
-  );
-
   const isFullscreenActive = isFullscreen || isPseudoFullscreen;
   const currentPage = useCurrentPage({
     active: isFullscreenActive,
@@ -449,7 +417,7 @@ export default function PdfRedactTool() {
       initialize: () => {
         renderedPageNumbersRef.current = new Set();
         setSizedPageCount(0);
-        setLifts([]); // a lift from the last file must never show over this one
+        deleteTool.clearLifts(); // a lift from the last file must never show over this one
         setShowWelcomeTip(!restored);
         setFile(selected);
         setPdfDocument(null);
@@ -608,6 +576,20 @@ export default function PdfRedactTool() {
     describeUpdate: (kind, element) => describeRedactUpdate(kind, element.type),
   });
 
+  // RED-14: the Delete tool's own state and marking, moved out wholesale -
+  // this island still renders DeleteLift/DeletableObjectOverlay, reading
+  // everything else from the hook.
+  const deleteTool = useDeleteTool({
+    elements,
+    file,
+    fileBytes: fileBytesRef.current,
+    pdfDocument,
+    pageWrapperRefs,
+    add: commands.add,
+    announce: setAnnouncement,
+    disarmTool,
+  });
+
   // Reverts a set of history entries and keeps every dependent piece in sync
   // - selection and the action history list. Shared by Cmd/Ctrl+Z and the
   // toolbar's Undo (undoLast) and by the short-lived undo chip (runUndoChip),
@@ -673,44 +655,6 @@ export default function PdfRedactTool() {
   // update, not two.
   const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
     commands.update(id, linkedChanges(elements, id, changes));
-  };
-
-  // Delete tool: clicking a highlighted object queues it for removal by
-  // recording the byte span pdfObjects.js found for it. A marked object
-  // renders no hover target of its own (DeletableObjectOverlay filters it
-  // out), so this is only ever reached for an object not yet queued.
-  const toggleObjectDeletion = (object: DeletablePdfObject) => {
-    const id = uniqueId();
-    // RED-13: the object lifts off the page once the page is drawn without it.
-    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const image = reducedMotion ? null : snapshotRect(pageWrapperRefs.current[object.pageIndex]?.querySelector('canvas'), object.rect);
-    if (image) {
-      setLifts((prev) => [...prev, {
-        id, pageIndex: object.pageIndex, rect: object.rect, image,
-        paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
-      }]);
-    }
-    const element: RedactHistoryElement = {
-      id,
-      pageIndex: object.pageIndex,
-      type: 'delete',
-      sourceObjectId: object.id,
-      kind: object.kind,
-      preview: object.preview,
-      left: object.rect.left,
-      top: object.rect.top,
-      width: object.rect.width,
-      height: object.rect.height,
-      start: object.start,
-      end: object.end,
-    };
-    commands.add([element], {
-      type: 'ADD_DELETE',
-      description: object.kind === 'image' ? 'Marked image for deletion' : 'Marked text for deletion',
-    });
-    setAnnouncement(object.kind === 'image' ? 'Image marked for deletion.' : 'Text marked for deletion.');
-    // Marking is this tool's placement, so it spends the arming.
-    disarmTool();
   };
 
   // Cmd/Ctrl+Z: revert the single newest command. `past.slice(0, 1)` is read
@@ -1131,8 +1075,8 @@ export default function PdfRedactTool() {
                   }}
                 >
                   <PdfPageCanvas
-                    pdfDocument={deletePreviews.get(i) ?? pdfDocument}
-                    pageNum={deletePreviews.has(i) ? 1 : i + 1}
+                    pdfDocument={deleteTool.deletePreviews.get(i) ?? pdfDocument}
+                    pageNum={deleteTool.deletePreviews.has(i) ? 1 : i + 1}
                     onViewportReady={handlePageViewportReady}
                   />
 
@@ -1176,17 +1120,17 @@ export default function PdfRedactTool() {
                   {/* RED-13: an object queued for deletion has no mark of its own. The
                       page is drawn without it (useDeletePreviews), so what you see is
                       what you save, and the toolbar's Undo brings it back. */}
-                  {lifts.filter((lift) => lift.pageIndex === i).map((lift) => (
-                    <DeleteLift key={lift.id} lift={lift} onDone={(id) => setLifts((prev) => prev.filter((l) => l.id !== id))} />
+                  {deleteTool.lifts.filter((lift) => lift.pageIndex === i).map((lift) => (
+                    <DeleteLift key={lift.id} lift={lift} onDone={deleteTool.finishLift} />
                   ))}
 
                   {/* Delete tool's hover targets: only shown while that tool is active,
                       and only for objects still on the page. */}
                   {activeStyle === 'delete' && (
                     <DeletableObjectOverlay
-                      objects={deletableObjects.filter((object) => object.pageIndex === i)}
-                      markedIds={markedForDeletionIds}
-                      onSelect={toggleObjectDeletion}
+                      objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i)}
+                      markedIds={deleteTool.markedForDeletionIds}
+                      onSelect={deleteTool.markObject}
                     />
                   )}
 

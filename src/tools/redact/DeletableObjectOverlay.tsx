@@ -20,7 +20,7 @@ export interface DeletablePdfObject {
  */
 export default function DeletableObjectOverlay({ objects, markedIds, onSelect }: {
   objects: DeletablePdfObject[];
-  markedIds: Set<string>;
+  markedIds: ReadonlySet<string>;
   onSelect: (object: DeletablePdfObject) => void;
 }) {
   return objects
