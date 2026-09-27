@@ -234,6 +234,9 @@
 }
 
 .match.covered {
+  /* A covered match lets clicks through to the box over it, so that box can
+     still be selected, moved or removed while Find is open. */
+  pointer-events: none;
   background: none;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-citron-ink) 50%, transparent);
   mix-blend-mode: normal;
