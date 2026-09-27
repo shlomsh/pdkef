@@ -19,6 +19,7 @@ export default function ElementToolbar({
   onPreviewFontEnd,
   onClone,
   onDelete,
+  onRepeatOnEveryPage,
   messages,
 }: {
   element: any;
@@ -27,6 +28,9 @@ export default function ElementToolbar({
   onPreviewFontEnd?: () => void;
   onClone: (...args: any[]) => void;
   onDelete: (...args: any[]) => void;
+  /** RED-03: Redact-only, one box repeated onto every other page. Optional
+   * because ElementToolbar is shared with Sign, which never passes it. */
+  onRepeatOnEveryPage?: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
    * which never passes it, so its English rendering is unaffected. */
@@ -407,6 +411,20 @@ export default function ElementToolbar({
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
       </button>
+      {onRepeatOnEveryPage && (
+        <button
+          type="button"
+          className={buttonClass()}
+          onClick={onRepeatOnEveryPage}
+          title={t.repeatOnEveryPageTitle}
+          data-editor-repeat-every-page
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="6" y="2" width="14" height="16" rx="2" />
+            <path d="M4 6v14a2 2 0 0 0 2 2h12" />
+          </svg>
+        </button>
+      )}
       <button
         type="button"
         className={buttonClass(false, true)}

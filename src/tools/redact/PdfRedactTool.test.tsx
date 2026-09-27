@@ -867,9 +867,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
       // No per-element colour control for blackout/blur - only whiteout gets
-      // one, so the toolbar holds exactly its two shared buttons (duplicate,
+      // one, so the toolbar holds exactly its three shared buttons (duplicate,
+      // repeat-on-every-page since this mock document has more than one page,
       // delete) and nothing else.
-      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(2);
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(3);
     });
 
     it('blur shows the shared floating toolbar, with a delete control, only once selected', async () => {
@@ -899,8 +900,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
       // Blur additionally gets its own strength trigger (SITE-41), so its
-      // toolbar has one more button than blackout's plain duplicate/delete pair.
-      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(3);
+      // toolbar has one more button than blackout's duplicate/repeat/delete trio.
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(4);
     });
 
     it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength', async () => {
@@ -1528,6 +1529,85 @@ describe('PdfRedactTool UI flow', () => {
       // chip replaced the first's, it did not join it.
       expect(container.querySelectorAll(`.${redactStyles['undo-chip']}`)).toHaveLength(1);
       expect(boxes()).toHaveLength(0);
+    });
+  });
+
+  // RED-03: a selected box's "Repeat on every page" button, next to duplicate
+  // in the shared floating toolbar. Only shown once the document has more
+  // than one page (repeatOnEveryPage.ts's own unit tests cover the pure
+  // placement/skip-duplicate logic; this covers the wiring: it fires as one
+  // undo step and announces, mirroring the clear-page block above).
+  describe('repeat a box on every page (RED-03)', () => {
+    function mockPageCount(numPages: number) {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({
+          numPages,
+          getPage: vi.fn(() => Promise.resolve({
+            getViewport: () => ({ width: 612, height: 792 }),
+            render: () => ({ promise: Promise.resolve() }),
+          })),
+        }),
+      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+    }
+
+    async function selectFirstBox(): Promise<HTMLElement> {
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
+      return box;
+    }
+
+    it('adds a copy to every other page as one undo step, and pressing it again adds nothing more', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => {
+        repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      expect(pageCards).toHaveLength(3);
+      pageCards.forEach((card) => {
+        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+
+      const announcementRegion = required(
+        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
+        'sr-only announcement region',
+      );
+      expect(announcementRegion.textContent).toContain('Added the box to 2 more pages');
+
+      // The original box is still selected, so its toolbar (and the repeat
+      // button on it) is still on screen - pressing it again must add
+      // nothing more, since every other page already has an equivalent box.
+      const repeatButtonAgain = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => {
+        repeatButtonAgain.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+
+      // One undo removes every copy this action added, leaving only the original.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+    });
+
+    it('shows no repeat button on a single-page document', async () => {
+      mockPageCount(1);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+
+      expect(container.querySelector('[data-editor-repeat-every-page]')).toBeNull();
     });
   });
 
