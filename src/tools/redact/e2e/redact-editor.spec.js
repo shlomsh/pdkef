@@ -684,7 +684,7 @@ test.describe('find and redact (RED-02)', () => {
 
     // An ordinary box, drawn after the search - well below the matched text
     // (y ratio 0.6) so it does not overlap any found box.
-    const drawn = await drawRedaction(page, 'Blackout', { x: 0.5, y: 0.6 }, { x: 0.7, y: 0.66 });
+    await drawRedaction(page, 'Blackout', { x: 0.5, y: 0.6 }, { x: 0.7, y: 0.66 });
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
 
     const found = page.locator('[class*="redact-box"]').first();
@@ -692,8 +692,12 @@ test.describe('find and redact (RED-02)', () => {
     await page.locator('[data-editor-delete-scope-trigger]').click();
     await page.locator('[data-editor-delete-find-set]').click();
 
+    // The one box left is the drawn one: it starts halfway across the page,
+    // where no "Jane Doe" match does.
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
-    await expect(drawn).toBeVisible();
+    const overlay = await getBox(page.locator('.redact-draw-area').first(), 'page overlay');
+    const survivor = await getBox(page.locator('[class*="redact-box"]').first(), 'drawn box');
+    expect(Math.abs((survivor.x - overlay.x) / overlay.width - 0.5)).toBeLessThan(0.02);
 
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
