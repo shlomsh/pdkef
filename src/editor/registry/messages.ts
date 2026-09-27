@@ -200,6 +200,11 @@ export interface SignMessages {
   /** RED-03: trash on a linked box asks which boxes to delete. */
   deleteThisPage: string;
   deleteAllPagesTemplate: string;
+  /** RED-11: trash on a box from one Find action, unlinked, asks the same
+   * way - "This box" instead of "This page" (there is no page scope without
+   * a linked set), and "All {n} from this search" removes its find set. */
+  deleteThisBox: string;
+  deleteFindSetTemplate: string;
   /** FontPickerMenu.tsx. */
   searchFontsPlaceholder: string;
   fontsListAriaLabel: string;
