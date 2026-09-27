@@ -56,7 +56,8 @@ export default function RedactBox({
   onDelete,
   onChangeColor,
   onChangeStrength,
-  onClone
+  onClone,
+  onRepeatOnEveryPage
 }: {
   el: any;
   isSelected: boolean;
@@ -70,6 +71,8 @@ export default function RedactBox({
   onChangeColor: (id: string, color: string) => void;
   onChangeStrength: (id: string, strength: BlurStrength) => void;
   onClone: (...args: any[]) => void;
+  /** RED-03: only passed when the document has more than one page. */
+  onRepeatOnEveryPage?: (id: string) => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const { refs, floatingStyles, placement, update } = useFloating({
@@ -238,6 +241,7 @@ export default function RedactBox({
             }}
             onClone={onClone}
             onDelete={() => onDelete(el.id)}
+            onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
           />
         </div>
       )}

@@ -190,6 +190,8 @@ export interface SignMessages {
   blurStrengthStrong: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;
+  /** RED-03: ElementToolbar.tsx's Redact-only "repeat on every page" button. */
+  repeatOnEveryPageTitle: string;
   /** FontPickerMenu.tsx. */
   searchFontsPlaceholder: string;
   fontsListAriaLabel: string;

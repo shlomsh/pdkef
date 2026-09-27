@@ -1,6 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 
+async function makeMultiPagePdfBuffer(pageCount) {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  for (let i = 0; i < pageCount; i += 1) {
+    const page = doc.addPage([612, 792]);
+    page.drawText(`Redact tool e2e fixture, page ${i + 1}`, {
+      x: 72,
+      y: 720,
+      size: 18,
+      font,
+      color: rgb(0.1, 0.1, 0.1),
+    });
+  }
+  return Buffer.from(await doc.save());
+}
+
 async function makePdfBuffer() {
   const doc = await PDFDocument.create();
   const page = doc.addPage([612, 792]);
@@ -78,13 +94,15 @@ async function openRedactTool(page, buffer = null) {
   });
 
   try {
-    await expect(page.locator('[class*="page-wrapper"]')).toBeVisible();
+    // .first(): a multi-page fixture (RED-03) renders one page-wrapper per
+    // page, and this only needs to know at least one painted.
+    await expect(page.locator('[class*="page-wrapper"]').first()).toBeVisible();
   } catch (error) {
     throw new Error(
       `Redact workspace did not appear after selecting a PDF.\nBrowser messages:\n${browserMessages.join('\n') || '(none)'}\n\n${error.message}`,
     );
   }
-  await expect(page.locator('.redact-draw-area')).toBeVisible();
+  await expect(page.locator('.redact-draw-area').first()).toBeVisible();
 }
 
 async function selectRedactStyle(page, name) {
@@ -508,5 +526,64 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     const blackoutDeleteHit = await insetHitSize(blackoutDelete);
     expect(blackoutDeleteHit.width, `visual was ${blackoutDeleteVisual.width}px`).toBeGreaterThanOrEqual(44);
     expect(blackoutDeleteHit.height, `visual was ${blackoutDeleteVisual.height}px`).toBeGreaterThanOrEqual(44);
+  });
+});
+
+// RED-03: "Repeat on every page" - a selected box copied onto every other
+// page at the same percentage position/size, in one undo step.
+// repeatOnEveryPage.test.ts covers the pure placement logic and
+// PdfRedactTool.test.tsx covers the wiring in jsdom; this is the one thing
+// neither can prove - that the rendered box on a differently-scrolled page
+// really lands at the same relative spot once the browser lays pages out.
+test.describe('repeat a box on every page (RED-03)', () => {
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
+  async function boxRatioWithinPage(pageCard) {
+    const overlay = pageCard.locator('.redact-draw-area');
+    await overlay.scrollIntoViewIfNeeded();
+    const box = pageCard.locator('[class*="redact-box"]');
+    const overlayRect = await getBox(overlay, 'page overlay');
+    const boxRect = await getBox(box, 'redaction box');
+    return {
+      left: (boxRect.x - overlayRect.x) / overlayRect.width,
+      top: (boxRect.y - overlayRect.y) / overlayRect.height,
+      width: boxRect.width / overlayRect.width,
+      height: boxRect.height / overlayRect.height,
+    };
+  }
+
+  test('adds a copy at the same relative position to the other pages, as one undo step', async ({ page }) => {
+    await openRedactTool(page, await makeMultiPagePdfBuffer(3));
+
+    const pageCards = page.locator('[data-editor-page-card]');
+    await expect(pageCards).toHaveCount(3);
+
+    const blackout = await drawRedaction(page, 'Blackout', { x: 0.2, y: 0.18 }, { x: 0.42, y: 0.28 });
+    await selectRedaction(blackout);
+
+    const repeatButton = page.locator('[data-editor-repeat-every-page]');
+    await expect(repeatButton).toBeVisible();
+    await repeatButton.click();
+
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(3);
+
+    const sourceRatio = await boxRatioWithinPage(pageCards.nth(0));
+    const page2Ratio = await boxRatioWithinPage(pageCards.nth(1));
+    const page3Ratio = await boxRatioWithinPage(pageCards.nth(2));
+
+    const TOLERANCE = 0.01; // 1% of the page, per RED-03's acceptance bar
+    for (const [label, ratio] of [['page 2', page2Ratio], ['page 3', page3Ratio]]) {
+      for (const key of ['left', 'top', 'width', 'height']) {
+        expect(Math.abs(ratio[key] - sourceRatio[key]), `${label} ${key}: ${ratio[key]} vs source ${sourceRatio[key]}`)
+          .toBeLessThan(TOLERANCE);
+      }
+    }
+
+    // One keyboard undo removes every copy this action added, leaving only
+    // the original box on the first page.
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
   });
 });

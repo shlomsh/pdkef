@@ -18,6 +18,7 @@ import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
+import { repeatOnEveryPage as computeRepeatOnEveryPage, type RepeatableElement } from './repeatOnEveryPage.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import {
   applyHistoryEntries,
@@ -774,6 +775,41 @@ export default function PdfRedactTool() {
     registerUndo(description, entry);
   };
 
+  // RED-03: a selected box, copied onto every other page at the same
+  // percentage position, size, color and strength - one undo step for the
+  // whole batch. repeatOnEveryPage.ts (pure) decides which pages get a copy
+  // and what it looks like; this only appends, logs and announces, same
+  // shape as clearPage above.
+  const repeatOnEveryPage = (id: string) => {
+    const source = elements.find(el => el.id === id);
+    if (!source) return;
+    // RedactHistoryElement's extra fields (left/top/width/height/color/...)
+    // are typed via its own catch-all index signature as `unknown`, so the
+    // pure module's stronger RepeatableElement type (real geometry every box
+    // this function is ever called on actually has) needs this one cast.
+    // Runtime shape is unaffected either way - this only satisfies tsc.
+    const additions = computeRepeatOnEveryPage(
+      source as unknown as RepeatableElement,
+      elements as unknown as RepeatableElement[],
+      numPages,
+      uniqueId,
+    ) as unknown as RedactHistoryElement[];
+    if (additions.length === 0) return;
+    const baseIndex = elements.length;
+    setElements(prev => [...prev, ...additions]);
+    markDocumentEdited();
+    const description = `Added the box to ${additions.length} more page${additions.length === 1 ? '' : 's'}`;
+    const entry = createActionEntry<RedactHistoryElement>({
+      operation: 'add',
+      type: 'REPEAT_ON_EVERY_PAGE',
+      pageIndex: source.pageIndex,
+      description,
+      elements: additions.map((element, i) => captureAddedElement(element, baseIndex + i)),
+    });
+    setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
+    registerUndo(description, entry);
+  };
+
   const handleSavePdf = async (exportAction = 'download') => {
     if (!file) return;
     if (elements.length === 0) {
@@ -1002,6 +1038,7 @@ export default function PdfRedactTool() {
                       onChangeColor={changeElementColor}
                       onChangeStrength={changeBlurStrength}
                       onClone={cloneElement}
+                      onRepeatOnEveryPage={numPages > 1 ? repeatOnEveryPage : undefined}
                     />
                   ))}
 
