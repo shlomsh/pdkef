@@ -110,7 +110,7 @@ export default function ElementToolbar({
   const boldReasonId = useId();
   const italicReasonId = useId();
 
-  // Edge case: a saved draft (drafts persist 14 days) or a family switch can
+  // Edge case: a saved draft (drafts persist 28 days) or a family switch can
   // leave fontWeight/fontStyle 'bold'/'italic' on a family with no real face
   // for it - pre-W5 elements, or the user toggled Bold then picked a
   // Regular-only display face. Deliberately not rewritten here: the element

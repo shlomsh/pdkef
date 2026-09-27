@@ -21,7 +21,7 @@ reviewNotes: >-
   "In Your Browser", subhead gained the shared closer, description and upload
   FAQ reworded (SEO-36); Hebrew unchanged, pending review; sourceHash
   refreshed mechanically.
-sourceHash: 'fnv1a64:abda68c5ad0424be'
+sourceHash: 'fnv1a64:06bea1a1a2e622eb'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -79,5 +79,5 @@ faq:
       שתפתחו את הכלי באותו מכשיר. קבוצת קבצים גדולה מאוד אולי לא תיכנס
       לאחסון המקומי של הדפדפן; במקרה כזה הכלי מודיע שהטיוטה לא נשמרה במקום
       להעמיד פנים שכן, והאיחוד עצמו ממשיך לעבוד בכל מקרה. טיוטות שמורות פגות
-      תוקף אחרי 14 יום בלי שינוי. במכשיר משותף, נקו את נתוני האתר בסיום; זה
+      תוקף אחרי 28 יום בלי שינוי. במכשיר משותף, נקו את נתוני האתר בסיום; זה
       גם מוחק טיוטות שמורות והעדפות.

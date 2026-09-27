@@ -236,7 +236,7 @@ export const FONT_MANIFEST = Object.freeze([
 export const FONT_FILES = FONT_MANIFEST.flatMap((font) => Object.values(font.faces));
 export const DEFAULT_FONT_FAMILY = 'Arimo';
 
-// Persisted drafts can still carry retired names for 14 days. Mapping them
+// Persisted drafts can still carry retired names for 28 days. Mapping them
 // here keeps editor and export on the same replacement after files disappear.
 export const RETIRED_FONTS = {
   'Playpen Sans Hebrew': 'Gveret Levin',
