@@ -25,7 +25,7 @@ drops in.
 | 1 | the zero | accounts | No account, email, or trial period. |
 | 2 | the zero | uploads | Files never leave your device. |
 | 3 | the zero | paywalls | Free. No caps, no watermark, no catch. |
-| 4 | the O of the word | Open source | Audit the code yourself. |
+| 4 | the O of the word | Open source | Audit the code yourself. Then a link to the code: "Read the code on GitHub". |
 | 5 | a plane window in the visitor's own sky | Works offline | Turn on airplane mode and give it a try right now. |
 | 6 | (the paper plane lands here) | Then I wanted / to share them. | So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. |
 
@@ -64,6 +64,11 @@ prototypes and nine sketched directions.
   touches down on its baseline after "them", with a short flare (a timed cue, `--o-landed`). The
   sentence is always visible before the landing.
 
+The Open source card's link is the one interactive thing in the story. The beats are stacked layers,
+so in the scroll version only the link takes a click, and it leaves the tab order (`visibility`)
+while its card is not lit, so focus never lands on a link nobody can see. On a short screen it sits
+beside its line instead of under it.
+
 ## Live details
 
 The one script (bundled, so the CSP hashes it) is progressive enhancement; without it the section is
@@ -93,7 +98,7 @@ complete.
   `prefers-reduced-motion: no-preference`; both ends of every `animation-range` carry a range name.
   The still version (reduced motion, or no scroll timelines) stacks the six cards as posters with the
   paper plane already landed, and every word shown.
-- The CSS ships inline on the one page that renders it (`theO.css?raw` plus
+- The CSS ships inline on the one page that renders it (`theO.css?inline`, minified by the build, plus
   `Astro.csp.insertStyleHash`), so the Hebrew page, which shares `HomePageLayout`, carries none of it.
 - The story is its own section after `.home-tour`, never inside a card: `position: sticky` dies under
   an ancestor with `overflow`, `transform`, `filter` or `contain` (DEMO-05).

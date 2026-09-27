@@ -42,18 +42,22 @@
 //   visitor really is offline the page celebrates it coming true: the toggle
 //   stays on and becomes a badge, with a burst, and "It still works." pops up.
 //   That is why the English home page does not also render OfflineProof.
+// - The Open source card links to the code on GitHub, the story's one link:
+//   it takes clicks and focus only while its card is lit.
 // - Still version (reduced motion, or no scroll timelines): the six beats stack
 //   as posters, each ring in its finished shape, every word shown and the
 //   paper plane already landed.
 //
 // The CSS ships inline on the one page that renders this (the CompareFigure
-// pattern), with its hash registered for the CSP, so the Hebrew home page,
+// pattern, but imported with ?inline rather than ?raw so the build minifies it
+// and none of these comments ship), with its hash registered for the CSP, so the Hebrew home page,
 // which shares HomePageLayout but not this section yet, carries none of it.
 // The script is bundled (no is:inline), so the CSP covers it the same way.
-import { Plane } from 'lucide-preact';
+import { ArrowUpRight, Plane } from 'lucide-preact';
+import { GITHUB_REPO_URL } from '../data/organizationSchema.js';
 import { cspSha256 } from '../site-lib/cspHash.js';
 import { theOTimelineCss } from '../site-lib/theOTimeline';
-import theOCss from './theO.css?raw';
+import theOCss from './theO.css?inline';
 
 interface Line {
   word: string;
@@ -64,7 +68,7 @@ interface Props {
   story: {
     heading: string;
     zeros: Line[];
-    openSource: Line;
+    openSource: Line & { link: string };
     offline: Line & { stress?: string; live: string; liveStress?: string };
     lead: string;
     last: [string, string];
@@ -94,6 +98,8 @@ const stressed = (line: string, phrase?: string) =>
       ? { before: sentence.slice(0, at), phrase, after: sentence.slice(at + phrase!.length) }
       : { before: sentence, phrase: undefined, after: '' };
   });
+// GitHub's mark, the same path the app bar's trust chip draws (TrustChips.astro).
+const githubMark = 'M12 2C6.48 2 2 6.58 2 12.25c0 4.53 2.87 8.37 6.85 9.73.5.1.68-.22.68-.49 0-.24-.01-.88-.01-1.72-2.79.62-3.38-1.37-3.38-1.37-.46-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.62.07-.62 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.36-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05a9.34 9.34 0 0 1 5 0c1.91-1.33 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.81-4.57 5.06.36.32.68.94.68 1.9 0 1.37-.01 2.47-.01 2.81 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.25C22 6.58 17.52 2 12 2z';
 // A few stars for the night sky, in the pane's own units (the pane is 1.12 by
 // 1.216 ring heights), kept inside the window's rounded opening.
 // The paper plane, nose to the right: its wing, and the fold under it.
@@ -126,6 +132,13 @@ const stars = [
           <div class="o-text">
             <p class="o-word"><span class="o-rise"><span class="sr-only">{story.openSource.word}</span><span aria-hidden="true">{openSourceTail}</span></span></p>
             <p class="o-sub"><span class="o-rise">{sentences(story.openSource.line).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
+            <p class="o-more">
+              <a class="o-code" href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d={githubMark}></path></svg>
+                <span>{story.openSource.link}</span>
+                <ArrowUpRight class="o-code-out" aria-hidden="true" strokeWidth={2.25} />
+              </a>
+            </p>
           </div>
         </div>
       </div>
