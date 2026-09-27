@@ -1,4 +1,5 @@
-import { Shrink } from 'lucide-preact';
+import type { ComponentChildren } from 'preact';
+import { Search, Shrink } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
 import EditorToolStatus, { type ToolCopy } from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
@@ -57,6 +58,9 @@ export default function RedactToolbar({
   handoffBusy = false,
   onCompressHandoff,
   showWelcomeTip = true,
+  findOpen = false,
+  onToggleFind,
+  findBar = null,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -98,6 +102,12 @@ export default function RedactToolbar({
   /** A restored document is already in progress, so omit the newcomer-only
    * idle tip until the person selects a tool. */
   showWelcomeTip?: boolean;
+  /** RED-02: whether the find row is open, and the row itself. It renders
+   * inside this sticky card, under the buttons, so it stays in reach while
+   * the pages scroll. */
+  findOpen?: boolean;
+  onToggleFind?: () => void;
+  findBar?: ComponentChildren;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -240,6 +250,22 @@ export default function RedactToolbar({
           </button>
         </ArmHint>
 
+        {/* RED-02: Find is an action, not a tool to arm - it opens a row of
+            its own under these buttons and never draws on a page. */}
+        {onToggleFind && (
+          <button
+            type="button"
+            className={`${styles.button}${findOpen ? ` ${styles.active}` : ''}`}
+            onClick={onToggleFind}
+            aria-pressed={findOpen}
+            title="Find text to redact"
+            data-redact-find-toggle
+          >
+            <Search size={18} aria-hidden="true" />
+            <span className={styles.label}>Find</span>
+          </button>
+        )}
+
         {/* Undo and Redo are the whole history model, one tap each, plus the
             keyboard shortcuts (src/lib/history/useHistoryShortcuts.js). A
             third "History" control used to sit beside them and open a
@@ -331,6 +357,7 @@ export default function RedactToolbar({
           </button>
         )}
       </div>
+      {findBar}
     </ToolShell>
   );
 }

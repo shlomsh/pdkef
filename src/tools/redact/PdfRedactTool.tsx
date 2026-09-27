@@ -21,6 +21,10 @@ import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { groupChanges, groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
 import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
+import FindBar from './FindBar.tsx';
+import FindHighlights from './FindHighlights.tsx';
+import useFind from './useFind.ts';
+import type { FindMatch } from './find/types.ts';
 import {
   applyHistoryEntries,
   captureAddedElement,
@@ -799,6 +803,32 @@ export default function PdfRedactTool() {
     logAction('add', type, additions[0].pageIndex, description, additions.map((element, i) => captureAddedElement(element, baseIndex + i)));
   };
 
+  // RED-02: find and redact. Every box of every chosen match (one per line
+  // the match covers) is added as one history entry, so one Undo takes back
+  // a whole "Redact all".
+  const find = useFind(pdfDocument, numPages, elements);
+  const redactMatches = (matches: FindMatch[]) => {
+    if (matches.length === 0) return;
+    const type = find.redactStyle;
+    const additions: RedactHistoryElement[] = matches.flatMap((match) => match.boxes.map((box) => ({
+      id: uniqueId(),
+      pageIndex: match.pageIndex,
+      ...box,
+      type,
+      ...(type === 'blur' ? { strength: activeBlurStrength } : { color: '#000000' }),
+    })));
+    const baseIndex = elements.length;
+    const nextId = find.nextOpenAfter(new Set(matches.map((match) => match.id)));
+    setElements(prev => [...prev, ...additions]);
+    markDocumentEdited();
+    const description = matches.length === 1
+      ? `Redacted "${matches[0].text}"`
+      : `Redacted ${matches.length} matches`;
+    logAction('add', 'FIND_AND_REDACT', additions[0].pageIndex, description, additions.map((element, i) => captureAddedElement(element, baseIndex + i)));
+    setAnnouncement(`${description}.`);
+    find.setCurrentId(nextId);
+  };
+
   // RED-03: detaches one box from its repeat group so future edits stop
   // reaching its former siblings. `repeatGroupId` is not one of
   // groupChanges'/updateElement's shared fields, so this is deliberately not
@@ -1073,6 +1103,24 @@ export default function PdfRedactTool() {
             handoffBusy={handoffBusy}
             onCompressHandoff={() => { void requestCompressHandoff(); }}
             showWelcomeTip={showWelcomeTip}
+            findOpen={find.open}
+            onToggleFind={() => find.setOpen(!find.open)}
+            findBar={find.open && (
+              <FindBar
+                term={find.term}
+                preset={find.preset}
+                onTermChange={find.setTerm}
+                onPresetChange={find.setPreset}
+                summary={find.summary}
+                onPrev={find.prev}
+                onNext={find.next}
+                redactStyle={find.redactStyle}
+                onRedactStyleChange={find.setRedactStyle}
+                onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
+                onRedactAll={() => redactMatches(find.openMatches)}
+                onClose={() => find.setOpen(false)}
+              />
+            )}
           />
 
           <div className={workspaceStyles['pages-container']}>
@@ -1156,6 +1204,15 @@ export default function PdfRedactTool() {
                       objects={deletableObjects.filter((object) => object.pageIndex === i)}
                       markedIds={markedForDeletionIds}
                       onSelect={toggleObjectDeletion}
+                    />
+                  )}
+
+                  {find.open && (
+                    <FindHighlights
+                      matches={find.matchesOnPage(i)}
+                      currentId={find.currentId}
+                      coveredIds={find.coveredIds}
+                      onPick={find.setCurrentId}
                     />
                   )}
 
