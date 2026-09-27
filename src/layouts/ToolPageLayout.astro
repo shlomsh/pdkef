@@ -123,7 +123,14 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         key (LOC-02: `/he/sign/` must read the same draft hint as `/sign/`,
         not look up a key under 'hesign' that nothing ever writes). Tools with
         no draft feature (merge, split, ...) just look up a key that's never
-        set — harmless. */}
+        set — harmless.
+
+        Comments go here, never inside the script: its text ships verbatim to
+        every tool page. One that used to live there, on the catch around the
+        recent-files read: the entry index is an optimisation, not the source
+        of truth. Keep the pre-paint restore guard when it is corrupt; the
+        IndexedDB restore will promptly clear a stale pointer before any hidden
+        empty state can become visible. */}
     <script is:inline>
       (function () {
         try {
@@ -138,10 +145,6 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
               var recentFiles = JSON.parse(localStorage.getItem('pdf-toolkit:workspace:recent-files') || '[]');
               currentEntryIsKnown = Array.isArray(recentFiles) && recentFiles.some(function (entry) { return entry && entry.id === entryId; });
             } catch (e) {
-              // The entry index is an optimisation, not the source of truth.
-              // Keep the pre-paint restore guard when it is corrupt; the
-              // IndexedDB restore will promptly clear a stale pointer before
-              // any hidden empty state can become visible.
               currentEntryIsKnown = true;
             }
           }

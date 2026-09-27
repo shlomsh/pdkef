@@ -2,8 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
+import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 
 const workerSource = fs.readFileSync(path.join(process.cwd(), 'public/sw.js'), 'utf8');
+const minifiedWorkerSource = minifyServiceWorker(workerSource);
 
 function requestUrl(request) {
   return typeof request === 'string' ? new URL(request, 'https://pdkef.test').href : request.url;
@@ -49,7 +51,7 @@ function createFakeIndexedDB() {
   return indexedDB;
 }
 
-function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB()) {
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource) {
   const listeners = new Map();
   const currentCacheKey = 'pdkef-__BUILD_ID__';
   const cacheNames = new Set(cacheKeys);
@@ -88,7 +90,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     registration: { unregister: vi.fn(async () => true) },
   };
 
-  vm.runInNewContext(workerSource, {
+  vm.runInNewContext(source, {
     self,
     caches,
     fetch: fetchImpl,
@@ -476,5 +478,24 @@ describe('precache manifest delivery policy', () => {
 
     expect(await response.text()).toBe('font bytes');
     expect(worker.entries.has('https://pdkef.test/fonts/Pacifico-Regular.ttf')).toBe(true);
+  });
+});
+
+// The minified copy is what actually ships in dist/sw.js (see
+// generate-precache-manifest.mjs). It must stay a valid classic worker
+// script, keep the __BUILD_ID__ placeholder for that same script to
+// substitute, and never gain a skipWaiting() call the minifier didn't put
+// there (see the "No skipWaiting()" invariant above).
+describe('minified service worker', () => {
+  it('evaluates in the same harness and keeps the invariants that matter', async () => {
+    const worker = createWorker(vi.fn(async () => new Response('font bytes')), ['pdkef-previous'], createFakeIndexedDB(), minifiedWorkerSource);
+    const request = { method: 'GET', mode: 'no-cors', url: 'https://pdkef.test/fonts/Pacifico-Regular.ttf' };
+
+    const { response } = await dispatchFetch(worker, request);
+
+    expect(await response.text()).toBe('font bytes');
+    expect(minifiedWorkerSource).toContain('__BUILD_ID__');
+    expect(minifiedWorkerSource).not.toMatch(/skipWaiting\s*\(/);
+    expect(minifiedWorkerSource.length).toBeLessThan(workerSource.length * 0.6);
   });
 });

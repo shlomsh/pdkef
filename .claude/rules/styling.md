@@ -136,7 +136,8 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
   **A component few pages of a shared route render is the first place to narrow.** Astro attaches a
   component's scoped `<style>` to every page whose module graph imports it, rendered or not, and it
   follows dynamic imports too, so a conditional import changes nothing. `CompareFigure.astro` (LOC-15,
-  2026-09-13) keeps its CSS as a raw string (`compareFigure.css?raw`), emits it as `<style is:inline>`
+  2026-09-13) keeps its CSS as a string (`compareFigure.css?inline`, which the build minifies; `?raw` would ship
+  the source comments), emits it as `<style is:inline>`
   where it renders, and registers the hash with `Astro.csp.insertStyleHash(cspSha256(css))` so
   `test:csp` passes; that took the factor 9.94x to 9.76x at 40 pages. `CompareTable.astro` is the
   same shape and the next candidate.
