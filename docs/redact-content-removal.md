@@ -62,6 +62,48 @@ was, for what it fixes.
 RED-04 to RED-08 are retired. RED-11 (the boxes from one search stay a set) is separate from all of
 this.
 
+## What shipped (RED-12, RED-09, 2026-09-28)
+
+The revised plan, with one change the spike forced: **the words come from exact glyph positions, not
+from Find's text items.** Measured against PDFium's glyph boxes on the three real forms, splitting a
+pdf.js text item by a measurement put a word's edge a median 0.12 em from its real glyphs, 0.35 em at
+p90 and 0.77 em at p99. That is too loose to decide what a box covers: a secret in the middle of a long
+item could be judged outside its box and written into the layer. So:
+
+- **`pageGlyphs.ts`** replays pdf.js's own text state (the part of `CanvasGraphics.showText` that places
+  glyphs) over the page's operator list. pdf.js has already decoded every glyph's Unicode value and
+  advance; this gives each one its exact place, form XObjects and TJ kerning included.
+- **`textLayer.ts`** groups glyphs into runs along a baseline, and leaves out whole any word whose
+  glyph *core* (just under the baseline to 0.7 em, inset from the sides) a box reaches. A box that only
+  grazes an ascender or a side bearing leaves the letter readable in the picture, so writing it hides
+  nothing; a full-em box reached the next line at the forms' 1.04 line spacing. Kept words are written
+  in the page's own glyph order at their own places, so right-to-left text needs no reordering: an
+  extractor reads it back exactly as it reads the original.
+- **`invisibleText.js`** writes them with one glyphless Type0 font (render mode 3, a 632-byte one-glyph
+  program embedded because PDFKit swaps a program-less font for Courier, and a descent because CoreText
+  rejects a font without one). A code is one character at one width, so `/W` gives each glyph its real
+  advance; `TJ` closes the gaps. No per-script font, nothing downloaded.
+- **Read back after every export (RED-09).** The saved file is read through the same glyph reader; a
+  covered page with any glyph under a box, or any word missing or extra, is saved again as the picture
+  alone, and the done state names the page.
+
+| Measured on the saved page (`spikes/red-12/`, pdf.js, PDFium = Chrome, PDFKit = Preview) | Result |
+| --- | --- |
+| Boxed text extractable, any engine, or in the inflated streams | Never |
+| Words in the original's order, Latin forms (pdf.js, PDFium) | 100% |
+| A Hebrew line with its middle word boxed tightly | Both neighbours whole and in order in pdf.js and PDFium; PDFKit splits that line the same way on the original |
+| Selection, PDFium, per character against the original | median 0.5 to 0.8 pt, p99 about 3 pt |
+| Size | 6 to 9 KB per page, about 1% of the picture |
+| Read-back check on the real forms | Passes on every one; no false fallbacks |
+
+Two findings became their own tickets: Find's boxes are still built from the estimate, so they can miss a
+sliver of the match and usually paint into the next word, which then drops out of the layer (RED-15);
+and Delete's previews still use a second text decoder (RED-16). The audit of what the picture export
+carries over found nothing: a covered page is a new page with only the picture and the layer, and the
+new document takes no metadata, outline, attachments or form from the original. The export also now
+sizes a covered page from its visible, rotated box, so a rotated page is no longer squeezed into its
+unrotated size.
+
 ---
 
 *The original plan, kept for the record. Superseded by the section above.*

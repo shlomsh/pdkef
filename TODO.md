@@ -449,6 +449,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 | RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
+| RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
+| RED-16 | P2 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |
 
 
 ## Migrated context and history
