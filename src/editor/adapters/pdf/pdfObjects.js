@@ -5,6 +5,7 @@ import {
   applyMatrix,
   transformedUnitBox,
 } from './contentStream.js';
+import { visualToLogical } from './visualOrder.js';
 
 /**
  * Finds the discrete drawing operations on a page and where they live in its
@@ -716,7 +717,9 @@ export function extractPageObjects(page, pageIndex = 0) {
           objects.push({
             kind: 'text',
             pageIndex,
-            preview,
+            // The content stream draws RTL glyphs in drawing (visual) order,
+            // not reading order, so the preview needs reordering for display.
+            preview: visualToLogical(preview),
             bbox: {
               x: runMin[0],
               y: runMin[1],
