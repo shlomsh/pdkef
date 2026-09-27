@@ -65,6 +65,29 @@ export const homeContent = {
       { title: 'Open Source', subtitle: 'Audit the code yourself' },
     ],
   },
+  // The O (TheO.astro, docs/home-the-o.md): the English home page's scroll
+  // story, in place of the founder-story card above, which the Hebrew edition
+  // still renders. English only for now, so it is deliberately not in
+  // HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts): the Hebrew edition needs
+  // its own fourth beat, because the ring is the O of "Open source".
+  // The ring draws each zero, the O (openSource.word must start with it) and
+  // the final full stop, so `last` ends with a period the page never prints.
+  // `last` is set as two staggered lines, which leaves the full stop a clear
+  // lane to drop into after the sentence is written.
+  theO: {
+    heading: 'Simple PDF tools, made to share',
+    zeros: [
+      { word: 'accounts', line: 'No account, email, or trial period.' },
+      { word: 'uploads', line: 'Files never leave your device.' },
+      { word: 'paywalls', line: 'Free. No caps, no watermark, no catch.' },
+    ],
+    openSource: { word: 'Open source', line: 'Audit the code yourself.' },
+    // `mark` gets the citron marker stroke as you scroll; it must occur once in
+    // `line`, like closing.headingStroke below (the same stroke, the same try).
+    offline: { word: 'Works offline', line: 'Turn on airplane mode and give it a try. It still works.', mark: 'give it a try' },
+    lead: 'So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device.',
+    last: ['Then I wanted', 'to share them.'],
+  },
   draftPersistence: {
     kicker: 'Privacy & Convenience',
     heading: 'Close the tab. Keep your progress.',

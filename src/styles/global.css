@@ -81,6 +81,12 @@
   --color-surface: #ffffff;
   --color-surface-sunken: #a5e9dd;
   --color-text: #0b4c4c;
+  /* The palette's one near-black: the home page's night-flight window beat
+     (TheO.astro), a deeper step of the text teal. */
+  --color-night: #062b2b;
+  /* The phone's airplane-mode orange, for the one toggle that turns it on
+     in the same beat (TheO.astro). Nowhere else. */
+  --color-airplane-mode: #ff9500;
   --color-muted: #276460;
   --color-muted-light: #8fdccf;
   --color-border: #dfe6e2;

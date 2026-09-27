@@ -25,6 +25,7 @@ import TrustChips from '../components/TrustChips.astro';
 import HeroDemo from '../components/HeroDemo/HeroDemo.astro';
 import OfflineProof from '../components/OfflineProof.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
+import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
@@ -87,6 +88,11 @@ const alternates = Astro.props.alternates ?? resolvedHomeContext.alternates;
 const variants = Astro.props.variants ?? resolvedHomeContext.variants;
 
 const { title, description, faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
+
+// The O tells the founder story as the English page's scroll story; every
+// other edition keeps the founder-story card until it has its own fourth beat
+// (the ring is the O of "Open source"). See src/data/homeContent.js.
+const showTheO = locale === 'en' && Boolean(home.theO);
 
 // h1/h1Accent: see src/data/homeContent.js's header comment. h1Accent is
 // validated (content.config.ts's localizedHome schema, and by construction
@@ -219,11 +225,12 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         </div>
       </section>
     </div>
+    {showTheO && <TheO story={home.theO} />}
     <div id="home-information">
     <OfflineProof />
   <div class="card-stack">
 
-      <FeatureCard class="relative isolate overflow-hidden">
+      {!showTheO && <FeatureCard class="relative isolate overflow-hidden">
         <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
@@ -266,7 +273,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
             </div>
           </div>
         </div>
-      </FeatureCard>
+      </FeatureCard>}
 
       <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
         <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} parallax />

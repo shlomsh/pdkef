@@ -1,0 +1,133 @@
+---
+// The O (DEMO-10, docs/home-the-o.md): the home page's scroll story. One ring
+// is the zero in "0 accounts", "0 uploads" and "0 paywalls", the O of "Open
+// source", a plane window, and the full stop of the founder's sentence.
+//
+// How it is built (theO.css):
+// - Six beats share one geometry. Every length comes from the stage's own size
+//   (container units) and from --R, the ring's height, so the ring, the words
+//   and every wipe centre agree at any viewport.
+// - The ring's shapes are measured from the system font's bold glyphs (SF Pro:
+//   a zero is 0.788 as wide as it is tall; the O is 0.729em tall and 0.68em
+//   wide; both have 0.15em sides; a full stop is 0.158em). The words sit on the
+//   zero's baseline, and "Open source" and the last sentence are sized so the
+//   O and the full stop land on their cap height and baseline exactly. Length
+//   ratios use tan(atan2(a, b)), which is a / b as a plain number.
+// - The last sentence is set against the dot (its second line end-aligned and
+//   trimmed to its baseline with text-box), so the dot can never land inside a
+//   word. The two lines are staggered so the dot has a clear lane: the ring
+//   shrinks, lifts to the top, waits while the sentence is written, then drops
+//   onto "them" as the full stop.
+// - Motion: the stage pins for 600svh, about a screen of scrolling per beat,
+//   and everything is scrubbed by scroll position, like the original moving
+//   sketch. Every beat's copy of the ring runs the same path keyframes over the
+//   whole pin, so the ring is one continuous shape; each beat is a full layer
+//   in its own colours, revealed by a circle opening from the ring, and its
+//   words rise out of a clip after the cut. Holds are long, changes short.
+//   (Time-based transitions triggered by scroll were tried and dropped: a fast
+//   scroll stacked them up and skipped the window and the full stop.)
+// - The window beat enacts its own line: flat vector clouds drift across the
+//   window at two speeds, and the airplane-mode toggle beside "Turn on airplane
+//   mode" switches on as you scroll, drawn the way a phone draws it: a white
+//   plane (Lucide's, filled and turned level) on a grey disc that fills orange.
+//   Then "give it a try" gets the site's citron marker, swept on as you scroll
+//   (a dark copy of the phrase on the stroke, so it stays legible on night).
+// - Still version (reduced motion, or no scroll timelines): the six beats stack
+//   as posters, each ring in its finished shape.
+//
+// The CSS ships inline on the one page that renders this (the CompareFigure
+// pattern), with its hash registered for the CSP, so the Hebrew home page,
+// which shares HomePageLayout but not this section yet, carries none of it.
+import { Plane } from 'lucide-preact';
+import { cspSha256 } from '../site-lib/cspHash.js';
+import theOCss from './theO.css?raw';
+
+interface Line {
+  word: string;
+  line: string;
+  mark?: string;
+}
+
+interface Props {
+  story: {
+    heading: string;
+    zeros: Line[];
+    openSource: Line;
+    offline: Line;
+    lead: string;
+    last: [string, string];
+  };
+}
+
+const { story } = Astro.props;
+Astro.csp?.insertStyleHash(cspSha256(theOCss));
+
+// The ring draws the O of "Open source" and the sentence's full stop, so the
+// visible text leaves them out; screen readers get the whole words.
+const openSourceTail = story.openSource.word.slice(1);
+const [lastLineOne, lastLineTwo] = story.last;
+// Each sentence of a small line starts on its own line ("Free." / "No caps, no
+// watermark, no catch."), so no line breaks mid-thought at any width.
+const sentences = (text: string) => text.split(/(?<=[.!?])\s+/);
+// The window beat's marker: the phrase splits out of its sentence only when it
+// occurs exactly once, so the text always reads exactly as the content says.
+const mark = story.offline.mark;
+const markAt = (sentence: string) =>
+  mark && sentence.indexOf(mark) !== -1 && sentence.indexOf(mark) === sentence.lastIndexOf(mark) ? sentence.indexOf(mark) : -1;
+const lastLineTwoWithoutStop = lastLineTwo.replace(/\.$/, '');
+---
+
+<style is:inline set:html={theOCss}></style>
+<section class="the-o" aria-labelledby="the-o-heading">
+  <h2 id="the-o-heading" class="sr-only">{story.heading}</h2>
+  <div class="o-track">
+    <div class="o-stage">
+      {story.zeros.map((zero, index) => (
+        <div class={`o-beat b${index + 1}`}>
+          <div class="o-art">
+            <span class="o-ring" aria-hidden="true"></span>
+            <div class="o-text">
+              <p class="o-word"><span class="o-rise"><span class="sr-only">0 </span>{zero.word}</span></p>
+              <p class="o-sub"><span class="o-rise">{sentences(zero.line).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div class="o-beat b4">
+        <div class="o-art">
+          <span class="o-ring" aria-hidden="true"></span>
+          <div class="o-text">
+            <p class="o-word"><span class="o-rise"><span class="sr-only">{story.openSource.word}</span><span aria-hidden="true">{openSourceTail}</span></span></p>
+            <p class="o-sub"><span class="o-rise">{sentences(story.openSource.line).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
+          </div>
+        </div>
+      </div>
+      <div class="o-beat b5">
+        <div class="o-art">
+          <span class="o-ring" aria-hidden="true"><span class="o-pane"><svg class="o-cloud c1" viewBox="0 0 64 28" focusable="false"><circle cx="18" cy="17" r="9"></circle><circle cx="33" cy="12" r="12"></circle><circle cx="48" cy="17" r="8"></circle><rect x="4" y="16" width="56" height="12" rx="6"></rect></svg><svg class="o-cloud c2" viewBox="0 0 64 28" focusable="false"><circle cx="18" cy="17" r="9"></circle><circle cx="33" cy="12" r="12"></circle><circle cx="48" cy="17" r="8"></circle><rect x="4" y="16" width="56" height="12" rx="6"></rect></svg></span></span>
+          <div class="o-text">
+            <p class="o-word"><span class="o-rise">{story.offline.word}</span></p>
+            <p class="o-sub o-sub-mode">
+              <span class="o-rise">
+                <span class="o-mode" aria-hidden="true"><span class="o-mode-on"></span><Plane class="o-plane" fill="currentColor" strokeWidth={1.25} /></span>
+                <span>{sentences(story.offline.line).map((sentence, i) => {
+                  const at = markAt(sentence);
+                  return <>{i > 0 && ' '}<span class="o-s">{at === -1 ? sentence : <>{sentence.slice(0, at)}<span class="o-mark">{mark}<span class="o-mark-on" aria-hidden="true">{mark}</span></span>{sentence.slice(at + mark!.length)}</>}</span></>;
+                })}</span>
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="o-beat b6">
+        <div class="o-art">
+          <span class="o-ring" aria-hidden="true"><span class="o-fill"></span></span>
+          <div class="o-fin">
+            <p class="o-lead"><span class="o-rise">{sentences(story.lead).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
+            <p class="o-last"><span class="o-rise"><span class="o-l1">{lastLineOne}</span> <span class="o-l2">{lastLineTwoWithoutStop}<span class="sr-only">.</span></span></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
