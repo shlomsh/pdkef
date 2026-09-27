@@ -107,26 +107,30 @@
     "file": "raster-image-partial.pdf",
     "page": 1,
     "rect": [
-      10.666666666666668,
+      9.333333333333334,
       25.333333333333336,
-      37.26333333333334,
-      9.333333333333334
+      24.666666666666668,
+      49.333333333333336
     ],
     "secret": "IMG-PARTIAL-SECRET",
     "keepText": "caption stays outside the box",
+    "imageSecretColor": [255, 0, 0],
+    "imageKeepColor": [0, 0, 255],
     "feature": "raster PNG partly covered by the box"
   },
   {
     "file": "raster-image-full.pdf",
     "page": 1,
     "rect": [
-      0,
-      0,
-      54.85333333333333,
-      60
+      9.333333333333334,
+      25.333333333333336,
+      48,
+      49.333333333333336
     ],
     "secret": "IMG-FULL-SECRET",
     "keepText": "caption stays outside the box",
+    "imageSecretColor": [255, 0, 0],
+    "imageKeepColor": [0, 0, 255],
     "feature": "raster PNG fully covered by the box"
   },
   {
