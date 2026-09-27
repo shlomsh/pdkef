@@ -67,6 +67,9 @@ export default function PdfPageCanvas({
           onViewportReady?.(pageNum);
         }
         paintedRef.current = true;
+        // Lets anything laid over the page wait for the drawing it depends
+        // on (Redact's delete lift waits for the page without the object).
+        canvas.dispatchEvent(new CustomEvent('page-painted', { bubbles: true, detail: { pdfDocument } }));
       } catch (err) {
         // Cancellation is the normal teardown path when a document/page is
         // replaced or this canvas unmounts; only report real render failures.
