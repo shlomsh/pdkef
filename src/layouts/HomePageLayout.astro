@@ -638,9 +638,9 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      under "try" is swiped on like a marker instead of printed in place, and
      then its full stop drops in, as the paper plane lands in The O
      (TheO.astro). The scroll sets the cue (--try-marked) and the rest runs in
-     time. The card runs the cue on its own timeline (it is overflow: hidden, a
-     scroll container, so a timeline inside it never moves), the heading's
-     spans read it, and they hand it to their ::before through inherited
+     time. The heading runs the cue on the card's own timeline (the card is
+     overflow: hidden, a scroll container, so a view() inside it never moves),
+     its spans read it, and they hand it to their ::before through inherited
      custom properties: Safari never re-evaluates a style query on a
      pseudo-element when an animation changes the property it asks about.
      Without style queries the stroke and the stop simply stay drawn. */
@@ -673,7 +673,17 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   }
   @supports (animation-timeline: view()) {
     @media (prefers-reduced-motion: no-preference) {
-      .try-workspace { view-timeline: --try-card block; animation: try-cue step-start both; animation-timeline: --try-card; animation-range: entry 45% entry 100%; }
+      /* The cue runs on the heading, not the card: the card already runs
+         FeatureCard's card-reveal-settle, and the two animation declarations
+         then compete on order, which the production bundle and the dev server
+         resolve differently (on pdkef.com the cue lost and the stroke never
+         drew). The heading reads the card's own timeline, since the card is
+         a scroll container and a view() inside it never moves. */
+      .try-workspace { view-timeline: --try-card block; }
+      /* Longhands only: beside an animation shorthand, the minifier folds the
+         timeline into it ("animation: step-start both try-cue --try-card"),
+         which browsers reject whole, and the cue never runs. */
+      .try-workspace h2 { animation-name: try-cue; animation-duration: auto; animation-timing-function: step-start; animation-fill-mode: both; animation-timeline: --try-card; animation-range: entry 45% entry 100%; }
       .try-workspace h2 .try-word::before { clip-path: inset(0 var(--try-hide, 0%) 0 0); transition: clip-path var(--try-swipe, 0.6s) cubic-bezier(0.65, 0, 0.35, 1) var(--try-wait, 0.15s); }
       .try-workspace h2 .try-word:dir(rtl)::before { clip-path: inset(0 0 0 var(--try-hide, 0%)); }
       @container not style(--try-marked: 1) {
@@ -778,8 +788,9 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     align-items: center;
   }
   .try-workspace > :global(.w-full) > a { margin-top: 16px; }
+  /* The same inline margin as every FeatureCard above it (mx-6). */
   @media (max-width: 1080px) {
-    .try-workspace { width: auto; margin-inline: var(--space-6); }
+    .try-workspace { width: auto; margin-inline: 1.5rem; }
   }
   @media (min-width: 1024px) {
     .card-stack :global(.card-reveal:not(.try-workspace)) {
@@ -806,8 +817,10 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
       margin: 0;
     }
   }
+  /* Below 768px the story cards are not sticky, so nothing takes over from
+     the card above: the closing card keeps the stack's 2rem gap. */
   @media (max-width: 767px) {
-    .try-workspace { min-height: 0; padding: 2rem 1.5rem; }
+    .try-workspace { min-height: 0; margin-block-start: 2rem; padding: 2rem 1.5rem; }
   }
   /* The dock is the first screen's bottom edge in the same ink as the
      On-device chip at its top: deep teal, white labels, light tiles. (It used
