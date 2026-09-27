@@ -621,3 +621,52 @@ test.describe('repeat a box on every page (RED-03)', () => {
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
   });
 });
+
+// RED-02: find and redact. The finders, reading order and box arithmetic are
+// unit-tested under src/tools/redact/find/; this proves what jsdom cannot:
+// pdf.js's real text positions land the highlight on the drawn words, and
+// "Redact all" adds every box as one undo step.
+test.describe('find and redact (RED-02)', () => {
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
+  async function makeFindPdfBuffer() {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    for (let i = 0; i < 2; i += 1) {
+      const page = doc.addPage([612, 792]);
+      page.drawText('Jane Doe', { x: 100, y: 700, size: 12, font });
+      page.drawText(`Signed by Jane Doe on page ${i + 1}.`, { x: 100, y: 600, size: 12, font });
+    }
+    return Buffer.from(await doc.save());
+  }
+
+  test('highlights every match on the drawn words and redacts them all as one undo step', async ({ page }) => {
+    await openRedactTool(page, await makeFindPdfBuffer());
+    await expect(page.locator('[data-editor-page-card]')).toHaveCount(2);
+
+    await page.locator('[data-redact-find-toggle]').click();
+    await page.locator('[data-redact-find-input]').fill('jane doe');
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages');
+
+    // The first match is "Jane Doe" at (100, 700) in PDF points, 12pt: its
+    // highlight's left edge sits at 100/612 of the page and its top just
+    // above the cap height, 1pt of padding included.
+    const pageCard = page.locator('[data-editor-page-card]').first();
+    const overlay = await getBox(pageCard.locator('.redact-draw-area'), 'page overlay');
+    const match = await getBox(pageCard.locator('[data-redact-find-match]').first(), 'first match');
+    expect(Math.abs((match.x - overlay.x) / overlay.width - 99 / 612)).toBeLessThan(0.01);
+    expect(Math.abs((match.y - overlay.y) / overlay.height - (792 - 713) / 792)).toBeLessThan(0.01);
+    expect(match.height / overlay.height).toBeGreaterThan(12 / 792);
+
+    await page.locator('[data-redact-find-all]').click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages, 4 covered');
+    await expect(page.locator('[data-redact-find-all]')).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
+    await expect(page.locator('[data-redact-find-all]')).toHaveText('Redact all 4');
+  });
+});

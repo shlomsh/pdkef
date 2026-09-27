@@ -107,7 +107,11 @@
   white-space: nowrap;
 }
 
-.status:empty {
+.status:has(.status-long:empty) {
+  display: none;
+}
+
+.status-short {
   display: none;
 }
 
@@ -235,12 +239,31 @@
   mix-blend-mode: normal;
 }
 
+/* A phone gets three short rows, since the card is sticky and its height
+   comes straight off the page: the field with Close beside it, then where you
+   are and what a match becomes, then the two actions sharing the width. */
 @media (max-width: 719px) {
-  .field {
-    flex-basis: 100%;
+  .find-bar {
+    display: grid;
+    /* Close gets a fixed column of its own, so the field's width never
+       depends on how wide the row under it happens to be. */
+    grid-template-columns: minmax(0, 1fr) auto auto 2.5rem;
+    grid-template-areas:
+      'field field field close'
+      'status nav segmented segmented'
+      'actions actions actions actions';
+    gap: 0.4rem var(--space-2);
   }
 
-  .actions {
-    margin-inline-start: auto;
-  }
+  .field { grid-area: field; }
+  .close { grid-area: close; }
+  .status { grid-area: status; overflow: hidden; text-overflow: ellipsis; }
+  .status:has(.status-long:empty) { display: block; }
+  .status-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .status-short { display: inline; }
+  .nav { grid-area: nav; }
+  .segmented { grid-area: segmented; justify-self: end; }
+  .segment { padding: 0 0.6rem; }
+  .actions { grid-area: actions; }
+  .action { flex: 1 1 0; }
 }
