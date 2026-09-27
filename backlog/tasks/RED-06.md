@@ -35,17 +35,17 @@ compresses `.wasm`, which is unverified for Vercel.
   exactly; `test:licenses` covers MIT and Apache-2.0.
 - Copy follows the voice guide: the cost in plain numbers, no jargon, no em dashes.
 
-- **Offline is the premise.** The engine is an offline pack like the font and language packs
-  (`public/sw.js`): provisioned through the service worker, carried across deploys the way
-  `migrateFontPacks` carries fonts, and offered ahead as "Make Keep the text work offline" while online
-  (choice line, beside Download, install page), with `navigator.storage.persist()`. Offline and not
-  provisioned, or evicted: say so plainly and save Quick; never a spinner that can't finish. Quick's
-  path never touches the engine.
+- **Lazy, and graceful offline.** Fetch the engine only when Keep the text is actually needed; never
+  ahead, never offered in advance. Once fetched, it is carried across deploys the way
+  `migrateFontPacks` carries fonts. Offline at that moment (or a failed/slow fetch, since
+  `navigator.onLine` alone is not trusted), or evicted by the browser: one plain line says so and the
+  save falls back to Quick; the next online save offers it again. Never a spinner that can't finish.
+  Quick's path never touches the engine.
 
 ## Acceptance
 
 - Opening Redact or Sign, or choosing Quick, downloads no engine bytes. Choosing Keep the text
   downloads it once; a second document offline keeps its text.
-- In an offline e2e (`e2e/offline/`): prepared, then a new deploy's worker activates, then airplane
-  mode: Keep the text still works. Never prepared, then offline: the line says why and Quick saves.
+- Offline e2e (`e2e/offline/`): never fetched, then offline, choose Keep the text: the line says why
+  and Quick saves. Fetched once, a new deploy's worker activates, then offline: Keep the text works.
 - A throttled "slow 3G, Save-Data" run highlights Quick with its reason; a plain run highlights neither.

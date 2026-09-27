@@ -99,15 +99,14 @@ happened, and the design must never let the promise break silently.
   can always be saved offline.
 - **The engine is an offline pack**, the same mechanism as the font and language packs: fetched once
   through the service worker, kept in the cache, and carried over from one deploy's cache to the next
-  (as `migrateFontPacks` does in `public/sw.js`). An update must never quietly drop it, or someone who
-  prepared for a flight would find it gone after a deploy.
-- **It can be prepared ahead.** The choice line, the control beside Download and the install page all
-  offer "Make Keep the text work offline" while online, so nobody has to discover the gap mid-flight.
-  Choosing it asks the browser for persistent storage.
-- **Offline and not prepared, the person is told before they rely on it.** The choice line says Keep
-  the text needs a one-time download and saves Quick for now; when the connection returns, it offers
-  the download. It never shows a spinner that can't finish. `navigator.onLine` is not trusted alone:
-  a failed or slow fetch falls back to Quick the same way.
+  (as `migrateFontPacks` does in `public/sw.js`). An update must never quietly drop what someone already
+  downloaded.
+- **Lazy, always.** Nothing is fetched ahead or offered for download in advance. The engine is fetched
+  only at the moment Keep the text is actually needed, and never before.
+- **Offline at that moment: say so, and save Quick.** One plain line tells the person Keep the text
+  needs a one-time download and they're offline, so this is saved the quick way instead. When the
+  connection is back, the next save offers it again. Never a spinner that can't finish.
+  `navigator.onLine` is not trusted alone: a failed or slow fetch falls back to Quick the same way.
 - **A remembered choice can outlive the engine.** Browsers may evict cached data (Safari clears it
   after about a week without a visit for a site not on the home screen). A document set to Keep the
   text, opened offline after that, saves Quick and says why. Never a broken or silently different
