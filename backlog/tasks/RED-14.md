@@ -1,7 +1,7 @@
 ---
 id: "RED-14"
 title: "Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -32,3 +32,19 @@ Behaviour stays identical; the existing unit and e2e suites are the safety net.
 
 - No behaviour change: `check:push` green, and the Redact and Sign e2e unchanged.
 - `PdfRedactTool.tsx` loses the feature logic (target under 900 lines), with no copied commit blocks.
+
+## Outcome (2026-09-28)
+
+- `useRedactCommands` (add, remove, update) is the one commit path; every handler decides what changes
+  and makes one call. `removeGroup` and `removeFindSet` became `removeLinked(id, kind)`.
+- `links.ts` merges a box's repeat-group and find-set changes; the link modules now name the fields
+  they read instead of taking any object, and a type-only test in `links.test.ts` keeps them that way.
+- `useDeleteTool` and `useLinkedBoxes` hold the Delete tool and the linked-box edits.
+- The island and its hooks use the `RedactElement` union (`redactElements.ts`); a delete element's
+  `start`/`end` are required by the draft check. Every delete element ever created carried them, so no
+  saved draft loses one.
+- `src/editor-ui/toolIcons.tsx` draws the Whiteout slot, eraser and trash for both editors.
+- `PdfRedactTool.tsx`: 1,384 to 1,133 lines. The 900 target was not met: what remains is mostly layout,
+  loading, export and fullscreen, which are their own refactor if they keep growing.
+- A fresh reviewer traced every handler's history entries, chip, messages and selection against the old
+  code and found no behaviour change; `check:push` green.
