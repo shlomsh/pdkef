@@ -85,6 +85,32 @@
   border-color: var(--color-danger);
 }
 
+/* RED-13: the moment an object is deleted. A snapshot of it sits over the
+   page until the page has been drawn without it (DeleteLift.tsx), then lifts
+   off and fades. Reduced motion never creates one. */
+.delete-lift {
+  position: absolute;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.delete-lift img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.delete-lift.lifting {
+  animation: delete-lift 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes delete-lift {
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.94);
+  }
+}
+
 /* Redact design-review finding #3: deleteElement (a box's own X) and
    clearPage ("Clear all redactions on this page") used to change state
    silently - no live-region announcement, no way to undo but Cmd/Ctrl+Z or

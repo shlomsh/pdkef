@@ -17,6 +17,7 @@ import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
+import DeleteLift, { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { groupChanges, groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
 import { findSetMembers, findSetChanges, withoutFindSet } from './findSet.ts';
@@ -381,6 +382,7 @@ export default function PdfRedactTool() {
   // the download writes, so the deleted text/image disappears on screen
   // rather than only being outlined.
   const deletePreviews = useDeletePreviews(fileBytesRef.current, elements);
+  const [lifts, setLifts] = useState<Lift[]>([]);
   const markedForDeletionIds = useMemo(
     () => new Set<string>(elements.flatMap((element) => (
       element.type === 'delete' && typeof element.sourceObjectId === 'string'
@@ -703,6 +705,15 @@ export default function PdfRedactTool() {
       return;
     }
     const id = uniqueId();
+    // RED-13: the object lifts off the page once the page is drawn without it.
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const image = reducedMotion ? null : snapshotRect(pageWrapperRefs.current[object.pageIndex]?.querySelector('canvas'), object.rect);
+    if (image) {
+      setLifts((prev) => [...prev, {
+        id, pageIndex: object.pageIndex, rect: object.rect, image,
+        paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
+      }]);
+    }
     const element: RedactHistoryElement = {
       id,
       pageIndex: object.pageIndex,
@@ -1256,6 +1267,10 @@ export default function PdfRedactTool() {
                   {/* RED-13: an object queued for deletion has no mark of its own. The
                       page is drawn without it (useDeletePreviews), so what you see is
                       what you save, and the toolbar's Undo brings it back. */}
+                  {lifts.filter((lift) => lift.pageIndex === i).map((lift) => (
+                    <DeleteLift key={lift.id} lift={lift} onDone={(id) => setLifts((prev) => prev.filter((l) => l.id !== id))} />
+                  ))}
+
                   {/* Delete tool's hover targets: only shown while that tool is active,
                       and only for objects still on the page. */}
                   {activeStyle === 'delete' && (
