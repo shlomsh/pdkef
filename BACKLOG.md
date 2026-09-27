@@ -665,9 +665,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
+_None._
 
 ### Blocked
 
@@ -681,6 +679,7 @@ _None._
 | RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
+| RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 
 ### Retired
 
