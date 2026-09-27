@@ -70,10 +70,10 @@ export const homeContent = {
   // still renders. English only for now, so it is deliberately not in
   // HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts): the Hebrew edition needs
   // its own fourth beat, because the ring is the O of "Open source".
-  // The ring draws each zero, the O (openSource.word must start with it) and
-  // the final full stop, so `last` ends with a period the page never prints.
-  // `last` is set as two staggered lines, which leaves the full stop a clear
-  // lane to drop into after the sentence is written.
+  // The ring draws each zero and the O (openSource.word must start with it).
+  // The paper plane lands where the last sentence's full stop would be, so
+  // `last` ends with a period the page never prints; it is set as two
+  // staggered lines, which leaves the plane a clear lane to come down.
   theO: {
     heading: 'Simple PDF tools, made to share',
     zeros: [
