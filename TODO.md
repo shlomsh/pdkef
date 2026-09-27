@@ -429,6 +429,16 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 
+## Redact: real removal, find and redact, and what you see is what you save (2026-09-27)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
+| RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
+| RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
+| RED-04 | P2 | [RED-04](backlog/tasks/RED-04.md) · What you see is what you save: the editor shows the page as it will export |
+
+
 ## Migrated context and history
 
 The prose, decisions, and supporting evidence formerly interleaved with tickets live in [backlog/reference/migrated-todo-context.md](backlog/reference/migrated-todo-context.md). It is reference material, not a task tracker.
