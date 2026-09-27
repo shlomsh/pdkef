@@ -186,6 +186,22 @@ function isDateLike(raw: string): boolean {
   return (a.length === 4 && b.length <= 2 && c.length <= 2) || (a.length <= 2 && b.length <= 2 && c.length === 4);
 }
 
+/** The digit groups a shape has, in order, ignoring the separators between them. */
+function digitGroupLengths(raw: string): number[] {
+  return (raw.match(/\d+/g) ?? []).map((group) => group.length);
+}
+
+/** 3-2-4: a Social Security Number, not a phone number. */
+function isSsnShaped(groups: number[]): boolean {
+  return groups.length === 3 && groups[0] === 3 && groups[1] === 2 && groups[2] === 4;
+}
+
+/** 3-3-4 (a local mobile shape) or a leading '+'/'(': what the phone preset would claim. */
+function isPhoneShaped(raw: string, groups: number[]): boolean {
+  if (raw.startsWith('+') || raw.startsWith('(')) return true;
+  return groups.length === 3 && groups[0] === 3 && groups[1] === 3 && groups[2] === 4;
+}
+
 function phoneFinder(text: string): TextRange[] {
   const ranges: TextRange[] = [];
   for (const match of text.matchAll(PHONE_CANDIDATE_RE)) {
@@ -194,6 +210,7 @@ function phoneFinder(text: string): TextRange[] {
     const digitCount = (raw.match(/\d/g) ?? []).length;
     if (digitCount < 7 || digitCount > 15) continue;
     if (isDateLike(raw)) continue;
+    if (isSsnShaped(digitGroupLengths(raw))) continue;
     ranges.push({ start, end: start + raw.length });
   }
   return sortAndDedupe(ranges);
@@ -214,6 +231,8 @@ function collectIdCandidates(text: string): TextRange[] {
       if (isWordCode(before) || isWordCode(after)) continue;
       const digitCount = (match[0].match(/\d/g) ?? []).length;
       if (digitCount < 8 || digitCount > 19) continue;
+      if (isDateLike(match[0])) continue;
+      if (isPhoneShaped(match[0], digitGroupLengths(match[0]))) continue;
       ranges.push({ start, end });
     }
   }
@@ -227,9 +246,11 @@ function collectIdCandidates(text: string): TextRange[] {
  *
  * - `email`: local@domain.tld.
  * - `phone`: `+country` and local shapes with spaces/dots/dashes/parens, 7-15
- *   digits, not part of a longer digit run, excluding plain dates.
+ *   digits, not part of a longer digit run, excluding plain dates and a 3-2-4
+ *   (SSN) grouping.
  * - `idNumber`: 8-19 digits, solid or grouped by spaces or dashes, not part
- *   of a longer digit or letter run.
+ *   of a longer digit or letter run, excluding dates and any shape (3-3-4, or
+ *   a leading '+'/'(') the phone preset would claim.
  */
 export const PRESET_FINDERS: Record<'email' | 'phone' | 'idNumber', Finder> = {
   email: emailFinder,
