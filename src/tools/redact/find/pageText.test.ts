@@ -35,6 +35,14 @@ describe('buildPageText', () => {
     expect(page.text).toBe('Hello World');
   });
 
+  it('keeps touching runs as one word, with no space between them', () => {
+    const page = buildPageText(0, [
+      item('Jo', [1, 0, 0, 1, 0, 700], 12, 12),
+      item('hn', [1, 0, 0, 1, 12, 700], 12, 12),
+    ]);
+    expect(page.text).toBe('John');
+  });
+
   it('reads visual LTR order even when items arrive out of stream order', () => {
     const page = buildPageText(0, [
       item('World', [1, 0, 0, 1, 40, 700], 30),
