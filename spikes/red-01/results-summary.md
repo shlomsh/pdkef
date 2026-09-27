@@ -33,10 +33,46 @@ if **any** of an entry's boxes still leaks its own secret, so a redaction that o
 targets still reports as a miss. `engine-ours.mjs` and `engine-pdfium.mjs` got the matching minimal
 support (map over `entry.rects || [entry.rect]`, "any box intersects/contains" instead of one).
 
-## Result table
+## What changed in the checker
 
-PASS = `secretUnderBox` false AND `keepTextIntact` true (for the two raster-image entries, also: secret-color
-pixels remaining = 0 and, where a keep region is meant to survive, keep-color pixels remaining > 0).
+Two gaps made the PASS column below untrustworthy, both closed in `check-extractable.mjs` without
+touching the engines:
+
+1. **Same-line collateral.** `keepText` often sits on a *different* line from the redaction box (every
+   `mid-run-*`/`two-boxes-one-line` fixture, and all three real-world entries), so an engine that deletes
+   the *whole* text-showing run - taking the words beside the secret with it - still passed, because the
+   thing actually being checked for survival was never near the box. `corpus.json` gained a
+   `keepSameLine: string[]` field on those entries: the word(s) immediately left and right of the box on
+   the *same* line ("Name: Jane" / "Example" for the `mid-run-*` fixtures; "SSN:" / "DL:" for
+   `two-boxes-one-line.pdf`; the two outer visual-order words for `mid-run-hebrew.pdf`). The checker's new
+   `sameLineIntact` is `true` when every one of those strings is still extractable anywhere on the page
+   (position-agnostic, same rule as `keepTextIntact`); the three real-world entries got `keepSameLine: []`
+   because each secret is alone on its own text-content line (verified directly from pdf.js item rects -
+   see `feature` field). PASS now requires `sameLineIntact`.
+2. **Annotations.** The existing position-aware `secretUnderBox` check only ever looked at
+   `getTextContent()`, so it was structurally blind to a secret living in an annotation (FreeText
+   `/Contents`, a form field's `/V`) - both engines "passed" `freetext-annotation.pdf` while neither one
+   touches annotations at all. The checker now also pulls each annotation's own rect (through the same
+   viewport transform as text items) and text, and computes `secretInAnnotationUnderBox`: true if any
+   annotation whose rect intersects one of the entry's redaction boxes still contains that box's secret in
+   its own text. PASS now requires this to be `false`.
+
+New PASS definition: `secretUnderBox` false, `keepTextIntact` true, `sameLineIntact` true,
+`secretInAnnotationUnderBox` false (for the two raster-image entries, also: secret-color pixels
+remaining = 0 and, where a keep region is meant to survive, keep-color pixels remaining > 0, from
+`check-images.mjs`, unaffected by this change).
+
+**One caveat surfaced by re-running the checker over the untouched corpus as a sanity check:**
+`mid-run-tj-kerned.pdf`'s own baseline PDF fails `sameLineIntact` (offending text ends `"...Exampl"`,
+missing the final "e"). This isn't a redaction artifact - it's pdf.js's own `getTextContent()` dropping
+the last character of the interleaved-kerning `TJ` array that `make-corpus.mjs` hand-builds for that
+fixture (the array's last per-glyph kerning number apparently confuses pdf.js's width accounting). It
+doesn't affect this exercise's conclusions: `ours` fails `sameLineIntact` on this entry regardless, for
+the unrelated and more serious reason that it deletes the whole line outright, and `pdfium`'s rebuilt
+output reads back *cleaner* than the original (a full, correctly-spelled `"Example"`), so its PASS is
+genuine. Flagging it here rather than quietly special-casing it out of the corpus.
+
+## Result table
 
 | entry | ours (whole-object delete) | pdfium (glyph-level) |
 | --- | --- | --- |
@@ -51,31 +87,38 @@ pixels remaining = 0 and, where a keep region is meant to survive, keep-color pi
 | raster-image-partial.pdf | FAIL (whole image object removed; the intended-to-survive keep-color half is lost too - no partial pixel redaction) | FAIL (pixels are correct - secret-color 0, keep-color 9700 survive - but the invisible caption text still leaks the fragment `"SECRET"` under the box after a partial-object text rebuild) |
 | raster-image-full.pdf | PASS | PASS |
 | vector-path-highlight.pdf | PASS | PASS |
-| freetext-annotation.pdf | PASS | PASS |
+| freetext-annotation.pdf | **FAIL** (`secretInAnnotationUnderBox`: the FreeText annotation's `/Contents` still *is* the secret, untouched - the previous checker never looked at annotation text at all) | **FAIL** (same: `secretInAnnotationUnderBox` true; neither engine edits annotations) |
 | paragraph-line2-only.pdf | PASS | PASS |
 | real-world-irs-1040-2024.pdf | FAIL (keepText removed along with the secret; whole-object delete took more than the targeted run) | PASS |
 | real-world-uscis-i9-2025.pdf | PASS | PASS |
 | real-world-health-declaration-2021.pdf | PASS | PASS |
-| **mid-run-helvetica.pdf** | PASS | PASS |
-| **mid-run-tj-kerned.pdf** | PASS | PASS |
-| **mid-run-embedded.pdf** | PASS | PASS |
-| **mid-run-hebrew.pdf** | FAIL (whole Tj line deleted - both flanking "keep" words live in the *same* text object as the secret, so keepText goes with it) | FAIL (glyph-level split runs, but the survivors come back logically-reordered and missing their innermost 1-2 characters - see note below) |
-| **two-boxes-one-line.pdf** | PASS (both secrets gone via whole-object delete; keepText is a separate line/object, untouched) | **PASS** (both secrets gone, `SSN:`/`DL:` prefixes and the separate keepText line all survive - no embedpdf #801 corruption observed) |
+| **mid-run-helvetica.pdf** | **FAIL** (`sameLineIntact` false: whole-object delete also removes "Name: Jane" and "Example", which live in the same `Tj` as the secret) | PASS |
+| **mid-run-tj-kerned.pdf** | **FAIL** (same reason: whole `TJ` array deleted, "Name: Jane" / "Example" gone with it) | PASS |
+| **mid-run-embedded.pdf** | **FAIL** (same reason) | PASS |
+| **mid-run-hebrew.pdf** | FAIL (whole Tj line deleted - both flanking "keep" words live in the *same* text object as the secret, so keepText and keepSameLine both go with it) | FAIL (glyph-level split runs, but the survivors come back logically-reordered and missing their innermost 1-2 characters - see note below) |
+| **two-boxes-one-line.pdf** | **FAIL** (`sameLineIntact` false: "SSN:" and "DL:" live in the same whole-object-deleted `Tj` as both secrets) | PASS (both secrets gone, `SSN:`/`DL:` prefixes and the separate keepText line all survive - no embedpdf #801 corruption observed) |
 
-Rows in **bold** are this change's five gap-fill fixtures.
+Rows in **bold** are this change's five gap-fill fixtures; entries marked **FAIL** in bold text are new
+failures this checker update uncovered that the previous two-column checker reported as PASS.
 
 ## Notes
 
-- **The gap is closed for PDFium.** All four single-secret mid-run fixtures now drive
-  `redactTextObjects`'s partial-rebuild branch (`textRebuilt=1`, confirmed via
-  `node spikes/red-01/pdfium/engine-pdfium.mjs`'s own per-file log), where every previous corpus fixture
-  either removed a whole object or left the object untouched.
-- **two-boxes-one-line.pdf is the interesting positive result.** This is the shape of the real embedpdf
-  #801 bug (two redaction targets sharing one text object, where clearing the first could corrupt the
-  matrix/origin reads needed for the second). PDFium's "read everything up front, mutate in a second
-  pass" design (documented at the top of `engine-pdfium.mjs`) held up: both secrets are gone and both
-  surviving fragments (`SSN:`, `DL:`, and the separate keepText line) came back intact. `ours` also
-  passes, but only because it deletes the whole line wholesale and keepText happens to live elsewhere.
+- **The gap is closed for PDFium, and now verified against same-line collateral too.** All four
+  single-secret mid-run fixtures now drive `redactTextObjects`'s partial-rebuild branch (`textRebuilt=1`,
+  confirmed via `node spikes/red-01/pdfium/engine-pdfium.mjs`'s own per-file log), where every previous
+  corpus fixture either removed a whole object or left the object untouched. With `keepSameLine` added,
+  `mid-run-helvetica.pdf`/`mid-run-tj-kerned.pdf`/`mid-run-embedded.pdf` still PASS - PDFium's rebuild
+  keeps `"Name: Jane"` and `"Example"` intact, not just the separately-checked `keepText` line below.
+  `ours` fails all three now that a same-line check exists: whole-object delete takes those words with
+  the secret.
+- **two-boxes-one-line.pdf is the interesting positive result, and now a clean one.** This is the shape
+  of the real embedpdf #801 bug (two redaction targets sharing one text object, where clearing the first
+  could corrupt the matrix/origin reads needed for the second). PDFium's "read everything up front,
+  mutate in a second pass" design (documented at the top of `engine-pdfium.mjs`) held up: both secrets
+  are gone and both surviving fragments (`SSN:`, `DL:`, and the separate keepText line) came back intact,
+  now confirmed by `sameLineIntact` rather than assumed. `ours` no longer gets credit for this one: with
+  `keepSameLine` in place, its whole-`Tj` delete is correctly caught taking `"SSN:"`/`"DL:"` down with the
+  secrets, even though the separate keepText line survives untouched.
 - **mid-run-hebrew.pdf is a genuine, new PDFium finding, not a fixture artifact.** Its box was
   re-measured with a tighter 1pt pad (vs. every other fixture's 3pt) to rule out padding eating into the
   neighbouring words' innermost glyphs; the result didn't change. `FPDFText_GetUnicode`'s per-character
