@@ -172,6 +172,7 @@ describe('PRESET_FINDERS.phone', () => {
     'code A1-B2 is not a phone',
     'invoice date 2024.09.27 listed',
     'just the digits 12345 alone',
+    'SSN: 123-45-6789 is a 3-2-4 shape, not a phone',
   ];
 
   it.each(positives)('finds the phone in %j', (text, expected) => {
@@ -210,6 +211,8 @@ describe('PRESET_FINDERS.idNumber', () => {
     'year 2024 alone is short',
     'phone-like 03-1234567 has only nine digits total',
     'version v1.2.3 build 45 not an id',
+    'Mobile: 054-123-4567 is a 3-3-4 phone shape, not an id',
+    'Date of birth: 1990-04-12 is a date, not an id',
   ];
 
   it.each(positives)('finds the id in %j', (text, expected) => {
@@ -218,5 +221,21 @@ describe('PRESET_FINDERS.idNumber', () => {
 
   it.each(negatives)('finds nothing in %j', (text) => {
     expect(finder(text)).toEqual([]);
+  });
+});
+
+describe('PRESET_FINDERS on a mixed sample', () => {
+  const text = 'Phone: +1 (555) 010-7788 Mobile: 054-123-4567\n'
+    + 'SSN: 123-45-6789 Card: 4111 1111 1111 1111\n'
+    + 'Date of birth: 1990-04-12 Case number 2024-17';
+
+  it('phone claims only the two real phone numbers, not the SSN', () => {
+    const matches = PRESET_FINDERS.phone(text).map((r) => text.slice(r.start, r.end));
+    expect(matches).toEqual(['+1 (555) 010-7788', '054-123-4567']);
+  });
+
+  it('idNumber claims the SSN and the card, not the mobile number or the date', () => {
+    const matches = PRESET_FINDERS.idNumber(text).map((r) => text.slice(r.start, r.end));
+    expect(matches).toEqual(['123-45-6789', '4111 1111 1111 1111']);
   });
 });
