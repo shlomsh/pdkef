@@ -1,0 +1,196 @@
+/* The O. Geometry and design notes live in TheO.astro's frontmatter. */
+.the-o { --dir: 1; --hide: inset(-0.35em calc(100% + 0.6em) -0.3em -0.6em); --show: inset(-0.35em -0.6em -0.3em -0.6em); position: relative; width: 100vw; margin-inline: calc(50% - 50vw); }
+.the-o:dir(rtl) { --dir: -1; --hide: inset(-0.35em -0.6em -0.3em calc(100% + 0.6em)); }
+.o-beat { position: relative; height: calc(100lvh - var(--home-nav-height, 0px)); container-type: size; overflow: clip; isolation: isolate; }
+.o-art {
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --gut: clamp(16px, 4cqw, 32px);
+  --wc: min(100cqw - 2 * var(--gut), 1216px);
+  --lx: calc((100cqw - var(--wc)) / 2);
+  --zx: 0.788;
+  --R: clamp(6.5rem, min(30cqw, 46cqh), 26rem);
+  --cy: 46cqh;
+  --cx: calc(var(--lx) + var(--R) * var(--zx) / 2);
+  --G: calc(var(--R) * 0.12);
+  --tx: calc(var(--lx) + var(--R) * var(--zx) + var(--G));
+  --tx5: calc(var(--lx) + var(--R) * 1.04 + var(--G));
+  --fw: clamp(2rem, min(var(--R) * 0.6, (var(--wc) - var(--R) * var(--zx) - var(--G)) / 4.15), 9rem);
+  --fs: var(--fw);
+  --f4: min(var(--fw), var(--wc) / 5.6);
+  --f5: min(var(--fw), (var(--wc) - var(--R) * 1.04 - var(--G)) / 5.75);
+  --f6: min(var(--R) * 0.4, (var(--wc) - var(--R) * 1.04 - var(--G)) / 6.9);
+  --yb: calc(var(--cy) + var(--R) * 0.4833);
+  --yw: var(--yb);
+  --y4: var(--yb);
+  --yf: max(var(--yb), var(--f6) * 2.6 + 8rem + 2cqh);
+  --k4: tan(atan2(var(--f4), var(--R)));
+  --k6: tan(atan2(var(--f6), var(--R)));
+  --d: calc(var(--f6) * 0.158);
+  /* The ring's poses, as offsets from the zero at rest. */
+  --o-tx: calc((var(--f4) * 0.34 - var(--R) * var(--zx) / 2) * var(--dir));
+  --o-ty: calc(var(--y4) - var(--f4) * 0.3523 - var(--cy));
+  --o-sx: calc(0.6797 * var(--k4));
+  --o-sy: calc(0.729 * var(--k4));
+  --w-tx: calc(var(--R) * (0.52 - var(--zx) / 2) * var(--dir));
+  --w-ty: calc(var(--R) * -0.1667);
+  --d-tx: calc((var(--wc) - var(--d) / 2 - var(--R) * var(--zx) / 2) * var(--dir));
+  --d-ty: calc(var(--yf) - var(--f6) * 0.0707 - var(--cy));
+  --d-s: calc(0.158 * var(--k6));
+  --h-ty: calc(8cqh - var(--cy));
+  --p1-tx: calc(var(--w-tx) + (var(--d-tx) - var(--w-tx)) * 0.2);
+  /* Where this beat's colour opens from. */
+  --wxl: var(--cx);
+  --wy: var(--cy);
+  --wx: calc(50cqw + (var(--wxl) - 50cqw) * var(--dir));
+  --wr: calc(hypot(max(var(--wx), 100cqw - var(--wx)), max(var(--wy), 100cqh - var(--wy))) + 2px);
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+@container (aspect-ratio <= 1) {
+  .o-art {
+    --R: clamp(6.5rem, min(56cqw, 34cqh), 24rem);
+    --fw: clamp(2rem, min(var(--R) * 0.5, var(--wc) / 4.15), 9rem);
+    --cy: calc(47cqh - var(--R) * 0.06 - var(--fw) * 0.56 - 1.5rem);
+    --tx: var(--lx);
+    --tx5: var(--lx);
+    --yw: calc(var(--cy) + var(--R) * 0.64 + var(--fs) * 0.705);
+    --y4: calc(var(--cy) + var(--R) * 0.64 + var(--f4) * 0.705);
+    --yf: calc(var(--cy) + var(--R) * 0.64 + var(--fw) * 0.705);
+    --f5: min(var(--fw), var(--wc) / 5.75);
+    --f6: calc(var(--wc) / 7);
+  }
+}
+
+.b1 > .o-art { --bg: var(--color-text); --ring: var(--color-citron); --ink: var(--color-bg); --ink2: var(--color-primary-tint); }
+.b2 > .o-art { --bg: var(--color-citron); --ring: var(--color-text); --ink: var(--color-text); --ink2: var(--color-citron-ink); }
+.b3 > .o-art { --bg: var(--color-bg); --ring: var(--color-primary); --ink: var(--color-text); --ink2: var(--color-muted); }
+.b4 > .o-art { --bg: var(--color-primary); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-bg); --fs: var(--f4); --tx: var(--lx); }
+.b5 > .o-art { --bg: var(--color-night); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-primary-tint); --fs: var(--f5); --tx: var(--tx5); --wxl: calc(var(--lx) + var(--f4) * 0.34); --wy: calc(var(--y4) - var(--f4) * 0.3523); }
+.b6 > .o-art { --bg: var(--color-text); --ring: var(--color-citron); --ink: var(--color-bg); --ink2: var(--color-primary-tint); --wxl: calc(var(--lx) + var(--R) * 0.52); --wy: calc(var(--cy) - var(--R) * 0.1667); }
+
+/* One ring, drawn in every beat's colours: the zero, the O, the window and
+   the full stop. At rest it is each beat's finished pose. */
+.o-ring {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  inset-inline-start: calc(var(--cx) - var(--R) / 2);
+  top: calc(var(--cy) - var(--R) / 2);
+  width: var(--R);
+  height: var(--R);
+  border: solid var(--ring);
+  border-width: calc(var(--R) * 0.16) calc(var(--R) * 0.21);
+  border-radius: 50%;
+  overflow: hidden;
+  translate: 0 0;
+  scale: var(--zx) 1;
+}
+.b4 .o-ring { translate: var(--o-tx) var(--o-ty); scale: var(--o-sx) var(--o-sy); }
+.b5 .o-ring { border-width: calc(var(--R) * 0.12) calc(var(--R) * 0.15); border-radius: 46% / 40%; background-color: var(--color-primary-tint); translate: var(--w-tx) var(--w-ty); scale: 1.04 1.3; }
+.b6 .o-ring { translate: var(--d-tx) var(--d-ty); scale: var(--d-s); }
+.o-fill { position: absolute; inset: -1px; border-radius: 50%; background: var(--ring); }
+
+/* The window's sky. The pane undoes the window's stretch so clouds stay round. */
+.o-pane { position: absolute; inset: -30%; scale: calc(1 / 1.04) calc(1 / 1.3); }
+.o-cloud { position: absolute; aspect-ratio: 64 / 28; fill: var(--color-surface); }
+.o-cloud.c1 { --drift: 0.75; top: 33%; inset-inline-start: 22%; width: 34%; }
+.o-cloud.c2 { --drift: 0.45; top: 52%; inset-inline-start: 56%; width: 19%; scale: -1 1; }
+/* The airplane-mode toggle beside the window's line, shown switched on. */
+.o-sub-mode > .o-rise { display: flex; align-items: center; gap: 0.8em; }
+.o-mode { position: relative; flex: none; width: 2.9em; aspect-ratio: 1; border-radius: 50%; background: color-mix(in srgb, var(--color-bg) 16%, transparent); color: var(--color-surface); }
+.o-mode-on { position: absolute; inset: 0; border-radius: 50%; background: var(--color-airplane-mode); clip-path: circle(71% at 50% 50%); }
+.o-plane { position: absolute; inset: 0; margin: auto; width: 55%; height: 55%; rotate: 45deg; }
+/* The marker on "give it a try": the site's citron stroke (as on the hero and
+   the closing "Give it a try."), under a dark copy of the phrase. */
+.o-mark { position: relative; white-space: nowrap; }
+.o-mark-on { position: absolute; inset: 0; isolation: isolate; color: var(--color-night); white-space: nowrap; user-select: none; }
+.o-mark-on::before { content: ''; position: absolute; inset: 0.12em -0.14em 0.02em; z-index: -1; background: var(--color-citron); border-radius: 0.3em 0.14em 0.26em 0.12em; rotate: -0.6deg; }
+
+/* The words. Each big line sits on the zero's baseline. */
+.o-text { position: absolute; inset-inline: var(--tx) var(--lx); top: calc(var(--yw) - var(--fs) * 0.705); }
+.o-word, .o-sub, .o-lead, .o-last { margin: 0; }
+.o-word { font-size: var(--fs); font-weight: 700; line-height: 1; letter-spacing: -0.035em; text-wrap: balance; }
+.o-rise { display: block; }
+.o-word > .o-rise { text-box: trim-both cap alphabetic; }
+.b4 .o-word > .o-rise { padding-inline-start: 0.681em; }
+.o-s { display: block; }
+.o-sub { margin-top: calc(var(--fs) * 0.4); max-width: 30rem; font-size: clamp(1rem, 0.85rem + 0.6cqw, 1.5rem); line-height: 1.4; color: var(--ink2); text-wrap: pretty; }
+
+/* The last sentence is set against the dot: it ends where the dot starts,
+   and its last baseline is the dot's baseline. */
+.o-fin { --fin-end: calc(100cqw - var(--lx) - var(--wc) + var(--d) + var(--f6) * 0.0413); position: absolute; inset-inline-end: var(--fin-end); bottom: calc(100cqh - var(--yf)); width: calc(var(--f6) * 6.9); max-width: calc(100cqw - var(--tx5) - var(--fin-end)); }
+.o-lead { margin-block: 0 calc(var(--f6) * 0.32); max-width: 78%; font-size: clamp(1rem, 0.85rem + 0.6cqw, 1.375rem); line-height: 1.45; color: var(--ink2); text-wrap: pretty; }
+.o-last { font-size: var(--f6); font-weight: 700; line-height: 1.04; letter-spacing: -0.035em; }
+.o-l1, .o-l2 { display: block; white-space: nowrap; }
+.o-l2 { text-align: end; }
+.o-last > .o-rise { text-box: trim-end cap alphabetic; }
+@supports not (text-box: trim-both cap alphabetic) {
+  .o-word > .o-rise { margin-block: -0.151em -0.145em; }
+  .o-last > .o-rise { margin-block-end: -0.165em; }
+}
+
+/* Motion: the stage pins for 600svh, about a screen of scrolling per beat.
+   Every copy of the ring runs the same path over the whole pin, so the ring
+   is one continuous shape; each beat's colour opens as a circle from it. */
+@keyframes o-path {
+  0%, 47% { translate: 0 0; }
+  53%, 63% { translate: var(--o-tx) var(--o-ty); }
+  70%, 84% { translate: var(--w-tx) var(--w-ty); animation-timing-function: var(--ease-out); }
+  87.5% { translate: var(--p1-tx) var(--h-ty); animation-timing-function: var(--ease-in-out); }
+  91% { translate: var(--d-tx) var(--h-ty); animation-timing-function: cubic-bezier(0.55, 0, 0.3, 1); }
+  95.5%, 100% { translate: var(--d-tx) var(--d-ty); }
+}
+@keyframes o-shape {
+  0%, 47% { scale: var(--zx) 1; }
+  53%, 63% { scale: var(--o-sx) var(--o-sy); }
+  70%, 84% { scale: 1.04 1.3; animation-timing-function: var(--ease-out); }
+  87.5% { scale: calc(var(--d-s) * 2); }
+  95.5%, 100% { scale: var(--d-s); }
+}
+@keyframes o-wipe { from { clip-path: circle(0 at var(--wx) var(--wy)); } to { clip-path: circle(var(--wr) at var(--wx) var(--wy)); } }
+@keyframes o-emerge { from { clip-path: var(--hide); } to { clip-path: var(--show); } }
+@keyframes o-switch { from { clip-path: circle(0 at 50% 50%); } to { clip-path: circle(71% at 50% 50%); } }
+@keyframes o-fill { from { scale: 0; } to { scale: 1; } }
+@keyframes o-drift { from { translate: calc(var(--R) * var(--drift) * -1 * var(--dir)) 0; } to { translate: calc(var(--R) * var(--drift) * var(--dir)) 0; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .o-track { height: calc(600svh + 100lvh - var(--home-nav-height, 0px)); overflow: clip; view-timeline: --the-o block; view-timeline-inset: var(--home-nav-height, 0px) 0px; }
+    .o-stage { position: sticky; top: var(--home-nav-height, 0px); height: calc(100lvh - var(--home-nav-height, 0px)); }
+    .o-beat { position: absolute; inset: 0; height: auto; }
+    .o-art, .o-ring, .o-fill, .o-cloud, .o-word, .o-sub, .o-lead, .o-last, .o-mode-on, .o-mark-on { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
+
+    .o-beat:not(.b1) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
+    .b2 > .o-art { animation-range: contain 10% contain 14%; }
+    .b3 > .o-art { animation-range: contain 27% contain 31%; }
+    .b4 > .o-art { animation-range: contain 44% contain 48%; }
+    .b5 > .o-art { animation-range: contain 63% contain 67%; }
+    .b6 > .o-art { animation-range: contain 81% contain 85%; }
+
+    .o-ring { animation-name: o-path, o-shape; animation-timing-function: var(--ease-in-out); animation-range: contain 0% contain 100%; }
+    .b6 .o-fill { animation-name: o-fill; animation-timing-function: var(--ease-out); animation-range: contain 93% contain 95.5%; }
+    .o-cloud { animation-name: o-drift; animation-range: contain 66% contain 88%; }
+
+    /* Every line is written out from its start edge: the big words out of
+       the ring's side, and the last line reaches the full stop last. */
+    .o-word, .o-sub, .o-lead, .o-last { clip-path: var(--show); animation-name: o-emerge; animation-timing-function: var(--ease-out); }
+    .b1 .o-word { animation-range: entry 70% entry 100%; }
+    .b1 .o-sub { animation-range: entry 85% contain 3%; }
+    .b2 .o-word { animation-range: contain 13% contain 17%; }
+    .b2 .o-sub { animation-range: contain 15% contain 19%; }
+    .b3 .o-word { animation-range: contain 30% contain 34%; }
+    .b3 .o-sub { animation-range: contain 32% contain 36%; }
+    .b4 .o-word { animation-range: contain 52% contain 56.5%; }
+    .b4 .o-sub { animation-range: contain 54.5% contain 58.5%; }
+    .b5 .o-word { animation-range: contain 70% contain 74%; }
+    .b5 .o-sub { animation-range: contain 72% contain 75.5%; }
+    /* Airplane mode turns on, then the marker says give it a try. */
+    .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); animation-range: contain 75.5% contain 77.5%; }
+    .o-mark-on { clip-path: var(--show); animation-name: o-emerge; animation-timing-function: var(--ease-in-out); animation-range: contain 77.5% contain 80.5%; }
+    /* The ring shrinks out of the way, the sentence is written, and then the
+       dot drops onto "them" as its full stop. */
+    .b6 .o-lead { animation-range: contain 86.5% contain 89.5%; }
+    .b6 .o-last { animation-range: contain 87.5% contain 91.5%; }
+  }
+}
