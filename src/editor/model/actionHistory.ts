@@ -37,11 +37,11 @@ interface HistoryEntryBase {
   id: string;
   type: string;
   /**
-   * The page the action started from (e.g. where the user clicked), used for
-   * things like scroll-to-page on undo. For a snapshot entry this is not a
-   * guarantee that every snapshot lives on this page: an add or delete can
-   * place or remove elements across several pages (e.g. "repeat on every
-   * page"), each snapshot carrying its own `element.pageIndex`.
+   * The page the action started from (e.g. where the user clicked). For a
+   * snapshot entry this is not a guarantee that every snapshot lives on this
+   * page: an add or delete can place or remove elements across several pages
+   * (e.g. "repeat on every page"), each snapshot carrying its own
+   * `element.pageIndex`.
    */
   pageIndex: number;
   /** The entry's label, e.g. "Moved signature". Every entry has one. */

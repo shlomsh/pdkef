@@ -18,7 +18,7 @@ import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
-import { repeatOnEveryPage as computeRepeatOnEveryPage, type RepeatableElement } from './repeatOnEveryPage.ts';
+import { repeatOnEveryPage as computeRepeatOnEveryPage } from './repeatOnEveryPage.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import {
   applyHistoryEntries,
@@ -783,17 +783,7 @@ export default function PdfRedactTool() {
   const repeatOnEveryPage = (id: string) => {
     const source = elements.find(el => el.id === id);
     if (!source) return;
-    // RedactHistoryElement's extra fields (left/top/width/height/color/...)
-    // are typed via its own catch-all index signature as `unknown`, so the
-    // pure module's stronger RepeatableElement type (real geometry every box
-    // this function is ever called on actually has) needs this one cast.
-    // Runtime shape is unaffected either way - this only satisfies tsc.
-    const additions = computeRepeatOnEveryPage(
-      source as unknown as RepeatableElement,
-      elements as unknown as RepeatableElement[],
-      numPages,
-      uniqueId,
-    ) as unknown as RedactHistoryElement[];
+    const additions = computeRepeatOnEveryPage(source, elements, numPages, uniqueId);
     if (additions.length === 0) return;
     const baseIndex = elements.length;
     setElements(prev => [...prev, ...additions]);
