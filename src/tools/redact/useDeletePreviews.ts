@@ -8,7 +8,8 @@ const REBUILD_DEBOUNCE_MS = 120;
 interface DeleteLikeElement {
   pageIndex: number;
   type: string;
-  [field: string]: unknown;
+  start?: number;
+  end?: number;
 }
 
 interface DeleteSpanElement extends DeleteLikeElement {
@@ -18,8 +19,7 @@ interface DeleteSpanElement extends DeleteLikeElement {
 }
 
 function isDeleteSpanElement(element: DeleteLikeElement): element is DeleteSpanElement {
-  return element.type === 'delete' && typeof (element as { start?: unknown }).start === 'number'
-    && typeof (element as { end?: unknown }).end === 'number';
+  return element.type === 'delete' && typeof element.start === 'number' && typeof element.end === 'number';
 }
 
 /**
