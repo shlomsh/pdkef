@@ -904,7 +904,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(4);
     });
 
-    it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength', async () => {
+    it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength and redo reapplies it', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
       const blurBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
@@ -943,6 +943,12 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
       expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.5 * 100cqh))');
+
+      // Redo brings the picked strength back.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
     });
 
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
@@ -1561,7 +1567,7 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
-    it('adds a copy to every other page as one undo step, and pressing it again adds nothing more', async () => {
+    it('adds a copy to every other page as one undo step, redoes as one step, and pressing it again adds nothing more', async () => {
       mockPageCount(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -1599,6 +1605,14 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+
+      // One redo puts every copy back, one per page again.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      pageCards.forEach((card) => {
+        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      });
     });
 
     it('shows no repeat button on a single-page document', async () => {
