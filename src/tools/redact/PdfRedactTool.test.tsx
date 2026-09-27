@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach, type Mock } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
@@ -14,6 +14,9 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
+import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
+import { buildPageText } from './find/pageText.ts';
+import { createPageGeometry } from '../../editor/geometry/coords.ts';
 
 declare const __dirname: string;
 
@@ -88,6 +91,14 @@ vi.mock('../../editor/adapters/pdf/redact.js', () => ({
 }));
 
 const mockedRedactPdf = vi.mocked(redactPdf);
+
+// RED-11: jsdom has no real pdf.js text extraction, so Find's own page-text
+// read (usePageTexts.ts) is mocked to hand back synthetic pages built with
+// the same buildPageText/createPageGeometry helpers findMatches.test.ts uses.
+// Defaults to 'idle' (Find never opened) so every test outside the RED-11
+// describe block below is unaffected - only that block overrides it.
+vi.mock('./usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
+const mockedUsePageTexts = vi.mocked(usePageTexts);
 
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
@@ -1900,6 +1911,155 @@ describe('PdfRedactTool UI flow', () => {
       await resizeBox(boxes()[0], 100, 100);
 
       expect(parseFloat(boxes()[1].style.width)).toBeCloseTo(secondWidthBefore);
+    });
+  });
+
+  // RED-11: boxes added by one Find action ("Redact all") share a findSetId
+  // (findSet.ts, pure), so they can be removed together and share blur
+  // strength - the find-set equivalent of the repeat-group describe block
+  // above, and modelled on its helpers.
+  describe('found boxes stay a set (RED-11)', () => {
+    beforeEach(() => {
+      mockedUsePageTexts.mockReturnValue(readyPageTexts());
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts
+    // builds its fixture with), so "Redact all" always adds exactly 2 boxes.
+    function readyPageTexts(): PageTextsState {
+      const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 }, rotation: 0, userUnit: 1 });
+      const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
+      return {
+        status: 'ready',
+        pages: [
+          { text: buildPageText(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]), geometry },
+          { text: buildPageText(1, []), geometry },
+        ],
+      };
+    }
+
+    async function openFindAndSearch(term: string): Promise<void> {
+      const toggle = query<HTMLButtonElement>(container, '[data-redact-find-toggle]');
+      await act(async () => { toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const input = query<HTMLInputElement>(container, '[data-redact-find-input]');
+      await act(async () => {
+        input.value = term;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+
+    async function chooseRedactStyle(label: 'Blackout' | 'Blur'): Promise<void> {
+      const button = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>('[data-redact-find-bar] button'))
+          .find((b) => b.textContent === label),
+        `${label} redact-style button`,
+      );
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    async function clickRedactAll(): Promise<void> {
+      const button = query<HTMLButtonElement>(container, '[data-redact-find-all]');
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    async function selectBox(box: HTMLElement): Promise<void> {
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+
+    // A box-toolbar menu (the delete-scope menu, or the blur-strength menu):
+    // open it on the selected box, then pick an item. Popover portals the
+    // menu to document.body, so the item is found there.
+    async function pickFromBoxMenu(trigger: string, item: string): Promise<void> {
+      const button = query<HTMLButtonElement>(container, `[data-editor-actions] ${trigger}`);
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const choice = required(document.querySelector<HTMLButtonElement>(item), item);
+      await act(async () => { choice.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+
+    it('gives every box added by Redact all one findSetId, offered as "All N from this search"', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-delete-scope-trigger]');
+      await act(async () => { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const item = required(document.querySelector<HTMLButtonElement>('[data-editor-delete-find-set]'), 'find-set delete item');
+      expect(item.textContent).toContain('All 2 from this search');
+    });
+
+    it('"All N from this search" removes exactly that search\'s boxes as one undo step; Undo restores them', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, spent by the drawBox below
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      await drawBox(drawArea, 50, 750, 200, 780); // an unrelated box - must survive the find set's removal
+      expect(boxes()).toHaveLength(3);
+
+      await selectBox(boxes()[0]);
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-find-set]');
+      expect(boxes()).toHaveLength(1);
+
+      // Find's own input still has focus from opening it above -
+      // useHistoryShortcuts deliberately ignores Ctrl/Cmd+Z while an
+      // input/textarea is focused, so it must be blurred first.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(boxes()).toHaveLength(3);
+    });
+
+    it('changing blur strength on one found box changes every box of its search, as one undo step', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await chooseRedactStyle('Blur');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      const before = filterOf(boxes()[0]);
+      expect(filterOf(boxes()[1])).toBe(before);
+
+      await selectBox(boxes()[0]);
+      // 'strong' is DEFAULT_BLUR_STRENGTH (blurStrength.ts), so 'light' is
+      // the choice that actually differs from what a fresh blur box starts with.
+      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      const after = filterOf(boxes()[0]);
+      expect(after).not.toBe(before);
+      expect(filterOf(boxes()[1])).toBe(after);
+
+      // Find's own input still has focus from opening it above - blur it so
+      // Ctrl+Z below is not swallowed by useHistoryShortcuts' input guard.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(filterOf(boxes()[0])).toBe(before);
+      expect(filterOf(boxes()[1])).toBe(before);
+    });
+
+    it('duplicating a found box makes an ordinary box with no findSetId', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      await act(async () => { duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      // duplicateElement selects the new copy, so its own toolbar is on
+      // screen: a plain trash button, since it belongs to no find set (and
+      // no repeat group) any more.
+      expect(container.querySelector('[data-editor-actions] [data-editor-delete-scope-trigger]')).toBeNull();
     });
   });
 
