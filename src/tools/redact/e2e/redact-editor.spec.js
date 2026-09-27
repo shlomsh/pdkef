@@ -669,4 +669,33 @@ test.describe('find and redact (RED-02)', () => {
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
     await expect(page.locator('[data-redact-find-all]')).toHaveText('Redact all 4');
   });
+
+  // RED-11: the four boxes "Redact all" just added share one findSetId, so
+  // trash on any one of them offers to remove the whole search's boxes in a
+  // single step - and leaves an unrelated box, drawn afterwards, untouched.
+  test('trash offers "All N from this search", removes exactly those boxes, and Undo restores them', async ({ page }) => {
+    await openRedactTool(page, await makeFindPdfBuffer());
+    await page.locator('[data-redact-find-toggle]').click();
+    await page.locator('[data-redact-find-input]').fill('jane doe');
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages');
+
+    await page.locator('[data-redact-find-all]').click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);
+
+    // An ordinary box, drawn after the search - well below the matched text
+    // (y ratio 0.6) so it does not overlap any found box.
+    const drawn = await drawRedaction(page, 'Blackout', { x: 0.5, y: 0.6 }, { x: 0.7, y: 0.66 });
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
+
+    const found = page.locator('[class*="redact-box"]').first();
+    await selectRedaction(found);
+    await page.locator('[data-editor-delete-scope-trigger]').click();
+    await page.locator('[data-editor-delete-find-set]').click();
+
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+    await expect(drawn).toBeVisible();
+
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
+  });
 });
