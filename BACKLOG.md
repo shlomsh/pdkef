@@ -700,9 +700,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
+_None._
 
 ### Blocked
 
@@ -717,6 +715,7 @@ _None._
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
+| RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 
 ### Retired
 
