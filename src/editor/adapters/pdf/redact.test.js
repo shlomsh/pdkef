@@ -28,6 +28,11 @@ describe('redactPdf library integration with real fixtures', () => {
   // order. Only the blur flatten path in redact.js ever sets `.filter`, so
   // this array's length is exactly the number of blurred canvases built.
   let appliedFilters;
+  // Every `fillRect()` call on a mocked 2D context records the fillStyle it
+  // was called with, in order. buildBoxBlur's opaque-white fill is the only
+  // fillRect on a temp (blur) canvas; a solid redaction box's fillRect lands
+  // here too, with its own color.
+  let fillRectStyles;
 
   beforeAll(() => {
     const workerPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
@@ -61,6 +66,9 @@ describe('redactPdf library integration with real fixtures', () => {
           if (prop === 'getTransform') {
             return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
           }
+          if (prop === 'fillRect') {
+            return () => fillRectStyles.push(target.fillStyle);
+          }
           return vi.fn();
         },
         set(target, prop, value) {
@@ -76,6 +84,7 @@ describe('redactPdf library integration with real fixtures', () => {
 
   beforeEach(() => {
     appliedFilters = [];
+    fillRectStyles = [];
   });
 
   afterAll(() => {
@@ -163,39 +172,48 @@ describe('redactPdf library integration with real fixtures', () => {
     expect(details.pageTexts).toEqual(['11', '12', '13', '', '15']);
   });
 
-  it('blurs at strong (24px) when a blur box carries no strength', async () => {
+  // num-5.pdf's pages render at 500x500px at the export's scale of 2.5, so a
+  // full-height (100%) box is 500px tall and a half-height (50%) box is
+  // 250px tall. blurStrength.ts's factors (light 0.3, medium 0.4, strong 0.5)
+  // apply to the box's own height, not the page's.
+  it('blurs at strong (half the box height) when a blur box carries no strength', async () => {
     const file = getFixtureFile('num-5.pdf');
     await redactPdf(file, [
       { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
     ]);
 
-    expect(appliedFilters).toEqual(['blur(24px)']);
+    expect(appliedFilters).toEqual(['blur(250px)']);
   });
 
-  it('blurs at the box\'s own strength', async () => {
+  it('blurs at the box\'s own strength, relative to its own height', async () => {
     const file = getFixtureFile('num-5.pdf');
     await redactPdf(file, [
       { id: 'r1', type: 'blur', strength: 'light', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
     ]);
 
-    expect(appliedFilters).toEqual(['blur(12px)']);
+    expect(appliedFilters).toEqual(['blur(150px)']);
   });
 
-  it('builds one blurred canvas per distinct strength on a page, not one per box', async () => {
+  it('gives two boxes of different heights different radii', async () => {
     const file = getFixtureFile('num-5.pdf');
 
     await redactPdf(file, [
-      { id: 'r1', type: 'blur', strength: 'light', pageIndex: 3, left: 0, top: 0, width: 50, height: 50 },
-      { id: 'r2', type: 'blur', strength: 'strong', pageIndex: 3, left: 50, top: 50, width: 50, height: 50 },
-    ]);
-    expect(appliedFilters).toEqual(['blur(12px)', 'blur(24px)']);
-
-    appliedFilters = [];
-    await redactPdf(file, [
       { id: 'r1', type: 'blur', strength: 'strong', pageIndex: 3, left: 0, top: 0, width: 50, height: 50 },
-      { id: 'r2', type: 'blur', strength: 'strong', pageIndex: 3, left: 50, top: 50, width: 50, height: 50 },
+      { id: 'r2', type: 'blur', strength: 'strong', pageIndex: 3, left: 0, top: 50, width: 100, height: 20 },
     ]);
-    expect(appliedFilters).toEqual(['blur(24px)']);
+
+    // r1: 50% of 500px = 250px tall -> strong radius 125px.
+    // r2: 20% of 500px = 100px tall -> strong radius 50px.
+    expect(appliedFilters).toEqual(['blur(125px)', 'blur(50px)']);
+  });
+
+  it('fills the temp canvas with opaque white before drawing the blurred region', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+
+    expect(fillRectStyles).toContain('#ffffff');
   });
 
   it('reports progress once per page, ending at 1', async () => {

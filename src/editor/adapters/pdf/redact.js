@@ -3,7 +3,40 @@ import { getPdfjs } from './pdfjsLoader.js';
 import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
-import { resolveBlurStrength, blurRadius } from '../../model/blurStrength.ts';
+import { blurRadiusPx } from '../../model/blurStrength.ts';
+
+/**
+ * Builds a blurred copy of one box's source region, opaque even where the
+ * blur reaches past the page edge.
+ *
+ * The radius depends on the box's own height (see blurStrength.ts), so each
+ * box needs its own blurred canvas rather than one shared per-page blur. The
+ * source rect is grown by a margin on every side because a blur needs
+ * surrounding pixels to draw from; without the margin the box's edges would
+ * blur toward nothing and look lighter than its center. The temp canvas is
+ * filled opaque white before drawing so the pasted result is fully opaque
+ * even at the page edge, where the grown source rect runs off the original
+ * canvas and would otherwise leave semi-transparent pixels showing the
+ * (unblurred) page underneath.
+ */
+function buildBoxBlur(original, x, y, w, h, radius) {
+  const margin = Math.ceil(3 * radius);
+  const sx = Math.max(0, x - margin);
+  const sy = Math.max(0, y - margin);
+  const sw = Math.min(original.width, x + w + margin) - sx;
+  const sh = Math.min(original.height, y + h + margin) - sy;
+
+  const temp = document.createElement('canvas');
+  temp.width = sw;
+  temp.height = sh;
+  const tctx = temp.getContext('2d');
+  tctx.fillStyle = '#ffffff';
+  tctx.fillRect(0, 0, sw, sh);
+  tctx.filter = `blur(${radius}px)`;
+  tctx.drawImage(original, sx, sy, sw, sh, 0, 0, sw, sh);
+
+  return { canvas: temp, sx, sy };
+}
 
 /**
  * Applies redactions to a PDF by permanently flattening pages containing redaction marks.
@@ -58,28 +91,17 @@ export async function redactPdf(file, elements, onProgress) {
         getElementDefinition(element.type).serialize(element, { redaction: true }),
       );
 
-      // Each blur box pastes from a blurred copy of the entire page canvas at
-      // its own strength, which is much faster and cleaner than blurring
-      // individual sub-regions. Build one blurred canvas per distinct strength
-      // present on this page, before any box is painted; the radius for each
-      // strength comes from blurStrength.ts, which also resolves an absent or
-      // unknown strength to 'strong' (today's 24px look).
-      const blurredCanvases = new Map();
-      const buildBlurredCanvas = (strength) => {
-        const bCanvas = document.createElement('canvas');
-        bCanvas.width = canvas.width;
-        bCanvas.height = canvas.height;
-        const bCtx = bCanvas.getContext('2d');
-        bCtx.filter = `blur(${blurRadius(strength).exportPx}px)`;
-        bCtx.drawImage(canvas, 0, 0);
-        return bCanvas;
-      };
-      for (const instruction of instructions) {
-        if (instruction?.kind !== 'blur') continue;
-        const strength = resolveBlurStrength(instruction.element.strength);
-        if (!blurredCanvases.has(strength)) {
-          blurredCanvases.set(strength, buildBlurredCanvas(strength));
-        }
+      // A blur box's radius is a fraction of its OWN height (blurStrength.ts),
+      // so boxes can't share one page-wide blurred canvas. Snapshot the
+      // original, unredacted page once, before any box is painted, so every
+      // blur box keeps sourcing unredacted pixels the same way the old
+      // shared canvas did.
+      let original = null;
+      if (instructions.some((instruction) => instruction?.kind === 'blur')) {
+        original = document.createElement('canvas');
+        original.width = canvas.width;
+        original.height = canvas.height;
+        original.getContext('2d').drawImage(canvas, 0, 0);
       }
 
       // Draw the registry-provided redaction instructions.
@@ -92,9 +114,11 @@ export async function redactPdf(file, elements, onProgress) {
         const h = (element.height / 100) * viewport.height;
         
         if (instruction.kind === 'blur') {
-          // Paste the blurred section over the original, at this box's own strength
-          const strength = resolveBlurStrength(element.strength);
-          ctx.drawImage(blurredCanvases.get(strength), x, y, w, h, x, y, w, h);
+          // Paste the blurred section over the original, at a radius scaled
+          // to this box's own height.
+          const radius = blurRadiusPx(element.strength, h);
+          const { canvas: blurred, sx, sy } = buildBoxBlur(original, x, y, w, h, radius);
+          ctx.drawImage(blurred, x - sx, y - sy, w, h, x, y, w, h);
         } else {
           // Solid color redact box (defaults to black)
           ctx.fillStyle = element.color || '#000000';
