@@ -7,7 +7,7 @@ import type { MeasureText } from './find/matchBoxes.ts';
 import usePageTexts from './usePageTexts.ts';
 import type { FindRedactStyle, FindSummary } from './FindBar.tsx';
 
-type Cover = { pageIndex: number; type: string; [field: string]: unknown };
+type Cover = { pageIndex: number; type: string; left?: number; top?: number; width?: number; height?: number };
 
 const isBox = (cover: Cover): cover is Cover & PercentBox => (
   cover.type !== 'delete'

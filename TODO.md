@@ -448,6 +448,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
 | RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
+| RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 
 
 ## Migrated context and history

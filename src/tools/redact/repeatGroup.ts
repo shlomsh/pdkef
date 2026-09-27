@@ -14,11 +14,17 @@ export interface GroupableElement {
   id: string;
   pageIndex: number;
   type: string;
-  [key: string]: unknown;
+  repeatGroupId?: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  color?: string;
+  strength?: unknown;
 }
 
 /** Fields an edit to one linked box applies to every box in its group. */
-export const SHARED_FIELDS = ['left', 'top', 'width', 'height', 'color', 'strength'] as const;
+export const SHARED_FIELDS: readonly (keyof GroupableElement)[] = ['left', 'top', 'width', 'height', 'color', 'strength'];
 
 export function groupKey(element: GroupableElement): string {
   const key = element.repeatGroupId;
@@ -44,7 +50,7 @@ export function groupChanges<T extends GroupableElement>(
   changes: Partial<T>,
 ): { id: string; changes: Partial<T> }[] {
   const shared = Object.fromEntries(
-    Object.entries(changes).filter(([key]) => (SHARED_FIELDS as readonly string[]).includes(key)),
+    Object.entries(changes).filter(([key]) => SHARED_FIELDS.includes(key as keyof GroupableElement)),
   ) as Partial<T>;
   const others = Object.keys(shared).length === 0
     ? []
