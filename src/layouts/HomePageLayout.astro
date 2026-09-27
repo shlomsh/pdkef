@@ -227,7 +227,8 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     </div>
     {showTheO && <TheO story={home.theO} />}
     <div id="home-information">
-    <OfflineProof />
+    {/* The O's window beat says this itself while the visitor is offline. */}
+    {!showTheO && <OfflineProof />}
   <div class="card-stack">
 
       {!showTheO && <FeatureCard class="relative isolate overflow-hidden">
@@ -627,6 +628,25 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     border-radius: 0.3em 0.14em 0.26em 0.12em;
     rotate: -0.6deg;
     z-index: -1;
+  }
+  /* The page's last word: once the closing card is well into view, the stroke
+     under "try" is swiped on like a marker instead of printed in place. The
+     scroll sets the cue (--try-marked) and the swipe runs in time, as in The O
+     (TheO.astro). The timeline is the card's own because the card is
+     overflow: hidden, a scroll container, so a timeline on the heading inside
+     it never moves. Without style queries the stroke simply stays drawn. */
+  @property --try-marked { syntax: '<integer>'; inherits: true; initial-value: 0; }
+  @keyframes try-cue { to { --try-marked: 1; } }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .try-workspace { view-timeline: --try-card block; }
+      .try-workspace h2 { animation: try-cue step-start both; animation-timeline: --try-card; animation-range: entry 45% entry 100%; }
+      .try-workspace h2 span::before { clip-path: inset(0 0 0 0); transition: clip-path 0.6s cubic-bezier(0.65, 0, 0.35, 1) 0.15s; }
+      @container not style(--try-marked: 1) {
+        .try-workspace h2 span::before { clip-path: inset(0 100% 0 0); transition: clip-path 0.2s ease; }
+        .try-workspace h2 span:dir(rtl)::before { clip-path: inset(0 0 0 100%); }
+      }
+    }
   }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
