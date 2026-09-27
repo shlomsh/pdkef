@@ -197,6 +197,23 @@
 .b4 .o-word > .o-rise { padding-inline-start: 0.681em; }
 .o-s { display: block; }
 .o-sub { margin-top: calc(var(--fs) * 0.4); max-width: 30rem; font-size: var(--es); line-height: 1.4; color: var(--ink2); text-wrap: pretty; }
+/* The Open source card's link to the code: a pill in the card's own ink,
+   filled on hover and focus. */
+.o-more { margin: calc(var(--fs) * 0.32) 0 0; font-size: var(--es); line-height: 1.2; }
+.o-code { display: inline-flex; align-items: center; gap: 0.55em; padding: 0.6em 1em 0.6em 0.85em; border: 0.09em solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: var(--radius-pill); color: var(--ink); font-weight: 600; text-decoration: none; transition: color 150ms var(--ease-out), background-color 150ms var(--ease-out), border-color 150ms var(--ease-out); }
+.o-code > svg { flex: none; width: 1.2em; height: 1.2em; }
+.o-code > .o-code-out { width: 1em; height: 1em; transition: translate 150ms var(--ease-out); }
+.o-code:hover, .o-code:focus-visible { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.o-code:hover > .o-code-out, .o-code:focus-visible > .o-code-out { translate: 0.12em -0.12em; }
+.o-code:dir(rtl) > .o-code-out { scale: -1 1; }
+.o-code:focus-visible { outline: 0.12em solid var(--ink); outline-offset: 0.18em; }
+/* On a short screen (a laptop, a phone on its side) the link sits beside the line
+   rather than under it, so it stays clear of the bottom edge and the dock. */
+@container (max-height: 46rem) {
+  .b4 .o-text { display: flex; flex-wrap: wrap; align-items: center; column-gap: 1.25em; }
+  .b4 .o-word { flex-basis: 100%; }
+  .b4 .o-more { margin-top: calc(var(--fs) * 0.4); }
+}
 
 /* The last sentence is set against the paper plane: it ends a small gap
    before the plane, and its last baseline is the plane's runway. */
@@ -243,6 +260,9 @@
     .o-beat { position: absolute; inset: 0; height: auto; }
     .bf { display: block; }
     .o-paper-rest { display: none; }
+    /* The beats are stacked layers; only the link in the lit card takes a click. */
+    .o-beat { pointer-events: none; }
+    .o-more { pointer-events: auto; }
     .o-stage, .o-art, .o-ring, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
 
     .o-beat:not(.b1, .bf) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
@@ -264,13 +284,17 @@
        to be there before the paper plane lands on it. Browsers without style
        queries keep the words shown. */
     .o-word, .o-sub, .o-lead, .o-last { transition: opacity 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.45s; }
+    .o-more { transition: opacity 0.8s cubic-bezier(0.37, 0, 0.63, 1) 0.9s, visibility 0.8s 0.9s; }
     .o-sub { transition-delay: 0.65s; }
     .o-lead { transition-delay: 0.15s; }
     .o-last { transition-delay: 0.45s; }
     @container not style(--o-lit: 1) { .b1 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
     @container not style(--o-lit: 2) { .b2 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
     @container not style(--o-lit: 3) { .b3 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
-    @container not style(--o-lit: 4) { .b4 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
+    /* The link also leaves the tab order while its card is not lit, so focus
+       never lands on a link nobody can see (the page's own open source section
+       links to the same code). */
+    @container not style(--o-lit: 4) { .b4 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } .o-more { opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; } }
     @container not style(--o-lit: 5) { .b5 :is(.o-word, .o-sub) { opacity: 0; transition: opacity 0.25s ease; } }
     @container not style(--o-lit: 6) { .b6 :is(.o-lead, .o-last) { opacity: 0; transition: opacity 0.25s ease; } }
 
