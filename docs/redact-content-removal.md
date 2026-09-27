@@ -30,7 +30,8 @@ the secret (`spikes/red-01/check-extractable.mjs`, `check-images.mjs`).
 | Partly covered image | Fails (whole image removed) | Pixels right; an invisible caption leaked a fragment |
 | 77 pages, one box each | not measured | 119 ms |
 
-PDFium costs 7.3 MB of WebAssembly (2.8 MB compressed), MIT wrapper around an Apache-2.0 binary,
+PDFium costs 7.3 MB of WebAssembly (2.8 MB with gzip -9, measured locally; what actually transfers
+depends on the host compressing `.wasm`, which RED-06 measures), MIT wrapper around an Apache-2.0 binary,
 both on the license allowlist.
 
 ## Decision: go, with PDFium, gated on one question
@@ -59,8 +60,8 @@ back for that run.
 
 ## Two ways to save, and the person chooses
 
-Keeping the text costs something that today's export does not: a one-time 2.8 MB download, and more
-work for the phone every time a page is redrawn to show it as it will be saved (RED-04). On an older
+Keeping the text costs something that today's export does not: a one-time download, and more work
+for the phone every time a page is redrawn to show it as it will be saved (RED-04). On an older
 phone or a slow network that cost is real, so it is never spent without the person choosing it.
 
 | | Quick | Keep the text |
@@ -68,7 +69,7 @@ phone or a slow network that cost is real, so it is never spent without the pers
 | What happens | Pages with a box are saved as pictures, as today | Only what is under each box is removed; the rest stays text |
 | Text on those pages | Can't be selected or searched | Stays selectable and searchable |
 | What you see while editing | Your boxes over the page | The page exactly as it will be saved |
-| Cost | Nothing extra | A one-time 2.8 MB download, then works offline; more work per edit |
+| Cost | Nothing extra | A one-time download (2.8 MB compressed, if served compressed), then offline; 7.3 MB stored and compiled; more work per edit |
 
 - **Asked once, when it first matters.** Not on page load. The first time a box is drawn, one quiet
   line in the status row states the choice and its cost in plain words, and drawing is never blocked

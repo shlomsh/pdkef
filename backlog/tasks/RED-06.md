@@ -12,11 +12,17 @@ depends_on: []
 
 *Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
 
-Keeping the text costs a one-time 2.8 MB download (7.3 MB WebAssembly) and more work per edit, which
-matters on an older phone or a slow network. The person chooses; see "Two ways to save" in the record.
+Keeping the text costs a one-time download and more work per edit, which matters on an older phone
+or a slow network. The engine is 7.3 MB of WebAssembly: that is what the phone stores and compiles.
+Compressed it is 2.8 MB (gzip -9, measured locally), but that is only what travels if the host
+compresses `.wasm`, which is unverified for Vercel.
+
+- Measure the real transfer size from a preview deploy first. If `.wasm` is served uncompressed, ship
+  it compressed (or set the header) so the download is the smaller number. The choice line quotes the
+  measured transfer size, never the local estimate. The person chooses; see "Two ways to save" in the record.
 
 - The first box drawn shows one quiet line in the status row: Quick (nothing extra, covered pages
-  saved as pictures) or Keep the text (one-time 2.8 MB download, then offline; the rest of the page
+  saved as pictures) or Keep the text (a one-time download of the measured size, then offline; the rest of the page
   stays text). Drawing is never blocked; the document is in Quick until it is answered.
 - Quick is highlighted, with the reason, only where the browser says the connection or device is slow
   (Save-Data, 2G/3G, `deviceMemory` of 2 or less). Otherwise neither is highlighted.
