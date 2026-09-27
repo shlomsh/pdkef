@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { findSetChanges, findSetKey, findSetMembers, withoutFindSet } from './findSet.ts';
+import { findSetChanges, findSetKey, findSetMembers, withoutFindSet, type FindSetElement } from './findSet.ts';
 
-const box = (id: string, extra: Record<string, unknown> = {}) => ({ id, type: 'blur', left: 1, top: 2, width: 3, height: 4, ...extra });
+const box = (id: string, extra: Record<string, unknown> = {}): FindSetElement => ({ id, type: 'blur', left: 1, top: 2, width: 3, height: 4, ...extra });
 
 describe('findSet', () => {
   const els = [box('a', { findSetId: 's1' }), box('b', { findSetId: 's1', left: 50 }), box('c', { findSetId: 's2' }), box('d')];
