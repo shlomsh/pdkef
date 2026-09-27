@@ -13,6 +13,9 @@ paths:
   - "src/components/AppBar.astro"
   - "src/components/FeatureCard.astro"
   - "src/components/CardDecor.astro"
+  - "src/components/TheO.astro"
+  - "src/components/theO.css"
+  - "src/site-lib/theO*"
   - "src/data/homeContent.js"
   - "src/styles/homePage.css"
   - "e2e/home/**"
@@ -164,3 +167,21 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   (`entry 0% entry 15%`), and remember a scroll-linked animation has no duration: any mid-state must
   pass the contrast floor. `entry` is capped at the scrollport's height, so its percentages are stable
   across card heights; `cover` is not.
+- **Scroll sets the cue, time runs the reveal.** Scrubbing text opacity by scroll parks words at a
+  partial opacity whenever scrolling stops. The O and the closing heading instead animate a registered
+  integer (`@property`, `step-end`/`step-start`) on the scroll timeline and let
+  `@container style(--cue: N)` switch plain transitions, so a fade always completes. Geometry stays
+  scrubbed: moving shapes on timed cues stacked moves up on a fast scroll and skipped beats. The O's
+  pacing is one table, `src/site-lib/theOTimeline.ts`, whose unit test holds the rests and gaps
+  (design record: `docs/home-the-o.md`).
+- **Write scroll-driven animations as longhands.** Beside an `animation` shorthand in the same rule,
+  the build's minifier folds `animation-timeline` into it (`animation: step-start both try-cue
+  --try-card`), which Chrome and Safari reject whole: the closing heading's marker never ran on
+  pdkef.com while the dev server, which does not minify, was fine. Verify scroll-driven CSS on
+  `npm run build`, never only in `astro dev`. Guard: `scripts/check-animation-shorthand.js` (`test:css`).
+- **`overflow: hidden` makes a scroll container**, so a `view()` timeline on anything inside a card
+  never moves. Declare a named `view-timeline` on the card and run the animation on a descendant.
+- **Safari ignores `backface-visibility` in these flips, and never re-evaluates a style query for a
+  pseudo-element** when an animation changes the property it asks about. Draw flips in 2D (squash
+  edge-on, swap faces), and query the real element, handing values to `::before` through inherited
+  custom properties.
