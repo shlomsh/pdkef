@@ -12,6 +12,7 @@ import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../e
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from './useDeletableObjects.js';
+import useDeletePreviews from './useDeletePreviews.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
@@ -377,6 +378,10 @@ export default function PdfRedactTool() {
   // content streams (not what's on the page after any edits this session has
   // queued - the source never changes until export, only `elements` does).
   const deletableObjects: DeletablePdfObject[] = useDeletableObjects(file, fileBytesRef.current);
+  // RED-13: a page with Delete marks renders from the same rewritten content
+  // the download writes, so the deleted text/image disappears on screen
+  // rather than only being outlined.
+  const deletePreviews = useDeletePreviews(fileBytesRef.current, elements);
   const markedForDeletionIds = useMemo(
     () => new Set<string>(elements.flatMap((element) => (
       element.type === 'delete' && typeof element.sourceObjectId === 'string'
@@ -1207,8 +1212,8 @@ export default function PdfRedactTool() {
                   }}
                 >
                   <PdfPageCanvas
-                    pdfDocument={pdfDocument}
-                    pageNum={i + 1}
+                    pdfDocument={deletePreviews.get(i) ?? pdfDocument}
+                    pageNum={deletePreviews.has(i) ? 1 : i + 1}
                     onViewportReady={handlePageViewportReady}
                   />
 

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
-import { deleteObjectsFromPdf, spliceOut, listDeletableObjects } from './deleteObjects.js';
+import {
+  deleteObjectsFromPdf,
+  spliceOut,
+  listDeletableObjects,
+  buildDeletePreviewPage,
+} from './deleteObjects.js';
 
 // A real, valid 1x1 transparent PNG (67 bytes).
 const PNG_1X1_BASE64 =
@@ -237,6 +242,41 @@ describe('deleteObjectsFromPdf', () => {
     const calls = [];
     await deleteObjectsFromPdf(source, [objects[0]], (p) => calls.push(p));
     expect(calls).toEqual([1]);
+  });
+});
+
+describe('buildDeletePreviewPage', () => {
+  it('matches what deleteObjectsFromPdf writes for the same page and spans', async () => {
+    const source = await buildSample();
+    const { objects } = await objectsOf(source);
+    const target = objects.find((o) => o.preview === '123456789');
+
+    const doc = await PDFDocument.load(source);
+    const previewBytes = await buildDeletePreviewPage(doc, 0, [target]);
+
+    const blob = await deleteObjectsFromPdf(source, [target]);
+    const exported = new Uint8Array(await blob.arrayBuffer());
+
+    expect(await textOf(previewBytes)).toBe(await textOf(exported));
+  });
+
+  it('produces exactly one page with the source page rotation and size', async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([500, 300]);
+    page.setRotation({ type: 'degrees', angle: 90 });
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    page.drawText('KEEP', { x: 20, y: 100, size: 12, font });
+    const source = new Uint8Array(await doc.save());
+
+    const loaded = await PDFDocument.load(source);
+    const previewBytes = await buildDeletePreviewPage(loaded, 0, []);
+    const previewDoc = await PDFDocument.load(previewBytes);
+
+    expect(previewDoc.getPageCount()).toBe(1);
+    const previewPage = previewDoc.getPage(0);
+    expect(previewPage.getWidth()).toBe(500);
+    expect(previewPage.getHeight()).toBe(300);
+    expect(previewPage.getRotation().angle).toBe(90);
   });
 });
 
