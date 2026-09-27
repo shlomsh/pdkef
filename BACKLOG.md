@@ -664,9 +664,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
+_None._
 
 ### Blocked
 
@@ -676,6 +674,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 
 ### Retired
