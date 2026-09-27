@@ -261,11 +261,22 @@ test.describe('Redact editor browser guardrails', () => {
       const toolbarRect = await getBox(toolbar, 'blur toolbar');
       offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
 
-      // The strength a person picks is the blur the box paints.
-      await expect(blur.locator('.redact-surface')).toHaveCSS('backdrop-filter', 'blur(8px)');
+      // The strength a person picks scales the blur with the box's own
+      // rendered height (container query units), not a fixed pixel radius -
+      // proof this is real in a browser, not just what the style says.
+      const blurLayer = blur.locator('.redact-surface__blur');
+      const readBlurPx = async () => {
+        const filter = await blurLayer.evaluate((el) => getComputedStyle(el).backdropFilter);
+        const match = filter.match(/blur\(([\d.]+)px\)/);
+        expect(match, `expected a blur() filter, got "${filter}"`).not.toBeNull();
+        return Number(match[1]);
+      };
+      const surfaceHeight = (await getBox(blur.locator('.redact-surface'), 'blur surface')).height;
+
+      expect(await readBlurPx()).toBeCloseTo(0.5 * surfaceHeight, 0);
       await toolbar.locator('[data-editor-blur-strength-trigger]').click();
       await page.locator('[data-editor-blur-strength="light"]').click();
-      await expect(blur.locator('.redact-surface')).toHaveCSS('backdrop-filter', 'blur(4px)');
+      expect(await readBlurPx()).toBeCloseTo(0.3 * surfaceHeight, 0);
     }
 
     await dragBy(page, blur, 2000, -2000);

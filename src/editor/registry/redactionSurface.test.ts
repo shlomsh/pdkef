@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { redactionDrawingPreviewStyle, renderRedactionSurface } from './redactionSurface.ts';
+import {
+  redactionDrawingPreviewStyle,
+  renderRedactionDrawingPreviewContent,
+  renderRedactionSurface,
+} from './redactionSurface.ts';
+
+function blurChild(node: ReturnType<typeof renderRedactionSurface>) {
+  const children = node.props.children;
+  return Array.isArray(children) ? children[0] : children;
+}
 
 describe('redactionDrawingPreviewStyle', () => {
   it('is a translucent black fill for blackout, distinct from the committed solid fill', () => {
@@ -9,24 +18,6 @@ describe('redactionDrawingPreviewStyle', () => {
 
     const committed = renderRedactionSurface('blackout', '#ff0000').props.style;
     expect(committed.backgroundColor).toBe('#ff0000');
-  });
-
-  it('reads the blur backdrop the same way the committed surface does', () => {
-    const preview = redactionDrawingPreviewStyle('blur');
-    expect(preview.backdropFilter).toBe('blur(8px)');
-    expect(preview.border).toBe('2px dashed #000');
-  });
-
-  it('defaults to the strong radius when no strength is given', () => {
-    expect(renderRedactionSurface('blur').props.style.backdropFilter).toBe('blur(8px)');
-    expect(redactionDrawingPreviewStyle('blur').backdropFilter).toBe('blur(8px)');
-  });
-
-  it('reads a lighter radius for the light strength, in both the committed surface and the preview', () => {
-    expect(renderRedactionSurface('blur', undefined, 'light').props.style.backdropFilter).toBe('blur(4px)');
-    expect(renderRedactionSurface('blur', undefined, 'light').props.style.WebkitBackdropFilter).toBe('blur(4px)');
-    expect(redactionDrawingPreviewStyle('blur', undefined, 'light').backdropFilter).toBe('blur(4px)');
-    expect(redactionDrawingPreviewStyle('blur', undefined, 'light').WebkitBackdropFilter).toBe('blur(4px)');
   });
 
   it('uses the remembered whiteout color at full opacity when it is black', () => {
@@ -39,5 +30,44 @@ describe('redactionDrawingPreviewStyle', () => {
     const preview = redactionDrawingPreviewStyle('whiteout', '#ffffff');
     expect(preview.backgroundColor).toBe('#ffffff');
     expect(preview.opacity).toBe(0.7);
+  });
+});
+
+describe('renderRedactionSurface blur', () => {
+  it('makes the surface a size container with no backdrop-filter of its own', () => {
+    const surface = renderRedactionSurface('blur');
+    expect(surface.props.style.containerType).toBe('size');
+    expect(surface.props.style.backdropFilter).toBe('none');
+    expect(surface.props.style.WebkitBackdropFilter).toBe('none');
+  });
+
+  it('defaults to the strong radius (0.5) as a fraction of the box height, on the child blur layer', () => {
+    const child = blurChild(renderRedactionSurface('blur'));
+    expect(child.props.class).toBe('redact-surface__blur');
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.5 * 100cqh))');
+    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.5 * 100cqh))');
+  });
+
+  it('reads a lighter radius (0.3) for the light strength', () => {
+    const child = blurChild(renderRedactionSurface('blur', undefined, 'light'));
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
+  });
+
+  it('blackout and whiteout render no blur child', () => {
+    expect(renderRedactionSurface('blackout', '#000000').props.children).toBeNull();
+    expect(renderRedactionSurface('whiteout', '#ffffff').props.children).toBeNull();
+  });
+});
+
+describe('renderRedactionDrawingPreviewContent', () => {
+  it('returns the blur layer for blur, scaled by strength', () => {
+    const content = renderRedactionDrawingPreviewContent('blur', 'light');
+    expect(content?.props.class).toBe('redact-surface__blur');
+    expect(content?.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
+  });
+
+  it('returns null for blackout and whiteout', () => {
+    expect(renderRedactionDrawingPreviewContent('blackout')).toBeNull();
+    expect(renderRedactionDrawingPreviewContent('whiteout')).toBeNull();
   });
 });
