@@ -1,7 +1,7 @@
 ---
 id: "RED-03"
 title: "Repeat a box on every page"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
