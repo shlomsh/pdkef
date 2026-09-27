@@ -4,6 +4,7 @@ import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import BlurStrengthMenu from './BlurStrengthMenu.tsx';
+import RepeatGroupMenu from './RepeatGroupMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
@@ -20,6 +21,9 @@ export default function ElementToolbar({
   onClone,
   onDelete,
   onRepeatOnEveryPage,
+  repeatGroupSize,
+  onUnlinkFromGroup,
+  onRemoveGroup,
   messages,
 }: {
   element: any;
@@ -31,6 +35,18 @@ export default function ElementToolbar({
   /** RED-03: Redact-only, one box repeated onto every other page. Optional
    * because ElementToolbar is shared with Sign, which never passes it. */
   onRepeatOnEveryPage?: () => void;
+  /** RED-03: how many boxes are in this box's linked set. >= 2 swaps the
+   * plain repeat button for RepeatGroupMenu; undefined or < 2 means the box
+   * is not (or no longer) linked to any other. Redact-only, like the three
+   * repeat/group props around it; Sign never passes it. */
+  repeatGroupSize?: number;
+  /** RED-03: detaches this one box from its linked set; it becomes an
+   * ordinary, unlinked box. Only rendered (inside RepeatGroupMenu) when the
+   * box is linked. */
+  onUnlinkFromGroup?: () => void;
+  /** RED-03: removes every box in the linked set, one undo step. Only
+   * rendered (inside RepeatGroupMenu) when the box is linked. */
+  onRemoveGroup?: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
    * which never passes it, so its English rendering is unaffected. */
@@ -411,7 +427,19 @@ export default function ElementToolbar({
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
       </button>
-      {onRepeatOnEveryPage && (
+      {repeatGroupSize !== undefined && repeatGroupSize >= 2 ? (
+        <RepeatGroupMenu
+          size={repeatGroupSize}
+          title={formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize })}
+          heading={formatMessage(t.repeatGroupHeadingTemplate, { n: repeatGroupSize })}
+          fillLabel={t.repeatGroupFill}
+          unlinkLabel={t.repeatGroupUnlink}
+          removeLabel={t.repeatGroupRemove}
+          onRepeatOnEveryPage={onRepeatOnEveryPage}
+          onUnlinkFromGroup={onUnlinkFromGroup ?? (() => {})}
+          onRemoveGroup={onRemoveGroup ?? (() => {})}
+        />
+      ) : onRepeatOnEveryPage && (
         <button
           type="button"
           className={buttonClass()}
