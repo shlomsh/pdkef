@@ -665,9 +665,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
+_None._
 
 ### Blocked
 
@@ -675,7 +673,9 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 
 ### Retired
 
