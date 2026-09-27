@@ -78,3 +78,6 @@ export interface FindMatch {
   text: string;
   boxes: PercentBox[];
 }
+
+/** The kinds of detail the find panel can propose without a search term. */
+export type PresetKey = 'email' | 'phone' | 'idNumber';

@@ -1,8 +1,10 @@
-import type { PDFPageProxy } from 'pdfjs-dist';
-
 /** The slice of `PDFPageProxy` this module actually needs, so a caller can
  * pass the real pdf.js page with no cast. */
-export type TextStreamPage = Pick<PDFPageProxy, 'streamTextContent'>;
+export interface TextStreamPage {
+  streamTextContent(): {
+    getReader(): { read(): Promise<{ done: boolean; value?: { items: object[] } }> };
+  };
+}
 
 /**
  * Drains a pdf.js page's text stream into a flat array of its raw items,
@@ -30,7 +32,7 @@ export async function readTextItems(page: TextStreamPage): Promise<object[]> {
   const reader = page.streamTextContent().getReader();
   const items: object[] = [];
   for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-    items.push(...chunk.value.items);
+    items.push(...(chunk.value?.items ?? []));
   }
   return items;
 }
