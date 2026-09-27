@@ -1539,11 +1539,13 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   // RED-03: a selected box's "Repeat on every page" button, next to duplicate
-  // in the shared floating toolbar. Only shown once the document has more
-  // than one page (repeatOnEveryPage.ts's own unit tests cover the pure
-  // placement/skip-duplicate logic; this covers the wiring: it fires as one
-  // undo step and announces, mirroring the clear-page block above).
-  describe('repeat a box on every page (RED-03)', () => {
+  // in the shared floating toolbar, and the linked-copies rules that follow
+  // once a box has been repeated: editing, unlinking, removing and
+  // duplicating a group all fire as one undo step. repeatGroup.ts's own unit
+  // tests cover the pure rules directly; this covers PdfRedactTool.tsx's
+  // wiring of them through updateElement/duplicateElement/unlinkFromGroup/
+  // removeGroup, mirroring the clear-page block above.
+  describe('repeat a box on every page, linked copies (RED-03)', () => {
     function mockPageCount(numPages: number) {
       vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
         promise: Promise.resolve({
@@ -1556,15 +1558,59 @@ describe('PdfRedactTool UI flow', () => {
       }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
     }
 
-    async function selectFirstBox(): Promise<HTMLElement> {
-      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+    // loadFileAndGetDrawArea only stubs getBoundingClientRect on the FIRST
+    // page's draw area - fine for every other describe block in this file,
+    // which never drags on any page but the first. A multi-page repeat test
+    // that resizes a copy on page 2 or 3 needs every page's draw area to
+    // have a real (non-0x0) rect too, or its resize handle's own delta math
+    // divides against a vacuous rect (see this file's own "regression"
+    // comment above) and silently computes no change at all.
+    function stubEveryDrawAreaRect(): void {
+      const rect = { left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {} };
+      container.querySelectorAll<HTMLElement>('.redact-draw-area').forEach((el) => {
+        el.getBoundingClientRect = () => rect;
+      });
+    }
+
+    async function selectBox(box: HTMLElement): Promise<void> {
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
+    }
+
+    async function selectFirstBox(): Promise<HTMLElement> {
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await selectBox(box);
       return box;
+    }
+
+    async function repeatSelectedBox(): Promise<void> {
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-trigger]');
+      await act(async () => {
+        repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+    }
+
+    // Same drag-resize gesture as the "resizes an existing box" test above
+    // (mousedown on the bottom-right handle, then a move) - the box must
+    // already be selected for the handle to exist.
+    async function resizeBox(box: HTMLElement, dx: number, dy: number): Promise<void> {
+      const resizer = query<HTMLElement>(box, '[data-editor-resizer="bottom-right"]');
+      await act(async () => {
+        resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: dx, clientY: dy }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mousemove', { clientX: dx, clientY: dy }));
+      });
+      await act(async () => {
+        window.dispatchEvent(new MouseEvent('mouseup'));
+      });
     }
 
     it('adds a copy to every other page as one undo step, redoes as one step, and pressing it again adds nothing more', async () => {
@@ -1572,11 +1618,7 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
-
-      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
-      await act(async () => {
-        repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await repeatSelectedBox();
 
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       expect(pageCards).toHaveLength(3);
@@ -1592,12 +1634,15 @@ describe('PdfRedactTool UI flow', () => {
       expect(announcementRegion.textContent).toContain('Added the box to 2 more pages');
 
       // The original box is still selected, so its toolbar (and the repeat
-      // button on it) is still on screen - pressing it again must add
-      // nothing more, since every other page already has an equivalent box.
-      const repeatButtonAgain = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
-      await act(async () => {
-        repeatButtonAgain.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      // trigger on it) is still on screen if it renders one at all - pressing
+      // it again must add nothing more, since every other page already has
+      // an equivalent box (repeatCopies' own no-op case).
+      const repeatButtonAgain = container.querySelector<HTMLButtonElement>('[data-editor-actions] [data-editor-repeat-group-trigger]');
+      if (repeatButtonAgain) {
+        await act(async () => {
+          repeatButtonAgain.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        });
+      }
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
 
       // One undo removes every copy this action added, leaving only the original.
@@ -1615,13 +1660,173 @@ describe('PdfRedactTool UI flow', () => {
       });
     });
 
-    it('shows no repeat button on a single-page document', async () => {
+    it('shows no repeat trigger on a single-page document', async () => {
       mockPageCount(1);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
       await selectFirstBox();
 
-      expect(container.querySelector('[data-editor-repeat-every-page]')).toBeNull();
+      expect(container.querySelector('[data-editor-repeat-group-trigger]')).toBeNull();
+    });
+
+    it('resizing one linked copy resizes every copy as one undo step, and redo reapplies it', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      stubEveryDrawAreaRect();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const widthBefore = parseFloat(boxes()[0].style.width);
+      expect(boxes().every((box) => parseFloat(box.style.width) === widthBefore)).toBe(true);
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const secondPageBox = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      await selectBox(secondPageBox);
+      await resizeBox(secondPageBox, 100, 100);
+
+      const widthAfter = parseFloat(boxes()[0].style.width);
+      expect(widthAfter).toBeGreaterThan(widthBefore);
+      boxes().forEach((box) => {
+        expect(parseFloat(box.style.width)).toBeCloseTo(widthAfter);
+      });
+
+      // One undo restores every copy to its pre-resize size.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      boxes().forEach((box) => {
+        expect(parseFloat(box.style.width)).toBeCloseTo(widthBefore);
+      });
+
+      // One redo reapplies the resize to every copy.
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
+      });
+      boxes().forEach((box) => {
+        expect(parseFloat(box.style.width)).toBeCloseTo(widthAfter);
+      });
+    });
+
+    it("unlinking a copy stops it following its former group's edits", async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      stubEveryDrawAreaRect();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const secondPageBox = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      await selectBox(secondPageBox);
+      const unlinkButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-unlink]');
+      await act(async () => {
+        unlinkButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      const firstPageBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
+      const thirdPageBox = query<HTMLElement>(pageCards[2], `.${REDACT_BOX}`);
+      const widthBefore = parseFloat(firstPageBox.style.width);
+
+      await selectBox(firstPageBox);
+      await resizeBox(firstPageBox, 100, 100);
+
+      expect(parseFloat(firstPageBox.style.width)).toBeGreaterThan(widthBefore);
+      // Still linked to page 1's box (the group's own key never moved) - it follows.
+      expect(parseFloat(thirdPageBox.style.width)).toBeCloseTo(parseFloat(firstPageBox.style.width));
+      // Unlinked before the resize - untouched by it.
+      expect(parseFloat(secondPageBox.style.width)).toBeCloseTo(widthBefore);
+    });
+
+    it('removes every copy in one undo step', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+
+      const removeButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-remove]');
+      await act(async () => {
+        removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+
+      const announcementRegion = required(
+        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
+        'sr-only announcement region',
+      );
+      expect(announcementRegion.textContent).toContain('Removed the box from 3 pages');
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+    });
+
+    it('duplicating a linked box gives a second set on every page; changing the duplicate leaves the original set unchanged', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      const whiteoutBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} .${toolbarStyles.button}`))
+        .find((btn) => btn.textContent.includes('Whiteout')), 'Whiteout button');
+      await act(async () => {
+        whiteoutBtn.click();
+      });
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const firstBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
+      await selectBox(firstBox);
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      await act(async () => {
+        duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      pageCards.forEach((card) => {
+        expect(card.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+      });
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(6);
+
+      // duplicateElement selects the duplicate of the box that was pressed
+      // (page 0's), so its own toolbar/color trigger is already on screen.
+      const originalColor = query<HTMLElement>(pageCards[0], '.redact-surface--whiteout').style.backgroundColor;
+      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
+      await act(async () => {
+        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      const swatch = required(
+        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
+        'a preset color swatch',
+      );
+      await act(async () => {
+        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+
+      pageCards.forEach((card) => {
+        const surfaces = Array.from(card.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
+        expect(surfaces).toHaveLength(2);
+        // The original set (drawn first, so first in stacking/DOM order) kept its color.
+        expect(surfaces[0].style.backgroundColor).toBe(originalColor);
+      });
+    });
+
+    it('an old-style box with no repeatGroupId behaves as before: editing it never touches any other box', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 220, 220, 520);
+      const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      expect(boxes()).toHaveLength(2);
+
+      const secondWidthBefore = parseFloat(boxes()[1].style.width);
+      await selectBox(boxes()[0]);
+      await resizeBox(boxes()[0], 100, 100);
+
+      expect(parseFloat(boxes()[1].style.width)).toBeCloseTo(secondWidthBefore);
     });
   });
 
