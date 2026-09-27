@@ -18,11 +18,10 @@ import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
-import { groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
-import { findSetMembers, withoutFindSet } from './findSet.ts';
-import { linkedChanges, linkMembers, type LinkKind } from './links.ts';
+import { groupMembers, repeatCopies } from './repeatGroup.ts';
+import { findSetMembers } from './findSet.ts';
+import useLinkedBoxes from './useLinkedBoxes.ts';
 import type { RedactHistoryElement } from './redactElements.ts';
-import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar from './FindBar.tsx';
 import FindHighlights from './FindHighlights.tsx';
@@ -72,18 +71,6 @@ function describeRedactUpdate(kind: ElementUpdateKind, type: string): string {
   if (kind === 'resize') return `Resized ${type} box`;
   return `Changed ${type} box color`;
 }
-
-/** removeLinked's history type and description for each kind, by member count. */
-const REMOVE_LINKED_LABEL: Record<LinkKind, (count: number) => { type: string; description: string }> = {
-  repeatGroup: (count) => ({
-    type: 'REMOVE_REPEAT_GROUP',
-    description: `Removed the box from ${count} page${count === 1 ? '' : 's'}`,
-  }),
-  findSet: (count) => ({
-    type: 'REMOVE_FIND_SET',
-    description: `Removed ${count} boxes from this search`,
-  }),
-};
 
 type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
 
@@ -640,22 +627,20 @@ export default function PdfRedactTool() {
     });
   };
 
-  // RED-03: a linked box's edit reaches every member of its repeat group.
-  // links.ts's `linkedChanges` turns `changes` into the per-box changes the
-  // edited box and each of its linked siblings get; an unlinked box or a
-  // change to a non-shared field (e.g. repeatGroupId, see unlinkFromGroup
-  // below) comes back as a single-box list, so `commands.update` builds a
-  // plain single-update entry exactly as before - the edited box's own
-  // change through describeUpdate, every other box's captured change
-  // appended to that one entry's `updates`, so the whole group reverts and
-  // reapplies together.
-  //
-  // RED-11: linkedChanges does the same for the box's find set (strength
-  // only), merging both link kinds by id so a box in both contributes one
-  // update, not two.
-  const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
-    commands.update(id, linkedChanges(elements, id, changes));
-  };
+  // RED-14: every edit that can fan out to a linked box's repeat group or
+  // find set - updateElement, duplicateElement, unlinkFromGroup,
+  // removeLinked, clearPage/clearPageOptions, repeatOnEveryPage - lives in
+  // useLinkedBoxes.ts now. `select` mirrors what duplicateElement itself
+  // used to do: sets both the sticky selection and the hover target to the
+  // box it just created.
+  const linkedBoxes = useLinkedBoxes<RedactHistoryElement>({
+    elements,
+    numPages,
+    uniqueId,
+    commands,
+    select: (id) => { setSelectedBoxId(id); setActiveBoxId(id); },
+  });
+  const { updateElement, unlinkFromGroup, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions } = linkedBoxes;
 
   // Cmd/Ctrl+Z: revert the single newest command. `past.slice(0, 1)` is read
   // inside applyRevert's own updater, not from this render's closure, which
@@ -732,29 +717,6 @@ export default function PdfRedactTool() {
     rememberBlurStrength(strength);
   };
 
-  // RED-03: duplicating a linked box duplicates its whole group into a new
-  // set of its own (duplicateGroup, repeatGroup.ts, pure) - the toolbar's own
-  // pre-built clone object is ignored (RedactBox wraps onClone to call this
-  // by id instead) because the source of a linked box can't be found from
-  // geometry alone once several boxes share the same offset. Selects the
-  // duplicate of the box that was actually pressed, not just the first one.
-  const duplicateElement = (id: string) => {
-    const members = groupMembers(elements, id);
-    // RED-11: a duplicate never joins the source's find set - it is a new,
-    // independent box, even when the source itself was a found one.
-    const additions = duplicateGroup(elements, id, uniqueId).map(withoutFindSet);
-    if (additions.length === 0) return;
-    const pressedIndex = members.findIndex((member) => member.id === id);
-    const duplicateId = additions[pressedIndex]?.id ?? additions[0].id;
-    setSelectedBoxId(duplicateId);
-    setActiveBoxId(duplicateId);
-    const type = additions.length === 1 ? 'DUPLICATE_ELEMENT' : 'DUPLICATE_REPEAT_GROUP';
-    const description = additions.length === 1
-      ? `Duplicated ${additions[0].type} box`
-      : `Duplicated the box on ${additions.length} pages`;
-    commands.add(additions, { type, description });
-  };
-
   // RED-02: find and redact. Every box of every chosen match (one per line
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
@@ -784,71 +746,6 @@ export default function PdfRedactTool() {
     commands.add(additions, { type: 'FIND_AND_REDACT', description });
     setAnnouncement(`${description}.`);
     find.setCurrentId(nextId);
-  };
-
-  // RED-03: detaches one box from its repeat group so future edits stop
-  // reaching its former siblings. `repeatGroupId` is not one of
-  // linkedChanges'/updateElement's shared fields, so this is deliberately not
-  // routed through updateElement's group-aware path - it must only ever
-  // touch the one box, never propagate.
-  const unlinkFromGroup = (id: string) => {
-    const changes = { repeatGroupId: uniqueId() } as Partial<RedactHistoryElement>;
-    commands.update(id, [{ id, changes }], { describe: () => 'Unlinked the box on this page' });
-  };
-
-  // RED-03/RED-11: removes every box linked to `id` by the given kind (its
-  // repeat group or its find set) in one undo step. Once removeGroup and
-  // removeFindSet, now one function over links.ts's `linkMembers` - the two
-  // sets never shared a removal path before because nothing named what they
-  // had in common.
-  const removeLinked = (id: string, kind: LinkKind) => {
-    const members = linkMembers(elements, id, kind);
-    if (members.length === 0) return;
-    const { type, description } = REMOVE_LINKED_LABEL[kind](members.length);
-    commands.remove(new Set(members.map((member) => member.id)), { type, description, pageIndex: members[0].pageIndex });
-  };
-
-  // RED-03: `keepRepeated` clears only the page's own boxes and leaves any
-  // box repeated on other pages in place, with its set intact.
-  const clearPage = (pageIndex: number, { keepRepeated = false } = {}) => {
-    const clears = (el: RedactHistoryElement) => el.pageIndex === pageIndex && !(keepRepeated && isRepeated(elements, el));
-    const removed = elements.filter(clears);
-    if (removed.length === 0) return;
-    const description = `Cleared ${removed.length} box${removed.length === 1 ? '' : 'es'} on page ${pageIndex + 1}`;
-    commands.remove(new Set(removed.map((el) => el.id)), { type: 'CLEAR_PAGE', description, pageIndex });
-  };
-
-  // RED-03: Clear page asks only when the page holds a repeated box, so a
-  // copy never disappears from its set without the person choosing it.
-  const clearPageOptions = (pageIndex: number): ToolbarMenuItem[] | undefined => {
-    const onPage = elements.filter(el => el.pageIndex === pageIndex);
-    if (!onPage.some(el => isRepeated(elements, el))) return undefined;
-    const ownBoxes = onPage.some(el => !isRepeated(elements, el));
-    return [
-      ...(ownBoxes
-        ? [{ label: 'Keep the repeated boxes', onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
-        : []),
-      { label: 'Clear everything on this page', onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
-    ];
-  };
-
-
-  // RED-03: a selected box, copied onto every other page at the same
-  // percentage position, size, color and strength - one undo step for the
-  // whole batch, every copy joined to the source's repeat group so a later
-  // edit, unlink or remove reaches all of them. repeatGroup.ts's
-  // `repeatCopies` (pure) decides which pages get a copy, what it looks like
-  // and its group id; this only appends, logs and announces, same shape as
-  // clearPage above.
-  const repeatOnEveryPage = (id: string) => {
-    const source = elements.find(el => el.id === id);
-    if (!source) return;
-    // RED-11: a repeated copy never joins the source's find set (same
-    // reasoning as duplicateElement above).
-    const additions = repeatCopies(source, elements, numPages, uniqueId).map(withoutFindSet);
-    if (additions.length === 0) return;
-    const description = `Added the box to ${additions.length} more page${additions.length === 1 ? '' : 's'}`;
-    commands.add(additions, { type: 'REPEAT_ON_EVERY_PAGE', description, undoChip: true });
   };
 
   const handleSavePdf = async (exportAction = 'download') => {
