@@ -1,4 +1,5 @@
 import styles from './EditorPageHeader.module.css';
+import ToolbarMenu, { type ToolbarMenuItem } from './ToolbarMenu.tsx';
 
 /*
  * The row above each rendered page in the Sign and Redact editors: the page's
@@ -10,10 +11,15 @@ import styles from './EditorPageHeader.module.css';
  * its tooltip differs (boxes vs annotations). The header itself is rendered
  * unconditionally so a page doesn't shift up and down as its last element is
  * added or removed - the button is what appears and disappears.
+ *
+ * `clearOptions` (RED-03, Redact) turns the button into a short menu when
+ * clearing has more than one meaning, e.g. keeping boxes repeated on every
+ * page; without it the button clears in one tap, as it always has.
  */
 export default function EditorPageHeader({
   pageNumber,
   onClear,
+  clearOptions,
   clearTitle,
   // LOC-16: "Page N" and "Clear page" are now sourced from SignMessages on
   // /he/sign/ (see PdfWorkspace.tsx) - the props below default to the exact
@@ -26,26 +32,38 @@ export default function EditorPageHeader({
 }: {
   pageNumber: number;
   onClear: (() => void) | null;
+  clearOptions?: ToolbarMenuItem[];
   clearTitle?: string;
   pageLabel?: string;
   clearLabel?: string;
   lang?: string;
   dir?: 'ltr' | 'rtl';
 }) {
+  const trashIcon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
   return (
     <div className={styles['page-header']} data-editor-page-header dir={dir} lang={lang}>
       <span className={styles['page-number']} data-editor-page-number>{pageLabel ?? `Page ${pageNumber}`}</span>
-      {onClear && (
+      {onClear && clearOptions && clearOptions.length > 0 ? (
+        <ToolbarMenu
+          title={clearTitle ?? clearLabel}
+          triggerClassName={styles['clear-page']}
+          triggerAttrs={{ 'data-editor-clear-page-trigger': true }}
+          triggerContent={<>{trashIcon}{clearLabel}</>}
+          items={clearOptions}
+        />
+      ) : onClear && (
         <button
           type="button"
           className={styles['clear-page']}
           title={clearTitle}
           onClick={onClear}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-          </svg>
+          {trashIcon}
           {clearLabel}
         </button>
       )}

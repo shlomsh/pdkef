@@ -541,7 +541,8 @@
      stand-down step; twelve took that ladder away with it.
      Nine, by contrast, lands exactly - 3 * 71.2 + 2 * 4.8 = 223.2px at a 320px
      viewport, the full content box, with a 71.2px target instead of 44px - and
-     it is the count Redact reaches here.
+     it was Redact's count here until RED-02's Find made it ten, which packs
+     4+4+2 at this width (accepted, and pinned in toolbar-touch-targets.spec.js).
      Date is not one of these. It is a document-editing control, which this
      pattern is never applied to, and it no longer pays for its place with its
      label either: the label came back when History left (see the 1300px block

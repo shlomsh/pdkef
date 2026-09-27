@@ -4,6 +4,7 @@ import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import BlurStrengthMenu from './BlurStrengthMenu.tsx';
+import ToolbarMenu from './ToolbarMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
 import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
@@ -19,6 +20,10 @@ export default function ElementToolbar({
   onPreviewFontEnd,
   onClone,
   onDelete,
+  onRepeatOnEveryPage,
+  repeatGroupSize,
+  onUnlinkFromGroup,
+  onRemoveGroup,
   messages,
 }: {
   element: any;
@@ -27,6 +32,21 @@ export default function ElementToolbar({
   onPreviewFontEnd?: () => void;
   onClone: (...args: any[]) => void;
   onDelete: (...args: any[]) => void;
+  /** RED-03: Redact-only, one box repeated onto every other page. Optional
+   * because ElementToolbar is shared with Sign, which never passes it. */
+  onRepeatOnEveryPage?: () => void;
+  /** RED-03: how many boxes are in this box's linked set. >= 2 swaps the
+   * plain repeat button for the linked set's menu, and makes trash ask
+   * whether to delete this page's box or all of them; undefined or < 2 means the box
+   * is not (or no longer) linked to any other. Redact-only, like the three
+   * repeat/group props around it; Sign never passes it. */
+  repeatGroupSize?: number;
+  /** RED-03: detaches this one box from its linked set; it becomes an
+   * ordinary, unlinked box. Offered in the linked set's menu. */
+  onUnlinkFromGroup?: () => void;
+  /** RED-03: removes every box in the linked set, one undo step. Offered
+   * by trash on a linked box, beside "This page" (onDelete). */
+  onRemoveGroup?: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
    * which never passes it, so its English rendering is unaffected. */
@@ -54,6 +74,22 @@ export default function ElementToolbar({
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
+  // RED-03: a repeated box's linked set, when it has one.
+  const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
+  const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
+  const pagesIcon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="2" width="14" height="16" rx="2" />
+      <path d="M4 6v14a2 2 0 0 0 2 2h12" />
+    </svg>
+  );
+  const trashIcon = (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+
   // SIGN-08: the same typography descriptor TextNode renders with and
   // text.ts exports with (fonts.js) - family, and which weight/style the
   // resolved family actually has a real file for, computed once instead of
@@ -74,7 +110,7 @@ export default function ElementToolbar({
   const boldReasonId = useId();
   const italicReasonId = useId();
 
-  // Edge case: a saved draft (drafts persist 14 days) or a family switch can
+  // Edge case: a saved draft (drafts persist 28 days) or a family switch can
   // leave fontWeight/fontStyle 'bold'/'italic' on a family with no real face
   // for it - pre-W5 elements, or the user toggled Bold then picked a
   // Regular-only display face. Deliberately not rewritten here: the element
@@ -407,17 +443,54 @@ export default function ElementToolbar({
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
       </button>
-      <button
-        type="button"
-        className={buttonClass(false, true)}
-        onClick={onDelete}
-        title={t.deleteElementTitle}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        </svg>
-      </button>
+      {linked ? (
+        <ToolbarMenu
+          title={groupLabel}
+          heading={groupLabel}
+          triggerClassName={buttonClass()}
+          triggerAttrs={{ 'data-editor-repeat-group-trigger': true }}
+          triggerContent={<>{pagesIcon}<span className={styles['repeat-group-count']}>{repeatGroupSize}</span></>}
+          items={[
+            ...(onRepeatOnEveryPage
+              ? [{ label: t.repeatGroupFill, onSelect: onRepeatOnEveryPage, attrs: { 'data-editor-repeat-group-fill': true } }]
+              : []),
+            ...(onUnlinkFromGroup
+              ? [{ label: t.repeatGroupUnlink, onSelect: onUnlinkFromGroup, attrs: { 'data-editor-repeat-group-unlink': true } }]
+              : []),
+          ]}
+        />
+      ) : onRepeatOnEveryPage && (
+        <button
+          type="button"
+          className={buttonClass()}
+          onClick={onRepeatOnEveryPage}
+          title={t.repeatOnEveryPageTitle}
+          data-editor-repeat-every-page
+        >
+          {pagesIcon}
+        </button>
+      )}
+      {linked && onRemoveGroup ? (
+        <ToolbarMenu
+          title={t.deleteElementTitle}
+          triggerClassName={buttonClass(false, true)}
+          triggerAttrs={{ 'data-editor-delete-scope-trigger': true }}
+          triggerContent={trashIcon}
+          items={[
+            { label: t.deleteThisPage, onSelect: onDelete, attrs: { 'data-editor-delete-this-page': true } },
+            { label: formatMessage(t.deleteAllPagesTemplate, { n: repeatGroupSize }), onSelect: onRemoveGroup, attrs: { 'data-editor-delete-all-pages': true } },
+          ]}
+        />
+      ) : (
+        <button
+          type="button"
+          className={buttonClass(false, true)}
+          onClick={onDelete}
+          title={t.deleteElementTitle}
+        >
+          {trashIcon}
+        </button>
+      )}
     </>
   );
 }

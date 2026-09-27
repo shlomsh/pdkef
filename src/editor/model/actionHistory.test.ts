@@ -75,6 +75,55 @@ describe('action history commands', () => {
     expect(ids(revertHistoryEntries([otherPage], [command]))).toEqual(ids(beforeClear));
   });
 
+  it('accepts and reverts an add entry whose snapshots span multiple pages (repeat on every page)', () => {
+    const isElement = (value: unknown): value is EditorElement => (
+      Boolean(value) && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string'
+    );
+    const onPage1: EditorElement = { ...middle, id: 'copy-1', pageIndex: 1 };
+    const onPage2: EditorElement = { ...middle, id: 'copy-2', pageIndex: 2 };
+    const command = createActionEntry({
+      operation: 'add',
+      type: 'REPEAT_ON_EVERY_PAGE',
+      pageIndex: 0,
+      description: 'Repeated on every page',
+      elements: [
+        captureAddedElement(middle, 0),
+        captureAddedElement(onPage1, 0),
+        captureAddedElement(onPage2, 0),
+      ],
+    });
+
+    expect(isActionHistoryEntry(command, isElement)).toBe(true);
+
+    const afterAdd = [back, middle, front, onPage1, onPage2];
+    expect(ids(revertHistoryEntries(afterAdd, [command]))).toEqual(['back', 'front']);
+  });
+
+  it('rejects a snapshot element with a negative or non-integer pageIndex', () => {
+    const isElement = (value: unknown): value is EditorElement => (
+      Boolean(value) && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'string'
+    );
+    const command = createActionEntry({
+      operation: 'add',
+      type: 'REPEAT_ON_EVERY_PAGE',
+      pageIndex: 0,
+      description: 'Repeated on every page',
+      elements: [captureAddedElement(middle, 0)],
+    });
+
+    const negative = {
+      ...command,
+      elements: [{ element: { ...middle, id: 'copy-1', pageIndex: -1 }, index: 0 }],
+    };
+    const fractional = {
+      ...command,
+      elements: [{ element: { ...middle, id: 'copy-2', pageIndex: 1.5 }, index: 0 }],
+    };
+
+    expect(isActionHistoryEntry(negative, isElement)).toBe(false);
+    expect(isActionHistoryEntry(fractional, isElement)).toBe(false);
+  });
+
   it('applies selective history in newest-first order like repeated single undo', () => {
     const add = createActionEntry({
       operation: 'add', type: 'ADD_SHAPE', pageIndex: 0, description: 'Added rectangle',

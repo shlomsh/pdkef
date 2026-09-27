@@ -56,7 +56,11 @@ export default function RedactBox({
   onDelete,
   onChangeColor,
   onChangeStrength,
-  onClone
+  onDuplicate,
+  onRepeatOnEveryPage,
+  repeatGroupSize,
+  onUnlinkFromGroup,
+  onRemoveGroup,
 }: {
   el: any;
   isSelected: boolean;
@@ -69,7 +73,15 @@ export default function RedactBox({
   onDelete: (id: string) => void;
   onChangeColor: (id: string, color: string) => void;
   onChangeStrength: (id: string, strength: BlurStrength) => void;
-  onClone: (...args: any[]) => void;
+  /** RED-03: duplicates `el`'s whole repeat group by id - the toolbar's own
+   * pre-built clone object is ignored (see onClone below). */
+  onDuplicate: (id: string) => void;
+  /** RED-03: only passed when repeating would add at least one box. */
+  onRepeatOnEveryPage?: (id: string) => void;
+  /** RED-03: how many pages carry a copy of this box's group, `el` included. */
+  repeatGroupSize?: number;
+  onUnlinkFromGroup?: () => void;
+  onRemoveGroup?: () => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const { refs, floatingStyles, placement, update } = useFloating({
@@ -236,8 +248,15 @@ export default function RedactBox({
               if (changes.color) onChangeColor(el.id, changes.color);
               if (changes.strength) onChangeStrength(el.id, changes.strength);
             }}
-            onClone={onClone}
+            // RED-03: the toolbar's own clone object can't identify a linked
+            // box's source once several boxes share the same geometry
+            // offset, so it's ignored in favour of duplicating by id.
+            onClone={() => onDuplicate(el.id)}
             onDelete={() => onDelete(el.id)}
+            onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
+            repeatGroupSize={repeatGroupSize}
+            onUnlinkFromGroup={onUnlinkFromGroup}
+            onRemoveGroup={onRemoveGroup}
           />
         </div>
       )}
