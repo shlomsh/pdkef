@@ -1,7 +1,7 @@
 ---
 id: "RED-08"
 title: "Annotations, form field values and form XObjects under a box"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: ["RED-07"]
 ---
 
 # RED-08 · Annotations, form field values and form XObjects under a box
+
+**Retired 2026-09-27** in favour of RED-12: annotations, field values and form XObjects under a box only survive when content is edited in place. Whatever today's picture export still carries over is checked by RED-12's audit item. Shlomi's review of the epic found the engine path cost more than the one problem it solved (text on covered pages can't be selected or searched). The PDFium measurements stay in [docs/redact-content-removal.md](../../docs/redact-content-removal.md) if vector fidelity or file size is ever asked for.
 
 *Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
 

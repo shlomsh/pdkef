@@ -429,7 +429,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 
-## Redact: real removal, find and redact, and what you see is what you save (2026-09-27)
+## Redact: find and redact, and covered pages that keep their text (2026-09-27)
 
 | ID | Priority | Task |
 | --- | --- | --- |
@@ -441,9 +441,10 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-06 | P1 | [RED-06](backlog/tasks/RED-06.md) · Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text |
 | RED-07 | P1 | [RED-07](backlog/tasks/RED-07.md) · Remove text, image pixels and paths under each box, with per-page flattening fallback |
 | RED-08 | P1 | [RED-08](backlog/tasks/RED-08.md) · Annotations, form field values and form XObjects under a box |
-| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export, and a done state that tells the person per page |
-| RED-10 | P2 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout removes what it covers, through the same engine |
+| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
+| RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
+| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 
 

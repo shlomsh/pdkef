@@ -1,7 +1,7 @@
 ---
 id: "RED-06"
 title: "Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: []
 ---
 
 # RED-06 · Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text
+
+**Retired 2026-09-27** in favour of RED-12: the Quick or Keep the text choice, the 7.3 MB engine download and its offline pack. RED-12 keeps the text with no download and no choice. Shlomi's review of the epic found the engine path cost more than the one problem it solved (text on covered pages can't be selected or searched). The PDFium measurements stay in [docs/redact-content-removal.md](../../docs/redact-content-removal.md) if vector fidelity or file size is ever asked for.
 
 *Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
 
