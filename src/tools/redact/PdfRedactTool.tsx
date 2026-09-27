@@ -1115,7 +1115,10 @@ export default function PdfRedactTool() {
                     // already carry a copy - a dummy id generator here is
                     // enough to answer "would this add anything", without
                     // spending real ids on a box that may never be created.
-                    const canRepeat = numPages > 1 && repeatCopies(el, elements, numPages, () => '').length > 0;
+                    // Only the selected box shows its toolbar, so only it pays for
+                    // the linked-set lookups (each walks every element).
+                    const selected = el.id === selectedBoxId;
+                    const canRepeat = selected && numPages > 1 && repeatCopies(el, elements, numPages, () => '').length > 0;
                     return (
                       <RedactBox
                         key={el.id}
@@ -1132,7 +1135,7 @@ export default function PdfRedactTool() {
                         onChangeStrength={changeBlurStrength}
                         onDuplicate={duplicateElement}
                         onRepeatOnEveryPage={canRepeat ? repeatOnEveryPage : undefined}
-                        repeatGroupSize={groupMembers(elements, el.id).length}
+                        repeatGroupSize={selected ? groupMembers(elements, el.id).length : undefined}
                         onUnlinkFromGroup={() => unlinkFromGroup(el.id)}
                         onRemoveGroup={() => removeGroup(el.id)}
                       />
