@@ -530,11 +530,13 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
 });
 
 // RED-03: "Repeat on every page" - a selected box copied onto every other
-// page at the same percentage position/size, in one undo step.
-// repeatOnEveryPage.test.ts covers the pure placement logic and
+// page at the same percentage position/size, in one undo step, and every
+// copy stays linked: editing one moves/resizes them all as one undo step.
+// repeatGroup.test.ts covers the pure placement/linking logic and
 // PdfRedactTool.test.tsx covers the wiring in jsdom; this is the one thing
-// neither can prove - that the rendered box on a differently-scrolled page
-// really lands at the same relative spot once the browser lays pages out.
+// neither can prove - that the rendered boxes on differently-scrolled real
+// pages really land at the same relative spot, and really move together,
+// once the browser lays pages out.
 test.describe('repeat a box on every page (RED-03)', () => {
   test.afterEach(async ({ page }) => {
     await assertNoCspViolations(page);
@@ -563,7 +565,7 @@ test.describe('repeat a box on every page (RED-03)', () => {
     const blackout = await drawRedaction(page, 'Blackout', { x: 0.2, y: 0.18 }, { x: 0.42, y: 0.28 });
     await selectRedaction(blackout);
 
-    const repeatButton = page.locator('[data-editor-repeat-every-page]');
+    const repeatButton = page.locator('[data-editor-repeat-group-trigger]');
     await expect(repeatButton).toBeVisible();
     await repeatButton.click();
 
@@ -581,8 +583,40 @@ test.describe('repeat a box on every page (RED-03)', () => {
       }
     }
 
-    // One keyboard undo removes every copy this action added, leaving only
-    // the original box on the first page.
+    // Linked copies (added 2026-09-27, before RED-03 shipped): dragging a
+    // resize handle on the page-2 copy must move every other copy along
+    // with it, as one undo step - not just place a copy once and leave it
+    // an independent box afterwards.
+    const page2Box = pageCards.nth(1).locator('[class*="redact-box"]');
+    await selectRedaction(page2Box);
+    const handle = page2Box.locator('[data-editor-resizer="bottom-right"]');
+    const handleBox = await getBox(handle, 'page 2 copy resize handle');
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x + handleBox.width / 2 + 60, handleBox.y + handleBox.height / 2 + 40);
+    await page.mouse.up();
+
+    const page1RatioAfterResize = await boxRatioWithinPage(pageCards.nth(0));
+    const page2RatioAfterResize = await boxRatioWithinPage(pageCards.nth(1));
+    const page3RatioAfterResize = await boxRatioWithinPage(pageCards.nth(2));
+    expect(page2RatioAfterResize.width).toBeGreaterThan(sourceRatio.width + 0.02);
+    for (const [label, ratio] of [['page 1', page1RatioAfterResize], ['page 3', page3RatioAfterResize]]) {
+      for (const key of ['left', 'top', 'width', 'height']) {
+        expect(Math.abs(ratio[key] - page2RatioAfterResize[key]), `${label} ${key} should match the resized page 2 copy`)
+          .toBeLessThan(TOLERANCE);
+      }
+    }
+
+    // One keyboard undo reverts the linked resize on every copy, back to
+    // matching their pre-resize size and position.
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    const page1RatioAfterUndo = await boxRatioWithinPage(pageCards.nth(0));
+    for (const key of ['left', 'top', 'width', 'height']) {
+      expect(Math.abs(page1RatioAfterUndo[key] - sourceRatio[key])).toBeLessThan(TOLERANCE);
+    }
+
+    // A second keyboard undo removes every copy the repeat action added,
+    // leaving only the original box on the first page.
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
   });
