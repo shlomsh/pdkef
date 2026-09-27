@@ -2061,6 +2061,91 @@ describe('PdfRedactTool UI flow', () => {
       // no repeat group) any more.
       expect(container.querySelector('[data-editor-actions] [data-editor-delete-scope-trigger]')).toBeNull();
     });
+
+    // A box can be in both sets at once: found by "Redact all" and then also
+    // repeated onto every page. updateElement merges groupChanges and
+    // findSetChanges by id (mergeChangesById), so an edit to it must reach
+    // both the other found box on this page AND its own copies on other
+    // pages, as one undo step.
+    it('a found box that is also repeated: changing it updates the other found boxes and its copies on other pages, as one undo step', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await chooseRedactStyle('Blur');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2); // both found, both on page 0
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3); // the found box's copy landed on page 1
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const boxesOnPage1 = Array.from(pageCards[0].querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const otherFoundBox = required(boxesOnPage1.find((box) => box !== boxes()[0]), 'the other found box on page 1');
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      const before = filterOf(boxes()[0]);
+      expect(filterOf(otherFoundBox)).toBe(before);
+      expect(filterOf(copyOnPage2)).toBe(before);
+
+      await selectBox(boxes()[0]);
+      // 'strong' is DEFAULT_BLUR_STRENGTH, so 'light' actually differs.
+      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      const after = filterOf(boxes()[0]);
+      expect(after).not.toBe(before);
+      expect(filterOf(otherFoundBox)).toBe(after);
+      expect(filterOf(copyOnPage2)).toBe(after);
+
+      // Find's own input still has focus from opening it above - blur it so
+      // Ctrl+Z below is not swallowed by useHistoryShortcuts' input guard.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(filterOf(boxes()[0])).toBe(before);
+      expect(filterOf(otherFoundBox)).toBe(before);
+      expect(filterOf(copyOnPage2)).toBe(before);
+    });
+
+    it('"All N from this search" on a box that is also repeated removes only the found boxes; its repeated copies on other pages stay', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      await selectBox(boxes()[0]);
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-find-set]');
+
+      // Both found boxes on page 0 are gone; the repeated copy on page 1 stays.
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      expect(pageCards[0].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(pageCards[1].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(boxes()).toHaveLength(1);
+    });
+
+    it('a copy made by "repeat on every page" from a found box has no findSetId: its trash menu offers no "from this search" item', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      await selectBox(copyOnPage2);
+      const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-delete-scope-trigger]');
+      await act(async () => { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(document.querySelector('[data-editor-delete-find-set]')).toBeNull();
+    });
   });
 
   // Redo (UNDO-REDO): shares actionHistory.ts/historyStack.ts with the Sign
