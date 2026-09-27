@@ -124,7 +124,7 @@ export const HEBREW_CAPABLE_FONTS = FONT_MANIFEST
  * Families we used to ship, mapped to what replaces them.
  *
  * **Dropping a font is not the same as deleting its name.** Drafts persist for
- * 14 days and carry the family the user picked, so a retired name keeps
+ * 28 days and carry the family the user picked, so a retired name keeps
  * arriving after the files are gone. Left unmapped it produces exactly the bug
  * this whole area exists to close: the editor falls back per character to some
  * system font while the export, unable to fetch the missing TTF, falls back to

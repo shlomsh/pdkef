@@ -22,7 +22,7 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 // Eviction is recency only, six entries wide, whether or not an entry carries
 // work: a file opened and left alone is as much "in progress" as an edited
 // one (someone opens a form, goes to fetch what it asks for, comes back), so
-// the store must not rank them. Age expiry stays at 14 days for every entry
+// the store must not rank them. Age expiry stays at 28 days for every entry
 // (`draftPolicy.js`, one `savedAt`, refreshed by opening or saving in any
 // tool, never a frozen `expiresAt`). Those two rules are the only way an
 // entry drops out, and both are deliberate.

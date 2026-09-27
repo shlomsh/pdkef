@@ -134,6 +134,22 @@ describe('migrateDraftRecord', () => {
 });
 
 describe('validateDraftRecord', () => {
+  it('RED-03: keeps a restored history command that added boxes across several pages', () => {
+    const copies = [1, 2, 3].map((pageIndex) => ({ ...goodBlackout, id: `blackout-p${pageIndex}`, pageIndex }));
+    const repeat = {
+      id: 'history-repeat', type: 'REPEAT_ON_EVERY_PAGE', operation: 'add', pageIndex: 0,
+      description: 'Added the box to 3 more pages', timestamp: 10,
+      elements: copies.map((element, i) => ({ element, index: 1 + i })),
+    };
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION,
+      elements: [goodBlackout, ...copies], extra: { actionHistory: [repeat] },
+    };
+    const result = validateDraftRecord(record);
+    expect(result?.elements).toHaveLength(4);
+    expect(result?.extra?.actionHistory).toEqual([repeat]);
+  });
+
   let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

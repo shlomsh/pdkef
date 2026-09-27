@@ -250,7 +250,7 @@ export const tools = [
       },
       {
         question: 'What happens if my browser crashes while filling out a form?',
-        answer: "Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded. Opening a different file doesn't erase this one either: it stays in your recent files on the home page, ready to pick up again, for up to 14 days.",
+        answer: "Your work is not lost. As you add text, symbols, and signatures, the tool auto-saves your progress to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. Because this happens on your device, your file is still never uploaded. Opening a different file doesn't erase this one either: it stays in your recent files on the home page, ready to pick up again, for up to 28 days.",
       },
       {
         question: 'Will my language come out right in the downloaded PDF, or turn into empty boxes?',
@@ -352,7 +352,7 @@ export const tools = [
       { question: 'Do I need to flatten the PDF separately?', answer: 'No. Download and preparing a file with Share automatically flatten pages with Blur, Blackout or Whiteout. The marked page becomes one image, its text is no longer selectable or searchable, and the export cannot be reversed back into the original page elements. Pages with Delete edits only are not flattened, so their remaining text stays selectable.' },
       { question: 'Can I blur a PDF on my phone or work offline?', answer: 'Yes. Open the tool in your phone browser, choose the PDF, and zoom before drawing a box. For offline use, install PDkef and let its required assets load while connected. Try opening and exporting a sample with the connection off before relying on it offline.' },
       { question: 'Are my files uploaded, and is the tool open source?', answer: 'Your PDF is processed in your browser and is not uploaded to a server. PDkef is free and open source under the MIT license, with no account or watermark. Saved drafts stay in this browser on your device.' },
-      { question: 'What happens to my original PDF and saved draft?', answer: 'Download creates a new PDF; it does not overwrite your original or clear your draft. When browser storage is available, your source PDF and edits auto-save locally so you can resume. Drafts expire after 14 days without a save and are checked when loaded. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
+      { question: 'What happens to my original PDF and saved draft?', answer: 'Download creates a new PDF; it does not overwrite your original or clear your draft. When browser storage is available, your source PDF and edits auto-save locally so you can resume. Drafts expire after 28 days without a save and are checked when loaded. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
     ],
   },
 
@@ -402,7 +402,7 @@ export const tools = [
       { question: 'Does PDkef work on mobile?', answer: 'Yes. PDkef works in Chrome on Android and iOS, as well as desktop browsers on macOS and Windows.' },
       { question: 'Is there a file size or page limit?', answer: "No artificial limit is imposed by PDkef. The only constraint is your device's available memory, since merging happens locally." },
       { question: 'Can I combine scanned receipts or reports into one PDF?', answer: 'Yes - this is one of the most common uses. Add each scanned page or report PDF, reorder them, and merge into a single file for an expense report, portfolio, or ebook.' },
-      { question: 'What happens to my files if I close the tab partway through?', answer: 'Nothing is lost. As you add files, reorder them, or rotate and skip pages, the tool auto-saves your file set, page order, rotations, and skips to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. A very large set of files may not fit in your browser\'s local storage; if that happens the tool tells you the draft could not be saved rather than pretending it was, and merging itself keeps working either way. Saved drafts expire after 14 days without a change. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
+      { question: 'What happens to my files if I close the tab partway through?', answer: 'Nothing is lost. As you add files, reorder them, or rotate and skip pages, the tool auto-saves your file set, page order, rotations, and skips to local storage in your own browser, and restores it automatically the next time you open the tool on the same device. A very large set of files may not fit in your browser\'s local storage; if that happens the tool tells you the draft could not be saved rather than pretending it was, and merging itself keeps working either way. Saved drafts expire after 28 days without a change. On a shared device, clear site data when finished; that also removes saved drafts and preferences.' },
     ],
   },
 

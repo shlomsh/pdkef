@@ -36,6 +36,13 @@ export interface ElementUpdate<TElement extends HistoryElement = HistoryElement>
 interface HistoryEntryBase {
   id: string;
   type: string;
+  /**
+   * The page the action started from (e.g. where the user clicked). For a
+   * snapshot entry this is not a guarantee that every snapshot lives on this
+   * page: an add or delete can place or remove elements across several pages
+   * (e.g. "repeat on every page"), each snapshot carrying its own
+   * `element.pageIndex`.
+   */
   pageIndex: number;
   /** The entry's label, e.g. "Moved signature". Every entry has one. */
   description: string;
@@ -45,7 +52,8 @@ interface HistoryEntryBase {
 /**
  * An add or a delete. Both retain complete snapshots so persisted history is
  * self-contained and redo never reconstructs an element from live editor
- * state.
+ * state. Snapshots need not all share `entry.pageIndex` - an entry may add or
+ * remove elements across multiple pages in one step.
  */
 export interface SnapshotHistoryEntry<TElement extends HistoryElement = HistoryElement> extends HistoryEntryBase {
   operation: SnapshotOperation;
@@ -218,7 +226,8 @@ export function isActionHistoryEntry<TElement extends HistoryElement>(
     const snapshot = candidate as Record<string, unknown>;
     if (!Number.isInteger(snapshot.index) || (snapshot.index as number) < 0) return false;
     if (!isElement(snapshot.element)) return false;
-    if (snapshot.element.pageIndex !== entry.pageIndex || seenIds.has(snapshot.element.id)) return false;
+    if (!Number.isInteger(snapshot.element.pageIndex) || snapshot.element.pageIndex < 0) return false;
+    if (seenIds.has(snapshot.element.id)) return false;
     seenIds.add(snapshot.element.id);
     return true;
   });

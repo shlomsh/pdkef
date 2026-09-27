@@ -3,7 +3,7 @@
 // created by older versions too: only `savedAt` is persisted, never a frozen
 // `expiresAt` value.
 
-export const MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+export const MAX_AGE_MS = 28 * 24 * 60 * 60 * 1000; // 28 days
 
 /**
  * Bump when a future change needs a real migration step; the editor's
