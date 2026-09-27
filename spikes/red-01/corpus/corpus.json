@@ -1,0 +1,299 @@
+[
+  {
+    "file": "plain-helvetica-line.pdf",
+    "page": 1,
+    "rect": [
+      12.666666666666668,
+      22.666666666666664,
+      47.23466666666667,
+      12
+    ],
+    "secret": "PLAIN-SECRET-1234",
+    "keepText": "This line must survive redaction.",
+    "feature": "plain Helvetica line, single Tj"
+  },
+  {
+    "file": "partial-overlap-word.pdf",
+    "page": 1,
+    "rect": [
+      28.221999999999998,
+      23.866666666666664,
+      34.02266666666666,
+      13.8
+    ],
+    "secret": "ACC-99887766",
+    "keepText": "[keep-marker] the prefix/suffix on this line must survive",
+    "feature": "secret is the middle run of one visual line (partial overlap); prefix/suffix must survive"
+  },
+  {
+    "file": "tj-array-kerning.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      21.333333333333336,
+      48.943999999999974,
+      13.333333333333334
+    ],
+    "secret": "KERN-SECRET-42",
+    "keepText": "kept text below the kerned line",
+    "feature": "single TJ operator with per-glyph kerning numbers"
+  },
+  {
+    "file": "embedded-subset-truetype-latin.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      22.666666666666664,
+      55.26660156249999,
+      12
+    ],
+    "secret": "SUBSET-LATIN-SECRET",
+    "keepText": "Arimo body text stays",
+    "feature": "embedded subset TrueType font (Latin, Arimo)"
+  },
+  {
+    "file": "hebrew-rtl-line.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      21.333333333333336,
+      25.315104166666668,
+      13.333333333333334
+    ],
+    "secret": "ילארשידוס",
+    "keepText": "ראשנשטסקט",
+    "feature": "embedded Hebrew font, RTL secret (visual order, no shaping)"
+  },
+  {
+    "file": "form-xobject-text.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      22.666666666666664,
+      50.08133333333333,
+      12
+    ],
+    "secret": "XOBJECT-SECRET-77",
+    "keepText": "outside the xobject, on the page directly",
+    "feature": "text drawn inside a Form XObject invoked via Do"
+  },
+  {
+    "file": "rotated-ctm-text.pdf",
+    "page": 1,
+    "rect": [
+      16.666666666666664,
+      19.623796769724493,
+      53.01472845312246,
+      51.37620323027551
+    ],
+    "secret": "ROTATED-SECRET-30",
+    "keepText": "unrotated keep line",
+    "feature": "text drawn with a 30deg rotated CTM"
+  },
+  {
+    "file": "page-rotate-90.pdf",
+    "page": 1,
+    "rect": [
+      65.33333333333333,
+      9.333333333333334,
+      12,
+      62.00933333333334
+    ],
+    "secret": "PAGE-ROTATE-90-SECRET",
+    "keepText": "kept text on rotated page",
+    "feature": "page dictionary /Rotate 90; text unrotated in PDF space"
+  },
+  {
+    "file": "raster-image-partial.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      25.333333333333336,
+      24.666666666666668,
+      49.333333333333336
+    ],
+    "secret": "IMG-PARTIAL-SECRET",
+    "keepText": "caption stays outside the box",
+    "imageSecretColor": [255, 0, 0],
+    "imageKeepColor": [0, 0, 255],
+    "feature": "raster PNG partly covered by the box"
+  },
+  {
+    "file": "raster-image-full.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      25.333333333333336,
+      48,
+      49.333333333333336
+    ],
+    "secret": "IMG-FULL-SECRET",
+    "keepText": "caption stays outside the box",
+    "imageSecretColor": [255, 0, 0],
+    "imageKeepColor": [0, 0, 255],
+    "feature": "raster PNG fully covered by the box"
+  },
+  {
+    "file": "vector-path-highlight.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      22.666666666666664,
+      61.73866666666667,
+      12
+    ],
+    "secret": "PATH-HIGHLIGHT-SECRET",
+    "keepText": "plain text, no path underneath",
+    "feature": "filled vector-path rectangle (highlight) drawn behind real text"
+  },
+  {
+    "file": "freetext-annotation.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      58.666666666666664,
+      64.66666666666666,
+      16
+    ],
+    "secret": "FREETEXT-ANNOTATION-SECRET",
+    "keepText": "ordinary page text, not an annotation",
+    "feature": "FreeText annotation whose /Contents is the secret (outside the content stream)"
+  },
+  {
+    "file": "paragraph-line2-only.pdf",
+    "page": 1,
+    "rect": [
+      9.333333333333334,
+      30.666666666666664,
+      84.02933333333335,
+      10.666666666666668
+    ],
+    "secret": "Second line is the SECRET-LINE-2 to remove.",
+    "keepText": "First line stays visible.",
+    "feature": "3-line paragraph, box covers line 2 only; lines 1 and 3 must survive"
+  },
+  {
+    "file": "real-world-irs-1040-2024.pdf",
+    "page": 1,
+    "rect": [
+      15.620915032679738,
+      4.461363636363629,
+      24.53104575163399,
+      1.2626262626262625
+    ],
+    "secret": "Department of the Treasury—Internal Revenue Service",
+    "keepText": "See separate instructions.",
+    "keepSameLine": [],
+    "feature": "real-world form PDF (IRS 1040 2024), page 1 (secret is alone on its own line, no same-line neighbour to check)"
+  },
+  {
+    "file": "real-world-uscis-i9-2025.pdf",
+    "page": 1,
+    "rect": [
+      85.23936274509803,
+      2.2054040404040447,
+      5.946895424836598,
+      1.893939393939394
+    ],
+    "secret": "USCIS",
+    "keepText": "failing to comply with the requirements for completing this form. See below and the",
+    "keepSameLine": [],
+    "feature": "real-world form PDF (USCIS I-9 2025), page 1 (secret is alone on its own line, no same-line neighbour to check)"
+  },
+  {
+    "file": "real-world-health-declaration-2021.pdf",
+    "page": 1,
+    "rect": [
+      43.11126788953839,
+      9.442702394526796,
+      13.810528791238323,
+      2.1427213987077116
+    ],
+    "secret": "הצהרת בריאות",
+    "keepText": "המשפחה",
+    "keepSameLine": [],
+    "feature": "real-world form PDF (health declaration 2021), page 1 (secret is alone on its own line, no same-line neighbour to check)"
+  },
+  {
+    "file": "mid-run-helvetica.pdf",
+    "page": 1,
+    "rect": [
+      35.12866666666666,
+      23.866666666666664,
+      35.60933333333333,
+      13.8
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
+    "feature": "secret is the middle substring of ONE Tj (not a separate run); exercises per-glyph split of a single text object"
+  },
+  {
+    "file": "mid-run-tj-kerned.pdf",
+    "page": 1,
+    "rect": [
+      38.25866666666668,
+      22.8,
+      41.47733333333332,
+      15.199999999999998
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the kerned mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
+    "feature": "one TJ array with per-glyph kerning holds the whole line; secret is the middle run of that single array"
+  },
+  {
+    "file": "mid-run-embedded.pdf",
+    "page": 1,
+    "rect": [
+      35.45735677083333,
+      23.866666666666664,
+      35.703450520833336,
+      13.8
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the embedded mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
+    "feature": "embedded subset TrueType (Identity-H hex Tj); secret is the middle substring of ONE Tj"
+  },
+  {
+    "file": "mid-run-hebrew.pdf",
+    "page": 1,
+    "rect": [
+      31.71875,
+      24.133333333333333,
+      24.6484375,
+      12.533333333333333
+    ],
+    "secret": "ילארשידוס",
+    "keepText": "ראשנשטסקט",
+    "keepSameLine": ["ראשנשטסקט", "טסקטדוע"],
+    "feature": "embedded Hebrew font, ONE Tj holds three RTL-visual-order words; box covers only the middle (secret) word"
+  },
+  {
+    "file": "two-boxes-one-line.pdf",
+    "page": 1,
+    "rects": [
+      [
+        16.768666666666665,
+        24.399999999999995,
+        40.532,
+        13.099999999999998
+      ],
+      [
+        64.236,
+        24.399999999999995,
+        35.764,
+        13.099999999999998
+      ]
+    ],
+    "secrets": [
+      "SECRETSSN12345",
+      "SECRETDL67890"
+    ],
+    "secret": "SECRETSSN12345",
+    "keepText": "kept text below the two-secret line",
+    "keepSameLine": ["SSN:", "DL:"],
+    "feature": "ONE Tj holds two distinct secrets; two rects target each independently (embedpdf #801 class: does clearing the first corrupt the second read?)"
+  }
+]

@@ -24,6 +24,8 @@ export default function ElementToolbar({
   repeatGroupSize,
   onUnlinkFromGroup,
   onRemoveGroup,
+  findSetSize,
+  onRemoveFindSet,
   messages,
 }: {
   element: any;
@@ -47,6 +49,15 @@ export default function ElementToolbar({
   /** RED-03: removes every box in the linked set, one undo step. Offered
    * by trash on a linked box, beside "This page" (onDelete). */
   onRemoveGroup?: () => void;
+  /** RED-11: how many boxes share this box's find set (findSet.ts). >= 2
+   * means it has one, so trash offers "All N from this search" alongside
+   * onDelete; undefined or < 2 leaves trash as a plain one-tap button (or,
+   * when the box is also linked, unaffected by this prop). Redact-only. */
+  findSetSize?: number;
+  /** RED-11: removes every box in the find set, one undo step. Offered by
+   * trash on a found box, after "This page"/"This box" and any linked-set
+   * "All N pages" item. */
+  onRemoveFindSet?: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
    * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
    * which never passes it, so its English rendering is unaffected. */
@@ -77,6 +88,10 @@ export default function ElementToolbar({
   // RED-03: a repeated box's linked set, when it has one.
   const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
   const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
+  // RED-11: a found box's find set, when it has one (findSet.ts). Independent
+  // of `linked` - a box can be both, neither, or just one.
+  const inFindSet = findSetSize !== undefined && findSetSize >= 2 && !!onRemoveFindSet;
+  const hasDeleteScope = (linked && onRemoveGroup) || inFindSet;
   const pagesIcon = (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <rect x="6" y="2" width="14" height="16" rx="2" />
@@ -470,15 +485,22 @@ export default function ElementToolbar({
           {pagesIcon}
         </button>
       )}
-      {linked && onRemoveGroup ? (
+      {hasDeleteScope ? (
         <ToolbarMenu
           title={t.deleteElementTitle}
           triggerClassName={buttonClass(false, true)}
           triggerAttrs={{ 'data-editor-delete-scope-trigger': true }}
           triggerContent={trashIcon}
           items={[
-            { label: t.deleteThisPage, onSelect: onDelete, attrs: { 'data-editor-delete-this-page': true } },
-            { label: formatMessage(t.deleteAllPagesTemplate, { n: repeatGroupSize }), onSelect: onRemoveGroup, attrs: { 'data-editor-delete-all-pages': true } },
+            linked
+              ? { label: t.deleteThisPage, onSelect: onDelete, attrs: { 'data-editor-delete-this-page': true } }
+              : { label: t.deleteThisBox, onSelect: onDelete, attrs: { 'data-editor-delete-this-box': true } },
+            ...(linked && onRemoveGroup
+              ? [{ label: formatMessage(t.deleteAllPagesTemplate, { n: repeatGroupSize }), onSelect: onRemoveGroup, attrs: { 'data-editor-delete-all-pages': true } }]
+              : []),
+            ...(inFindSet
+              ? [{ label: formatMessage(t.deleteFindSetTemplate, { n: findSetSize }), onSelect: onRemoveFindSet!, attrs: { 'data-editor-delete-find-set': true } }]
+              : []),
           ]}
         />
       ) : (

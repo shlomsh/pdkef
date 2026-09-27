@@ -1,0 +1,272 @@
+/* RED-02: the find row. It sits inside the sticky toolbar card (ToolShell's
+   controls wrap), on a line of its own, so it stays in reach while the pages
+   scroll under it. One row on a wide screen; on a phone the field takes the
+   first line and the rest wraps under it. */
+.find-bar {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.field {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0 0.25rem 0 0.6rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.field:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
+.field-icon {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 4rem;
+  padding: 0.4rem 0;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.2rem 0.15rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-primary-text);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-pill);
+}
+
+.chip-clear {
+  display: inline-flex;
+  padding: 0.2rem;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.chip-clear:hover {
+  background: var(--color-primary-tint);
+}
+
+.preset-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  border-inline-start: 1px solid var(--color-border);
+  cursor: pointer;
+}
+
+.preset-trigger:hover,
+.preset-trigger[aria-expanded='true'] {
+  color: var(--color-text);
+}
+
+.status {
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.status:has(.status-long:empty) {
+  display: none;
+}
+
+.status-short {
+  display: none;
+}
+
+.nav {
+  display: flex;
+  gap: 2px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.close {
+  border-color: transparent;
+  background: none;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.segment {
+  min-height: 2.25rem;
+  padding: 0 0.7rem;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+}
+
+.segment.selected {
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.action {
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.action:hover:not(:disabled) {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.primary {
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.primary:hover:not(:disabled) {
+  color: var(--color-surface);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* The highlights on the page: a proposal, not a redaction yet, so a citron
+   wash with no border, clearly not one of the boxes. The current match gets a
+   ring; a covered one fades, since it needs nothing more. */
+.match {
+  position: absolute;
+  z-index: 15;
+  background: color-mix(in srgb, var(--color-citron) 45%, transparent);
+  border-radius: 2px;
+  cursor: pointer;
+  mix-blend-mode: multiply;
+}
+
+.match.current {
+  background: color-mix(in srgb, var(--color-citron) 70%, transparent);
+  box-shadow: 0 0 0 2px var(--color-citron-ink);
+}
+
+.match.covered {
+  /* A covered match lets clicks through to the box over it, so that box can
+     still be selected, moved or removed while Find is open. */
+  pointer-events: none;
+  background: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-citron-ink) 50%, transparent);
+  mix-blend-mode: normal;
+}
+
+/* A phone gets three short rows, since the card is sticky and its height
+   comes straight off the page: the field with Close beside it, then where you
+   are and what a match becomes, then the two actions sharing the width. */
+@media (max-width: 719px) {
+  .find-bar {
+    display: grid;
+    /* Close gets a fixed column of its own, so the field's width never
+       depends on how wide the row under it happens to be. */
+    grid-template-columns: minmax(0, 1fr) auto auto 2.5rem;
+    grid-template-areas:
+      'field field field close'
+      'status nav segmented segmented'
+      'actions actions actions actions';
+    gap: 0.4rem var(--space-2);
+  }
+
+  .field { grid-area: field; }
+  .close { grid-area: close; }
+  .status { grid-area: status; overflow: hidden; text-overflow: ellipsis; }
+  .status:has(.status-long:empty) { display: block; }
+  .status-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .status-short { display: inline; }
+  .nav { grid-area: nav; }
+  .segmented { grid-area: segmented; justify-self: end; }
+  .segment { padding: 0 0.6rem; }
+  .actions { grid-area: actions; }
+  .action { flex: 1 1 0; }
+}

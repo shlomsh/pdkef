@@ -1,4 +1,5 @@
-import { Shrink } from 'lucide-preact';
+import type { ComponentChildren } from 'preact';
+import { Search, Shrink } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
 import EditorToolStatus, { type ToolCopy } from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
@@ -57,6 +58,9 @@ export default function RedactToolbar({
   handoffBusy = false,
   onCompressHandoff,
   showWelcomeTip = true,
+  findOpen = false,
+  onToggleFind,
+  findBar = null,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -98,6 +102,12 @@ export default function RedactToolbar({
   /** A restored document is already in progress, so omit the newcomer-only
    * idle tip until the person selects a tool. */
   showWelcomeTip?: boolean;
+  /** RED-02: whether the find row is open, and the row itself. It renders
+   * inside this sticky card, under the buttons, so it stays in reach while
+   * the pages scroll. */
+  findOpen?: boolean;
+  onToggleFind?: () => void;
+  findBar?: ComponentChildren;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -216,10 +226,12 @@ export default function RedactToolbar({
             onClick={armTool('whiteout')}
             aria-pressed={activeStyle === 'whiteout'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-              <path d="M22 21H7" />
-              <path d="m13.3 4 5.3 5.3" />
+            {/* The same line-of-text grammar as Blur and Blackout: where the
+                middle bar was, only its corners, painted over and blank. */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="5" x2="15" y2="5" stroke-width="2" />
+              <path d="M3 11.5V9.5h2.5M18.5 9.5H21v2M21 12.5v2h-2.5M5.5 14.5H3v-2" stroke-width="1.6" />
+              <line x1="4" y1="19" x2="12" y2="19" stroke-width="2" />
             </svg>
             <span className={styles.label}>Whiteout</span>
           </button>
@@ -232,13 +244,31 @@ export default function RedactToolbar({
             onClick={armTool('delete')}
             aria-pressed={activeStyle === 'delete'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            {/* An eraser: Delete takes the object out of the file itself. */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
+              <path d="M22 21H7" />
+              <path d="m13.3 4 5.3 5.3" />
             </svg>
             <span className={styles.label}>Delete</span>
           </button>
         </ArmHint>
+
+        {/* RED-02: Find is an action, not a tool to arm - it opens a row of
+            its own under these buttons and never draws on a page. */}
+        {onToggleFind && (
+          <button
+            type="button"
+            className={`${styles.button}${findOpen ? ` ${styles.active}` : ''}`}
+            onClick={onToggleFind}
+            aria-pressed={findOpen}
+            title="Find text to redact"
+            data-redact-find-toggle
+          >
+            <Search size={18} aria-hidden="true" />
+            <span className={styles.label}>Find</span>
+          </button>
+        )}
 
         {/* Undo and Redo are the whole history model, one tap each, plus the
             keyboard shortcuts (src/lib/history/useHistoryShortcuts.js). A
@@ -331,6 +361,7 @@ export default function RedactToolbar({
           </button>
         )}
       </div>
+      {findBar}
     </ToolShell>
   );
 }

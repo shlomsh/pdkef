@@ -1,5 +1,20 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
+
+// Reads a saved page's own content stream the same way deleteObjects.js does,
+// decoding the hex-string text operands @cantoo/pdf-lib writes (`<4B45...> Tj`)
+// back to plain text. This is deliberately not pdf.js text extraction: RED-13's
+// download path rewrites the content stream directly (deleteObjects.js), so
+// checking that stream is closer to the actual guarantee than re-parsing
+// through a whole second renderer.
+function decodedPageText(pdfPage) {
+  const raw = Buffer.from(getPageContentBytes(pdfPage)).toString('latin1');
+  return [...raw.matchAll(/<([0-9A-Fa-f]+)>/g)]
+    .map((m) => Buffer.from(m[1], 'hex').toString('latin1'))
+    .join(' ');
+}
 
 async function makeMultiPagePdfBuffer(pageCount) {
   const doc = await PDFDocument.create();
@@ -373,7 +388,7 @@ test.describe('Redact editor browser guardrails', () => {
 
 // Design-review findings #1 and #2: jsdom has no layout, so the CSS-only
 // touch-target floors added for this review (`.delete-candidate::before`,
-// `.delete-mark-btn::before`, `.resizer::before`, `.element-button::before`)
+// `.resizer::before`, `.element-button::before`)
 // need a real browser to prove. Coordinates are read as computed style,
 // matching toolbar-touch-targets.spec.js's own approach of measuring
 // rendered geometry rather than clicking blind. Blackout/blur used to carry
@@ -419,8 +434,8 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     });
   }
 
-  // The centred `min-width`/`min-height` technique `.delete-candidate` and
-  // `.delete-mark-btn` use instead: unlike the resizer/toolbar controls, this
+  // The centred `min-width`/`min-height` technique `.delete-candidate` uses
+  // instead: unlike the resizer/toolbar controls, this
   // one has to reach its floor even when the real element is *smaller* than
   // the floor in both dimensions, not just widen a fixed visual by a fixed
   // amount.
@@ -619,5 +634,277 @@ test.describe('repeat a box on every page (RED-03)', () => {
     // leaving only the original box on the first page.
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+  });
+});
+
+// RED-02: find and redact. The finders, reading order and box arithmetic are
+// unit-tested under src/tools/redact/find/; this proves what jsdom cannot:
+// pdf.js's real text positions land the highlight on the drawn words, and
+// "Redact all" adds every box as one undo step.
+test.describe('find and redact (RED-02)', () => {
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
+  async function makeFindPdfBuffer() {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    for (let i = 0; i < 2; i += 1) {
+      const page = doc.addPage([612, 792]);
+      page.drawText('Jane Doe', { x: 100, y: 700, size: 12, font });
+      page.drawText(`Signed by Jane Doe on page ${i + 1}.`, { x: 100, y: 600, size: 12, font });
+    }
+    return Buffer.from(await doc.save());
+  }
+
+  test('highlights every match on the drawn words and redacts them all as one undo step', async ({ page }) => {
+    await openRedactTool(page, await makeFindPdfBuffer());
+    await expect(page.locator('[data-editor-page-card]')).toHaveCount(2);
+
+    await page.locator('[data-redact-find-toggle]').click();
+    await page.locator('[data-redact-find-input]').fill('jane doe');
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages');
+
+    // The first match is "Jane Doe" at (100, 700) in PDF points, 12pt: its
+    // highlight's left edge sits at 100/612 of the page and its top just
+    // above the cap height, 1pt of padding included.
+    const pageCard = page.locator('[data-editor-page-card]').first();
+    const overlay = await getBox(pageCard.locator('.redact-draw-area'), 'page overlay');
+    const match = await getBox(pageCard.locator('[data-redact-find-match]').first(), 'first match');
+    expect(Math.abs((match.x - overlay.x) / overlay.width - 99 / 612)).toBeLessThan(0.01);
+    expect(Math.abs((match.y - overlay.y) / overlay.height - (792 - 713) / 792)).toBeLessThan(0.01);
+    expect(match.height / overlay.height).toBeGreaterThan(12 / 792);
+
+    await page.locator('[data-redact-find-all]').click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages, 4 covered');
+    await expect(page.locator('[data-redact-find-all]')).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
+    await expect(page.locator('[data-redact-find-all]')).toHaveText('Redact all 4');
+  });
+
+  // RED-11: the four boxes "Redact all" just added share one findSetId, so
+  // trash on any one of them offers to remove the whole search's boxes in a
+  // single step - and leaves an unrelated box, drawn afterwards, untouched.
+  test('trash offers "All N from this search", removes exactly those boxes, and Undo restores them', async ({ page }) => {
+    await openRedactTool(page, await makeFindPdfBuffer());
+    await page.locator('[data-redact-find-toggle]').click();
+    await page.locator('[data-redact-find-input]').fill('jane doe');
+    await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages');
+
+    await page.locator('[data-redact-find-all]').click();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);
+
+    // An ordinary box, drawn after the search - well below the matched text
+    // (y ratio 0.6) so it does not overlap any found box.
+    await drawRedaction(page, 'Blackout', { x: 0.5, y: 0.6 }, { x: 0.7, y: 0.66 });
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
+
+    const found = page.locator('[class*="redact-box"]').first();
+    await selectRedaction(found);
+    await page.locator('[data-editor-delete-scope-trigger]').click();
+    await page.locator('[data-editor-delete-find-set]').click();
+
+    // The one box left is the drawn one: it starts halfway across the page,
+    // where no "Jane Doe" match does.
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+    const overlay = await getBox(page.locator('.redact-draw-area').first(), 'page overlay');
+    const survivor = await getBox(page.locator('[class*="redact-box"]').first(), 'drawn box');
+    expect(Math.abs((survivor.x - overlay.x) / overlay.width - 0.5)).toBeLessThan(0.02);
+
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(5);
+  });
+});
+
+// RED-13: "what you see is what you save" for the Delete tool - the page is
+// redrawn from a one-page PDF with the marked object spliced out
+// (useDeletePreviews.ts), so a deleted object must actually vanish from the
+// rendered canvas, come back on Undo, be gone from the download, and never be
+// left showing a previous file's preview after Replace file.
+test.describe('delete shows the page as it will be saved (RED-13)', () => {
+  test.afterEach(async ({ page }) => {
+    await assertNoCspViolations(page);
+  });
+
+  async function makeDeleteFixturePdfBuffer() {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([300, 400]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    // Two separate drawText calls are two separate BT/ET runs, so the Delete
+    // tool offers them as two independent candidates - and far apart
+    // vertically so their canvas regions never overlap.
+    page.drawText('KEEP ME', { x: 40, y: 320, size: 20, font, color: rgb(0, 0, 0) });
+    page.drawText('SECRET 123', { x: 40, y: 80, size: 20, font, color: rgb(0, 0, 0) });
+    return Buffer.from(await doc.save());
+  }
+
+  // The candidate div for a marked object is gone the instant it's clicked
+  // (DeletableObjectOverlay only renders unmarked objects), so its rect has
+  // to be captured, as a fraction of the page overlay, before that click.
+  async function ratioRectWithin(overlay, locator) {
+    const overlayBox = await getBox(overlay, 'page overlay');
+    const elBox = await getBox(locator, 'delete candidate');
+    return {
+      left: (elBox.x - overlayBox.x) / overlayBox.width,
+      top: (elBox.y - overlayBox.y) / overlayBox.height,
+      width: elBox.width / overlayBox.width,
+      height: elBox.height / overlayBox.height,
+    };
+  }
+
+  // Reads real pixels back out of the live pdf.js canvas (not a copy) for the
+  // rect a candidate reported, scaled from CSS fractions to canvas pixels.
+  // `dark` proves text is/isn't painted there; `avgR`/`avgB` distinguish the
+  // marker square the file-switch test below uses; `hash` proves the region's
+  // bytes are unchanged across an unrelated edit.
+  async function canvasRegionStats(pageCard, ratioRect) {
+    const canvas = pageCard.locator('canvas').first();
+    return canvas.evaluate((canvasEl, rect) => {
+      const ctx = canvasEl.getContext('2d');
+      const x = Math.max(0, Math.round(rect.left * canvasEl.width));
+      const y = Math.max(0, Math.round(rect.top * canvasEl.height));
+      const w = Math.max(1, Math.min(canvasEl.width - x, Math.round(rect.width * canvasEl.width)));
+      const h = Math.max(1, Math.min(canvasEl.height - y, Math.round(rect.height * canvasEl.height)));
+      const { data } = ctx.getImageData(x, y, w, h);
+      let dark = 0;
+      let hash = 0;
+      let sumR = 0;
+      let sumB = 0;
+      const pixels = data.length / 4;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        if (r < 200 || g < 200 || b < 200) dark += 1;
+        sumR += r;
+        sumB += b;
+        hash = (hash * 31 + r * 65536 + g * 256 + b) >>> 0;
+      }
+      return { dark, hash, avgR: sumR / pixels, avgB: sumB / pixels };
+    }, ratioRect);
+  }
+
+  test('a deleted text run disappears from the canvas, keeps the rest, and Undo brings it back', async ({ page }) => {
+    await openRedactTool(page, await makeDeleteFixturePdfBuffer());
+    await selectRedactStyle(page, 'Delete');
+
+    const pageCard = page.locator('[data-editor-page-card]').first();
+    const overlay = pageCard.locator('.redact-draw-area');
+    const secretCandidate = page.locator('[class*="delete-candidate"][title*="SECRET 123"]');
+    const keepCandidate = page.locator('[class*="delete-candidate"][title*="KEEP ME"]');
+    await expect(secretCandidate).toBeVisible();
+    await expect(keepCandidate).toBeVisible();
+
+    const secretRatio = await ratioRectWithin(overlay, secretCandidate);
+    const keepRatio = await ratioRectWithin(overlay, keepCandidate);
+
+    const secretBefore = await canvasRegionStats(pageCard, secretRatio);
+    const keepBefore = await canvasRegionStats(pageCard, keepRatio);
+    expect(secretBefore.dark, 'fixture should actually paint dark pixels for SECRET 123').toBeGreaterThan(0);
+    expect(keepBefore.dark, 'fixture should actually paint dark pixels for KEEP ME').toBeGreaterThan(0);
+
+    await secretCandidate.click();
+
+    await expect.poll(async () => (await canvasRegionStats(pageCard, secretRatio)).dark)
+      .toBeLessThan(secretBefore.dark * 0.1);
+    // The unrelated run must be untouched by rewriting the other one out.
+    const keepAfterDelete = await canvasRegionStats(pageCard, keepRatio);
+    expect(keepAfterDelete.dark).toBeGreaterThan(keepBefore.dark * 0.8);
+
+    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect.poll(async () => (await canvasRegionStats(pageCard, secretRatio)).dark)
+      .toBeGreaterThan(secretBefore.dark * 0.8);
+  });
+
+  test('download after deleting a run saves a page with that text spliced out', async ({ page }) => {
+    await openRedactTool(page, await makeDeleteFixturePdfBuffer());
+    await selectRedactStyle(page, 'Delete');
+    await page.locator('[class*="delete-candidate"][title*="SECRET 123"]').click();
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: 'Download', exact: true }).click(),
+    ]);
+    const savedPath = await download.path();
+    if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
+    const saved = await PDFDocument.load(fs.readFileSync(savedPath));
+    const text = decodedPageText(saved.getPage(0));
+    expect(text).toContain('KEEP ME');
+    expect(text).not.toContain('SECRET');
+  });
+
+  test('after Replace file, a deletion at the same byte offsets draws the new file, not the old one', async ({ page }) => {
+    // Same-length strings at the same positions on both files: the two BT/ET
+    // runs land at matching byte offsets in each file's own content stream.
+    // Replace clears the old file's deletions before the new file opens,
+    // which already drops the old preview, so this does not reach
+    // useDeletePreviews.ts's keysFileRef guard (checked: it passes with that
+    // guard disabled). That guard is for a file that arrives with deletions
+    // already queued, a reopened draft. The colour square is the only difference between the two fixtures, and
+    // is what proves which file's bytes the canvas is actually showing.
+    async function makeMarkedPdfBuffer(markerColor) {
+      const doc = await PDFDocument.create();
+      const pdfPage = doc.addPage([300, 400]);
+      const font = await doc.embedFont(StandardFonts.Helvetica);
+      pdfPage.drawText('AAAA 111', { x: 40, y: 320, size: 20, font, color: rgb(0, 0, 0) });
+      pdfPage.drawText('BBBB 222', { x: 40, y: 80, size: 20, font, color: rgb(0, 0, 0) });
+      pdfPage.drawRectangle({ x: 220, y: 20, width: 40, height: 40, color: markerColor });
+      return Buffer.from(await doc.save());
+    }
+    // Fixed from the fixtures' own known PDF-point geometry (not a delete
+    // candidate, so there is no DOM element to measure).
+    const MARKER_RATIO = { left: 220 / 300, top: (400 - 60) / 400, width: 40 / 300, height: 40 / 400 };
+
+    const fileA = await makeMarkedPdfBuffer(rgb(0.8, 0, 0));
+    const fileB = await makeMarkedPdfBuffer(rgb(0, 0, 0.8));
+
+    await openRedactTool(page, fileA);
+    await selectRedactStyle(page, 'Delete');
+
+    const pageCard = page.locator('[data-editor-page-card]').first();
+    const overlay = pageCard.locator('.redact-draw-area');
+    const firstRunRatioA = await ratioRectWithin(overlay, page.locator('[class*="delete-candidate"][title*="AAAA 111"]'));
+    const markerA = await canvasRegionStats(pageCard, MARKER_RATIO);
+    expect(markerA.avgR, 'file A\'s marker should read red').toBeGreaterThan(markerA.avgB);
+
+    await page.locator('[class*="delete-candidate"][title*="BBBB 222"]').click();
+    await expect.poll(async () => (await canvasRegionStats(pageCard, firstRunRatioA)).dark).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Replace file', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Open a different file?' })).toBeVisible();
+    const fileChooserPromise = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: 'Choose a file', exact: true }).click();
+    const fileChooser = await fileChooserPromise;
+    await fileChooser.setFiles({ name: 'delete-fileB.pdf', mimeType: 'application/pdf', buffer: fileB });
+    await expect(page.locator('[class*="page-wrapper"]').first()).toBeVisible();
+
+    const pageCardB = page.locator('[data-editor-page-card]').first();
+    const overlayB = pageCardB.locator('.redact-draw-area');
+    // File B's marker must already read blue, before any deletion happens on
+    // it - proof the switch itself painted B, not a leftover frame of A.
+    await expect.poll(async () => {
+      const markerB = await canvasRegionStats(pageCardB, MARKER_RATIO);
+      return markerB.avgB > markerB.avgR;
+    }, { message: 'file B\'s marker should read blue once the switch has painted' }).toBe(true);
+
+    // Marking on file A spent Delete's one arming; arm it again for file B.
+    await selectRedactStyle(page, 'Delete');
+    const firstRunRatioB = await ratioRectWithin(overlayB, page.locator('[class*="delete-candidate"][title*="AAAA 111"]'));
+    const baselineB = await canvasRegionStats(pageCardB, firstRunRatioB);
+    expect(baselineB.dark, 'file B should still show its own first run before deleting anything').toBeGreaterThan(0);
+
+    await page.locator('[class*="delete-candidate"][title*="BBBB 222"]').click();
+
+    // Deleting B's second run must leave B's first run and marker exactly as
+    // they were - not fall back to file A's stale preview for either region.
+    await expect.poll(async () => (await canvasRegionStats(pageCardB, firstRunRatioB)).dark)
+      .toBeGreaterThan(baselineB.dark * 0.8);
+    const afterB = await canvasRegionStats(pageCardB, firstRunRatioB);
+    expect(afterB.hash).toBe(baselineB.hash);
+    const markerAfterB = await canvasRegionStats(pageCardB, MARKER_RATIO);
+    expect(markerAfterB.avgB, 'canvas must still be file B\'s, not file A\'s').toBeGreaterThan(markerAfterB.avgR);
   });
 });

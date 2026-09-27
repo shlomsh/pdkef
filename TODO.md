@@ -430,7 +430,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 
-## Redact: real removal, find and redact, and what you see is what you save (2026-09-27)
+## Redact: find and redact, and covered pages that keep their text (2026-09-27)
 
 | ID | Priority | Task |
 | --- | --- | --- |
@@ -438,6 +438,15 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 | RED-04 | P2 | [RED-04](backlog/tasks/RED-04.md) · What you see is what you save: the editor shows the page as it will export |
+| RED-05 | P1 | [RED-05](backlog/tasks/RED-05.md) · Spike: Hebrew and Arabic survivors of a partial rebuild keep their glyphs and order |
+| RED-06 | P1 | [RED-06](backlog/tasks/RED-06.md) · Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text |
+| RED-07 | P1 | [RED-07](backlog/tasks/RED-07.md) · Remove text, image pixels and paths under each box, with per-page flattening fallback |
+| RED-08 | P1 | [RED-08](backlog/tasks/RED-08.md) · Annotations, form field values and form XObjects under a box |
+| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
+| RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
+| RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
+| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
+| RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 
 
 ## Migrated context and history

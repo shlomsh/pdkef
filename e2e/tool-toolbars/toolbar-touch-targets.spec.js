@@ -99,7 +99,13 @@ const tools = [
   // never ten or thirteen, the two counts that cannot be balanced at the 44px
   // floor.
   { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
-  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340] },
+  // RED-02 made Redact ten controls (Find joined). At 300-320px the 44px touch
+  // floor caps a line at four, and ten can only pack 4+4+2 there (the comment
+  // above the 251px rule in SignToolbar.module.css works through why 4+3+3 is
+  // unreachable). Shlomi chose that split over moving or hiding Find
+  // (2026-09-27), so those widths pin it exactly: a lone stranded control
+  // still fails.
+  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340], acceptedSplits: { 300: '4+4+2', 320: '4+4+2' } },
 ];
 
 for (const tool of tools) {
@@ -166,10 +172,15 @@ for (const tool of tools) {
         expect(rows.length).toBeGreaterThan(1);
 
         const counts = rows.map((row) => row.count);
-        expect(
-          Math.max(...counts) - Math.min(...counts),
-          `Rows are unbalanced: ${counts.join('+')}`,
-        ).toBeLessThanOrEqual(1);
+        const accepted = tool.acceptedSplits?.[width];
+        if (accepted) {
+          expect(counts.join('+'), 'The split chosen for this width').toBe(accepted);
+        } else {
+          expect(
+            Math.max(...counts) - Math.min(...counts),
+            `Rows are unbalanced: ${counts.join('+')}`,
+          ).toBeLessThanOrEqual(1);
+        }
 
         // No row may spill past the toolbar it sits in.
         for (const row of rows) {

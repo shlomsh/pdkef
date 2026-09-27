@@ -628,10 +628,12 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('whiteout')}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
-                <path d="M22 21H7" />
-                <path d="m13.3 4 5.3 5.3" />
+              {/* Redact's Whiteout icon, so the same tool looks the same in both
+                  editors: where a line of text was, only its corners, blank. */}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="5" x2="15" y2="5" stroke-width="2" />
+                <path d="M3 11.5V9.5h2.5M18.5 9.5H21v2M21 12.5v2h-2.5M5.5 14.5H3v-2" stroke-width="1.6" />
+                <line x1="4" y1="19" x2="12" y2="19" stroke-width="2" />
               </svg>
               <span className={styles.label}>{t.whiteoutButton}</span>
             </button>

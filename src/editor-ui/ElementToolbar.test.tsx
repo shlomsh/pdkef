@@ -424,3 +424,66 @@ describe('ElementToolbar linked repeat set (RED-03)', () => {
     expect(onUnlinkFromGroup).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ElementToolbar find set (RED-11)', () => {
+  let container: HTMLDivElement | null = null;
+  const blackout = { id: 'b1', type: 'blackout', pageIndex: 0, left: 10, top: 10, width: 20, height: 5 };
+
+  afterEach(() => {
+    const host = container;
+    if (host) {
+      act(() => render(null, host));
+      host.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mount(props: Record<string, unknown>) {
+    const host = document.createElement('div');
+    container = host;
+    document.body.appendChild(host);
+    const onDelete = vi.fn();
+    const onRemoveFindSet = vi.fn();
+    act(() => {
+      render(<ElementToolbar element={blackout} onChange={() => {}} onClone={() => {}} onDelete={onDelete} onRemoveFindSet={onRemoveFindSet} {...props} />, host);
+    });
+    return { host, onDelete, onRemoveFindSet };
+  }
+
+  async function click(el: Element | null) {
+    await act(async () => { (el as HTMLElement).click(); });
+  }
+
+  it('a found box shows the scope menu with "This box" and "All 3 from this search"', async () => {
+    const { host, onDelete, onRemoveFindSet } = mount({ findSetSize: 3 });
+    await click(host.querySelector('[data-editor-delete-scope-trigger]'));
+    expect(onDelete).not.toHaveBeenCalled();
+
+    await click(document.body.querySelector('[data-editor-delete-this-box]'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+
+    await click(host.querySelector('[data-editor-delete-scope-trigger]'));
+    expect(document.body.querySelector('[data-editor-delete-find-set]')!.textContent).toBe('All 3 from this search');
+    await click(document.body.querySelector('[data-editor-delete-find-set]'));
+    expect(onRemoveFindSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('a box both linked and in a find set shows three items in order', async () => {
+    const onRemoveGroup = vi.fn();
+    const { host } = mount({ findSetSize: 4, repeatGroupSize: 5, onRemoveGroup, onUnlinkFromGroup: () => {} });
+    await click(host.querySelector('[data-editor-delete-scope-trigger]'));
+    const items = Array.from(document.body.querySelectorAll('[role="menuitem"], [data-editor-delete-this-page], [data-editor-delete-all-pages], [data-editor-delete-find-set]'))
+      .filter((el) => el.hasAttribute('data-editor-delete-this-page') || el.hasAttribute('data-editor-delete-all-pages') || el.hasAttribute('data-editor-delete-find-set'));
+    expect(items.map((el) => el.getAttribute('data-editor-delete-this-page') !== null ? 'this-page' : el.getAttribute('data-editor-delete-all-pages') !== null ? 'all-pages' : 'find-set')).toEqual(['this-page', 'all-pages', 'find-set']);
+    expect(items[1].textContent).toBe('All 5 pages');
+    expect(items[2].textContent).toBe('All 4 from this search');
+  });
+
+  it('findSetSize of 1 keeps the one-tap trash', async () => {
+    const { host, onDelete } = mount({ findSetSize: 1 });
+    expect(host.querySelector('[data-editor-delete-scope-trigger]')).toBeNull();
+    await click(host.querySelector('button[title="Delete element"]'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+});
