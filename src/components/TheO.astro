@@ -1,7 +1,8 @@
 ---
 // The O (DEMO-10, docs/home-the-o.md): the home page's scroll story. One ring
 // is the zero in "0 accounts", "0 uploads" and "0 paywalls", the O of "Open
-// source", a plane window, and the full stop of the founder's sentence.
+// source" and a plane window; then the airplane in that beat takes off, turns
+// into a paper plane and lands at the end of the founder's sentence.
 //
 // How it is built (theO.css):
 // - Six beats share one geometry. Every length comes from the stage's own size
@@ -9,16 +10,19 @@
 //   and every wipe centre agree at any viewport.
 // - The ring's shapes are measured from the system font's bold glyphs (SF Pro:
 //   a zero is 0.788 as wide as it is tall; the O is 0.729em tall and 0.68em
-//   wide; both have 0.15em sides; a full stop is 0.158em). The words sit on the
-//   zero's baseline, and "Open source" and the last sentence are sized so the
-//   O and the full stop land on their cap height and baseline exactly. Length
-//   ratios use tan(atan2(a, b)), which is a / b as a plain number.
-// - The last sentence is set against the dot (its second line end-aligned and
-//   trimmed to its baseline with text-box), so the dot can never land inside a
-//   word. The two lines are staggered so the dot has a clear lane: the ring
-//   shrinks, lifts to the top, waits while the sentence fades in, then drops
-//   onto "them" as the full stop, landing with a small squash and one ripple.
-// - Motion: the stage pins for 600svh, about a screen of scrolling per beat.
+//   wide; both have 0.15em sides). The words sit on the zero's baseline, and
+//   "Open source" is sized so the O lands on its cap height and baseline
+//   exactly. Length ratios use tan(atan2(a, b)), which is a / b as a plain number.
+// - The finale: once airplane mode is on, the toggle's own plane takes off
+//   (its flight starts as the same glyph, size and place), climbs over the
+//   heading, rolls over and comes out a paper plane, the plane that shares.
+//   The last card opens from there, and the paper plane glides over the top
+//   and comes down the clear lane at the end of the staggered last sentence
+//   (end-aligned and trimmed to its baseline with text-box), touching down on
+//   its baseline after "them". The flight is its own layer above the beats.
+// - Motion: the stage pins for 1200svh, about two screens of scrolling per
+//   card: the change into it, its words, then a rest of a screen or more, so
+//   every card pauses before the next change starts.
 //   The ring and the colour changes are scrubbed by scroll position: every
 //   beat's copy of the ring runs the same path keyframes over the whole pin, so
 //   the ring is one continuous shape, and each beat is a full layer in its own
@@ -27,7 +31,7 @@
 //   sketch. The scroll position sets the cue (--o-lit, the beat whose words
 //   are lit) and the fade runs in time, so it always completes. (Moving the
 //   ring itself on timed cues was tried and dropped: a fast scroll stacked the
-//   moves up and skipped the window and the full stop.)
+//   moves up and skipped the window and the landing.)
 // - The window beat enacts its own line: flat vector clouds drift across the
 //   visitor's own sky (day, golden or night by their clock, theOSky.ts), and
 //   the airplane-mode toggle beside the line switches on, drawn the way a
@@ -37,7 +41,8 @@
 //   stays on and becomes a badge, with a burst, and "It still works." pops up.
 //   That is why the English home page does not also render OfflineProof.
 // - Still version (reduced motion, or no scroll timelines): the six beats stack
-//   as posters, each ring in its finished shape and every word shown.
+//   as posters, each ring in its finished shape, every word shown and the
+//   paper plane already landed.
 //
 // The CSS ships inline on the one page that renders this (the CompareFigure
 // pattern), with its hash registered for the CSP, so the Hebrew home page,
@@ -66,8 +71,9 @@ interface Props {
 const { story } = Astro.props;
 Astro.csp?.insertStyleHash(cspSha256(theOCss));
 
-// The ring draws the O of "Open source" and the sentence's full stop, so the
-// visible text leaves them out; screen readers get the whole words.
+// The ring draws the O of "Open source", and the paper plane lands where the
+// sentence's full stop would be, so the visible text leaves them out; screen
+// readers get the whole words.
 const openSourceTail = story.openSource.word.slice(1);
 const [lastLineOne, lastLineTwo] = story.last;
 const lastLineTwoWithoutStop = lastLineTwo.replace(/\.$/, '');
@@ -86,6 +92,8 @@ const stressed = (line: string, phrase?: string) =>
   });
 // A few stars for the night sky, in the pane's own units (the pane is 1.12 by
 // 1.216 ring heights), kept inside the window's rounded opening.
+// The paper plane, nose to the right: its wing, and the fold under it.
+const paperPlane = '<path class="o-paper-wing" d="M0 9 32 1 12.5 12.5Z"></path><path class="o-paper-fold" d="M12.5 12.5 32 1 17 19Z"></path>';
 const stars = [
   [37, 32, 0.6], [48, 25, 0.4], [60, 50, 0.45], [40, 52, 0.5], [78, 60, 0.6], [30, 74, 0.45],
   [52, 88, 0.55], [70, 96, 0.4], [80, 82, 0.5], [58, 70, 0.4], [46, 97, 0.45],
@@ -150,12 +158,23 @@ const stars = [
       </div>
       <div class="o-beat b6">
         <div class="o-art">
-          <span class="o-ring" aria-hidden="true"><span class="o-fill"></span></span>
-          <span class="o-ripple" aria-hidden="true"></span>
+          <svg class="o-paper-rest" viewBox="0 0 32 20" aria-hidden="true" focusable="false" set:html={paperPlane}></svg>
           <div class="o-fin">
             <p class="o-lead"><span class="o-rise">{sentences(story.lead).map((sentence, i) => <>{i > 0 && ' '}<span class="o-s">{sentence}</span></>)}</span></p>
             <p class="o-last"><span class="o-rise"><span class="o-l1">{lastLineOne}</span> <span class="o-l2">{lastLineTwoWithoutStop}<span class="sr-only">.</span></span></span></p>
           </div>
+        </div>
+      </div>
+      <div class="o-beat bf" aria-hidden="true">
+        <div class="o-art">
+          <span class="o-flight">
+            <span class="o-touch">
+              <span class="o-roll">
+                <span class="o-face o-face-plane"><Plane fill="currentColor" strokeWidth={1.25} /></span>
+                <span class="o-face o-face-paper"><svg viewBox="0 0 32 20" focusable="false" set:html={paperPlane}></svg></span>
+              </span>
+            </span>
+          </span>
         </div>
       </div>
     </div>
