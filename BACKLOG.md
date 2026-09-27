@@ -662,12 +662,16 @@ _None._
 | RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 | RED-04 | P2 | [RED-04](backlog/tasks/RED-04.md) · What you see is what you save: the editor shows the page as it will export |
+| RED-05 | P1 | [RED-05](backlog/tasks/RED-05.md) · Spike: Hebrew and Arabic survivors of a partial rebuild keep their glyphs and order |
+| RED-06 | P1 | [RED-06](backlog/tasks/RED-06.md) · PDFium loads on export only, in a worker, cached offline, inside the weight budgets |
+| RED-07 | P1 | [RED-07](backlog/tasks/RED-07.md) · Remove text, image pixels and paths under each box, with per-page flattening fallback |
+| RED-08 | P1 | [RED-08](backlog/tasks/RED-08.md) · Annotations, form field values and form XObjects under a box |
+| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export, and a done state that tells the person per page |
+| RED-10 | P2 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout removes what it covers, through the same engine |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
+_None._
 
 ### Blocked
 
@@ -675,7 +679,9 @@ _None._
 
 ### Done
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
 
 ### Retired
 

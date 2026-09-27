@@ -5,7 +5,7 @@ status: "open"
 priority: "P2"
 epic: "redact-tool"
 phase: "longer-term"
-depends_on: ["RED-01"]
+depends_on: ["RED-09"]
 ---
 
 # RED-04 · What you see is what you save: the editor shows the page as it will export
