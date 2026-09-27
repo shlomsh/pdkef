@@ -6,19 +6,19 @@ import useDeletePreviews from './useDeletePreviews.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { RedactCommands } from './useRedactCommands.ts';
-import type { RedactHistoryElement } from './redactElements.ts';
+import type { RedactElement } from './redactElements.ts';
 
-// See redactElements.ts's own comment on RedactHistoryElement for why the
+// See redactElements.ts's own comment on RedactElement for why the
 // island's element type, not RedactElement, is what this hook takes.
-type RedactHistoryElementLike = RedactHistoryElement;
+type RedactElementLike = RedactElement;
 
 export interface UseDeleteToolDeps {
-  elements: readonly RedactHistoryElementLike[];
+  elements: readonly RedactElementLike[];
   file: File | null;
   fileBytes: ArrayBuffer | null;
   pdfDocument: PDFDocumentProxy | null;
   pageWrapperRefs: { current: (HTMLDivElement | null)[] };
-  add: RedactCommands<RedactHistoryElementLike>['add'];
+  add: RedactCommands<RedactElementLike>['add'];
   announce: (message: string) => void;
   disarmTool: () => void;
 }
@@ -77,7 +77,7 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
         paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
       }]);
     }
-    const element: RedactHistoryElementLike = {
+    const element: RedactElementLike = {
       id,
       pageIndex: object.pageIndex,
       type: 'delete',

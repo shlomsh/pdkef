@@ -21,7 +21,7 @@ import DeleteLift from './DeleteLift.tsx';
 import { groupMembers, repeatCopies } from './repeatGroup.ts';
 import { findSetMembers } from './findSet.ts';
 import useLinkedBoxes from './useLinkedBoxes.ts';
-import type { RedactHistoryElement } from './redactElements.ts';
+import type { RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar from './FindBar.tsx';
 import FindHighlights from './FindHighlights.tsx';
@@ -51,13 +51,13 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blurStrength.ts';
 
-// RED-14: RedactHistoryElement itself now lives in redactElements.ts (see its
+// RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
 // what lets useDeleteTool.ts/useLinkedBoxes.ts import it without a cycle).
 
 const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whiteout', 'blackout', 'blur', 'delete']);
 
-function isRedactHistoryElement(value: unknown): value is RedactHistoryElement {
+function isRedactElement(value: unknown): value is RedactElement {
   return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
 }
 
@@ -100,7 +100,7 @@ export default function PdfRedactTool() {
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [elements, setElements] = useState<RedactHistoryElement[]>([]);
+  const [elements, setElements] = useState<RedactElement[]>([]);
   // A returning person already knows this editor contains saved work. Do not
   // spend the identity row repeating the neutral newcomer tip after that work
   // restores; tool-specific instructions remain available whenever a tool is
@@ -228,7 +228,7 @@ export default function PdfRedactTool() {
   // (ordinary key auto-repeat, no re-render between them) act on the actual
   // result of each other rather than both reverting the same render-scoped
   // "newest" entry - see applyRevert, undoLast and redoLast below.
-  const [history, setHistory] = useState<HistoryStack<RedactHistoryElement>>({ past: [], future: [] });
+  const [history, setHistory] = useState<HistoryStack<RedactElement>>({ past: [], future: [] });
   const actionHistory = history.past;
   const redoHistory = history.future;
 
@@ -393,7 +393,7 @@ export default function PdfRedactTool() {
   const loadPdf = async (
     selected: File,
     bytes: ArrayBuffer,
-    preset: EditorDraftInitialState<RedactHistoryElement> = { elements: [], actionHistory: [] },
+    preset: EditorDraftInitialState<RedactElement> = { elements: [], actionHistory: [] },
     restored = false,
   ) => {
     // Restored drafts arrive already migrated (legacy `style`-keyed elements
@@ -460,7 +460,7 @@ export default function PdfRedactTool() {
     isDirty: documentRevision !== draftBaselineRevision,
     loadStartedRef,
     loadPdf,
-    isElement: isRedactHistoryElement,
+    isElement: isRedactElement,
   });
 
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
@@ -509,7 +509,7 @@ export default function PdfRedactTool() {
         // the next real drag would do nothing at all.
         if (!patch || patch.width <= 1 || patch.height <= 1) return;
         const id = uniqueId();
-        const element: RedactHistoryElement = {
+        const element: RedactElement = {
           id, pageIndex, ...patch, type, color,
           ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
         };
@@ -529,7 +529,7 @@ export default function PdfRedactTool() {
   // Shared by deleteElement and clearPage (finding #3) - both are complete
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
-  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactHistoryElement>) => {
+  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>) => {
     setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setUndoAction({ message, entryId: entry.id });
@@ -553,7 +553,7 @@ export default function PdfRedactTool() {
   // RED-14: the one commit path every edit below goes through - change
   // `elements`, mark the document edited, forget any removed selection, push
   // one history entry and, for a removal, show the undo chip.
-  const commands = useRedactCommands<RedactHistoryElement>({
+  const commands = useRedactCommands<RedactElement>({
     elements,
     setElements,
     setHistory,
@@ -596,10 +596,10 @@ export default function PdfRedactTool() {
   // same render-scoped "newest" entry reverted twice. An empty result reverts
   // nothing, which is also how a stale chip id becomes a silent no-op.
   const applyRevert = (
-    describeReverted: (entries: ActionHistoryEntry<RedactHistoryElement>[]) => string,
-    select: (past: ActionHistoryEntry<RedactHistoryElement>[]) => ActionHistoryEntry<RedactHistoryElement>[],
+    describeReverted: (entries: ActionHistoryEntry<RedactElement>[]) => string,
+    select: (past: ActionHistoryEntry<RedactElement>[]) => ActionHistoryEntry<RedactElement>[],
   ) => {
-    let reverted: ActionHistoryEntry<RedactHistoryElement>[] = [];
+    let reverted: ActionHistoryEntry<RedactElement>[] = [];
     setHistory((current) => {
       reverted = select(current.past);
       if (reverted.length === 0) return current;
@@ -633,7 +633,7 @@ export default function PdfRedactTool() {
   // useLinkedBoxes.ts now. `select` mirrors what duplicateElement itself
   // used to do: sets both the sticky selection and the hover target to the
   // box it just created.
-  const linkedBoxes = useLinkedBoxes<RedactHistoryElement>({
+  const linkedBoxes = useLinkedBoxes<RedactElement>({
     elements,
     numPages,
     uniqueId,
@@ -679,7 +679,7 @@ export default function PdfRedactTool() {
   // entry is re-removed), so the same surviving-id reconciliation applies:
   // an id the redo just removed again is cleared from selection.
   const redoLast = () => {
-    let redone: ActionHistoryEntry<RedactHistoryElement>[] = [];
+    let redone: ActionHistoryEntry<RedactElement>[] = [];
     setHistory((current) => {
       const step = redoStep(current.past, current.future);
       if (!step) return current;
@@ -724,7 +724,7 @@ export default function PdfRedactTool() {
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
     const type = find.redactStyle;
-    const additions: RedactHistoryElement[] = matches.flatMap((match) => match.boxes.map((box) => ({
+    const additions: RedactElement[] = matches.flatMap((match) => match.boxes.map((box) => ({
       id: uniqueId(),
       pageIndex: match.pageIndex,
       ...box,
