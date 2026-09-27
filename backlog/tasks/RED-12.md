@@ -39,6 +39,10 @@ every word a box touches.
   bookmarks or attachments that could hold what a box hides. Anything real is fixed here or split
   into its own ticket the same day.
 
+- **One text reader afterwards.** Delete's previews come from our own content-stream parser, with its
+  own partial ToUnicode decoding and reading-order fix (`visualOrder.js`). Once this ticket reads word
+  positions through pdf.js, take Delete's preview text from that same read and retire the second decoder.
+
 ## Start with a spike
 
 On the real forms in `spikes/red-01/` (IRS 1040, USCIS I-9, the Israeli health declaration) plus a
