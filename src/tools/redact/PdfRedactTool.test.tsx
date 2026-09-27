@@ -342,71 +342,32 @@ describe('PdfRedactTool UI flow', () => {
       await loadRealPdfAndSwitchToDelete();
       const candidates = container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
       expect(candidates).toHaveLength(1);
-      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
     });
 
-    it('marks an object for deletion on click, and un-marks it on undo', async () => {
+    // RED-13: a marked object has no mark of its own. The page is drawn
+    // without it, and the toolbar's Undo is how it comes back.
+    it('marks an object for deletion on click, and the toolbar Undo brings it back', async () => {
       await loadRealPdfAndSwitchToDelete();
-
-      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
-      await act(async () => {
-        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
-      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
-      expect(mark).not.toBeNull();
-
-      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
-      await act(async () => {
-        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-
-      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
-
-      // Marking spent the tool's one arming, so the highlights are gone with it
-      // and the object is only offered again once Delete is armed again. That is
-      // the same one-shot contract every other tool in both editors follows.
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
-      await armTool('Delete');
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
-    });
-
-    // Marking runs through toggleObjectDeletion's "new mark" branch, which ends
-    // in disarmTool() - that is this tool's one placement. Un-marking always
-    // runs through deleteElement instead (DeleteMark's own undo button calls it
-    // directly), which never calls disarmTool(). Un-marking is a correction, not
-    // a placement, so it must not cost the arming the correction is trying to
-    // use - dropping the tool mid-correction would be the opposite of what was
-    // asked for. The button's own active class is the observable proxy for
-    // "still armed" here, since Delete's touch-action never changes (it places
-    // by tap, not drag).
-    it('marking spends the arming; un-marking the same object does not', async () => {
-      await loadRealPdfAndSwitchToDelete();
-
-      const deleteBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((b) => b.textContent.includes('Delete')), 'Delete button');
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
 
       const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      expect(deleteBtn.className).not.toContain(toolbarStyles.active);
 
-      // Re-arm, then undo the mark through DeleteMark's own button - once an
-      // object is marked, the overlay no longer offers it, so this is the only
-      // way left to un-mark it.
+      // Marking spent the tool's one arming, so the highlights are gone with it:
+      // the same one-shot contract every other tool in both editors follows.
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
       await armTool('Delete');
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
 
-      const mark = query<HTMLElement>(container, `.${redactStyles['delete-mark']}`);
-      const undoButton = query<HTMLElement>(mark, `.${redactStyles['delete-mark-btn']}`);
+      const undo = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === 'Undo'),
+        'Undo button',
+      );
       await act(async () => {
-        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        undo.click();
       });
-
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
     });
 
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {

@@ -373,7 +373,7 @@ test.describe('Redact editor browser guardrails', () => {
 
 // Design-review findings #1 and #2: jsdom has no layout, so the CSS-only
 // touch-target floors added for this review (`.delete-candidate::before`,
-// `.delete-mark-btn::before`, `.resizer::before`, `.element-button::before`)
+// `.resizer::before`, `.element-button::before`)
 // need a real browser to prove. Coordinates are read as computed style,
 // matching toolbar-touch-targets.spec.js's own approach of measuring
 // rendered geometry rather than clicking blind. Blackout/blur used to carry
@@ -419,8 +419,8 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     });
   }
 
-  // The centred `min-width`/`min-height` technique `.delete-candidate` and
-  // `.delete-mark-btn` use instead: unlike the resizer/toolbar controls, this
+  // The centred `min-width`/`min-height` technique `.delete-candidate` uses
+  // instead: unlike the resizer/toolbar controls, this
   // one has to reach its floor even when the real element is *smaller* than
   // the floor in both dimensions, not just widen a fixed visual by a fixed
   // amount.
