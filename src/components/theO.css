@@ -211,52 +211,21 @@
   .o-last > .o-rise { margin-block-end: -0.165em; }
 }
 
-/* Motion: the stage pins for 1340svh. Each change (a colour wipe, the ring
-   moving) takes a fraction of a screen, then the card's words fade in and it
-   rests for a good screen and a half, so every card pauses before the next
-   change starts. The flight is slower, about two and a half screens from
-   take-off to touchdown, and the landed plane rests before the page moves
-   on. Percentages below are of that 1340svh.
+/* Motion. When each thing happens lives in src/site-lib/theOTimeline.ts,
+   which TheO.astro appends to this sheet: the pin's height, the keyframes whose
+   stops are moments in the story (o-path, o-shape, o-fly, o-cues) and every
+   animation range. Each change (a colour wipe, the ring changing shape) takes
+   over half a screen, then the card's words fade in and it rests for a screen
+   and a half before the next change starts; the flight takes about two and a
+   half screens, and the landed plane rests before the page moves on.
    Every copy of the ring runs the same path over the whole pin, so the ring
    is one continuous shape; each beat's colour opens as a circle from it. */
-@keyframes o-path {
-  0%, 43.43% { translate: 0 0; }
-  46.12%, 58.06% { translate: var(--o-tx) var(--o-ty); }
-  61.19%, 100% { translate: var(--w-tx) var(--w-ty); }
-}
-@keyframes o-shape {
-  0%, 43.43% { scale: var(--zx) 1; }
-  46.12%, 58.06% { scale: var(--o-sx) var(--o-sy); }
-  61.19%, 100% { scale: 1.04 1.3; }
-}
-/* Take off along the line, climb over the heading while rolling into paper,
-   glide over the top, then come down the clear lane at the end of the last
-   line and flare onto its baseline. */
-@keyframes o-fly {
-  0%, 73.13% { translate: 0 0; rotate: 0deg; scale: 1; }
-  75.37% { translate: var(--f1-tx) var(--f1-ty); rotate: -20deg; scale: 1.15; }
-  78.73% { translate: var(--f2-tx) var(--f2-ty); rotate: -32deg; scale: var(--f-big); }
-  83.21% { translate: var(--f3-tx) var(--f3-ty); rotate: 0deg; scale: var(--f-big); }
-  87.69% { translate: var(--f4-tx) var(--f4-ty); rotate: 38deg; scale: calc(var(--f-land) * 1.25); }
-  90.45%, 100% { translate: var(--l-tx) var(--l-ty); rotate: 0deg; scale: var(--f-land); }
-}
 @keyframes o-roll { from { scale: 1 1; } to { scale: 1 -1; } }
 @keyframes o-show { from { opacity: 0; } to { opacity: 1; } }
 @keyframes o-hide { from { opacity: 1; } to { opacity: 0; } }
 @keyframes o-switch { from { clip-path: circle(0 at 50% 50%); } to { clip-path: circle(71% at 50% 50%); } }
 /* Touchdown: the nose is still up from the flare, then it settles. */
 @keyframes o-touch { from { rotate: -9deg; translate: calc(var(--B) * -0.12) 0; } }
-@keyframes o-cues {
-  0% { --o-lit: 0; --o-landed: 0; }
-  0.22% { --o-lit: 1; }
-  14.4% { --o-lit: 2; }
-  29.48% { --o-lit: 3; }
-  46.57% { --o-lit: 4; }
-  61.64% { --o-lit: 5; }
-  80.22% { --o-lit: 6; }
-  90.45% { --o-landed: 1; }
-  100% { --o-lit: 6; --o-landed: 1; }
-}
 @keyframes o-wipe { from { clip-path: circle(0 at var(--wx) var(--wy)); } to { clip-path: circle(var(--wr) at var(--wx) var(--wy)); } }
 @keyframes o-drift { from { translate: calc(var(--R) * var(--drift) * -1 * var(--dir)) 0; } to { translate: calc(var(--R) * var(--drift) * var(--dir)) 0; } }
 @keyframes o-fade { from { opacity: 0; } }
@@ -269,7 +238,7 @@
 @keyframes o-win { from { opacity: 0; scale: 0.8; } }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .o-track { height: calc(1340svh + 100lvh - var(--home-nav-height, 0px)); overflow: clip; view-timeline: --the-o block; view-timeline-inset: var(--home-nav-height, 0px) 0px; }
+    .o-track { overflow: clip; view-timeline: --the-o block; view-timeline-inset: var(--home-nav-height, 0px) 0px; }
     .o-stage { position: sticky; top: var(--home-nav-height, 0px); height: calc(100lvh - var(--home-nav-height, 0px)); }
     .o-beat { position: absolute; inset: 0; height: auto; }
     .bf { display: block; }
@@ -277,21 +246,16 @@
     .o-stage, .o-art, .o-ring, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
 
     .o-beat:not(.b1, .bf) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
-    .b2 > .o-art { animation-range: contain 11.94% contain 13.73%; }
-    .b3 > .o-art { animation-range: contain 27.01% contain 28.81%; }
-    .b4 > .o-art { animation-range: contain 42.09% contain 43.88%; }
-    .b5 > .o-art { animation-range: contain 58.06% contain 59.85%; }
-    .b6 > .o-art { animation-range: contain 77.61% contain 81.34%; }
 
     .o-ring { animation-name: o-path, o-shape; animation-timing-function: var(--ease-in-out); animation-range: contain 0% contain 100%; }
-    .o-cloud { animation-name: o-drift; animation-range: contain 59.4% contain 81.34%; }
+    .o-cloud { animation-name: o-drift; }
     /* Airplane mode turns on, and then its plane takes off. */
-    .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); animation-range: contain 63.88% contain 64.55%; }
-    .o-mode .o-plane { animation-name: o-hide; animation-timing-function: step-start; animation-range: contain 73.13% contain 100%; }
-    .o-flight { animation-name: o-fly, o-show; animation-timing-function: var(--ease-in-out), step-start; animation-range: contain 0% contain 100%, contain 73.13% contain 100%; }
-    .o-roll { animation-name: o-roll; animation-timing-function: var(--ease-in-out); animation-range: contain 75.37% contain 78.73%; }
-    .o-face-plane { animation-name: o-hide; animation-timing-function: step-start; animation-range: contain 77.05% contain 100%; }
-    .o-face-paper { animation-name: o-show; animation-timing-function: step-start; animation-range: contain 77.05% contain 100%; }
+    .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); }
+    .o-mode .o-plane { animation-name: o-hide; animation-timing-function: step-start; }
+    .o-flight { animation-name: o-fly, o-show; animation-timing-function: var(--ease-in-out), step-start; }
+    .o-roll { animation-name: o-roll; animation-timing-function: var(--ease-in-out); }
+    .o-face-plane { animation-name: o-hide; animation-timing-function: step-start; }
+    .o-face-paper { animation-name: o-show; animation-timing-function: step-start; }
     .o-stage { animation-name: o-cues; animation-timing-function: step-end; animation-range: contain 0% contain 100%; }
 
     /* Once each ring settles, a held beat, then its words fade in, as in the
