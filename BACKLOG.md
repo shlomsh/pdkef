@@ -659,14 +659,15 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
 | RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
 | RED-04 | P2 | [RED-04](backlog/tasks/RED-04.md) · What you see is what you save: the editor shows the page as it will export |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
 
 ### Blocked
 

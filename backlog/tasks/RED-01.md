@@ -1,7 +1,7 @@
 ---
 id: "RED-01"
 title: "Spike: remove the text and images under a box instead of flattening the page"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
