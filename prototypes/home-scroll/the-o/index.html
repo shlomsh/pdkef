@@ -1,0 +1,330 @@
+<title>The O</title>
+<!--
+  The O: the chosen home-page scroll story, as a standalone prototype.
+  Concept, beats and build contract: docs/home-the-o.md. One ring is the only actor. It is the zero in
+  "0 accounts", "0 uploads" and "0 paywalls", then it rounds into the O of
+  "Open source", opens into a plane window, and finally shrinks into the full
+  stop at the end of the founder's sentence.
+
+  How it is built:
+  - Six beats share one geometry. Every length comes from the stage's own
+    size (container units) and from --R, the ring's size, so the ring, the
+    words and every wipe centre agree at any viewport and in any font.
+  - Each beat is a full layer with its own colours and its own copy of the
+    ring. The next beat opens as a circle from the ring's centre
+    (clip-path), so colour changes are hard cuts, never fades.
+  - The O in "Open source" and the final full stop are sized as fixed
+    fractions of --R and the text is sized from --R too, so the ring lands
+    on the cap height and on the baseline exactly. The last sentence is set
+    against the dot (right-aligned, trimmed to its baseline with text-box),
+    so the dot can never land inside a word.
+  - Still version (reduced motion, or no scroll timelines): the six beats
+    stack as posters, each ring in its finished shape.
+
+  Copy: the sub-lines are from src/data/homeContent.js (FAQ and founder
+  story) and src/i18n/documentationMessages.ts (worksOffline,
+  airplaneModeNotice). The display words "accounts", "uploads" and
+  "paywalls" are single words lifted from the FAQ answers; the zero is the
+  ring (and an sr-only "0" for assistive tech).
+-->
+<style>
+  :root {
+    color-scheme: light;
+    --color-bg: #faf7f1;
+    --color-surface: #ffffff;
+    --color-text: #0b4c4c;
+    --color-muted: #276460;
+    --color-border: #dfe6e2;
+    --color-border-strong: #6fbeb2;
+    --color-primary: #007979;
+    --color-primary-text: #006e6e;
+    --color-primary-hover: #006868;
+    --color-primary-soft: #eef6f3;
+    --color-primary-tint: #c3f0e6;
+    --color-citron: #efffa6;
+    --color-citron-ink: #4f6c2d;
+    --radius-sm: 10px;
+    --radius-pill: 999px;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --type-lead-size: clamp(0.9375rem, 0.8773rem + 0.247vw, 1.0625rem);
+    --gutter: 16px;
+    /* Prototype tokens. */
+    --o-night: #062b2b;
+    --o-cloud: #ffffff;
+    --o-sky: #c3f0e6;
+    --o-ease: cubic-bezier(0.7, 0, 0.25, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: clip; }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: 4px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .wrap { width: min(100% - 2 * var(--gutter), 72rem); margin-inline: auto; }
+  h1, h2 { text-wrap: balance; }
+  p { text-wrap: pretty; }
+  .accent { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .accent::before { content: ''; position: absolute; inset: 58% -0.08em 0.04em; background: var(--color-citron); border-radius: 0.3em 0.14em 0.26em 0.12em; rotate: -0.6deg; z-index: -1; }
+  .proto-bar { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 1rem; padding-block: 0.75rem; border-bottom: 0.5px solid var(--color-border); }
+  .wordmark { font-weight: 700; font-size: 1.125rem; letter-spacing: -0.02em; }
+  .proto-tag { font-size: 0.8125rem; color: var(--color-muted); }
+  .hero-stub { text-align: center; padding-block: clamp(2rem, 7svh, 4.5rem) 2.5rem; }
+  .hero-stub h1 { font-size: clamp(1.6rem, 3.4vw, 2.45rem); line-height: 1.15; letter-spacing: -0.035em; margin: 0 0 0.5rem; }
+  .hero-stub p { margin: 0 auto; max-width: 36rem; color: var(--color-muted); }
+  .stub-note { margin: 1.5rem auto 0; max-width: 34rem; padding: 0.75rem 1rem; border: 1px dashed var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-primary-soft); color: var(--color-muted); font-size: 0.8125rem; line-height: 1.5; text-align: center; }
+  .closing { text-align: center; padding-block: 5rem 3rem; }
+  .closing h2 { font-size: 2rem; letter-spacing: -0.02em; margin: 0 0 1.25rem; }
+  .btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0.625rem 1.5rem; border-radius: var(--radius-pill); background: var(--color-primary); color: var(--color-surface); font-weight: 600; text-decoration: none; }
+  .btn:hover { background: var(--color-primary-hover); }
+
+  /* ---------- The O: geometry ---------- */
+  .o-beat {
+    position: relative;
+    height: 100svh;
+    container-type: size;
+    overflow: clip;
+    background: var(--bg);
+    color: var(--ink);
+    --dir: 1;
+    --gut: clamp(16px, 4cqw, 40px);
+    --wc: min(100cqw - 2 * var(--gut), 72rem);   /* content column */
+    --lx: calc((100cqw - var(--wc)) / 2);         /* column start */
+    --zx: 0.82;                                    /* a zero is narrower than an O */
+    --R: clamp(6.5rem, min(32cqw, 44cqh), 26rem); /* ring size */
+    --cy: 46cqh;                                   /* ring centre, block axis */
+    --cx: calc(var(--lx) + var(--R) * var(--zx) / 2);
+    --G: calc(var(--R) * 0.12);
+    --fw: clamp(2rem, min(var(--R) * 0.6, (var(--wc) - var(--R) * 1.03) / 5.2), 9rem);
+    --k4: 0.42;                                    /* "Open source" size, as a fraction of --R */
+    --k6: 0.27;                                    /* final sentence size */
+    --f4: calc(var(--R) * var(--k4));
+    --f6: calc(var(--R) * var(--k6));
+    --s4: calc(0.73 * var(--k4));                  /* O height = 0.73em, cap plus overshoot */
+    --s6: calc(0.16 * var(--k6));                  /* a heavy full stop, 0.16em */
+    --d: calc(var(--R) * var(--s6));
+    --tx4: calc(var(--R) * (var(--s4) - var(--zx)) / 2);
+    --ty4: 0px;
+    --yb: 74cqh;                                   /* final baseline */
+    --tx6: calc(var(--wc) - var(--d) / 2 - var(--R) * var(--zx) / 2);
+    --ty6: calc(var(--yb) - var(--d) / 2 - var(--cy));
+    --wx-l: var(--cx);
+    --wx: var(--wx-l);
+    --wy: var(--cy);
+    --hide: inset(-0.3em 100% -0.4em -0.1em);
+    --show: inset(-0.3em -0.1em -0.4em -0.1em);
+  }
+  @media (max-aspect-ratio: 1/1) {
+    .o-beat {
+      --R: clamp(6.5rem, min(62cqw, 36cqh), 21rem);
+      --cy: calc(46cqh - var(--R) * 0.22);
+      --fw: clamp(2rem, min(var(--R) * 0.5, var(--wc) / 5.2), 7.5rem);
+      --k4: 0.22;
+      --k6: 0.15;
+      --ty4: calc(var(--R) * (0.6 + 0.355 * var(--k4)));
+      --yb: 72cqh;
+    }
+  }
+  [dir='rtl'] .o-beat {
+    --dir: -1;
+    --wx: calc(100cqw - var(--wx-l));
+    --hide: inset(-0.3em -0.1em -0.4em 100%);
+  }
+
+  .b1 { --bg: var(--color-text); --ring: var(--color-citron); --ink: var(--color-bg); --ink2: var(--color-primary-tint); }
+  .b2 { --bg: var(--color-citron); --ring: var(--color-text); --ink: var(--color-text); --ink2: var(--color-citron-ink); }
+  .b3 { --bg: var(--color-bg); --ring: var(--color-primary); --ink: var(--color-text); --ink2: var(--color-muted); }
+  .b4 { --bg: var(--color-primary); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-bg); }
+  .b5 { --bg: var(--o-night); --ring: var(--color-bg); --ink: var(--color-bg); --ink2: var(--color-primary-tint);
+        --wx-l: calc(var(--lx) + var(--R) * var(--s4) / 2); --wy: calc(var(--cy) + var(--ty4)); }
+  .b6 { --bg: var(--color-text); --ring: var(--color-citron); --ink: var(--color-bg); --ink2: var(--color-primary-tint); }
+
+  /* ---------- The ring ---------- */
+  .o-ring {
+    position: absolute;
+    inset-inline-start: calc(var(--lx) - var(--R) * (1 - var(--zx)) / 2);
+    top: calc(var(--cy) - var(--R) / 2);
+    width: var(--R);
+    height: var(--R);
+    border: solid var(--ring);
+    border-width: calc(var(--R) * 0.125) calc(var(--R) * 0.18);
+    border-radius: 50%;
+    overflow: hidden;
+    transform: scaleX(var(--zx));
+  }
+  .b4 .o-ring { transform: translate(calc(var(--tx4) * var(--dir)), var(--ty4)) scale(var(--s4)); }
+  .b5 .o-ring { transform: scale(0.9, 1.2); }
+  .b6 .o-ring { transform: none; translate: calc(var(--tx6) * var(--dir)) var(--ty6); scale: var(--s6); }
+  .o-fill { position: absolute; inset: -1px; border-radius: 50%; background: var(--ring); }
+
+  /* The window (beat 5). The pane undoes the ring's stretch so clouds stay round. */
+  .o-pane { position: absolute; inset: 0; transform: scale(calc(1 / 0.9), calc(1 / 1.2)); background: var(--o-sky); }
+  .o-cloud { position: absolute; inset-inline-start: 0; height: calc(var(--R) * 0.09); width: calc(var(--R) * 0.3); border-radius: var(--radius-pill); background: var(--o-cloud); translate: calc(var(--R) * 0.2 * var(--dir)) 0; }
+  .o-cloud.c1 { top: 24%; }
+  .o-cloud.c2 { top: 44%; width: calc(var(--R) * 0.18); height: calc(var(--R) * 0.06); translate: calc(var(--R) * 0.5 * var(--dir)) 0; }
+  .o-wing { position: absolute; inset: auto 0 0; width: 100%; height: 46%; }
+  .o-wing .w1 { fill: var(--color-bg); }
+  .o-wing .w2 { fill: var(--color-border-strong); }
+  [dir='rtl'] .o-wing { scale: -1 1; }
+  .o-shade { position: absolute; inset: 0; background: var(--o-night); transform: translateY(-84%); }
+  .o-shade::after { content: ''; position: absolute; inset: auto 30% 6%; height: 3%; border-radius: var(--radius-pill); background: var(--color-muted); }
+
+  /* ---------- The words ---------- */
+  .o-text {
+    position: absolute;
+    inset-inline-start: calc(var(--lx) + var(--R) * var(--zx) + var(--G));
+    inset-inline-end: var(--lx);
+    top: calc(var(--cy) - var(--fw) * 0.355);
+    margin: 0;
+  }
+  .o-word { margin: 0; font-size: var(--fw); font-weight: 700; line-height: 1; letter-spacing: -0.035em; text-box: trim-both cap alphabetic; }
+  .o-sub { margin: 0; margin-top: calc(var(--fw) * 0.42); max-width: 26rem; font-size: clamp(1rem, 0.85rem + 0.6cqw, 1.5rem); line-height: 1.4; color: var(--ink2); }
+  .b4 .o-text { inset-inline-start: var(--lx); top: calc(var(--cy) - var(--f4) * 0.355); }
+  .b4 .o-word { font-size: var(--f4); letter-spacing: -0.03em; padding-inline-start: calc(var(--R) * var(--s4) + var(--f4) * 0.015); }
+  .b4 .o-sub { margin-top: calc(var(--f4) * 0.42); }
+  .b5 .o-text { inset-inline-start: calc(var(--cx) + var(--R) * 0.45 + var(--G) * 1.4); top: calc(var(--cy) - var(--fw) * 0.8); }
+  .b5 .o-word { font-size: calc(var(--fw) * 0.8); text-wrap: balance; }
+  .b5 .o-sub { margin-top: calc(var(--fw) * 0.34); }
+  @media (max-aspect-ratio: 1/1) {
+    .o-text, .b4 .o-text { top: calc(var(--cy) + var(--R) * 0.6); }
+    .o-text { inset-inline-start: var(--lx); }
+    .b5 .o-text { inset-inline-start: var(--lx); top: calc(var(--cy) + var(--R) * 0.72); }
+  }
+
+  /* The last sentence is set against the dot: it ends where the dot starts and
+     its last baseline is the dot's baseline. */
+  .o-fin {
+    position: absolute;
+    inset-inline-end: calc(100cqw - var(--lx) - var(--wc) + var(--d) + var(--f6) * 0.06);
+    bottom: calc(100cqh - var(--yb));
+    max-width: calc(var(--wc) - var(--d) - var(--f6) * 0.06);
+    margin: 0;
+    text-align: end;
+    text-box: trim-end cap alphabetic;
+  }
+  .o-lead { margin: 0 0 0 auto; max-width: 30rem; margin-block-end: calc(var(--f6) * 0.5); font-size: clamp(1rem, 0.85rem + 0.6cqw, 1.375rem); line-height: 1.45; color: var(--ink2); }
+  [dir='rtl'] .o-lead { margin-inline: auto 0; }
+  .o-last { margin: 0; font-size: var(--f6); font-weight: 700; line-height: 1.04; letter-spacing: -0.03em; text-wrap: balance; }
+  @supports not (text-box: trim-both cap alphabetic) {
+    .o-word { margin-top: -0.21em; }
+    .o-fin { margin-bottom: -0.2em; }
+  }
+
+  /* ---------- Motion: one pinned stage, six layers ---------- */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .o-track { height: 700svh; view-timeline: --o block; }
+      .o-stage { position: sticky; top: 0; height: 100svh; overflow: clip; container-type: size; }
+      .o-beat { position: absolute; inset: 0; height: auto; }
+      .o-beat:not(.b1) { clip-path: circle(0 at var(--wx) var(--wy)); animation: o-wipe linear both; animation-timeline: --o; animation-timing-function: var(--o-ease); }
+      .o-beat.b2 { animation-range: contain 12% contain 19%; }
+      .o-beat.b3 { animation-range: contain 29% contain 36%; }
+      .o-beat.b4 { animation-range: contain 46% contain 52%; }
+      .o-beat.b5 { animation-range: contain 64% contain 70%; }
+      .o-beat.b6 { animation-range: contain 86% contain 90%; }
+
+      .o-text { animation: o-emerge linear both; animation-timeline: --o; animation-timing-function: var(--ease-out); }
+      .b1 .o-text { animation-range: entry 55% contain 3%; }
+      .b2 .o-text { animation-range: contain 18% contain 23%; }
+      .b3 .o-text { animation-range: contain 35% contain 40%; }
+      .b4 .o-text { animation-range: contain 56% contain 61%; }
+      .b5 .o-text { animation-range: contain 76% contain 81%; }
+      .b6 .o-fin { animation: o-emerge linear both; animation-timeline: --o; animation-range: contain 89% contain 94%; animation-timing-function: var(--ease-out); }
+
+      .o-ring { animation: linear both; animation-timeline: --o; animation-timing-function: var(--o-ease); }
+      .b1 .o-ring { animation-name: o-ring-in; animation-range: entry 10% entry 90%; animation-timing-function: var(--ease-out); }
+      .b4 .o-ring { animation-name: o-to-o; animation-range: contain 51% contain 58%; }
+      .b5 .o-ring { animation-name: o-to-window; animation-range: contain 69% contain 76%; }
+      .b6 .o-ring { animation-name: o-dot-move, o-dot-scale; animation-timeline: --o, --o; animation-range: contain 89% contain 97%, contain 88.5% contain 93%; animation-timing-function: var(--o-ease), var(--ease-out); }
+      .o-fill { animation: o-fill linear both; animation-timeline: --o; animation-range: contain 93% contain 97%; }
+      .o-shade { animation: o-shade linear both; animation-timeline: --o; animation-range: contain 74% contain 80%; animation-timing-function: var(--o-ease); }
+      .o-cloud { animation: o-drift linear both; animation-timeline: --o; animation-range: contain 68% contain 92%; }
+      .o-cloud.c2 { animation-name: o-drift-2; }
+    }
+  }
+  @keyframes o-wipe { from { clip-path: circle(0 at var(--wx) var(--wy)); } to { clip-path: circle(105cqmax at var(--wx) var(--wy)); } }
+  @keyframes o-emerge { from { clip-path: var(--hide); } to { clip-path: var(--show); } }
+  @keyframes o-ring-in { from { transform: scaleX(var(--zx)) scale(0.4); opacity: 0; } to { transform: scaleX(var(--zx)); opacity: 1; } }
+  @keyframes o-to-o { from { transform: scaleX(var(--zx)); } to { transform: translate(calc(var(--tx4) * var(--dir)), var(--ty4)) scale(var(--s4)); } }
+  @keyframes o-to-window { from { transform: translate(calc(var(--tx4) * var(--dir)), var(--ty4)) scale(var(--s4)); } to { transform: scale(0.9, 1.2); } }
+  @keyframes o-dot-move { 0% { translate: 0 0; } 55% { translate: calc(var(--tx6) * var(--dir) * 0.75) calc(var(--ty6) * 0.15); } 100% { translate: calc(var(--tx6) * var(--dir)) var(--ty6); } }
+  @keyframes o-dot-scale { from { scale: var(--zx) 1; } to { scale: var(--s6); } }
+  @keyframes o-fill { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes o-shade { from { transform: none; } to { transform: translateY(-84%); } }
+  @keyframes o-drift { from { translate: calc(var(--R) * -0.45 * var(--dir)) 0; } to { translate: calc(var(--R) * 0.95 * var(--dir)) 0; } }
+  @keyframes o-drift-2 { from { translate: calc(var(--R) * -0.1 * var(--dir)) 0; } to { translate: calc(var(--R) * 1.05 * var(--dir)) 0; } }
+</style>
+
+<header class="wrap proto-bar">
+  <span class="wordmark">PDkef</span>
+  <span class="proto-tag">Prototype: The O</span>
+</header>
+<main id="top">
+  <section class="wrap hero-stub" aria-labelledby="home-heading">
+    <h1 id="home-heading">Free PDF tools that run <span class="accent">on your device</span></h1>
+    <p>Merge, split, compress, sign, blur and convert. Ten PDF tools, no signup, no install, nothing leaves your device.</p>
+    <p class="stub-note">The first screen stays as it is today: launcher, tool dock and the Sign demo. The story below takes the place of the cards under it. The FAQ and footer stay.</p>
+  </section>
+
+  <section class="o" aria-labelledby="o-heading">
+    <h2 id="o-heading" class="sr-only">No account, no uploads, no paywalls</h2>
+    <div class="o-track">
+      <div class="o-stage">
+        <div class="o-beat b1">
+          <span class="o-ring" aria-hidden="true"></span>
+          <div class="o-text">
+            <p class="o-word"><span class="sr-only">0 </span>accounts</p>
+            <p class="o-sub">No account, email, or trial period.</p>
+          </div>
+        </div>
+        <div class="o-beat b2">
+          <span class="o-ring" aria-hidden="true"></span>
+          <div class="o-text">
+            <p class="o-word"><span class="sr-only">0 </span>uploads</p>
+            <p class="o-sub">Files never leave your device.</p>
+          </div>
+        </div>
+        <div class="o-beat b3">
+          <span class="o-ring" aria-hidden="true"></span>
+          <div class="o-text">
+            <p class="o-word"><span class="sr-only">0 </span>paywalls</p>
+            <p class="o-sub">Free. No caps, no watermark, no catch.</p>
+          </div>
+        </div>
+        <div class="o-beat b4">
+          <span class="o-ring" aria-hidden="true"></span>
+          <div class="o-text">
+            <p class="o-word"><span class="sr-only">Open source</span><span aria-hidden="true">pen source</span></p>
+            <p class="o-sub">Audit the code yourself.</p>
+          </div>
+        </div>
+        <div class="o-beat b5">
+          <span class="o-ring" aria-hidden="true">
+            <span class="o-pane">
+              <span class="o-cloud c1"></span>
+              <span class="o-cloud c2"></span>
+              <svg class="o-wing" viewBox="0 0 100 46" preserveAspectRatio="none" focusable="false"><path class="w1" d="M-2 40 L104 16 V24 L-2 50 Z"/><path class="w2" d="M-2 44 L104 21 V24 L-2 50 Z"/></svg>
+              <span class="o-shade"></span>
+            </span>
+          </span>
+          <div class="o-text">
+            <p class="o-word">Works offline</p>
+            <p class="o-sub">Turn on airplane mode and give it a try. It still works.</p>
+          </div>
+        </div>
+        <div class="o-beat b6">
+          <span class="o-ring" aria-hidden="true"><span class="o-fill"></span></span>
+          <div class="o-fin">
+            <p class="o-lead">So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device.</p>
+            <p class="o-last">Then I wanted to share them<span class="sr-only">.</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap closing" aria-labelledby="try-heading">
+    <h2 id="try-heading">Give it a <span class="accent">try</span>.</h2>
+    <a class="btn" href="#top">Choose files</a>
+    <p class="stub-note">FAQ and footer continue here, unchanged.</p>
+  </section>
+</main>
