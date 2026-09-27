@@ -1758,6 +1758,47 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(secondPageBox.style.width)).toBeCloseTo(widthBefore);
     });
 
+    it('Clear page on a page with a repeated box asks, and "Keep the repeated boxes" clears only its own boxes', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+      await armTool('Blackout');
+      await drawBox(drawArea, 60, 600, 220, 700); // a box only page 1 has
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const counts = () => pageCards.map((card) => card.querySelectorAll(`.${REDACT_BOX}`).length);
+      expect(counts()).toEqual([2, 1, 1]);
+
+      const clearTrigger = query<HTMLButtonElement>(pageCards[0], '[data-editor-clear-page-trigger]');
+      await act(async () => { clearTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const keep = required(document.querySelector<HTMLButtonElement>('[data-editor-clear-keep-repeated]'), 'keep repeated item');
+      await act(async () => { keep.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(counts()).toEqual([1, 1, 1]);
+
+      // Only the repeated box is left on page 1, so Clear page now offers
+      // just "Clear everything", which removes this page's copy and no other.
+      await act(async () => { query<HTMLButtonElement>(pageCards[0], '[data-editor-clear-page-trigger]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(document.querySelector('[data-editor-clear-keep-repeated]')).toBeNull();
+      const everything = required(document.querySelector<HTMLButtonElement>('[data-editor-clear-everything]'), 'clear everything item');
+      await act(async () => { everything.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(counts()).toEqual([0, 1, 1]);
+
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(counts()).toEqual([1, 1, 1]);
+    });
+
+    it('Clear page on a page with no repeated box clears in one tap, as before', async () => {
+      mockPageCount(2);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const pageCard = query<HTMLElement>(container, '[data-editor-page-card]');
+      expect(pageCard.querySelector('[data-editor-clear-page-trigger]')).toBeNull();
+    });
+
     it('trash on a linked box removes only this page when "This page" is picked; the rest stay linked', async () => {
       mockPageCount(3);
       const drawArea = await loadFileAndGetDrawArea();

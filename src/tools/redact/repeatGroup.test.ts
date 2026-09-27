@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { duplicateGroup, groupChanges, groupKey, groupMembers, repeatCopies, type GroupableElement } from './repeatGroup.ts';
+import { duplicateGroup, groupChanges, groupKey, groupMembers, isRepeated, repeatCopies, type GroupableElement } from './repeatGroup.ts';
 
 const box = (id: string, pageIndex: number, extra: Partial<GroupableElement> = {}): GroupableElement => ({
   id, pageIndex, type: 'blackout', left: 10, top: 20, width: 30, height: 5, ...extra,
@@ -72,5 +72,19 @@ describe('repeatGroup', () => {
     expect(dupes).toHaveLength(1);
     expect(dupes[0].left).toBe(90);
     expect(groupKey(dupes[0])).toBe(dupes[0].id);
+  });
+});
+
+describe('isRepeated', () => {
+  it('is true only for a box in a linked set of two or more', () => {
+    const a = box('a', 0);
+    const b = box('b', 1, { repeatGroupId: 'a' });
+    const lone = box('l', 0);
+    const unlinked = box('u', 2, { repeatGroupId: 'fresh' });
+    const els = [a, b, lone, unlinked];
+    expect(isRepeated(els, a)).toBe(true);
+    expect(isRepeated(els, b)).toBe(true);
+    expect(isRepeated(els, lone)).toBe(false);
+    expect(isRepeated(els, unlinked)).toBe(false);
   });
 });

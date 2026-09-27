@@ -18,7 +18,8 @@ import RedactBox from './RedactBox.tsx';
 import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
-import { groupChanges, groupMembers, duplicateGroup, repeatCopies } from './repeatGroup.ts';
+import { groupChanges, groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
+import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import {
   applyHistoryEntries,
@@ -833,12 +834,15 @@ export default function PdfRedactTool() {
     registerUndo(description, entry);
   };
 
-  const clearPage = (pageIndex: number) => {
-    const removed = elements.filter(el => el.pageIndex === pageIndex);
+  // RED-03: `keepRepeated` clears only the page's own boxes and leaves any
+  // box repeated on other pages in place, with its set intact.
+  const clearPage = (pageIndex: number, { keepRepeated = false } = {}) => {
+    const clears = (el: RedactHistoryElement) => el.pageIndex === pageIndex && !(keepRepeated && isRepeated(elements, el));
+    const removed = elements.filter(clears);
     if (removed.length === 0) return;
-    const snapshots = captureElementSnapshots(elements, (element) => element.pageIndex === pageIndex);
+    const snapshots = captureElementSnapshots(elements, clears);
     const removedIds = removed.map(el => el.id);
-    setElements(prev => prev.filter(el => el.pageIndex !== pageIndex));
+    setElements(prev => prev.filter(el => !removedIds.includes(el.id)));
     markDocumentEdited();
     setActiveBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
     setSelectedBoxId(prev => (prev && removedIds.includes(prev) ? null : prev));
@@ -849,6 +853,21 @@ export default function PdfRedactTool() {
     setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
     registerUndo(description, entry);
   };
+
+  // RED-03: Clear page asks only when the page holds a repeated box, so a
+  // copy never disappears from its set without the person choosing it.
+  const clearPageOptions = (pageIndex: number): ToolbarMenuItem[] | undefined => {
+    const onPage = elements.filter(el => el.pageIndex === pageIndex);
+    if (!onPage.some(el => isRepeated(elements, el))) return undefined;
+    const ownBoxes = onPage.some(el => !isRepeated(elements, el));
+    return [
+      ...(ownBoxes
+        ? [{ label: 'Keep the repeated boxes', onSelect: () => clearPage(pageIndex, { keepRepeated: true }), attrs: { 'data-editor-clear-keep-repeated': true } }]
+        : []),
+      { label: 'Clear everything on this page', onSelect: () => clearPage(pageIndex), attrs: { 'data-editor-clear-everything': true } },
+    ];
+  };
+
 
   // RED-03: a selected box, copied onto every other page at the same
   // percentage position, size, color and strength - one undo step for the
@@ -1062,6 +1081,7 @@ export default function PdfRedactTool() {
                 <EditorPageHeader
                   pageNumber={i + 1}
                   onClear={elements.some(el => el.pageIndex === i) ? () => clearPage(i) : null}
+                  clearOptions={clearPageOptions(i)}
                   clearTitle="Clear all redactions on this page"
                 />
                 <div
