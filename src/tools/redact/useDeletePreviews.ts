@@ -79,6 +79,9 @@ export default function useDeletePreviews(
   const previewsRef = useRef(previews);
   previewsRef.current = previews;
   const keysRef = useRef<Map<number, string>>(new Map());
+  // The file the keys above were built for. Span keys are only byte offsets,
+  // so two files can share one; a new file makes every old key stale.
+  const keysFileRef = useRef<ArrayBuffer | null>(null);
   const sourceDocRef = useRef<{ bytes: ArrayBuffer | null; doc: Promise<unknown> | null }>({
     bytes: null,
     doc: null,
@@ -91,9 +94,19 @@ export default function useDeletePreviews(
       // File cleared: drop every preview and its pdf.js handle.
       for (const doc of previewsRef.current.values()) destroyPreview(doc);
       keysRef.current = new Map();
+      keysFileRef.current = null;
       sourceDocRef.current = { bytes: null, doc: null };
       setPreviews(new Map());
       return undefined;
+    }
+
+    if (keysFileRef.current !== fileBytes) {
+      keysFileRef.current = fileBytes;
+      if (keysRef.current.size > 0) {
+        for (const doc of previewsRef.current.values()) destroyPreview(doc);
+        keysRef.current = new Map();
+        setPreviews(new Map());
+      }
     }
 
     const byPage = deleteSpansByPage(elements);
