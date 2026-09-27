@@ -4,8 +4,8 @@ title: "What you see is what you save: the editor shows the page as it will expo
 status: "open"
 priority: "P2"
 epic: "redact-tool"
-phase: "longer-term"
-depends_on: ["RED-09"]
+phase: "near-term"
+depends_on: ["RED-07"]
 ---
 
 # RED-04 · What you see is what you save: the editor shows the page as it will export
@@ -26,3 +26,10 @@ box.
 
 - Deleting a text run or image removes it from the displayed page immediately, and the downloaded
   file matches what was shown.
+
+## From RED-01's record (2026-09-27)
+
+Ships with the removal (RED-07), only in Keep the text mode (RED-06). The as-saved page is drawn in the
+engine's worker after edits settle. Measure a render budget on a slow phone first; a document whose
+pages exceed it steps down to a "Show as saved" button, and the person is told. Quick mode keeps
+today's view.
