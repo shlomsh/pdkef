@@ -55,21 +55,49 @@ back for that run.
 - **The person is told, plainly.** The done state says which pages kept their text and which were
   saved as an image, and why ("Page 3 was saved as a picture, so its text can't be selected"). No
   security jargon.
-- **Loaded only on export.** The WebAssembly loads when someone exports from Redact or Sign, never
-  with the page, and is cached for offline use after the first export.
 - **Sign uses the same engine** for its Whiteout, which today covers content that stays in the file.
-- **RED-04 (what you see is what you save)** renders the real, verified output back into the editor;
-  it builds on this, not beside it.
+
+## Two ways to save, and the person chooses
+
+Keeping the text costs something that today's export does not: a one-time 2.8 MB download, and more
+work for the phone every time a page is redrawn to show it as it will be saved (RED-04). On an older
+phone or a slow network that cost is real, so it is never spent without the person choosing it.
+
+| | Quick | Keep the text |
+| --- | --- | --- |
+| What happens | Pages with a box are saved as pictures, as today | Only what is under each box is removed; the rest stays text |
+| Text on those pages | Can't be selected or searched | Stays selectable and searchable |
+| What you see while editing | Your boxes over the page | The page exactly as it will be saved |
+| Cost | Nothing extra | A one-time 2.8 MB download, then works offline; more work per edit |
+
+- **Asked once, when it first matters.** Not on page load. The first time a box is drawn, one quiet
+  line in the status row states the choice and its cost in plain words, and drawing is never blocked
+  while it waits. Until it is answered, the document is in Quick.
+- **An honest suggestion, never a guess dressed as fact.** Where the browser says so (Save-Data, a
+  2G/3G connection, 2 GB of memory or less), Quick is the highlighted option and the line says why.
+  Where it says nothing, as on every iPhone, neither is highlighted. Nothing downloads until the
+  person picks Keep the text.
+- **Remembered, and easy to change.** The choice is remembered per document and becomes the default
+  for new ones, like every other setting. A small control beside Download changes it at any time,
+  and Quick's done state offers "Save again, keeping the text".
+- **The download never blocks.** It shows progress in the status row while editing continues. Export
+  before it finishes offers to save Quick now or wait. Offline before it was ever downloaded, Keep
+  the text is unavailable and the line says so.
+- **A slow phone keeps the text without the live view.** The as-saved page is drawn in the worker,
+  after edits settle. If a page takes longer than a budget RED-04 measures (a few hundred
+  milliseconds), the live view steps down to a "Show as saved" button for that document and says
+  so. The export still keeps the text; only the live drawing is dropped.
 
 ## The build, as tickets
 
 | Ticket | What | Depends on |
 | --- | --- | --- |
 | RED-05 | Spike: Hebrew and Arabic survivors of a partial rebuild keep their glyphs and order | - |
-| RED-06 | PDFium loads on export only, in a worker, cached offline, inside the weight budgets | - |
+| RED-06 | Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text | - |
 | RED-07 | Remove text, image pixels and paths under each box, with per-page flattening fallback | RED-05, RED-06 |
+| RED-04 | What you see is what you save, with a render budget and the step-down to "Show as saved" | RED-07 |
 | RED-08 | Annotations, form field values and form XObjects under a box | RED-07 |
 | RED-09 | Read-back check after every export, and the done state that tells the person per page | RED-07 |
 | RED-10 | Sign's Whiteout removes what it covers, through the same engine | RED-09 |
 
-RED-04 now depends on RED-09.
+RED-04 ships with the removal, not after it: removal and the as-saved view are one feature.
