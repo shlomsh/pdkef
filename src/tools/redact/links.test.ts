@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { linkedChanges, linkMembers, type LinkedElement } from './links.ts';
+import { groupChanges, groupMembers, duplicateGroup, repeatCopies, isRepeated } from './repeatGroup.ts';
+import { findSetChanges, findSetMembers, withoutFindSet } from './findSet.ts';
+import type { RedactElement } from './redactElements.ts';
+
+// RED-14: a type-only check that every link module accepts Redact's actual,
+// closed element union with no index signature. This never runs; if a
+// module's bound regresses to need one, tsc fails here.
+function typeCheckRedactElementBounds(elements: RedactElement[], makeId: () => string): void {
+  linkedChanges(elements, 'x', {});
+  linkMembers(elements, 'x', 'findSet');
+  linkMembers(elements, 'x', 'repeatGroup');
+  groupChanges(elements, 'x', {});
+  groupMembers(elements, 'x');
+  duplicateGroup(elements, 'x', makeId);
+  repeatCopies(elements[0], elements, 1, makeId);
+  isRepeated(elements, elements[0]);
+  findSetChanges(elements, 'x', {});
+  findSetMembers(elements, 'x');
+  withoutFindSet(elements[0]);
+}
+void typeCheckRedactElementBounds;
 
 interface Box extends LinkedElement {
   left: number;
