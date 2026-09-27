@@ -241,10 +241,6 @@ export const tools = [
         answer: "Pick the Text tool and the tool faintly outlines the printed box rows it found on the page. Tap one and your text lands one character per box, centred in each box, instead of running across them as ordinary text. That is how a date, an ID number, or a reference code on a pre-printed form is meant to be filled in. If it guessed the number of boxes wrong you can add or remove them from the toolbar, and the Symbols tool gets the same treatment for printed checkboxes, so a tick lands inside the square rather than near it. The boxes are found in the PDF already open in your browser; nothing about the page is uploaded to detect them.",
       },
       {
-        question: 'Does Whiteout remove what it covers?',
-        answer: 'No, it only covers. Whiteout is for tidying a form before you write on it: it paints a clean box over an old answer or a stray mark, and whatever was underneath stays in the file, where a search or a copy can still find it. To hide something for good, use Blur & Redact PDF instead. It saves the marked page as a picture with the box painted in, so nothing under the box is left, and the rest of the page stays searchable.',
-      },
-      {
         question: 'Is my signature safe here?',
         answer: 'Yes. This tool runs entirely on your device, so there is no account and no server-side copy of your document. Your signature image is embedded in the PDF in-memory and never leaves your computer or phone.',
       },
