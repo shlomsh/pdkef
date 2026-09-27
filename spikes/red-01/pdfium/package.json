@@ -1,0 +1,8 @@
+{
+  "name": "red-01-pdfium-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@embedpdf/pdfium": "^1.3.2"
+  }
+}
