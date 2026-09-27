@@ -655,7 +655,268 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// ---------------------------------------------------------------------------
+// RED-01 gap-fill: no corpus case had the secret in the MIDDLE of one single
+// text-showing operator (partial-overlap-word.pdf's pdf-lib drawText calls
+// emit three separate Tj objects for prefix/secret/suffix), so PDFium's
+// per-glyph split of a single text object was never exercised. These five
+// fixtures put the secret mid-run inside ONE Tj/TJ, across the encodings
+// that matter (standard font, TJ-kerned, embedded Identity-H, RTL Hebrew,
+// and two independent secrets in one run).
+// ---------------------------------------------------------------------------
+
+/** Locates `secret` inside `fullString`, rendered as ONE Tj/TJ run starting
+ * at (x0, yBaseline), using cumulative glyph widths (font.widthOfTextAtSize).
+ * Works for standard, embedded-subset and RTL-visual-order strings alike,
+ * since it never needs a distinct pdf.js text item for the secret alone -
+ * pdf.js reports the whole run as one item when it's one Tj. */
+function rectForSubstringInRun(font, size, x0, yBaseline, fullString, secret, pageWidth, pageHeight, padPt = 3) {
+  const idx = fullString.indexOf(secret);
+  if (idx < 0) throw new Error(`"${secret}" not found in "${fullString}"`);
+  const prefixWidth = font.widthOfTextAtSize(fullString.slice(0, idx), size);
+  const secretWidth = font.widthOfTextAtSize(secret, size);
+  return rectFromKnownRun(pageWidth, pageHeight, x0 + prefixWidth, yBaseline, secretWidth, size, padPt);
+}
+
+// ---------------------------------------------------------------------------
+// 14. Mid-run Helvetica: ONE Tj holds "Name: Jane SECRETWORD Example"; the
+//     box covers only SECRETWORD.
+// ---------------------------------------------------------------------------
+async function makeMidRunHelvetica() {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const page = doc.addPage([300, 150]);
+  const fullString = 'Name: Jane SECRETWORD Example';
+  const secret = 'SECRETWORD';
+  const keepText = 'kept text below the mid-run line';
+  const size = 14;
+  const x0 = 30;
+  const y = 100;
+  page.drawText(fullString, { x: x0, y, size, font, color: rgb(0, 0, 0) });
+  page.drawText(keepText, { x: 30, y: 60, size: 12, font, color: rgb(0, 0, 0) });
+  const name = 'mid-run-helvetica.pdf';
+  await save(doc, name);
+  const rect = rectForSubstringInRun(font, size, x0, y, fullString, secret, 300, 150);
+  entries.push({
+    file: name,
+    page: 1,
+    rect,
+    secret,
+    keepText,
+    feature: 'secret is the middle substring of ONE Tj (not a separate run); exercises per-glyph split of a single text object',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 15. Mid-run TJ with kerning: ONE TJ array (interleaved kerning numbers,
+//     same technique as tj-array-kerning.pdf) holds the whole line; the
+//     secret sits in the middle of that single array/object.
+// ---------------------------------------------------------------------------
+async function makeMidRunTjKerned() {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  const page = doc.addPage([300, 150]);
+  const fullString = 'Name: Jane SECRETWORD Example';
+  const secret = 'SECRETWORD';
+  const keepText = 'kept text below the kerned mid-run line';
+  const size = 16;
+  const x0 = 20;
+  const y = 100;
+  const kern = -20;
+
+  page.drawText(keepText, {
+    x: 20,
+    y: 60,
+    size: 12,
+    font: await doc.embedFont(StandardFonts.Helvetica),
+    color: rgb(0, 0, 0),
+  });
+
+  const fontKey = page.node.newFontDictionary(font.name, font.ref);
+  const tjArray = PDFArray.withContext(doc.context);
+  const perCharX = [];
+  let cursor = x0;
+  for (const ch of fullString) {
+    perCharX.push(cursor);
+    tjArray.push(font.encodeText(ch));
+    tjArray.push(PDFNumber.of(kern));
+    cursor += font.widthOfTextAtSize(ch, size) + (-kern / 1000) * size;
+  }
+  page.pushOperators(
+    PDFOperator.of('BT', []),
+    PDFOperator.of('Tf', [fontKey, PDFNumber.of(size)]),
+    PDFOperator.of('Td', [PDFNumber.of(x0), PDFNumber.of(y)]),
+    PDFOperator.of('TJ', [tjArray]),
+    PDFOperator.of('ET', []),
+  );
+  const name = 'mid-run-tj-kerned.pdf';
+  await save(doc, name);
+
+  const startIdx = fullString.indexOf(secret);
+  const endIdx = startIdx + secret.length - 1;
+  const secretStartX = perCharX[startIdx];
+  const lastCh = fullString[endIdx];
+  const secretEndX = perCharX[endIdx] + font.widthOfTextAtSize(lastCh, size);
+  const rect = rectFromKnownRun(300, 150, secretStartX, y, secretEndX - secretStartX, size);
+
+  entries.push({
+    file: name,
+    page: 1,
+    rect,
+    secret,
+    keepText,
+    feature: 'one TJ array with per-glyph kerning holds the whole line; secret is the middle run of that single array',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 16. Mid-run embedded subset TrueType (Identity-H): ONE Tj (hex glyph
+//     string) holds the whole line.
+// ---------------------------------------------------------------------------
+async function makeMidRunEmbedded() {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const ttf = fs.readFileSync(path.join(FONTS_DIR, 'Arimo-Regular.ttf'));
+  const font = await doc.embedFont(ttf, { subset: true });
+  const page = doc.addPage([300, 150]);
+  const fullString = 'Name: Jane SECRETWORD Example';
+  const secret = 'SECRETWORD';
+  const keepText = 'kept text below the embedded mid-run line';
+  const size = 14;
+  const x0 = 30;
+  const y = 100;
+  page.drawText(fullString, { x: x0, y, size, font, color: rgb(0, 0, 0) });
+  page.drawText(keepText, { x: 30, y: 60, size: 12, font, color: rgb(0, 0, 0) });
+  const name = 'mid-run-embedded.pdf';
+  await save(doc, name);
+  const rect = rectForSubstringInRun(font, size, x0, y, fullString, secret, 300, 150);
+  entries.push({
+    file: name,
+    page: 1,
+    rect,
+    secret,
+    keepText,
+    feature: 'embedded subset TrueType (Identity-H hex Tj); secret is the middle substring of ONE Tj',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 17. Mid-run Hebrew: ONE Tj holds three RTL-visual-order "words"; the box
+//     covers only the middle (secret) word. keepText checks one of the two
+//     surviving outer words (the shared checker takes a single string; both
+//     outer words live in the same Tj and both must survive in practice).
+// ---------------------------------------------------------------------------
+async function makeMidRunHebrew() {
+  const doc = await PDFDocument.create();
+  doc.registerFontkit(fontkit);
+  const ttf = fs.readFileSync(path.join(FONTS_DIR, 'Heebo-Regular.ttf'));
+  const font = await doc.embedFont(ttf, { subset: true });
+  const page = doc.addPage([300, 150]);
+  const outer1Logical = 'טקסטשנשאר';
+  const secretLogical = 'סודישראלי';
+  const outer2Logical = 'עודטקסט';
+  const fullLogical = `${outer1Logical} ${secretLogical} ${outer2Logical}`;
+  const fullVisual = [...fullLogical].reverse().join('');
+  const secret = [...secretLogical].reverse().join('');
+  const keepText = [...outer1Logical].reverse().join('');
+  const size = 16;
+  const x0 = 30;
+  const y = 100;
+  page.drawText(fullVisual, { x: x0, y, size, font, color: rgb(0, 0, 0) });
+  const name = 'mid-run-hebrew.pdf';
+  await save(doc, name);
+  // Tighter pad (1pt, vs. the usual 3pt default) - Hebrew glyph advances are
+  // narrow enough at this size that a 3pt pad on each side ate into the
+  // neighbouring outer words' innermost characters.
+  const rect = rectForSubstringInRun(font, size, x0, y, fullVisual, secret, 300, 150, 1);
+  entries.push({
+    file: name,
+    page: 1,
+    rect,
+    secret,
+    keepText,
+    feature: 'embedded Hebrew font, ONE Tj holds three RTL-visual-order words; box covers only the middle (secret) word',
+  });
+}
+
+// ---------------------------------------------------------------------------
+// 18. Two boxes, one line: ONE Tj holds two distinct secrets; two separate
+//     rects target each independently - the embedpdf #801 class of bug (does
+//     clearing the first redaction target corrupt the reads needed for the
+//     second, inside the same text object?).
+// ---------------------------------------------------------------------------
+async function makeTwoBoxesOneLine() {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const page = doc.addPage([300, 150]);
+  const fullString = 'SSN: SECRETSSN12345 DL: SECRETDL67890';
+  const secretA = 'SECRETSSN12345';
+  const secretB = 'SECRETDL67890';
+  const keepText = 'kept text below the two-secret line';
+  const size = 13;
+  const x0 = 20;
+  const y = 100;
+  page.drawText(fullString, { x: x0, y, size, font, color: rgb(0, 0, 0) });
+  page.drawText(keepText, { x: 20, y: 60, size: 12, font, color: rgb(0, 0, 0) });
+  const name = 'two-boxes-one-line.pdf';
+  await save(doc, name);
+  const rectA = rectForSubstringInRun(font, size, x0, y, fullString, secretA, 300, 150);
+  const rectB = rectForSubstringInRun(font, size, x0, y, fullString, secretB, 300, 150);
+  entries.push({
+    file: name,
+    page: 1,
+    rects: [rectA, rectB],
+    secrets: [secretA, secretB],
+    secret: secretA,
+    keepText,
+    feature: 'ONE Tj holds two distinct secrets; two rects target each independently (embedpdf #801 class: does clearing the first corrupt the second read?)',
+  });
+}
+
+async function appendGapFillFixtures() {
+  await makeMidRunHelvetica();
+  await makeMidRunTjKerned();
+  await makeMidRunEmbedded();
+  await makeMidRunHebrew();
+  await makeTwoBoxesOneLine();
+}
+
+// Splices newly generated entries into the EXISTING corpus.json's raw text,
+// rather than JSON.parse + re-stringify-ing the whole array, so every
+// existing entry stays byte-identical (the file on disk has some
+// hand-touched compact-array formatting - e.g. "imageSecretColor": [255, 0,
+// 0] on one line - that plain JSON.stringify(parsed, null, 2) would not
+// reproduce).
+async function mainAppend() {
+  const jsonPath = path.join(CORPUS_DIR, 'corpus.json');
+  const originalText = fs.readFileSync(jsonPath, 'utf8');
+  const existingCount = JSON.parse(originalText).length;
+
+  await appendGapFillFixtures();
+
+  const newEntriesText = entries.map((e) => JSON.stringify(e, null, 2).replace(/^/gm, '  ')).join(',\n');
+  const trimmed = originalText.replace(/\s*\]\s*\n?$/, '');
+  const spliced = `${trimmed},\n${newEntriesText}\n]\n`;
+  // Sanity: re-parse before writing, so a malformed splice never lands.
+  const parsed = JSON.parse(spliced);
+  if (parsed.length !== existingCount + entries.length) {
+    throw new Error(`splice produced ${parsed.length} entries, expected ${existingCount + entries.length}`);
+  }
+  fs.writeFileSync(jsonPath, spliced);
+  console.log(`Wrote ${parsed.length} corpus entries (added ${entries.length} gap-fill fixtures).`);
+  for (const e of entries) {
+    console.log(` - ${e.file}: ${e.feature}`);
+  }
+}
+
+if (process.argv.includes('--append')) {
+  mainAppend().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

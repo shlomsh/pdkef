@@ -149,6 +149,23 @@ function checkSecretUnderBox(items, entryRect, secret) {
   return { secretUnderBox: concatenatedMatch || offendingStrings.length > 0, offendingStrings };
 }
 
+/**
+ * `entry.rects`/`entry.secrets` (parallel arrays) let one corpus entry carry
+ * several independent redaction targets on the same page - e.g. two secrets
+ * inside a single Tj (two-boxes-one-line.pdf), the embedpdf #801 class of
+ * bug where clearing the first target can corrupt the engine's reads for
+ * the second. secretUnderBox is true if ANY box still leaks its own secret
+ * (so a partial redaction that only clears one of the two still fails).
+ * Falls back to the single `rect`/`secret` fields when `rects` is absent.
+ */
+function checkSecretUnderBoxMulti(items, rects, secrets) {
+  const perBox = rects.map((rect, i) => checkSecretUnderBox(items, rect, secrets[i]));
+  return {
+    secretUnderBox: perBox.some((r) => r.secretUnderBox),
+    offendingStrings: perBox.flatMap((r) => r.offendingStrings),
+  };
+}
+
 async function checkOne(pdfPath, entry) {
   const bytes = fs.readFileSync(pdfPath);
   const page = await loadPage(bytes, entry.page);
@@ -157,13 +174,15 @@ async function checkOne(pdfPath, entry) {
   const annotationText = await extractAnnotationText(page);
   const combined = contentText + ' ' + annotationText;
 
-  const { secretUnderBox, offendingStrings } = checkSecretUnderBox(items, entry.rect, entry.secret);
+  const rects = entry.rects || [entry.rect];
+  const secrets = entry.secrets || [entry.secret];
+  const { secretUnderBox, offendingStrings } = checkSecretUnderBoxMulti(items, rects, secrets);
 
   return {
     file: entry.file,
     feature: entry.feature,
     secretUnderBox,
-    secretAnywhere: isPresent(combined, entry.secret),
+    secretAnywhere: secrets.some((s) => isPresent(combined, s)),
     keepTextIntact: isPresent(combined, entry.keepText),
     offendingStrings,
   };

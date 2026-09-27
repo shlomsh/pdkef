@@ -1304,5 +1304,45 @@
       "untouched"
     ],
     "formXObjects": []
+  },
+  {
+    "file": "mid-run-helvetica.pdf",
+    "textRemovedFully": 0,
+    "textRebuiltPartial": 1,
+    "imageOutcomes": [],
+    "pathOutcomes": [],
+    "formXObjects": []
+  },
+  {
+    "file": "mid-run-tj-kerned.pdf",
+    "textRemovedFully": 0,
+    "textRebuiltPartial": 1,
+    "imageOutcomes": [],
+    "pathOutcomes": [],
+    "formXObjects": []
+  },
+  {
+    "file": "mid-run-embedded.pdf",
+    "textRemovedFully": 0,
+    "textRebuiltPartial": 1,
+    "imageOutcomes": [],
+    "pathOutcomes": [],
+    "formXObjects": []
+  },
+  {
+    "file": "mid-run-hebrew.pdf",
+    "textRemovedFully": 0,
+    "textRebuiltPartial": 1,
+    "imageOutcomes": [],
+    "pathOutcomes": [],
+    "formXObjects": []
+  },
+  {
+    "file": "two-boxes-one-line.pdf",
+    "textRemovedFully": 0,
+    "textRebuiltPartial": 1,
+    "imageOutcomes": [],
+    "pathOutcomes": [],
+    "formXObjects": []
   }
 ]

@@ -81,21 +81,25 @@ async function countOccurrences(bytes, pageNumber, needle) {
 async function redactEntry(entry) {
   const srcPath = path.join(CORPUS_DIR, entry.file);
   const bytes = fs.readFileSync(srcPath);
-  const occurrencesBefore = await countOccurrences(bytes, entry.page, entry.secret);
+  // `entry.rects`/`entry.secrets` (parallel arrays) carry several
+  // independent redaction targets on one page (e.g. two secrets inside a
+  // single Tj); fall back to the single `rect`/`secret` fields otherwise.
+  const firstSecret = (entry.secrets && entry.secrets[0]) || entry.secret;
+  const occurrencesBefore = await countOccurrences(bytes, entry.page, firstSecret);
   const doc = await PDFDocument.load(bytes);
   const pageIndex = entry.page - 1;
   const page = doc.getPage(pageIndex);
   const geometry = pageGeometryFromPdfLibPage(page);
-  const box = rectPercentToPdfBox(entry.rect, geometry);
+  const boxes = (entry.rects || [entry.rect]).map((r) => rectPercentToPdfBox(r, geometry));
 
   const { objects } = extractPageObjects(page, pageIndex);
-  const hit = objects.filter((o) => intersects(o.bbox, box));
+  const hit = objects.filter((o) => boxes.some((box) => intersects(o.bbox, box)));
 
   const notes = [];
   if (hit.length === 0) notes.push('no objects intersected the rect');
   const kinds = new Set(hit.map((o) => o.kind));
   if (kinds.has('text')) {
-    const wholeLineRemoved = hit.some((o) => o.preview && o.preview.length > entry.secret.length + 10);
+    const wholeLineRemoved = hit.some((o) => o.preview && o.preview.length > firstSecret.length + 10);
     if (wholeLineRemoved) notes.push('whole BT..ET run removed (more than the secret alone)');
   }
   if (hit.length > 0 && occurrencesBefore > 1) {

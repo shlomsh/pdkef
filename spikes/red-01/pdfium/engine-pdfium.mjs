@@ -176,6 +176,18 @@ function rectsIntersect(a, b) {
 function rectFullyInside(inner, outer) {
   return inner.left >= outer.left && inner.right <= outer.right && inner.bottom >= outer.bottom && inner.top <= outer.top;
 }
+// `targetRects` support: a corpus entry can carry several independent
+// redaction targets on one page (`entry.rects`, e.g. two secrets inside a
+// single Tj - the embedpdf #801 class of bug). Every call site below takes
+// an ARRAY of target rects and checks "inside/intersects ANY of them",
+// which is exactly what's needed to split a single text object into
+// several surviving runs when it has more than one redacted region.
+function intersectsAnyRect(bounds, targetRects) {
+  return targetRects.some((r) => rectsIntersect(bounds, r));
+}
+function fullyInsideAnyRect(inner, targetRects) {
+  return targetRects.some((r) => rectFullyInside(inner, r));
+}
 
 function getObjBounds(m, obj) {
   return withScratch(m, [4, 4, 4, 4], (lPtr, bPtr, rPtr, tPtr) => {
@@ -250,10 +262,16 @@ function setMatrix(m, obj, mat) {
 }
 
 /**
- * Redacts text objects on `page` intersecting `targetRect` (PDF space).
+ * Redacts text objects on `page` intersecting any of `targetRects` (PDF
+ * space, an array - see the `targetRects` note above `intersectsAnyRect`).
+ * A single text object can have more than one non-adjacent inside range
+ * when it has several targets (two-boxes-one-line.pdf): the per-char
+ * insideFlags below mark ALL characters covered by ANY target rect, so the
+ * existing "maximal surviving run" splitting logic below already handles
+ * multiple redacted regions inside the same object without further changes.
  * Returns { removed, rebuilt, partialObjects } counts for reporting.
  */
-function redactTextObjects(m, doc, page, textPage, targetRect) {
+function redactTextObjects(m, doc, page, textPage, targetRects) {
   const chars = readAllChars(m, textPage);
 
   // Group characters by owning text object, preserving char order.
@@ -271,7 +289,7 @@ function redactTextObjects(m, doc, page, textPage, targetRect) {
   const toInsert = [];
 
   for (const [objPtr, objChars] of byObj) {
-    const insideFlags = objChars.map((c) => (c.box ? rectFullyInside(c.box, targetRect) : false));
+    const insideFlags = objChars.map((c) => (c.box ? fullyInsideAnyRect(c.box, targetRects) : false));
     const anyInside = insideFlags.some(Boolean);
     const allInside = insideFlags.every(Boolean);
 
@@ -342,14 +360,19 @@ function redactTextObjects(m, doc, page, textPage, targetRect) {
 // Image-object redaction: paint the overlapping pixel region black, or
 // remove the object outright if the rect fully covers it.
 // ---------------------------------------------------------------------------
-function redactImageObject(m, page, obj, targetRect) {
+// Not exercised by any multi-rect corpus entry (two-boxes-one-line.pdf is
+// text-only) - when several rects intersect an image, only the FIRST
+// intersecting rect's region is painted; a real multi-target image redaction
+// would need to loop and paint every intersecting rect.
+function redactImageObject(m, page, obj, targetRects) {
   const bounds = getObjBounds(m, obj);
   if (!bounds) return 'skipped-no-bounds';
-  if (!rectsIntersect(bounds, targetRect)) return 'untouched';
-  if (rectFullyInside(bounds, targetRect)) {
+  if (!intersectsAnyRect(bounds, targetRects)) return 'untouched';
+  if (fullyInsideAnyRect(bounds, targetRects)) {
     m.FPDFPage_RemoveObject(page, obj);
     return 'removed';
   }
+  const targetRect = targetRects.find((r) => rectsIntersect(bounds, r));
 
   // Partial: paint the intersecting region black in image pixel space.
   // The image's unit square [0,1]x[0,1] is mapped to PDF space by its
@@ -406,11 +429,11 @@ function redactImageObject(m, page, obj, targetRect) {
 // Path-object redaction: remove if fully inside, otherwise report (no
 // primitive to trim a path's point list to a rect is used here).
 // ---------------------------------------------------------------------------
-function redactPathObject(m, page, obj, targetRect) {
+function redactPathObject(m, page, obj, targetRects) {
   const bounds = getObjBounds(m, obj);
   if (!bounds) return 'skipped-no-bounds';
-  if (!rectsIntersect(bounds, targetRect)) return 'untouched';
-  if (rectFullyInside(bounds, targetRect)) {
+  if (!intersectsAnyRect(bounds, targetRects)) return 'untouched';
+  if (fullyInsideAnyRect(bounds, targetRects)) {
     m.FPDFPage_RemoveObject(page, obj);
     return 'removed';
   }
@@ -439,7 +462,7 @@ export async function redactPdf(bytes, entry) {
   const page = m.FPDF_LoadPage(doc, pageIndex);
   if (!page) throw new Error(`FPDF_LoadPage failed for ${entry.file} page ${entry.page}`);
 
-  const targetRect = corpusRectToPdfSpace(m, page, entry.rect);
+  const targetRects = (entry.rects || [entry.rect]).map((r) => corpusRectToPdfSpace(m, page, r));
   const textPage = m.FPDFText_LoadPage(page);
 
   const report = {
@@ -452,7 +475,7 @@ export async function redactPdf(bytes, entry) {
   };
 
   if (textPage) {
-    const r = redactTextObjects(m, doc, page, textPage, targetRect);
+    const r = redactTextObjects(m, doc, page, textPage, targetRects);
     report.textRemovedFully = r.removedFully;
     report.textRebuiltPartial = r.rebuiltPartial;
     m.FPDFText_ClosePage(textPage);
@@ -465,9 +488,9 @@ export async function redactPdf(bytes, entry) {
     const obj = m.FPDFPage_GetObject(page, i);
     const type = m.FPDFPageObj_GetType(obj);
     if (type === FPDF_PAGEOBJ_IMAGE) {
-      report.imageOutcomes.push(redactImageObject(m, page, obj, targetRect));
+      report.imageOutcomes.push(redactImageObject(m, page, obj, targetRects));
     } else if (type === FPDF_PAGEOBJ_PATH) {
-      report.pathOutcomes.push(redactPathObject(m, page, obj, targetRect));
+      report.pathOutcomes.push(redactPathObject(m, page, obj, targetRects));
     } else if (type === FPDF_PAGEOBJ_FORM) {
       report.formXObjects.push(inspectFormXObject(m, obj));
     }
