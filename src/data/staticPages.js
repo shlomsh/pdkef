@@ -88,7 +88,7 @@ export const staticPages = [
       {
         heading: 'Drafts and local storage',
         paragraphs: [
-          'The Sign and Redact tools can save a draft of your work in progress so you do not lose it if a tab closes. That draft, the source PDF and your edits, is stored in your browser\'s own IndexedDB storage on your device, with an automatic 14-day expiry. It is never uploaded anywhere.',
+          'The Sign and Redact tools can save a draft of your work in progress so you do not lose it if a tab closes. That draft, the source PDF and your edits, is stored in your browser\'s own IndexedDB storage on your device, with an automatic 28-day expiry. It is never uploaded anywhere.',
         ],
       },
       {

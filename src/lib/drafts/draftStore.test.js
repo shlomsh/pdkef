@@ -242,7 +242,7 @@ describe('attachDraftPreview', () => {
   });
 
   it('leaves the rest of the entry alone', () => {
-    // Recent, not a fixed epoch literal: readDraftMeta applies the 14-day
+    // Recent, not a fixed epoch literal: readDraftMeta applies the 28-day
     // retention on read, so a hardcoded timestamp makes this assert nothing
     // once it ages past MAX_AGE_MS - it just reads back null.
     const savedAt = Date.now() - 60_000;
@@ -605,7 +605,7 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
     }
   });
 
-  it('expires a whole entry - and every tool\'s work on it - 14 days after its last save', async () => {
+  it('expires a whole entry - and every tool\'s work on it - 28 days after its last save', async () => {
     const start = 1_700_000_000_000;
     let now = start;
     const nowSpy = vi.spyOn(Date, 'now').mockImplementation(() => now);
