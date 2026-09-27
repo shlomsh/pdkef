@@ -33,20 +33,56 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
   const pageIndexes = [...byPage.keys()].sort((a, b) => a - b);
   for (const [step, pageIndex] of pageIndexes.entries()) {
-    const page = doc.getPage(pageIndex);
-    const original = getPageContentBytes(page);
-    const rewritten = spliceOut(original, byPage.get(pageIndex));
-
-    // One merged stream replaces however many the page had. Offsets were
-    // computed against the merged buffer, so the two must agree.
-    const stream = doc.context.flateStream(rewritten);
-    page.node.set(PDFName.of('Contents'), doc.context.register(stream));
-
+    rewritePageContent(doc, doc.getPage(pageIndex), byPage.get(pageIndex));
     onProgress?.((step + 1) / pageIndexes.length);
   }
 
   const saved = await doc.save();
   return new Blob([saved], { type: 'application/pdf' });
+}
+
+/**
+ * Rewrites one page's content stream with the given byte spans cut out, in
+ * place on `doc`. Shared by `deleteObjectsFromPdf` (the real export) and
+ * `buildDeletePreviewPage` (an on-screen preview of the same page), so the
+ * two can never drift: whatever the download writes is exactly what the
+ * screen already showed.
+ *
+ * @param {PDFDocument} doc the document `page` belongs to (owns the context
+ *   that the rewritten stream is registered against)
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {Array<{start: number, end: number}>} spans
+ */
+export function rewritePageContent(doc, page, spans) {
+  const original = getPageContentBytes(page);
+  const rewritten = spliceOut(original, spans);
+
+  // One merged stream replaces however many the page had. Offsets were
+  // computed against the merged buffer, so the two must agree.
+  const stream = doc.context.flateStream(rewritten);
+  page.node.set(PDFName.of('Contents'), doc.context.register(stream));
+}
+
+/**
+ * Builds a standalone, single-page PDF that previews what one page will look
+ * like once the given spans are deleted, for the on-screen canvas to render
+ * before the user downloads anything (RED-13: "what you see is what you
+ * save"). Copies just that page into a fresh document rather than rewriting
+ * the whole source, so a many-page file's preview stays cheap to rebuild as
+ * marks are added or undone.
+ *
+ * @param {PDFDocument} sourceDoc an already loaded source document (callers
+ *   load it once per file and reuse it across pages/rebuilds)
+ * @param {number} pageIndex
+ * @param {Array<{start: number, end: number}>} spans
+ * @returns {Promise<Uint8Array>}
+ */
+export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
+  const previewDoc = await PDFDocument.create();
+  const [copiedPage] = await previewDoc.copyPages(sourceDoc, [pageIndex]);
+  previewDoc.addPage(copiedPage);
+  rewritePageContent(previewDoc, copiedPage, spans);
+  return previewDoc.save();
 }
 
 /**

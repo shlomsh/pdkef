@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach, type Mock } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach, type Mock } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
 import PdfRedactTool from './PdfRedactTool.tsx';
@@ -14,6 +14,9 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import redactStyles from './PdfRedactTool.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
 import type { GestureControllerOptions } from '../../lib/gestures/controller.ts';
+import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
+import { buildPageText } from './find/pageText.ts';
+import { createPageGeometry } from '../../editor/geometry/coords.ts';
 
 declare const __dirname: string;
 
@@ -88,6 +91,14 @@ vi.mock('../../editor/adapters/pdf/redact.js', () => ({
 }));
 
 const mockedRedactPdf = vi.mocked(redactPdf);
+
+// RED-11: jsdom has no real pdf.js text extraction, so Find's own page-text
+// read (usePageTexts.ts) is mocked to hand back synthetic pages built with
+// the same buildPageText/createPageGeometry helpers findMatches.test.ts uses.
+// Defaults to 'idle' (Find never opened) so every test outside the RED-11
+// describe block below is unaffected - only that block overrides it.
+vi.mock('./usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
+const mockedUsePageTexts = vi.mocked(usePageTexts);
 
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
@@ -331,71 +342,32 @@ describe('PdfRedactTool UI flow', () => {
       await loadRealPdfAndSwitchToDelete();
       const candidates = container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
       expect(candidates).toHaveLength(1);
-      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
     });
 
-    it('marks an object for deletion on click, and un-marks it on undo', async () => {
+    // RED-13: a marked object has no mark of its own. The page is drawn
+    // without it, and the toolbar's Undo is how it comes back.
+    it('marks an object for deletion on click, and the toolbar Undo brings it back', async () => {
       await loadRealPdfAndSwitchToDelete();
-
-      const candidate = container.querySelector(`.${redactStyles['delete-candidate']}`);
-      await act(async () => {
-        candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
-      const mark = container.querySelector(`.${redactStyles['delete-mark']}`);
-      expect(mark).not.toBeNull();
-
-      const undoButton = mark.querySelector(`.${redactStyles['delete-mark-btn']}`);
-      await act(async () => {
-        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-
-      expect(container.querySelectorAll(`.${redactStyles['delete-mark']}`)).toHaveLength(0);
-
-      // Marking spent the tool's one arming, so the highlights are gone with it
-      // and the object is only offered again once Delete is armed again. That is
-      // the same one-shot contract every other tool in both editors follows.
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
-      await armTool('Delete');
-      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
-    });
-
-    // Marking runs through toggleObjectDeletion's "new mark" branch, which ends
-    // in disarmTool() - that is this tool's one placement. Un-marking always
-    // runs through deleteElement instead (DeleteMark's own undo button calls it
-    // directly), which never calls disarmTool(). Un-marking is a correction, not
-    // a placement, so it must not cost the arming the correction is trying to
-    // use - dropping the tool mid-correction would be the opposite of what was
-    // asked for. The button's own active class is the observable proxy for
-    // "still armed" here, since Delete's touch-action never changes (it places
-    // by tap, not drag).
-    it('marking spends the arming; un-marking the same object does not', async () => {
-      await loadRealPdfAndSwitchToDelete();
-
-      const deleteBtn = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((b) => b.textContent.includes('Delete')), 'Delete button');
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
 
       const candidate = query<HTMLElement>(container, `.${redactStyles['delete-candidate']}`);
       await act(async () => {
         candidate.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
-      expect(deleteBtn.className).not.toContain(toolbarStyles.active);
 
-      // Re-arm, then undo the mark through DeleteMark's own button - once an
-      // object is marked, the overlay no longer offers it, so this is the only
-      // way left to un-mark it.
+      // Marking spent the tool's one arming, so the highlights are gone with it:
+      // the same one-shot contract every other tool in both editors follows.
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
       await armTool('Delete');
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(0);
 
-      const mark = query<HTMLElement>(container, `.${redactStyles['delete-mark']}`);
-      const undoButton = query<HTMLElement>(mark, `.${redactStyles['delete-mark-btn']}`);
+      const undo = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === 'Undo'),
+        'Undo button',
+      );
       await act(async () => {
-        undoButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        undo.click();
       });
-
-      expect(deleteBtn.className).toContain(toolbarStyles.active);
+      expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
     });
 
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
@@ -1900,6 +1872,240 @@ describe('PdfRedactTool UI flow', () => {
       await resizeBox(boxes()[0], 100, 100);
 
       expect(parseFloat(boxes()[1].style.width)).toBeCloseTo(secondWidthBefore);
+    });
+  });
+
+  // RED-11: boxes added by one Find action ("Redact all") share a findSetId
+  // (findSet.ts, pure), so they can be removed together and share blur
+  // strength - the find-set equivalent of the repeat-group describe block
+  // above, and modelled on its helpers.
+  describe('found boxes stay a set (RED-11)', () => {
+    beforeEach(() => {
+      mockedUsePageTexts.mockReturnValue(readyPageTexts());
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    // Two matches for "jane doe" on page 0 (same shape findMatches.test.ts
+    // builds its fixture with), so "Redact all" always adds exactly 2 boxes.
+    function readyPageTexts(): PageTextsState {
+      const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 612, height: 792 }, rotation: 0, userUnit: 1 });
+      const item = (str: string, x: number, y: number) => ({ str, transform: [12, 0, 0, 12, x, y], width: str.length * 6, height: 12 });
+      return {
+        status: 'ready',
+        pages: [
+          { text: buildPageText(0, [item('Jane Doe', 100, 700), item('Jane Doe again', 100, 600)]), geometry },
+          { text: buildPageText(1, []), geometry },
+        ],
+      };
+    }
+
+    async function openFindAndSearch(term: string): Promise<void> {
+      const toggle = query<HTMLButtonElement>(container, '[data-redact-find-toggle]');
+      await act(async () => { toggle.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const input = query<HTMLInputElement>(container, '[data-redact-find-input]');
+      await act(async () => {
+        input.value = term;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+
+    async function chooseRedactStyle(label: 'Blackout' | 'Blur'): Promise<void> {
+      const button = required(
+        Array.from(container.querySelectorAll<HTMLButtonElement>('[data-redact-find-bar] button'))
+          .find((b) => b.textContent === label),
+        `${label} redact-style button`,
+      );
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    async function clickRedactAll(): Promise<void> {
+      const button = query<HTMLButtonElement>(container, '[data-redact-find-all]');
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    async function selectBox(box: HTMLElement): Promise<void> {
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+
+    // A box-toolbar menu (the delete-scope menu, or the blur-strength menu):
+    // open it on the selected box, then pick an item. Popover portals the
+    // menu to document.body, so the item is found there.
+    async function pickFromBoxMenu(trigger: string, item: string): Promise<void> {
+      const button = query<HTMLButtonElement>(container, `[data-editor-actions] ${trigger}`);
+      await act(async () => { button.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const choice = required(document.querySelector<HTMLButtonElement>(item), item);
+      await act(async () => { choice.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+
+    const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+
+    it('gives every box added by Redact all one findSetId, offered as "All N from this search"', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-delete-scope-trigger]');
+      await act(async () => { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const item = required(document.querySelector<HTMLButtonElement>('[data-editor-delete-find-set]'), 'find-set delete item');
+      expect(item.textContent).toContain('All 2 from this search');
+    });
+
+    it('"All N from this search" removes exactly that search\'s boxes as one undo step; Undo restores them', async () => {
+      const drawArea = await loadFileAndGetDrawArea(); // arms Blackout, spent by the drawBox below
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      await drawBox(drawArea, 50, 750, 200, 780); // an unrelated box - must survive the find set's removal
+      expect(boxes()).toHaveLength(3);
+
+      await selectBox(boxes()[0]);
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-find-set]');
+      expect(boxes()).toHaveLength(1);
+
+      // Find's own input still has focus from opening it above -
+      // useHistoryShortcuts deliberately ignores Ctrl/Cmd+Z while an
+      // input/textarea is focused, so it must be blurred first.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(boxes()).toHaveLength(3);
+    });
+
+    it('changing blur strength on one found box changes every box of its search, as one undo step', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await chooseRedactStyle('Blur');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      const before = filterOf(boxes()[0]);
+      expect(filterOf(boxes()[1])).toBe(before);
+
+      await selectBox(boxes()[0]);
+      // 'strong' is DEFAULT_BLUR_STRENGTH (blurStrength.ts), so 'light' is
+      // the choice that actually differs from what a fresh blur box starts with.
+      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      const after = filterOf(boxes()[0]);
+      expect(after).not.toBe(before);
+      expect(filterOf(boxes()[1])).toBe(after);
+
+      // Find's own input still has focus from opening it above - blur it so
+      // Ctrl+Z below is not swallowed by useHistoryShortcuts' input guard.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(filterOf(boxes()[0])).toBe(before);
+      expect(filterOf(boxes()[1])).toBe(before);
+    });
+
+    it('duplicating a found box makes an ordinary box with no findSetId', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      await act(async () => { duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      // duplicateElement selects the new copy, so its own toolbar is on
+      // screen: a plain trash button, since it belongs to no find set (and
+      // no repeat group) any more.
+      expect(container.querySelector('[data-editor-actions] [data-editor-delete-scope-trigger]')).toBeNull();
+    });
+
+    // A box can be in both sets at once: found by "Redact all" and then also
+    // repeated onto every page. updateElement merges groupChanges and
+    // findSetChanges by id (mergeChangesById), so an edit to it must reach
+    // both the other found box on this page AND its own copies on other
+    // pages, as one undo step.
+    it('a found box that is also repeated: changing it updates the other found boxes and its copies on other pages, as one undo step', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await chooseRedactStyle('Blur');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2); // both found, both on page 0
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3); // the found box's copy landed on page 1
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const boxesOnPage1 = Array.from(pageCards[0].querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      const otherFoundBox = required(boxesOnPage1.find((box) => box !== boxes()[0]), 'the other found box on page 1');
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      const before = filterOf(boxes()[0]);
+      expect(filterOf(otherFoundBox)).toBe(before);
+      expect(filterOf(copyOnPage2)).toBe(before);
+
+      await selectBox(boxes()[0]);
+      // 'strong' is DEFAULT_BLUR_STRENGTH, so 'light' actually differs.
+      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      const after = filterOf(boxes()[0]);
+      expect(after).not.toBe(before);
+      expect(filterOf(otherFoundBox)).toBe(after);
+      expect(filterOf(copyOnPage2)).toBe(after);
+
+      // Find's own input still has focus from opening it above - blur it so
+      // Ctrl+Z below is not swallowed by useHistoryShortcuts' input guard.
+      (document.activeElement as HTMLElement | null)?.blur();
+      await act(async () => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+      });
+      expect(filterOf(boxes()[0])).toBe(before);
+      expect(filterOf(otherFoundBox)).toBe(before);
+      expect(filterOf(copyOnPage2)).toBe(before);
+    });
+
+    it('"All N from this search" on a box that is also repeated removes only the found boxes; its repeated copies on other pages stay', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      await selectBox(boxes()[0]);
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-find-set]');
+
+      // Both found boxes on page 0 are gone; the repeated copy on page 1 stays.
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      expect(pageCards[0].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
+      expect(pageCards[1].querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+      expect(boxes()).toHaveLength(1);
+    });
+
+    it('a copy made by "repeat on every page" from a found box has no findSetId: its trash menu offers no "from this search" item', async () => {
+      await loadFileAndGetDrawArea();
+      await openFindAndSearch('jane doe');
+      await clickRedactAll();
+      expect(boxes()).toHaveLength(2);
+
+      await selectBox(boxes()[0]);
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(boxes()).toHaveLength(3);
+
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const copyOnPage2 = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
+      await selectBox(copyOnPage2);
+      const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-delete-scope-trigger]');
+      await act(async () => { trigger.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(document.querySelector('[data-editor-delete-find-set]')).toBeNull();
     });
   });
 

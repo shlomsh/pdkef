@@ -1,7 +1,7 @@
 ---
 id: "RED-01"
 title: "Spike: remove the text and images under a box instead of flattening the page"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -30,3 +30,7 @@ removal has to handle before committing:
 
 - A short record in `docs/` naming what works, what falls back to flattening (and how the person
   is told), and a go / no-go with the build split into tickets.
+
+## Outcome
+
+Go, with PDFium, gated on RED-05 (Hebrew). Record: [docs/redact-content-removal.md](../../docs/redact-content-removal.md). Build: RED-05 to RED-10.

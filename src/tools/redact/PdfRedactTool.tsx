@@ -12,15 +12,21 @@ import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../e
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeletableObjects from './useDeletableObjects.js';
+import useDeletePreviews from './useDeletePreviews.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
-import DeleteMark from './DeleteMark.tsx';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
+import DeleteLift, { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { groupChanges, groupMembers, duplicateGroup, isRepeated, repeatCopies } from './repeatGroup.ts';
+import { findSetMembers, findSetChanges, withoutFindSet } from './findSet.ts';
 import type { ToolbarMenuItem } from '../../editor-ui/ToolbarMenu.tsx';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
+import FindBar from './FindBar.tsx';
+import FindHighlights from './FindHighlights.tsx';
+import useFind from './useFind.ts';
+import type { FindMatch } from './find/types.ts';
 import {
   applyHistoryEntries,
   captureAddedElement,
@@ -62,6 +68,24 @@ const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whit
 
 function isRedactHistoryElement(value: unknown): value is RedactHistoryElement {
   return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
+}
+
+/**
+ * RED-11: combines two `{ id, changes }` lists (one from groupChanges, one
+ * from findSetChanges) into one, merging the changes objects of any id both
+ * lists touch - a box that is in both a repeat group and a find set gets a
+ * single update carrying both sets of shared fields.
+ */
+function mergeChangesById(
+  ...lists: { id: string; changes: Partial<RedactHistoryElement> }[][]
+): { id: string; changes: Partial<RedactHistoryElement> }[] {
+  const merged = new Map<string, Partial<RedactHistoryElement>>();
+  for (const list of lists) {
+    for (const { id, changes } of list) {
+      merged.set(id, { ...merged.get(id), ...changes });
+    }
+  }
+  return Array.from(merged, ([id, changes]) => ({ id, changes }));
 }
 
 /**
@@ -354,6 +378,11 @@ export default function PdfRedactTool() {
   // content streams (not what's on the page after any edits this session has
   // queued - the source never changes until export, only `elements` does).
   const deletableObjects: DeletablePdfObject[] = useDeletableObjects(file, fileBytesRef.current);
+  // RED-13: a page with Delete marks renders from the same rewritten content
+  // the download writes, so the deleted text/image disappears on screen
+  // rather than only being outlined.
+  const deletePreviews = useDeletePreviews(fileBytesRef.current, elements);
+  const [lifts, setLifts] = useState<Lift[]>([]);
   const markedForDeletionIds = useMemo(
     () => new Set<string>(elements.flatMap((element) => (
       element.type === 'delete' && typeof element.sourceObjectId === 'string'
@@ -427,6 +456,7 @@ export default function PdfRedactTool() {
       initialize: () => {
         renderedPageNumbersRef.current = new Set();
         setSizedPageCount(0);
+        setLifts([]); // a lift from the last file must never show over this one
         setShowWelcomeTip(!restored);
         setFile(selected);
         setPdfDocument(null);
@@ -487,9 +517,9 @@ export default function PdfRedactTool() {
 
   const handlePointerDown = (e: RedactPointerEvent, pageIndex: number) => {
     // No tool armed: a press on the page is a scroll or a deselect, never a new
-    // box. Delete mode has its own click targets (DeletableObjectOverlay /
-    // DeleteMark below) and never draws one either, so neither may start the
-    // drag gesture this function owns.
+    // box. Delete mode has its own click targets (DeletableObjectOverlay
+    // below) and never draws one either, so it may not start the drag
+    // gesture this function owns.
     if (!activeStyle || activeStyle === 'delete') return;
 
     const target = e.target as Element | null;
@@ -633,10 +663,16 @@ export default function PdfRedactTool() {
   // actually edited - its kind/description/type describe what happened -
   // and every other box's own captured change is appended to that one
   // entry's `updates`, so the whole group reverts and reapplies together.
+  //
+  // RED-11: findSetChanges (findSet.ts, pure) does the same for the box's
+  // find set (strength only). A box can be in both a repeat group and a find
+  // set at once, so the two per-box lists are merged by id below rather than
+  // one taking precedence - either membership can contribute to the same
+  // sibling's update, and the whole thing still lands as one history entry.
   const updateElement = (id: string, changes: Partial<RedactHistoryElement>) => {
     const element = elements.find((el) => el.id === id);
     if (!element) return;
-    const perBox = groupChanges(elements, id, changes);
+    const perBox = mergeChangesById(groupChanges(elements, id, changes), findSetChanges(elements, id, changes));
     setElements((prev) => {
       const changesById = new Map(perBox.map(({ id: boxId, changes: boxChanges }) => [boxId, boxChanges]));
       return prev.map((el) => {
@@ -670,6 +706,15 @@ export default function PdfRedactTool() {
       return;
     }
     const id = uniqueId();
+    // RED-13: the object lifts off the page once the page is drawn without it.
+    const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const image = reducedMotion ? null : snapshotRect(pageWrapperRefs.current[object.pageIndex]?.querySelector('canvas'), object.rect);
+    if (image) {
+      setLifts((prev) => [...prev, {
+        id, pageIndex: object.pageIndex, rect: object.rect, image,
+        paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
+      }]);
+    }
     const element: RedactHistoryElement = {
       id,
       pageIndex: object.pageIndex,
@@ -783,7 +828,9 @@ export default function PdfRedactTool() {
   // duplicate of the box that was actually pressed, not just the first one.
   const duplicateElement = (id: string) => {
     const members = groupMembers(elements, id);
-    const additions = duplicateGroup(elements, id, uniqueId);
+    // RED-11: a duplicate never joins the source's find set - it is a new,
+    // independent box, even when the source itself was a found one.
+    const additions = duplicateGroup(elements, id, uniqueId).map(withoutFindSet);
     if (additions.length === 0) return;
     const baseIndex = elements.length;
     const pressedIndex = members.findIndex((member) => member.id === id);
@@ -797,6 +844,40 @@ export default function PdfRedactTool() {
       ? `Duplicated ${additions[0].type} box`
       : `Duplicated the box on ${additions.length} pages`;
     logAction('add', type, additions[0].pageIndex, description, additions.map((element, i) => captureAddedElement(element, baseIndex + i)));
+  };
+
+  // RED-02: find and redact. Every box of every chosen match (one per line
+  // the match covers) is added as one history entry, so one Undo takes back
+  // a whole "Redact all".
+  const find = useFind(pdfDocument, numPages, elements);
+  const redactMatches = (matches: FindMatch[]) => {
+    if (matches.length === 0) return;
+    const type = find.redactStyle;
+    const additions: RedactHistoryElement[] = matches.flatMap((match) => match.boxes.map((box) => ({
+      id: uniqueId(),
+      pageIndex: match.pageIndex,
+      ...box,
+      type,
+      ...(type === 'blur' ? { strength: activeBlurStrength } : { color: '#000000' }),
+    })));
+    // RED-11: two or more boxes from this action share a findSetId, so they
+    // can be removed together and share blur strength later; a single box
+    // joins no set. "Redact this" on one match that wraps onto a second line
+    // makes two boxes, and they do form a set: both halves hide one secret.
+    if (additions.length >= 2) {
+      const findSetId = uniqueId();
+      additions.forEach((addition) => { addition.findSetId = findSetId; });
+    }
+    const baseIndex = elements.length;
+    const nextId = find.nextOpenAfter(new Set(matches.map((match) => match.id)));
+    setElements(prev => [...prev, ...additions]);
+    markDocumentEdited();
+    const description = matches.length === 1
+      ? `Redacted "${matches[0].text}"`
+      : `Redacted ${matches.length} matches`;
+    logAction('add', 'FIND_AND_REDACT', additions[0].pageIndex, description, additions.map((element, i) => captureAddedElement(element, baseIndex + i)));
+    setAnnouncement(`${description}.`);
+    find.setCurrentId(nextId);
   };
 
   // RED-03: detaches one box from its repeat group so future edits stop
@@ -829,6 +910,26 @@ export default function PdfRedactTool() {
     const description = `Removed the box from ${members.length} page${members.length === 1 ? '' : 's'}`;
     const entry = createActionEntry<RedactHistoryElement>({
       operation: 'delete', type: 'REMOVE_REPEAT_GROUP', pageIndex: members[0].pageIndex, description, elements: snapshots,
+    });
+    setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
+    registerUndo(description, entry);
+  };
+
+  // RED-11: removes every box in `id`'s find set in one undo step, modelled
+  // exactly on removeGroup above - same entry shape, same undo chip and
+  // announcement pattern.
+  const removeFindSet = (id: string) => {
+    const members = findSetMembers(elements, id);
+    if (members.length === 0) return;
+    const memberIds = new Set(members.map((member) => member.id));
+    const snapshots = captureElementSnapshots(elements, (element) => memberIds.has(element.id));
+    setElements(prev => prev.filter(el => !memberIds.has(el.id)));
+    markDocumentEdited();
+    setActiveBoxId(prev => (prev && memberIds.has(prev) ? null : prev));
+    setSelectedBoxId(prev => (prev && memberIds.has(prev) ? null : prev));
+    const description = `Removed ${members.length} boxes from this search`;
+    const entry = createActionEntry<RedactHistoryElement>({
+      operation: 'delete', type: 'REMOVE_FIND_SET', pageIndex: members[0].pageIndex, description, elements: snapshots,
     });
     setHistory(current => pushCommand(current.past, current.future, entry)); // a new command, same as logAction - any undone future is now stale
     registerUndo(description, entry);
@@ -879,7 +980,9 @@ export default function PdfRedactTool() {
   const repeatOnEveryPage = (id: string) => {
     const source = elements.find(el => el.id === id);
     if (!source) return;
-    const additions = repeatCopies(source, elements, numPages, uniqueId);
+    // RED-11: a repeated copy never joins the source's find set (same
+    // reasoning as duplicateElement above).
+    const additions = repeatCopies(source, elements, numPages, uniqueId).map(withoutFindSet);
     if (additions.length === 0) return;
     const baseIndex = elements.length;
     setElements(prev => [...prev, ...additions]);
@@ -1073,6 +1176,24 @@ export default function PdfRedactTool() {
             handoffBusy={handoffBusy}
             onCompressHandoff={() => { void requestCompressHandoff(); }}
             showWelcomeTip={showWelcomeTip}
+            findOpen={find.open}
+            onToggleFind={() => find.setOpen(!find.open)}
+            findBar={find.open && (
+              <FindBar
+                term={find.term}
+                preset={find.preset}
+                onTermChange={find.setTerm}
+                onPresetChange={find.setPreset}
+                summary={find.summary}
+                onPrev={find.prev}
+                onNext={find.next}
+                redactStyle={find.redactStyle}
+                onRedactStyleChange={find.setRedactStyle}
+                onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
+                onRedactAll={() => redactMatches(find.openMatches)}
+                onClose={() => find.setOpen(false)}
+              />
+            )}
           />
 
           <div className={workspaceStyles['pages-container']}>
@@ -1102,8 +1223,8 @@ export default function PdfRedactTool() {
                   }}
                 >
                   <PdfPageCanvas
-                    pdfDocument={pdfDocument}
-                    pageNum={i + 1}
+                    pdfDocument={deletePreviews.get(i) ?? pdfDocument}
+                    pageNum={deletePreviews.has(i) ? 1 : i + 1}
                     onViewportReady={handlePageViewportReady}
                   />
 
@@ -1138,24 +1259,35 @@ export default function PdfRedactTool() {
                         repeatGroupSize={selected ? groupMembers(elements, el.id).length : undefined}
                         onUnlinkFromGroup={() => unlinkFromGroup(el.id)}
                         onRemoveGroup={() => removeGroup(el.id)}
+                        findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
+                        onRemoveFindSet={() => removeFindSet(el.id)}
                       />
                     );
                   })}
 
-                  {/* Objects already queued for deletion - shown regardless of the active
-                      tool, same as redaction boxes above, so switching tools doesn't hide
-                      queued work. */}
-                  {elements.filter(el => el.pageIndex === i && el.type === 'delete').map(el => (
-                    <DeleteMark key={el.id} el={el} onDelete={deleteElement} />
+                  {/* RED-13: an object queued for deletion has no mark of its own. The
+                      page is drawn without it (useDeletePreviews), so what you see is
+                      what you save, and the toolbar's Undo brings it back. */}
+                  {lifts.filter((lift) => lift.pageIndex === i).map((lift) => (
+                    <DeleteLift key={lift.id} lift={lift} onDone={(id) => setLifts((prev) => prev.filter((l) => l.id !== id))} />
                   ))}
 
                   {/* Delete tool's hover targets: only shown while that tool is active,
-                      and only for objects not already marked (DeleteMark covers those). */}
+                      and only for objects still on the page. */}
                   {activeStyle === 'delete' && (
                     <DeletableObjectOverlay
                       objects={deletableObjects.filter((object) => object.pageIndex === i)}
                       markedIds={markedForDeletionIds}
                       onSelect={toggleObjectDeletion}
+                    />
+                  )}
+
+                  {find.open && (
+                    <FindHighlights
+                      matches={find.matchesOnPage(i)}
+                      currentId={find.currentId}
+                      coveredIds={find.coveredIds}
+                      onPick={find.setCurrentId}
                     />
                   )}
 
