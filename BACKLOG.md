@@ -172,9 +172,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
+_None._
 
 ### Blocked
 
@@ -195,6 +193,7 @@ _None._
 | QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
 | QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
+| SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
 
 ### Retired
 
@@ -653,6 +652,33 @@ _None._
 | SNG-11 | P1 | [SNG-11](backlog/tasks/SNG-11.md) · The precision floor: detection is shown only where it is right 95% of the time, scored the way the person meets it |
 | SNG-13 | P2 | [SNG-13](backlog/tasks/SNG-13.md) · A fillable PDF names its fields in its own words: /TU, else a readable /T, else no name |
 | SNG-16 | P1 | [SNG-16](backlog/tasks/SNG-16.md) · Fill mode, slice 2: the app-owned camera (a locked page scale, layout zoom, framing, a sharp re-render) |
+
+## Redact tool
+
+### Open
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
+| RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
+| RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
+| RED-04 | P2 | [RED-04](backlog/tasks/RED-04.md) · What you see is what you save: the editor shows the page as it will export |
+
+### In progress
+
+_None._
+
+### Blocked
+
+_None._
+
+### Done
+
+_None._
+
+### Retired
+
+_None._
 
 # Closed epics
 

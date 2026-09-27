@@ -1,7 +1,7 @@
 ---
 id: "SITE-41"
 title: "Redact: a blur strength picker on the blur box toolbar"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "site-quality"
 phase: "near-term"
