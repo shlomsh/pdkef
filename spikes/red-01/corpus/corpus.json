@@ -183,7 +183,8 @@
     ],
     "secret": "Department of the Treasury—Internal Revenue Service",
     "keepText": "See separate instructions.",
-    "feature": "real-world form PDF (IRS 1040 2024), page 1"
+    "keepSameLine": [],
+    "feature": "real-world form PDF (IRS 1040 2024), page 1 (secret is alone on its own line, no same-line neighbour to check)"
   },
   {
     "file": "real-world-uscis-i9-2025.pdf",
@@ -196,7 +197,8 @@
     ],
     "secret": "USCIS",
     "keepText": "failing to comply with the requirements for completing this form. See below and the",
-    "feature": "real-world form PDF (USCIS I-9 2025), page 1"
+    "keepSameLine": [],
+    "feature": "real-world form PDF (USCIS I-9 2025), page 1 (secret is alone on its own line, no same-line neighbour to check)"
   },
   {
     "file": "real-world-health-declaration-2021.pdf",
@@ -209,7 +211,8 @@
     ],
     "secret": "הצהרת בריאות",
     "keepText": "המשפחה",
-    "feature": "real-world form PDF (health declaration 2021), page 1"
+    "keepSameLine": [],
+    "feature": "real-world form PDF (health declaration 2021), page 1 (secret is alone on its own line, no same-line neighbour to check)"
   },
   {
     "file": "mid-run-helvetica.pdf",
@@ -222,6 +225,7 @@
     ],
     "secret": "SECRETWORD",
     "keepText": "kept text below the mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
     "feature": "secret is the middle substring of ONE Tj (not a separate run); exercises per-glyph split of a single text object"
   },
   {
@@ -235,6 +239,7 @@
     ],
     "secret": "SECRETWORD",
     "keepText": "kept text below the kerned mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
     "feature": "one TJ array with per-glyph kerning holds the whole line; secret is the middle run of that single array"
   },
   {
@@ -248,6 +253,7 @@
     ],
     "secret": "SECRETWORD",
     "keepText": "kept text below the embedded mid-run line",
+    "keepSameLine": ["Name: Jane", "Example"],
     "feature": "embedded subset TrueType (Identity-H hex Tj); secret is the middle substring of ONE Tj"
   },
   {
@@ -261,6 +267,7 @@
     ],
     "secret": "ילארשידוס",
     "keepText": "ראשנשטסקט",
+    "keepSameLine": ["ראשנשטסקט", "טסקטדוע"],
     "feature": "embedded Hebrew font, ONE Tj holds three RTL-visual-order words; box covers only the middle (secret) word"
   },
   {
@@ -286,6 +293,7 @@
     ],
     "secret": "SECRETSSN12345",
     "keepText": "kept text below the two-secret line",
+    "keepSameLine": ["SSN:", "DL:"],
     "feature": "ONE Tj holds two distinct secrets; two rects target each independently (embedpdf #801 class: does clearing the first corrupt the second read?)"
   }
 ]

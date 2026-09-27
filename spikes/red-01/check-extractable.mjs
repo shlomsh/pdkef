@@ -13,6 +13,22 @@
 // "still extractable" alarm - only text whose own box intersects the entry's
 // redaction rect counts.
 //
+// Two gaps closed on top of the original secretUnderBox/keepTextIntact pair:
+//  - sameLineIntact: `keepText` alone can sit on a DIFFERENT line from the
+//    box (true for the mid-run-*/two-boxes-one-line fixtures and the
+//    real-world entries), so an engine that deletes the whole run - taking
+//    the words beside the secret with it - still passed. `keepSameLine`
+//    (corpus.json) lists the words immediately left/right of the box on the
+//    SAME line; sameLineIntact requires every one of them still extractable
+//    (position-agnostic, like keepText).
+//  - secretInAnnotationUnderBox: the position-aware secretUnderBox check
+//    only looks at content-stream text, so it was blind to a secret that
+//    lives in an annotation (FreeText /Contents, a form field's /V) whose
+//    rect sits under the box - both engines could "pass" freetext-annotation
+//    without touching the annotation at all. True if any annotation whose
+//    rect intersects an entry's redaction box still contains that box's
+//    secret in its own text.
+//
 // Usage:
 //   node check-extractable.mjs <pdf-path> <corpus.json-path> [file-name]
 //
@@ -116,6 +132,56 @@ async function extractAnnotationText(page) {
     .join(' ');
 }
 
+/**
+ * Annotations (FreeText /Contents, form field /V) never show up in
+ * getTextContent(), so the position-aware `secretUnderBox` check above is
+ * blind to them: an engine that only edits the content stream would "pass"
+ * a fixture whose secret actually lives in an annotation, even though
+ * nothing touched it. This pulls each annotation's own rect (PDF user
+ * space, unaffected by content-stream CTMs but still subject to page
+ * rotation) through the same viewport transform as text items, plus its
+ * text (/Contents, field value, button value), for an intersection test.
+ */
+async function extractAnnotationsWithBoxes(page, viewport) {
+  const annotations = await page.getAnnotations({ intent: 'any' });
+  return annotations.map((a) => {
+    const [x0, y0, x1, y1] = a.rect;
+    const bbox = { minX: Math.min(x0, x1), maxX: Math.max(x0, x1), minY: Math.min(y0, y1), maxY: Math.max(y0, y1) };
+    const text = [a.contentsObj && a.contentsObj.str, a.fieldValue, a.buttonValue]
+      .filter((v) => typeof v === 'string')
+      .join(' ');
+    return { text, rect: pdfBBoxToPercent(bbox, viewport) };
+  });
+}
+
+/**
+ * True if any annotation whose rect intersects one of the entry's redaction
+ * boxes still carries the secret in the annotation's own text (not the
+ * content stream). No shrink here (unlike `checkSecretUnderBox`): an
+ * annotation's rect is the box drawn for it, not glyph geometry that might
+ * merely touch an edge.
+ */
+function checkSecretInAnnotationUnderBox(annotationBoxes, rects, secrets) {
+  return rects.some((rect, i) => {
+    const secret = secrets[i];
+    if (!secret) return false;
+    const entryRect = { left: rect[0], top: rect[1], width: rect[2], height: rect[3] };
+    return annotationBoxes.some((a) => a.text.includes(secret) && rectsIntersect(a.rect, entryRect));
+  });
+}
+
+/**
+ * Position-agnostic: every string in `keepSameLine` (the words immediately
+ * left/right of a box, on the same visual line as the secret) must still be
+ * extractable somewhere on the page. Only meaningful for corpus entries that
+ * set it (mid-run-*, two-boxes-one-line, real-world entries); entries without
+ * it, or with an empty array (secret alone on its line), pass vacuously.
+ */
+function checkSameLineIntact(combined, keepSameLine) {
+  if (!keepSameLine || keepSameLine.length === 0) return true;
+  return keepSameLine.every((s) => combined.includes(s));
+}
+
 function isPresent(haystack, needle) {
   if (!needle) return null;
   return haystack.includes(needle);
@@ -169,14 +235,17 @@ function checkSecretUnderBoxMulti(items, rects, secrets) {
 async function checkOne(pdfPath, entry) {
   const bytes = fs.readFileSync(pdfPath);
   const page = await loadPage(bytes, entry.page);
+  const viewport = page.getViewport({ scale: 1, rotation: page.rotate });
   const items = await extractItemsWithBoxes(page);
   const contentText = items.map((it) => it.str).join('');
   const annotationText = await extractAnnotationText(page);
+  const annotationBoxes = await extractAnnotationsWithBoxes(page, viewport);
   const combined = contentText + ' ' + annotationText;
 
   const rects = entry.rects || [entry.rect];
   const secrets = entry.secrets || [entry.secret];
   const { secretUnderBox, offendingStrings } = checkSecretUnderBoxMulti(items, rects, secrets);
+  const secretInAnnotationUnderBox = checkSecretInAnnotationUnderBox(annotationBoxes, rects, secrets);
 
   return {
     file: entry.file,
@@ -184,12 +253,14 @@ async function checkOne(pdfPath, entry) {
     secretUnderBox,
     secretAnywhere: secrets.some((s) => isPresent(combined, s)),
     keepTextIntact: isPresent(combined, entry.keepText),
+    sameLineIntact: checkSameLineIntact(combined, entry.keepSameLine),
+    secretInAnnotationUnderBox,
     offendingStrings,
   };
 }
 
 function printTable(rows) {
-  const cols = ['file', 'secretUnderBox', 'secretAnywhere', 'keepTextIntact'];
+  const cols = ['file', 'secretUnderBox', 'secretAnywhere', 'keepTextIntact', 'sameLineIntact', 'secretInAnnotationUnderBox'];
   const widths = cols.map((c) => Math.max(c.length, ...rows.map((r) => String(r[c]).length)));
   const line = (vals) => vals.map((v, i) => String(v).padEnd(widths[i])).join('  ');
   console.log(line(cols));
@@ -228,13 +299,19 @@ async function main() {
   }
   printTable(rows);
 
-  const failures = rows.filter((r) => !r.secretUnderBox || !r.keepTextIntact);
+  const failures = rows.filter(
+    (r) => !r.secretUnderBox || !r.keepTextIntact || !r.sameLineIntact || r.secretInAnnotationUnderBox,
+  );
   if (failures.length > 0) {
-    console.log(`\n${failures.length} of ${rows.length} entries did NOT match the expected baseline (secret under box + keepText intact):`);
+    console.log(
+      `\n${failures.length} of ${rows.length} entries did NOT match the expected baseline (secret under box, keepText intact, same-line neighbours intact, no secret left in an annotation under the box):`,
+    );
     for (const f of failures) console.log(` - ${f.file}`);
     process.exitCode = 1;
   } else {
-    console.log(`\nAll ${rows.length} entries match the baseline: secret under box, keepText intact.`);
+    console.log(
+      `\nAll ${rows.length} entries match the baseline: secret under box, keepText intact, same-line neighbours intact, no secret in an annotation under the box.`,
+    );
   }
 }
 
