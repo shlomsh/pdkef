@@ -54,10 +54,10 @@ const current = available.find((variant) => variant.current) ?? available[0];
 ---
 
 {available.length > 1 && current && (
-  <details class="lang-menu relative inline-block text-[0.86rem]" data-direction={direction} data-tone={tone} data-lang-menu>
+  <Fragment><slot name="before" /><details class="lang-menu relative inline-block text-[0.86rem]" data-direction={direction} data-tone={tone} data-lang-menu>
     <summary class="lang-menu-summary inline-flex cursor-pointer items-center gap-[0.5rem] rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[0.8rem] py-[0.4rem] font-semibold text-[var(--color-text)]" aria-label={label}>
-      <LanguageFlag locale={current.locale} />
-      <span lang={current.locale}>{current.name}</span>
+      <LanguageFlag locale={current.locale} class="lang-menu-flag" />
+      <span class="lang-menu-name" lang={current.locale}>{current.name}</span>
       <svg class="lang-menu-chevron text-[var(--color-muted)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M6 9l6 6 6-6" />
       </svg>
@@ -79,7 +79,7 @@ const current = available.find((variant) => variant.current) ?? available[0];
         </li>
       ))}
     </ul>
-  </details>
+  </details></Fragment>
 )}
 
 <script>
@@ -109,25 +109,26 @@ const current = available.find((variant) => variant.current) ?? available[0];
   .lang-menu-summary:focus-visible { outline: none; border-color: var(--color-primary); box-shadow: var(--shadow-focus); }
   /* QUAL-13: the footer's teal band recolours only the closed trigger. The
      popover panel below keeps its light surface and normal text colours.
-     It also sits alone under the credit line with only two editions behind
-     it, so it reads as a compact utility control rather than a second CTA. */
+     In the footer the trigger is the last item of the links row, so it reads
+     like one of those links: inline text at the row's size and weight, a
+     small flag nudged onto the baseline like the row's icons, no pill. */
+  .lang-menu[data-tone='inverse'] { font-size: inherit; white-space: nowrap; }
   .lang-menu[data-tone='inverse'] .lang-menu-summary {
+    display: inline;
+    border: 0;
+    border-radius: var(--radius-sm);
     background: transparent;
-    border-color: color-mix(in srgb, var(--color-surface) 40%, transparent);
-    color: var(--color-surface);
-    padding: 0.3rem 0.65rem;
-    gap: 0.4rem;
-    font-size: 0.78rem;
+    padding: 0;
+    color: inherit;
     font-weight: 500;
   }
-  .lang-menu[data-tone='inverse'] .lang-menu-summary .lang-menu-chevron { color: var(--color-surface); }
-  .lang-menu[data-tone='inverse'] .lang-menu-summary:hover {
-    background: color-mix(in srgb, var(--color-surface) 12%, transparent);
-  }
+  .lang-menu[data-tone='inverse'] :global(.lang-menu-flag) { display: inline-block; width: 16px; height: 11px; margin-inline-end: 0.3rem; vertical-align: -0.05em; }
+  .lang-menu[data-tone='inverse'] .lang-menu-chevron { display: inline-block; margin-inline-start: 0.2rem; vertical-align: -0.1em; color: inherit; }
+  .lang-menu[data-tone='inverse'] .lang-menu-summary:hover .lang-menu-name { text-decoration: underline; }
   .lang-menu[data-tone='inverse'] .lang-menu-summary:focus-visible {
-    border-color: var(--color-surface);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-surface) 55%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-surface) 55%, transparent);
   }
+  .lang-menu[data-tone='inverse'] .lang-menu-list { font-size: 0.86rem; white-space: normal; }
   .lang-menu[open] .lang-menu-chevron { transform: rotate(180deg); }
   .lang-menu-list { inset-inline-start: 0; box-shadow: var(--shadow-lg); }
   .lang-menu[data-direction='down'] .lang-menu-list { top: calc(100% + .35rem); }
