@@ -1,7 +1,7 @@
 ---
 id: "RED-11"
 title: "Boxes from one search stay a set: remove them together, blur strength shared"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -28,3 +28,12 @@ because they share position and size, and found words each sit in their own plac
 
 - After "Redact all" and another edit, trash on one found box offers "All N from this search", which
   removes exactly that search's boxes as one undo step.
+
+## Outcome (2026-09-27)
+
+- `src/tools/redact/findSet.ts` holds the pure rules; `PdfRedactTool.tsx` merges a box's repeat-group
+  and find-set changes by id, so a box that is both found and repeated updates everything it is linked
+  to in one undo step. "All N from this search" removes the found boxes only; copies on other pages stay.
+- "Redact this" on one match that wraps onto two lines makes a set of two: both halves hide one secret.
+- Found in the e2e: a covered match's highlight sat above its box and swallowed the click, so a found box
+  couldn't be selected while Find was open. Covered highlights now let clicks through.
