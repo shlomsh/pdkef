@@ -13,9 +13,9 @@ const bytesOf = (length = 4) => new ArrayBuffer(length);
 
 const goodText = { id: 'text-1', type: 'text', pageIndex: 0, left: 10, top: 20, text: 'Hello' };
 const goodBlackout = { id: 'blackout-1', type: 'blackout', pageIndex: 0, left: 10, top: 20, width: 5, height: 5 };
-const goodDeleteMark = {
+const goodDeleteElement = {
   id: 'delete-1', type: 'delete', pageIndex: 0, sourceObjectId: 'obj-1', kind: 'run',
-  left: 10, top: 20, width: 5, height: 5,
+  left: 10, top: 20, width: 5, height: 5, start: 100, end: 120,
 };
 
 describe('validateDraftElements', () => {
@@ -60,10 +60,17 @@ describe('validateDraftElements', () => {
     expect(droppedCount).toBe(1);
   });
 
-  it('accepts a Redact delete mark, which is not in the shared registry', () => {
-    const { valid, droppedCount } = validateDraftElements([goodDeleteMark]);
-    expect(valid).toEqual([goodDeleteMark]);
+  it('accepts a Redact delete element, which is not in the shared registry', () => {
+    const { valid, droppedCount } = validateDraftElements([goodDeleteElement]);
+    expect(valid).toEqual([goodDeleteElement]);
     expect(droppedCount).toBe(0);
+  });
+
+  it('drops a delete element missing its byte span (start/end)', () => {
+    const { start, end, ...withoutSpan } = goodDeleteElement;
+    const { valid, droppedCount } = validateDraftElements([withoutSpan]);
+    expect(valid).toEqual([]);
+    expect(droppedCount).toBe(1);
   });
 
   it('does not log when nothing was dropped', () => {

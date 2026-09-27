@@ -20,7 +20,7 @@ import { deleteDraft, loadDraft } from '../../lib/drafts/draftStore.js';
 import { useEditorDraftPersistence } from './useEditorDraftPersistence.ts';
 import { DRAFT_SCHEMA_VERSION, isDraftElement, isEditorElement } from '../registry/draftValidation.ts';
 
-// Mirrors PdfRedactTool.tsx's own `isRedactHistoryElement`: Redact only
+// Mirrors PdfRedactTool.tsx's own `isRedactElement`: Redact only
 // restores its four element types, so a foreign type (e.g. Sign's `text`)
 // stored under the `redact` draft key is dropped by validateDraftElements
 // rather than reaching render, where `createElementRenderers({})` would throw

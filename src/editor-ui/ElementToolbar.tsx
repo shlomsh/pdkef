@@ -1,5 +1,6 @@
 import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
+import { TrashIcon } from './toolIcons.tsx';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
@@ -98,12 +99,7 @@ export default function ElementToolbar({
       <path d="M4 6v14a2 2 0 0 0 2 2h12" />
     </svg>
   );
-  const trashIcon = (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-  );
+  const trashIcon = <TrashIcon strokeWidth={2.5} rounded={false} />;
 
   // SIGN-08: the same typography descriptor TextNode renders with and
   // text.ts exports with (fonts.js) - family, and which weight/style the
