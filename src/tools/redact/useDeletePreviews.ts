@@ -5,15 +5,21 @@ import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 
 const REBUILD_DEBOUNCE_MS = 120;
 
-// `start`/`end` are optional here only so PdfRedactTool.tsx's generic
-// RedactHistoryElement (an index-signature record, not a type per element
-// kind) type-checks as this shape; every 'delete' element it builds sets
-// them to numbers, so they are read as such below.
-interface DeleteElement {
+interface DeleteLikeElement {
   pageIndex: number;
   type: string;
-  start?: unknown;
-  end?: unknown;
+  start?: number;
+  end?: number;
+}
+
+interface DeleteSpanElement extends DeleteLikeElement {
+  type: 'delete';
+  start: number;
+  end: number;
+}
+
+function isDeleteSpanElement(element: DeleteLikeElement): element is DeleteSpanElement {
+  return element.type === 'delete' && typeof element.start === 'number' && typeof element.end === 'number';
 }
 
 /**
@@ -21,17 +27,17 @@ interface DeleteElement {
  * sorted for a stable key. Pure so `useDeletePreviews` can diff pages without
  * caring what order elements were added or undone in.
  *
- * @param {Array<DeleteElement>} elements
+ * @param {Array<DeleteLikeElement>} elements
  * @returns {Map<number, Array<{start: number, end: number}>>}
  */
 export function deleteSpansByPage(
-  elements: ReadonlyArray<DeleteElement>,
+  elements: ReadonlyArray<DeleteLikeElement>,
 ): Map<number, Array<{ start: number; end: number }>> {
   const byPage = new Map<number, Array<{ start: number; end: number }>>();
   for (const element of elements) {
-    if (element.type !== 'delete') continue;
+    if (!isDeleteSpanElement(element)) continue;
     const spans = byPage.get(element.pageIndex) ?? [];
-    spans.push({ start: element.start as number, end: element.end as number });
+    spans.push({ start: element.start, end: element.end });
     byPage.set(element.pageIndex, spans);
   }
   for (const spans of byPage.values()) {
@@ -68,12 +74,12 @@ function destroyPreview(proxy: PDFDocumentProxy | undefined) {
  *
  * @param {ArrayBuffer|null} fileBytes the loaded file's bytes (same identity
  *   `useDeletableObjects` reads)
- * @param {Array<DeleteElement>} elements the document's current elements
+ * @param {Array<DeleteLikeElement>} elements the document's current elements
  * @returns {ReadonlyMap<number, PDFDocumentProxy>}
  */
 export default function useDeletePreviews(
   fileBytes: ArrayBuffer | null,
-  elements: ReadonlyArray<DeleteElement>,
+  elements: ReadonlyArray<DeleteLikeElement>,
 ): ReadonlyMap<number, PDFDocumentProxy> {
   const [previews, setPreviews] = useState<ReadonlyMap<number, PDFDocumentProxy>>(new Map());
   const previewsRef = useRef(previews);

@@ -18,12 +18,15 @@ const ELEMENT_TYPES: readonly ElementType[] = [
 ];
 
 /**
- * Redact's text-run redaction preview mark. Not part of the shared
- * `ElementType` union or registry (that unification is SIGN-14 scope), so it
- * needs its own shape guard here or every real Redact draft carrying one would
- * be quarantined as invalid.
+ * Redact's queued deletion. Not part of the shared `ElementType` union or
+ * registry (that unification is SIGN-14 scope), so it needs its own shape
+ * guard here or every real Redact draft carrying one would be quarantined as
+ * invalid. `start`/`end` are the byte span in the page's merged content
+ * stream, required because both the download and the on-screen preview
+ * (RED-13) key off them - a restored draft missing them would otherwise pass
+ * validation and then break the save.
  */
-export interface DeleteMarkElement extends HistoryElement {
+export interface DeleteElement extends HistoryElement {
   type: 'delete';
   sourceObjectId: string;
   kind: string;
@@ -31,15 +34,19 @@ export interface DeleteMarkElement extends HistoryElement {
   top: number;
   width: number;
   height: number;
+  start: number;
+  end: number;
+  preview?: string;
   [field: string]: unknown;
 }
 
-export type DraftElement = EditorElement | DeleteMarkElement;
+export type DraftElement = EditorElement | DeleteElement;
 
-function isDeleteMarkElement(value: unknown): value is DeleteMarkElement {
+function isDeleteElement(value: unknown): value is DeleteElement {
   return isRecord(value) && value.type === 'delete' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasString(value, 'sourceObjectId') && hasString(value, 'kind')
-    && hasNumber(value, 'left') && hasNumber(value, 'top') && hasNumber(value, 'width') && hasNumber(value, 'height');
+    && hasNumber(value, 'left') && hasNumber(value, 'top') && hasNumber(value, 'width') && hasNumber(value, 'height')
+    && hasNumber(value, 'start') && hasNumber(value, 'end');
 }
 
 export function isEditorElement(value: unknown): value is EditorElement {
@@ -49,7 +56,7 @@ export function isEditorElement(value: unknown): value is EditorElement {
 }
 
 export function isDraftElement(value: unknown): value is DraftElement {
-  return isEditorElement(value) || isDeleteMarkElement(value);
+  return isEditorElement(value) || isDeleteElement(value);
 }
 
 /**
