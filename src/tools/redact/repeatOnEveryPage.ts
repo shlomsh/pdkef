@@ -1,6 +1,6 @@
 /**
  * RED-03: "Repeat on every page" for a selected redaction box. Pure geometry
- * logic only — PdfRedactTool.tsx owns the id generator, the single undo
+ * logic only: PdfRedactTool.tsx owns the id generator, the single undo
  * entry and the announcement; this module only decides which pages get a
  * copy and what each copy looks like.
  *
@@ -9,14 +9,11 @@
  * (a differently-sized page still gets the box in the same spot).
  */
 
+/** Any box element: geometry fields are read, never assumed to be typed. */
 export interface RepeatableElement {
   id: string;
   pageIndex: number;
   type: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
   [key: string]: unknown;
 }
 
