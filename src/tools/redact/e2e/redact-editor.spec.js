@@ -565,7 +565,7 @@ test.describe('repeat a box on every page (RED-03)', () => {
     const blackout = await drawRedaction(page, 'Blackout', { x: 0.2, y: 0.18 }, { x: 0.42, y: 0.28 });
     await selectRedaction(blackout);
 
-    const repeatButton = page.locator('[data-editor-repeat-group-trigger]');
+    const repeatButton = page.locator('[data-editor-repeat-every-page]');
     await expect(repeatButton).toBeVisible();
     await repeatButton.click();
 

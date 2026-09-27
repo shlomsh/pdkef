@@ -359,3 +359,68 @@ describe('ElementToolbar date field controls', () => {
     expect(cycle).toBeFalsy();
   });
 });
+
+describe('ElementToolbar linked repeat set (RED-03)', () => {
+  let container: HTMLDivElement | null = null;
+  const blackout = { id: 'b1', type: 'blackout', pageIndex: 0, left: 10, top: 10, width: 20, height: 5 };
+
+  afterEach(() => {
+    const host = container;
+    if (host) {
+      act(() => render(null, host));
+      host.remove();
+      container = null;
+    }
+    document.body.innerHTML = '';
+  });
+
+  function mount(props: Record<string, unknown>) {
+    const host = document.createElement('div');
+    container = host;
+    document.body.appendChild(host);
+    const onDelete = vi.fn();
+    const onRemoveGroup = vi.fn();
+    act(() => {
+      render(<ElementToolbar element={blackout} onChange={() => {}} onClone={() => {}} onDelete={onDelete} onRemoveGroup={onRemoveGroup} {...props} />, host);
+    });
+    return { host, onDelete, onRemoveGroup };
+  }
+
+  async function click(el: Element | null) {
+    await act(async () => { (el as HTMLElement).click(); });
+  }
+
+  it('an unlinked box deletes in one tap and offers the plain repeat button', async () => {
+    const { host, onDelete } = mount({ onRepeatOnEveryPage: () => {} });
+    expect(host.querySelector('[data-editor-repeat-every-page]')).not.toBeNull();
+    expect(host.querySelector('[data-editor-delete-scope-trigger]')).toBeNull();
+    await click(host.querySelector('button[title="Delete element"]'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('a linked box shows its set size and trash asks: this page or all pages', async () => {
+    const { host, onDelete, onRemoveGroup } = mount({ repeatGroupSize: 12, onUnlinkFromGroup: () => {} });
+    const trigger = host.querySelector('[data-editor-repeat-group-trigger]') as HTMLElement;
+    expect(trigger.textContent).toContain('12');
+    expect(host.querySelector('[data-editor-repeat-every-page]')).toBeNull();
+
+    await click(host.querySelector('[data-editor-delete-scope-trigger]'));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(document.body.querySelector('[data-editor-delete-all-pages]')!.textContent).toBe('All 12 pages');
+    await click(document.body.querySelector('[data-editor-delete-this-page]'));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+
+    await click(host.querySelector('[data-editor-delete-scope-trigger]'));
+    await click(document.body.querySelector('[data-editor-delete-all-pages]'));
+    expect(onRemoveGroup).toHaveBeenCalledTimes(1);
+  });
+
+  it('the linked set menu holds unlink, and fill only when there are pages left to fill', async () => {
+    const onUnlinkFromGroup = vi.fn();
+    const { host } = mount({ repeatGroupSize: 3, onUnlinkFromGroup });
+    await click(host.querySelector('[data-editor-repeat-group-trigger]'));
+    expect(document.body.querySelector('[data-editor-repeat-group-fill]')).toBeNull();
+    await click(document.body.querySelector('[data-editor-repeat-group-unlink]'));
+    expect(onUnlinkFromGroup).toHaveBeenCalledTimes(1);
+  });
+});

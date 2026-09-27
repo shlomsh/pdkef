@@ -1546,6 +1546,12 @@ describe('PdfRedactTool UI flow', () => {
   // wiring of them through updateElement/duplicateElement/unlinkFromGroup/
   // removeGroup, mirroring the clear-page block above.
   describe('repeat a box on every page, linked copies (RED-03)', () => {
+    // Picking a whiteout colour here is remembered browser-wide (preferenceStore),
+    // which would change the default colour a later test starts from.
+    afterEach(() => {
+      localStorage.clear();
+    });
+
     function mockPageCount(numPages: number) {
       vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
         promise: Promise.resolve({
@@ -1587,8 +1593,24 @@ describe('PdfRedactTool UI flow', () => {
       return box;
     }
 
+    // A box-toolbar menu (the linked set's, or trash's scope choice): open
+    // it on the selected box, then pick an item. Popover portals the menu
+    // to document.body, so the item is found there.
+    async function pickFromBoxMenu(trigger: string, item: string): Promise<void> {
+      const button = query<HTMLButtonElement>(container, `[data-editor-actions] ${trigger}`);
+      await act(async () => {
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      const choice = required(document.querySelector<HTMLButtonElement>(item), item);
+      await act(async () => {
+        choice.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+    }
+
+    // A box that is not linked yet shows the plain repeat button; once it is,
+    // the same slot becomes the linked set's menu trigger.
     async function repeatSelectedBox(): Promise<void> {
-      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-trigger]');
+      const repeatButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
       await act(async () => {
         repeatButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -1720,10 +1742,7 @@ describe('PdfRedactTool UI flow', () => {
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       const secondPageBox = query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`);
       await selectBox(secondPageBox);
-      const unlinkButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-unlink]');
-      await act(async () => {
-        unlinkButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await pickFromBoxMenu('[data-editor-repeat-group-trigger]', '[data-editor-repeat-group-unlink]');
 
       const firstPageBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
       const thirdPageBox = query<HTMLElement>(pageCards[2], `.${REDACT_BOX}`);
@@ -1739,7 +1758,23 @@ describe('PdfRedactTool UI flow', () => {
       expect(parseFloat(secondPageBox.style.width)).toBeCloseTo(widthBefore);
     });
 
-    it('removes every copy in one undo step', async () => {
+    it('trash on a linked box removes only this page when "This page" is picked; the rest stay linked', async () => {
+      mockPageCount(3);
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectFirstBox();
+      await repeatSelectedBox();
+
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-this-page]');
+      const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      expect(pageCards.map((card) => card.querySelectorAll(`.${REDACT_BOX}`).length)).toEqual([0, 1, 1]);
+
+      await selectBox(query<HTMLElement>(pageCards[1], `.${REDACT_BOX}`));
+      const trigger = query<HTMLElement>(container, '[data-editor-actions] [data-editor-repeat-group-trigger]');
+      expect(trigger.textContent).toContain('2');
+    });
+
+    it('trash on a linked box removes every copy in one undo step when "All pages" is picked', async () => {
       mockPageCount(3);
       const drawArea = await loadFileAndGetDrawArea();
       await drawBox(drawArea, 50, 200, 200, 500);
@@ -1747,10 +1782,7 @@ describe('PdfRedactTool UI flow', () => {
       await repeatSelectedBox();
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(3);
 
-      const removeButton = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-group-remove]');
-      await act(async () => {
-        removeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await pickFromBoxMenu('[data-editor-delete-scope-trigger]', '[data-editor-delete-all-pages]');
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
 
       const announcementRegion = required(

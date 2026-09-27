@@ -192,14 +192,14 @@ export interface SignMessages {
   deleteElementTitle: string;
   /** RED-03: ElementToolbar.tsx's Redact-only "repeat on every page" button. */
   repeatOnEveryPageTitle: string;
-  /** RED-03: RepeatGroupMenu.tsx, once a box is linked (repeatGroupSize >= 2).
-   * `{n}` is the set's size. repeatGroupHeadingTemplate repeats the same
-   * text inside the open menu, above its actions. */
+  /** RED-03: the linked set's menu, once a box is linked (repeatGroupSize
+   * >= 2). `{n}` is the set's size; the title doubles as the menu heading. */
   repeatGroupTitleTemplate: string;
-  repeatGroupHeadingTemplate: string;
   repeatGroupFill: string;
   repeatGroupUnlink: string;
-  repeatGroupRemove: string;
+  /** RED-03: trash on a linked box asks which boxes to delete. */
+  deleteThisPage: string;
+  deleteAllPagesTemplate: string;
   /** FontPickerMenu.tsx. */
   searchFontsPlaceholder: string;
   fontsListAriaLabel: string;
