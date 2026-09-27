@@ -4,13 +4,16 @@
  * document edited, drop a removed box from the selection, push one history
  * entry, and for a removal show the undo chip. Handlers now only decide what
  * changes; these three commands do the rest, so no two of them can drift.
- *
- * CONTRACT, written before the implementation. Signatures and behaviour are
- * fixed; the body is the implementer's.
  */
-import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
-import type { HistoryStack } from '../../editor/model/historyStack.ts';
-import type { ElementUpdateKind } from '../../editor/model/updateKind.ts';
+import {
+  captureAddedElement,
+  captureElementSnapshots,
+  captureElementUpdate,
+  createActionEntry,
+  type ActionHistoryEntry,
+} from '../../editor/model/actionHistory.ts';
+import { pushCommand, type HistoryStack } from '../../editor/model/historyStack.ts';
+import { createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 
 export interface RedactCommandDeps<T extends { id: string; pageIndex: number }> {
   elements: readonly T[];
@@ -65,6 +68,70 @@ export interface RedactCommands<T> {
 export default function useRedactCommands<T extends { id: string; pageIndex: number }>(
   deps: RedactCommandDeps<T>,
 ): RedactCommands<T> {
-  void deps;
-  throw new Error('RED-14: not implemented yet');
+  const { elements, setElements, setHistory, markDocumentEdited, forgetSelection, registerUndo, describeUpdate } = deps;
+
+  const add = (additions: readonly T[], options: AddOptions) => {
+    if (additions.length === 0) return;
+    const baseIndex = elements.length;
+    setElements((prev) => [...prev, ...additions]);
+    markDocumentEdited();
+    const entry = createActionEntry<T>({
+      operation: 'add',
+      type: options.type,
+      pageIndex: additions[0].pageIndex,
+      description: options.description,
+      elements: additions.map((el, i) => captureAddedElement(el, baseIndex + i)),
+    });
+    setHistory((current) => pushCommand(current.past, current.future, entry));
+    if (options.undoChip) registerUndo(options.description, entry);
+  };
+
+  const remove = (ids: ReadonlySet<string>, options: RemoveOptions) => {
+    const snapshots = captureElementSnapshots(elements, (el) => ids.has(el.id));
+    if (snapshots.length === 0) return;
+    setElements((prev) => prev.filter((el) => !ids.has(el.id)));
+    markDocumentEdited();
+    forgetSelection(ids);
+    const entry = createActionEntry<T>({
+      operation: 'delete',
+      type: options.type,
+      pageIndex: options.pageIndex,
+      description: options.description,
+      elements: snapshots,
+    });
+    setHistory((current) => pushCommand(current.past, current.future, entry));
+    registerUndo(options.chipMessage ?? options.description, entry);
+  };
+
+  const update = (
+    id: string,
+    perBox: readonly { id: string; changes: Partial<T> }[],
+    options?: { describe?: (kind: ElementUpdateKind) => string },
+  ) => {
+    const element = elements.find((el) => el.id === id);
+    if (!element) return;
+    setElements((prev) => {
+      const changesById = new Map(perBox.map(({ id: boxId, changes: boxChanges }) => [boxId, boxChanges]));
+      return prev.map((el) => {
+        const boxChanges = changesById.get(el.id);
+        return boxChanges ? { ...el, ...boxChanges } : el;
+      });
+    });
+    markDocumentEdited();
+    const changes = perBox.find(({ id: boxId }) => boxId === id)?.changes ?? {};
+    const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(kind, element));
+    const entry = createUpdateEntry(element, changes, describe);
+    if (!entry) return;
+    const otherUpdates = perBox
+      .filter(({ id: boxId }) => boxId !== id)
+      .flatMap(({ id: boxId, changes: boxChanges }) => {
+        const boxElement = elements.find((el) => el.id === boxId);
+        const boxUpdate = boxElement && captureElementUpdate(boxElement, boxChanges);
+        return boxUpdate ? [boxUpdate] : [];
+      });
+    const fullEntry = otherUpdates.length === 0 ? entry : { ...entry, updates: [...entry.updates, ...otherUpdates] };
+    setHistory((current) => pushCommand(current.past, current.future, fullEntry));
+  };
+
+  return { add, remove, update };
 }
