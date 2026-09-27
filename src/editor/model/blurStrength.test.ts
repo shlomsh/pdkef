@@ -1,22 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { BLUR_STRENGTHS, DEFAULT_BLUR_STRENGTH, blurRadius, isBlurStrength, resolveBlurStrength } from './blurStrength.ts';
+import { BLUR_STRENGTHS, DEFAULT_BLUR_STRENGTH, blurFactor, blurRadiusPx, isBlurStrength, resolveBlurStrength } from './blurStrength.ts';
 
 describe('blurStrength', () => {
-  it('keeps today\'s 8px screen / 24px export blur as the default', () => {
+  it('restores a blur box saved without a strength as strong', () => {
     expect(DEFAULT_BLUR_STRENGTH).toBe('strong');
-    expect(blurRadius(undefined)).toEqual({ screenPx: 8, exportPx: 24 });
+    expect(blurFactor(undefined)).toBe(blurFactor('strong'));
   });
 
   it('orders levels from light to strong, each blurrier than the last', () => {
-    const radii = BLUR_STRENGTHS.map((s) => blurRadius(s));
-    for (let i = 1; i < radii.length; i++) {
-      expect(radii[i].screenPx).toBeGreaterThan(radii[i - 1].screenPx);
-      expect(radii[i].exportPx).toBeGreaterThan(radii[i - 1].exportPx);
-    }
+    const factors = BLUR_STRENGTHS.map((s) => blurFactor(s));
+    for (let i = 1; i < factors.length; i++) expect(factors[i]).toBeGreaterThan(factors[i - 1]);
   });
 
-  it('never goes below the 12px export floor', () => {
-    for (const s of BLUR_STRENGTHS) expect(blurRadius(s).exportPx).toBeGreaterThanOrEqual(12);
+  it('keeps every level above the 0.25 x box height that measured as a smear', () => {
+    for (const s of BLUR_STRENGTHS) expect(blurFactor(s)).toBeGreaterThan(0.25);
+  });
+
+  it('scales the radius with the box height, so big text gets more blur', () => {
+    expect(blurRadiusPx('light', 100)).toBeCloseTo(30);
+    expect(blurRadiusPx('light', 200)).toBeCloseTo(60);
+    expect(blurRadiusPx('strong', 50)).toBeCloseTo(25);
+  });
+
+  it('never returns less than a 1px blur for a sliver of a box', () => {
+    expect(blurRadiusPx('light', 0)).toBe(1);
   });
 
   it('rejects unknown values and resolves them to the default', () => {
