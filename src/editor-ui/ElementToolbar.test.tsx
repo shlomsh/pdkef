@@ -270,7 +270,7 @@ describe('ElementToolbar Bold/Italic honesty (W5)', () => {
     expect(italic.hasAttribute('aria-describedby')).toBe(false);
   });
 
-  // Edge case: a draft saved before W5 (drafts persist 14 days), or a family
+  // Edge case: a draft saved before W5 (drafts persist 28 days), or a family
   // switch that left fontWeight 'bold' behind, can leave an element "bold"
   // on a family with no real bold face. The stored value is left alone (no
   // silent rewrite of what the user saved) but the disabled control must
