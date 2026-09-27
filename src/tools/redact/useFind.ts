@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { findMatches, isCovered } from './find/findMatches.ts';
 import { PRESET_FINDERS, termFinder } from './find/finders.ts';
 import type { FindMatch, PercentBox, PresetKey } from './find/types.ts';
+import type { MeasureText } from './find/matchBoxes.ts';
 import usePageTexts from './usePageTexts.ts';
 import type { FindRedactStyle, FindSummary } from './FindBar.tsx';
 
@@ -14,6 +15,24 @@ const isBox = (cover: Cover): cover is Cover & PercentBox => (
 );
 
 const NO_MATCHES: FindMatch[] = [];
+
+/** A sans-serif measurement, to split one text item's advance between its
+ * letters more closely than an equal share each. The PDF's own font is not
+ * available here; the cut-edge padding in matchBoxes covers the difference. */
+function createMeasure(): MeasureText | undefined {
+  const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
+  if (!context) return undefined;
+  context.font = '100px sans-serif';
+  const cache = new Map<string, number>();
+  return (text) => {
+    let width = cache.get(text);
+    if (width === undefined) {
+      width = context.measureText(text).width;
+      cache.set(text, width);
+    }
+    return width;
+  };
+}
 
 /**
  * RED-02: the find panel's state. Text is read only once the panel first
@@ -28,10 +47,11 @@ export default function useFind(pdfDocument: PDFDocumentProxy | null, numPages: 
   const [redactStyle, setRedactStyle] = useState<FindRedactStyle>('blackout');
   const texts = usePageTexts(pdfDocument, numPages, open);
 
+  const measure = useMemo(createMeasure, []);
   const finder = useMemo(() => (preset ? PRESET_FINDERS[preset] : termFinder(term)), [preset, term]);
   const matches = useMemo(
-    () => (open ? findMatches(texts.pages, finder) : NO_MATCHES),
-    [open, texts.pages, finder],
+    () => (open ? findMatches(texts.pages, finder, measure) : NO_MATCHES),
+    [open, texts.pages, finder, measure],
   );
   const coveredIds = useMemo(() => {
     const boxes = covers.filter(isBox);

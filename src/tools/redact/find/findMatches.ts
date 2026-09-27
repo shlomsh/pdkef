@@ -1,5 +1,5 @@
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
-import { matchBoxes } from './matchBoxes.ts';
+import { matchBoxes, type MeasureText } from './matchBoxes.ts';
 import type { FindMatch, Finder, PageText, PercentBox } from './types.ts';
 
 export interface SearchablePage {
@@ -9,9 +9,9 @@ export interface SearchablePage {
 
 /** Every range `finder` proposes on every page, in page then reading order,
  * each with its boxes. A range that yields no box (only separators) is dropped. */
-export function findMatches(pages: readonly SearchablePage[], finder: Finder): FindMatch[] {
+export function findMatches(pages: readonly SearchablePage[], finder: Finder, measure?: MeasureText): FindMatch[] {
   return pages.flatMap(({ text, geometry }) => finder(text.text).flatMap((range) => {
-    const boxes = matchBoxes(text, range, geometry);
+    const boxes = matchBoxes(text, range, geometry, measure);
     if (boxes.length === 0) return [];
     return [{
       id: `${text.pageIndex}:${range.start}`,
