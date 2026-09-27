@@ -130,7 +130,8 @@ faq:
     answer: >-
       Yes, when the page contains Delete edits only. The selected element is removed while the rest
       remains selectable and searchable. Adding Whiteout, Blackout or Blur makes Download flatten
-      that whole page into an image instead.
+      that page into an image too, but PDkef writes the rest of its text back in behind the image, so
+      it stays selectable and searchable; only the words a mark covers are left out.
   - question: 'Can Delete remove images as well as text?'
     answer: >-
       Yes. When the editor highlights an image placement, choose it to remove that image from the

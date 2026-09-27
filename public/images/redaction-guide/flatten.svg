@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
   <title id="title">How PDF flattening works when you download</title>
-  <desc id="desc">Before download, the redaction mark is an editable box over the page. During download, PDkef turns each page with a blur, blackout or whiteout mark into one image. The downloaded copy has no separate box to lift and no original text layer on that page. Blur can still reveal patterns; use a solid cover for sensitive text.</desc>
+  <desc id="desc">Before download, the redaction mark is an editable box over the page. During download, PDkef turns each page with a blur, blackout or whiteout mark into one image, then writes the rest of the page's text back in behind it so it stays selectable and searchable. The words a mark covers are left out, and there is no separate box left to lift. Blur can still reveal patterns; use a solid cover for sensitive text.</desc>
   <defs>
     <pattern id="pixels" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M7 0H0V7" fill="none" stroke="#c4e1e6" stroke-width="0.4"/></pattern>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#3e7c8d"/></marker>
@@ -35,7 +35,7 @@
     <text x="771" y="304" font-size="14" fill="#54707c">Reference</text>
     <rect x="861" y="281" width="162" height="30" rx="1" fill="#23404a"/>
     <rect x="749" y="210" width="330" height="171" rx="5" fill="url(#pixels)"/>
-    <text x="914" y="408" font-size="13" fill="#54707c" text-anchor="middle">No separate box to lift. No original text layer here.</text>
+    <text x="914" y="408" font-size="13" fill="#54707c" text-anchor="middle">No separate box to lift. Only the covered words lose their text.</text>
     <circle cx="58" cy="481" r="12" fill="#e6f1f3"/>
     <text x="58" y="486" font-size="15" font-weight="700" text-anchor="middle" fill="#3e7c8d">i</text>
     <text x="81" y="487" font-size="16">Flattening applies to pages with Blur, Blackout or Whiteout marks.</text>
