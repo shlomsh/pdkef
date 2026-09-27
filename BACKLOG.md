@@ -665,7 +665,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 
 ### Blocked
 
