@@ -45,10 +45,10 @@ prototypes and nine sketched directions.
   holds every scroll-driven moment in svh (`PACE`) and writes the scroll-timed CSS that TheO.astro
   appends to `theO.css`: the pin's height, the keyframes whose stops are moments in the story, and
   every animation range. Its unit test holds the story's promises: each change into a card takes at
-  least half a screen, every card rests a screen and a half with its words lit before the next change,
+  least a screen, every card rests a screen and a half with its words lit before the next change,
   and the last sentence is up a screen before the plane lands on it.
-- **The stage pins for about fifteen screens.** Each change (a colour wipe, 0.6 of a screen; the ring
-  changing shape, 0.9) runs, then the card's words fade in and it rests. The flight takes about two
+- **The stage pins for about seventeen screens.** Each change (a colour wipe, a full screen; the ring
+  changing shape, 1.2 screens) runs, then the card's words fade in and it rests. The flight takes about two
   and a half screens, and the landed plane rests before the page moves on.
 - **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
   the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,

@@ -22,10 +22,10 @@ describe('theOTimeline', () => {
     expect(timeline.lit[4]).toBeGreaterThan(timeline.intoWindow[1]);
   });
 
-  it('gives every change into a card at least half a screen of scrolling', () => {
-    Object.values(timeline.wipes).forEach(([start, end]) => expect(end - start).toBeGreaterThanOrEqual(SCREEN / 2));
-    expect(timeline.intoO[1] - timeline.intoO[0]).toBeGreaterThanOrEqual(SCREEN / 2);
-    expect(timeline.intoWindow[1] - timeline.intoWindow[0]).toBeGreaterThanOrEqual(SCREEN / 2);
+  it('gives every change into a card at least a screen of scrolling', () => {
+    Object.values(timeline.wipes).forEach(([start, end]) => expect(end - start).toBeGreaterThanOrEqual(SCREEN));
+    expect(timeline.intoO[1] - timeline.intoO[0]).toBeGreaterThanOrEqual(SCREEN);
+    expect(timeline.intoWindow[1] - timeline.intoWindow[0]).toBeGreaterThanOrEqual(SCREEN);
   });
 
   it('switches airplane mode on while the window rests, before take-off', () => {
