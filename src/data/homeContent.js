@@ -82,9 +82,17 @@ export const homeContent = {
       { word: 'paywalls', line: 'Free. No caps, no watermark, no catch.' },
     ],
     openSource: { word: 'Open source', line: 'Audit the code yourself.' },
-    // `mark` gets the citron marker stroke as you scroll; it must occur once in
-    // `line`, like closing.headingStroke below (the same stroke, the same try).
-    offline: { word: 'Works offline', line: 'Turn on airplane mode and give it a try. It still works.', mark: 'give it a try' },
+    // `live` replaces `line` while the visitor really is offline (the words
+    // OfflineProof.astro says on the tool pages), and the toggle beside it is
+    // on. `stress` and `liveStress` must each occur once in their line: the
+    // call to action, and the payoff the page celebrates when it comes true.
+    offline: {
+      word: 'Works offline',
+      line: 'Turn on airplane mode and give it a try right now.',
+      stress: 'give it a try right now',
+      live: "You're offline right now. It still works.",
+      liveStress: 'It still works.',
+    },
     lead: 'So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device.',
     last: ['Then I wanted', 'to share them.'],
   },
