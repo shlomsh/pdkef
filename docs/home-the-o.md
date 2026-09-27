@@ -41,10 +41,15 @@ prototypes and nine sketched directions.
 
 ## How it moves
 
-- **The stage pins for 1340svh.** Each change (a colour wipe, the ring moving) takes a fraction of a
-  screen; then the card's words fade in and it rests for about a screen and a half, so every card
-  pauses before the next change starts. The flight takes about two and a half screens, and the landed
-  plane rests before the page moves on.
+- **The pacing is one table.** [`src/site-lib/theOTimeline.ts`](../src/site-lib/theOTimeline.ts)
+  holds every scroll-driven moment in svh (`PACE`) and writes the scroll-timed CSS that TheO.astro
+  appends to `theO.css`: the pin's height, the keyframes whose stops are moments in the story, and
+  every animation range. Its unit test holds the story's promises: each change into a card takes at
+  least half a screen, every card rests a screen and a half with its words lit before the next change,
+  and the last sentence is up a screen before the plane lands on it.
+- **The stage pins for about fifteen screens.** Each change (a colour wipe, 0.6 of a screen; the ring
+  changing shape, 0.9) runs, then the card's words fade in and it rests. The flight takes about two
+  and a half screens, and the landed plane rests before the page moves on.
 - **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
   the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,
   all driven by scroll position. The words are not scrubbed: once a ring settles, a held beat, then

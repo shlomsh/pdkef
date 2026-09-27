@@ -20,10 +20,11 @@
 //   and comes down the clear lane at the end of the staggered last sentence
 //   (end-aligned and trimmed to its baseline with text-box), touching down on
 //   its baseline after "them". The flight is its own layer above the beats.
-// - Motion: the stage pins for 1340svh, about two screens of scrolling per
-//   card (the change into it, its words, then a rest of a screen or more, so
-//   every card pauses before the next change starts) and two and a half for
-//   the plane's flight.
+// - Motion: the stage pins for about fifteen screens, a little over two per
+//   card (the change into it, its words, then a rest of a screen and a half,
+//   so every card pauses before the next change starts) and two and a half for
+//   the plane's flight. The pacing is one table, src/site-lib/theOTimeline.ts,
+//   which writes the scroll-timed CSS appended to theO.css.
 //   The ring and the colour changes are scrubbed by scroll position: every
 //   beat's copy of the ring runs the same path keyframes over the whole pin, so
 //   the ring is one continuous shape, and each beat is a full layer in its own
@@ -51,6 +52,7 @@
 // The script is bundled (no is:inline), so the CSP covers it the same way.
 import { Plane } from 'lucide-preact';
 import { cspSha256 } from '../site-lib/cspHash.js';
+import { theOTimelineCss } from '../site-lib/theOTimeline';
 import theOCss from './theO.css?raw';
 
 interface Line {
@@ -70,7 +72,8 @@ interface Props {
 }
 
 const { story } = Astro.props;
-Astro.csp?.insertStyleHash(cspSha256(theOCss));
+const css = theOCss + theOTimelineCss();
+Astro.csp?.insertStyleHash(cspSha256(css));
 
 // The ring draws the O of "Open source", and the paper plane lands where the
 // sentence's full stop would be, so the visible text leaves them out; screen
@@ -101,7 +104,7 @@ const stars = [
 ];
 ---
 
-<style is:inline set:html={theOCss}></style>
+<style is:inline set:html={css}></style>
 <section class="the-o" aria-labelledby="the-o-heading">
   <h2 id="the-o-heading" class="sr-only">{story.heading}</h2>
   <div class="o-track">
