@@ -1,7 +1,7 @@
 ---
 id: "RED-12"
 title: "Covered pages keep their text: the picture plus an invisible text layer without the boxed words"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"

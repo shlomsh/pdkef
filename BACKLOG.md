@@ -696,11 +696,12 @@ _None._
 | --- | --- | --- |
 | RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
 | RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
-| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 
 ### Blocked
 
