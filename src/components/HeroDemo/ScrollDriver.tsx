@@ -244,6 +244,11 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     }
 
     let autoplayProgress = scrollProgress() ?? 0;
+    // Once the tour has been scrolled past, the demo holds its finished second
+    // story instead of autoplaying on: the loop would wrap back to the first
+    // story while the demo is still leaving the screen under the next section,
+    // which reads as the second demo appearing and then vanishing.
+    let tourComplete = autoplayProgress >= 1;
     let pausedUntil = 0;
     let lastFrameAt = performance.now();
     let isVisible = root.getBoundingClientRect().bottom > 0 && root.getBoundingClientRect().top < window.innerHeight;
@@ -253,6 +258,7 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
       const progress = scrollProgress();
       if (progress === undefined) return;
       autoplayProgress = progress;
+      tourComplete = progress >= 1;
       pausedUntil = performance.now() + SCRUB_HOLD_MS;
       update(progress);
     }
@@ -284,7 +290,7 @@ export default function ScrollDriver({ rootSelector }: { rootSelector: string })
     function play(now: number) {
       const elapsed = now - lastFrameAt;
       lastFrameAt = now;
-      if (!mql.matches && isVisible && document.visibilityState === 'visible' && now >= pausedUntil) {
+      if (!mql.matches && isVisible && !tourComplete && document.visibilityState === 'visible' && now >= pausedUntil) {
         autoplayProgress = (autoplayProgress + elapsed / AUTOPLAY_CYCLE_MS) % 1;
         update(autoplayProgress);
       }
