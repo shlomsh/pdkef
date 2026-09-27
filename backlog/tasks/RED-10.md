@@ -28,11 +28,13 @@ old answer or a stray mark. Giving it a removal engine would bring back everythi
 use nobody asked Sign to serve, and Redact already hides things for good (a covered page is saved as a
 picture, and since RED-12 its other words stay searchable). So no removal, and two plain lines:
 
-- **Where Whiteout is picked**, the armed status line on desktop now reads "Click and drag to cover an
-  area. What's underneath stays in the file; to hide it for good, use Blur & Redact PDF." (Hebrew: "לחצו
-  וגררו כדי לכסות אזור. מה שמתחתיו נשאר בקובץ; כדי להסתיר אותו לצמיתות, השתמשו בטשטוש והשחרה.", to go
+- **Where Whiteout is picked**, the armed status line on desktop now reads "Click and drag on a page to
+  cover an area. What's underneath stays in the file; to hide it for good, use Blur & Redact PDF." (Hebrew: "לחצו
+  וגררו על עמוד כדי לכסות אזור. מה שמתחתיו נשאר בקובץ; כדי להסתיר אותו לצמיתות, השתמשו בטשטוש והשחרה.", to go
   through Shlomi's /he/ read-through with LOC-18). The touch line stays "Tap and drag to white out an
   area.": it is already at the two lines the phone row allows beside the switch and arrows, and Sign's
   mobile UI is frozen for the SNG redesign, whose Whiteout should carry the same sentence.
-- **On /sign/**, a FAQ answer: "Does Whiteout remove what it covers?" No, it only covers; use Blur &
-  Redact PDF to hide something for good.
+- **Not on /sign/ yet.** A FAQ answer ("Does Whiteout remove what it covers?") was drafted and taken
+  out the same day: the /he/sign/ edition pins a hash of the English page, so a new English FAQ fails
+  the build until its Hebrew twin is written and read through. It goes in with LOC-18's review, not
+  around it.
