@@ -846,7 +846,8 @@ export default function PdfRedactTool() {
     })));
     // RED-11: two or more boxes from this action share a findSetId, so they
     // can be removed together and share blur strength later; a single box
-    // (e.g. "Redact this" on a match with one box) joins no set.
+    // joins no set. "Redact this" on one match that wraps onto a second line
+    // makes two boxes, and they do form a set: both halves hide one secret.
     if (additions.length >= 2) {
       const findSetId = uniqueId();
       additions.forEach((addition) => { addition.findSetId = findSetId; });
