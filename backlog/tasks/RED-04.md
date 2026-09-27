@@ -1,7 +1,7 @@
 ---
 id: "RED-04"
 title: "What you see is what you save: the editor shows the page as it will export"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: ["RED-07"]
 ---
 
 # RED-04 · What you see is what you save: the editor shows the page as it will export
+
+**Retired 2026-09-27** in favour of RED-12: the as-saved view existed to show what removal would change. With RED-12 a covered page looks exactly as today's boxes show it, so there is nothing new to preview. Shlomi's review of the epic found the engine path cost more than the one problem it solved (text on covered pages can't be selected or searched). The PDFium measurements stay in [docs/redact-content-removal.md](../../docs/redact-content-removal.md) if vector fidelity or file size is ever asked for.
 
 *Filed 2026-09-27 from SITE-41's follow-ups (merges "show that it's gone" and "what they'll see").*
 

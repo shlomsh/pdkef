@@ -1,21 +1,22 @@
 ---
 id: "RED-10"
-title: "Sign's Whiteout removes what it covers, through the same engine"
+title: "Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers"
 status: "open"
-priority: "P2"
+priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
-depends_on: ["RED-09"]
+phase: "later"
+depends_on: []
 ---
 
-# RED-10 · Sign's Whiteout removes what it covers, through the same engine
+# RED-10 · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers
 
-*Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
+*Filed 2026-09-27 from RED-01's record; reframed the same day when the removal engine was retired (RED-12).*
 
-Sign's Whiteout today paints over content that stays in the file. Route it through the RED-07 engine
-and the RED-09 check, so what Sign hides is gone too.
+Sign's Whiteout paints over content that stays in the file. That is fine for tidying a form before
+writing on it, and wrong if someone uses it to hide something. Decide which job it has before building
+anything: most likely a plain line where Whiteout is picked that points to Redact for hiding, and no
+removal at all.
 
 ## Acceptance
 
-- Text under a Sign Whiteout can't be extracted from the signed file, and nothing else on the page
-  changes.
+- The decision is recorded here, and whatever it needs (a line of copy, or a real change) is built.

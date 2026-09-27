@@ -1,7 +1,7 @@
 ---
 id: "RED-07"
 title: "Remove text, image pixels and paths under each box, with per-page flattening fallback"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: ["RED-05", "RED-06"]
 ---
 
 # RED-07 · Remove text, image pixels and paths under each box, with per-page flattening fallback
+
+**Retired 2026-09-27** in favour of RED-12: removal in place through PDFium. RED-12 keeps every page that has a box saved as a picture and adds an invisible text layer, so nothing under a box is ever written. Shlomi's review of the epic found the engine path cost more than the one problem it solved (text on covered pages can't be selected or searched). The PDFium measurements stay in [docs/redact-content-removal.md](../../docs/redact-content-removal.md) if vector fidelity or file size is ever asked for.
 
 *Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
 

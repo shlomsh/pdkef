@@ -34,7 +34,39 @@ PDFium costs 7.3 MB of WebAssembly (2.8 MB with gzip -9, measured locally; what 
 depends on the host compressing `.wasm`, which RED-06 measures), MIT wrapper around an Apache-2.0 binary,
 both on the license allowlist.
 
-## Decision: go, with PDFium, gated on one question
+## Revised plan (2026-09-27): keep the picture, add the text back
+
+The first plan below chose PDFium and built a lot around it: a choice between Quick and Keep the text,
+a 7.3 MB engine (2.8 MB to download) kept as an offline pack across deploys, guesses at slow phones, a
+live as-saved view with a render budget, a Hebrew gate, and a read-back check to earn back the
+guarantee that removal gives up. Shlomi's review of the epic asked whether that was over the top. It
+was, for what it fixes.
+
+- **Today's export is already the safest there is.** A covered page is saved as a picture, so nothing
+  under a box can survive in it. Editing content in place is where redaction tools actually leak.
+- **The one real problem** is that the rest of a covered page loses its text: it can't be selected,
+  searched or read aloud.
+- **The cheap fix** is what scanned PDFs do: keep the picture and put an invisible text layer over it,
+  holding every word except the ones a box touches. We already read every word's position for Find
+  (RED-02). No download, no choice, nothing new offline, and a mistake in the invisible layer can only
+  affect copy and search, never what anyone reads. The boxed words are never written.
+- **What it gives up** against PDFium: crisp vector text and a small file on covered pages. Nobody has
+  asked for those. If they do, the measurements below are the starting point.
+
+| Ticket | What | Depends on |
+| --- | --- | --- |
+| RED-12 | Covered pages keep their text: the picture plus an invisible text layer without the boxed words | - |
+| RED-09 | Read-back check after every export, failing closed to a picture alone | RED-12 |
+| RED-10 | Sign's Whiteout: decide whether it removes, or says plainly that it only covers | - |
+
+RED-04 to RED-08 are retired. RED-11 (the boxes from one search stay a set) is separate from all of
+this.
+
+---
+
+*The original plan, kept for the record. Superseded by the section above.*
+
+## Decision (superseded): go, with PDFium, gated on one question
 
 PDFium is the engine: it is the only one that removes a secret from the middle of a line without
 taking the line with it, which is the common case in real documents. Our own parser stays out.
