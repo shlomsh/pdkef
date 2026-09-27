@@ -87,40 +87,23 @@
   border-color: var(--color-danger);
 }
 
-/* A marked object. No fill at all - the hatch-pattern version of this rule
-   twice shipped a fill color that turned out translucent-in-comment but
-   opaque-in-practice, hiding the exact content a user needs to see to
-   double check what they selected. Zero fill makes that whole bug class
-   impossible instead of merely tuned around, and it's also the honest
-   answer until the delete-mark can genuinely stop rendering the object
-   (tracked in TODO.md) rather than decorate over it - a plain
-   outline never overclaims what's actually happened.
-   Solid border (vs. the candidate's dashed preview above) reads as
-   committed, not tentative. The strikethrough is a single horizontal line
-   through the vertical center rather than a corner-to-corner diagonal,
-   deliberately: a diagonal's apparent thickness swings with the box's own
-   aspect ratio (fine on a square image mark, either a hairline or a thick
-   slash on a long, short line of text), where a fixed-height horizontal
-   line reads the same "struck out" regardless of shape - the same
-   read as text-decoration: line-through, on an element that isn't text. */
+/* A marked object. RED-13 renders the page from the same rewritten content
+   the download writes, so the object underneath is already gone rather than
+   merely covered - no strikethrough is needed to say "this will disappear".
+   No fill at all - the hatch-pattern version of this rule twice shipped a
+   fill color that turned out translucent-in-comment but opaque-in-practice,
+   hiding the exact content a user needs to see to double check what they
+   selected. Zero fill makes that whole bug class impossible instead of
+   merely tuned around. The border stays solid (vs. the candidate's dashed
+   preview above) to read as committed, not tentative, but lighter than the
+   danger color itself: with the content actually removed, a full-strength
+   outline would overstate how much is left to notice here. */
 .delete-mark {
   position: relative;
-  border: 1.5px solid var(--color-danger);
+  border: 1.5px solid color-mix(in srgb, var(--color-danger) 55%, transparent);
   border-radius: 3px;
   background: transparent;
   animation: delete-mark-pop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.delete-mark::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: 1.5px;
-  background: var(--color-danger);
-  transform: translateY(-50%);
-  pointer-events: none;
 }
 
 @keyframes delete-mark-pop {
