@@ -379,44 +379,66 @@ async function makePageRotate90() {
 
 // ---------------------------------------------------------------------------
 // 9 & 10. Raster image (PNG), partly and fully covered by the redaction box.
-//    A text caption records the "secret" so the checker's text-based probe
-//    stays uniform across fixtures; the interesting property for the spike
-//    is the image bytes/rendering, checked separately (not by this checker).
+//    The image itself carries the interesting property: a 200x100 PNG whose
+//    left half is a red/black checker (the "secret" pixels, distinct so a
+//    pixel-level check can count exact matches) and whose right half is
+//    solid pure blue (the "keep" pixels, which must survive when the box
+//    covers only the left half). A text caption still records a `secret`
+//    string for check-extractable.mjs's uniform text-based probe; the pixel
+//    check is done separately by check-images.mjs via imageSecretColor /
+//    imageKeepColor.
 // ---------------------------------------------------------------------------
-function makeSolidPng(w, h, r, g, b) {
-  // Minimal hand-rolled 1-wide PNG scaled via pdf-lib's drawImage width/height,
-  // avoiding an extra image-encoding dependency for a spike fixture.
-  const raw = Buffer.alloc((1 + 3) * h);
+function chunk(type, data) {
+  const len = Buffer.alloc(4);
+  len.writeUInt32BE(data.length, 0);
+  const typeBuf = Buffer.from(type, 'ascii');
+  const crc = Buffer.alloc(4);
+  const crcValue = zlib.crc32(Buffer.concat([typeBuf, data]));
+  crc.writeUInt32BE(crcValue >>> 0, 0);
+  return Buffer.concat([len, typeBuf, data, crc]);
+}
+
+/**
+ * Hand-rolled RGBA PNG (no new deps): raw scanlines (filter byte 0 + 4
+ * bytes/pixel) deflated straight into one IDAT. Left half is a 10x10-cell
+ * red/black checker (secretColor cells are exact `secretColor` matches, so a
+ * pixel-level count is unambiguous); right half is solid `keepColor`.
+ */
+function makeCheckerKeepPng(w, h, secretColor, keepColor) {
+  const raw = Buffer.alloc((1 + w * 4) * h);
   for (let y = 0; y < h; y++) {
-    const rowStart = y * (1 + 3);
+    const rowStart = y * (1 + w * 4);
     raw[rowStart] = 0; // filter: none
-    raw[rowStart + 1] = r;
-    raw[rowStart + 2] = g;
-    raw[rowStart + 3] = b;
+    for (let x = 0; x < w; x++) {
+      const off = rowStart + 1 + x * 4;
+      let r, g, b;
+      if (x < w / 2) {
+        const cell = Math.floor(x / 10) + Math.floor(y / 10);
+        [r, g, b] = cell % 2 === 0 ? secretColor : [0, 0, 0];
+      } else {
+        [r, g, b] = keepColor;
+      }
+      raw[off] = r;
+      raw[off + 1] = g;
+      raw[off + 2] = b;
+      raw[off + 3] = 255;
+    }
   }
-  const width = 1;
-  const height = h;
   const idat = zlib.deflateSync(raw);
-  function chunk(type, data) {
-    const len = Buffer.alloc(4);
-    len.writeUInt32BE(data.length, 0);
-    const typeBuf = Buffer.from(type, 'ascii');
-    const crc = Buffer.alloc(4);
-    const crcValue = zlib.crc32(Buffer.concat([typeBuf, data]));
-    crc.writeUInt32BE(crcValue >>> 0, 0);
-    return Buffer.concat([len, typeBuf, data, crc]);
-  }
   const sig = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(width, 0);
-  ihdr.writeUInt32BE(height, 4);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
   ihdr[8] = 8; // bit depth
-  ihdr[9] = 2; // color type RGB
+  ihdr[9] = 6; // color type RGBA
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
+
+const IMAGE_SECRET_COLOR = [255, 0, 0];
+const IMAGE_KEEP_COLOR = [0, 0, 255];
 
 async function makeRasterImage({ name, secretLabel, boxCoversAll }) {
   const doc = await PDFDocument.create();
@@ -425,27 +447,42 @@ async function makeRasterImage({ name, secretLabel, boxCoversAll }) {
   const keepText = 'caption stays outside the box';
   page.drawText(keepText, { x: 30, y: 20, size: 10, font, color: rgb(0, 0, 0) });
 
-  const png = makeSolidPng(1, 60, 30, 120, 200);
+  const png = makeCheckerKeepPng(200, 100, IMAGE_SECRET_COLOR, IMAGE_KEEP_COLOR);
   const img = await doc.embedPng(png);
   const imgX = 30;
-  const imgY = 70;
-  const imgW = 100;
-  const imgH = 60;
+  const imgY = 40;
+  const imgW = 140;
+  const imgH = 70;
   page.drawImage(img, { x: imgX, y: imgY, width: imgW, height: imgH });
 
   const secret = secretLabel;
-  // Caption drawn over/near the image so the fixture's secret is real text
-  // pdf.js can find, while the interesting redaction target is the image.
+  // Caption drawn over the image (white, so invisible) so the fixture's
+  // secret is real text pdf.js can find; the interesting redaction target
+  // for the pixel check is the image itself.
   page.drawText(secret, { x: imgX + 4, y: imgY + imgH / 2, size: 10, font, color: rgb(1, 1, 1) });
 
   const bytes = await save(doc, name);
-  const rect = await locateExactItemRect(bytes, 1, secret, boxCoversAll ? 40 : 2);
+  // The box must track the image's own geometry (not the caption text): it
+  // covers either the whole image or exactly its left (secret-colored) half,
+  // in PDF space converted to the editor's top-left-origin percent rect.
+  const boxWidthPdf = boxCoversAll ? imgW : imgW / 2;
+  const pad = 2;
+  const rect = rectFromPointsPercent(
+    300,
+    150,
+    imgX - pad,
+    150 - (imgY + imgH) - pad,
+    boxWidthPdf + pad * 2,
+    imgH + pad * 2,
+  );
   entries.push({
     file: name,
     page: 1,
     rect,
     secret,
     keepText,
+    imageSecretColor: IMAGE_SECRET_COLOR,
+    imageKeepColor: IMAGE_KEEP_COLOR,
     feature: boxCoversAll ? 'raster PNG fully covered by the box' : 'raster PNG partly covered by the box',
   });
 }
