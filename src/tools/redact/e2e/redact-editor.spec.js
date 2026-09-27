@@ -836,12 +836,14 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     expect(text).not.toContain('SECRET');
   });
 
-  test('switching files (Replace file) rebuilds the delete preview from the new file, not the old one', async ({ page }) => {
+  test('after Replace file, a deletion at the same byte offsets draws the new file, not the old one', async ({ page }) => {
     // Same-length strings at the same positions on both files: the two BT/ET
-    // runs land at matching byte offsets in each file's own content stream,
-    // reproducing the exact hazard useDeletePreviews.ts's keysFileRef guards
-    // against (a span key that happens to match across two different files).
-    // The colour square is the only difference between the two fixtures, and
+    // runs land at matching byte offsets in each file's own content stream.
+    // Replace clears the old file's deletions before the new file opens,
+    // which already drops the old preview, so this does not reach
+    // useDeletePreviews.ts's keysFileRef guard (checked: it passes with that
+    // guard disabled). That guard is for a file that arrives with deletions
+    // already queued, a reopened draft. The colour square is the only difference between the two fixtures, and
     // is what proves which file's bytes the canvas is actually showing.
     async function makeMarkedPdfBuffer(markerColor) {
       const doc = await PDFDocument.create();
@@ -883,14 +885,17 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const overlayB = pageCardB.locator('.redact-draw-area');
     // File B's marker must already read blue, before any deletion happens on
     // it - proof the switch itself painted B, not a leftover frame of A.
-    const markerB = await canvasRegionStats(pageCardB, MARKER_RATIO);
-    expect(markerB.avgB, 'file B\'s marker should read blue right after the switch').toBeGreaterThan(markerB.avgR);
+    await expect.poll(async () => {
+      const markerB = await canvasRegionStats(pageCardB, MARKER_RATIO);
+      return markerB.avgB > markerB.avgR;
+    }, { message: 'file B\'s marker should read blue once the switch has painted' }).toBe(true);
 
+    // Marking on file A spent Delete's one arming; arm it again for file B.
+    await selectRedactStyle(page, 'Delete');
     const firstRunRatioB = await ratioRectWithin(overlayB, page.locator('[class*="delete-candidate"][title*="AAAA 111"]'));
     const baselineB = await canvasRegionStats(pageCardB, firstRunRatioB);
     expect(baselineB.dark, 'file B should still show its own first run before deleting anything').toBeGreaterThan(0);
 
-    await selectRedactStyle(page, 'Delete');
     await page.locator('[class*="delete-candidate"][title*="BBBB 222"]').click();
 
     // Deleting B's second run must leave B's first run and marker exactly as
