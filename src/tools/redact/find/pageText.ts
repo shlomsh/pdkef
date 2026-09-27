@@ -89,13 +89,15 @@ function readingGap(prev: TextItemLike, cur: TextItemLike, rtl: boolean): number
   return rtl ? prevLeft - curRight : curLeft - prevRight;
 }
 
-/** Whether two adjacent items on a line need an explicit ' ' between them. */
+/** Whether two adjacent items on a line need an explicit ' ' between them:
+ * only when there is a visible gap and neither side brings its own space.
+ * Touching items are one word split into runs (kerning, a font change), and
+ * a space there would break a search for that word. */
 function needsSeparator(prev: TextItemLike, cur: TextItemLike, rtl: boolean): boolean {
   const gap = readingGap(prev, cur, rtl);
   const height = (prev.height + cur.height) / 2;
-  const bigGap = gap > 0.15 * height;
   const alreadyHasSpace = /\s$/.test(prev.str) || /^\s/.test(cur.str);
-  return bigGap || !alreadyHasSpace;
+  return gap > 0.15 * height && !alreadyHasSpace;
 }
 
 /**
