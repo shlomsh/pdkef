@@ -9,9 +9,9 @@ export const PACE = {
   // A card at rest, its words lit, before the next change starts.
   rest: 160,
   // A colour wipe: the next card opening as a circle from the ring.
-  wipe: 60,
+  wipe: 100,
   // The ring changing shape: the zero into the O, the O into the window.
-  morph: 90,
+  morph: 120,
   // Held once a change has finished, before its words fade in.
   beat: 9,
   // The zero starts rounding into the O this far into card 4's wipe.
