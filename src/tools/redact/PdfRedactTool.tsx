@@ -7,7 +7,7 @@ import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
-import { redactionDrawingPreviewStyle } from '../../editor/registry/redactionSurface.ts';
+import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
 import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
@@ -1030,11 +1030,13 @@ export default function PdfRedactTool() {
                       style={{
                         position: 'absolute',
                         left: `${drawingState.startX}%`, top: `${drawingState.startY}%`, width: 0, height: 0,
-                        ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color, drawingState.strength),
+                        ...redactionDrawingPreviewStyle(drawingState.type, drawingState.color),
                         zIndex: 20,
                         pointerEvents: 'none'
                       }}
-                    />
+                    >
+                      {renderRedactionDrawingPreviewContent(drawingState.type, drawingState.strength)}
+                    </div>
                   )}
                 </div>
               </div>

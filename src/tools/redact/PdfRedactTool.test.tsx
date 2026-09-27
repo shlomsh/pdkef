@@ -935,13 +935,13 @@ describe('PdfRedactTool UI flow', () => {
       );
       await act(async () => { lightItem.click(); });
 
-      const surface = required(box.querySelector<HTMLElement>('.redact-surface--blur'), 'blur surface');
-      expect(surface.style.backdropFilter).toContain('blur(4px)');
+      const blurLayer = required(box.querySelector<HTMLElement>('.redact-surface__blur'), 'blur layer');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
 
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      expect(surface.style.backdropFilter).toContain('blur(8px)');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.5 * 100cqh))');
     });
 
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
@@ -974,9 +974,9 @@ describe('PdfRedactTool UI flow', () => {
       await drawBox(drawArea, 50, 550, 200, 700);
       const boxes = container.querySelectorAll(`.${REDACT_BOX}`);
       const secondBox = boxes[boxes.length - 1] as HTMLElement;
-      const secondSurface = required(secondBox.querySelector<HTMLElement>('.redact-surface--blur'), 'second blur surface');
+      const secondBlurLayer = required(secondBox.querySelector<HTMLElement>('.redact-surface__blur'), 'second blur layer');
 
-      expect(secondSurface.style.backdropFilter).toContain('blur(4px)');
+      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
