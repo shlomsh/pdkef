@@ -210,5 +210,82 @@
     "secret": "הצהרת בריאות",
     "keepText": "המשפחה",
     "feature": "real-world form PDF (health declaration 2021), page 1"
+  },
+  {
+    "file": "mid-run-helvetica.pdf",
+    "page": 1,
+    "rect": [
+      35.12866666666666,
+      23.866666666666664,
+      35.60933333333333,
+      13.8
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the mid-run line",
+    "feature": "secret is the middle substring of ONE Tj (not a separate run); exercises per-glyph split of a single text object"
+  },
+  {
+    "file": "mid-run-tj-kerned.pdf",
+    "page": 1,
+    "rect": [
+      38.25866666666668,
+      22.8,
+      41.47733333333332,
+      15.199999999999998
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the kerned mid-run line",
+    "feature": "one TJ array with per-glyph kerning holds the whole line; secret is the middle run of that single array"
+  },
+  {
+    "file": "mid-run-embedded.pdf",
+    "page": 1,
+    "rect": [
+      35.45735677083333,
+      23.866666666666664,
+      35.703450520833336,
+      13.8
+    ],
+    "secret": "SECRETWORD",
+    "keepText": "kept text below the embedded mid-run line",
+    "feature": "embedded subset TrueType (Identity-H hex Tj); secret is the middle substring of ONE Tj"
+  },
+  {
+    "file": "mid-run-hebrew.pdf",
+    "page": 1,
+    "rect": [
+      31.71875,
+      24.133333333333333,
+      24.6484375,
+      12.533333333333333
+    ],
+    "secret": "ילארשידוס",
+    "keepText": "ראשנשטסקט",
+    "feature": "embedded Hebrew font, ONE Tj holds three RTL-visual-order words; box covers only the middle (secret) word"
+  },
+  {
+    "file": "two-boxes-one-line.pdf",
+    "page": 1,
+    "rects": [
+      [
+        16.768666666666665,
+        24.399999999999995,
+        40.532,
+        13.099999999999998
+      ],
+      [
+        64.236,
+        24.399999999999995,
+        35.764,
+        13.099999999999998
+      ]
+    ],
+    "secrets": [
+      "SECRETSSN12345",
+      "SECRETDL67890"
+    ],
+    "secret": "SECRETSSN12345",
+    "keepText": "kept text below the two-secret line",
+    "feature": "ONE Tj holds two distinct secrets; two rects target each independently (embedpdf #801 class: does clearing the first corrupt the second read?)"
   }
 ]
