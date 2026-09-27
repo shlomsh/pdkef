@@ -81,7 +81,7 @@ sections:
       - kind: 'prose'
         text: >-
           The document itself is saved alongside the edits, so you don't have to find the original
-          file again either. Drafts are kept for 14 days and then cleared, and loading a different
+          file again either. Drafts are kept for 28 days and then cleared, and loading a different
           file into the same tool replaces the one that was there. Downloading your finished PDF
           deliberately doesn't wipe it, so noticing a typo two minutes later isn't a disaster.
       - kind: 'prose'
@@ -117,7 +117,7 @@ faq:
       fail.
   - question: 'How long is my in-progress form kept?'
     answer: >-
-      Up to 14 days, after which it is cleared automatically. Loading a different file into the same
+      Up to 28 days, after which it is cleared automatically. Loading a different file into the same
       tool replaces the saved draft, and downloading your finished PDF doesn't clear it, so you can
       come back and adjust something.
   - question: 'Can I start a form on my laptop and finish it on my phone?'

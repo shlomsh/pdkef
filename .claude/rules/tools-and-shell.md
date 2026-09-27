@@ -34,7 +34,7 @@ once and a `work` map of what every tool has done to it (`{ sign: {...}, redact:
 same PDF signed and then redacted keeps both. A tool's "current" file is a localStorage pointer
 (`setCurrentEntry`/`readCurrentEntryId`/`hasDraftHint`/`readDraftMeta`), not a fixed slot - opening a
 different file moves the pointer and touches nothing else. Eviction is recency only, six entries,
-regardless of whether an entry carries work; age expiry stays 14 days per entry
+regardless of whether an entry carries work; age expiry stays 28 days per entry
 (`draftPolicy.js`, one `savedAt`). No-op when IndexedDB is unavailable. A legacy pre-MEM-01 per-tool
 record is folded into its entry on first access (`migrateLegacyDraft`), once per module lifetime.
 
