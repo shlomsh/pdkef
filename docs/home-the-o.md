@@ -1,87 +1,117 @@
 # The O: the home page's scroll story
 
-**Status:** concept chosen 2026-09-27, not built yet. Build ticket: [DEMO-10](../backlog/tasks/DEMO-10.md).
-**Prototype:** [`prototypes/home-scroll/the-o/index.html`](../prototypes/home-scroll/the-o/index.html), one
-self-contained file with no JavaScript (private preview: https://claude.ai/artifact/G8JaoPHeJNCfeNq5K7wWzF).
+**Status:** built on the English home page, 2026-09-28 ([DEMO-10](../backlog/tasks/DEMO-10.md)). The
+Hebrew home page keeps the founder-story card until its own beat 4 exists
+([DEMO-11](../backlog/tasks/DEMO-11.md)).
+**Source:** [`src/components/TheO.astro`](../src/components/TheO.astro) (markup, the geometry notes and
+the one small script) and [`src/components/theO.css`](../src/components/theO.css). The first prototype,
+[`prototypes/home-scroll/the-o/index.html`](../prototypes/home-scroll/the-o/index.html), is kept for
+history; the production build has moved well past it.
 
 ## Abstract
 
-One ring is the only thing on screen, and it carries the whole story. It starts as the zero in
-"0 accounts", "0 uploads" and "0 paywalls": plain facts, not claims. Then it rounds into the O of
-"Open source", opens into a plane window for "Works offline", and finally shrinks and flies to the end
-of the founder's sentence to become its full stop: "Then I wanted to share them." Each beat opens as a
-circle from the ring's centre in a new colour, so the page reads as six posters joined by one shape.
-It is a poster-style section, pinned while you scroll, built with scroll-driven CSS only.
+One ring carries the story. It is the zero in "0 accounts", "0 uploads" and "0 paywalls": plain facts,
+not claims. Then it rounds into the O of "Open source" and opens into a plane window for "Works
+offline". There the airplane in the airplane-mode toggle takes off, rolls over into a paper plane, the
+plane that shares, and lands at the end of the founder's sentence: "Then I wanted to share them." Each
+card opens as a circle in a new colour, so the section reads as six posters joined by one shape. The
+page's closing heading, "Give it a try.", ends the same way: its stroke is swiped on and its full stop
+drops in.
 
 ## The six beats
 
-| # | The ring | Big line | Small line | Copy source |
-| --- | --- | --- | --- | --- |
-| 1 | the zero | accounts | No account, email, or trial period. | FAQ answer |
-| 2 | the zero | uploads | Files never leave your device. | founder story pill |
-| 3 | the zero | paywalls | Free. No caps, no watermark, no catch. | founder story pill |
-| 4 | the O of the word | Open source | Audit the code yourself. | founder story pill |
-| 5 | a plane window, blind lifts on sky and a wing | Works offline | Turn on airplane mode and give it a try. It still works. | `worksOffline`, `airplaneModeNotice` |
-| 6 | the full stop | Then I wanted to share them. | So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. | founder story |
+| # | The ring | Big line | Small line |
+| --- | --- | --- | --- |
+| 1 | the zero | accounts | No account, email, or trial period. |
+| 2 | the zero | uploads | Files never leave your device. |
+| 3 | the zero | paywalls | Free. No caps, no watermark, no catch. |
+| 4 | the O of the word | Open source | Audit the code yourself. |
+| 5 | a plane window in the visitor's own sky | Works offline | Turn on airplane mode and give it a try right now. |
+| 6 | (the paper plane lands here) | Then I wanted / to share them. | So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. |
 
-"accounts", "uploads" and "paywalls" are single words lifted from the FAQ answers. The ring is the zero
-visually; an `sr-only` "0" gives assistive tech the same phrase.
+All copy is `homeContent.theO` in `src/data/homeContent.js`, server-rendered. The ring is the zero
+visually; an `sr-only` "0" gives assistive tech the same phrase. Beat 5's line is a call to action: while
+the visitor really is offline it reads "You're offline right now. It still works." instead (below).
 
 ## Why this one
 
-It says the values as facts a reader can check, in one memorable gesture, and it could become PDkef's
-mark. It needs no illustration, so it stays crisp at every size, and it weighs almost nothing. Explored
-and dropped on 2026-09-27: five built prototypes (kinetic verbs, one sheet of paper, the world changes
-around the file, ink in the margins, the sentence as a horizon) and nine sketched directions. The five
-builds are in git history before the commit that added this record.
+It says the values as facts a reader can check, in one memorable gesture. It needs no illustration, so
+it stays crisp at every size and weighs little. Explored and dropped on 2026-09-27: five built
+prototypes and nine sketched directions.
+
+## How it moves
+
+- **The stage pins for 1340svh.** Each change (a colour wipe, the ring moving) takes a fraction of a
+  screen; then the card's words fade in and it rests for about a screen and a half, so every card
+  pauses before the next change starts. The flight takes about two and a half screens, and the landed
+  plane rests before the page moves on.
+- **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
+  the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,
+  all driven by scroll position. The words are not scrubbed: once a ring settles, a held beat, then
+  its words fade in, as in the original sketch. The scroll sets a cue (`--o-lit`, a registered integer
+  animated on the stage with `step-end`) and style queries on the words turn it into a timed
+  transition, so a fade always completes. Moving the ring itself on timed cues was tried and dropped:
+  a fast scroll stacked the moves up and skipped beats.
+- **The finale is a flight.** Once airplane mode has turned on (by scroll), the toggle's own plane,
+  the same glyph at the same size and place, takes off on its own layer above the cards, climbs over
+  the heading and rolls into a paper plane. The last card opens from that point, the paper plane
+  glides over the top, comes down the clear lane at the end of the staggered last sentence and
+  touches down on its baseline after "them", with a short flare (a timed cue, `--o-landed`). The
+  sentence is always visible before the landing.
+
+## Live details
+
+The one script (bundled, so the CSP hashes it) is progressive enhancement; without it the section is
+complete.
+
+- **The sky follows the visitor's clock:** day, golden (around sunrise and sunset) or night with stars
+  and a citron moon, from a rough northern mid-latitude model in `src/site-lib/theOSky.ts`.
+- **Really offline, the page celebrates it.** While `navigator.onLine` is false, `.the-o` carries
+  `data-offline`: the toggle stays on and becomes a badge (a citron ring and sparks), the line swaps to
+  "You're offline right now. It still works." and "It still works." pops up in citron with a burst.
+  It plays when the window beat is lit; when it happens while that line is on screen, the script marks
+  it `now` so it plays at once. That is why the English home page does not also render OfflineProof.
 
 ## What makes it crisp
 
-- **One actor, one geometry.** Every length comes from the stage's container units and from `--R`, the
-  ring's size, so the ring, the words and every wipe centre agree at any viewport and in any font.
-- **The ring is a glyph.** As a zero it is 0.82 as wide as it is tall, with heavier sides. In
-  "Open source" it is exactly 0.73em of the word's size (cap height plus a round letter's overshoot),
-  because the word's size is a fixed fraction of `--R` too.
-- **Hard cuts, never fades.** Each beat is a full layer with its own colours and its own copy of the
-  ring, revealed by a `clip-path` circle from the ring's centre.
-- **Words come out of the zero.** Each big line is revealed with `clip-path` from the ring's side. Real
-  text is never parked at partial opacity.
-- **The sentence is set against the dot.** The last line is end-aligned to the dot and trimmed to its
-  baseline (`text-box: trim-end cap alphabetic`), so the full stop can never land inside a word, at any
-  width, in any font, in either direction.
-- **Colours are tokens.** Teal, citron, paper and primary from `global.css`, plus one new night colour
-  for the window beat.
+- **One geometry.** Every length comes from the stage's container units and `--R`, the ring's size.
+  The ring's shapes are measured from the system font's bold glyphs, so the O lands on the cap height
+  and baseline of "Open source". Length ratios use `tan(atan2(a, b))`.
+- **The sentence is set against the plane.** The last line is end-aligned to the landing spot and
+  trimmed to its baseline (`text-box: trim-end cap alphabetic`), so the plane lands on the line.
+- **Colours are tokens:** teal, citron, paper and primary, plus `--color-night` (the window beat) and
+  `--color-airplane-mode` (the toggle and its burst only).
 
 ## Build contract
 
-- Scroll-driven CSS only, behind `@supports (animation-timeline: view())` and
-  `prefers-reduced-motion: no-preference`. Both ends of every `animation-range` carry a range name.
-  Only `transform`/`translate`/`scale`, `clip-path`, and `opacity` on decoration animate.
-- No JavaScript and no island. All copy is server-rendered static HTML on the SEO surface.
-- The still version (reduced motion, or no scroll timelines) is the six beats stacked as posters, each
-  ring in its finished shape.
-- CLS 0, no horizontal overflow, no external requests.
-- `position: sticky` dies under an ancestor with `overflow`, `transform`, `filter` or `contain`
-  (DEMO-05), and `FeatureCard` carries `overflow-hidden`: the story is its own section after
-  `.home-hero`, never inside a card.
-- The layout switches between side-by-side and stacked at aspect ratio 1:1, not at the 1024px layout
-  breakpoint. It is a geometry decision inside a self-contained section, so it does not depend on the
-  hero's layout mode.
+- Scroll-driven CSS behind `@supports (animation-timeline: view())` and
+  `prefers-reduced-motion: no-preference`; both ends of every `animation-range` carry a range name.
+  The still version (reduced motion, or no scroll timelines) stacks the six cards as posters with the
+  paper plane already landed, and every word shown.
+- The CSS ships inline on the one page that renders it (`theO.css?raw` plus
+  `Astro.csp.insertStyleHash`), so the Hebrew page, which shares `HomePageLayout`, carries none of it.
+- The story is its own section after `.home-tour`, never inside a card: `position: sticky` dies under
+  an ancestor with `overflow`, `transform`, `filter` or `contain` (DEMO-05).
+- The layout switches between side by side and stacked at aspect ratio 1:1, a geometry decision
+  inside the section, not the 1024px layout breakpoint.
 
-## Open questions before building
+## Hazards found while building it
 
-1. **Placement and what it replaces.** Beats 1 to 4 and 6 overlap the founder-story card (its three
-   pills and paragraph 2), and beat 5 overlaps the offline card. Proposal: The O replaces the
-   founder-story card and sits after `.home-hero`; the draft-persistence and offline-install cards stay.
-2. **Scroll length.** The prototype pins for 600svh right after the demo's 1116svh. Try 450 to 500svh.
-3. **Copy and localization.** The display words need a voice check and `homeContent.js` keys. Beat 4
-   only works where "open source" starts with an O: the Hebrew edition needs its own beat 4.
-4. **Firefox.** It lacks `text-box` as of the prototype. The fallback margins approximate the baseline
-   and need a check in a real Firefox.
-5. **Progress indicator.** DEMO-05 pairs story panels with a persistent progress indicator. Decide
-   whether six short beats need one.
+- **`overflow: hidden` makes a scroll container.** A view timeline inside it never moves: the closing
+  card's heading timeline was stuck, so its stroke was printed, never drawn. The card runs the cue on
+  its own timeline instead.
+- **Safari and hidden back faces.** It ignored `backface-visibility` for the plane's roll and showed
+  both faces; the roll is drawn in 2D (squash edge-on, swap faces at that instant).
+- **Safari and style queries on pseudo-elements.** It never re-evaluates a style query for a `::before`
+  when an animation changes the property it asks about. Query the real element and hand the result to
+  the pseudo-element through inherited custom properties.
+- **The hero demo's autoplay** looped from its second story back to the first while the demo was
+  leaving the screen under this section. `ScrollDriver.tsx` now holds the finished story once the tour
+  has been scrolled past.
 
-## Measured on the prototype
+## Measured
 
-Chromium and WebKit at 390x844, 820x1180, 1440x900 and 852x393, plus RTL: CLS 0, no horizontal
-overflow, no external requests, no console errors. The whole prototype page is 4.7 KB brotli.
+Chromium and WebKit at 1440x900, 559x845, 390x844, 820x1180 and 852x393: no horizontal overflow, no
+console errors, every beat's resting pose, the flight and the landing checked frame by frame. Not yet
+checked: Firefox (no scroll timelines there, so it gets the still version; its `text-box` fallback
+margins need a real look) and RTL, which no page renders yet (DEMO-11).

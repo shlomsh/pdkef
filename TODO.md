@@ -101,6 +101,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | DEMO-08 | P3 | [DEMO-08](backlog/tasks/DEMO-08.md) · The hero demo still acts out the v1 field-trip slip: decide whether it should show the practice form people then open |
 | DEMO-09 | P1 | [DEMO-09](backlog/tasks/DEMO-09.md) · Hero demo shows both stories stacked until ScrollDriver hydrates |
 | DEMO-10 | P2 | [DEMO-10](backlog/tasks/DEMO-10.md) · The O: build the chosen scroll story on the home page |
+| DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |
 
 
 ## Mobile round trip: fill a form from a chat and send it back

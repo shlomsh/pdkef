@@ -1,7 +1,7 @@
 ---
 id: "DEMO-10"
 title: "The O: build the chosen scroll story on the home page"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "landing-story-demo"
 phase: "near-term"
@@ -32,3 +32,21 @@ whether it needs a progress indicator.
   plus RTL.
 - The full stop lands after the last word at every one of those sizes.
 - `npm run test:weight`, `test:csp`, `test:seo` and `test:css` stay green.
+
+## Shipped (2026-09-28)
+
+Built for the English home page: `src/components/TheO.astro` and `theO.css`, in place of the
+founder-story card, which the Hebrew page keeps. The record, [docs/home-the-o.md](../../docs/home-the-o.md),
+describes what shipped. Where it differs from the acceptance above, by decision during the build:
+
+- **One small bundled script**, progressive enhancement only: the window's sky follows the visitor's
+  clock, and a visitor who really is offline gets the celebration (and OfflineProof no longer renders
+  on the English home page). Without it the section is complete.
+- **The full stop became a paper plane.** The airplane in the window beat takes off, rolls into a paper
+  plane and lands on the last line's baseline after "them"; the closing "Give it a try." gets the
+  dropped full stop instead.
+- **Pacing:** 1340svh, with a rest of about a screen and a half on every card and a slower flight.
+- **RTL** is not checked, because no page renders the section in Hebrew yet: split to DEMO-11 with the
+  Hebrew beat 4 and a real Firefox look at the `text-box` fallback.
+- `test:weight`, `test:csp`, `test:seo` and `test:css` ran green in `check:push` before landing.
+
