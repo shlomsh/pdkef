@@ -61,6 +61,8 @@ export default function RedactBox({
   repeatGroupSize,
   onUnlinkFromGroup,
   onRemoveGroup,
+  findSetSize,
+  onRemoveFindSet,
 }: {
   el: any;
   isSelected: boolean;
@@ -82,6 +84,9 @@ export default function RedactBox({
   repeatGroupSize?: number;
   onUnlinkFromGroup?: () => void;
   onRemoveGroup?: () => void;
+  /** RED-11: how many boxes are in this box's find set, `el` included. */
+  findSetSize?: number;
+  onRemoveFindSet?: () => void;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const { refs, floatingStyles, placement, update } = useFloating({
@@ -257,6 +262,8 @@ export default function RedactBox({
             repeatGroupSize={repeatGroupSize}
             onUnlinkFromGroup={onUnlinkFromGroup}
             onRemoveGroup={onRemoveGroup}
+            findSetSize={findSetSize}
+            onRemoveFindSet={onRemoveFindSet}
           />
         </div>
       )}
