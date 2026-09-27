@@ -210,7 +210,11 @@ function phoneFinder(text: string): TextRange[] {
     const digitCount = (raw.match(/\d/g) ?? []).length;
     if (digitCount < 7 || digitCount > 15) continue;
     if (isDateLike(raw)) continue;
-    if (isSsnShaped(digitGroupLengths(raw))) continue;
+    const groups = digitGroupLengths(raw);
+    if (isSsnShaped(groups)) continue;
+    // One unbroken run is a phone number only with a trunk '0' or a '+' in
+    // front (0541234567, +972541234567); a bare run like 123456782 is an ID.
+    if (groups.length === 1 && !/^[+0]/.test(raw)) continue;
     ranges.push({ start, end: start + raw.length });
   }
   return sortAndDedupe(ranges);
