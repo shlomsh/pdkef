@@ -88,6 +88,10 @@ export default function FindBar({
     if (summary.covered > 0) status += `, ${summary.covered} covered`;
   }
 
+  // A phone has room for the count alone; the full sentence stays for
+  // screen readers and wider screens.
+  const shortStatus = searching && hasMatches ? `${summary.position}/${summary.total}` : status;
+
   return (
     <div className={styles['find-bar']} role="search" aria-label="Find and redact" data-redact-find-bar>
       <div className={styles.field}>
@@ -103,6 +107,7 @@ export default function FindBar({
         <input
           ref={inputRef}
           type="search"
+          dir="auto"
           className={styles.input}
           value={preset ? '' : term}
           placeholder={preset ? '' : 'Find text to redact'}
@@ -129,7 +134,10 @@ export default function FindBar({
         />
       </div>
 
-      <span className={styles.status} aria-live="polite" data-redact-find-status>{status}</span>
+      <span className={styles.status} data-redact-find-status-box>
+        <span className={styles['status-long']} aria-live="polite" data-redact-find-status>{status}</span>
+        <span className={styles['status-short']} aria-hidden="true">{shortStatus}</span>
+      </span>
 
       <div className={styles.nav}>
         <button type="button" className={styles['icon-button']} onClick={onPrev} disabled={!hasMatches} title="Previous match" aria-label="Previous match">
