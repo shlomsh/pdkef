@@ -1,7 +1,7 @@
 ---
 id: "RED-02"
 title: "Find and redact: search text, review every match, redact all or some"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
