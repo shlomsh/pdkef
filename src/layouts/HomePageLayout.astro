@@ -25,6 +25,7 @@ import TrustChips from '../components/TrustChips.astro';
 import HeroDemo from '../components/HeroDemo/HeroDemo.astro';
 import OfflineProof from '../components/OfflineProof.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
+import TheO from '../components/TheO.astro';
 import '../styles/homePage.css';
 
 import { Monitor, Smartphone, Compass, Sparkles, HardDriveDownload, WifiOff, HelpCircle, ShieldCheck, InfinityIcon, Lock, Code2, Type, PenLine, Trash2 } from 'lucide-preact';
@@ -88,6 +89,11 @@ const variants = Astro.props.variants ?? resolvedHomeContext.variants;
 
 const { title, description, faqKicker, faq, founderStory, draftPersistence, offlineInstall, privacyOpenSource, closing } = home;
 
+// The O tells the founder story as the English page's scroll story; every
+// other edition keeps the founder-story card until it has its own fourth beat
+// (the ring is the O of "Open source"). See src/data/homeContent.js.
+const showTheO = locale === 'en' && Boolean(home.theO);
+
 // h1/h1Accent: see src/data/homeContent.js's header comment. h1Accent is
 // validated (content.config.ts's localizedHome schema, and by construction
 // for the English source) to be an exact trailing substring of h1, so this
@@ -108,6 +114,11 @@ const closingHeadingBefore = closingHeadingStrokeIsUnique ? closing.heading.slic
 const closingHeadingAfter = closingHeadingStrokeIsUnique
   ? closing.heading.slice(closingHeadingStrokeIndex + closingHeadingStroke!.length)
   : '';
+// Its full stop, when it ends with one, is The O's dot (TheO.astro), landing
+// after the stroke is drawn. The "." stays in the text, so textContent is
+// still closing.heading.
+const closingHeadingHasStop = closingHeadingStrokeIsUnique && closingHeadingAfter.endsWith('.');
+const closingHeadingTail = closingHeadingHasStop ? closingHeadingAfter.slice(0, -1) : closingHeadingAfter;
 
 const dropzoneMessages = getFileDropzoneMessages(locale as any);
 const recentFilesMessages = getRecentFilesMessages(locale as any);
@@ -219,11 +230,13 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
         </div>
       </section>
     </div>
+    {showTheO && <TheO story={home.theO} />}
     <div id="home-information">
-    <OfflineProof />
+    {/* The O's window beat says this itself while the visitor is offline. */}
+    {!showTheO && <OfflineProof />}
   <div class="card-stack">
 
-      <FeatureCard class="relative isolate overflow-hidden">
+      {!showTheO && <FeatureCard class="relative isolate overflow-hidden">
         <CardDecor sketch="arcs" icon={Sparkles} iconPos="tr" iconSize={300} parallax />
         <div class="flex items-stretch gap-12 max-[768px]:flex-col max-[768px]:gap-8">
           <div class="min-w-0 flex-[1.2]">
@@ -266,7 +279,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
             </div>
           </div>
         </div>
-      </FeatureCard>
+      </FeatureCard>}
 
       <FeatureCard variant="highlight" class="relative isolate overflow-hidden">
         <CardDecor sketch="waves" icon={HardDriveDownload} iconPos="cr" iconSize={300} parallax />
@@ -463,7 +476,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
 
     <FeatureCard id="try-workspace" density="flow" class="try-workspace relative isolate overflow-hidden" aria-labelledby="try-heading" data-working-area>
       <CardDecor sketch="waves" icon={PenLine} iconPos="br" iconSize={300} parallax />
-      <h2 id="try-heading">{closingHeadingStrokeIsUnique ? <>{closingHeadingBefore}<span>{closingHeadingStroke}</span>{closingHeadingAfter}</> : closing.heading}</h2>
+      <h2 id="try-heading">{closingHeadingStrokeIsUnique ? <>{closingHeadingBefore}<span class="try-word">{closingHeadingStroke}</span>{closingHeadingTail}{closingHeadingHasStop && <span class="try-stop">.</span>}</> : closing.heading}</h2>
       {/* No explanatory paragraph. The two things you can do here are a file
           and a dropzone, and both are now drawn rather than described, so a
           sentence saying "use your own PDF, or open the bundled practice
@@ -610,9 +623,9 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
      well under a 320px line - nowrap can only push it onto its own line as a
      whole, never force horizontal overflow. */
   .hero-header h1 span,
-  .try-workspace h2 span { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
+  .try-workspace h2 .try-word { position: relative; color: var(--color-primary-text); white-space: nowrap; isolation: isolate; }
   .hero-header h1 span::before,
-  .try-workspace h2 span::before {
+  .try-workspace h2 .try-word::before {
     content: '';
     position: absolute;
     inset: 58% -0.08em 0.04em;
@@ -620,6 +633,57 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     border-radius: 0.3em 0.14em 0.26em 0.12em;
     rotate: -0.6deg;
     z-index: -1;
+  }
+  /* The page's last word: once the closing card is well into view, the stroke
+     under "try" is swiped on like a marker instead of printed in place, and
+     then its full stop drops in, as the paper plane lands in The O
+     (TheO.astro). The scroll sets the cue (--try-marked) and the rest runs in
+     time. The card runs the cue on its own timeline (it is overflow: hidden, a
+     scroll container, so a timeline inside it never moves), the heading's
+     spans read it, and they hand it to their ::before through inherited
+     custom properties: Safari never re-evaluates a style query on a
+     pseudo-element when an animation changes the property it asks about.
+     Without style queries the stroke and the stop simply stay drawn. */
+  @property --try-marked { syntax: '<integer>'; inherits: true; initial-value: 0; }
+  @keyframes try-cue { to { --try-marked: 1; } }
+  @keyframes try-drop { from { translate: 0 -1.2em; opacity: 0; } 1% { opacity: 1; } to { translate: 0 0; opacity: 1; } }
+  @keyframes try-squash { from { scale: 1.4 0.65; } }
+  @keyframes try-ripple { from { outline-color: var(--color-primary); outline-offset: 0; } to { outline-color: transparent; outline-offset: 0.7em; outline-width: 0.02em; } }
+  /* The closing full stop is The O's dot, landing on the end of the stroke:
+     the stroke runs on past "try" to make it a pad, and the dot is in the
+     word's own ink, because a citron dot all but disappears on this light
+     card. The "." is still there, transparent, so the heading reads and copies
+     as written; the dot is an empty inline-block on its baseline, pulled back
+     over the stop's own advance. */
+  .try-workspace h2 .try-word:has(+ .try-stop)::before { inset-inline-end: -0.4em; }
+  .try-workspace h2 .try-stop { color: transparent; }
+  .try-workspace h2 .try-stop::before {
+    content: '';
+    display: inline-block;
+    width: 0.19em;
+    height: 0.19em;
+    margin-inline: 0.045em -0.235em;
+    vertical-align: baseline;
+    border-radius: 50%;
+    background: var(--color-primary-text);
+    outline: 0.05em solid transparent;
+    transform-origin: 50% 100%;
+    opacity: var(--try-dot, 1);
+    animation: var(--try-land, none);
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .try-workspace { view-timeline: --try-card block; animation: try-cue step-start both; animation-timeline: --try-card; animation-range: entry 45% entry 100%; }
+      .try-workspace h2 .try-word::before { clip-path: inset(0 var(--try-hide, 0%) 0 0); transition: clip-path var(--try-swipe, 0.6s) cubic-bezier(0.65, 0, 0.35, 1) var(--try-wait, 0.15s); }
+      .try-workspace h2 .try-word:dir(rtl)::before { clip-path: inset(0 0 0 var(--try-hide, 0%)); }
+      @container not style(--try-marked: 1) {
+        .try-workspace h2 .try-word { --try-hide: 100%; --try-swipe: 0.2s; --try-wait: 0s; }
+        .try-workspace h2 .try-stop { --try-dot: 0; }
+      }
+      @container style(--try-marked: 1) {
+        .try-workspace h2 .try-stop { --try-land: try-drop 0.3s cubic-bezier(0.5, 0, 0.75, 0) 0.75s both, try-squash 0.35s var(--ease-out) 1.05s forwards, try-ripple 0.9s var(--ease-out) 1.05s forwards; }
+      }
+    }
   }
   .hero-header p { margin: 0; color: var(--color-muted); font-size: 1rem; line-height: 1.4; }
   #home-content { padding: 0; }
