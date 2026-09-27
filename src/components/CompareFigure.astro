@@ -12,11 +12,12 @@
 // literal-color regression here.
 import { cspSha256 } from '../site-lib/cspHash.js';
 import { renderInline } from '../site-lib/contentMarkup';
-// The figure's CSS as a raw string, not a stylesheet in the module graph
-// (see compareFigure.css): emitted below as <style is:inline>, so only a
-// page that renders the figure carries it, and hashed here so the page's
-// CSP style-src accepts it. Astro hashes only the styles it bundles itself.
-import compareFigureCss from './compareFigure.css?raw';
+// The figure's CSS as a string, not a stylesheet in the module graph (see
+// compareFigure.css): emitted below as <style is:inline>, so only a page that
+// renders the figure carries it, and hashed here so the page's CSP style-src
+// accepts it. Astro hashes only the styles it bundles itself. ?inline rather
+// than ?raw, so the build minifies it and the source comments never ship.
+import compareFigureCss from './compareFigure.css?inline';
 
 interface Props {
   beforeSrc: string;
