@@ -17,9 +17,11 @@ describe('matchBoxes', () => {
     };
     const page = pageOf([item], 'Hello');
     const [box] = matchBoxes(page, { start: 2, end: 5 }, geometry);
-    expect(box.left).toBeCloseTo(19.8333, 3);
+    // The cut edge (between "e" and "l") widens by 0.35em = 4.2pt = 0.7%;
+    // the item's own end is not a cut and gets only the 1pt pad.
+    expect(box.left).toBeCloseTo(19.8333 - 0.7, 3);
     expect(box.top).toBeCloseTo(10.875, 3);
-    expect(box.width).toBeCloseTo(5.3333, 3);
+    expect(box.width).toBeCloseTo(5.3333 + 0.7, 3);
     expect(box.height).toBeCloseTo(2.125, 3);
   });
 
@@ -29,10 +31,27 @@ describe('matchBoxes', () => {
     };
     const page = pageOf([item], 'שלום2');
     const [box] = matchBoxes(page, { start: 2, end: 5 }, geometry);
+    // Measured from the right: the cut is on the box's right edge.
     expect(box.left).toBeCloseTo(16.5, 3);
     expect(box.top).toBeCloseTo(10.875, 3);
-    expect(box.width).toBeCloseTo(5.3333, 3);
+    expect(box.width).toBeCloseTo(5.3333 + 0.7, 3);
     expect(box.height).toBeCloseTo(2.125, 3);
+  });
+
+  it('covers the real glyphs of a proportional font when given a measure', () => {
+    // "iiiiWW": four narrow letters (1 unit) then two wide ones (4 units), 120pt
+    // in all, so "WW" really starts 40pt in. An equal share per letter would
+    // put it at 80pt and leave the first W uncovered.
+    const item: PlacedItem = {
+      start: 0, end: 6, transform: [1, 0, 0, 1, 100, 700], width: 120, height: 12, rtl: false,
+    };
+    const page = pageOf([item], 'iiiiWW');
+    const measure = (text: string) => [...text].reduce((sum, ch) => sum + (ch === 'W' ? 4 : 1), 0);
+    const [measured] = matchBoxes(page, { start: 4, end: 6 }, geometry, measure);
+    const [counted] = matchBoxes(page, { start: 4, end: 6 }, geometry);
+    const leftPt = (box: { left: number }) => (box.left / 100) * 600;
+    expect(leftPt(measured)).toBeLessThanOrEqual(140);
+    expect(leftPt(counted)).toBeGreaterThan(140);
   });
 
   function item(str: string, transform: number[], width: number, height = 12): TextItemLike {

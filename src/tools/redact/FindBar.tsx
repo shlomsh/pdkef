@@ -148,13 +148,12 @@ export default function FindBar({
         </button>
       </div>
 
-      <div className={styles.segmented} role="radiogroup" aria-label="Redact matches with">
+      <div className={styles.segmented} role="group" aria-label="Redact matches with">
         {(['blackout', 'blur'] as const).map((style) => (
           <button
             key={style}
             type="button"
-            role="radio"
-            aria-checked={redactStyle === style}
+            aria-pressed={redactStyle === style}
             className={`${styles.segment}${redactStyle === style ? ` ${styles.selected}` : ''}`}
             onClick={() => onRedactStyleChange(style)}
           >

@@ -8,6 +8,17 @@ import { toPagePercentBox, type PageGeometry } from '../../../editor/geometry/co
 import type { PageText, PercentBox, PlacedItem, TextRange } from './types.ts';
 
 const PAD_PT = 1;
+/** Extra cover, in ems, at an edge that cuts through a text item. pdf.js
+ * gives one advance for the whole item, not per glyph, so a cut edge is an
+ * estimate; erring into the neighbouring letter is safe, leaving a sliver of
+ * the matched one is not. */
+const CUT_PAD_EM = 0.35;
+
+/** Relative advance of a string. The default counts characters; the island
+ * passes a real font measurement, which apportions a proportional font far
+ * better. Only ratios of it are used. */
+export type MeasureText = (text: string) => number;
+const countChars: MeasureText = (text) => text.length;
 const DESCENT_FACTOR = 0.25;
 const ASCENT_FACTOR = 1.0;
 
@@ -25,10 +36,14 @@ function normalize(x: number, y: number): { x: number; y: number } {
 }
 
 /** The axis-aligned PDF-point box a character slice of one item covers. */
-function sliceBox(item: PlacedItem, fromChar: number, toChar: number): PointBox {
-  const len = item.end - item.start;
-  const fa = len > 0 ? fromChar / len : 0;
-  const fb = len > 0 ? toChar / len : 0;
+function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: number, measure: MeasureText): PointBox {
+  const len = str.length;
+  const whole = measure(str);
+  const at = (i: number) => (i <= 0 ? 0 : i >= len || whole <= 0 ? 1 : measure(str.slice(0, i)) / whole);
+  // Cut edges widen by CUT_PAD_EM, as a fraction of the item's advance.
+  const cut = item.width > 0 ? (CUT_PAD_EM * item.height) / item.width : 0;
+  const fa = fromChar > 0 ? Math.max(0, at(fromChar) - cut) : 0;
+  const fb = toChar < len ? Math.min(1, at(toChar) + cut) : 1;
   const [a, b, c, d, e, f] = item.transform;
 
   const f0 = item.rtl ? 1 - fb : fa;
@@ -89,14 +104,19 @@ function isSameLine(page: PageText, prevEnd: number, nextStart: number): boolean
  * Boxes for one proposed match: one per line `range` covers, in the range's
  * reading order. See `types.ts` for the full contract.
  */
-export function matchBoxes(page: PageText, range: TextRange, geometry: PageGeometry): PercentBox[] {
+export function matchBoxes(
+  page: PageText,
+  range: TextRange,
+  geometry: PageGeometry,
+  measure: MeasureText = countChars,
+): PercentBox[] {
   const overlapping = page.items.filter((item) => item.end > range.start && item.start < range.end);
   if (overlapping.length === 0) return [];
 
   const paddedBoxes = overlapping.map((item) => {
     const from = Math.max(0, range.start - item.start);
     const to = Math.min(item.end - item.start, range.end - item.start);
-    return padBox(sliceBox(item, from, to));
+    return padBox(sliceBox(item, page.text.slice(item.start, item.end), from, to, measure));
   });
 
   const mergedBoxes: PointBox[] = [paddedBoxes[0]];
