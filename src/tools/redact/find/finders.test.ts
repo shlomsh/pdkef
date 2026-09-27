@@ -164,6 +164,7 @@ describe('PRESET_FINDERS.phone', () => {
   ] as const;
 
   const negatives = [
+    'ת.ז. 123456782', // a bare run with no trunk 0 or + is an ID, not a phone
     'meeting is on 2024-09-27 at noon',
     'born on 27/09/2024 exactly',
     'no phone number mentioned here',
