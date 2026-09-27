@@ -65,6 +65,37 @@ export const homeContent = {
       { title: 'Open Source', subtitle: 'Audit the code yourself' },
     ],
   },
+  // The O (TheO.astro, docs/home-the-o.md): the English home page's scroll
+  // story, in place of the founder-story card above, which the Hebrew edition
+  // still renders. English only for now, so it is deliberately not in
+  // HOME_SOURCE_FIELDS (src/i18n/localizedHome.ts): the Hebrew edition needs
+  // its own fourth beat, because the ring is the O of "Open source".
+  // The ring draws each zero and the O (openSource.word must start with it).
+  // The paper plane lands where the last sentence's full stop would be, so
+  // `last` ends with a period the page never prints; it is set as two
+  // staggered lines, which leaves the plane a clear lane to come down.
+  theO: {
+    heading: 'Simple PDF tools, made to share',
+    zeros: [
+      { word: 'accounts', line: 'No account, email, or trial period.' },
+      { word: 'uploads', line: 'Files never leave your device.' },
+      { word: 'paywalls', line: 'Free. No caps, no watermark, no catch.' },
+    ],
+    openSource: { word: 'Open source', line: 'Audit the code yourself.' },
+    // `live` replaces `line` while the visitor really is offline (the words
+    // OfflineProof.astro says on the tool pages), and the toggle beside it is
+    // on. `stress` and `liveStress` must each occur once in their line: the
+    // call to action, and the payoff the page celebrates when it comes true.
+    offline: {
+      word: 'Works offline',
+      line: 'Turn on airplane mode and give it a try right now.',
+      stress: 'give it a try right now',
+      live: "You're offline right now. It still works.",
+      liveStress: 'It still works.',
+    },
+    lead: 'So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device.',
+    last: ['Then I wanted', 'to share them.'],
+  },
   draftPersistence: {
     kicker: 'Privacy & Convenience',
     heading: 'Close the tab. Keep your progress.',

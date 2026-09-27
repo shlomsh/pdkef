@@ -87,7 +87,9 @@ test('complete stories, information, session handoff, and real bundled sample en
   // as the information cards, so it has the shared reveal, pattern, and
   // scroll-linked depth treatment as it arrives below the final story card.
   const headings = await page.locator('#home-information .card-reveal h2').allTextContents();
-  expect(headings).toEqual(['Simple PDF tools, made to share','Close the tab. Keep your progress.','Your PDF tools, even offline','Frequently asked questions','Private by design. Open to inspect.','Give it a try.']);
+  // The founder-story card is The O on the English page (TheO.astro), a
+  // section before #home-information rather than one of these cards.
+  expect(headings).toEqual(['Close the tab. Keep your progress.','Your PDF tools, even offline','Frequently asked questions','Private by design. Open to inspect.','Give it a try.']);
   // All cards use the document scroll; no hidden inner vertical scroll areas.
   expect(await page.locator('#home-information section').evaluateAll(elements => elements.every(el => !['auto','scroll'].includes(getComputedStyle(el).overflowY) && [...el.querySelectorAll('p,h2')].every(text => { const r = text.getBoundingClientRect(); return !r.height || r.bottom <= el.getBoundingClientRect().bottom + 1; })))).toBe(true);
   await page.locator('#try-workspace').scrollIntoViewIfNeeded();
