@@ -12,17 +12,17 @@ const PAD_PT = 1;
  * gives one advance for the whole item, not per glyph, so a cut edge is an
  * estimate; erring into the neighbouring letter is safe, leaving a sliver of
  * the matched one is not. */
-const CUT_PAD_EM = 0.35;
+export const CUT_PAD_EM = 0.35;
 
 /** Relative advance of a string. The default counts characters; the island
  * passes a real font measurement, which apportions a proportional font far
  * better. Only ratios of it are used. */
 export type MeasureText = (text: string) => number;
-const countChars: MeasureText = (text) => text.length;
+export const countChars: MeasureText = (text) => text.length;
 const DESCENT_FACTOR = 0.25;
 const ASCENT_FACTOR = 1.0;
 
-interface PointBox {
+export interface PointBox {
   x0: number;
   y0: number;
   x1: number;
@@ -35,26 +35,42 @@ function normalize(x: number, y: number): { x: number; y: number } {
   return { x: x / len, y: y / len };
 }
 
-/** The axis-aligned PDF-point box a character slice of one item covers. */
-function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: number, measure: MeasureText): PointBox {
+/** Where a character slice of one item starts and ends, as fractions of the
+ * item's advance measured from its left end along the baseline. Each edge
+ * that cuts through the item widens by `cutPadEm` ems. */
+export function sliceFractions(
+  item: PlacedItem,
+  str: string,
+  fromChar: number,
+  toChar: number,
+  measure: MeasureText,
+  cutPadEm = CUT_PAD_EM,
+): { f0: number; f1: number } {
   const len = str.length;
   const whole = measure(str);
   const at = (i: number) => (i <= 0 ? 0 : i >= len || whole <= 0 ? 1 : measure(str.slice(0, i)) / whole);
-  // Cut edges widen by CUT_PAD_EM, as a fraction of the item's advance.
-  const cut = item.width > 0 ? (CUT_PAD_EM * item.height) / item.width : 0;
+  const cut = item.width > 0 ? (cutPadEm * item.height) / item.width : 0;
   const fa = fromChar > 0 ? Math.max(0, at(fromChar) - cut) : 0;
   const fb = toChar < len ? Math.min(1, at(toChar) + cut) : 1;
-  const [a, b, c, d, e, f] = item.transform;
+  return item.rtl ? { f0: 1 - fb, f1: 1 - fa } : { f0: fa, f1: fb };
+}
 
-  const f0 = item.rtl ? 1 - fb : fa;
-  const f1 = item.rtl ? 1 - fa : fb;
-
+/** The item's baseline direction and its upward normal, both unit length. */
+export function itemAxes(item: PlacedItem): { u: { x: number; y: number }; n: { x: number; y: number } } {
+  const [a, b, c, d] = item.transform;
   const u = normalize(a, b);
   let n = normalize(c, d);
   if (n.x === 0 && n.y === 0) {
     // u rotated +90 degrees.
     n = { x: -u.y, y: u.x };
   }
+  return { u, n };
+}
+
+/** The axis-aligned PDF-point box between two advance fractions of one item. */
+export function fractionBox(item: PlacedItem, f0: number, f1: number): PointBox {
+  const [, , , , e, f] = item.transform;
+  const { u, n } = itemAxes(item);
 
   const p0 = { x: e + u.x * item.width * f0, y: f + u.y * item.width * f0 };
   const p1 = { x: e + u.x * item.width * f1, y: f + u.y * item.width * f1 };
@@ -74,7 +90,13 @@ function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: numbe
   return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
 }
 
-function padBox(box: PointBox): PointBox {
+/** The axis-aligned PDF-point box a character slice of one item covers. */
+function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: number, measure: MeasureText): PointBox {
+  const { f0, f1 } = sliceFractions(item, str, fromChar, toChar, measure);
+  return fractionBox(item, f0, f1);
+}
+
+export function padBox(box: PointBox): PointBox {
   return { x0: box.x0 - PAD_PT, y0: box.y0 - PAD_PT, x1: box.x1 + PAD_PT, y1: box.y1 + PAD_PT };
 }
 
