@@ -7,11 +7,12 @@
 
 export interface FindSetElement {
   id: string;
-  [key: string]: unknown;
+  findSetId?: string;
+  strength?: unknown;
 }
 
 /** Fields an edit to one found box applies to every box of its set. */
-export const FIND_SET_SHARED_FIELDS = ['strength'] as const;
+export const FIND_SET_SHARED_FIELDS: readonly (keyof FindSetElement)[] = ['strength'];
 
 export function findSetKey(element: FindSetElement): string | null {
   const key = element.findSetId;
@@ -36,7 +37,7 @@ export function findSetChanges<T extends FindSetElement>(
   changes: Partial<T>,
 ): { id: string; changes: Partial<T> }[] {
   const shared = Object.fromEntries(
-    Object.entries(changes).filter(([key]) => (FIND_SET_SHARED_FIELDS as readonly string[]).includes(key)),
+    Object.entries(changes).filter(([key]) => FIND_SET_SHARED_FIELDS.includes(key as keyof FindSetElement)),
   ) as Partial<T>;
   const others = Object.keys(shared).length === 0
     ? []

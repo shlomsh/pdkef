@@ -15,7 +15,14 @@ export interface LinkedElement {
   id: string;
   pageIndex: number;
   type: string;
-  [key: string]: unknown;
+  repeatGroupId?: string;
+  findSetId?: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  color?: string;
+  strength?: unknown;
 }
 
 export type BoxChanges<T> = { id: string; changes: Partial<T> };
