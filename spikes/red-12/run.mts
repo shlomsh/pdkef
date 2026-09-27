@@ -13,9 +13,11 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { buildPageText } from '../../src/tools/redact/find/pageText.ts';
 import { matchBoxes } from '../../src/tools/redact/find/matchBoxes.ts';
-import { planTextLayer } from '../../src/tools/redact/find/textLayer.ts';
+import { readPageGlyphs } from '../../src/editor/adapters/pdf/pageGlyphs.ts';
+import { planTextLayer, groupRuns, textLayerReadsBack } from '../../src/editor/adapters/pdf/textLayer.ts';
+import { applyAffineTransform, composeAffineTransforms } from '../../src/editor/geometry/coords.ts';
 import { pageGeometryFromPdfJsPage } from '../../src/editor/geometry/coords.ts';
-import { createInvisibleFont, drawInvisibleWords } from '../../src/editor/adapters/pdf/invisibleText.js';
+import { createInvisibleFont, drawInvisibleText } from '../../src/editor/adapters/pdf/invisibleText.js';
 
 const ROOT = process.cwd();
 const CORPUS = path.join(ROOT, 'spikes/red-01/corpus');
@@ -30,10 +32,12 @@ type Case = {
   name: string;
   file: string;
   page: number; // 1-based
-  // Either a corpus rect ([left, top, width, height] in page percent) or a
-  // phrase whose Find box becomes the redaction box.
+  // A corpus rect ([left, top, width, height] in page percent), a phrase
+  // whose Find box becomes the redaction box, or a word boxed the way a
+  // careful person would: its glyphs from descender to ascender, plus 1pt.
   rect?: number[];
   boxPhrase?: string;
+  exactWord?: string;
   secret: string;
   neighbours?: string[]; // words either side of the box on its line, in reading order
 };
@@ -52,12 +56,28 @@ const CASES: Case[] = [
     name: 'health-hebrew-middle-word',
     file: 'real-world-health-declaration-2021.pdf',
     page: 1,
+    exactWord: 'לביטחון',
+    secret: 'לביטחון',
+    neighbours: ['המשרד', 'לאומי'],
+  },
+  {
+    name: 'health-hebrew-middle-word-find-box',
+    file: 'real-world-health-declaration-2021.pdf',
+    page: 1,
     boxPhrase: 'לביטחון',
     secret: 'לביטחון',
     neighbours: ['המשרד', 'לאומי'],
   },
   {
     name: 'plain-latin-middle-word',
+    file: 'real-world-irs-1040-2024.pdf',
+    page: 1,
+    exactWord: 'separate',
+    secret: 'separate',
+    neighbours: ['See', 'instructions.'],
+  },
+  {
+    name: 'plain-latin-middle-word-find-box',
     file: 'real-world-irs-1040-2024.pdf',
     page: 1,
     boxPhrase: 'separate',
@@ -71,17 +91,35 @@ async function readPage(bytes: Uint8Array, pageNo: number) {
   const page = await doc.getPage(pageNo);
   const content = await page.getTextContent();
   const items = content.items.filter((item: any) => typeof item.str === 'string');
-  return { doc, page, pageText: buildPageText(pageNo - 1, items as any), geometry: pageGeometryFromPdfJsPage(page as any) };
+  const opList = await page.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
+  const glyphs = readPageGlyphs(opList, pdfjs.OPS as any, (name) => page.commonObjs.get(name));
+  return { doc, page, glyphs, pageText: buildPageText(pageNo - 1, items as any), geometry: pageGeometryFromPdfJsPage(page as any) };
 }
 
 async function exportCase(c: Case) {
   const bytes = new Uint8Array(fs.readFileSync(path.join(CORPUS, c.file)));
-  const { page, pageText, geometry } = await readPage(bytes, c.page);
+  const { page, pageText, geometry, glyphs } = await readPage(bytes, c.page);
 
   let boxes;
   if (c.rect) {
     const [left, top, width, height] = c.rect;
     boxes = [{ left, top, width, height }];
+  } else if (c.exactWord) {
+    const target = [...c.exactWord].sort().join('');
+    const words = groupRuns(glyphs).flatMap((run) => {
+      const out: typeof run[] = [[]];
+      for (const g of run) (g.isSpace || !g.unicode.trim() ? out.push([]) : out[out.length - 1].push(g));
+      return out.filter((w) => w.length);
+    });
+    const word = words.find((w) => [...w.map((g) => g.unicode).join('')].sort().join('') === target);
+    if (!word) throw new Error(`${c.name}: no word "${c.exactWord}"`);
+    const pts = word.flatMap((g) => {
+      const m = composeAffineTransforms(geometry.pdfToViewport, g.matrix);
+      return [[0, -0.25], [g.width, -0.25], [0, 0.95], [g.width, 0.95]].map(([x, y]) => applyAffineTransform({ x, y }, m));
+    });
+    const x0 = Math.min(...pts.map((p) => p.x)) - 1, x1 = Math.max(...pts.map((p) => p.x)) + 1;
+    const y0 = Math.min(...pts.map((p) => p.y)) - 1, y1 = Math.max(...pts.map((p) => p.y)) + 1;
+    boxes = [{ left: (100 * x0) / geometry.width, top: (100 * y0) / geometry.height, width: (100 * (x1 - x0)) / geometry.width, height: (100 * (y1 - y0)) / geometry.height }];
   } else {
     const at = pageText.text.indexOf(c.boxPhrase!);
     if (at < 0) throw new Error(`${c.name}: "${c.boxPhrase}" not on the page`);
@@ -100,7 +138,7 @@ async function exportCase(c: Case) {
   }
   const jpeg = canvas.toBuffer('image/jpeg', 95);
 
-  const plan = planTextLayer(pageText, geometry, boxes, measure);
+  const plan = planTextLayer(glyphs, geometry, boxes);
 
   const build = async (withLayer: boolean) => {
     const out = await PDFDocument.create();
@@ -109,7 +147,7 @@ async function exportCase(c: Case) {
     p.drawImage(img, { x: 0, y: 0, width: geometry.width, height: geometry.height });
     if (withLayer) {
       const font = createInvisibleFont(out);
-      drawInvisibleWords(out, p, font, plan.words);
+      drawInvisibleText(out, p, font, plan.runs);
       font.finish();
     }
     return out.save();
@@ -154,39 +192,24 @@ function lcs(a: string[], b: string[]) {
   return prev[b.length];
 }
 
-/** Word boxes from an extractor's char list, keyed by the word's sorted letters. */
-function wordBoxes(page: { text: string; chars: { c: string; box: number[] }[] }) {
-  const words: { key: string; box: number[] }[] = [];
-  let cur: { cs: string[]; box: number[] } | null = null;
-  const flush = () => {
-    if (cur && cur.cs.length) words.push({ key: [...cur.cs].sort().join(''), box: cur.box });
-    cur = null;
-  };
-  for (const { c, box } of page.chars) {
-    if (/\s/.test(c)) { flush(); continue; }
-    if (!cur) cur = { cs: [], box: [...box] };
-    else if (Math.abs(box[1] - cur.box[1]) > 4 || box[0] - cur.box[2] > 6 || cur.box[0] - box[2] > 6) { flush(); cur = { cs: [], box: [...box] }; }
-    cur.cs.push(c);
-    cur.box = [Math.min(cur.box[0], box[0]), Math.min(cur.box[1], box[1]), Math.max(cur.box[2], box[2]), Math.max(cur.box[3], box[3])];
-  }
-  flush();
-  return words;
-}
+type Extracted = { text: string; chars: { c: string; box: number[] }[] };
 
-/** How far each output word's box sits from the same word in the original, in points. */
-function alignment(orig: ReturnType<typeof wordBoxes>, out: ReturnType<typeof wordBoxes>) {
-  const byKey = new Map<string, number[][]>();
-  for (const w of orig) byKey.set(w.key, [...(byKey.get(w.key) ?? []), w.box]);
+/** Per character of the output, how far its box sits from the nearest same
+ * character in the original, in points (left and right edges). */
+function alignment(orig: Extracted, out: Extracted) {
+  const byChar = new Map<string, number[][]>();
+  for (const { c, box } of orig.chars) byChar.set(c, [...(byChar.get(c) ?? []), box]);
   const d: number[] = [];
-  for (const w of out) {
-    const cands = byKey.get(w.key);
+  for (const { c, box } of out.chars) {
+    if (/\s/.test(c)) continue;
+    const cands = byChar.get(c);
     if (!cands) continue;
-    const best = Math.min(...cands.map((b) => Math.max(Math.abs(b[0] - w.box[0]), Math.abs(b[2] - w.box[2]), Math.abs(b[1] - w.box[1]))));
+    const best = Math.min(...cands.map((b) => Math.max(Math.abs(b[0] - box[0]), Math.abs(b[2] - box[2]), Math.abs(b[1] - box[1]))));
     d.push(best);
   }
   d.sort((a, b) => a - b);
-  const q = (p: number) => (d.length ? d[Math.min(d.length - 1, Math.floor(p * d.length))].toFixed(1) : '-');
-  return `${d.length} words matched, median ${q(0.5)} pt, p90 ${q(0.9)} pt, max ${q(1)} pt`;
+  const q = (p: number) => (d.length ? d[Math.min(d.length - 1, Math.floor(p * d.length))].toFixed(2) : '-');
+  return `${d.length} chars, median ${q(0.5)} pt, p90 ${q(0.9)} pt, p99 ${q(0.99)} pt`;
 }
 
 function rawStreamLeak(file: string, secret: string) {
@@ -201,45 +224,55 @@ function rawStreamLeak(file: string, secret: string) {
   return hits;
 }
 
+const key = (w: string) => [...w].sort().join('');
 const report: string[] = [];
 for (const c of CASES) {
   const r = await exportCase(c);
   const original = path.join(CORPUS, c.file);
-  const kept = r.plan.words.map((w) => w.text);
+  const back = await readPage(new Uint8Array(fs.readFileSync(r.outPath)), 1);
+  const readsBack = textLayerReadsBack(r.plan, back.glyphs, back.geometry, r.boxes);
+  const keptKeys = new Set(r.plan.runs.flatMap((run) => tokens(run.text)).map(key));
   const lines = [`## ${c.name}`, '',
-    `- Words written ${kept.length}, left out ${r.plan.dropped}. Layer adds ${r.layerBytes} bytes to a ${r.plainBytes}-byte picture page (${((100 * r.layerBytes) / r.plainBytes).toFixed(1)}%).`];
+    `- Read-back check (RED-09): ${readsBack ? 'passes' : 'FAILS'}.`,
+    `- Words written ${r.plan.kept}, left out ${r.plan.dropped}. Layer adds ${r.layerBytes} bytes to a ${r.plainBytes}-byte picture page (${((100 * r.layerBytes) / r.plainBytes).toFixed(1)}%).`];
 
-  const texts: Record<string, string> = { pdfjs: await extractPdfjs(r.outPath) };
-  const pdfium = extract('pdfium', r.outPath);
-  const pdfkit = extract('pdfkit', r.outPath);
-  texts.pdfium = pdfium.pages[0].text;
-  texts.pdfkit = pdfkit.pages[0].text;
-  const origPdfium = extract('pdfium', original).pages[c.page - 1];
-  const origPdfkit = extract('pdfkit', original).pages[c.page - 1];
+  const out: Record<string, Extracted> = {
+    pdfjs: { text: await extractPdfjs(r.outPath), chars: [] },
+    pdfium: extract('pdfium', r.outPath).pages[0],
+    pdfkit: extract('pdfkit', r.outPath).pages[0],
+  };
+  const orig: Record<string, Extracted> = {
+    pdfjs: { text: (await readPage(new Uint8Array(fs.readFileSync(original)), c.page)).pageText.text, chars: [] },
+    pdfium: extract('pdfium', original).pages[c.page - 1],
+    pdfkit: extract('pdfkit', original).pages[c.page - 1],
+  };
 
-  const secretWords = tokens(c.secret);
-  for (const [engine, text] of Object.entries(texts)) {
-    const toks = tokens(text);
-    const leaked = secretWords.filter((w) => toks.includes(w) && !kept.includes(w));
-    const missing = kept.filter((w) => !toks.includes(w));
-    const order = lcs(kept, toks) / Math.max(1, kept.length);
+  const secretKeys = tokens(c.secret).map(key);
+  for (const engine of ['pdfjs', 'pdfium', 'pdfkit']) {
+    const outKeys = tokens(out[engine].text).map(key);
+    const origKeys = tokens(orig[engine].text).map(key);
+    const leaked = secretKeys.filter((k) => outKeys.includes(k) && !keptKeys.has(k));
+    const missing = [...keptKeys].filter((k) => !outKeys.includes(k));
+    const order = lcs(origKeys, outKeys) / Math.max(1, outKeys.length);
     let neighbours = '';
     if (c.neighbours) {
       const [left, right] = c.neighbours;
-      const flat = norm(text);
+      const flat = norm(out[engine].text);
       const li = flat.indexOf(left);
       const ri = flat.indexOf(right, li + 1);
-      neighbours = ` Neighbours "${left}" then "${right}": ${li >= 0 && ri > li ? 'in order' : 'NOT in order'} ("${li >= 0 ? flat.slice(li, Math.min(flat.length, li + 40)).split('\n')[0] : '?'}").`;
+      const line = li >= 0 ? flat.slice(li).split('\n')[0].slice(0, 40) : '?';
+      neighbours = ` "${left}" then "${right}": ${li >= 0 && ri > li && !flat.slice(li, ri).includes('\n') ? 'in order on one line' : 'NOT in order'} ("${line}").`;
     }
-    lines.push(`- ${engine}: secret ${leaked.length ? `LEAKED (${leaked.join(' ')})` : 'absent'}; kept words missing ${missing.length}${missing.length ? ` (${missing.slice(0, 6).join(' ')})` : ''}; in page order ${(100 * order).toFixed(1)}%.${neighbours}`);
+    lines.push(`- ${engine}: secret ${leaked.length ? 'LEAKED' : 'absent'}; written words not found ${missing.length}; ${out[engine].text.length ? (100 * order).toFixed(1) : '-'}% of words in the original's order.${neighbours}`);
   }
   for (const engine of ['pdfium', 'pdfkit'] as const) {
-    const search = extract(engine, r.outPath, secretWords[0]);
-    const origHits = extract(engine, original, secretWords[0]).hits.length;
-    lines.push(`- ${engine} search "${secretWords[0]}": ${search.hits.length} hits (original page had ${origHits}; kept elsewhere: ${kept.filter((w) => w.includes(secretWords[0])).length}).`);
+    const word = tokens(c.secret)[0];
+    const search = extract(engine, r.outPath, word);
+    const origHits = extract(engine, original, word).hits.length;
+    lines.push(`- ${engine} search "${word}": ${search.hits.length} hits (original ${origHits}).`);
   }
-  lines.push(`- Selection vs original, PDFium: ${alignment(wordBoxes(origPdfium), wordBoxes(pdfium.pages[0]))}.`);
-  lines.push(`- Selection vs original, PDFKit: ${alignment(wordBoxes(origPdfkit), wordBoxes(pdfkit.pages[0]))}.`);
+  lines.push(`- Selection vs original, PDFium: ${alignment(orig.pdfium, out.pdfium)}.`);
+  lines.push(`- Selection vs original, PDFKit: ${alignment(orig.pdfkit, out.pdfkit)}.`);
   lines.push(`- Raw file search for the secret: ${rawStreamLeak(r.outPath, c.secret).length ? 'FOUND' : 'not found'}.`);
   report.push(lines.join('\n'));
   console.log(lines.join('\n') + '\n');

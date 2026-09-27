@@ -17,8 +17,8 @@ import { PDFName, PDFString } from '@cantoo/pdf-lib';
 const GLYPHLESS_TTF_BASE64 =
   'AAEAAAAKAIAAAwAgT1MvMkTeRSAAAAEoAAAAYGNtYXAADABGAAABkAAAACxnbHlmKOMxFAAAAcQAAAAYaGVhZC7I22AAAACsAAAANmhoZWEF3QH2AAAA5AAAACRobXR4AfQAAAAAAYgAAAAGbG9jYQAMAAAAAAG8AAAABm1heHAABAAGAAABCAAAACBuYW1lGZ8ZNAAAAdwAAABycG9zdABOAAAAAAJQAAAAJgABAAAAAQAAKM/C0V8PPPUAAwPoAAAAAObfS0wAAAAA5t9LTAAAAAAB9APoAAAAAwACAAAAAAAAAAEAAAPoAAAAAAH0AAAAAAH0AAEAAAAAAAAAAAAAAAAAAAABAAEAAAACAAQAAQAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAwH0AZAABQAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPz8/PwAAAAAAAAPoAAAAAAPoAAAAAAAAAAAAAAAAAAAAAAAgAAAB9AAAAAAAAAAAAAIAAAADAAAAFAADAAEAAAAUAAQAGAAAAAIAAgAAAAD//wAA//8AAQAAAAAAAAAMAAAAAQAAAAAB9APoAAMAADERIREB9APo/BgAAAAEADYAAQAAAAAAAQANAAAAAQAAAAAAAgAHAA0AAwABBAkAAQAaABQAAwABBAkAAgAOAC5HbHlwaExlc3NGb250UmVndWxhcgBHAGwAeQBwAGgATABlAHMAcwBGAG8AbgB0AFIAZQBnAHUAbABhAHIAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAABKAAA=';
 
-/** Every glyph's advance, in thousandths of an em. The text matrix stretches each word
- * to its measured width, so the value itself only has to be constant. */
+/** The font's default advance, in thousandths of an em. Every code the layer
+ * writes carries its own width in `/W`; this only fills the font's metrics. */
 const GLYPH_WIDTH = 500;
 const FONT_KEY = 'PdkefText';
 
@@ -74,15 +74,19 @@ function toUnicodeCMap(chars) {
 }
 
 /**
- * One invisible font per document. `encode` numbers characters as it meets
- * them; `finish` writes the ToUnicode map and must run before `doc.save()`.
+ * One invisible font per document. A code stands for one character at one
+ * width, so every glyph gets its original advance through `/W` and an
+ * extractor's box for each letter matches the picture. `finish` writes the
+ * widths, the ToUnicode map and the glyph map, and must run before
+ * `doc.save()`.
  */
 export function createInvisibleFont(doc) {
   const { context } = doc;
   const codes = new Map();
-  const chars = [];
+  const entries = [];
   const toUnicodeRef = context.nextRef();
   const cidToGidRef = context.nextRef();
+  const widthsRef = context.nextRef();
 
   const descriptor = context.obj({
     Type: 'FontDescriptor',
@@ -91,6 +95,8 @@ export function createInvisibleFont(doc) {
     FontBBox: [0, -200, GLYPH_WIDTH, 1000],
     ItalicAngle: 0,
     Ascent: 1000,
+    // CoreText rejects the font without a descent ("Failed to determine
+    // ascent and decent") and PDFKit then reads no text from the page.
     Descent: -200,
     CapHeight: 1000,
     StemV: 80,
@@ -103,6 +109,7 @@ export function createInvisibleFont(doc) {
     CIDSystemInfo: { Registry: PDFString.of('Adobe'), Ordering: PDFString.of('Identity'), Supplement: 0 },
     FontDescriptor: context.register(descriptor),
     DW: GLYPH_WIDTH,
+    W: widthsRef,
     CIDToGIDMap: cidToGidRef,
   });
   const font = context.obj({
@@ -117,51 +124,55 @@ export function createInvisibleFont(doc) {
 
   return {
     ref,
-    /** The word as a hex string of two-byte codes, and how many glyphs it is. */
-    encode(text) {
-      let hex = '';
-      let count = 0;
-      for (const char of text) {
-        let code = codes.get(char);
-        if (code === undefined) {
-          if (chars.length >= 0xfffe) continue;
-          chars.push(char);
-          code = chars.length;
-          codes.set(char, code);
-        }
-        hex += hex4(code);
-        count += 1;
+    /** The code for one character at `width` (in thousandths of an em), or
+     * null once the font is full. */
+    code(unicode, width) {
+      const key = `${width}|${unicode}`;
+      let code = codes.get(key);
+      if (code === undefined) {
+        if (entries.length >= 0xfffe) return null;
+        entries.push({ unicode, width });
+        code = entries.length;
+        codes.set(key, code);
       }
-      return { hex, count };
+      return code;
     },
     finish() {
-      context.assign(toUnicodeRef, context.flateStream(toUnicodeCMap(chars)));
+      context.assign(toUnicodeRef, context.flateStream(toUnicodeCMap(entries.map((entry) => entry.unicode))));
+      context.assign(widthsRef, context.obj([1, entries.map((entry) => entry.width)]));
       // Every code draws glyph 1, the font's only real glyph.
-      const map = new Uint8Array(2 * (chars.length + 1));
-      for (let code = 1; code <= chars.length; code += 1) map[2 * code + 1] = 1;
+      const map = new Uint8Array(2 * (entries.length + 1));
+      for (let code = 1; code <= entries.length; code += 1) map[2 * code + 1] = 1;
       context.assign(cidToGidRef, context.flateStream(map));
     },
   };
 }
 
 /**
- * Appends one content stream to `page` with every word in `words` written
- * invisibly at its place. `words` are in the page's top-left-origin viewport
- * (see `planTextLayer`), and the page is that viewport's size.
+ * Appends one content stream to `page` with every run in `runs` written
+ * invisibly, each glyph at its own place (`TJ` closes the gap between one
+ * glyph's advance and the next glyph's start). `runs` are in the page's
+ * top-left-origin viewport (see `planTextLayer`), and the page is that
+ * viewport's size.
  */
-export function drawInvisibleWords(doc, page, font, words) {
-  if (words.length === 0) return;
+export function drawInvisibleText(doc, page, font, runs) {
+  if (runs.length === 0) return;
   const flip = FLIP_Y(page.getHeight());
   const ops = ['q', 'BT', '3 Tr', `/${FONT_KEY} 1 Tf`];
-  for (const word of words) {
-    const { hex, count } = font.encode(word.glyphs);
-    if (count === 0 || !(word.advance > 0)) continue;
-    // Stretch the word to its measured length along the baseline in the text
-    // matrix itself rather than with `Tz`.
-    const stretch = word.advance / (count * (GLYPH_WIDTH / 1000));
-    const [a, b, c, d, e, f] = compose(flip, word.matrix);
-    const m = [a * stretch, b * stretch, c, d, e, f].map(num).join(' ');
-    ops.push(`${m} Tm`, `<${hex}> Tj`);
+  for (const run of runs) {
+    const parts = [];
+    let pen = 0;
+    for (const glyph of run.glyphs) {
+      const width = Math.round(glyph.width * 1000);
+      const code = font.code(glyph.unicode, width);
+      if (code === null) continue;
+      const gap = Math.round((glyph.x - pen) * 1000);
+      if (gap !== 0) parts.push(` ${-gap} `);
+      parts.push(`<${hex4(code)}>`);
+      pen = glyph.x + width / 1000;
+    }
+    if (parts.length === 0) continue;
+    ops.push(`${compose(flip, run.matrix).map(num).join(' ')} Tm`, `[${parts.join('')}] TJ`);
   }
   ops.push('ET', 'Q');
 
