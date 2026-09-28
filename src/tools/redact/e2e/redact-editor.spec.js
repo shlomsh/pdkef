@@ -836,6 +836,42 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     expect(text).not.toContain('SECRET');
   });
 
+  // RED-12: the real browser path (pdf.js rendering on a real canvas, its
+  // worker, the operator-list read) that redact.test.js can only run against
+  // a stubbed canvas. A blackout over the middle word: the saved page keeps
+  // the words either side as invisible text, in order, and not the boxed one.
+  test('download after a blackout over a middle word keeps the words either side as text, and not the boxed one', async ({ page }) => {
+    const doc = await PDFDocument.create();
+    const pdfPage = doc.addPage([612, 792]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const size = 24;
+    const baseline = 400;
+    pdfPage.drawText('LEFT MIDDLE RIGHT', { x: 72, y: baseline, size, font });
+    const x0 = 72 + font.widthOfTextAtSize('LEFT ', size) + 2;
+    const x1 = 72 + font.widthOfTextAtSize('LEFT MIDDLE', size) + 1;
+    await openRedactTool(page, Buffer.from(await doc.save()));
+
+    await drawRedaction(
+      page,
+      'Blackout',
+      { x: x0 / 612, y: (792 - baseline - size) / 792 },
+      { x: x1 / 612, y: (792 - baseline + 0.2 * size) / 792 },
+    );
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: 'Download', exact: true }).click(),
+    ]);
+    const savedPath = await download.path();
+    if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
+
+    const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+    const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)) }).promise;
+    const content = await (await saved.getPage(1)).getTextContent();
+    const words = content.items.map((item) => item.str).join(' ').split(/\s+/).filter(Boolean);
+    expect(words).toEqual(['LEFT', 'RIGHT']);
+    await expect(page.getByText(/saved as a picture only/)).toHaveCount(0);
+  });
+
   test('after Replace file, a deletion at the same byte offsets draws the new file, not the old one', async ({ page }) => {
     // Same-length strings at the same positions on both files: the two BT/ET
     // runs land at matching byte offsets in each file's own content stream.
