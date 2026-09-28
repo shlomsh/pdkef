@@ -20,12 +20,16 @@ sections:
     kicker: 'Before and after'
     heading: 'How to remove "Scanned with CamScanner" from a PDF'
     blocks:
-      - kind: 'image'
-        src: '/images/camscanner-guide/before-after.svg'
-        alt: 'A sketched receipt with the Scanned with CamScanner line in its corner, and the same receipt with the corner clean'
-        width: 800
-        height: 520
+      - kind: 'compareFigure'
+        beforeSrc: '/images/camscanner-guide/before.svg'
+        afterSrc: '/images/camscanner-guide/after.svg'
+        beforeLabel: 'Before'
+        afterLabel: 'After'
+        alt: 'A sketched receipt with the Scanned with CamScanner line in its corner, wiping to the same receipt with the corner clean'
+        width: 640
+        height: 640
         caption: 'The same receipt, before and after. The rest of the page stays exactly as it was.'
+        wipe: true
       - kind: 'steps'
         items:
           - >-

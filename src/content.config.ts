@@ -121,6 +121,9 @@ const blocks = z.discriminatedUnion('kind', [
     width: z.number().int().positive(),
     height: z.number().int().positive(),
     caption: inline(20, 400),
+    // The divider sweeps across by itself, before to after and back, in plain
+    // CSS (the SEO surface ships no JS). Reduced motion shows the two side by side.
+    wipe: z.boolean().optional(),
   }),
   z.strictObject({
     kind: z.literal('compare'),

@@ -86,6 +86,44 @@
 .compare-figure-tag-after {
   inset-inline-end: 0.6rem;
 }
+.compare-figure-wipe .compare-figure-after {
+  animation: compare-figure-wipe 7s ease-in-out infinite;
+}
+.compare-figure-wipe .compare-figure-rule {
+  animation: compare-figure-wipe-rule 7s ease-in-out infinite;
+}
+/* Hold on before, sweep right to left to after, hold, sweep back. The split
+   stops 3% short of each edge so the handle never leaves the frame. */
+@keyframes compare-figure-wipe {
+  0%, 12% { clip-path: inset(0 0 0 97%); }
+  45%, 62% { clip-path: inset(0 0 0 3%); }
+  95%, 100% { clip-path: inset(0 0 0 97%); }
+}
+@keyframes compare-figure-wipe-rule {
+  0%, 12% { left: 97%; }
+  45%, 62% { left: 3%; }
+  95%, 100% { left: 97%; }
+}
+/* No motion: the two images side by side, each whole. */
+@media (prefers-reduced-motion: reduce) {
+  .compare-figure-wipe .compare-figure-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .compare-figure-wipe .compare-figure-after {
+    position: static;
+    clip-path: none;
+    animation: none;
+  }
+  .compare-figure-wipe .compare-figure-rule {
+    left: 50%;
+    animation: none;
+  }
+  .compare-figure-wipe .compare-figure-rule::before,
+  .compare-figure-wipe .compare-figure-rule::after {
+    content: none;
+  }
+}
 .compare-figure-caption {
   margin-top: 0.75rem;
   font-size: 0.9rem;
