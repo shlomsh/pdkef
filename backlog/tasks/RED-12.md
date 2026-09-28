@@ -1,7 +1,7 @@
 ---
 id: "RED-12"
 title: "Covered pages keep their text: the picture plus an invisible text layer without the boxed words"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -59,3 +59,36 @@ decides the right-to-left write order before any production code.
 - Selecting a line on the saved page highlights close to the words in the picture.
 - The file grows by a measured, small amount per page, recorded here.
 - Opening Redact downloads nothing new; `test:weight` stays within budget.
+
+## Result (2026-09-28)
+
+Shipped as the revised plan, with the spike's one change: words come from **exact glyph positions**
+(`src/editor/adapters/pdf/pageGlyphs.ts`, a replay of pdf.js's text state over the operator list), not
+from Find's text items. Splitting a text item by a measurement put a word's edge a median 0.12 em from
+its real glyphs and 0.35 em at p90 on the real forms, too loose to decide what a box covers. The full
+record is in [docs/redact-content-removal.md](../../docs/redact-content-removal.md), "What shipped".
+
+- **Write order for Hebrew and Arabic**: the page's own glyph order at the page's own places, so no
+  reordering at all; every extractor reads the layer the way it reads the original.
+- **Font**: one glyphless Type0 font for every script (not a fonts.js family): the text is never drawn.
+  `.claude/rules/fonts-and-text.md` records the exception.
+- **Leave out a word**: any word whose glyph core a box reaches, whole.
+- **Scans**: invisible source text (a scan's OCR layer) is never carried over, because nothing confirms
+  where its words sit against the picture; a covered scan page keeps no text, as before RED-12.
+
+Acceptance, measured with `spikes/red-12/run.mts` on the IRS 1040, USCIS I-9, the Israeli health
+declaration and a Hebrew line, read back by pdf.js, PDFium (Chrome) and PDFKit (Preview):
+
+- No text under any box is extractable: never, in any engine, nor in the inflated streams.
+- Words no box touches: all found, 100% in the original's order on the Latin forms (pdf.js, PDFium).
+- Hebrew line, middle word boxed tightly: both neighbours whole and in order in pdf.js and PDFium.
+  PDFKit splits that line the same way on the original. Boxed from Find instead, the neighbour drops,
+  because Find's box paints over part of it: RED-15.
+- Selection: PDFium's character boxes sit a median 0.5 to 0.8 pt from the original's, p99 about 3 pt.
+- Size: 6 to 9 KB per covered page, about 1% of the picture.
+- Nothing new downloads: the layer's font is 632 bytes inside the export module.
+- Audit of what the picture export carries over: nothing. A covered page is a new page holding only the
+  picture and the layer; the new document takes no metadata, outline, attachments or form.
+
+Also fixed on the way: a rotated covered page is sized from its visible, rotated box instead of being
+squeezed into its unrotated size. The "one text reader" bullet moved to RED-16.
