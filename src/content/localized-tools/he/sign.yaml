@@ -26,16 +26,14 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11: rendered page (desktop, mobile, RTL, editor-stays-English
-  notice) approved for publish. 09-12: re-approved after the FONT-08 font
-  landings and the Turkish/Vietnamese copy fix; the English edits were in
-  unhashed languages-card notes and untranslated FAQ answers, nothing this
-  page renders changed; hash recomputed once on the merged tree. 09-19:
-  English h1 dropped "in Your Browser" (SEO-36); Hebrew unchanged, pending
-  Shlomi's review; sourceHash refreshed mechanically.
-  09-19 later: English subhead cut to three sentences; Hebrew unchanged,
-  pending review; hash refreshed mechanically.
-sourceHash: 'fnv1a64:f95266743850d77e'
+  2026-09-11/12: approved for publish after RTL/editor-notice review and
+  the FONT-08 + Turkish/Vietnamese fixes (no hash-relevant Hebrew change).
+  09-19 (x2): English h1 and subhead trimmed; hash refreshed mechanically
+  both times, Hebrew unchanged, still pending review. 09-28: FAQ answer on
+  language support rescoped from unqualified "right, every time" to
+  "right, in the 20 languages listed above" (fixed a self-contradiction);
+  Hebrew answer updated to match; pending Shlomi's read-through.
+sourceHash: 'fnv1a64:78340ea7d83ecaff'
 seoTitle: 'מילוי וחתימה על טופס PDF אונליין בחינם, גם בעברית | PDkef'
 seoDescription: >-
   מלאו וחתמו על טופס PDF אונליין בחינם, באייפון, אנדרואיד או במחשב. הוסיפו
@@ -131,15 +129,15 @@ faq:
       למשך עד 28 יום.
   - question: 'השפה שלי תצא נכון בקובץ שהורדתי, או תהפוך לריבועים ריקים?'
     answer: >-
-      נכון, בכל פעם, כי הגופנים מגיעים בתוך הכלי במקום להסתמך על מה
-      שמותקן במכשיר שלכם. כל גופן נבדק מול האותיות שבאמת נמצאות בקובץ
-      הגופן, והוא נוסע מוטבע בתוך קובץ ה-PDF שאתם מורידים, כך שהטקסט שלכם
-      נראה בדיוק אותו הדבר בכל מכשיר שפותח אותו, בלי ריבועים ריקים במקום
-      שבו אמורה להיות האות. אם תבחרו גופן שלא יודע לצייר את השפה שלכם,
-      הכלי עובר אוטומטית לגופן שיודע, ומודיע לכם על זה. במקרה הנדיר שאף
-      גופן מובנה לא יודע לצייר תו מסוים, תגלו את זה תוך כדי הקלדה, לא
-      אחרי שכבר מילאתם את כל הטופס, כדי שתוכלו לבקש את השפה הזו בלי לאבד
-      את העבודה.
+      נכון, ב-20 השפות המפורטות למעלה, כי הגופנים מגיעים בתוך הכלי במקום
+      להסתמך על מה שמותקן במכשיר שלכם. כל גופן נבדק מול האותיות שבאמת
+      נמצאות בקובץ הגופן, והוא נוסע מוטבע בתוך קובץ ה-PDF שאתם מורידים,
+      כך שהטקסט שלכם נראה בדיוק אותו הדבר בכל מכשיר שפותח אותו, בלי
+      ריבועים ריקים במקום שבו אמורה להיות האות. אם תבחרו גופן שלא יודע
+      לצייר את השפה שלכם, הכלי עובר אוטומטית לגופן שיודע, ומודיע לכם על
+      זה. אם השפה שלכם עדיין לא נתמכת, תגלו את זה תוך כדי הקלדה, לא אחרי
+      שכבר מילאתם את כל הטופס, כדי שתוכלו לבקש את השפה הזו בלי לאבד את
+      העבודה.
   - question: 'אפשר למלא ולחתום על PDF בעברית?'
     answer: >-
       כן. עברית עובדת מקצה לקצה. הקלידו לתוך תיבת טקסט והיא גדלה שמאלה
