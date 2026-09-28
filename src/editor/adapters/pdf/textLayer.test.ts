@@ -175,6 +175,17 @@ describe('wordsUnderBoxes', () => {
     expect(words).toEqual(['שלומ']);
   });
 
+  it('reads a Hebrew line in the same logical order whichever order its bytes are stored in', () => {
+    // "עולם שלום" drawn left to right as the reader sees it: stored in visual
+    // order (pen moving right), and stored in logical order (pen moving left
+    // from the right edge). A box over both words reads the same either way.
+    const visual = makeLine('םולש םלוע', { x: 0 });
+    const logical = makeLine('עולם שלום', { x: 40, dir: -1 });
+    const boxes = [box(0, 100, 390, 405)];
+    expect(wordsUnderBoxes(visual, geometry, boxes)[0]).toEqual(['עולם', 'שלום']);
+    expect(wordsUnderBoxes(logical, geometry, boxes)[0]).toEqual(['עולם', 'שלום']);
+  });
+
   it('gives one entry per box, empty for a box that reaches no word', () => {
     const glyphs = makeLine('aaa bbb ccc');
     const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];

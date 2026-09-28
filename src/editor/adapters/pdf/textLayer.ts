@@ -238,62 +238,81 @@ function isStrongRTL(ch: string): boolean {
   );
 }
 
-/** A word's glyphs, ordered by position along the run's baseline (nearest
- * the run's own frame; content order already advances along it, so this only
- * matters when it doesn't), then reversed into right-to-left reading order
- * when the word contains a strong RTL character. */
-function orderedWordGlyphs(word: PageGlyph[]): PageGlyph[] {
-  let ordered = word;
-  try {
-    const inverse = invertAffineTransform(word[0].matrix);
-    ordered = [...word].sort((a, b) => {
-      const ax = applyAffineTransform({ x: a.matrix[4], y: a.matrix[5] }, inverse).x;
-      const bx = applyAffineTransform({ x: b.matrix[4], y: b.matrix[5] }, inverse).x;
-      return ax - bx;
-    });
-  } catch {
-    // A degenerate first glyph: keep content order rather than fail.
+/** A page's glyphs as lines: grouped by shape and baseline whatever order
+ * they are stored in, each line sorted along its baseline. A right-to-left
+ * line may be stored in visual order or one glyph at a time in reading
+ * order; position is the only order both agree on. */
+function positionalLines(glyphs: PageGlyph[]): { along: number; glyph: PageGlyph }[][] {
+  const lines: { inverse: AffineTransform; first: PageGlyph; glyphs: { along: number; glyph: PageGlyph }[] }[] = [];
+  for (const glyph of glyphs) {
+    const origin = { x: glyph.matrix[4], y: glyph.matrix[5] };
+    const line = lines.find((candidate) =>
+      sameShape(candidate.first.matrix, glyph.matrix)
+      && Math.abs(applyAffineTransform(origin, candidate.inverse).y) <= SAME_LINE_EM);
+    if (line) {
+      line.glyphs.push({ along: applyAffineTransform(origin, line.inverse).x, glyph });
+      continue;
+    }
+    if (isBlank(glyph)) continue;
+    try {
+      lines.push({ inverse: invertAffineTransform(glyph.matrix), first: glyph, glyphs: [{ along: 0, glyph }] });
+    } catch {
+      // A degenerate text matrix shows nothing.
+    }
   }
-  const text = ordered.map((glyph) => glyph.unicode).join('');
-  return [...text].some((ch) => isStrongRTL(ch)) ? [...ordered].reverse() : ordered;
+  return lines.map((line) => line.glyphs.sort((a, b) => a.along - b.along));
 }
 
+/** A sorted line's words: split at blanks and at gaps wider than a word's
+ * own spacing, each word's glyphs left to right. */
+function positionalWords(line: { along: number; glyph: PageGlyph }[]): PageGlyph[][] {
+  const words: PageGlyph[][] = [];
+  let word: PageGlyph[] = [];
+  let end = -Infinity;
+  for (const { along, glyph } of line) {
+    if (isBlank(glyph) || along - end > JOIN_GAP_EM) {
+      if (word.length > 0) words.push(word);
+      word = [];
+    }
+    if (!isBlank(glyph)) word.push(glyph);
+    end = Math.max(end, along + Math.max(glyph.width, 0));
+  }
+  if (word.length > 0) words.push(word);
+  return words;
+}
+
+const hasStrongRTL = (glyphs: PageGlyph[]) => glyphs.some((glyph) => [...glyph.unicode].some(isStrongRTL));
+
 /**
- * RED-17: for each of `boxes` (same index), the words `planTextLayer` would
- * drop for that box alone, i.e. every word whose core the box reaches by the
- * exact rule `planTextLayer` uses. Each word's text is in logical reading
- * order (`orderedWordGlyphs`), words in a box's list are in the line's own
- * reading direction, and lines are ordered top to bottom. Pure.
+ * RED-17: for each of `boxes` (same index), the words a box reaches by the
+ * rule `planTextLayer` uses (any glyph core touching it), as text in logical
+ * reading order. Words are built from glyph positions, not storage order,
+ * so a Hebrew line reads the same however its bytes are stored. Words in a
+ * box's list follow the line's reading direction; lines go top to bottom.
+ * Pure.
  */
 export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
   const covers = boxes.map((box) => percentToViewport(geometry, box));
   const perBox: { top: number; seq: number; text: string }[][] = boxes.map(() => []);
   let seq = 0;
 
-  for (const run of groupRuns(glyphs)) {
-    if (run.length === 0) continue;
-    const words = wordRanges(run).map(([start, end]) => run.slice(start, end));
-    const runIsRTL = words.some((word) => [...word.map((glyph) => glyph.unicode).join('')].some(isStrongRTL));
-    const orderedWords = runIsRTL ? [...words].reverse() : words;
-    const runTop = Math.min(...run.map((glyph) => glyphCore(geometry, glyph).y0));
-
-    for (const word of orderedWords) {
-      const text = orderedWordGlyphs(word)
-        .map((glyph) => glyph.unicode)
-        .join('');
+  for (const line of positionalLines(glyphs)) {
+    const words = positionalWords(line);
+    if (words.length === 0) continue;
+    const rtl = words.some(hasStrongRTL);
+    const top = Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0));
+    for (const word of rtl ? [...words].reverse() : words) {
+      const ordered = hasStrongRTL(word) ? [...word].reverse() : word;
+      const text = ordered.map((glyph) => glyph.unicode).join('');
       if (!text) continue;
       seq += 1;
       covers.forEach((cover, i) => {
-        if (wordTouchesCover(geometry, word, cover)) {
-          perBox[i].push({ top: runTop, seq, text });
-        }
+        if (wordTouchesCover(geometry, word, cover)) perBox[i].push({ top, seq, text });
       });
     }
   }
 
-  return perBox.map((words) =>
-    [...words].sort((a, b) => a.top - b.top || a.seq - b.seq).map((word) => word.text),
-  );
+  return perBox.map((words) => [...words].sort((a, b) => a.top - b.top || a.seq - b.seq).map((word) => word.text));
 }
 
 function wordTexts(runs: { glyphs: { unicode: string }[] }[]): string[] {
