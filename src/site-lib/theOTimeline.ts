@@ -137,7 +137,7 @@ ${lit.map((svh, i) => `  ${pct(svh)} { --o-lit: ${i + 1}; }`).join('\n')}
 }
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .o-track { height: calc(${timeline.total}svh + 100lvh - var(--home-nav-height, 0px)); }
+    .o-track { height: calc(${timeline.total}svh + 100svh - var(--home-nav-height, 0px)); }
 ${Object.entries(wipes).map(([n, wipe]) => `    .b${n} > .o-art { animation-range: ${range(wipe)}; }`).join('\n')}
     .o-cloud { animation-range: ${range(timeline.clouds)}; }
     .o-mode-on { animation-range: ${range(timeline.toggle)}; }

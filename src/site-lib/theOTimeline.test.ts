@@ -49,7 +49,7 @@ describe('theOTimelineCss', () => {
   const percentages = [...css.matchAll(/(-?[\d.]+)%/g)].map((match) => Number(match[1]));
 
   it('sets the pin to the timeline length', () => {
-    expect(css).toContain(`height: calc(${timeline.total}svh + 100lvh`);
+    expect(css).toContain(`height: calc(${timeline.total}svh + 100svh`);
   });
 
   it('writes every moment as a percentage of the pin', () => {
