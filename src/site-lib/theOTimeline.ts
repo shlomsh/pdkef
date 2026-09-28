@@ -12,16 +12,8 @@ export const PACE = {
   wipe: 100,
   // The ring changing shape: the zero into the O, the O into the window.
   morph: 120,
-  // Held once a change has finished, before its words fade in. Wider than it
-  // looks: real iOS Safari has shipped named-range (view-timeline
-  // animation-range) scroll-driven-animation bugs as recently as Safari 26.5
-  // (webkit.org/blog/17938), and a visitor on an older build can settle the
-  // ring's own scrubbed shape a little late relative to the --o-lit cue that
-  // fades the words in - reported as the ring printing oversized, mid-morph,
-  // under already-lit "Open source" text. This margin is the hedge: on a
-  // browser where both track the same scroll position exactly, all it costs
-  // is a slightly later fade-in.
-  beat: 70,
+  // Held once a change has finished, before its words fade in.
+  beat: 9,
   // The zero starts rounding into the O this far into card 4's wipe.
   morphIntoWipe: 0.75,
   // Airplane mode switches on this long after the window's words light.
@@ -119,15 +111,13 @@ export function theOTimelineCss(timeline: TheOTimeline = theOTimeline()): string
   const { lit, wipes, intoO, intoWindow, waypoints: w } = timeline;
 
   const css = `
-@keyframes o-path {
-  0%, ${pct(intoO[0])} { translate: 0 0; }
-  ${pct(intoO[1])}, ${pct(intoWindow[0])} { translate: var(--o-tx) var(--o-ty); }
-  ${pct(intoWindow[1])}, 100% { translate: var(--w-tx) var(--w-ty); }
+@keyframes o-into-o {
+  0%, ${pct(intoO[0])} { --o-into-o: 0; }
+  ${pct(intoO[1])}, 100% { --o-into-o: 1; }
 }
-@keyframes o-shape {
-  0%, ${pct(intoO[0])} { scale: var(--zx) 1; }
-  ${pct(intoO[1])}, ${pct(intoWindow[0])} { scale: var(--o-sx) var(--o-sy); }
-  ${pct(intoWindow[1])}, 100% { scale: 1.04 1.3; }
+@keyframes o-into-window {
+  0%, ${pct(intoWindow[0])} { --o-into-window: 0; }
+  ${pct(intoWindow[1])}, 100% { --o-into-window: 1; }
 }
 @keyframes o-fly {
   0%, ${pct(timeline.takeoff)} { translate: 0 0; rotate: 0deg; scale: 1; }
