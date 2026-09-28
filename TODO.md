@@ -458,7 +458,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-21 | P1 | [RED-21](backlog/tasks/RED-21.md) · True redaction: form field values, comments, watermark annotations and shared form content under a box |
 | RED-22 | P1 | [RED-22](backlog/tasks/RED-22.md) · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires |
 | RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
-| RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · A new blur box starts at medium strength, not strong; a chosen light blur is trusted |
+| RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 
 
 ## Migrated context and history
