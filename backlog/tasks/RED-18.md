@@ -58,7 +58,14 @@ Zero leaks on every file, and the three real forms plus the Hebrew cases pass wi
 to a picture. The built-to-break files may fall back; report the rate. Also report time per page and
 file size against today's export. The results go in `spikes/red-18/` and the decision in the plan doc.
 
-## Result (2026-09-28): go, with six rules the build must add
+## Decision (2026-09-28, later): stop, single-image flattening
+
+The spike met its bar, and the build was planned. Shlomi then weighed it as over-complex for its
+value and chose single-image flattening for covered pages, with no invisible text layer: a picture
+holds nothing under a box by construction. RED-19 to RED-23 are retired. The results below stay as the
+record, and as the starting point if editing a covered page is ever asked for again.
+
+## Result (2026-09-28): the spike met the bar, with six rules a build would add
 
 Each piece was measured on its own, in `spikes/red-18/` (results-*.md):
 

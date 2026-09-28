@@ -432,7 +432,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 
-## Redact: true redaction, and a check of the saved file (2026-09-28)
+## Redact: covered pages as pictures, a check of the saved file, exact boxes (2026-09-28)
 
 | ID | Priority | Task |
 | --- | --- | --- |
@@ -461,6 +461,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
+| RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 
 
 ## Migrated context and history

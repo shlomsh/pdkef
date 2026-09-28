@@ -1,7 +1,7 @@
 ---
 id: "RED-20"
 title: "True redaction, images and drawn shapes: paint the box into what it touches, once per shared image"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: ["RED-18"]
 ---
 
 # RED-20 · True redaction, images and drawn shapes: paint the box into what it touches, once per shared image
+
+**Retired 2026-09-28.** Shlomi chose single-image flattening over removal in place: simple and safe by construction beats a content-stream editor for the narrow value of editing a covered page later. The spike that proved it possible is in `spikes/red-18/` and RED-18.
 
 *Built only if RED-18 meets its bar. Design: RED-18's Images and Drawn shapes bullets.*
 
