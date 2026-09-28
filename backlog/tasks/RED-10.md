@@ -1,7 +1,7 @@
 ---
 id: "RED-10"
 title: "Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "redact-tool"
 phase: "later"
