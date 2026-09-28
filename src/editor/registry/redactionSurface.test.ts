@@ -41,11 +41,11 @@ describe('renderRedactionSurface blur', () => {
     expect(surface.props.style.WebkitBackdropFilter).toBe('none');
   });
 
-  it('defaults to the strong radius (0.5) as a fraction of the box height, on the child blur layer', () => {
+  it('defaults to the medium radius (0.4), RED-24\'s pre-levels blur, as a fraction of the box height, on the child blur layer', () => {
     const child = blurChild(renderRedactionSurface('blur'));
     expect(child.props.class).toBe('redact-surface__blur');
-    expect(child.props.style.backdropFilter).toBe('blur(calc(0.5 * 100cqh))');
-    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.5 * 100cqh))');
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.4 * 100cqh))');
+    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.4 * 100cqh))');
   });
 
   it('reads a lighter radius (0.3) for the light strength', () => {
@@ -56,6 +56,17 @@ describe('renderRedactionSurface blur', () => {
   it('blackout and whiteout render no blur child', () => {
     expect(renderRedactionSurface('blackout', '#000000').props.children).toBeNull();
     expect(renderRedactionSurface('whiteout', '#ffffff').props.children).toBeNull();
+  });
+
+  it('RED-24: raises the fraction above the plain factor once boxHeightPt is under the 24pt floor', () => {
+    const child = blurChild(renderRedactionSurface('blur', undefined, 'medium', 12));
+    // factor x max(12, 24) / 12 = 0.4 x 2 = 0.8
+    expect(child.props.style.backdropFilter).toMatch(/^blur\(calc\(0\.8(\d+)? \* 100cqh\)\)$/);
+  });
+
+  it('RED-24: matches the plain factor once boxHeightPt is above the floor, so screen and export fractions agree', () => {
+    const child = blurChild(renderRedactionSurface('blur', undefined, 'medium', 100));
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.4 * 100cqh))');
   });
 });
 
@@ -69,5 +80,10 @@ describe('renderRedactionDrawingPreviewContent', () => {
   it('returns null for blackout and whiteout', () => {
     expect(renderRedactionDrawingPreviewContent('blackout')).toBeNull();
     expect(renderRedactionDrawingPreviewContent('whiteout')).toBeNull();
+  });
+
+  it('RED-24: applies the floor once a boxHeightPt is given, same as the committed surface', () => {
+    const content = renderRedactionDrawingPreviewContent('blur', 'medium', 12);
+    expect(content?.props.style.backdropFilter).toMatch(/^blur\(calc\(0\.8(\d+)? \* 100cqh\)\)$/);
   });
 });
