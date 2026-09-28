@@ -16,6 +16,13 @@ An image a box touches gets the box painted into its own pixels and is saved in 
 fully covered is deleted. Straight lines and rectangles are cut exactly; a curve crossing a box becomes a
 picture of that shape.
 
+## Blur and solid boxes together (external review, 2026-09-28)
+
+A blur never samples pixels under a Blackout or Whiteout, and a solid box always ends on top, whatever
+order the boxes were drawn in. Today's export had a blur overlapping a Blackout paste the original,
+blurred, back over it (fixed in `redact.js`'s `flattenPage`: solids, then one snapshot, then blurs, then
+solids again). Removal in place must keep the same order when it paints boxes into images and patches.
+
 ## The watermark case (Shlomi, 2026-09-28)
 
 A watermark image at the top of every page is usually one image the pages share. It is handled once, so
