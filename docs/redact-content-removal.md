@@ -34,7 +34,52 @@ PDFium costs 7.3 MB of WebAssembly (2.8 MB with gzip -9, measured locally; what 
 depends on the host compressing `.wasm`, which RED-06 measures), MIT wrapper around an Apache-2.0 binary,
 both on the license allowlist.
 
-## Revised plan (2026-09-27): keep the picture, add the text back
+## Plan (2026-09-28): true redaction, and a check of the saved file
+
+Planned with Shlomi after RED-12 shipped. It supersedes the revised plan below.
+
+**What he wants.** A box removes what is under it for real, and the saved file behaves like the original
+everywhere nobody drew a box. Reopened in Redact, its other text can be searched, deleted and written
+over. That rules out both a whole-file picture and today's picture with invisible text: the rest of the
+page must stay the original objects, not a copy of their words.
+
+**Why it looks possible now.** Our own content-stream parser passed 12 of 21 in RED-01, because it didn't
+know where each glyph sat and deleted whole lines. `pageGlyphs.ts` (RED-12) now gives every glyph's exact
+place, the way pdf.js draws it. With it, the covered glyphs can be deleted and the survivors kept with
+their original codes and order, which is where PDFium failed on Hebrew. No new engine, download or
+"Quick or Keep the text" choice: pdf-lib and pdf.js are already shipped.
+
+**Safety comes from checks, not from trusting the removal.** After every export, each covered page must
+pass four checks, each by a different method from the removal: a pixel match against the original with
+the boxes painted, pdf.js's own text extraction, a byte scan of the whole saved file, and no annotation
+under a box. A page that fails is saved as a picture only, and RED-12's invisible layer retires. RED-09's
+read-back only re-read our layer with the reader that wrote it, so it caught writing bugs, not misjudged
+positions.
+
+**What stays out of scope.**
+
+- Hidden content nobody boxed stays, like an old fake black bar drawn by someone else. It behaves like
+  the original, as he asked.
+- OCR is out.
+- The check of the saved file never claims a secret is absent. It reports what it found and where, names
+  the picture pages to look at by eye, and leaves the decision that the file is safe to share with the
+  person.
+- A chosen light blur is trusted. The default is medium.
+
+| Ticket | What | Depends on |
+| --- | --- | --- |
+| RED-17 | Check the saved file: follow each match from the original, search every hidden place, prove boxes solid, never claim absence | - |
+| RED-18 | Spike: true redaction on RED-01's corpus, the three real forms, Hebrew and watermark cases. Bar: zero leaks, real forms and Hebrew with no fallback | - |
+| RED-19 | Text: delete covered glyphs, keep the rest as they were | RED-18 |
+| RED-20 | Images and drawn shapes; a shared watermark image handled once, "Remove it everywhere" | RED-18 |
+| RED-21 | Form field values, comments, watermark annotations, shared form content | RED-18 |
+| RED-22 | The four checks, picture-only fallback, RED-12's layer retired, copy updated | RED-19, RED-20, RED-21 |
+| RED-23 | Sign's Whiteout removes what it covers, with the /sign/ FAQ in English and Hebrew | RED-22 |
+| RED-24 | A new blur box starts at medium | - |
+
+RED-17 ships first, since it helps with today's export.
+
+## Revised plan (2026-09-27, superseded): keep the picture, add the text back
 
 The first plan below chose PDFium and built a lot around it: a choice between Quick and Keep the text,
 a 7.3 MB engine (2.8 MB to download) kept as an offline pack across deploys, guesses at slow phones, a
