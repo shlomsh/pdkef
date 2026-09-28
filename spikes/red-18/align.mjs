@@ -27,13 +27,23 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { PDFDocument, PDFName, PDFDict, PDFArray, PDFStream, PDFRawStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 
 const ROOT = process.cwd();
 const CORPUS_DIR = path.join(ROOT, 'spikes/red-01/corpus');
 const OUT_DIR = path.join(ROOT, 'spikes/red-18/out');
-fs.mkdirSync(OUT_DIR, { recursive: true });
+
+// RED-18 (remove-text.mjs): everything above the "Run over the whole
+// corpus" section is also importable, unchanged in behaviour - only the
+// corpus-report driver below is gated to this module's own `node
+// spikes/red-18/align.mjs` invocation, so a caller that only wants
+// rawShowOps/pdfjsShowOps/align (or the smaller parsing pieces) doesn't
+// re-run the whole corpus and overwrite results-align.md as a side effect
+// of importing.
+const isMain = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (isMain) fs.mkdirSync(OUT_DIR, { recursive: true });
 
 // ---------------------------------------------------------------------------
 // PDF content-stream tokenizer. Pure byte-level parsing: no pdf-lib parser
@@ -320,17 +330,35 @@ function concatBytes(list) {
 }
 
 /** Every Tj/TJ/'/" op on a page, in drawing order, descending into Form
- * XObjects on `Do`. Returns {ops, forms, notes}: forms = number of Form
- * XObjects descended into; notes = non-fatal observations (unresolved
- * XObjects, missing resources, recursion guards). */
+ * XObjects on `Do`. Returns {ops, forms, notes, pageBytes, formSources,
+ * pageFormInvocations}:
+ *   - forms = number of Form XObjects descended into (a form invoked twice
+ *     counts twice here, same as before - RED-18 align semantics unchanged).
+ *   - notes = non-fatal observations (unresolved XObjects, missing
+ *     resources, recursion guards).
+ *   - pageBytes = the page's own concatenated Contents bytes (RED-18: the
+ *     splice target for page-level ops).
+ *   - formSources = Map<xobjStreamObject, {formId, bytes, dict, resources}>,
+ *     one entry per DISTINCT Form XObject stream object descended into
+ *     (RED-18: the splice target for ops tagged `source.kind === 'form'`).
+ *   - pageFormInvocations = [{name, xobj}], the page's own top-level `Do`
+ *     calls that resolved to a Form XObject (RED-18: what a form-editing
+ *     caller repoints after copying an edited form).
+ * Each op now also carries `source`: `{ kind: 'page' }` or
+ * `{ kind: 'form', formId, depth }` (RED-18; align.mjs's own report never
+ * reads it, so this is purely additive - see results-align.md, unchanged). */
 function rawShowOps(node) {
   const ops = [];
   const notes = [];
   let forms = 0;
   const seenRefs = new Set();
   const state = { font: null };
+  const pageBytes = pageContentBytes(node);
+  const formSources = new Map();
+  const pageFormInvocations = [];
+  let nextFormId = 0;
 
-  function run(bytes, resources, depth) {
+  function run(bytes, resources, depth, source) {
     if (depth > 15) { notes.push('form recursion depth exceeded (15); stopped descending'); return; }
     const toks = new Tokenizer(bytes).readOperators();
     const fontStack = [];
@@ -358,11 +386,16 @@ function rawShowOps(node) {
               const key = xobj; // pdf-lib returns the same object instance per ref
               if (seenRefs.has(key)) { notes.push(`Do /${n.v}: skipped a cyclic form reference`); break; }
               seenRefs.add(key);
-              const formResources = xobj.dict.lookupMaybe(PDFName.of('Resources'), PDFDict) ?? resources;
-              const formBytes = decodeStreamBytes(xobj);
+              if (depth === 0) pageFormInvocations.push({ name: n.v, xobj });
+              let formEntry = formSources.get(key);
+              if (!formEntry) {
+                const formResources = xobj.dict.lookupMaybe(PDFName.of('Resources'), PDFDict) ?? resources;
+                formEntry = { formId: nextFormId++, bytes: decodeStreamBytes(xobj), dict: xobj.dict, resources: formResources, xobj };
+                formSources.set(key, formEntry);
+              }
               const saved = state.font;
               forms++;
-              run(formBytes, formResources, depth + 1);
+              run(formEntry.bytes, formEntry.resources, depth + 1, { kind: 'form', formId: formEntry.formId, depth: depth + 1 });
               state.font = saved;
               seenRefs.delete(key);
             }
@@ -377,7 +410,7 @@ function rawShowOps(node) {
           const combined = concatBytes(pieces);
           const cls = classifyFont(state.font);
           const decoded = decodeCodes(combined, cls);
-          ops.push({ op: o.op, start: o.start, end: o.end, byteLen: combined.length, cls, ...decoded });
+          ops.push({ op: o.op, start: o.start, end: o.end, byteLen: combined.length, cls, source, ...decoded });
           break;
         }
         default: break;
@@ -386,8 +419,8 @@ function rawShowOps(node) {
   }
 
   const resources = node.Resources() ?? null;
-  run(pageContentBytes(node), resources, 0);
-  return { ops, forms, notes };
+  run(pageBytes, resources, 0, { kind: 'page' });
+  return { ops, forms, notes, pageBytes, formSources, pageFormInvocations };
 }
 
 // ---------------------------------------------------------------------------
@@ -430,9 +463,32 @@ function align(rawOps, pdfjsOps) {
   return { aligned: true, firstMismatch: null };
 }
 
+// RED-18 (remove-text.mjs): the pieces a caller needs to build its own
+// per-glyph splice on top of this alignment - the tokenizer, the raw/pdf.js
+// op readers and the alignment check itself, plus the byte- and
+// font-resolution helpers `rawShowOps` already had to build to do its own
+// job. Exporting these changes nothing about what running this file
+// directly prints or writes (guarded below by `isMain`).
+export {
+  Tokenizer,
+  rawShowOps,
+  pdfjsShowOps,
+  align,
+  pageContentBytes,
+  decodeStreamBytes,
+  classifyFont,
+  decodeCodes,
+  resolveFont,
+  resolveExtGStateFont,
+  resolveXObject,
+  concatBytes,
+};
+
 // ---------------------------------------------------------------------------
 // Run over the whole corpus.
 // ---------------------------------------------------------------------------
+
+if (isMain) {
 
 const files = fs.readdirSync(CORPUS_DIR).filter((f) => f.endsWith('.pdf')).sort();
 const fileResults = [];
@@ -530,3 +586,5 @@ fs.writeFileSync(path.join(OUT_DIR, 'summary.json'), JSON.stringify({ totalFiles
 fs.writeFileSync(path.join(ROOT, 'spikes/red-18/results-align.md'), summary.join('\n') + lines.join('\n') + '\n');
 console.log(summary.join('\n'));
 console.log(lines.join('\n'));
+
+} // isMain
