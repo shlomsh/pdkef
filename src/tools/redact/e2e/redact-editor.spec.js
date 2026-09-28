@@ -865,7 +865,8 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
 
     const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)) }).promise;
+    const wasmUrl = `${new URL('../../../../node_modules/pdfjs-dist/wasm/', import.meta.url).href}`;
+    const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)), wasmUrl }).promise;
     const content = await (await saved.getPage(1)).getTextContent();
     const words = content.items.map((item) => item.str).join(' ').split(/\s+/).filter(Boolean);
     expect(words).toEqual(['LEFT', 'RIGHT']);
