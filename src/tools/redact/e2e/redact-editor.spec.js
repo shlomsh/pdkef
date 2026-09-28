@@ -333,7 +333,8 @@ test.describe('Redact editor browser guardrails', () => {
       // cqh resolves against the container's content box, inside its 1px border.
       const surfaceHeight = await blur.locator('.redact-surface').evaluate((el) => el.clientHeight);
 
-      expect(await readBlurPx()).toBeCloseTo(0.5 * surfaceHeight, 0);
+      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), the pre-levels blur.
+      expect(await readBlurPx()).toBeCloseTo(0.4 * surfaceHeight, 0);
       await toolbar.locator('[data-editor-blur-strength-trigger]').click();
       await page.locator('[data-editor-blur-strength="light"]').click();
       expect(await readBlurPx()).toBeCloseTo(0.3 * surfaceHeight, 0);
@@ -897,6 +898,50 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const words = content.items.map((item) => item.str).join(' ').split(/\s+/).filter(Boolean);
     expect(words).toEqual(['LEFT', 'RIGHT']);
     await expect(page.getByText(/saved as a picture only/)).toHaveCount(0);
+  });
+
+  // RED-17: the saved-file check's done-state flow, in a real browser (pdf.js
+  // reading the saved bytes back). "SECRET" appears twice; only the first is
+  // boxed, so the check should still surface the second one under the same
+  // term, offer "Cover it", and clear itself once that cover makes the export
+  // stale again.
+  test('the saved-file check finds an uncovered repeat of a boxed word and Cover it covers it', async ({ page }) => {
+    const doc = await PDFDocument.create();
+    const pdfPage = doc.addPage([612, 792]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    const size = 18;
+    const baseline1 = 700;
+    const baseline2 = 660;
+    pdfPage.drawText('SECRET alpha', { x: 72, y: baseline1, size, font });
+    pdfPage.drawText('bravo SECRET charlie', { x: 72, y: baseline2, size, font });
+    const x0 = 72 - 2;
+    const x1 = 72 + font.widthOfTextAtSize('SECRET', size) + 1;
+    await openRedactTool(page, Buffer.from(await doc.save()));
+
+    await drawRedaction(
+      page,
+      'Blackout',
+      { x: x0 / 612, y: (792 - baseline1 - size) / 792 },
+      { x: x1 / 612, y: (792 - baseline1 + 0.2 * size) / 792 },
+    );
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
+
+    await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: 'Download', exact: true }).click(),
+    ]);
+
+    const check = page.locator('[data-saved-file-check]');
+    await expect(check).toBeVisible();
+    const secretTerm = check.locator('[data-check-term="SECRET"]');
+    await expect(secretTerm).toContainText('Page 1: still visible in the picture.');
+    const coverButton = secretTerm.getByRole('button', { name: 'Cover it' });
+    await expect(coverButton).toBeVisible();
+
+    await coverButton.click();
+
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
+    await expect(page.locator('[data-saved-file-check]')).toHaveCount(0);
   });
 
   // A reviewer found that a Blur box overlapping an earlier Blackout pasted

@@ -22,6 +22,16 @@ const countChars: MeasureText = (text) => text.length;
 const DESCENT_FACTOR = 0.25;
 const ASCENT_FACTOR = 1.0;
 
+/** `cover` is the generous box a redaction gets. `core` is the letters'
+ * own extent with no padding (the glyph-core band RED-12 uses, -0.15 to 0.7
+ * em), for asking whether an existing box already hides a match: a tightly
+ * drawn box hides the letters without containing their padding. */
+export type MatchBoxShape = 'cover' | 'core';
+const SHAPES: Record<MatchBoxShape, { pad: number; cutEm: number; descent: number; ascent: number }> = {
+  cover: { pad: PAD_PT, cutEm: CUT_PAD_EM, descent: DESCENT_FACTOR, ascent: ASCENT_FACTOR },
+  core: { pad: 0, cutEm: 0, descent: 0.15, ascent: 0.7 },
+};
+
 interface PointBox {
   x0: number;
   y0: number;
@@ -36,12 +46,13 @@ function normalize(x: number, y: number): { x: number; y: number } {
 }
 
 /** The axis-aligned PDF-point box a character slice of one item covers. */
-function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: number, measure: MeasureText): PointBox {
+function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: number, measure: MeasureText, shape: MatchBoxShape): PointBox {
+  const { cutEm, descent: descentEm, ascent: ascentEm } = SHAPES[shape];
   const len = str.length;
   const whole = measure(str);
   const at = (i: number) => (i <= 0 ? 0 : i >= len || whole <= 0 ? 1 : measure(str.slice(0, i)) / whole);
   // Cut edges widen by CUT_PAD_EM, as a fraction of the item's advance.
-  const cut = item.width > 0 ? (CUT_PAD_EM * item.height) / item.width : 0;
+  const cut = item.width > 0 ? (cutEm * item.height) / item.width : 0;
   const fa = fromChar > 0 ? Math.max(0, at(fromChar) - cut) : 0;
   const fb = toChar < len ? Math.min(1, at(toChar) + cut) : 1;
   const [a, b, c, d, e, f] = item.transform;
@@ -59,8 +70,8 @@ function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: numbe
   const p0 = { x: e + u.x * item.width * f0, y: f + u.y * item.width * f0 };
   const p1 = { x: e + u.x * item.width * f1, y: f + u.y * item.width * f1 };
 
-  const descent = DESCENT_FACTOR * item.height;
-  const ascent = ASCENT_FACTOR * item.height;
+  const descent = descentEm * item.height;
+  const ascent = ascentEm * item.height;
 
   const corners = [
     { x: p0.x - n.x * descent, y: p0.y - n.y * descent },
@@ -74,8 +85,8 @@ function sliceBox(item: PlacedItem, str: string, fromChar: number, toChar: numbe
   return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
 }
 
-function padBox(box: PointBox): PointBox {
-  return { x0: box.x0 - PAD_PT, y0: box.y0 - PAD_PT, x1: box.x1 + PAD_PT, y1: box.y1 + PAD_PT };
+function padBox(box: PointBox, pad: number): PointBox {
+  return { x0: box.x0 - pad, y0: box.y0 - pad, x1: box.x1 + pad, y1: box.y1 + pad };
 }
 
 function unionBox(a: PointBox, b: PointBox): PointBox {
@@ -109,6 +120,7 @@ export function matchBoxes(
   range: TextRange,
   geometry: PageGeometry,
   measure: MeasureText = countChars,
+  shape: MatchBoxShape = 'cover',
 ): PercentBox[] {
   const overlapping = page.items.filter((item) => item.end > range.start && item.start < range.end);
   if (overlapping.length === 0) return [];
@@ -116,7 +128,7 @@ export function matchBoxes(
   const paddedBoxes = overlapping.map((item) => {
     const from = Math.max(0, range.start - item.start);
     const to = Math.min(item.end - item.start, range.end - item.start);
-    return padBox(sliceBox(item, page.text.slice(item.start, item.end), from, to, measure));
+    return padBox(sliceBox(item, page.text.slice(item.start, item.end), from, to, measure, shape), SHAPES[shape].pad);
   });
 
   const mergedBoxes: PointBox[] = [paddedBoxes[0]];

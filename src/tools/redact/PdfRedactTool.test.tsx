@@ -984,7 +984,9 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.5 * 100cqh))');
+      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so undo restores the
+      // box's original, unpicked strength to that, not 'light'.
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
 
       // Redo brings the picked strength back.
       await act(async () => {
@@ -2055,12 +2057,14 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(2);
 
       const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      // RED-24: the page heights a blur box sizes itself from arrive async.
+      await act(async () => {});
       const before = filterOf(boxes()[0]);
       expect(filterOf(boxes()[1])).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'strong' is DEFAULT_BLUR_STRENGTH (blurStrength.ts), so 'light' is
-      // the choice that actually differs from what a fresh blur box starts with.
+      // 'medium' is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
+      // 'light' is the choice that actually differs from what a fresh blur box starts with.
       await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
@@ -2120,7 +2124,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(copyOnPage2)).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'strong' is DEFAULT_BLUR_STRENGTH, so 'light' actually differs.
+      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so 'light' actually differs.
       await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);

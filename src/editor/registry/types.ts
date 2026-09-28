@@ -13,6 +13,10 @@ export interface NodeRenderContext<T extends EditorElement = EditorElement> {
   onChange: (changes: Partial<T>) => void;
   onSelect: (event: Event) => void;
   pageWidthPoints: number;
+  /** RED-24: the page's displayed height in points, so a blur box can size
+   * its on-screen blur from its own height in points like the export does.
+   * Optional; without it a blur draws its plain fraction. */
+  pageHeightPoints?: number;
   renderTarget?: 'sign' | 'redact';
   /** LOC-16 stage 2-5: threaded to TextNode (placeholders) and, via every
    * Sign node, to ElementResizers (resize-handle titles). Optional and

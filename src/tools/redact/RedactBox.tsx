@@ -63,6 +63,7 @@ export default function RedactBox({
   onRemoveGroup,
   findSetSize,
   onRemoveFindSet,
+  pageHeightPoints,
 }: {
   el: any;
   isSelected: boolean;
@@ -87,6 +88,8 @@ export default function RedactBox({
   /** RED-11: how many boxes are in this box's find set, `el` included. */
   findSetSize?: number;
   onRemoveFindSet?: () => void;
+  /** RED-24: the page's height in points, for the blur box's on-screen radius. */
+  pageHeightPoints?: number;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const { refs, floatingStyles, placement, update } = useFloating({
@@ -160,6 +163,7 @@ export default function RedactBox({
     onChange: () => {},
     onSelect: () => {},
     pageWidthPoints: 0,
+    pageHeightPoints,
     renderTarget: 'redact',
   });
 

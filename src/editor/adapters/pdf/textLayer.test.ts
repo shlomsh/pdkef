@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry, composeAffineTransforms, type PageGeometry } from '../../geometry/coords.ts';
-import { planTextLayer, groupRuns, textLayerReadsBack, type PercentBox, type TextLayerPlan } from './textLayer.ts';
+import { planTextLayer, groupRuns, textLayerReadsBack, wordsUnderBoxes, type PercentBox, type TextLayerPlan } from './textLayer.ts';
 import type { PageGlyph } from './pageGlyphs.ts';
 
 const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -144,6 +144,61 @@ describe('planTextLayer', () => {
     const lowerRun = plan.runs.find((run) => run.text === 'lower');
     expect(lowerRun).toBeDefined();
     expect(plan.runs.some((run) => run.text.includes('upper'))).toBe(false);
+  });
+});
+
+describe('wordsUnderBoxes', () => {
+  it('gives the box over the middle Latin word only that word', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    // Same box as the "drops exactly the middle word" planTextLayer case.
+    const boxes = [box(18, 37, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['bbb']);
+  });
+
+  it('gives a box spanning two words both, in reading order', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    // Wide enough to reach both "bbb" and "ccc"'s cores.
+    const boxes = [box(18, 60, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['bbb', 'ccc']);
+  });
+
+  it('reads a Hebrew word in logical order although its glyphs sit in visual (reversed) stream order', () => {
+    // Same fixture as "keeps a right-to-left line in its own content order":
+    // the pen advances left to right but the characters are already the
+    // visual (reversed) order, so the word's stream order is 'מולש', logical
+    // (reversed) order 'שלומ'.
+    const glyphs = makeLine('מולש');
+    const boxes = [box(0, 100, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['שלומ']);
+  });
+
+  it('reads a Hebrew line in the same logical order whichever order its bytes are stored in', () => {
+    // "עולם שלום" drawn left to right as the reader sees it: stored in visual
+    // order (pen moving right), and stored in logical order (pen moving left
+    // from the right edge). A box over both words reads the same either way.
+    const visual = makeLine('םולש םלוע', { x: 0 });
+    const logical = makeLine('עולם שלום', { x: 40, dir: -1 });
+    const boxes = [box(0, 100, 390, 405)];
+    expect(wordsUnderBoxes(visual, geometry, boxes)[0]).toEqual(['עולם', 'שלום']);
+    expect(wordsUnderBoxes(logical, geometry, boxes)[0]).toEqual(['עולם', 'שלום']);
+  });
+
+  it('keeps Latin words in order on a line that also has a Hebrew word', () => {
+    // "Approved by John Smith, מנהל", the Hebrew word stored in visual order.
+    // 5 units per glyph: "John " spans 60-85 and "Smith, " 85-120.
+    const glyphs = makeLine('Approved by John Smith, להנמ');
+    const [words] = wordsUnderBoxes(glyphs, geometry, [box(62, 112, 390, 405)]);
+    expect(words).toEqual(['John', 'Smith,']);
+  });
+
+  it('gives one entry per box, empty for a box that reaches no word', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];
+    const words = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual([['bbb'], []]);
   });
 });
 

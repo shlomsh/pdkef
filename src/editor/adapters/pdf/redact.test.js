@@ -211,13 +211,27 @@ describe('redactPdf library integration with real fixtures', () => {
   // full-height (100%) box is 500px tall and a half-height (50%) box is
   // 250px tall. blurStrength.ts's factors (light 0.3, medium 0.4, strong 0.5)
   // apply to the box's own height, not the page's.
-  it('blurs at strong (half the box height) when a blur box carries no strength', async () => {
+  it('blurs at medium (RED-24 default) when a blur box carries no strength', async () => {
     const file = getFixtureFile('num-5.pdf');
     await redactPdf(file, [
       { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
     ]);
 
-    expect(appliedFilters).toEqual(['blur(250px)']);
+    expect(appliedFilters).toEqual(['blur(200px)']);
+  });
+
+  // RED-24: radius = factor x max(box height, 24pt). num-5.pdf's pages are
+  // 500x500px at the export's 2.5x scale, i.e. 200x200pt, so a 5%-tall box is
+  // 10pt high - under the 24pt floor. Medium's floor is exactly the old
+  // pre-SITE-41 fixed blur (24px at this same 2.5x scale).
+  it('floors a small box\'s radius at the old pre-SITE-41 fixed blur', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 'medium', pageIndex: 3, left: 0, top: 0, width: 100, height: 5 },
+    ]);
+
+    expect(appliedFilters).toHaveLength(1);
+    expect(appliedFilters[0]).toMatch(/^blur\(24(\.\d+)?px\)$/);
   });
 
   it('blurs at the box\'s own strength, relative to its own height', async () => {
