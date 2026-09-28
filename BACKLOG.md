@@ -564,6 +564,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open |
+| MEM-11 | P2 | [MEM-11](backlog/tasks/MEM-11.md) · Surface the 28-day / 6-file retention limit in the UI, not just the FAQ |
 
 ### In progress
 
