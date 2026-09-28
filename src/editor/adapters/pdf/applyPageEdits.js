@@ -18,9 +18,7 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
  * @param {Array} elements Redact tool elements; `type: 'delete'` ones carry
  *   `start`/`end` from `pdfObjects.js`, everything else is a redaction box
  * @param {(progress: number) => void} [onProgress]
- * @returns {Promise<{ blob: Blob, pictureOnlyPages: number[] }>} The processed
- *   PDF, and the zero-based pages `redactPdf` saved as a picture alone
- *   although they had text (empty when no box ran, or none needed it).
+ * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function applyPageEdits(file, elements, onProgress) {
   const deletions = elements.filter((el) => el.type === 'delete');
@@ -37,7 +35,7 @@ export async function applyPageEdits(file, elements, onProgress) {
     hasBoxes ? (p) => onProgress?.(p * 0.4) : onProgress,
   );
 
-  if (!hasBoxes) return { blob: deleted, pictureOnlyPages: [] };
+  if (!hasBoxes) return { blob: deleted };
 
   return redactPdf(deleted, boxes, (p) => onProgress?.(0.4 + p * 0.6));
 }

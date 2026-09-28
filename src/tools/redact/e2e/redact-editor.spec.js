@@ -863,11 +863,11 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     expect(text).not.toContain('SECRET');
   });
 
-  // RED-12: the real browser path (pdf.js rendering on a real canvas, its
-  // worker, the operator-list read) that redact.test.js can only run against
-  // a stubbed canvas. A blackout over the middle word: the saved page keeps
-  // the words either side as invisible text, in order, and not the boxed one.
-  test('download after a blackout over a middle word keeps the words either side as text, and not the boxed one', async ({ page }) => {
+  // The real browser path (pdf.js rendering on a real canvas, its worker,
+  // the operator-list read) that redact.test.js can only run against a
+  // stubbed canvas. A covered page is saved as one picture with no text
+  // layer at all (2026-09-28), whether or not a box lands on any of its text.
+  test('download after a blackout over a middle word saves the covered page with no text at all', async ({ page }) => {
     const doc = await PDFDocument.create();
     const pdfPage = doc.addPage([612, 792]);
     const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -895,9 +895,7 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const wasmUrl = `${new URL('../../../../node_modules/pdfjs-dist/wasm/', import.meta.url).href}`;
     const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)), wasmUrl }).promise;
     const content = await (await saved.getPage(1)).getTextContent();
-    const words = content.items.map((item) => item.str).join(' ').split(/\s+/).filter(Boolean);
-    expect(words).toEqual(['LEFT', 'RIGHT']);
-    await expect(page.getByText(/saved as a picture only/)).toHaveCount(0);
+    expect(content.items).toEqual([]);
   });
 
   // RED-17: the saved-file check's done-state flow, in a real browser (pdf.js

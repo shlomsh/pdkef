@@ -89,7 +89,6 @@ vi.mock('pdfjs-dist', () => {
 vi.mock('../../editor/adapters/pdf/redact.js', () => ({
   redactPdf: vi.fn(async () => ({
     blob: new Blob(['redacted'], { type: 'application/pdf' }),
-    pictureOnlyPages: [] as number[],
   }))
 }));
 
@@ -227,7 +226,7 @@ describe('PdfRedactTool UI flow', () => {
   });
 
   it('keeps the same PDF page mounted while redacting', async () => {
-    let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
+    let finishRedaction!: (value: { blob: Blob }) => void;
     mockedRedactPdf.mockImplementationOnce(() => new Promise((resolve) => {
       finishRedaction = resolve;
     }));
@@ -255,75 +254,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
 
       await act(async () => {
-        finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+        finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
       });
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
-  });
-
-  // RED-09: a page whose invisible text layer failed export is still a
-  // successful export - the notice is quiet, in the done state and the
-  // announcement, not an error.
-  it('shows the picture-only notice when the export reports a picture-only page', async () => {
-    mockedRedactPdf.mockResolvedValueOnce({
-      blob: new Blob(['redacted'], { type: 'application/pdf' }),
-      pictureOnlyPages: [2],
-    });
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-
-      await act(async () => {
-        downloadButton.click();
-      });
-      await settleUntil('the picture-only notice to render', () => container.textContent.includes("Page 3 was saved as a picture only, so its text can't be selected."));
-
-      const announcementRegion = required(
-        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
-        'sr-only announcement region',
-      );
-      expect(announcementRegion.textContent).toContain("Page 3 was saved as a picture only, so its text can't be selected.");
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
-  });
-
-  it('renders no picture-only notice when no page needed one', async () => {
-    mockedRedactPdf.mockResolvedValueOnce({
-      blob: new Blob(['redacted'], { type: 'application/pdf' }),
-      pictureOnlyPages: [],
-    });
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-
-      await act(async () => {
-        downloadButton.click();
-      });
-      const announcementRegion = required(
-        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
-        'sr-only announcement region',
-      );
-      await settleUntil('the download announcement', () => announcementRegion.textContent.includes('PDF redacted successfully. Download started.'));
-
-      expect(container.textContent).not.toContain('was saved as a picture');
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -340,7 +272,7 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
-      mockedRedactPdf.mockResolvedValueOnce({ blob: new Blob([fixtureBytes], { type: 'application/pdf' }), pictureOnlyPages: [] });
+      mockedRedactPdf.mockResolvedValueOnce({ blob: new Blob([fixtureBytes], { type: 'application/pdf' }) });
 
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -2559,8 +2491,8 @@ describe('PdfRedactTool UI flow', () => {
   // that reason.
   describe('an edit that lands mid-export (DEBT-18)', () => {
     it('drops an export whose boxes a keyboard redo has already changed', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2600,7 +2532,7 @@ describe('PdfRedactTool UI flow', () => {
 
         createObjectURL.mockClear();
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
 
@@ -2627,8 +2559,8 @@ describe('PdfRedactTool UI flow', () => {
     // tell the person: a file still being read is loading, it has no edits
     // that could have changed mid-prepare.
     it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2702,7 +2634,7 @@ describe('PdfRedactTool UI flow', () => {
         // nothing when it finally resolves.
         createObjectURL.mockClear();
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
         expect(createObjectURL).not.toHaveBeenCalled();
@@ -2718,8 +2650,8 @@ describe('PdfRedactTool UI flow', () => {
     // tool the person has navigated away from. Sign's unmount does the same
     // with activeExportRequestRef.
     it('does not download an export that finishes after the editor unmounts', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2743,7 +2675,7 @@ describe('PdfRedactTool UI flow', () => {
         createObjectURL.mockClear();
 
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
 
