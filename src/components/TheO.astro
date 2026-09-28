@@ -222,37 +222,22 @@ const stars = [
     renderNetwork();
   }
 
-  // TEMPORARY (?theo-debug=1): a real-device readout for the ring/words desync
-  // reported on iPhone Safari and Chrome, not reproducible in Chromium or
-  // desktop WebKit. Remove this block once that's diagnosed - it is not part
-  // of the design.
-  if (theO && new URLSearchParams(location.search).has('theo-debug')) {
-    const box = document.createElement('pre');
-    box.style.cssText = 'position:fixed;top:0;left:0;z-index:999999;margin:0;padding:6px 8px;font:10px/1.4 monospace;background:rgba(0,0,0,0.82);color:#0f0;max-width:100vw;white-space:pre-wrap;pointer-events:none;';
-    document.body.appendChild(box);
-    const stage = theO.querySelector<HTMLElement>('.o-stage');
-    const beats = [1, 2, 3, 4, 5].map((n) => theO.querySelector<HTMLElement>(`.b${n}`));
-    const render = () => {
-      const lit = stage ? getComputedStyle(stage).getPropertyValue('--o-lit').trim() : '?';
-      const litN = Number(lit) || 0;
-      const activeBeat = beats[Math.max(0, litN - 1)] ?? beats[0];
-      const ring = activeBeat?.querySelector<HTMLElement>('.o-ring');
-      const art = activeBeat?.querySelector<HTMLElement>('.o-art');
-      const ringRect = ring?.getBoundingClientRect();
-      const ringCs = ring && getComputedStyle(ring);
-      const artCs = art && getComputedStyle(art);
-      const vv = window.visualViewport;
-      box.textContent = [
-        `lit=${lit} into-o=${stage && getComputedStyle(stage).getPropertyValue('--o-into-o').trim()} into-window=${stage && getComputedStyle(stage).getPropertyValue('--o-into-window').trim()}`,
-        `ring rect: w=${ringRect?.width.toFixed(1)} h=${ringRect?.height.toFixed(1)} top=${ringRect?.top.toFixed(1)} left=${ringRect?.left.toFixed(1)}`,
-        `ring scale=${ringCs?.scale} translate=${ringCs?.translate}`,
-        `--R=${artCs?.getPropertyValue('--R').trim()} --zx=${artCs?.getPropertyValue('--zx').trim()}`,
-        `innerHeight=${window.innerHeight} visualViewport.height=${vv?.height} dpr=${window.devicePixelRatio} scrollY=${window.scrollY.toFixed(0)}`,
-      ].join('\n');
+  // The two length ratios theO.css takes with tan(atan2()) (--k4, the O's
+  // scale; --f-land, the landed plane's), measured from layout instead: iOS
+  // WebKit returned ~5x the real --k4 there. The ring's box is --R wide, the
+  // Open source word is set in --f4, the last line in --f6 and the flight
+  // box is --B wide, and none of those depend on either ratio.
+  const ring = theO?.querySelector<HTMLElement>('.o-ring');
+  const word = theO?.querySelector<HTMLElement>('.b4 .o-word');
+  const last = theO?.querySelector<HTMLElement>('.o-last');
+  const flight = theO?.querySelector<HTMLElement>('.o-flight');
+  if (theO && ring && word && last && flight) {
+    const px = (el: Element) => parseFloat(getComputedStyle(el).fontSize);
+    const measure = () => {
+      if (ring.offsetWidth) theO.style.setProperty('--o-k4', String(px(word) / ring.offsetWidth));
+      if (flight.offsetWidth) theO.style.setProperty('--o-f-land', String((px(last) * 0.62) / flight.offsetWidth));
     };
-    window.addEventListener('scroll', render, { passive: true });
-    window.addEventListener('resize', render);
-    window.visualViewport?.addEventListener('resize', render);
-    render();
+    new ResizeObserver(measure).observe(ring.closest('.o-beat')!);
+    measure();
   }
 </script>
