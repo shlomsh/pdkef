@@ -99,7 +99,7 @@ minimizes the work, ages badly, and misses the actual reason the tool exists.
 ### Brand personality
 
 - **Tone:** warm, personal, modest. A builder sharing something useful, not a company selling a product.
-- **Three words:** generous, honest, capable.
+- **Three words:** generous, clear, capable.
 - **Emotional goal:** "Oh, I can just do this, for free, and my files stay with me." Relief and a small
   delight, not a security lecture.
 - **Founder voice is an asset.** First person ("I built this because...") is welcome and
@@ -185,8 +185,8 @@ Four standing rules, each learned the expensive way (evidence in the doc's secti
 - **Verify any external audit against `src/data/tools.js` and `src/lib/` before accepting its gap
   list.** The report that started the epic proposed building target-size compression that had
   already shipped.
-- **No template-swapped doorway pages.** A new content page must teach something verifiable and
-  disclose the awkward fact; three pages differing by a number are rejected on sight. New long-tail
+- **No template-swapped doorway pages.** A new content page must teach something verifiable, every claim
+  checked against the code; three pages differing by a number are rejected on sight. New long-tail
   pages go through the content-pages collection, never new `.astro` files.
 - **A copy change is not done until the page is recrawled.** "Indexed" is not "current": Google served
   a two-week-old title for `/redact/` while the live page had the new one. A copy ticket ends with an

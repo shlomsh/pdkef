@@ -150,8 +150,9 @@ brackets carries the evidence; do not relearn it.
 
 ## Voice (for any user-facing text)
 
-Warm, modest, honest: a person sharing something useful, not a company selling a product. First person
-is welcome. Plain facts over intensifiers ("Runs on your device. Free. Open source."). Privacy at human
+Warm, modest, positive: a person sharing something useful, not a company selling a product. First person
+is welcome. Say what it does; no "limits" or "honest caveats" sections, no self-deprecating disclaimers,
+and never a claim that isn't verified against the code. Plain facts over intensifiers ("Runs on your device. Free. Open source."). Privacy at human
 altitude, never security jargon. Explain, don't compete: no competitor names, no us-vs-them. Free
 because it should be, not as a funnel. **No em dashes** (use spaced hyphens, commas, or split the
 sentence). Never frame PDkef around how little time it took to build. The full voice guide, origin

@@ -90,7 +90,7 @@ const hebrewGuideCards: Record<string, CardCopy> = {
   },
   'remove-camscanner-watermark-from-pdf': {
     title: 'הסרת סימן המים של CamScanner',
-    description: 'הורידו את השורה "Scanned with CamScanner" מסריקה שלכם, בטלפון או במחשב.',
+    description: 'הסירו את השורה "Scanned with CamScanner" בנגיעה, בטלפון או במחשב.',
   },
   'pdf-wont-compress-to-100kb': {
     title: 'למה 100KB לא מספיק',

@@ -1,6 +1,6 @@
 ---
 id: "SEO-38"
-title: "One honest guide: remove the \"Scanned with CamScanner\" footer from your own PDF"
+title: "One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF"
 status: "in_progress"
 priority: "P2"
 epic: "english-base"
@@ -9,7 +9,7 @@ depends_on: ["RED-27"]
 legacy_state: "Open"
 ---
 
-# SEO-38 · One honest guide: remove the "Scanned with CamScanner" footer from your own PDF
+# SEO-38 · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
 
 ## Why
 
@@ -34,8 +34,7 @@ us-vs-them).
    footer as text plus a link annotation) and proves the exported file has no "CamScanner" text and no
    footer link after Delete or Whiteout. Then the same by hand on a real CamScanner PDF.
 2. **The guide** in the content-pages collection, hub `redact`: Delete first, Whiteout when Delete
-   selects the whole scan, phone and computer, the awkward facts (a white patch on a grey scan, one
-   page at a time, your own documents).
+   selects the whole scan, phone and computer, with sketches.
 3. **One `/redact/` FAQ entry** linking the guide.
 
 Out of scope: a "same spot on every page" action (its own ticket if the page earns traffic).

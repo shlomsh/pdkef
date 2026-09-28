@@ -229,7 +229,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 | SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 | SEO-37 | P2 | [SEO-37](backlog/tasks/SEO-37.md) · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI |
-| SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the \"Scanned with CamScanner\" footer from your own PDF |
+| SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF |
 
 
 ## New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)
