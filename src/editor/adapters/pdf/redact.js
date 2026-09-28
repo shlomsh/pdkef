@@ -163,9 +163,9 @@ async function pagesFailingReadBack(pdfjs, bytes, covered, pictureOnly) {
   const failed = [];
   const check = [...covered.entries()].filter(([i, page]) => page.plan && page.plan.runs.length > 0 && !pictureOnly.has(i));
   if (check.length === 0) return failed;
-  let savedDoc = null;
+  const loadingTask = pdfjs.getDocument({ data: bytes.slice(), wasmUrl: PDFJS_WASM_URL });
   try {
-    savedDoc = await pdfjs.getDocument({ data: bytes.slice(), wasmUrl: PDFJS_WASM_URL }).promise;
+    const savedDoc = await loadingTask.promise;
     for (const [i, page] of check) {
       const glyphs = await readGlyphs(pdfjs, await savedDoc.getPage(i + 1));
       if (!glyphs || !textLayerReadsBack(page.plan, glyphs, page.geometry, page.boxes)) failed.push(i);
@@ -174,7 +174,7 @@ async function pagesFailingReadBack(pdfjs, bytes, covered, pictureOnly) {
     console.error('Redact could not read the saved file back', error);
     return check.map(([i]) => i);
   } finally {
-    await savedDoc?.destroy();
+    await loadingTask.destroy();
   }
   return failed;
 }
@@ -230,7 +230,7 @@ export async function redactPdf(file, elements, onProgress) {
     }
     onProgress?.((i + 1) / pageCount);
   }
-  await pdfjsDoc.destroy();
+  await loadingTask.destroy();
 
   let redactedBytes = await assemble(sourceDoc, covered, pictureOnly);
   const failed = await pagesFailingReadBack(pdfjs, redactedBytes, covered, pictureOnly);
