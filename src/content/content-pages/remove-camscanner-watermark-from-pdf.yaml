@@ -115,6 +115,11 @@ faq:
       Because on that file the footer is painted into the scanned picture rather than added as its
       own element, so the only thing Delete can remove is the whole picture. Use Whiteout for that
       file.
+  - question: 'Does the hidden CamScanner link go too?'
+    answer: >-
+      Yes. The footer is also an invisible link to CamScanner's website, sitting on the same corner.
+      Delete removes that link together with the footer, and Whiteout drops it with the rest of the
+      covered page. The downloaded file also keeps no title, author or scan time from the original.
   - question: 'Is my scan uploaded anywhere?'
     answer: >-
       No. PDkef processes the PDF in your browser on your own device. There is no upload, no account

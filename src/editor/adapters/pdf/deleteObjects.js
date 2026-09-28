@@ -1,5 +1,6 @@
-import { PDFDocument, PDFName } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
+import { linksOverDeleted } from './linksOverDeleted.js';
 
 /**
  * Removes chosen drawing operations from a PDF by rewriting the affected page
@@ -23,7 +24,10 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
       ? file
       : new Uint8Array(file instanceof ArrayBuffer ? file : await file.arrayBuffer());
 
-  const doc = await PDFDocument.load(bytes);
+  // updateMetadata: false so pdf-lib does not itself stamp a new
+  // Producer/ModDate into the Info dict on save - clearDocumentDetails below
+  // wants Info to end up with nothing, not pdf-lib's own something.
+  const doc = await PDFDocument.load(bytes, { updateMetadata: false });
 
   const byPage = new Map();
   for (const deletion of deletions) {
@@ -33,12 +37,116 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
   const pageIndexes = [...byPage.keys()].sort((a, b) => a - b);
   for (const [step, pageIndex] of pageIndexes.entries()) {
-    rewritePageContent(doc, doc.getPage(pageIndex), byPage.get(pageIndex));
+    const page = doc.getPage(pageIndex);
+    const spans = byPage.get(pageIndex);
+
+    // Map each deletion to the bbox of the object it removes, read before
+    // the rewrite splices the content stream and its byte offsets stop
+    // matching `start`/`end`.
+    const { objects } = extractPageObjects(page, pageIndex);
+    const deletedBoxes = spans
+      .map((span) => objects.find((o) => o.start === span.start && o.end === span.end)?.bbox)
+      .filter(Boolean);
+
+    rewritePageContent(doc, page, spans);
+    removeLinksOverDeleted(doc, page, deletedBoxes);
+
     onProgress?.((step + 1) / pageIndexes.length);
   }
 
+  clearDocumentDetails(doc);
+
   const saved = await doc.save();
   return new Blob([saved], { type: 'application/pdf' });
+}
+
+/**
+ * Drops any `/Link` annotation on `page` that sat over one of the objects
+ * just deleted (RED-27: CamScanner's footer image and its Link to
+ * camscanner.com share the same rectangle). Never touches `/Widget` or any
+ * other annotation subtype.
+ *
+ * The removed annotation dict and its `/A` action dict are also deleted from
+ * the document's context when they are indirect objects: pdf-lib's `save`
+ * writes every object still registered there, so leaving them in would keep
+ * the tracking URI in the saved bytes even after the annotation reference is
+ * gone from `/Annots`.
+ *
+ * @param {PDFDocument} doc
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {Array<{x: number, y: number, width: number, height: number}>} deletedBoxes
+ */
+function removeLinksOverDeleted(doc, page, deletedBoxes) {
+  if (deletedBoxes.length === 0) return;
+
+  const context = doc.context;
+  const annotsRef = page.node.get(PDFName.of('Annots'));
+  const annots = context.lookup(annotsRef);
+  if (!(annots instanceof PDFArray)) return;
+
+  const links = []; // { index, rect, ref }
+  for (let index = 0; index < annots.size(); index += 1) {
+    const ref = annots.get(index);
+    const annot = context.lookup(ref);
+    if (!(annot instanceof PDFDict)) continue;
+    if (context.lookup(annot.get(PDFName.of('Subtype')))?.asString?.() !== '/Link') continue;
+    const rect = context.lookup(annot.get(PDFName.of('Rect')))?.asRectangle?.();
+    if (!rect) continue;
+    links.push({ index, rect: [rect.x, rect.y, rect.x + rect.width, rect.y + rect.height], ref, annot });
+  }
+  if (links.length === 0) return;
+
+  const dropped = linksOverDeleted(
+    links.map((link) => link.rect),
+    deletedBoxes,
+  );
+  if (dropped.length === 0) return;
+
+  const droppedIndexes = new Set(dropped.map((i) => links[i].index));
+  const survivors = [];
+  for (let index = 0; index < annots.size(); index += 1) {
+    if (!droppedIndexes.has(index)) survivors.push(annots.get(index));
+  }
+
+  if (survivors.length === 0) {
+    page.node.delete(PDFName.of('Annots'));
+  } else {
+    const newAnnots = context.obj(survivors);
+    page.node.set(PDFName.of('Annots'), newAnnots);
+  }
+
+  for (const dropIndex of dropped) {
+    const { ref, annot } = links[dropIndex];
+    const actionRef = annot.get(PDFName.of('A'));
+    if (actionRef instanceof PDFRef) context.delete(actionRef);
+    if (ref instanceof PDFRef) context.delete(ref);
+  }
+}
+
+/**
+ * Clears every detail of the source document from an exported Delete
+ * download: Info dict entries (title, author, subject, keywords, creator,
+ * producer, dates) and the catalog's XMP `/Metadata` stream. Redact's
+ * companion export already starts this clean because a page saved as a
+ * picture is a brand-new document with none of the original's details; a
+ * Delete download edits the original document in place, so it has to clear
+ * them itself to match (RED-27, found on a CamScanner scan whose Info still
+ * carried the app name, device and the exact scan time).
+ *
+ * @param {PDFDocument} doc
+ */
+export function clearDocumentDetails(doc) {
+  const info = doc.getInfoDict();
+  for (const key of ['Title', 'Author', 'Subject', 'Keywords', 'Creator', 'Producer', 'CreationDate', 'ModDate']) {
+    info.delete(PDFName.of(key));
+  }
+
+  const context = doc.context;
+  const metadataRef = doc.catalog.get(PDFName.of('Metadata'));
+  if (metadataRef !== undefined) {
+    doc.catalog.delete(PDFName.of('Metadata'));
+    if (metadataRef instanceof PDFRef) context.delete(metadataRef);
+  }
 }
 
 /**
