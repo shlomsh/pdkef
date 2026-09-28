@@ -127,28 +127,23 @@ complete.
   toolbar currently leaves visible. `100dvh` on `.o-beat`/`.o-stage` tracks the real viewport in both
   directions; the one cost is `--R` (fed by this container's `cqh`) doing a small correlated resize
   while the toolbar itself animates.
-- **Real iOS WebKit can bind a scroll-driven animation to the wrong effective range on an element
-  nested inside a `container-type: size` ancestor, even at a complete stop, not just mid-gesture** -
-  reported on a real iPhone (Safari and Chrome, same engine): the ring printed oversized and mid-morph
-  under already-lit "Open source" text, something Chromium cannot reproduce (reading the ring's computed
-  `scale`/`translate` back at every scroll position there shows it settling before `--o-lit` fires,
-  exactly as intended). A first hedge - widening the pause before words fade in (`PACE.beat`) - shipped
-  and the user reported the ring still stuck, which rules out "a little late" and points at "bound to a
-  different range entirely". The ring no longer binds `animation-timeline` to itself at all: `--o-lit`
-  is trustworthy because `.o-stage` (outside `.o-beat`'s `container-type: size`) drives it directly, so
-  two more animated numbers, `--o-into-o` and `--o-into-window` (0 -> 1 across the same two spans the old
-  `o-path`/`o-shape` keyframes covered), now run on `.o-stage` too. Every beat's ring reads them back as
-  plain inherited custom properties and blends its own `translate`/`scale` with `calc()` - containment
-  does not isolate custom-property inheritance, only the timeline binding was ever the problem. Not yet
-  confirmed against a real device, since this container has none to test against; verified in Chromium
-  only, where the ring already worked before this change.
+- **iOS WebKit got `tan(atan2(length, length))` wrong here.** On a real iPhone (Safari and Chrome,
+  same engine) the Open source card's O printed at nearly the zero's size, over its own words. A
+  readout on the device showed the scroll timeline was fine (`--o-lit` 4, the ring fully into its O
+  pose); the scale was 0.990 x 1.062 where 0.199 x 0.214 was due, and those two keep exactly the
+  0.6797 : 0.729 ratio of `--o-sx`/`--o-sy`, so the one wrong input was `--k4` (f4 / R, taken with
+  the trig trick): about 1.46 instead of 0.29. Neither Chromium nor desktop WebKit 26.6 reproduces it.
+  `TheO.astro`'s script now measures both such ratios from layout (the ring's box is `--R` wide, the
+  Open source word is set in `--f4`; the last line in `--f6`, the flight box `--B` wide for
+  `--f-land`) and sets `--o-k4`/`--o-f-land`, re-measured on resize; the trig stays as the no-JS
+  fallback. Guarded by hand: forcing the fallback to 1.46 reproduces the device's numbers to three
+  decimals, and the measured value restores the O.
 
 ## Measured
 
 Chromium and WebKit at 1440x900, 559x845, 390x844, 820x1180 and 852x393: no horizontal overflow, no
 console errors, every beat's resting pose, the flight and the landing checked frame by frame. Not yet
 checked: Firefox (no scroll timelines there, so it gets the still version; its `text-box` fallback
-margins need a real look) and RTL, which no page renders yet (DEMO-11). The two hazards above were
-found on a real iPhone, which this container has no way to test against; Chromium re-verifies the
-maths (computed `scale`/`translate`/opacity at every scroll position) but cannot reproduce either bug
-itself, so treat both fixes as reasoned, not device-confirmed.
+margins need a real look) and RTL, which no page renders yet (DEMO-11). The last two hazards above were
+found on a real iPhone; neither reproduces in Chromium or desktop WebKit, so both were diagnosed from
+the device's own numbers.

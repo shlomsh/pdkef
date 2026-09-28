@@ -185,3 +185,7 @@ conditions for re-opening it are in `backlog/tasks/DEMO-05.md`.
   pseudo-element** when an animation changes the property it asks about. Draw flips in 2D (squash
   edge-on, swap faces), and query the real element, handing values to `::before` through inherited
   custom properties.
+- **Do not trust `tan(atan2(a, b))` for a length ratio on iOS.** Real iOS WebKit returned ~5x The O's
+  `--k4` (desktop WebKit and Chromium were right), printing the O at the zero's size. Measure the
+  ratio from layout in the component's script and pass it in as a custom property, keeping the trig
+  only as the no-JS fallback (`docs/home-the-o.md`, Hazards).
