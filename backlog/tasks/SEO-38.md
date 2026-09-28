@@ -5,7 +5,7 @@ status: "in_progress"
 priority: "P2"
 epic: "english-base"
 phase: "near-term"
-depends_on: []
+depends_on: ["RED-27"]
 legacy_state: "Open"
 ---
 
