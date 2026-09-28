@@ -132,6 +132,48 @@ function sumBlobSizes(blobs) {
   return blobs.reduce((sum, blob) => sum + blob.size, 0);
 }
 
+// Runs `mapper` over `items` with at most `limit` calls in flight at once,
+// instead of Promise.all's unbounded fan-out - encoding every page of a
+// large document concurrently spikes memory with that many JPEG encodes
+// (and their raw canvases) in flight simultaneously.
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < items.length) {
+      const current = nextIndex;
+      nextIndex += 1;
+      results[current] = await mapper(items[current], current);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+const ENCODE_CONCURRENCY = 4;
+
+// Safety cap on raw canvas pixel memory (RGBA, 4 bytes/px) held at once
+// while rendering one DPI tier of a target-size search. A 100-page A4 doc
+// at the ladder's top tier (1.5, ~108 DPI) needs ~450MB for canvas pixels
+// alone - enough to crash the tab on a phone - so a large document starts
+// the search at whichever tier keeps it under this cap instead of always
+// starting at the top.
+export const MAX_RENDER_MEMORY_BYTES = 200 * 1024 * 1024; // 200MB
+
+export function pickStartScaleIndex(scales, totalAreaAtScale1) {
+  for (let i = 0; i < scales.length; i += 1) {
+    if (totalAreaAtScale1 * scales[i] * scales[i] * 4 <= MAX_RENDER_MEMORY_BYTES) return i;
+  }
+  return scales.length - 1; // even the lowest tier exceeds the cap - it's the best available
+}
+
+function releaseRenderedCanvases(rendered) {
+  for (const { canvas } of rendered) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
 /**
  * Compresses a PDF file 100% client-side, rasterizing pages and searching
  * for the highest JPEG quality (escalating to lower DPI tiers only if
@@ -163,6 +205,22 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
     const pageBudget = Math.max(1, targetBytes - totalPages * PDF_OVERHEAD_BYTES_PER_PAGE);
     const deadline = Date.now() + MAX_SEARCH_MS;
 
+    // One pass to collect every page's native (scale-1) viewport, cheap
+    // since it doesn't render anything. Used both to size the final PDF
+    // pages and to pick a starting DPI tier that keeps the first render
+    // under the memory cap regardless of page count.
+    const nativeViewports = [];
+    let totalAreaAtScale1 = 0;
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+      const page = await pdf.getPage(pageNumber);
+      const nativeViewport = page.getViewport({ scale: 1 });
+      nativeViewports.push(nativeViewport);
+      totalAreaAtScale1 += nativeViewport.width * nativeViewport.height;
+    }
+
+    const startScaleIndex = pickStartScaleIndex(TARGET_SCALE_LADDER, totalAreaAtScale1);
+    const scales = TARGET_SCALE_LADDER.slice(startScaleIndex);
+
     // A "handle" here is every page rendered at one DPI tier; "encode" turns
     // that whole tier into per-page JPEG blobs and reports their combined
     // size, which is what the byte budget above is measured against.
@@ -171,7 +229,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
         const viewport = page.getViewport({ scale });
-        const nativeViewport = page.getViewport({ scale: 1 });
+        const nativeViewport = nativeViewports[pageNumber - 1];
 
         const canvas = document.createElement('canvas');
         canvas.width = viewport.width;
@@ -182,18 +240,20 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
         await page.render({ canvasContext: context, viewport }).promise;
 
         rendered.push({ canvas, nativeViewport });
-        onProgress?.((scaleIndex + pageNumber / totalPages) / (TARGET_SCALE_LADDER.length + 1));
+        onProgress?.((scaleIndex + pageNumber / totalPages) / (scales.length + 1));
       }
       return rendered;
     };
 
     const encode = async (rendered, quality) => {
-      const blobs = await Promise.all(rendered.map((r) => canvasToBlob(r.canvas, 'image/jpeg', quality)));
+      const blobs = await mapWithConcurrency(rendered, ENCODE_CONCURRENCY, (r) =>
+        canvasToBlob(r.canvas, 'image/jpeg', quality),
+      );
       return { size: sumBlobSizes(blobs), blobs };
     };
 
     const best = await searchTargetSize({
-      scales: TARGET_SCALE_LADDER,
+      scales,
       renderAtScale,
       encode,
       budgetBytes: pageBudget,
@@ -201,6 +261,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       maxQuality: MAX_QUALITY,
       qualitySteps: QUALITY_SEARCH_STEPS,
       deadlineMs: deadline,
+      releaseHandle: releaseRenderedCanvases,
     });
 
     const pdfDoc = await PDFDocument.create();
@@ -210,6 +271,10 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       const viewport = best.handle[i].nativeViewport;
       const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
       newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+      // The blob is already embedded - release this page's raw pixels now
+      // rather than holding the whole tier until the loop finishes.
+      best.handle[i].canvas.width = 0;
+      best.handle[i].canvas.height = 0;
     }
     onProgress?.(1);
 

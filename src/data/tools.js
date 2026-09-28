@@ -94,7 +94,7 @@ export const tools = [
     // this stays a request path and not a gap list.
     languages: {
       tag: 'Languages',
-      heading: 'Right-to-left native. 20 languages deep. Unmatched, free.',
+      heading: 'Right-to-left native. 20 languages deep, free.',
       lead:
         "20 languages and scripts, the most complete language support of any free, browser-based PDF signer, and right-to-left is native here, not bolted on: a Hebrew or Arabic box grows leftward from a fixed right edge, exactly the way you write. Conjunct letters, vowel signs and ligatures are shaped correctly for the download, not just on screen, and every font is embedded inside the file itself, so your name looks like your name on any device that opens it. Type it, sign it, send it. Tap a language below for the specifics.",
       supportedHeading: 'Supported now',
@@ -254,7 +254,7 @@ export const tools = [
       },
       {
         question: 'Will my language come out right in the downloaded PDF, or turn into empty boxes?',
-        answer: "Right, every time, because the fonts ship inside the tool instead of depending on whatever happens to be installed on your device. Every bundled font is checked against the letters actually inside the font file, and it travels embedded inside the PDF you download, so your text looks exactly the same on any device that opens it, with no empty rectangles where your script should be. Pick a font that cannot draw your script and the tool automatically switches to one that can, then tells you it happened. In the rare case nothing bundled can draw a character, you find out while you are typing it, not after you have filled in the whole form, so you can request that language without losing your work.",
+        answer: "Right, in the 20 languages listed above, because the fonts ship inside the tool instead of depending on whatever happens to be installed on your device. Every bundled font is checked against the letters actually inside the font file, and it travels embedded inside the PDF you download, so your text looks exactly the same on any device that opens it, with no empty rectangles where your script should be. Pick a font that cannot draw your script and the tool automatically switches to one that can, then tells you it happened. If your language is not bundled yet, you find out while you are typing it, not after you have filled in the whole form, so you can request that language without losing your work.",
       },
       {
         question: 'Can I fill and sign a PDF in Hebrew (חתימה על PDF)?',
