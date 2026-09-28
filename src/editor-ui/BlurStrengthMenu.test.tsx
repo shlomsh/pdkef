@@ -52,8 +52,8 @@ describe('BlurStrengthMenu', () => {
     expect(item('light').className).not.toMatch(/is-selected/);
   });
 
-  it('defaults to strong selected when value is absent', async () => {
+  it('defaults to medium selected when value is absent (RED-24: the pre-levels blur)', async () => {
     await openMenu(undefined);
-    expect(item('strong').className).toMatch(/is-selected/);
+    expect(item('medium').className).toMatch(/is-selected/);
   });
 });

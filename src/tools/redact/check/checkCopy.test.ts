@@ -1,0 +1,194 @@
+import { describe, expect, it } from 'vitest';
+import {
+  CHECK_LEAD,
+  attachmentsNote,
+  canCover,
+  findingText,
+  pageList,
+  picturePagesNote,
+  unsolidNote,
+} from './checkCopy.ts';
+import type { Finding, PlaceKind } from './types.ts';
+
+describe('pageList', () => {
+  it('renders one page', () => {
+    expect(pageList([2])).toBe('3');
+  });
+
+  it('renders two pages joined by "and"', () => {
+    expect(pageList([2, 6])).toBe('3 and 7');
+  });
+
+  it('renders three or more pages as a comma list with a trailing "and"', () => {
+    expect(pageList([1, 4, 8])).toBe('2, 5 and 9');
+  });
+});
+
+describe('findingText', () => {
+  it('describes visible-in-picture by page', () => {
+    const finding: Finding = { kind: 'visible-in-picture', pageIndex: 0 };
+    expect(findingText(finding)).toBe('Page 1: still visible in the picture.');
+  });
+
+  it('describes in-text by page', () => {
+    const finding: Finding = { kind: 'in-text', pageIndex: 3 };
+    expect(findingText(finding)).toBe("Page 4: in the page's text.");
+  });
+
+  const placeCases: Array<{ place: PlaceKind; pageIndex?: number; expected: string }> = [
+    { place: 'field', pageIndex: 0, expected: 'In a form field on page 1.' },
+    { place: 'field', expected: 'In a form field.' },
+    { place: 'comment', pageIndex: 2, expected: 'In a comment on page 3.' },
+    { place: 'comment', expected: 'In a comment.' },
+    { place: 'bookmark', expected: 'In a bookmark.' },
+    { place: 'title', expected: "In the document's title." },
+    { place: 'author', expected: 'In the author field.' },
+    { place: 'subject', expected: "In the document's subject." },
+    { place: 'keywords', expected: "In the document's keywords." },
+    { place: 'metadata', expected: "In the document's details." },
+    { place: 'attachment', expected: "In an attached file's name." },
+  ];
+
+  for (const { place, pageIndex, expected } of placeCases) {
+    it(`describes in-place for ${place}${pageIndex === undefined ? '' : ' with a page'}`, () => {
+      const finding: Finding = { kind: 'in-place', place, pageIndex };
+      expect(findingText(finding)).toBe(expected);
+    });
+  }
+});
+
+describe('picturePagesNote', () => {
+  it('returns null for no pages', () => {
+    expect(picturePagesNote([])).toBeNull();
+  });
+
+  it('is singular for one page', () => {
+    expect(picturePagesNote([0])).toBe('Page 1 is a picture, so look it over yourself.');
+  });
+
+  it('is plural for several pages', () => {
+    expect(picturePagesNote([0, 2])).toBe('Pages 1 and 3 are pictures, so look them over yourself.');
+  });
+});
+
+describe('attachmentsNote', () => {
+  it('returns null for zero attachments', () => {
+    expect(attachmentsNote(0)).toBeNull();
+  });
+
+  it('is singular for one attachment', () => {
+    expect(attachmentsNote(1)).toBe("This file has an attached file. I didn't look inside it.");
+  });
+
+  it('is plural for several attachments', () => {
+    expect(attachmentsNote(3)).toBe("This file has 3 attached files. I didn't look inside them.");
+  });
+});
+
+describe('unsolidNote', () => {
+  it('returns null for no pages', () => {
+    expect(unsolidNote([])).toBeNull();
+  });
+
+  it('is singular for one page', () => {
+    expect(unsolidNote([1])).toBe("A box on page 2 didn't come out solid in the saved file. Don't share this copy.");
+  });
+
+  it('is plural for several pages', () => {
+    expect(unsolidNote([0, 3])).toBe("Boxes on pages 1 and 4 didn't come out solid in the saved file. Don't share this copy.");
+  });
+});
+
+describe('canCover', () => {
+  it('is true for visible-in-picture', () => {
+    expect(canCover({ kind: 'visible-in-picture', pageIndex: 0 })).toBe(true);
+  });
+
+  it('is true for in-text', () => {
+    expect(canCover({ kind: 'in-text', pageIndex: 0 })).toBe(true);
+  });
+
+  it('is false for in-place', () => {
+    expect(canCover({ kind: 'in-place', place: 'title' })).toBe(false);
+  });
+});
+
+describe('CHECK_LEAD mentions pictures and that the person decides', () => {
+  it('names pictures', () => {
+    expect(CHECK_LEAD).toMatch(/pictures?/i);
+  });
+
+  it('says the person decides', () => {
+    expect(CHECK_LEAD).toMatch(/you('re| are) the one who decides/i);
+  });
+});
+
+// The rule that matters: nothing this module can say, for any input, may
+// claim the file is clear or that a term is absent. "No match" only ever
+// means "not found in the text I could read" - the UI carries that caveat
+// separately, so no exported string or function output may say otherwise.
+describe('no string claims absence or safety', () => {
+  const forbidden = [
+    /not in the (saved )?file/i,
+    /isn't there/i,
+    /\bclean\b/i,
+    /all clear/i,
+    /\bsafe\b(?! to share)/i,
+    /no secrets?/i,
+    /nothing (was )?found/i,
+  ];
+
+  function assertSafe(label: string, text: string) {
+    for (const pattern of forbidden) {
+      expect(text, `${label} matched forbidden pattern ${pattern}: "${text}"`).not.toMatch(pattern);
+    }
+  }
+
+  it('checks every exported constant string', async () => {
+    const mod = await import('./checkCopy.ts');
+    for (const [name, value] of Object.entries(mod)) {
+      if (typeof value === 'string') assertSafe(name, value);
+    }
+  });
+
+  it('checks pageList across a range of inputs', () => {
+    const inputs: number[][] = [[], [0], [4], [0, 1], [2, 9], [0, 1, 2], [3, 7, 11], [0, 1, 2, 3, 4]];
+    for (const pages of inputs) assertSafe(`pageList(${JSON.stringify(pages)})`, pageList(pages));
+  });
+
+  it('checks findingText across every finding kind and place kind', () => {
+    const places: PlaceKind[] = [
+      'field',
+      'comment',
+      'bookmark',
+      'title',
+      'author',
+      'subject',
+      'keywords',
+      'metadata',
+      'attachment',
+    ];
+    const findings: Finding[] = [
+      { kind: 'visible-in-picture', pageIndex: 0 },
+      { kind: 'visible-in-picture', pageIndex: 5 },
+      { kind: 'in-text', pageIndex: 0 },
+      { kind: 'in-text', pageIndex: 5 },
+      ...places.map((place): Finding => ({ kind: 'in-place', place })),
+      ...places.map((place): Finding => ({ kind: 'in-place', place, pageIndex: 2 })),
+    ];
+    for (const finding of findings) assertSafe(`findingText(${JSON.stringify(finding)})`, findingText(finding));
+  });
+
+  it('checks picturePagesNote, attachmentsNote and unsolidNote across singular, plural and null', () => {
+    for (const pages of [[], [0], [0, 1], [0, 1, 2]]) {
+      const pictures = picturePagesNote(pages);
+      if (pictures !== null) assertSafe(`picturePagesNote(${JSON.stringify(pages)})`, pictures);
+      const unsolid = unsolidNote(pages);
+      if (unsolid !== null) assertSafe(`unsolidNote(${JSON.stringify(pages)})`, unsolid);
+    }
+    for (const count of [0, 1, 2, 5]) {
+      const note = attachmentsNote(count);
+      if (note !== null) assertSafe(`attachmentsNote(${count})`, note);
+    }
+  });
+});

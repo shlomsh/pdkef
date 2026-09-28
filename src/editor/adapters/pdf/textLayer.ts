@@ -106,6 +106,13 @@ function touches(a: Box, b: Box): boolean {
   return a.x0 <= b.x1 && a.x1 >= b.x0 && a.y0 <= b.y1 && a.y1 >= b.y0;
 }
 
+/** Whether any glyph in `word` has a core that touches `cover`: the one rule
+ * both `planTextLayer` (drop the word) and `wordsUnderBoxes` (the word is
+ * under this box) use to decide a box reaches a word. */
+function wordTouchesCover(geometry: PageGeometry, word: PageGlyph[], cover: Box): boolean {
+  return word.some((glyph) => touches(glyphCore(geometry, glyph), cover));
+}
+
 function sameShape(a: AffineTransform, b: AffineTransform): boolean {
   const scale = Math.hypot(a[0], a[1]) + Math.hypot(a[2], a[3]);
   return [0, 1, 2, 3].every((k) => Math.abs(a[k] - b[k]) <= SAME_SHAPE * scale);
@@ -188,7 +195,7 @@ export function planTextLayer(glyphs: PageGlyph[], geometry: PageGeometry, boxes
     const keep = new Array<boolean>(run.length).fill(false);
     for (const [start, end] of wordRanges(run)) {
       const word = run.slice(start, end);
-      if (word.some((glyph) => covers.some((cover) => touches(glyphCore(geometry, glyph), cover)))) {
+      if (covers.some((cover) => wordTouchesCover(geometry, word, cover))) {
         dropped += 1;
       } else {
         kept += 1;
@@ -217,6 +224,105 @@ export function planTextLayer(glyphs: PageGlyph[], geometry: PageGeometry, boxes
   }
 
   return { runs, kept, dropped };
+}
+
+/** Hebrew and Arabic letter ranges (plus their presentation forms): a
+ * character in one of these is "strongly" right-to-left, the same signal
+ * `PageText`'s own line-direction call uses. */
+function isStrongRTL(ch: string): boolean {
+  const code = ch.codePointAt(0) ?? 0;
+  return (
+    (code >= 0x0591 && code <= 0x08ff) ||
+    (code >= 0xfb1d && code <= 0xfdff) ||
+    (code >= 0xfe70 && code <= 0xfeff)
+  );
+}
+
+/** A page's glyphs as lines: grouped by shape and baseline whatever order
+ * they are stored in, each line sorted along its baseline. A right-to-left
+ * line may be stored in visual order or one glyph at a time in reading
+ * order; position is the only order both agree on. */
+function positionalLines(glyphs: PageGlyph[]): { along: number; glyph: PageGlyph }[][] {
+  const lines: { inverse: AffineTransform; first: PageGlyph; glyphs: { along: number; glyph: PageGlyph }[] }[] = [];
+  for (const glyph of glyphs) {
+    const origin = { x: glyph.matrix[4], y: glyph.matrix[5] };
+    const line = lines.find((candidate) =>
+      sameShape(candidate.first.matrix, glyph.matrix)
+      && Math.abs(applyAffineTransform(origin, candidate.inverse).y) <= SAME_LINE_EM);
+    if (line) {
+      line.glyphs.push({ along: applyAffineTransform(origin, line.inverse).x, glyph });
+      continue;
+    }
+    if (isBlank(glyph)) continue;
+    try {
+      lines.push({ inverse: invertAffineTransform(glyph.matrix), first: glyph, glyphs: [{ along: 0, glyph }] });
+    } catch {
+      // A degenerate text matrix shows nothing.
+    }
+  }
+  return lines.map((line) => line.glyphs.sort((a, b) => a.along - b.along));
+}
+
+/** A sorted line's words: split at blanks and at gaps wider than a word's
+ * own spacing, each word's glyphs left to right. */
+function positionalWords(line: { along: number; glyph: PageGlyph }[]): PageGlyph[][] {
+  const words: PageGlyph[][] = [];
+  let word: PageGlyph[] = [];
+  let end = -Infinity;
+  for (const { along, glyph } of line) {
+    if (isBlank(glyph) || along - end > JOIN_GAP_EM) {
+      if (word.length > 0) words.push(word);
+      word = [];
+    }
+    if (!isBlank(glyph)) word.push(glyph);
+    end = Math.max(end, along + Math.max(glyph.width, 0));
+  }
+  if (word.length > 0) words.push(word);
+  return words;
+}
+
+/** More than half of the letters are right-to-left: the same majority rule
+ * Find's own line direction uses (find/pageText.ts), so a Latin line with one
+ * Hebrew word still reads left to right, and the reverse. */
+function isMostlyRTL(glyphs: PageGlyph[]): boolean {
+  let letters = 0;
+  let rtl = 0;
+  for (const glyph of glyphs) {
+    for (const ch of glyph.unicode) {
+      if (!/\p{L}/u.test(ch)) continue;
+      letters += 1;
+      if (isStrongRTL(ch)) rtl += 1;
+    }
+  }
+  return letters > 0 && rtl / letters > 0.5;
+}
+
+/**
+ * RED-17: for each of `boxes` (same index), the words a box reaches by the
+ * rule `planTextLayer` uses (any glyph core touching it), as text in logical
+ * reading order. Words are built from glyph positions, not storage order,
+ * so a Hebrew line reads the same however its bytes are stored. A box's
+ * words on one line read in the direction most of their own letters have,
+ * each word likewise; lines go top to bottom. Pure.
+ */
+export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
+  const covers = boxes.map((box) => percentToViewport(geometry, box));
+  const perBox: { top: number; texts: string[] }[][] = boxes.map(() => []);
+  const text = (word: PageGlyph[]) => (isMostlyRTL(word) ? [...word].reverse() : word).map((glyph) => glyph.unicode).join('');
+
+  for (const line of positionalLines(glyphs)) {
+    const words = positionalWords(line);
+    if (words.length === 0) continue;
+    const top = Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0));
+    covers.forEach((cover, i) => {
+      const reached = words.filter((word) => wordTouchesCover(geometry, word, cover));
+      if (reached.length === 0) return;
+      const ordered = isMostlyRTL(reached.flat()) ? [...reached].reverse() : reached;
+      perBox[i].push({ top, texts: ordered.map(text).filter(Boolean) });
+    });
+  }
+
+  return perBox.map((lines) => [...lines].sort((a, b) => a.top - b.top).flatMap((line) => line.texts));
 }
 
 function wordTexts(runs: { glyphs: { unicode: string }[] }[]): string[] {

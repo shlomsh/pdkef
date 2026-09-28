@@ -1,0 +1,75 @@
+[
+  {
+    "label": "type3-font.pdf",
+    "opCount": 12,
+    "opError": null,
+    "textItems": [
+      "Type3 body text that must survive",
+      "",
+      "TYPE3SECRET"
+    ]
+  },
+  {
+    "label": "cmap-embedded-mixed-width.pdf",
+    "opCount": 12,
+    "opError": null,
+    "textItems": [
+      "CMap body text that must survive",
+      "",
+      "C聉D聍聉X"
+    ]
+  },
+  {
+    "label": "inline-image-ei-trap.pdf",
+    "opCount": 10,
+    "opError": null,
+    "textItems": [
+      "Before inline image",
+      "INLINEIMAGESECRET"
+    ]
+  },
+  {
+    "label": "nested-form-2deep.pdf",
+    "opCount": 21,
+    "opError": null,
+    "textItems": [
+      "Nested body text that must survive",
+      "NESTED2DEEP"
+    ]
+  },
+  {
+    "label": "nested-form-3deep.pdf",
+    "opCount": 26,
+    "opError": null,
+    "textItems": [
+      "Nested body text that must survive",
+      "NESTED3DEEP"
+    ]
+  },
+  {
+    "label": "shared-form-drawn-twice.pdf",
+    "opCount": 26,
+    "opError": null,
+    "textItems": [
+      "Shared-twice body text that must survive",
+      "SHAREDFORM",
+      "SHAREDFORM"
+    ]
+  },
+  {
+    "label": "tiling-pattern-text.pdf",
+    "opCount": 10,
+    "opError": null,
+    "textItems": [
+      "Pattern body text that must survive"
+    ]
+  },
+  {
+    "label": "annotation-appearance-text.pdf",
+    "opCount": 6,
+    "opError": null,
+    "textItems": [
+      "Annot body text that must survive"
+    ]
+  }
+]

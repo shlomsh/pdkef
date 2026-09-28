@@ -63,7 +63,15 @@ export function createElementRenderers(
       ? renderRedactionSurface('whiteout', element.color)
       : h(requireComponent('whiteout'), { element, messages, isActive: false, onResizeStart: () => {} }),
     blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
-    blur: ({ element }) => renderRedactionSurface('blur', undefined, element.strength),
+    // RED-24: the on-screen blur depends on the box's own height in points
+    // (blurStrength.ts's blurFraction); `element.height` is a percent of the
+    // page, so the host supplies the page's height in points.
+    blur: ({ element, pageHeightPoints }) => {
+      const boxHeightPt = typeof pageHeightPoints === 'number'
+        ? (element.height / 100) * pageHeightPoints
+        : undefined;
+      return renderRedactionSurface('blur', undefined, element.strength, boxHeightPt);
+    },
   };
   return renderers;
 }

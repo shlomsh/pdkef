@@ -1,0 +1,127 @@
+[
+  {
+    "file": "type3-font.pdf",
+    "page": 1,
+    "rect": [
+      6,
+      31,
+      54.13333333333335,
+      7.000000000000001
+    ],
+    "secret": "TYPE3SECRET",
+    "keepText": "Type3 body text that must survive",
+    "feature": "Type3 font: shared glyph proc (filled box) per code, plain-ASCII Differences encoding; every code is a raw byte, same decoding path as a simple font"
+  },
+  {
+    "file": "cmap-embedded-mixed-width.pdf",
+    "page": 1,
+    "rect": [
+      6,
+      31,
+      49.333333333333336,
+      7.000000000000001
+    ],
+    "secret": "CIDMIX",
+    "secretCodes": [
+      67,
+      32841,
+      68,
+      32845,
+      32841,
+      88
+    ],
+    "secretBytesHex": "43804944804d804958",
+    "keepText": "CMap body text that must survive",
+    "feature": "Type0 font, embedded (non-predefined) CMap with one 1-byte and one 2-byte codespace range; 6 raw bytes decode to codes [0x43, 0x8049, 0x44, 0x804d, 0x8049, 0x58]"
+  },
+  {
+    "file": "inline-image-ei-trap.pdf",
+    "page": 1,
+    "rect": [
+      6,
+      34,
+      43.34133333333333,
+      4
+    ],
+    "secret": "INLINEIMAGESECRET",
+    "keepText": "Before inline image",
+    "feature": "6x4 8bpc DeviceGray inline image (no /L), raw data contains a whitespace-bounded \"EI\" 10 bytes into a 24-byte payload, ahead of the real terminator; body text before and after"
+  },
+  {
+    "file": "nested-form-2deep.pdf",
+    "page": 1,
+    "rect": [
+      7.666666666666666,
+      32.25,
+      35.56333333333333,
+      4.5
+    ],
+    "secret": "NESTED2DEEP",
+    "keepText": "Nested body text that must survive",
+    "formDepth": 2,
+    "feature": "Form XObject nested 2 levels deep (page -> F1 -> F2); only the innermost form draws the secret text"
+  },
+  {
+    "file": "nested-form-3deep.pdf",
+    "page": 1,
+    "rect": [
+      7.666666666666666,
+      32.25,
+      35.56333333333333,
+      4.5
+    ],
+    "secret": "NESTED3DEEP",
+    "keepText": "Nested body text that must survive",
+    "formDepth": 3,
+    "feature": "Form XObject nested 3 levels deep (page -> F1 -> F2 -> F3); only the innermost form draws the secret text"
+  },
+  {
+    "file": "shared-form-drawn-twice.pdf",
+    "page": 1,
+    "rect": [
+      7.666666666666666,
+      32.25,
+      34.518,
+      4.5
+    ],
+    "secret": "SHAREDFORM",
+    "keepText": "Shared-twice body text that must survive",
+    "secondOccurrenceRect": [
+      7.666666666666666,
+      44.75,
+      34.518,
+      4.5
+    ],
+    "feature": "one Form XObject (/Fshared), same indirect ref, invoked with Do twice from the page content at different positions; both occurrences must be counted"
+  },
+  {
+    "file": "tiling-pattern-text.pdf",
+    "page": 1,
+    "rect": [
+      6,
+      32,
+      41.333333333333336,
+      6
+    ],
+    "rectSource": "computed from the known fill geometry, not from a pdf.js text item (none is ever reported - see results-extra.md)",
+    "secret": "TILEPATTERN",
+    "keepText": "Pattern body text that must survive",
+    "feature": "text drawn inside a PatternType 1 (tiling) pattern cell, filled once into a rectangle exactly matching one cell (BBox == XStep/YStep)"
+  },
+  {
+    "file": "annotation-appearance-text.pdf",
+    "page": 1,
+    "rect": [
+      6,
+      20.5,
+      51.33333333333333,
+      5
+    ],
+    "rectSource": "computed from the annotation /Rect, not from a pdf.js text item (none is ever reported under the default AnnotationMode.DISABLE - see results-extra.md)",
+    "secret": "ANNOTAPSECRET",
+    "annotationOnly": true,
+    "annotationSubtype": "FreeText",
+    "keepText": "Annot body text that must survive",
+    "feature": "text drawn only inside a /FreeText annotation's /AP /N appearance stream Form XObject, never in the page's own content stream"
+  }
+]

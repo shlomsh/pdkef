@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { blurFactor, type BlurStrength } from '../model/blurStrength.ts';
+import { blurFraction, type BlurStrength } from '../model/blurStrength.ts';
 
 /**
  * Visual interior for a Redact box. Geometry, handles, and toolbars stay in
@@ -18,9 +18,19 @@ import { blurFactor, type BlurStrength } from '../model/blurStrength.ts';
  * 'size'` ancestor) means the on-screen blur scales with the box exactly as
  * the export does, at any zoom, instead of a fixed pixel radius that only
  * matched at one size.
+ *
+ * RED-24: the fraction itself now depends on the box's height in page
+ * points (`boxHeightPt`), not just its strength, because of the 24pt floor
+ * in blurStrength.ts - a box under the floor needs a bigger fraction of
+ * itself blurred to reach the same absolute radius. When the caller doesn't
+ * know the box's height in points yet, `boxHeightPt` is left undefined and
+ * `blurFraction` falls back to the plain, unfloored factor.
  */
-function blurLayer(strength?: BlurStrength) {
-  const filter = `blur(calc(${blurFactor(strength)} * 100cqh))`;
+function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
+  // Rounded so boxes of the same size write the same string, whatever float
+  // noise their percent geometry carries.
+  const fraction = Number(blurFraction(strength, boxHeightPt ?? NaN).toFixed(4));
+  const filter = `blur(calc(${fraction} * 100cqh))`;
   return h('div', {
     class: 'redact-surface__blur',
     style: {
@@ -33,7 +43,7 @@ function blurLayer(strength?: BlurStrength) {
   });
 }
 
-export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', color?: string, strength?: BlurStrength) {
+export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', color?: string, strength?: BlurStrength, boxHeightPt?: number) {
   const isBlur = kind === 'blur';
   const isWhiteout = kind === 'whiteout';
   return h('div', {
@@ -48,7 +58,7 @@ export function renderRedactionSurface(kind: 'blackout' | 'blur' | 'whiteout', c
       WebkitBackdropFilter: 'none',
       border: isBlur ? '1px solid rgba(0,0,0,0.2)' : (isWhiteout ? 'none' : '1px solid #333'),
     },
-  }, isBlur ? blurLayer(strength) : null);
+  }, isBlur ? blurLayer(strength, boxHeightPt) : null);
 }
 
 /**
@@ -73,7 +83,17 @@ export function redactionDrawingPreviewStyle(kind: 'blackout' | 'blur' | 'whiteo
   };
 }
 
-/** The preview's blur layer content, or null for non-blur kinds. */
-export function renderRedactionDrawingPreviewContent(kind: 'blackout' | 'blur' | 'whiteout', strength?: BlurStrength) {
-  return kind === 'blur' ? blurLayer(strength) : null;
+/**
+ * The preview's blur layer content, or null for non-blur kinds.
+ *
+ * `boxHeightPt` is normally left undefined here: the drag-draw preview's own
+ * geometry is written straight to the DOM during the gesture (the golden
+ * rule - see controller.ts), never through this component's own re-render,
+ * so no render of this preview ever has a live, correct box height to give
+ * `blurFraction`. `blurFraction` reads that absence as "not known yet" and
+ * falls back to the plain factor, which is what the preview showed before
+ * RED-24 too.
+ */
+export function renderRedactionDrawingPreviewContent(kind: 'blackout' | 'blur' | 'whiteout', strength?: BlurStrength, boxHeightPt?: number) {
+  return kind === 'blur' ? blurLayer(strength, boxHeightPt) : null;
 }
