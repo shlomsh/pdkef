@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPageGeometry, composeAffineTransforms, type PageGeometry } from '../../geometry/coords.ts';
-import { planTextLayer, groupRuns, textLayerReadsBack, type PercentBox, type TextLayerPlan } from './textLayer.ts';
+import { planTextLayer, groupRuns, textLayerReadsBack, wordsUnderBoxes, type PercentBox, type TextLayerPlan } from './textLayer.ts';
 import type { PageGlyph } from './pageGlyphs.ts';
 
 const geometry = createPageGeometry({ cropBox: { x: 0, y: 0, width: 600, height: 800 } });
@@ -144,6 +144,42 @@ describe('planTextLayer', () => {
     const lowerRun = plan.runs.find((run) => run.text === 'lower');
     expect(lowerRun).toBeDefined();
     expect(plan.runs.some((run) => run.text.includes('upper'))).toBe(false);
+  });
+});
+
+describe('wordsUnderBoxes', () => {
+  it('gives the box over the middle Latin word only that word', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    // Same box as the "drops exactly the middle word" planTextLayer case.
+    const boxes = [box(18, 37, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['bbb']);
+  });
+
+  it('gives a box spanning two words both, in reading order', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    // Wide enough to reach both "bbb" and "ccc"'s cores.
+    const boxes = [box(18, 60, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['bbb', 'ccc']);
+  });
+
+  it('reads a Hebrew word in logical order although its glyphs sit in visual (reversed) stream order', () => {
+    // Same fixture as "keeps a right-to-left line in its own content order":
+    // the pen advances left to right but the characters are already the
+    // visual (reversed) order, so the word's stream order is 'מולש', logical
+    // (reversed) order 'שלומ'.
+    const glyphs = makeLine('מולש');
+    const boxes = [box(0, 100, 390, 405)];
+    const [words] = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual(['שלומ']);
+  });
+
+  it('gives one entry per box, empty for a box that reaches no word', () => {
+    const glyphs = makeLine('aaa bbb ccc');
+    const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];
+    const words = wordsUnderBoxes(glyphs, geometry, boxes);
+    expect(words).toEqual([['bbb'], []]);
   });
 });
 
