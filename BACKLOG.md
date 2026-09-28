@@ -289,6 +289,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+| SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the \"Scanned with CamScanner\" footer from your own PDF |
 
 ### Blocked
 

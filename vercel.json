@@ -150,6 +150,11 @@
       "permanent": true
     },
     {
+      "source": "/remove-camscanner-watermark-from-pdf",
+      "destination": "/remove-camscanner-watermark-from-pdf/",
+      "permanent": true
+    },
+    {
       "source": "/pdf-wont-compress-to-100kb",
       "destination": "/pdf-wont-compress-to-100kb/",
       "permanent": true
