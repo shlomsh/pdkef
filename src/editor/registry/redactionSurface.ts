@@ -27,7 +27,10 @@ import { blurFraction, type BlurStrength } from '../model/blurStrength.ts';
  * `blurFraction` falls back to the plain, unfloored factor.
  */
 function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
-  const filter = `blur(calc(${blurFraction(strength, boxHeightPt ?? NaN)} * 100cqh))`;
+  // Rounded so boxes of the same size write the same string, whatever float
+  // noise their percent geometry carries.
+  const fraction = Number(blurFraction(strength, boxHeightPt ?? NaN).toFixed(4));
+  const filter = `blur(calc(${fraction} * 100cqh))`;
   return h('div', {
     class: 'redact-surface__blur',
     style: {

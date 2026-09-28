@@ -16,6 +16,7 @@ import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
+import usePageHeightsPt from './usePageHeightsPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
 import { groupMembers, repeatCopies } from './repeatGroup.ts';
@@ -729,6 +730,7 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
+  const pageHeightsPt = usePageHeightsPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur'));
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
     const type = find.redactStyle;
@@ -1022,6 +1024,7 @@ export default function PdfRedactTool() {
                         onRemoveGroup={() => removeLinked(el.id, 'repeatGroup')}
                         findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
                         onRemoveFindSet={() => removeLinked(el.id, 'findSet')}
+                        pageHeightPoints={pageHeightsPt[el.pageIndex]}
                       />
                     );
                   })}

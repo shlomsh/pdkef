@@ -2057,6 +2057,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(2);
 
       const filterOf = (box: HTMLElement) => query<HTMLElement>(box, '.redact-surface__blur').style.backdropFilter;
+      // RED-24: the page heights a blur box sizes itself from arrive async.
+      await act(async () => {});
       const before = filterOf(boxes()[0]);
       expect(filterOf(boxes()[1])).toBe(before);
 
