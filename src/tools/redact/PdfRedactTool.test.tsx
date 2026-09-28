@@ -819,6 +819,39 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
     });
 
+    it('a click anywhere outside the selected box drops the selection, a click on the box keeps it', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const select = async () => {
+        await act(async () => {
+          box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        });
+        await act(async () => {
+          window.dispatchEvent(new MouseEvent('mouseup'));
+        });
+      };
+
+      await select();
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).not.toBeNull();
+
+      // Outside the pages entirely: the page's surroundings, not blank page area.
+      await act(async () => {
+        document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
+
+      await select();
+      const header = query<HTMLElement>(container, '[data-editor-page-header]');
+      await act(async () => {
+        header.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
+    });
+
     it('blackout shows the shared floating toolbar, with a delete control, only once selected', async () => {
       const drawArea = await loadFileAndGetDrawArea();
 
