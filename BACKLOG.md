@@ -703,9 +703,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
+_None._
 
 ### Blocked
 
@@ -726,6 +724,7 @@ _None._
 | RED-17 | P1 | [RED-17](backlog/tasks/RED-17.md) · Check the saved file: search it for what you covered, everywhere a secret can hide |
 | RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
+| RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 
 ### Retired
 

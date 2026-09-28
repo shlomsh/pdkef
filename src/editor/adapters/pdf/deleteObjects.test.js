@@ -451,6 +451,34 @@ describe('deleteObjectsFromPdf: links over a deleted object', () => {
   });
 });
 
+describe('deleteObjectsFromPdf: a link over a deleted text run', () => {
+  it('drops the link over the deleted run and keeps the one over a run that stays', async () => {
+    const doc = await PDFDocument.load(await buildSample());
+    const page = doc.getPage(0);
+    const runs = extractPageObjects(page, 0).objects.filter((o) => o.kind === 'text');
+    const [kept, deleted] = runs;
+    const linkOver = (run, uri) => {
+      const { x, y, width, height } = run.bbox;
+      const action = doc.context.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(uri) });
+      page.node.addAnnot(doc.context.register(doc.context.obj({
+        Type: 'Annot', Subtype: 'Link', Rect: [x, y, x + width, y + height], A: doc.context.register(action),
+      })));
+    };
+    linkOver(kept, 'https://example.com/stays');
+    linkOver(deleted, 'https://example.com/goes');
+    const source = new Uint8Array(await doc.save());
+    // Byte spans are read from the saved file, the one being edited.
+    const target = (await objectsOf(source)).objects.find((o) => o.preview === deleted.preview);
+
+    const blob = await deleteObjectsFromPdf(source, [target]);
+    const outDoc = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));
+    const text = await decompressedObjectText(outDoc);
+
+    expect(text).toContain('example.com/stays');
+    expect(text).not.toContain('example.com/goes');
+  });
+});
+
 describe('clearDocumentDetails via deleteObjectsFromPdf', () => {
   it('drops Info title/author and any XMP Metadata stream from the saved file', async () => {
     const doc = await PDFDocument.create();

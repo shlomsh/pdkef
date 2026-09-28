@@ -63,8 +63,10 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 /**
  * Drops any `/Link` annotation on `page` that sat over one of the objects
  * just deleted (RED-27: CamScanner's footer image and its Link to
- * camscanner.com share the same rectangle). Never touches `/Widget` or any
- * other annotation subtype.
+ * camscanner.com share the same rectangle). Deliberately any deleted object,
+ * text as well as images: a link mostly over something the person removed
+ * points at nothing they can see, so keeping it would leave a clickable blank.
+ * Never touches `/Widget` or any other annotation subtype.
  *
  * The removed annotation dict and its `/A` action dict are also deleted from
  * the document's context when they are indirect objects: pdf-lib's `save`
@@ -114,6 +116,7 @@ function removeLinksOverDeleted(doc, page, deletedBoxes) {
     const newAnnots = context.obj(survivors);
     page.node.set(PDFName.of('Annots'), newAnnots);
   }
+  if (annotsRef instanceof PDFRef) context.delete(annotsRef);
 
   for (const dropIndex of dropped) {
     const { ref, annot } = links[dropIndex];
