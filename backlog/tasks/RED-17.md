@@ -1,7 +1,7 @@
 ---
 id: "RED-17"
 title: "Check the saved file: search it for what you covered, everywhere a secret can hide"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"

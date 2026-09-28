@@ -1,7 +1,7 @@
 ---
 id: "RED-18"
 title: "Spike: true redaction, removing only what is under each box and keeping the rest as the original"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
