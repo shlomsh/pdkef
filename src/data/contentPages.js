@@ -103,6 +103,15 @@ export const landingPages = [
     sitemapChangefreq: 'monthly',
   },
   {
+    href: '/remove-camscanner-watermark-from-pdf/',
+    label: 'Remove the CamScanner watermark',
+    blurb: 'Tap the "Scanned with CamScanner" line away, on your phone or computer.',
+    icon: ScanText,
+    hub: 'redact',
+    sitemapPriority: '0.6',
+    sitemapChangefreq: 'monthly',
+  },
+  {
     href: '/pdf-wont-compress-to-100kb/',
     label: "Why 100KB won't fit",
     blurb: 'Real measured examples: how many pages actually fit before text blurs.',

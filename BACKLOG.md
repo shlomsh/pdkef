@@ -289,6 +289,7 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |
+| SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF |
 
 ### Blocked
 
@@ -697,18 +698,12 @@ _None._
 | --- | --- | --- |
 | RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
 | RED-16 | P2 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |
-| RED-19 | P1 | [RED-19](backlog/tasks/RED-19.md) · True redaction, text: delete the glyphs under each box and keep every other glyph as it was |
-| RED-20 | P1 | [RED-20](backlog/tasks/RED-20.md) · True redaction, images and drawn shapes: paint the box into what it touches, once per shared image |
-| RED-21 | P1 | [RED-21](backlog/tasks/RED-21.md) · True redaction: form field values, comments, watermark annotations and shared form content under a box |
-| RED-22 | P1 | [RED-22](backlog/tasks/RED-22.md) · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires |
-| RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
+| RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
+_None._
 
 ### Blocked
 
@@ -724,11 +719,12 @@ _None._
 | RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
 | RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
-| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 | RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 | RED-17 | P1 | [RED-17](backlog/tasks/RED-17.md) · Check the saved file: search it for what you covered, everywhere a secret can hide |
+| RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
+| RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 
 ### Retired
 
@@ -739,6 +735,12 @@ _None._
 | RED-06 | P1 | [RED-06](backlog/tasks/RED-06.md) · Quick or Keep the text: the person chooses knowing the cost; the engine downloads only on Keep the text |
 | RED-07 | P1 | [RED-07](backlog/tasks/RED-07.md) · Remove text, image pixels and paths under each box, with per-page flattening fallback |
 | RED-08 | P1 | [RED-08](backlog/tasks/RED-08.md) · Annotations, form field values and form XObjects under a box |
+| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
+| RED-19 | P1 | [RED-19](backlog/tasks/RED-19.md) · True redaction, text: delete the glyphs under each box and keep every other glyph as it was |
+| RED-20 | P1 | [RED-20](backlog/tasks/RED-20.md) · True redaction, images and drawn shapes: paint the box into what it touches, once per shared image |
+| RED-21 | P1 | [RED-21](backlog/tasks/RED-21.md) · True redaction: form field values, comments, watermark annotations and shared form content under a box |
+| RED-22 | P1 | [RED-22](backlog/tasks/RED-22.md) · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires |
+| RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
 
 # Closed epics
 

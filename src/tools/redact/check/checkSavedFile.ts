@@ -42,9 +42,10 @@ export function checkSavedFile(input: CheckSavedFileInput): TermResult[] {
     }
 
     // 2. Still in the saved file's own text. A page already reported as
-    // visible in its picture isn't reported again: a picture page can carry
-    // its other words as searchable text (RED-12), and both lines would
-    // point at the same uncovered match.
+    // visible in its picture isn't reported again: a picture page carries no
+    // text at all today, but an unrelated page that keeps real vector text
+    // can still match here, and both lines would otherwise point at the same
+    // uncovered match.
     for (const page of saved.pages) {
       if (seen.has(`visible-in-picture:${page.text.pageIndex}`)) continue;
       if (term.finder(page.text.text).length > 0) {

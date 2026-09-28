@@ -142,9 +142,8 @@ sections:
         text: >-
           To <a href="/redact/">blur text in a PDF</a>, choose Blur and drag a box over the words.
           There is no text-selection step, so on a phone zoom in first to place the box precisely.
-          After Download the page is one flattened image, but only the blurred words are gone as text.
-          The rest of the page stays selectable and searchable, and blurred pixels can still hint at a
-          short or predictable value.
+          After Download the page is one flattened image and the words are gone as text, but blurred
+          pixels can still hint at a short or predictable value.
       - kind: 'prose'
         text: >-
           Blur is a design choice rather than a substitute for Blackout. Choose the result that fits
@@ -176,7 +175,7 @@ sections:
         headers: ['After Download', 'Page with Delete only', 'Page with Whiteout, Blackout or Blur']
         rows:
           - ['Selected change', 'The selected element is deleted', 'The visual mark is baked into the page image']
-          - ['Other text', 'Stays selectable and searchable', 'Stays selectable and searchable too, except any word a mark covers']
+          - ['Other text', 'Stays selectable and searchable', 'Becomes pixels and is no longer searchable or selectable']
           - ['Can the edit be moved later?', 'The element is already gone from the exported page', 'No; the mark is part of the flattened page image']
           - ['Best fit', 'Removing or replacing page elements', 'Creating a final, fixed visual result']
       - kind: 'prose'
@@ -220,9 +219,8 @@ faq:
   - question: 'What does flattening a PDF page do?'
     answer: >-
       Flattening renders a page and its Whiteout, Blackout or Blur marks into one page image. The
-      marks cannot be moved in the downloaded copy. PDkef writes the rest of the page's text back in
-      behind that image, so it stays selectable, searchable and readable aloud; only the words a mark
-      covers are left out. PDkef does this automatically when you download a page carrying those marks.
+      marks cannot be moved in the downloaded copy, and the page text is no longer selectable or
+      searchable. PDkef does this automatically when you download a page carrying those marks.
   - question: 'Does Delete flatten the PDF page?'
     answer: >-
       No. A page with Delete edits only is not flattened. The selected element is removed and the

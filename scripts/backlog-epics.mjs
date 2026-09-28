@@ -69,7 +69,7 @@ export const epics = [
   // 2026-09-27: what makes Redact genuinely better, picked from SITE-41's
   // follow-up list. RED-01 (real content removal) is the foundation the
   // WYSIWYG preview (RED-04) builds on, and Sign shares the engine.
-  { key: 'redact-tool', label: 'Redact tool', heading: 'Redact: true redaction, and a check of the saved file (2026-09-28)' },
+  { key: 'redact-tool', label: 'Redact tool', heading: 'Redact: covered pages as pictures, a check of the saved file, exact boxes (2026-09-28)' },
 ];
 
 export const statuses = [

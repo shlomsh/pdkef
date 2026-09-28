@@ -1,7 +1,7 @@
 ---
 id: "RED-19"
 title: "True redaction, text: delete the glyphs under each box and keep every other glyph as it was"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -9,6 +9,8 @@ depends_on: ["RED-18"]
 ---
 
 # RED-19 · True redaction, text: delete the glyphs under each box and keep every other glyph as it was
+
+**Retired 2026-09-28.** Shlomi chose single-image flattening over removal in place: simple and safe by construction beats a content-stream editor for the narrow value of editing a covered page later. The spike that proved it possible is in `spikes/red-18/` and RED-18.
 
 *Built only if RED-18 meets its bar. Design: RED-18's Text bullet and
 [docs/redact-content-removal.md](../../docs/redact-content-removal.md).*
