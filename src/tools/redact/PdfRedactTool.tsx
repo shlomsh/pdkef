@@ -32,6 +32,7 @@ import { PRESET_FINDERS, termFinder } from './find/finders.ts';
 import type { CheckBox, CheckTerm } from './check/types.ts';
 import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
+import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
 import { pictureOnlyNotice } from './pictureOnlyNotice.ts';
 import {
@@ -298,6 +299,27 @@ export default function PdfRedactTool() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeStyle, activeBoxId, selectedBoxId]);
+
+  // With no tool armed, a tap on blank page area is the phone's way out of a
+  // selection (the tool disarms after one placement, so this is the usual state
+  // right after drawing a box). An armed tool's own page handler deselects.
+  const tapOutside = useTapOutsideDeselect({
+    onDeselect: () => {
+      setActiveBoxId(null);
+      setSelectedBoxId(null);
+    },
+    isArmed: () => !!activeStyle,
+    excludedSelector: [
+      `.${styles['redact-box']}`,
+      '[data-editor-actions]',
+      '[data-editor-resizer]',
+      '[data-editor-page-header]',
+      '[data-redact-find-match]',
+      'button',
+      'a',
+      'input',
+    ].join(', '),
+  });
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -995,7 +1017,13 @@ export default function PdfRedactTool() {
             )}
           />
 
-          <div className={workspaceStyles['pages-container']}>
+          <div
+            className={workspaceStyles['pages-container']}
+            onClick={tapOutside.onClick}
+            onTouchStart={tapOutside.onTouchStart}
+            onTouchEnd={tapOutside.onTouchEnd}
+            onTouchCancel={tapOutside.onTouchCancel}
+          >
             {Array.from({ length: numPages }).map((_, i) => (
               <div key={i} data-editor-page-card>
                 <EditorPageHeader

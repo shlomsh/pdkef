@@ -46,7 +46,7 @@ import {
   classifyTouchTap,
   isBlankAreaTarget,
   type TapGestureSample,
-} from '../tapOutsideDeselect.ts';
+} from '../../../lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from '../fill/FillContext.tsx';
 import FillLayer from '../fill/FillLayer.tsx';
 import FocusProxy from '../fill/FocusProxy.tsx';
