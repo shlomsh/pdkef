@@ -2,8 +2,12 @@
 /* The scroll cues: the beat whose words are lit, and whether the paper plane has landed. */
 @property --o-lit { syntax: '<integer>'; inherits: true; initial-value: 0; }
 @property --o-landed { syntax: '<integer>'; inherits: true; initial-value: 0; }
+/* The ring's own scrub, as two 0->1 fractions (see the note above .o-ring):
+   animated only on .o-stage, never on the ring itself. */
+@property --o-into-o { syntax: '<number>'; inherits: true; initial-value: 0; }
+@property --o-into-window { syntax: '<number>'; inherits: true; initial-value: 0; }
 
-.the-o { --dir: 1; --sky: var(--color-primary-tint); --cloud: var(--color-surface); --cloud-alpha: 1; position: relative; width: 100vw; margin-inline: calc(50% - 50vw); }
+.the-o { --dir: 1; --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1); --sky: var(--color-primary-tint); --cloud: var(--color-surface); --cloud-alpha: 1; position: relative; width: 100vw; margin-inline: calc(50% - 50vw); }
 .the-o:dir(rtl) { --dir: -1; }
 /* The window's sky by the visitor's clock (TheO.astro's script); day is the default. */
 .the-o[data-sky='golden'] { --sky: linear-gradient(var(--color-text) 12%, var(--color-primary) 45%, var(--color-citron) 92%); --cloud: var(--color-paper); }
@@ -20,7 +24,6 @@
    theOTimeline.ts's `beat` pacing). */
 .o-beat { position: relative; height: calc(100dvh - var(--home-nav-height, 0px)); container-type: size; overflow: clip; isolation: isolate; }
 .o-art {
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --gut: clamp(16px, 4cqw, 32px);
   --wc: min(100cqw - 2 * var(--gut), 1216px);
   --lx: calc((100cqw - var(--wc)) / 2);
@@ -50,6 +53,13 @@
   --o-sy: calc(0.729 * var(--k4));
   --w-tx: calc(var(--R) * (0.52 - var(--zx) / 2) * var(--dir));
   --w-ty: calc(var(--R) * -0.1667);
+  /* The ring's live pose while the story scrolls: blended here, inside the
+     size-contained beat where --o-tx and friends are in scope, from the two
+     plain 0->1 fractions --o-stage animates (see the note above .o-ring). */
+  --o-tx-live: calc(var(--o-tx) * var(--o-into-o) + (var(--w-tx) - var(--o-tx)) * var(--o-into-window));
+  --o-ty-live: calc(var(--o-ty) * var(--o-into-o) + (var(--w-ty) - var(--o-ty)) * var(--o-into-window));
+  --o-sx-live: calc(var(--zx) + (var(--o-sx) - var(--zx)) * var(--o-into-o) + (1.04 - var(--o-sx)) * var(--o-into-window));
+  --o-sy-live: calc(1 + (var(--o-sy) - 1) * var(--o-into-o) + (1.3 - var(--o-sy)) * var(--o-into-window));
   /* The flight, from the airplane in the window beat's toggle (S, its centre)
      to the end of the last sentence (L), where the paper plane lands on the
      baseline. B is the toggle's plane; pw the landed paper plane's width. */
@@ -109,7 +119,15 @@
 .bf > .o-art { --bg: transparent; }
 
 /* One ring, drawn in every beat's colours: the zero, the O and the window.
-   At rest it is each beat's finished pose. */
+   At rest it is each beat's finished pose. Its scrub (the @supports block
+   below) never binds animation-timeline on the ring itself: real iOS WebKit
+   settled this ring's own scroll-driven shape late relative to --o-lit, a
+   cue that stays correct on the same device (see docs/home-the-o.md) -
+   deeply nested inside .o-beat's container-type: size, unlike .o-stage,
+   which drives --o-lit directly. --o-into-o/--o-into-window are instead
+   animated only on .o-stage, and the ring's pose is a plain calc() of them,
+   inherited down like any other custom property (containment does not
+   isolate that). */
 .o-ring {
   position: absolute;
   z-index: 1;
@@ -240,13 +258,15 @@
 
 /* Motion. When each thing happens lives in src/site-lib/theOTimeline.ts,
    which TheO.astro appends to this sheet: the pin's height, the keyframes whose
-   stops are moments in the story (o-path, o-shape, o-fly, o-cues) and every
-   animation range. Each change (a colour wipe, the ring changing shape) takes
-   a screen or more, then the card's words fade in and it rests for a screen
-   and a half before the next change starts; the flight takes about two and a
-   half screens, and the landed plane rests before the page moves on.
-   Every copy of the ring runs the same path over the whole pin, so the ring
-   is one continuous shape; each beat's colour opens as a circle from it. */
+   stops are moments in the story (o-into-o, o-into-window, o-fly, o-cues) and
+   every animation range. Each change (a colour wipe, the ring changing shape)
+   takes a screen or more, then the card's words fade in and it rests for a
+   screen and a half before the next change starts; the flight takes about two
+   and a half screens, and the landed plane rests before the page moves on.
+   o-into-o/o-into-window run once, only on .o-stage, as the two 0->1
+   fractions every beat's ring blends its pose from (see the note above
+   .o-ring); each beat's colour opens as a circle from the one ring shape
+   that makes. */
 @keyframes o-roll { from { scale: 1 1; } to { scale: 1 -1; } }
 @keyframes o-show { from { opacity: 0; } to { opacity: 1; } }
 @keyframes o-hide { from { opacity: 1; } to { opacity: 0; } }
@@ -273,11 +293,15 @@
     /* The beats are stacked layers; only the link in the lit card takes a click. */
     .o-beat { pointer-events: none; }
     .o-more { pointer-events: auto; }
-    .o-stage, .o-art, .o-ring, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
+    .o-stage, .o-art, .o-cloud, .o-mode-on, .o-plane, .o-flight, .o-roll, .o-face { animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --the-o; }
 
     .o-beat:not(.b1, .bf) > .o-art { animation-name: o-wipe; animation-timing-function: var(--ease-in-out); }
 
-    .o-ring { animation-name: o-path, o-shape; animation-timing-function: var(--ease-in-out); animation-range: contain 0% contain 100%; }
+    /* The ring's own scrub reads --o-into-o/--o-into-window (animated on
+       .o-stage below), never an animation bound to the ring itself; see the
+       note above .o-ring. .o-stage .o-ring matches every copy, at the same
+       specificity as .b4/.b5 .o-ring above, and wins by coming later. */
+    .o-stage .o-ring { translate: var(--o-tx-live) var(--o-ty-live); scale: var(--o-sx-live) var(--o-sy-live); }
     .o-cloud { animation-name: o-drift; }
     /* Airplane mode turns on, and then its plane takes off. */
     .o-mode-on { animation-name: o-switch; animation-timing-function: var(--ease-in-out); }
@@ -286,7 +310,7 @@
     .o-roll { animation-name: o-roll; animation-timing-function: var(--ease-in-out); }
     .o-face-plane { animation-name: o-hide; animation-timing-function: step-start; }
     .o-face-paper { animation-name: o-show; animation-timing-function: step-start; }
-    .o-stage { animation-name: o-cues; animation-timing-function: step-end; animation-range: contain 0% contain 100%; }
+    .o-stage { animation-name: o-into-o, o-into-window, o-cues; animation-timing-function: var(--ease-in-out), var(--ease-in-out), step-end; animation-range: contain 0% contain 100%; }
 
     /* Once each ring settles, a held beat, then its words fade in, as in the
        original sketch. The scroll sets the cue; the pause and the fade run in
