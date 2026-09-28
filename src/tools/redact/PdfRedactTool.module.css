@@ -86,8 +86,9 @@
 }
 
 /* RED-13: the moment an object is deleted. A snapshot of it sits over the
-   page until the page has been drawn without it (DeleteLift.tsx), then lifts
-   off and fades. Reduced motion never creates one. */
+   page until the page has been drawn without it (DeleteLift.tsx), then peels
+   off like a sticker (RED-28): the front is clipped away while its blank
+   underside folds over, then flies off. Reduced motion never creates one. */
 .delete-lift {
   position: absolute;
   z-index: 12;
@@ -100,15 +101,24 @@
   height: 100%;
 }
 
-.delete-lift.lifting {
-  animation: delete-lift 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.delete-lift-fly,
+.delete-lift-fold,
+.delete-lift-flap {
+  position: absolute;
+  inset: 0;
 }
 
-@keyframes delete-lift {
-  to {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.94);
-  }
+.delete-lift-fly {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
+}
+
+.delete-lift-fold {
+  transform-origin: 0 0;
+}
+
+.delete-lift-flap {
+  background: var(--color-surface);
+  border-radius: 2px;
 }
 
 /* Redact design-review finding #3: deleteElement (a box's own X) and
