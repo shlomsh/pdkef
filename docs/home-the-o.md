@@ -25,7 +25,7 @@ drops in.
 | 1 | the zero | accounts | No account, email, or trial period. |
 | 2 | the zero | uploads | Files never leave your device. |
 | 3 | the zero | paywalls | Free. No caps, no watermark, no catch. |
-| 4 | the O of the word | Open source | Audit the code yourself. |
+| 4 | the O of the word | Open source | Audit the code yourself. Then a link to the code: "Read the code on GitHub". |
 | 5 | a plane window in the visitor's own sky | Works offline | Turn on airplane mode and give it a try right now. |
 | 6 | (the paper plane lands here) | Then I wanted / to share them. | So I built PDkef. I wanted everyday PDF tools to be free and available to everyone, on any device. |
 
@@ -41,10 +41,15 @@ prototypes and nine sketched directions.
 
 ## How it moves
 
-- **The stage pins for 1340svh.** Each change (a colour wipe, the ring moving) takes a fraction of a
-  screen; then the card's words fade in and it rests for about a screen and a half, so every card
-  pauses before the next change starts. The flight takes about two and a half screens, and the landed
-  plane rests before the page moves on.
+- **The pacing is one table.** [`src/site-lib/theOTimeline.ts`](../src/site-lib/theOTimeline.ts)
+  holds every scroll-driven moment in svh (`PACE`) and writes the scroll-timed CSS that TheO.astro
+  appends to `theO.css`: the pin's height, the keyframes whose stops are moments in the story, and
+  every animation range. Its unit test holds the story's promises: each change into a card takes at
+  least a screen, every card rests a screen and a half with its words lit before the next change,
+  and the last sentence is up a screen before the plane lands on it.
+- **The stage pins for about seventeen screens.** Each change (a colour wipe, a full screen; the ring
+  changing shape, 1.2 screens) runs, then the card's words fade in and it rests. The flight takes about two
+  and a half screens, and the landed plane rests before the page moves on.
 - **Geometry is scrubbed, words are timed.** Every copy of the ring runs the same path keyframes over
   the whole pin (one continuous shape), and each card is a full layer revealed by a `clip-path` circle,
   all driven by scroll position. The words are not scrubbed: once a ring settles, a held beat, then
@@ -58,6 +63,11 @@ prototypes and nine sketched directions.
   glides over the top, comes down the clear lane at the end of the staggered last sentence and
   touches down on its baseline after "them", with a short flare (a timed cue, `--o-landed`). The
   sentence is always visible before the landing.
+
+The Open source card's link is the one interactive thing in the story. The beats are stacked layers,
+so in the scroll version only the link takes a click, and it leaves the tab order (`visibility`)
+while its card is not lit, so focus never lands on a link nobody can see. On a short screen it sits
+beside its line instead of under it.
 
 ## Live details
 
@@ -88,7 +98,7 @@ complete.
   `prefers-reduced-motion: no-preference`; both ends of every `animation-range` carry a range name.
   The still version (reduced motion, or no scroll timelines) stacks the six cards as posters with the
   paper plane already landed, and every word shown.
-- The CSS ships inline on the one page that renders it (`theO.css?raw` plus
+- The CSS ships inline on the one page that renders it (`theO.css?inline`, minified by the build, plus
   `Astro.csp.insertStyleHash`), so the Hebrew page, which shares `HomePageLayout`, carries none of it.
 - The story is its own section after `.home-tour`, never inside a card: `position: sticky` dies under
   an ancestor with `overflow`, `transform`, `filter` or `contain` (DEMO-05).
