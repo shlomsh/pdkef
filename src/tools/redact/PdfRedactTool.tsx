@@ -24,7 +24,12 @@ import { findSetMembers } from './findSet.ts';
 import useLinkedBoxes from './useLinkedBoxes.ts';
 import type { RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
-import FindBar from './FindBar.tsx';
+import FindBar, { PRESET_LABELS } from './FindBar.tsx';
+import SavedFileCheck from './SavedFileCheck.tsx';
+import useSavedFileCheck from './useSavedFileCheck.ts';
+import { findMatches, isCovered } from './find/findMatches.ts';
+import { PRESET_FINDERS, termFinder } from './find/finders.ts';
+import type { CheckBox, CheckTerm } from './check/types.ts';
 import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
 import type { FindMatch } from './find/types.ts';
@@ -731,6 +736,17 @@ export default function PdfRedactTool() {
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
   const pageHeightsPt = usePageHeightsPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur'));
+
+  // RED-17: what Find looked for on this document, so the check of the saved
+  // file looks for it too (a preset finds every email, not just the boxed ones).
+  const [findTerms, setFindTerms] = useState<CheckTerm[]>([]);
+  useEffect(() => { setFindTerms([]); }, [pdfDocument]);
+  const rememberFindTerm = () => {
+    const term: CheckTerm | null = find.preset
+      ? { label: PRESET_LABELS[find.preset], source: 'find', finder: PRESET_FINDERS[find.preset] }
+      : (find.term.trim() ? { label: find.term.trim(), source: 'find', finder: termFinder(find.term.trim()) } : null);
+    if (term) setFindTerms((terms) => [...terms.filter((known) => known.label !== term.label), term]);
+  };
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
     const type = find.redactStyle;
@@ -756,6 +772,25 @@ export default function PdfRedactTool() {
     commands.add(additions, { type: 'FIND_AND_REDACT', description });
     setAnnouncement(`${description}.`);
     find.setCurrentId(nextId);
+  };
+
+  // RED-17: the check of each saved export. Every page with a box is saved as
+  // a picture today (redact.js), so those are the pages text search can't see;
+  // RED-22 narrows this to pages that fell back once removal keeps the rest.
+  const checkBoxes: CheckBox[] = elements
+    .filter((el) => el.type === 'blur' || el.type === 'blackout' || el.type === 'whiteout')
+    .map((el) => ({ pageIndex: el.pageIndex, left: el.left, top: el.top, width: el.width, height: el.height, type: el.type as CheckBox['type'], color: el.color }));
+  const savedCheck = useSavedFileCheck({
+    pdfDocument,
+    saved: exportedForHandoff?.blob ?? null,
+    boxes: checkBoxes,
+    findTerms,
+    picturePages: [...new Set(checkBoxes.map((box) => box.pageIndex))].sort((a, b) => a - b),
+  });
+  const coverFromCheck = (term: CheckTerm, pageIndex: number) => {
+    if (savedCheck.state.status !== 'done') return;
+    const pages = savedCheck.state.outcome.context.original.filter((page) => page.text.pageIndex === pageIndex);
+    redactMatches(findMatches(pages, term.finder).filter((match) => !isCovered(match, checkBoxes)));
   };
 
   const handleSavePdf = async (exportAction = 'download') => {
@@ -952,8 +987,8 @@ export default function PdfRedactTool() {
                 onNext={find.next}
                 redactStyle={find.redactStyle}
                 onRedactStyleChange={find.setRedactStyle}
-                onRedactCurrent={() => { if (find.current) redactMatches([find.current]); }}
-                onRedactAll={() => redactMatches(find.openMatches)}
+                onRedactCurrent={() => { if (find.current) { redactMatches([find.current]); rememberFindTerm(); } }}
+                onRedactAll={() => { redactMatches(find.openMatches); rememberFindTerm(); }}
                 onClose={() => find.setOpen(false)}
               />
             )}
@@ -1126,6 +1161,8 @@ export default function PdfRedactTool() {
               {pictureOnlyNote}
             </p>
           )}
+
+          <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} />
 
           {/* Finding #4: mirrors Merge's own handoffFailed line - the hand-off
               is a nice-to-have next step, not the primary export, so a failed

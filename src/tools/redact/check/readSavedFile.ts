@@ -10,6 +10,7 @@
  * imports it directly.
  */
 import { buildPageText } from '../find/pageText.ts';
+import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
@@ -125,8 +126,9 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
 
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex++) {
     const page = await doc.getPage(pageIndex + 1);
-    const textContent = await page.getTextContent();
-    const items = textContent.items.filter((item: any) => typeof item.str === 'string');
+    // readTextItems, never getTextContent(): the latter throws on every iOS
+    // browser (pdfTextItems.ts has the story).
+    const items = (await readTextItems(page)).filter((item: any) => typeof item.str === 'string') as any[];
     const text = buildPageText(pageIndex, items);
     const geometry = pageGeometryFromPdfJsPage(page);
     pages.push({ text, geometry });
