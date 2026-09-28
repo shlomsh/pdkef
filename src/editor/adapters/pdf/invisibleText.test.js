@@ -54,7 +54,7 @@ async function readGlyphsBack(page) {
     } catch {
       return null;
     }
-  });
+  }, { invisibleText: true });
 }
 
 describe('createInvisibleFont / drawInvisibleText', () => {

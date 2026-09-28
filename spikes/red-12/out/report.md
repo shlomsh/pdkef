@@ -1,7 +1,7 @@
 ## irs-1040
 
 - Read-back check (RED-09): passes.
-- Words written 1012, left out 6. Layer adds 7772 bytes to a 751413-byte picture page (1.0%).
+- Words written 1012, left out 6. Layer adds 7773 bytes to a 751412-byte picture page (1.0%).
 - pdfjs: secret absent; written words not found 2; 100.0% of words in the original's order.
 - pdfium: secret absent; written words not found 2; 100.0% of words in the original's order.
 - pdfkit: secret absent; written words not found 2; 83.0% of words in the original's order.
@@ -13,7 +13,7 @@
 ## uscis-i9
 
 - Read-back check (RED-09): passes.
-- Words written 607, left out 1. Layer adds 5867 bytes to a 681272-byte picture page (0.9%).
+- Words written 607, left out 1. Layer adds 5866 bytes to a 681273-byte picture page (0.9%).
 - pdfjs: secret absent; written words not found 1; 100.0% of words in the original's order.
 - pdfium: secret absent; written words not found 1; 100.0% of words in the original's order.
 - pdfkit: secret absent; written words not found 1; 88.8% of words in the original's order.
@@ -25,7 +25,7 @@
 ## health-declaration
 
 - Read-back check (RED-09): passes.
-- Words written 762, left out 2. Layer adds 9260 bytes to a 698691-byte picture page (1.3%).
+- Words written 762, left out 2. Layer adds 9261 bytes to a 698690-byte picture page (1.3%).
 - pdfjs: secret absent; written words not found 54; 100.0% of words in the original's order.
 - pdfium: secret absent; written words not found 63; 77.5% of words in the original's order.
 - pdfkit: secret absent; written words not found 2; 54.3% of words in the original's order.
@@ -61,7 +61,7 @@
 ## plain-latin-middle-word
 
 - Read-back check (RED-09): passes.
-- Words written 1017, left out 1. Layer adds 7818 bytes to a 755066-byte picture page (1.0%).
+- Words written 1017, left out 1. Layer adds 7816 bytes to a 755066-byte picture page (1.0%).
 - pdfjs: secret absent; written words not found 2; 100.0% of words in the original's order. "See" then "instructions.": in order on one line ("See instructions.").
 - pdfium: secret absent; written words not found 2; 100.0% of words in the original's order. "See" then "instructions.": in order on one line ("See instructions.").
 - pdfkit: secret absent; written words not found 2; 83.3% of words in the original's order. "See" then "instructions.": in order on one line ("See instructions.").

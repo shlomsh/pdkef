@@ -4,7 +4,7 @@ import zlib from 'zlib';
 import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, StandardFonts, degrees } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
 
 // redact.js reaches pdfjs through sign.js's getPdfjs(), which does a dynamic
@@ -364,6 +364,40 @@ describe('redactPdf: the invisible text layer (RED-12/RED-09)', () => {
     // matters is the words and their order.
     expect((await getPageTexts(blob)).join('').split(/\s+/)).toEqual(['LEFT', 'RIGHT']);
     expect(pictureOnlyPages).toEqual([]);
+  });
+
+  // The read-back check reads the saved page, which is unrotated and sized to
+  // the picture, so it must measure with the saved page's geometry, not the
+  // original's. With the original's, a rotated page's layer was checked in the
+  // wrong place.
+  it('keeps the neighbours of a boxed word on a rotated page, and passes the read-back', async () => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([300, 100]);
+    page.setRotation(degrees(90));
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    page.drawText('LEFT MIDDLE RIGHT', { x: 20, y: 50, size: 24, font });
+    const file = new File([new Uint8Array(await doc.save())], 'rotated.pdf', { type: 'application/pdf' });
+
+    // MIDDLE's core in PDF space (x 82..181, y 44..70), into the rotated view.
+    const probe = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const viewport = (await probe.getPage(1)).getViewport({ scale: 1 });
+    const corners = [[82, 44], [181, 44], [82, 70], [181, 70]].map(([x, y]) => viewport.convertToViewportPoint(x, y));
+    const xs = corners.map(([x]) => x);
+    const ys = corners.map(([, y]) => y);
+    const rotatedBox = {
+      id: 'r1',
+      type: 'blackout',
+      pageIndex: 0,
+      left: (Math.min(...xs) / viewport.width) * 100,
+      top: (Math.min(...ys) / viewport.height) * 100,
+      width: ((Math.max(...xs) - Math.min(...xs)) / viewport.width) * 100,
+      height: ((Math.max(...ys) - Math.min(...ys)) / viewport.height) * 100,
+      color: '#000000',
+    };
+
+    const { blob, pictureOnlyPages } = await redactPdf(file, [rotatedBox]);
+    expect(pictureOnlyPages).toEqual([]);
+    expect((await getPageTexts(blob)).join('').split(/\s+/)).toEqual(['LEFT', 'RIGHT']);
   });
 
   it('never writes the boxed word into the saved bytes, inflated or not, as text or as UTF-16BE', async () => {

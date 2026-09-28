@@ -87,13 +87,13 @@ const CASES: Case[] = [
   },
 ];
 
-async function readPage(bytes: Uint8Array, pageNo: number) {
+async function readPage(bytes: Uint8Array, pageNo: number, invisibleText = false) {
   const doc = await pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: false }).promise;
   const page = await doc.getPage(pageNo);
   const content = await page.getTextContent();
   const items = content.items.filter((item: any) => typeof item.str === 'string');
   const opList = await page.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
-  const glyphs = readPageGlyphs(opList, pdfjs.OPS as any, (name) => page.commonObjs.get(name));
+  const glyphs = readPageGlyphs(opList, pdfjs.OPS as any, (name) => page.commonObjs.get(name), { invisibleText });
   return { doc, page, glyphs, pageText: buildPageText(pageNo - 1, items as any), geometry: pageGeometryFromPdfJsPage(page as any) };
 }
 
@@ -230,7 +230,7 @@ const report: string[] = [];
 for (const c of CASES) {
   const r = await exportCase(c);
   const original = path.join(CORPUS, c.file);
-  const back = await readPage(new Uint8Array(fs.readFileSync(r.outPath)), 1);
+  const back = await readPage(new Uint8Array(fs.readFileSync(r.outPath)), 1, true);
   const readsBack = textLayerReadsBack(r.plan, back.glyphs, back.geometry, r.boxes);
   const keptKeys = new Set(r.plan.runs.flatMap((run) => tokens(run.text)).map(key));
   const lines = [`## ${c.name}`, '',

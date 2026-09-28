@@ -111,7 +111,9 @@ function sameShape(a: AffineTransform, b: AffineTransform): boolean {
   return [0, 1, 2, 3].every((k) => Math.abs(a[k] - b[k]) <= SAME_SHAPE * scale);
 }
 
-const isBlank = (glyph: PageGlyph) => glyph.isSpace || /^\s*$/.test(glyph.unicode);
+/** A space between words. A glyph with no Unicode value is not one: it stays
+ * inside its word (and is not written), so it can't split a word in two. */
+const isBlank = (glyph: PageGlyph) => glyph.isSpace || /^\s+$/.test(glyph.unicode);
 
 /**
  * Splits the page's glyphs into runs, in content order: glyphs that follow
