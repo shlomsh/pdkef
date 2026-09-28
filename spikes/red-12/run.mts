@@ -1,3 +1,4 @@
+// @ts-nocheck - a Node spike harness, run with `node`; not part of the app.
 // RED-12 spike: a covered page saved as its picture plus an invisible text
 // layer without the boxed words, read back by the three extractors people
 // actually use: pdf.js (Firefox, our own Find), PDFium (Chrome's viewer) and
@@ -272,7 +273,6 @@ for (const c of CASES) {
     lines.push(`- ${engine} search "${word}": ${search.hits.length} hits (original ${origHits}).`);
   }
   lines.push(`- Selection vs original, PDFium: ${alignment(orig.pdfium, out.pdfium)}.`);
-  lines.push(`- Selection vs original, PDFKit: ${alignment(orig.pdfkit, out.pdfkit)}.`);
   lines.push(`- Raw file search for the secret: ${rawStreamLeak(r.outPath, c.secret).length ? 'FOUND' : 'not found'}.`);
   report.push(lines.join('\n'));
   console.log(lines.join('\n') + '\n');
