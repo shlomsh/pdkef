@@ -88,6 +88,10 @@ const hebrewGuideCards: Record<string, CardCopy> = {
     title: 'מחיקת טקסט ותמונות מ-PDF',
     description: 'הסירו רכיבים נבחרים, שמרו את שאר הטקסט, והכירו את המגבלות.',
   },
+  'remove-camscanner-watermark-from-pdf': {
+    title: 'הסרת סימן המים של CamScanner',
+    description: 'הורידו את השורה "Scanned with CamScanner" מסריקה שלכם, בטלפון או במחשב.',
+  },
   'pdf-wont-compress-to-100kb': {
     title: 'למה 100KB לא מספיק',
     description: 'דוגמאות שנמדדו באמת: כמה עמודים נכנסים לפני שהטקסט מתטשטש.',

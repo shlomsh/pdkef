@@ -1,0 +1,125 @@
+title: 'Remove the CamScanner Watermark From a PDF, Free | PDkef'
+description: >-
+  Take the "Scanned with CamScanner" line off your own scanned PDF, free, on your phone or computer.
+  The file stays on your device. No signup, no upload.
+breadcrumb: 'CamScanner watermark'
+icon: 'ScanText'
+kicker: 'Your scan, without the footer'
+h1: 'Remove the CamScanner Watermark From Your PDF'
+subhead: >-
+  The free version of CamScanner adds a "Scanned with CamScanner" line to the bottom of every page.
+  If the scan is yours, you can take that line off in a minute with the Redact tool, right in your
+  browser. Here is how, and the two things worth knowing first.
+primaryCta:
+  href: '/redact/'
+  label: 'Open the free Redact tool'
+sections:
+  - variant: 'highlight'
+    sketch: 'arcs'
+    icon: 'ListChecks'
+    iconPos: 'tr'
+    kicker: 'The short version'
+    heading: 'How to remove "Scanned with CamScanner" from a PDF'
+    blocks:
+      - kind: 'steps'
+        items:
+          - >-
+            <strong>Open your PDF in the <a href="/redact/">Redact tool</a>.</strong> It works in
+            the browser on a phone, a tablet or a computer, and the file never leaves your device.
+          - >-
+            <strong>Choose Delete and tap the footer.</strong> If the footer lights up on its own,
+            it is a separate image and Delete takes it out cleanly. The rest of the page is left
+            exactly as it was.
+          - >-
+            <strong>If Delete lights up the whole page, use Whiteout instead.</strong> That means the
+            footer is part of the scanned picture. Drag a Whiteout box over the footer line.
+          - >-
+            <strong>Repeat on each page, then Download.</strong> You get a new PDF; your original is
+            not changed.
+  - sketch: 'grid'
+    icon: 'Layers'
+    iconPos: 'br'
+    kicker: 'Why there are two ways'
+    heading: 'Delete or Whiteout: it depends on how the footer was saved'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          A PDF from a scanning app is usually one picture per page. Sometimes the app adds its
+          footer as a second, small picture on top, and sometimes it paints the footer into the scan
+          itself. You can't tell which by looking, but the Delete tool can: it highlights whatever
+          it is able to remove on its own.
+      - kind: 'table'
+        caption: 'Pick by what Delete highlights when you tap the footer.'
+        headers: ['What lights up', 'Use', 'What you get']
+        rows:
+          - ['Just the footer', 'Delete', 'The footer is removed and the page is otherwise untouched']
+          - ['The whole page', 'Whiteout', 'A plain box covers the footer and is saved into the page']
+      - kind: 'prose'
+        text: >-
+          Whiteout saves the covered page as one picture. For a scan that changes nothing you can
+          see, because the page was already a picture. For more on each option, see
+          <a href="/blur-vs-blackout-vs-delete-pdf/">Blur, Blackout, Whiteout or Delete</a>.
+  - sketch: 'waves'
+    icon: 'AlertTriangle'
+    iconPos: 'tl'
+    kicker: 'Worth knowing'
+    heading: 'Two honest limits'
+    blocks:
+      - kind: 'columns'
+        items:
+          - icon: 'Droplets'
+            title: 'Whiteout is white'
+            body: >-
+              On a white margin it disappears. On a grey or tinted scan it can leave a lighter patch
+              where the footer was. If that bothers you, a Blur box over the line is softer.
+          - icon: 'FileText'
+            title: 'One page at a time'
+            body: >-
+              The footer is on every page, and for now you mark each page yourself. On a phone,
+              zoom in a little first so the box lands on the line.
+          - icon: 'ScanText'
+            title: 'For your own scans'
+            body: >-
+              This is for documents you scanned yourself. It is not a way around someone else's
+              watermark on their work.
+  - sketch: 'rings'
+    icon: 'ShieldCheck'
+    iconPos: 'br'
+    kicker: 'Nothing is uploaded'
+    heading: 'Your scan stays on your device'
+    blocks:
+      - kind: 'prose'
+        text: >-
+          Scans are often the documents you would least like to hand to a website: an ID card, a
+          payslip, a signed contract. PDkef reads and saves the PDF in your browser, with no upload,
+          no account and no watermark of its own. It is free and open source, and you can
+          <a href="/open-source-pdf-editor/">check for yourself that nothing leaves your device</a>.
+faq:
+  - question: 'How do I remove the CamScanner watermark from a PDF for free?'
+    answer: >-
+      Open the PDF in PDkef's Redact tool, choose Delete and tap the "Scanned with CamScanner" line.
+      If only the footer lights up, Delete removes it. If the whole page lights up, drag a Whiteout
+      box over the line instead. Do this on each page, then Download.
+  - question: 'Can I remove the CamScanner watermark on my iPhone or Android phone?'
+    answer: >-
+      Yes. Open pdkef.com in your phone's browser, choose the PDF from Files, and follow the same
+      steps. Zoom in a little before drawing a box so it lands on the footer line. Nothing is
+      installed and nothing is uploaded.
+  - question: 'Will removing the footer lower the quality of my scan?'
+    answer: >-
+      Delete leaves the page exactly as it was, minus the footer. Whiteout saves the covered page as
+      one picture, and a scanned page is already a picture, so it looks the same apart from the
+      covered line.
+  - question: 'Why does Delete select the whole page instead of the footer?'
+    answer: >-
+      Because on that file the footer is painted into the scanned picture rather than added as its
+      own element, so the only thing Delete can remove is the whole picture. Use Whiteout for that
+      file.
+  - question: 'Is my scan uploaded anywhere?'
+    answer: >-
+      No. PDkef processes the PDF in your browser on your own device. There is no upload, no account
+      and no watermark added, and the code is open source.
+  - question: 'Can I remove every page''s footer at once?'
+    answer: >-
+      Not yet. The footer sits on every page and today you mark each one. It is quick on a short
+      scan, and the result downloads as one PDF.
