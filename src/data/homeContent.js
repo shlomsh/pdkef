@@ -81,7 +81,9 @@ export const homeContent = {
       { word: 'uploads', line: 'Files never leave your device.' },
       { word: 'paywalls', line: 'Free. No caps, no watermark, no catch.' },
     ],
-    openSource: { word: 'Open source', line: 'Audit the code yourself.' },
+    // `link` is the card's way to do what its line says: the repository on
+    // GitHub (GITHUB_REPO_URL in organizationSchema.js).
+    openSource: { word: 'Open source', line: 'Audit the code yourself.', link: 'Read the code on GitHub' },
     // `live` replaces `line` while the visitor really is offline (the words
     // OfflineProof.astro says on the tool pages), and the toggle beside it is
     // on. `stress` and `liveStress` must each occur once in their line: the
