@@ -27,6 +27,7 @@ import FindBar from './FindBar.tsx';
 import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
 import type { FindMatch } from './find/types.ts';
+import { pictureOnlyNotice } from './pictureOnlyNotice.ts';
 import {
   applyHistoryEntries,
   revertHistoryEntries,
@@ -259,6 +260,12 @@ export default function PdfRedactTool() {
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
 
+  // RED-09: which pages, if any, lost their invisible text layer and were
+  // saved as a picture alone - set from a successful export's
+  // `pictureOnlyPages`, cleared alongside `exportedForHandoff` wherever that
+  // export goes stale (see the invalidation effect below).
+  const [pictureOnlyNote, setPictureOnlyNote] = useState<string | null>(null);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
@@ -354,6 +361,7 @@ export default function PdfRedactTool() {
   useEffect(() => {
     clearPrepared();
     setExportedForHandoff(null);
+    setPictureOnlyNote(null);
     // An export still running was started from boxes that no longer exist.
     // Retiring it here rather than in handleSavePdf's own bail is what lets
     // the workspace come back out of `.is-processing`: only this effect knows
@@ -756,6 +764,7 @@ export default function PdfRedactTool() {
     }
 
     setErrorDetail(null);
+    setPictureOnlyNote(null);
     setStatus('redacting');
     setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
@@ -777,7 +786,7 @@ export default function PdfRedactTool() {
       // export, which is the right outcome: the boxes stay, the message is
       // "try again". Repeat exports reuse the module registry's copy.
       const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
-      const redactedBlob = await applyPageEdits(sourceFile, elements, (p) => {
+      const { blob: redactedBlob, pictureOnlyPages } = await applyPageEdits(sourceFile, elements, (p) => {
         if (run.isCurrent()) setProgress(p);
       });
       if (!run.isCurrent()) return;
@@ -786,14 +795,17 @@ export default function PdfRedactTool() {
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
       setExportedForHandoff({ blob: redactedBlob, name: filename });
+      const note = pictureOnlyNotice(pictureOnlyPages);
+      setPictureOnlyNote(note);
+      const noteSuffix = note ? ` ${note}` : '';
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         setStatus('editing');
-        setAnnouncement('Your redacted PDF is ready to share.');
+        setAnnouncement(`Your redacted PDF is ready to share.${noteSuffix}`);
       } else {
         download(redactedBlob, filename);
         setStatus('editing');
-        setAnnouncement('PDF redacted successfully. Download started.');
+        setAnnouncement(`PDF redacted successfully. Download started.${noteSuffix}`);
       }
     } catch (err) {
       console.error(err);
@@ -1095,6 +1107,15 @@ export default function PdfRedactTool() {
             <ErrorMessage title="Redaction stopped." fullWidth>
               {errorDetail}
             </ErrorMessage>
+          )}
+
+          {/* RED-09: a page or two lost their invisible text layer and were
+              saved as a picture alone - quiet, not an error, since the export
+              itself succeeded. */}
+          {pictureOnlyNote && (
+            <p className={pdfToolStyles['hint-message']} role="status">
+              {pictureOnlyNote}
+            </p>
           )}
 
           {/* Finding #4: mirrors Merge's own handoffFailed line - the hand-off
