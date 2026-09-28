@@ -701,6 +701,7 @@ _None._
 | RED-21 | P1 | [RED-21](backlog/tasks/RED-21.md) · True redaction: form field values, comments, watermark annotations and shared form content under a box |
 | RED-22 | P1 | [RED-22](backlog/tasks/RED-22.md) · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires |
 | RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
+| RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 
 ### In progress
 
