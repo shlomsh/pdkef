@@ -1,7 +1,7 @@
 ---
 id: "RED-27"
 title: "Delete leaves nothing hidden behind: the link over what it removes, and the file's details"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -37,3 +37,10 @@ Bookmarks and attachments stay with RED-25 (the person chooses, per item).
 - Unit tests for each of the three; the CamScanner-shaped fixture's Delete case has no link and no
   "camscanner" anywhere in the saved bytes.
 - The real scan (kept off the repo) re-checked by hand: no link, no CamScanner, no device or time.
+
+## Done, 2026-09-28
+
+The real scan, after Delete on the footer: 1 image (the scan), 0 links, no Title, Author, Producer or
+CreationDate, and no object anywhere in the file mentions CamScanner (before: 2 images, 1 link, 2
+mentions, all four details). Review follow-ups folded in: the old indirect `/Annots` array is deleted
+too, and a test pins that a link over a deleted text run goes with it.
