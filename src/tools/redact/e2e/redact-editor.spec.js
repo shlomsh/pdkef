@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFName, PDFDict, PDFStream } from '@cantoo/pdf-lib';
 import { getPageContentBytes } from '../../../editor/adapters/pdf/pdfObjects.js';
 
 // Reads a saved page's own content stream the same way deleteObjects.js does,
@@ -14,6 +14,32 @@ function decodedPageText(pdfPage) {
   return [...raw.matchAll(/<([0-9A-Fa-f]+)>/g)]
     .map((m) => Buffer.from(m[1], 'hex').toString('latin1'))
     .join(' ');
+}
+
+// A covered page's saved picture is a single JPEG XObject drawn full-page
+// (flattenPage in redact.js). DCTDecode is a filter @cantoo/pdf-lib's own
+// decodePDFRawStream() does not decode (it throws UnsupportedEncodingError),
+// which is fine here: for that filter the raw stream contents already ARE
+// the JPEG bytes, so this reads them directly off the XObject dict instead.
+function extractFlattenedJpegBytes(pdfPage) {
+  const context = pdfPage.doc.context;
+  const resources = pdfPage.node.Resources();
+  if (!resources) throw new Error('Saved page has no Resources dict');
+  const xObjects = context.lookup(resources.get(PDFName.of('XObject')));
+  if (!(xObjects instanceof PDFDict)) throw new Error('Saved page has no XObject dictionary');
+  for (const name of xObjects.keys()) {
+    const xObject = context.lookup(xObjects.get(name));
+    if (!(xObject instanceof PDFStream)) continue;
+    const subtype = xObject.dict.lookup(PDFName.of('Subtype'));
+    const filter = xObject.dict.lookup(PDFName.of('Filter'));
+    if (
+      subtype instanceof PDFName && subtype.asString() === '/Image' &&
+      filter instanceof PDFName && filter.asString() === '/DCTDecode'
+    ) {
+      return xObject.getContents();
+    }
+  }
+  throw new Error('Saved page has no DCTDecode image XObject');
 }
 
 async function makeMultiPagePdfBuffer(pageCount) {
@@ -916,6 +942,79 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
 
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
     await expect(page.locator('[data-saved-file-check]')).toHaveCount(0);
+  });
+
+  // A reviewer found that a Blur box overlapping an earlier Blackout pasted
+  // the original page's pixels back over the Blackout in the exported
+  // picture (flattenPage in redact.js sampled the page for the blur before
+  // any box was painted). Fixed by painting solids before a blur samples the
+  // page, and again after every blur. Proves it in the actual exported
+  // pixels: a solid red top half with black text, a Blackout, then a Blur
+  // whose right half overlaps the Blackout and extends past it into plain
+  // red. Both the Blackout-only region and the overlap must read solid
+  // black; only the blur-over-red region, which the Blackout never touched,
+  // may show red through.
+  test('exported picture: a blur overlapping a blackout leaves the blackout solid', async ({ page }) => {
+    const doc = await PDFDocument.create();
+    const pdfPage = doc.addPage([612, 792]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    pdfPage.drawRectangle({ x: 0, y: 396, width: 612, height: 396, color: rgb(1, 0, 0) });
+    pdfPage.drawText('CONFIDENTIAL', { x: 420, y: 750, size: 20, font, color: rgb(0, 0, 0) });
+    await openRedactTool(page, Buffer.from(await doc.save()));
+
+    // Blackout, then a Blur whose right half overlaps it and extends past it.
+    // The drag must start off the just-drawn (and now selected) Blackout box,
+    // or the mousedown hits the box itself instead of the draw overlay, so
+    // the Blur drag starts from its own bottom-right corner, outside the
+    // Blackout, and ends inside the overlap.
+    await drawRedaction(page, 'Blackout', { x: 0.3, y: 0.15 }, { x: 0.5, y: 0.35 });
+    await drawRedaction(page, 'Blur', { x: 0.65, y: 0.35 }, { x: 0.4, y: 0.15 });
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('toolbar', { name: 'PDF redaction' }).getByRole('button', { name: 'Download', exact: true }).click(),
+    ]);
+    const savedPath = await download.path();
+    if (!savedPath) throw new Error('Playwright did not retain the downloaded PDF');
+    const saved = await PDFDocument.load(fs.readFileSync(savedPath));
+    const jpegBase64 = Buffer.from(extractFlattenedJpegBytes(saved.getPage(0))).toString('base64');
+
+    const [blackoutOnly, overlap, blurOnly] = await page.evaluate(async ({ base64, points }) => {
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Flattened JPEG failed to decode'));
+        img.src = `data:image/jpeg;base64,${base64}`;
+      });
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+      return points.map(({ x, y }) => {
+        const [r, g, b] = ctx.getImageData(
+          Math.round(x * canvas.width),
+          Math.round(y * canvas.height),
+          1,
+          1,
+        ).data;
+        return { r, g, b };
+      });
+    }, {
+      base64: jpegBase64,
+      points: [
+        { x: 0.35, y: 0.25 }, // centre of the blackout-only part
+        { x: 0.45, y: 0.25 }, // centre of the blackout-and-blur overlap
+        { x: 0.58, y: 0.25 }, // blur-only, over plain red
+      ],
+    });
+
+    for (const sample of [blackoutOnly, overlap]) {
+      expect(sample.r).toBeLessThanOrEqual(40);
+      expect(sample.g).toBeLessThanOrEqual(40);
+      expect(sample.b).toBeLessThanOrEqual(40);
+    }
+    expect(blurOnly.r).toBeGreaterThan(100);
   });
 
   test('after Replace file, a deletion at the same byte offsets draws the new file, not the old one', async ({ page }) => {
