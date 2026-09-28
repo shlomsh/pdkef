@@ -106,6 +106,13 @@ function touches(a: Box, b: Box): boolean {
   return a.x0 <= b.x1 && a.x1 >= b.x0 && a.y0 <= b.y1 && a.y1 >= b.y0;
 }
 
+/** Whether any glyph in `word` has a core that touches `cover`: the one rule
+ * both `planTextLayer` (drop the word) and `wordsUnderBoxes` (the word is
+ * under this box) use to decide a box reaches a word. */
+function wordTouchesCover(geometry: PageGeometry, word: PageGlyph[], cover: Box): boolean {
+  return word.some((glyph) => touches(glyphCore(geometry, glyph), cover));
+}
+
 function sameShape(a: AffineTransform, b: AffineTransform): boolean {
   const scale = Math.hypot(a[0], a[1]) + Math.hypot(a[2], a[3]);
   return [0, 1, 2, 3].every((k) => Math.abs(a[k] - b[k]) <= SAME_SHAPE * scale);
@@ -188,7 +195,7 @@ export function planTextLayer(glyphs: PageGlyph[], geometry: PageGeometry, boxes
     const keep = new Array<boolean>(run.length).fill(false);
     for (const [start, end] of wordRanges(run)) {
       const word = run.slice(start, end);
-      if (word.some((glyph) => covers.some((cover) => touches(glyphCore(geometry, glyph), cover)))) {
+      if (covers.some((cover) => wordTouchesCover(geometry, word, cover))) {
         dropped += 1;
       } else {
         kept += 1;
@@ -217,6 +224,76 @@ export function planTextLayer(glyphs: PageGlyph[], geometry: PageGeometry, boxes
   }
 
   return { runs, kept, dropped };
+}
+
+/** Hebrew and Arabic letter ranges (plus their presentation forms): a
+ * character in one of these is "strongly" right-to-left, the same signal
+ * `PageText`'s own line-direction call uses. */
+function isStrongRTL(ch: string): boolean {
+  const code = ch.codePointAt(0) ?? 0;
+  return (
+    (code >= 0x0591 && code <= 0x08ff) ||
+    (code >= 0xfb1d && code <= 0xfdff) ||
+    (code >= 0xfe70 && code <= 0xfeff)
+  );
+}
+
+/** A word's glyphs, ordered by position along the run's baseline (nearest
+ * the run's own frame; content order already advances along it, so this only
+ * matters when it doesn't), then reversed into right-to-left reading order
+ * when the word contains a strong RTL character. */
+function orderedWordGlyphs(word: PageGlyph[]): PageGlyph[] {
+  let ordered = word;
+  try {
+    const inverse = invertAffineTransform(word[0].matrix);
+    ordered = [...word].sort((a, b) => {
+      const ax = applyAffineTransform({ x: a.matrix[4], y: a.matrix[5] }, inverse).x;
+      const bx = applyAffineTransform({ x: b.matrix[4], y: b.matrix[5] }, inverse).x;
+      return ax - bx;
+    });
+  } catch {
+    // A degenerate first glyph: keep content order rather than fail.
+  }
+  const text = ordered.map((glyph) => glyph.unicode).join('');
+  return [...text].some((ch) => isStrongRTL(ch)) ? [...ordered].reverse() : ordered;
+}
+
+/**
+ * RED-17: for each of `boxes` (same index), the words `planTextLayer` would
+ * drop for that box alone, i.e. every word whose core the box reaches by the
+ * exact rule `planTextLayer` uses. Each word's text is in logical reading
+ * order (`orderedWordGlyphs`), words in a box's list are in the line's own
+ * reading direction, and lines are ordered top to bottom. Pure.
+ */
+export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
+  const covers = boxes.map((box) => percentToViewport(geometry, box));
+  const perBox: { top: number; seq: number; text: string }[][] = boxes.map(() => []);
+  let seq = 0;
+
+  for (const run of groupRuns(glyphs)) {
+    if (run.length === 0) continue;
+    const words = wordRanges(run).map(([start, end]) => run.slice(start, end));
+    const runIsRTL = words.some((word) => [...word.map((glyph) => glyph.unicode).join('')].some(isStrongRTL));
+    const orderedWords = runIsRTL ? [...words].reverse() : words;
+    const runTop = Math.min(...run.map((glyph) => glyphCore(geometry, glyph).y0));
+
+    for (const word of orderedWords) {
+      const text = orderedWordGlyphs(word)
+        .map((glyph) => glyph.unicode)
+        .join('');
+      if (!text) continue;
+      seq += 1;
+      covers.forEach((cover, i) => {
+        if (wordTouchesCover(geometry, word, cover)) {
+          perBox[i].push({ top: runTop, seq, text });
+        }
+      });
+    }
+  }
+
+  return perBox.map((words) =>
+    [...words].sort((a, b) => a.top - b.top || a.seq - b.seq).map((word) => word.text),
+  );
 }
 
 function wordTexts(runs: { glyphs: { unicode: string }[] }[]): string[] {
