@@ -1065,6 +1065,12 @@ export default function PdfRedactTool() {
                         pointerEvents: 'none'
                       }}
                     >
+                      {/* No boxHeightPt here (RED-24): this preview's width/height are
+                          written straight to the DOM by the drag gesture (writeDOM
+                          above), never through drawingState/React, so there is no
+                          live, correct box height to give at render time. Omitting it
+                          reads as "not known yet" to blurFraction and falls back to
+                          the plain factor, same as before RED-24. */}
                       {renderRedactionDrawingPreviewContent(drawingState.type, drawingState.strength)}
                     </div>
                   )}

@@ -113,7 +113,7 @@ async function flattenPage(pdfjsPage, pageElements) {
     if (instruction.kind === 'blur') {
       // Paste the blurred section over the original, at a radius scaled
       // to this box's own height.
-      const radius = blurRadiusPx(element.strength, h);
+      const radius = blurRadiusPx(element.strength, h, scale);
       const { canvas: blurred, sx, sy } = buildBoxBlur(original, x, y, w, h, radius);
       ctx.drawImage(blurred, x - sx, y - sy, w, h, x, y, w, h);
     } else {
