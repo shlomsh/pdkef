@@ -306,13 +306,27 @@ export default function PdfRedactTool() {
       `.${styles['redact-box']}`,
       '[data-editor-actions]',
       '[data-editor-resizer]',
-      '[data-editor-page-header]',
+      '[data-editor-color-menu]',
       '[data-redact-find-match]',
       'button',
       'a',
       'input',
     ].join(', '),
   });
+
+  // A click anywhere outside the selected box drops the selection, not only on
+  // blank page area: the page header, the margin and the rest of the screen
+  // too. A document listener, so it is one path wherever the click lands; the
+  // container keeps the touch handlers for iOS's jittery taps (MOBI-30). Read
+  // through a ref so the listener is added once and still sees this render's
+  // `isArmed`.
+  const tapOutsideRef = useRef(tapOutside);
+  tapOutsideRef.current = tapOutside;
+  useEffect(() => {
+    const onDocumentClick = (e: MouseEvent) => tapOutsideRef.current.onClick(e);
+    document.addEventListener('click', onDocumentClick);
+    return () => document.removeEventListener('click', onDocumentClick);
+  }, []);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -1007,7 +1021,6 @@ export default function PdfRedactTool() {
 
           <div
             className={workspaceStyles['pages-container']}
-            onClick={tapOutside.onClick}
             onTouchStart={tapOutside.onTouchStart}
             onTouchEnd={tapOutside.onTouchEnd}
             onTouchCancel={tapOutside.onTouchCancel}
