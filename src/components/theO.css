@@ -8,11 +8,17 @@
 /* The window's sky by the visitor's clock (TheO.astro's script); day is the default. */
 .the-o[data-sky='golden'] { --sky: linear-gradient(var(--color-text) 12%, var(--color-primary) 45%, var(--color-citron) 92%); --cloud: var(--color-paper); }
 .the-o[data-sky='night'] { --sky: linear-gradient(var(--color-night) 55%, color-mix(in srgb, var(--color-night), var(--color-text)) 100%); --cloud: var(--color-primary-tint); --cloud-alpha: 0.14; }
-/* svh, not lvh: this container's cqh feeds --R (the ring's size) while the
-   stage is mid-scroll, and lvh grows live as Safari's toolbar auto-hides
-   during the gesture, which resized the ring out from under the settled
-   words. svh matches every other pinned section on this page. */
-.o-beat { position: relative; height: calc(100svh - var(--home-nav-height, 0px)); container-type: size; overflow: clip; isolation: isolate; }
+/* dvh, not svh: this is the box the pinned stage visually fills, and a fixed
+   svh height stops tracking the moment the browser's own toolbar auto-hides
+   or reappears mid-scroll, leaving a bare strip of page background between
+   this section and whatever follows (or, scrolling back up, between this
+   section and the reappearing toolbar). dvh keeps it exactly the current
+   viewport at all times, toolbar included. It does mean this container's cqh
+   (which feeds --R, the ring's size) moves during the toolbar's own hide/show
+   animation - a brief, correlated resize of the whole scene, not the ring
+   drifting from the words, which is a separate, unrelated iOS bug (see
+   theOTimeline.ts's `beat` pacing). */
+.o-beat { position: relative; height: calc(100dvh - var(--home-nav-height, 0px)); container-type: size; overflow: clip; isolation: isolate; }
 .o-art {
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --gut: clamp(16px, 4cqw, 32px);
@@ -260,7 +266,7 @@
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
     .o-track { overflow: clip; view-timeline: --the-o block; view-timeline-inset: var(--home-nav-height, 0px) 0px; }
-    .o-stage { position: sticky; top: var(--home-nav-height, 0px); height: calc(100svh - var(--home-nav-height, 0px)); }
+    .o-stage { position: sticky; top: var(--home-nav-height, 0px); height: calc(100dvh - var(--home-nav-height, 0px)); }
     .o-beat { position: absolute; inset: 0; height: auto; }
     .bf { display: block; }
     .o-paper-rest { display: none; }
