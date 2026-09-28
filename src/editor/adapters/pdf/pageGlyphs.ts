@@ -45,6 +45,7 @@ export interface TextOps {
   nextLine: number;
   showText: number;
   setGState: number;
+  setTextRenderingMode: number;
 }
 
 /** What the reader needs of a loaded font (pdf.js's `commonObjs` entry). */
@@ -74,6 +75,7 @@ interface State {
   fontSize: number;
   fontDirection: number;
   font: GlyphFontInfo | null;
+  renderingMode: number;
 }
 
 const IDENTITY: AffineTransform = [1, 0, 0, 1, 0, 0];
@@ -95,18 +97,25 @@ function initialState(): State {
     fontSize: 0,
     fontDirection: 1,
     font: null,
+    renderingMode: 0,
   };
 }
 
 /**
- * Every glyph the page shows, in content order. Vertical fonts are skipped
+ * Every glyph the page shows, in content order. Skipped: vertical fonts
  * (their glyphs advance down the page and nothing on the layer's side writes
- * them), as is anything shown with no font or at size 0.
+ * them), anything shown with no font or at size 0, and invisible text
+ * (render modes 3 and 7). Invisible text is usually a scan's OCR layer, whose
+ * positions nothing on the page confirms: a word misplaced by the OCR could
+ * sit clear of a box drawn over the scanned word it stands for. Reading back
+ * a layer this module's own export wrote, which is invisible text by design,
+ * pass `{ invisibleText: true }`.
  */
 export function readPageGlyphs(
   operatorList: { fnArray: ArrayLike<number>; argsArray: ArrayLike<unknown> },
   ops: TextOps,
   fontInfo: (name: string) => GlyphFontInfo | null | undefined,
+  { invisibleText = false }: { invisibleText?: boolean } = {},
 ): PageGlyph[] {
   const glyphs: PageGlyph[] = [];
   const stack: State[] = [];
@@ -176,6 +185,9 @@ export function readPageGlyphs(
           if (key === 'Font' && Array.isArray(value)) setFont(value[0], value[1]);
         }
         break;
+      case ops.setTextRenderingMode:
+        s.renderingMode = args[0];
+        break;
       case ops.setTextRise:
         s.rise = args[0];
         break;
@@ -206,6 +218,7 @@ export function readPageGlyphs(
     const scale = s.fontSize * fontMatrix[0];
     const hScale = s.hScale * s.fontDirection;
     const base = composeAffineTransforms(s.ctm, s.textMatrix);
+    const invisible = !invisibleText && (s.renderingMode & 3) === 3;
     let x = 0;
     for (const item of items) {
       if (typeof item === 'number') {
@@ -213,7 +226,7 @@ export function readPageGlyphs(
         continue;
       }
       const width = item.width ?? 0;
-      if (!font.vertical && typeof item.unicode === 'string') {
+      if (!font.vertical && !invisible && typeof item.unicode === 'string') {
         const origin = s.x + x * hScale;
         glyphs.push({
           unicode: item.unicode,

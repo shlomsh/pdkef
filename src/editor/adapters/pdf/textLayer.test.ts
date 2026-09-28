@@ -43,6 +43,14 @@ function box(x0: number, x1: number, y0: number, y1: number): PercentBox {
 }
 
 describe('planTextLayer', () => {
+  it('keeps a glyph with no Unicode value inside its word, so a box over half the word drops all of it', () => {
+    const glyphs = makeLine('aaa bxbb ccc').map((g) => (g.unicode === 'x' ? { ...g, unicode: '' } : g));
+    // Covers only the last two "b" cores (x 30..40); the first "b" sits before the unmapped glyph.
+    const plan = planTextLayer(glyphs, geometry, [box(29, 41, 390, 405)]);
+    expect(plan.dropped).toBe(1);
+    expect(plan.runs.map((run) => run.text).join('|')).not.toMatch(/b/);
+  });
+
   it('drops exactly the middle word of "aaa bbb ccc" and keeps the other two', () => {
     const glyphs = makeLine('aaa bbb ccc');
     // Covers the three "b" cores (x 20..35) without reaching either neighbour's core.
@@ -226,6 +234,25 @@ describe('textLayerReadsBack', () => {
     // glyphs[4] is the first "b", dropped by the box; adding it back in is
     // exactly the failure the check exists to catch.
     expect(textLayerReadsBack(plan, [...readBack, glyphs[4]], geometry, boxes)).toBe(false);
+  });
+
+  it('catches a glyph under a box on a rotated page only when measured with the saved page\'s geometry', () => {
+    // The original is a 300x100 page turned 90 degrees: its view is 100 wide, 300 tall.
+    const rotated = createPageGeometry({ cropBox: { x: 0, y: 0, width: 300, height: 100 }, rotation: 90 });
+    // The saved page is the picture: unrotated, the view's own size.
+    const saved = createPageGeometry({ cropBox: { x: 0, y: 0, width: rotated.width, height: rotated.height } });
+    // A word written on the saved page at view (40, 150) to (60, 150) baseline, and a box over it.
+    const glyphs: PageGlyph[] = [0, 1].map((i) => ({
+      unicode: 'x',
+      isSpace: false,
+      matrix: [10, 0, 0, 10, 40 + 10 * i, rotated.height - 150],
+      width: 1,
+    }));
+    const boxes: PercentBox[] = [{ left: 30, top: (140 / rotated.height) * 100, width: 40, height: (15 / rotated.height) * 100 }];
+    // A plan that (wrongly) wrote that word, as a broken writer or planner would.
+    const plan: TextLayerPlan = { runs: [{ text: 'xx', matrix: [1, 0, 0, 1, 0, 0], glyphs: [{ unicode: 'x', x: 0, width: 1 }, { unicode: 'x', x: 1, width: 1 }] }], kept: 1, dropped: 0 };
+    expect(textLayerReadsBack(plan, glyphs, saved, boxes)).toBe(false);
+    expect(textLayerReadsBack(plan, glyphs, rotated, boxes)).toBe(true);
   });
 
   it('is false when a kept word is missing', () => {

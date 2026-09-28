@@ -22,6 +22,7 @@ const OPS: TextOps = {
   nextLine: 16,
   showText: 17,
   setGState: 18,
+  setTextRenderingMode: 19,
 };
 
 const DEFAULT_FONT_MATRIX = [0.001, 0, 0, 0.001, 0, 0];
@@ -43,6 +44,21 @@ function opList(rows: [number, ...any[]][]) {
 }
 
 describe('readPageGlyphs', () => {
+  it('leaves out invisible text (render modes 3 and 7), such as a scan\'s OCR layer', () => {
+    const list = opList([
+      [OPS.beginText],
+      [OPS.setFont, 'F1', 10],
+      [OPS.setTextMatrix, [1, 0, 0, 1, 0, 0]],
+      [OPS.setTextRenderingMode, 3],
+      [OPS.showText, [glyph('o', 500)]],
+      [OPS.setTextRenderingMode, 7],
+      [OPS.showText, [glyph('c', 500)]],
+      [OPS.setTextRenderingMode, 0],
+      [OPS.showText, [glyph('v', 500)]],
+    ]);
+    expect(readPageGlyphs(list, OPS, fontInfo()).map((g) => g.unicode)).toEqual(['v']);
+  });
+
   it('places glyph origins from setTextMatrix and showText widths', () => {
     const list = opList([
       [OPS.beginText],

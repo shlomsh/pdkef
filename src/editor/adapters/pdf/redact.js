@@ -43,11 +43,12 @@ function buildBoxBlur(original, x, y, w, h, radius) {
 }
 
 /**
- * Reads a pdf.js page's glyphs, or null when it can't be read (a font pdf.js
- * never resolved, a broken content stream). A null page is saved as its
- * picture alone, which is the safe outcome.
+ * Reads a pdf.js page's glyphs, or null when the page can't be read (a broken
+ * content stream). A null page is saved as its picture alone, which is the
+ * safe outcome. Glyphs in a font pdf.js never resolved are left out, never
+ * placed by guesswork.
  */
-async function readGlyphs(pdfjs, pdfjsPage) {
+async function readGlyphs(pdfjs, pdfjsPage, options) {
   try {
     const operatorList = await pdfjsPage.getOperatorList({ annotationMode: pdfjs.AnnotationMode.DISABLE });
     return readPageGlyphs(operatorList, pdfjs.OPS, (name) => {
@@ -56,7 +57,7 @@ async function readGlyphs(pdfjs, pdfjsPage) {
       } catch {
         return null;
       }
-    });
+    }, options);
   } catch (error) {
     console.error('Redact could not read a page\'s text', error);
     return null;
@@ -167,8 +168,11 @@ async function pagesFailingReadBack(pdfjs, bytes, covered, pictureOnly) {
   try {
     const savedDoc = await loadingTask.promise;
     for (const [i, page] of check) {
-      const glyphs = await readGlyphs(pdfjs, await savedDoc.getPage(i + 1));
-      if (!glyphs || !textLayerReadsBack(page.plan, glyphs, page.geometry, page.boxes)) failed.push(i);
+      // The saved page has its own geometry: the picture's size, unrotated.
+      const savedPage = await savedDoc.getPage(i + 1);
+      const glyphs = await readGlyphs(pdfjs, savedPage, { invisibleText: true });
+      const savedGeometry = pageGeometryFromPdfJsPage(savedPage);
+      if (!glyphs || !textLayerReadsBack(page.plan, glyphs, savedGeometry, page.boxes)) failed.push(i);
     }
   } catch (error) {
     console.error('Redact could not read the saved file back', error);
