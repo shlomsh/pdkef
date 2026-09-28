@@ -48,7 +48,7 @@ strength is medium (RED-24), and a person who picks light chose it knowingly (Sh
 ## Actions
 
 - **Cover it**: back to the editor with that match boxed (Find's existing path).
-- **Remove it**: for places a box can't reach (a metadata field, a bookmark, an attachment).
+- **Remove it**: for places a box can't reach (a metadata field, a bookmark, an attachment). Split to RED-25.
 
 ## What it never says (Shlomi, 2026-09-28)
 
@@ -64,8 +64,7 @@ OCR is out of scope.
 
 - On the three real forms: a covered name that also appears uncovered on another page is reported with
   its page, both when that page kept its text and when it was saved as a picture.
-- A term in the title, a bookmark or a form field value is reported with where it is, and Remove it
-  clears it from the saved file.
+- A term in the title, a bookmark or a form field value is reported with where it is (Remove it is RED-25).
 - A Blackout area that is not one flat colour in the saved render is reported (a unit test with a
   sabotaged render).
 - Copy review: no string in the result claims a term is absent from the file.
