@@ -72,7 +72,11 @@ item could be judged outside its box and written into the layer. So:
 
 - **`pageGlyphs.ts`** replays pdf.js's own text state (the part of `CanvasGraphics.showText` that places
   glyphs) over the page's operator list. pdf.js has already decoded every glyph's Unicode value and
-  advance; this gives each one its exact place, form XObjects and TJ kerning included.
+  advance; this gives each one its exact place, form XObjects and TJ kerning included. It skips
+  invisible text (render modes 3 and 7): on a scan that is the OCR layer, whose positions nothing on
+  the page confirms, so an OCR word misplaced by the scanner's software could sit clear of the box
+  drawn over the scanned word it stands for. A covered scan page therefore keeps no text, as before.
+  (Found by the zero-context review, with the read-back measuring rotated pages in the wrong frame.)
 - **`textLayer.ts`** groups glyphs into runs along a baseline, and leaves out whole any word whose
   glyph *core* (just under the baseline to 0.7 em, inset from the sides) a box reaches. A box that only
   grazes an ascender or a side bearing leaves the letter readable in the picture, so writing it hides

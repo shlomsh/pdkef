@@ -1,7 +1,7 @@
 ---
 id: "RED-12"
 title: "Covered pages keep their text: the picture plus an invisible text layer without the boxed words"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -73,6 +73,8 @@ record is in [docs/redact-content-removal.md](../../docs/redact-content-removal.
 - **Font**: one glyphless Type0 font for every script (not a fonts.js family): the text is never drawn.
   `.claude/rules/fonts-and-text.md` records the exception.
 - **Leave out a word**: any word whose glyph core a box reaches, whole.
+- **Scans**: invisible source text (a scan's OCR layer) is never carried over, because nothing confirms
+  where its words sit against the picture; a covered scan page keeps no text, as before RED-12.
 
 Acceptance, measured with `spikes/red-12/run.mts` on the IRS 1040, USCIS I-9, the Israeli health
 declaration and a Hebrew line, read back by pdf.js, PDFium (Chrome) and PDFKit (Preview):

@@ -1,7 +1,7 @@
 ---
 id: "RED-09"
 title: "Read-back check after every export: nothing extractable under any box"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
