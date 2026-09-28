@@ -1,0 +1,56 @@
+/* --- Draft retention tooltip (MEM-11) ---
+   Based on PdfToImageTool.module.css's quality-preset info tooltip, with two
+   deliberate differences: the bubble opens downward (this trigger sits in a
+   sticky top bar/identity row with no room above it), and the trigger keeps
+   a 44px hit area via a ::before pseudo-element (MergeRail.module.css's
+   .quiet-button::before pattern) since it sits in a dense identity row on
+   mobile while the visible icon stays small, matching the other status
+   icons in ToolShell.tsx. */
+.info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  cursor: help;
+  transition: color 0.15s var(--ease-out);
+}
+
+.info-icon::before {
+  content: '';
+  position: absolute;
+  inset: -16px;
+}
+
+.info-icon:hover,
+.info-icon:focus-visible {
+  color: var(--color-primary-text);
+  outline: none;
+}
+
+.tooltip-bubble {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+}
+
+.info-icon:hover .tooltip-bubble,
+.info-icon:focus-visible .tooltip-bubble {
+  display: flex;
+}

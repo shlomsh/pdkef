@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { useContext } from 'preact/hooks';
 import styles from './ToolShell.module.css';
 import FilePreview from './FilePreview.tsx';
+import DraftRetentionHint from './DraftRetentionHint';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
 
 interface FileAction {
@@ -169,7 +170,10 @@ export default function ToolShell({ editor = false, status = null, children }: {
                       <path d="M3 8.5l3 3 7-7.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                   )}
-                  {draftStatus.label}
+                  <span>{draftStatus.label}</span>
+                  {draftSaveState !== 'error' && draftSaveState !== 'conflict' && (
+                    <DraftRetentionHint label={messages.draftRetentionInfo} />
+                  )}
                 </span>
               )}
             </span>

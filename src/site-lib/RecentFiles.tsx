@@ -1,6 +1,8 @@
 import { tools } from '../data/tools.js';
 import styles from './RecentFiles.module.css';
 import { englishRecentFilesMessages, formatMessage, type RecentFilesMessages } from '../i18n/toolMessages';
+import { getDraftExpiry } from '../lib/drafts/draftPolicy.js';
+import { MAX_RECENT_FILES } from '../lib/drafts/draftStore.js';
 
 /** Recent source documents, or the bundled practice form when the cache is empty. */
 export interface RecentFileItem {
@@ -34,11 +36,12 @@ export default function RecentFiles({
     <section data-home-recents class={styles.card} aria-labelledby="recent-files-heading">
       <h2 class="sr-only" id="recent-files-heading">{messages.heading}</h2>
       <ul class={styles.list}>
-        {files.map((file) => {
+        {files.map((file, index) => {
           const meta = tools.find(t => t.slug === file.tool);
           if (!meta) return null;
           const isBundledSample = file.bundledSample === true;
-          const savedAtLabel = formatSavedAt(file.savedAt, messages);
+          const notice = retentionNotice(file, index, files.length, messages);
+          const savedAtLabel = notice || formatSavedAt(file.savedAt, messages);
           const preview = file.preview
             ? <img
                 class={styles.preview}
@@ -131,6 +134,38 @@ export function formatSavedAt(savedAt: number | undefined, messages: RecentFiles
   } catch {
     // Intl.RelativeTimeFormat is everywhere this app runs, but a missing
     // timestamp label is not worth throwing inside a render.
+  }
+  return '';
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// 3 days: long enough to be seen and acted on before a draft's last day,
+// short enough that it only ever shows for the last ~10% of the 28-day
+// window - most of a draft's life this line stays the ordinary "N days ago".
+const EXPIRY_WARNING_DAYS = 3;
+
+/**
+ * What to show in place of the relative "saved N days ago" line when this
+ * entry is close to falling out of the recents cache - by age (about to hit
+ * the 28-day limit) or by rank (the oldest of a full 6-entry list, the next
+ * one a newly opened file would evict). Age wins when both apply. Returns ''
+ * when neither applies, so the caller keeps the ordinary savedAtLabel.
+ */
+export function retentionNotice(
+  file: RecentFileItem,
+  index: number,
+  total: number,
+  messages: RecentFilesMessages,
+  now: number = Date.now(),
+): string {
+  if (typeof file.savedAt === 'number' && Number.isFinite(file.savedAt)) {
+    const daysLeft = Math.max(1, Math.ceil((getDraftExpiry(file.savedAt) - now) / DAY_MS));
+    if (daysLeft <= EXPIRY_WARNING_DAYS) {
+      return daysLeft === 1 ? messages.expiresInDaysOne : formatMessage(messages.expiresInDaysOther, { count: daysLeft });
+    }
+  }
+  if (total === MAX_RECENT_FILES && index === total - 1) {
+    return formatMessage(messages.oldestKeptFile, { count: total });
   }
   return '';
 }
