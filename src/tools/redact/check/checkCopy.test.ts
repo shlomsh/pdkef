@@ -40,6 +40,8 @@ describe('findingText', () => {
     { place: 'field', expected: 'In a form field.' },
     { place: 'comment', pageIndex: 2, expected: 'In a comment on page 3.' },
     { place: 'comment', expected: 'In a comment.' },
+    { place: 'link', pageIndex: 4, expected: 'In a link on page 5.' },
+    { place: 'link', expected: 'In a link.' },
     { place: 'bookmark', expected: 'In a bookmark.' },
     { place: 'title', expected: "In the document's title." },
     { place: 'author', expected: 'In the author field.' },
@@ -160,6 +162,7 @@ describe('no string claims absence or safety', () => {
     const places: PlaceKind[] = [
       'field',
       'comment',
+      'link',
       'bookmark',
       'title',
       'author',

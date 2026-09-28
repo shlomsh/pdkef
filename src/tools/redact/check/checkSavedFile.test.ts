@@ -112,6 +112,22 @@ describe('checkSavedFile', () => {
     ]);
   });
 
+  it('flags a term matched in a link', () => {
+    const original = [page(0, item('Jane Doe', 100, 700))];
+    const saved = emptySavedFile({
+      places: [{ kind: 'link', text: 'jane-doe-profile', pageIndex: 1 }],
+    });
+
+    const results = checkSavedFile({
+      terms: [{ label: 'jane-doe-profile', source: 'typed', finder: termFinder('jane-doe-profile') }],
+      original,
+      boxes: [],
+      saved,
+    });
+
+    expect(results[0].findings).toEqual([{ kind: 'in-place', place: 'link', pageIndex: 1 }]);
+  });
+
   it('reports an uncovered match on a picture page once, although the page also carries it as text', () => {
     const original = [page(0, item('Jane Doe', 100, 700))];
     const saved = emptySavedFile({ pages: [page(0, item('Jane Doe', 100, 700))], picturePages: [0] });

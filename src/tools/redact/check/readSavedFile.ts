@@ -51,7 +51,7 @@ function outlineTitles(items: Array<{ title?: string; items?: unknown[] }>): Sav
   return places;
 }
 
-async function readPlacesForPage(pdfDoc: any, pageIndex: number): Promise<SavedPlace[]> {
+async function readPlacesForPage(pdfjs: any, pdfDoc: any, pageIndex: number): Promise<SavedPlace[]> {
   const page = await pdfDoc.getPage(pageIndex + 1);
   const annotations = await page.getAnnotations();
   const places: SavedPlace[] = [];
@@ -66,6 +66,12 @@ async function readPlacesForPage(pdfDoc: any, pageIndex: number): Promise<SavedP
     const titleText = annotation.titleObj?.str;
     if (typeof titleText === 'string' && titleText.trim() !== '') {
       places.push({ kind: 'comment', text: titleText, pageIndex });
+    }
+    if (annotation.annotationType === pdfjs.AnnotationType?.LINK || annotation.subtype === 'Link') {
+      const url = annotation.url ?? annotation.unsafeUrl;
+      if (typeof url === 'string' && url.trim() !== '') {
+        places.push({ kind: 'link', text: url, pageIndex });
+      }
     }
   }
   return places;
@@ -133,7 +139,7 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
     const geometry = pageGeometryFromPdfJsPage(page);
     pages.push({ text, geometry });
 
-    places.push(...(await readPlacesForPage(doc, pageIndex)));
+    places.push(...(await readPlacesForPage(pdfjs, doc, pageIndex)));
 
     if (items.length === 0) {
       const operatorList = await page.getOperatorList();

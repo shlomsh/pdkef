@@ -1,7 +1,7 @@
 ---
 id: "RED-23"
 title: "Sign's Whiteout removes what it covers, through the same removal as Redact"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "redact-tool"
 phase: "later"
@@ -9,6 +9,8 @@ depends_on: ["RED-22"]
 ---
 
 # RED-23 · Sign's Whiteout removes what it covers, through the same removal as Redact
+
+**Retired 2026-09-28.** Shlomi chose single-image flattening over removal in place: simple and safe by construction beats a content-stream editor for the narrow value of editing a covered page later. The spike that proved it possible is in `spikes/red-18/` and RED-18.
 
 *Decided with Shlomi 2026-09-28, reversing RED-10's "it only covers".*
 

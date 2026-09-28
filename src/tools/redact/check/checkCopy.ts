@@ -34,6 +34,7 @@ export function pageList(pages: readonly number[]): string {
 const PLACE_TEXT: Record<PlaceKind, (page?: string) => string> = {
   field: (page) => (page ? `In a form field on page ${page}.` : 'In a form field.'),
   comment: (page) => (page ? `In a comment on page ${page}.` : 'In a comment.'),
+  link: (page) => (page ? `In a link on page ${page}.` : 'In a link.'),
   bookmark: () => 'In a bookmark.',
   title: () => "In the document's title.",
   author: () => 'In the author field.',

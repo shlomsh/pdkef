@@ -229,6 +229,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SEO-30 | P2 | [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before |
 | SEO-36 | P2 | [SEO-36](backlog/tasks/SEO-36.md) · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go |
 | SEO-37 | P2 | [SEO-37](backlog/tasks/SEO-37.md) · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI |
+| SEO-38 | P2 | [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF |
 
 
 ## New tools, gated on the 2026-10-08 crawl read of the never-crawled nine (SEO-06)
@@ -432,7 +433,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |
 
 
-## Redact: true redaction, and a check of the saved file (2026-09-28)
+## Redact: covered pages as pictures, a check of the saved file, exact boxes (2026-09-28)
 
 | ID | Priority | Task |
 | --- | --- | --- |
@@ -461,6 +462,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
+| RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
+| RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 
 
 ## Migrated context and history

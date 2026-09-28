@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  PDFName,
+  PDFString,
+  PDFStream,
+  decodePDFRawStream,
+} from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import {
   deleteObjectsFromPdf,
@@ -315,5 +323,181 @@ describe('listDeletableObjects', () => {
 
     extractSpy.mockRestore();
     consoleSpy.mockRestore();
+  });
+});
+
+/** Every dict/array/stream header and every decompressed stream, lowercased, as one haystack. */
+async function decompressedObjectText(doc) {
+  let haystack = '';
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    const header = obj?.toString?.();
+    if (typeof header === 'string') haystack += `${header}\n`;
+    if (obj instanceof PDFStream) {
+      try {
+        const decoded = decodePDFRawStream(obj).decode();
+        haystack += `${new TextDecoder('latin1').decode(decoded)}\n`;
+      } catch {
+        // Binary (e.g. image) stream data that isn't a PDF filter - can't hold text anyway.
+      }
+    }
+  }
+  return haystack.toLowerCase();
+}
+
+/** Subtypes of the annotations left on a page, in order. */
+function annotSubtypes(page) {
+  const annots = page.node.Annots();
+  if (!annots) return [];
+  const subtypes = [];
+  for (let i = 0; i < annots.size(); i += 1) {
+    const annot = page.doc.context.lookup(annots.get(i));
+    subtypes.push(annot?.get?.(PDFName.of('Subtype'))?.asString?.());
+  }
+  return subtypes;
+}
+
+/**
+ * A page with an image, a Link over the image (to be dropped with it), a
+ * Link elsewhere (to survive), and a Widget over the image (to survive: form
+ * fields are never touched, only /Link).
+ */
+async function buildFixtureWithAnnotations() {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([400, 200]);
+
+  const png = await doc.embedPng(
+    Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0)),
+  );
+  page.drawImage(png, { x: 300, y: 40, width: 50, height: 50 });
+
+  const trackerAction = doc.context.obj({
+    Type: 'Action',
+    S: 'URI',
+    URI: PDFString.of('https://tracker.example.com/pixel'),
+  });
+  const linkOverImage = doc.context.obj({
+    Type: 'Annot',
+    Subtype: 'Link',
+    Rect: [300, 40, 350, 90],
+    Border: [0, 0, 0],
+    A: trackerAction,
+  });
+  page.node.addAnnot(doc.context.register(linkOverImage));
+
+  const elsewhereAction = doc.context.obj({
+    Type: 'Action',
+    S: 'URI',
+    URI: PDFString.of('https://example.com/kept'),
+  });
+  const linkElsewhere = doc.context.obj({
+    Type: 'Annot',
+    Subtype: 'Link',
+    Rect: [0, 0, 10, 10],
+    Border: [0, 0, 0],
+    A: elsewhereAction,
+  });
+  page.node.addAnnot(doc.context.register(linkElsewhere));
+
+  const widgetOverImage = doc.context.obj({
+    Type: 'Annot',
+    Subtype: 'Widget',
+    Rect: [300, 40, 350, 90],
+    FT: 'Tx',
+    T: PDFString.of('field1'),
+  });
+  page.node.addAnnot(doc.context.register(widgetOverImage));
+
+  return new Uint8Array(await doc.save());
+}
+
+describe('deleteObjectsFromPdf: links over a deleted object', () => {
+  it('removes a Link over the deleted image, with no trace of its URI in the saved bytes', async () => {
+    const source = await buildFixtureWithAnnotations();
+    const { objects } = await objectsOf(source);
+    const image = objects.find((o) => o.kind === 'image');
+
+    const blob = await deleteObjectsFromPdf(source, [image]);
+    const outBytes = new Uint8Array(await blob.arrayBuffer());
+    const outDoc = await PDFDocument.load(outBytes);
+
+    // The elsewhere Link survives, so /Link itself is still present - only the
+    // tracking URI and the annotation that carried it must be gone.
+    expect(annotSubtypes(outDoc.getPage(0)).filter((s) => s === '/Link')).toHaveLength(1);
+    expect(await decompressedObjectText(outDoc)).not.toContain('tracker.example.com');
+  });
+
+  it('keeps a Link annotation elsewhere on the page', async () => {
+    const source = await buildFixtureWithAnnotations();
+    const { objects } = await objectsOf(source);
+    const image = objects.find((o) => o.kind === 'image');
+
+    const blob = await deleteObjectsFromPdf(source, [image]);
+    const outBytes = new Uint8Array(await blob.arrayBuffer());
+    const outDoc = await PDFDocument.load(outBytes);
+
+    expect(await decompressedObjectText(outDoc)).toContain('example.com/kept');
+  });
+
+  it('keeps a Widget over the deleted image', async () => {
+    const source = await buildFixtureWithAnnotations();
+    const { objects } = await objectsOf(source);
+    const image = objects.find((o) => o.kind === 'image');
+
+    const blob = await deleteObjectsFromPdf(source, [image]);
+    const outBytes = new Uint8Array(await blob.arrayBuffer());
+    const outDoc = await PDFDocument.load(outBytes);
+
+    expect(annotSubtypes(outDoc.getPage(0))).toContain('/Widget');
+  });
+});
+
+describe('deleteObjectsFromPdf: a link over a deleted text run', () => {
+  it('drops the link over the deleted run and keeps the one over a run that stays', async () => {
+    const doc = await PDFDocument.load(await buildSample());
+    const page = doc.getPage(0);
+    const runs = extractPageObjects(page, 0).objects.filter((o) => o.kind === 'text');
+    const [kept, deleted] = runs;
+    const linkOver = (run, uri) => {
+      const { x, y, width, height } = run.bbox;
+      const action = doc.context.obj({ Type: 'Action', S: 'URI', URI: PDFString.of(uri) });
+      page.node.addAnnot(doc.context.register(doc.context.obj({
+        Type: 'Annot', Subtype: 'Link', Rect: [x, y, x + width, y + height], A: doc.context.register(action),
+      })));
+    };
+    linkOver(kept, 'https://example.com/stays');
+    linkOver(deleted, 'https://example.com/goes');
+    const source = new Uint8Array(await doc.save());
+    // Byte spans are read from the saved file, the one being edited.
+    const target = (await objectsOf(source)).objects.find((o) => o.preview === deleted.preview);
+
+    const blob = await deleteObjectsFromPdf(source, [target]);
+    const outDoc = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));
+    const text = await decompressedObjectText(outDoc);
+
+    expect(text).toContain('example.com/stays');
+    expect(text).not.toContain('example.com/goes');
+  });
+});
+
+describe('clearDocumentDetails via deleteObjectsFromPdf', () => {
+  it('drops Info title/author and any XMP Metadata stream from the saved file', async () => {
+    const doc = await PDFDocument.create();
+    doc.addPage([100, 100]);
+    doc.setTitle('Secret Title');
+    doc.setAuthor('Secret Author');
+
+    const xmpBytes = new TextEncoder().encode('<x:xmpmeta>Secret Author XMP</x:xmpmeta>');
+    const metadataStream = doc.context.flateStream(xmpBytes, { Type: 'Metadata', Subtype: 'XML' });
+    doc.catalog.set(PDFName.of('Metadata'), doc.context.register(metadataStream));
+
+    const source = new Uint8Array(await doc.save());
+    const blob = await deleteObjectsFromPdf(source, []);
+    const outBytes = new Uint8Array(await blob.arrayBuffer());
+    const outDoc = await PDFDocument.load(outBytes);
+
+    expect(outDoc.getTitle()).toBeUndefined();
+    expect(outDoc.getAuthor()).toBeUndefined();
+    expect(outDoc.catalog.get(PDFName.of('Metadata'))).toBeUndefined();
+    expect(await decompressedObjectText(outDoc)).not.toContain('secret author');
   });
 });

@@ -10,6 +10,8 @@ depends_on: ["RED-12"]
 
 # RED-09 · Read-back check after every export: nothing extractable under any box
 
+**Superseded 2026-09-28.** Its read-back existed to check RED-12's invisible text layer, which was reverted; a covered page is now only a picture. The person-facing check of the saved file is RED-17.
+
 *Filed 2026-09-27 from RED-01's record, [docs/redact-content-removal.md](../../docs/redact-content-removal.md);
 rescoped the same day for RED-12's text layer.*
 

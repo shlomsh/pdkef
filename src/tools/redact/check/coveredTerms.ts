@@ -1,7 +1,8 @@
 /**
  * RED-17: the words a box covers become `CheckTerm`s so the check can look
  * for them elsewhere in the saved file. Pure; the words themselves come from
- * `wordsUnderBoxes`, the same drop rule `planTextLayer` uses to redact them.
+ * `wordsUnderBoxes`, the same touch rule a covered page's flatten pass uses
+ * to decide what a box hides.
  */
 import { wordsUnderBoxes } from '../../../editor/adapters/pdf/textLayer.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';

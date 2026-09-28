@@ -5,9 +5,6 @@ import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
-import { readGlyphs } from './readGlyphs.js';
-import { planTextLayer, textLayerReadsBack } from './textLayer.ts';
-import { createInvisibleFont, drawInvisibleText } from './invisibleText.js';
 
 /**
  * Builds a blurred copy of one box's source region, opaque even where the
@@ -115,12 +112,10 @@ async function flattenPage(pdfjsPage, pageElements) {
 
 /**
  * Writes the output document: untouched pages copied losslessly, covered
- * pages as their picture plus, unless listed in `pictureOnly`, the invisible
- * text of every word no box reaches (RED-12).
+ * pages saved as their picture alone, with no text layer.
  */
-async function assemble(sourceDoc, covered, pictureOnly) {
+async function assemble(sourceDoc, covered) {
   const newDoc = await PDFDocument.create();
-  let font = null;
   for (let i = 0; i < sourceDoc.getPageCount(); i++) {
     const page = covered.get(i);
     if (!page) {
@@ -131,58 +126,20 @@ async function assemble(sourceDoc, covered, pictureOnly) {
     const { width, height } = page.geometry;
     const newPage = newDoc.addPage([width, height]);
     newPage.drawImage(await newDoc.embedJpg(page.jpeg), { x: 0, y: 0, width, height });
-    if (page.plan && page.plan.runs.length > 0 && !pictureOnly.has(i)) {
-      font ??= createInvisibleFont(newDoc);
-      drawInvisibleText(newDoc, newPage, font, page.plan.runs);
-    }
   }
-  font?.finish();
   return newDoc.save();
 }
 
 /**
- * RED-09: reads the saved file back and returns the covered pages whose text
- * layer is not exactly what was planned: any glyph under a box, or any word
- * missing or added. Fails closed: a page that can't be read back fails too.
- */
-async function pagesFailingReadBack(pdfjs, bytes, covered, pictureOnly) {
-  const failed = [];
-  const check = [...covered.entries()].filter(([i, page]) => page.plan && page.plan.runs.length > 0 && !pictureOnly.has(i));
-  if (check.length === 0) return failed;
-  const loadingTask = pdfjs.getDocument({ data: bytes.slice(), wasmUrl: PDFJS_WASM_URL });
-  try {
-    const savedDoc = await loadingTask.promise;
-    for (const [i, page] of check) {
-      // The saved page has its own geometry: the picture's size, unrotated.
-      const savedPage = await savedDoc.getPage(i + 1);
-      const glyphs = await readGlyphs(pdfjs, savedPage, { invisibleText: true });
-      const savedGeometry = pageGeometryFromPdfJsPage(savedPage);
-      if (!glyphs || !textLayerReadsBack(page.plan, glyphs, savedGeometry, page.boxes)) failed.push(i);
-    }
-  } catch (error) {
-    console.error('Redact could not read the saved file back', error);
-    return check.map(([i]) => i);
-  } finally {
-    await loadingTask.destroy();
-  }
-  return failed;
-}
-
-/**
  * Applies redactions to a PDF. A page with a Blur, Blackout or Whiteout box is
- * saved as a picture with the boxes painted in, so nothing under a box
- * survives; over the picture goes invisible text for every word no box
- * reaches, so the rest of the page can still be selected and searched
- * (RED-12). The saved file is read back, and a page whose text layer is not
- * exactly as planned is saved again as the picture alone (RED-09). Pages with
- * no box are copied losslessly.
+ * saved as one picture with the boxes painted in, so nothing under a box
+ * survives, and with no text layer at all. Pages with no box are copied
+ * losslessly.
  *
  * @param {File|Blob} file - The original PDF file
  * @param {Array} elements - Array of redaction box objects { pageIndex, left, top, width, height } in percentages
  * @param {Function} onProgress - Progress callback
- * @returns {Promise<{ blob: Blob, pictureOnlyPages: number[] }>} The processed
- *   PDF, and the zero-based pages saved as a picture alone although they had
- *   text, which the person is told about.
+ * @returns {Promise<{ blob: Blob }>} The processed PDF.
  */
 export async function redactPdf(file, elements, onProgress) {
   const bytes = await file.arrayBuffer();
@@ -194,7 +151,6 @@ export async function redactPdf(file, elements, onProgress) {
   const pdfjsDoc = await loadingTask.promise;
 
   const covered = new Map();
-  const pictureOnly = new Set();
   const pageCount = sourceDoc.getPageCount();
   for (let i = 0; i < pageCount; i++) {
     const pageElements = elements.filter((el) => el.pageIndex === i);
@@ -202,34 +158,13 @@ export async function redactPdf(file, elements, onProgress) {
       const pdfjsPage = await pdfjsDoc.getPage(i + 1);
       const jpeg = await flattenPage(pdfjsPage, pageElements);
       const geometry = pageGeometryFromPdfJsPage(pdfjsPage);
-      const boxes = pageElements.map(({ left, top, width, height }) => ({ left, top, width, height }));
-      const glyphs = await readGlyphs(pdfjs, pdfjsPage);
-      let plan = null;
-      if (glyphs === null) {
-        pictureOnly.add(i);
-      } else {
-        try {
-          plan = planTextLayer(glyphs, geometry, boxes);
-        } catch (error) {
-          console.error('Redact could not plan a page\'s text', error);
-          pictureOnly.add(i);
-        }
-      }
-      covered.set(i, { jpeg, geometry, boxes, plan });
+      covered.set(i, { jpeg, geometry });
     }
     onProgress?.((i + 1) / pageCount);
   }
   await loadingTask.destroy();
 
-  let redactedBytes = await assemble(sourceDoc, covered, pictureOnly);
-  const failed = await pagesFailingReadBack(pdfjs, redactedBytes, covered, pictureOnly);
-  if (failed.length > 0) {
-    failed.forEach((i) => pictureOnly.add(i));
-    redactedBytes = await assemble(sourceDoc, covered, pictureOnly);
-  }
+  const redactedBytes = await assemble(sourceDoc, covered);
 
-  return {
-    blob: new Blob([redactedBytes], { type: 'application/pdf' }),
-    pictureOnlyPages: [...pictureOnly].sort((a, b) => a - b),
-  };
+  return { blob: new Blob([redactedBytes], { type: 'application/pdf' }) };
 }

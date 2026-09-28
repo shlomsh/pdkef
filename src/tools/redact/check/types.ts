@@ -37,6 +37,7 @@ export interface CheckBox extends PercentBox {
 export type PlaceKind =
   | 'field'
   | 'comment'
+  | 'link'
   | 'bookmark'
   | 'title'
   | 'author'

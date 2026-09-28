@@ -17,11 +17,9 @@ vi.mock('./deleteObjects.js', () => ({ deleteObjectsFromPdf }));
 const SOURCE = { name: 'source.pdf' };
 const AFTER_DELETIONS = { name: 'after-deletions.pdf' };
 const FINAL = { name: 'final.pdf' };
-// redactPdf's real shape (RED-12/RED-09): the blob plus the covered pages it
-// had to save as a picture alone. No test here exercises a non-empty
-// pictureOnlyPages - that's redact.test.js's job - only that the shape passes
-// through untouched.
-const FINAL_RESULT = { blob: FINAL, pictureOnlyPages: [] };
+// redactPdf's real shape: just the blob. This is what passes through
+// untouched when both phases run.
+const FINAL_RESULT = { blob: FINAL };
 
 const box = { id: 'b1', pageIndex: 0, type: 'blackout' };
 const deletion = { id: 'd1', pageIndex: 0, type: 'delete', start: 10, end: 20 };
@@ -30,6 +28,8 @@ beforeEach(() => {
   redactPdf.mockReset().mockResolvedValue(FINAL_RESULT);
   deleteObjectsFromPdf.mockReset().mockResolvedValue(AFTER_DELETIONS);
 });
+
+
 
 describe('applyPageEdits', () => {
   it('runs only redactPdf when there are no deletions, forwarding onProgress as-is', async () => {
@@ -45,7 +45,7 @@ describe('applyPageEdits', () => {
     const result = await applyPageEdits(SOURCE, [deletion]);
     expect(redactPdf).not.toHaveBeenCalled();
     expect(deleteObjectsFromPdf).toHaveBeenCalledWith(SOURCE, [deletion], undefined);
-    expect(result).toEqual({ blob: AFTER_DELETIONS, pictureOnlyPages: [] });
+    expect(result).toEqual({ blob: AFTER_DELETIONS });
   });
 
   it('feeds the deletion pass output into redactPdf, not the original source', async () => {
