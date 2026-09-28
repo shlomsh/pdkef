@@ -63,19 +63,12 @@ export function createElementRenderers(
       ? renderRedactionSurface('whiteout', element.color)
       : h(requireComponent('whiteout'), { element, messages, isActive: false, onResizeStart: () => {} }),
     blackout: ({ element }) => renderRedactionSurface('blackout', element.color),
-    // RED-24: the on-screen fraction now depends on the box's own height in
-    // page points (blurStrength.ts's blurFraction), not just its strength.
-    // `element.height` is a % of the page, so that needs the page's point
-    // height too - `pageHeightPoints` is not yet a field NodeRenderContext
-    // declares (only `pageWidthPoints` is, and the redact render path always
-    // passes that as 0). This reads it optionally, off a context wider than
-    // the declared type, so a caller that starts supplying it needs no
-    // further change here; until then boxHeightPt is undefined and
-    // blurFraction falls back to the plain, unfloored factor - unchanged
-    // from before RED-24.
-    blur: ({ element, ...context }: NodeRenderContext<ElementForType<'blur'>> & { pageHeightPoints?: number }) => {
-      const boxHeightPt = typeof context.pageHeightPoints === 'number'
-        ? (element.height / 100) * context.pageHeightPoints
+    // RED-24: the on-screen blur depends on the box's own height in points
+    // (blurStrength.ts's blurFraction); `element.height` is a percent of the
+    // page, so the host supplies the page's height in points.
+    blur: ({ element, pageHeightPoints }) => {
+      const boxHeightPt = typeof pageHeightPoints === 'number'
+        ? (element.height / 100) * pageHeightPoints
         : undefined;
       return renderRedactionSurface('blur', undefined, element.strength, boxHeightPt);
     },
