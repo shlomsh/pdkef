@@ -127,16 +127,21 @@ complete.
   toolbar currently leaves visible. `100dvh` on `.o-beat`/`.o-stage` tracks the real viewport in both
   directions; the one cost is `--R` (fed by this container's `cqh`) doing a small correlated resize
   while the toolbar itself animates.
-- **Real iOS WebKit can settle a scroll-driven ring shape a little late relative to a stepped cue on a
-  different element, even at a complete stop, not just mid-gesture.** Reported on a real iPhone
-  (Safari and Chrome): the ring printed oversized and mid-morph under already-lit "Open source" text,
-  something Chromium cannot reproduce - reading the ring's computed `scale`/`translate` back at every
-  scroll position confirms the ring settles before `--o-lit` fires, exactly as `theOTimeline.ts` intends.
-  Both read the same scroll offset off the same named `view-timeline` range ("contain"), and WebKit's
-  scroll-driven-animations implementation has shipped range-computation fixes as recently as Safari
-  26.5. `PACE.beat` (the pause between a change finishing and its words fading in) was widened from 9
-  to 70svh as a hedge, cheap on any browser where nothing is wrong; not yet confirmed against a real
-  device, since this container has none to test against.
+- **Real iOS WebKit can bind a scroll-driven animation to the wrong effective range on an element
+  nested inside a `container-type: size` ancestor, even at a complete stop, not just mid-gesture** -
+  reported on a real iPhone (Safari and Chrome, same engine): the ring printed oversized and mid-morph
+  under already-lit "Open source" text, something Chromium cannot reproduce (reading the ring's computed
+  `scale`/`translate` back at every scroll position there shows it settling before `--o-lit` fires,
+  exactly as intended). A first hedge - widening the pause before words fade in (`PACE.beat`) - shipped
+  and the user reported the ring still stuck, which rules out "a little late" and points at "bound to a
+  different range entirely". The ring no longer binds `animation-timeline` to itself at all: `--o-lit`
+  is trustworthy because `.o-stage` (outside `.o-beat`'s `container-type: size`) drives it directly, so
+  two more animated numbers, `--o-into-o` and `--o-into-window` (0 -> 1 across the same two spans the old
+  `o-path`/`o-shape` keyframes covered), now run on `.o-stage` too. Every beat's ring reads them back as
+  plain inherited custom properties and blends its own `translate`/`scale` with `calc()` - containment
+  does not isolate custom-property inheritance, only the timeline binding was ever the problem. Not yet
+  confirmed against a real device, since this container has none to test against; verified in Chromium
+  only, where the ring already worked before this change.
 
 ## Measured
 
