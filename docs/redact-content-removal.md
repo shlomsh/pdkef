@@ -34,6 +34,14 @@ PDFium costs 7.3 MB of WebAssembly (2.8 MB with gzip -9, measured locally; what 
 depends on the host compressing `.wasm`, which RED-06 measures), MIT wrapper around an Apache-2.0 binary,
 both on the license allowlist.
 
+## RED-18 decision (2026-09-28): go
+
+The spike met the bar: the real forms and every Hebrew case had their boxed text removed with no page
+falling back to a picture, every other glyph stayed exactly in place, and no secret survived in any
+output's bytes. It costs a few KB where today's picture costs up to hundreds per page. The build adds six
+rules the spike exposed (a cut letter's visible part, curves, shared field values, undeletable objects,
+fallback notes, painting the box); they are listed in `backlog/tasks/RED-18.md`'s Result.
+
 ## Plan (2026-09-28): true redaction, and a check of the saved file
 
 Planned with Shlomi after RED-12 shipped. It supersedes the revised plan below.

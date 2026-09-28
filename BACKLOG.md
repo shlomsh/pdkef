@@ -706,9 +706,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
+_None._
 
 ### Blocked
 
@@ -728,6 +726,7 @@ _None._
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 | RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 | RED-17 | P1 | [RED-17](backlog/tasks/RED-17.md) · Check the saved file: search it for what you covered, everywhere a secret can hide |
+| RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 
 ### Retired
