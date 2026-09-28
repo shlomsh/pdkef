@@ -199,7 +199,8 @@ export default function RedactBox({
         height: `${el.height}%`,
         cursor: 'move',
         touchAction: 'none',
-        zIndex: 10
+        // A solid box sits above a blur, as the export paints it (redact.js).
+        zIndex: el.type === 'blur' ? 9 : 10
       }}
     >
       {surface}
