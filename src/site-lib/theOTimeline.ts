@@ -12,8 +12,16 @@ export const PACE = {
   wipe: 100,
   // The ring changing shape: the zero into the O, the O into the window.
   morph: 120,
-  // Held once a change has finished, before its words fade in.
-  beat: 9,
+  // Held once a change has finished, before its words fade in. Wider than it
+  // looks: real iOS Safari has shipped named-range (view-timeline
+  // animation-range) scroll-driven-animation bugs as recently as Safari 26.5
+  // (webkit.org/blog/17938), and a visitor on an older build can settle the
+  // ring's own scrubbed shape a little late relative to the --o-lit cue that
+  // fades the words in - reported as the ring printing oversized, mid-morph,
+  // under already-lit "Open source" text. This margin is the hedge: on a
+  // browser where both track the same scroll position exactly, all it costs
+  // is a slightly later fade-in.
+  beat: 70,
   // The zero starts rounding into the O this far into card 4's wipe.
   morphIntoWipe: 0.75,
   // Airplane mode switches on this long after the window's words light.
