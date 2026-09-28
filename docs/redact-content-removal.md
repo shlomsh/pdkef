@@ -34,7 +34,20 @@ PDFium costs 7.3 MB of WebAssembly (2.8 MB with gzip -9, measured locally; what 
 depends on the host compressing `.wasm`, which RED-06 measures), MIT wrapper around an Apache-2.0 binary,
 both on the license allowlist.
 
-## RED-18 decision (2026-09-28): go
+## Decision (2026-09-28, later): single-image flattening
+
+A page with a Blur, Blackout or Whiteout box is saved as one picture with the marks painted in, and
+nothing else: no invisible text layer. Pages without a mark are copied untouched; Delete removes a
+selected element and keeps the page as text; a watermark image goes with Delete "everywhere" (RED-26).
+
+Why: the spike below showed removal in place is possible, but the build it needed (a content-stream
+editor, six extra rules, fallbacks and checks) was over-complex for its one gain, editing a covered page
+after saving. A picture holds nothing under a box by construction. RED-12's search layer was reverted with
+it: it re-added text the page hid by other means and gave search only. Sign's Whiteout covers and says so
+(RED-10). What stays: the check of the saved file (RED-17), medium blur (RED-24), and solid boxes always
+painted after blurs. The safety gap that remains is Find's estimated boxes (RED-15).
+
+## RED-18 decision (2026-09-28): go (superseded)
 
 The spike met the bar: the real forms and every Hebrew case had their boxed text removed with no page
 falling back to a picture, every other glyph stayed exactly in place, and no secret survived in any
