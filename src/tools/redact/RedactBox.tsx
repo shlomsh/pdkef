@@ -140,6 +140,12 @@ export default function RedactBox({
     getPageWrapper,
     onSelect: () => onSelect(el.id),
     onChange: (patch: any) => onChange(el.id, patch),
+    // Only a selected box claims a touch (SNG-04's model, docs/sign-next-gen.md
+    // §12 #4). A finger landing on an unselected box is left to the browser, so
+    // it can scroll or pinch-zoom across a box that covers most of the page,
+    // and a plain tap still selects it through iOS's synthesised mouse click.
+    touchNeedsSelection: true,
+    isSelected,
   });
   const { handleResizeStart } = useElementResize({
     element: el,
@@ -202,9 +208,16 @@ export default function RedactBox({
         width: `${el.width}%`,
         height: `${el.height}%`,
         cursor: 'move',
-        touchAction: 'none',
+        // Unselected: native pan and pinch pass straight through (see
+        // touchNeedsSelection above). Selected: one-finger drag is JS-owned,
+        // two-finger pinch still belongs to the browser (MOBI-31).
+        touchAction: isSelected ? 'pinch-zoom' : 'pan-x pan-y pinch-zoom',
         // A solid box sits above a blur, as the export paints it (redact.js).
-        zIndex: el.type === 'blur' ? 9 : 10
+        // The selected box rises above every sibling: its floating toolbar is
+        // a child, so it can never paint higher than the box itself, and a
+        // later box (a whiteout, say) would otherwise cover it. Matches
+        // `.element.active` in EditorElement.module.css.
+        zIndex: isSelected ? 50 : el.type === 'blur' ? 9 : 10
       }}
     >
       {surface}
