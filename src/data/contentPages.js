@@ -105,7 +105,7 @@ export const landingPages = [
   {
     href: '/remove-camscanner-watermark-from-pdf/',
     label: 'Remove the CamScanner watermark',
-    blurb: 'Take the "Scanned with CamScanner" line off your own scan, on your phone or computer.',
+    blurb: 'Tap the "Scanned with CamScanner" line away, on your phone or computer.',
     icon: ScanText,
     hub: 'redact',
     sitemapPriority: '0.6',

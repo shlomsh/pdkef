@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="960" height="460" viewBox="0 0 960 460" role="img" aria-labelledby="t d">
+  <title id="t">Three steps: tap the footer, it is gone, download</title>
+  <desc id="d">First panel: the footer is outlined with a dashed line where it is tapped. Second panel: the same page without the footer. Third panel: a download button over the clean page.</desc>
+  <defs>
+    <symbol id="receipt" viewBox="0 0 280 400">
+      <rect x="2" y="2" width="276" height="396" rx="10" fill="#ffffff" stroke="#9fbfb9" stroke-width="3"/>
+      <g stroke-linecap="round" fill="none">
+        <path d="M44 50 H236" stroke="#0b4c4c" stroke-width="9" opacity=".78"/>
+        <path d="M86 76 H194" stroke="#9fbfb9" stroke-width="6"/>
+        <path d="M30 104 H250" stroke="#c9d8d4" stroke-width="3" stroke-dasharray="7 7"/>
+        <g stroke="#9fbfb9" stroke-width="6"><path d="M30 134 H128"/><path d="M30 162 H112"/><path d="M30 190 H134"/><path d="M30 218 H100"/></g>
+        <g stroke="#0b4c4c" stroke-width="6" opacity=".55"><path d="M204 134 H250"/><path d="M212 162 H250"/><path d="M200 190 H250"/><path d="M214 218 H250"/></g>
+        <path d="M30 248 H250" stroke="#c9d8d4" stroke-width="3" stroke-dasharray="7 7"/>
+        <path d="M30 278 H108" stroke="#0b4c4c" stroke-width="9" opacity=".8"/>
+        <path d="M188 278 H250" stroke="#0b4c4c" stroke-width="9" opacity=".8"/>
+      </g>
+    </symbol>
+    <symbol id="footer" viewBox="0 0 108 44">
+      <rect x="1" y="1" width="106" height="42" rx="4" fill="#f3f4f2" stroke="#b9c2bf" stroke-width="2"/>
+      <text x="54" y="18" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" fill="#7d8a86">Scanned with</text>
+      <text x="54" y="36" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700" fill="#56625f">CamScanner</text>
+    </symbol>
+  </defs>
+  <rect width="960" height="460" rx="28" fill="#eef6f3"/>
+  <g>
+    <use href="#receipt" x="40" y="28" width="250" height="357"/>
+    <use href="#footer" x="175" y="332" width="96" height="39"/>
+    <rect x="167" y="324" width="112" height="55" rx="8" fill="none" stroke="#007979" stroke-width="4" stroke-dasharray="10 7"/>
+    <circle cx="223" cy="352" r="30" fill="#007979" opacity=".16"/>
+    <circle cx="223" cy="352" r="13" fill="#007979" opacity=".35"/>
+  </g>
+  <g>
+    <use href="#receipt" x="355" y="28" width="250" height="357"/>
+    <circle cx="538" cy="352" r="16" fill="#007979"/>
+    <path d="M530 352 L536 358 L547 346" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g>
+    <use href="#receipt" x="670" y="28" width="250" height="357"/>
+    <circle cx="795" cy="330" r="38" fill="#007979"/>
+    <path d="M795 310 V346 M781 334 L795 348 L809 334 M777 356 H813" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g font-family="Inter, Arial, sans-serif" font-size="27" font-weight="700" fill="#0b4c4c" text-anchor="middle">
+    <text x="165" y="432">1. Tap the footer</text>
+    <text x="480" y="432">2. It's gone</text>
+    <text x="795" y="432">3. Download</text>
+  </g>
+</svg>
