@@ -13,6 +13,7 @@ import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
+import type { MeasureText } from '../find/matchBoxes.ts';
 import { buildPageText } from '../find/pageText.ts';
 import type { TextItemLike } from '../find/types.ts';
 import { checkSavedFile } from './checkSavedFile.ts';
@@ -25,6 +26,7 @@ export interface CheckContext {
   original: SearchablePage[];
   boxes: CheckBox[];
   saved: SavedFile;
+  measure?: MeasureText;
 }
 
 export interface CheckOutcome {
@@ -49,6 +51,7 @@ export async function runSavedFileCheck({
   boxes,
   extraTerms,
   picturePages,
+  measure,
 }: {
   originalDoc: PDFDocumentProxy;
   savedBytes: Uint8Array;
@@ -57,6 +60,8 @@ export async function runSavedFileCheck({
   extraTerms: CheckTerm[];
   /** Pages the export saved as pictures. */
   picturePages: number[];
+  /** Find's text measurement, so match positions agree with Find's. */
+  measure?: MeasureText;
 }): Promise<CheckOutcome> {
   const pdfjs: any = await getPdfjs();
 
@@ -70,6 +75,8 @@ export async function runSavedFileCheck({
     const pageBoxes = boxes.filter((box) => box.pageIndex === pageIndex);
     if (pageBoxes.length === 0) continue;
     const glyphs = await readGlyphs(pdfjs, page);
+    // A page whose text can't be read gives no covered term; its boxes still
+    // count for Find's and typed terms, and the page was saved as a picture.
     if (glyphs) coveredPages.push({ glyphs, geometry, boxes: pageBoxes });
   }
 
@@ -86,7 +93,7 @@ export async function runSavedFileCheck({
       if (solidity.some((entry) => !entry.solid)) unsolidPages.push(pageIndex);
     }
 
-    const context = { original, boxes, saved };
+    const context = { original, boxes, saved, measure };
     const terms = [...coveredTerms(coveredPages), ...extraTerms];
     return { context, results: checkSavedFile({ ...context, terms }), unsolidPages };
   } finally {

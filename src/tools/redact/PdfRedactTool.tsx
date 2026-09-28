@@ -27,7 +27,7 @@ import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
 import useSavedFileCheck from './useSavedFileCheck.ts';
-import { findMatches, isCovered } from './find/findMatches.ts';
+import { uncoveredMatches } from './find/findMatches.ts';
 import { PRESET_FINDERS, termFinder } from './find/finders.ts';
 import type { CheckBox, CheckTerm } from './check/types.ts';
 import FindHighlights from './FindHighlights.tsx';
@@ -786,11 +786,12 @@ export default function PdfRedactTool() {
     boxes: checkBoxes,
     findTerms,
     picturePages: [...new Set(checkBoxes.map((box) => box.pageIndex))].sort((a, b) => a - b),
+    measure: find.measure,
   });
   const coverFromCheck = (term: CheckTerm, pageIndex: number) => {
     if (savedCheck.state.status !== 'done') return;
     const pages = savedCheck.state.outcome.context.original.filter((page) => page.text.pageIndex === pageIndex);
-    redactMatches(findMatches(pages, term.finder).filter((match) => !isCovered(match, checkBoxes)));
+    redactMatches(uncoveredMatches(pages, term.finder, checkBoxes, find.measure));
   };
 
   const handleSavePdf = async (exportAction = 'download') => {

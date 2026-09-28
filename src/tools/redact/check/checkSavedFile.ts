@@ -2,7 +2,8 @@
  * RED-17: follows each term from the original document to the saved file.
  * Pure; no DOM, no pdf.js import. See `types.ts` for the contract.
  */
-import { findMatches, isCovered } from '../find/findMatches.ts';
+import { uncoveredMatches } from '../find/findMatches.ts';
+import type { MeasureText } from '../find/matchBoxes.ts';
 import type { CheckBox, CheckTerm, Finding, SavedFile, TermResult } from './types.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 
@@ -13,11 +14,13 @@ export interface CheckSavedFileInput {
   /** Every box drawn, any type. */
   boxes: CheckBox[];
   saved: SavedFile;
+  /** Find's text measurement, so match positions agree with Find's. */
+  measure?: MeasureText;
 }
 
 /** One finding per term, following it from the original into the saved file. */
 export function checkSavedFile(input: CheckSavedFileInput): TermResult[] {
-  const { terms, original, boxes, saved } = input;
+  const { terms, original, boxes, saved, measure } = input;
 
   return terms.map((term) => {
     type PageFinding = { kind: 'visible-in-picture' | 'in-text'; pageIndex: number };
@@ -33,14 +36,17 @@ export function checkSavedFile(input: CheckSavedFileInput): TermResult[] {
 
     // 1. Visible in a picture: an uncovered original match on a page the
     // saved file kept only as a picture, so text search can't see it.
-    for (const match of findMatches(original, term.finder)) {
+    for (const match of uncoveredMatches(original, term.finder, boxes, measure)) {
       if (!saved.picturePages.includes(match.pageIndex)) continue;
-      if (isCovered(match, boxes)) continue;
       addPageFinding('visible-in-picture', match.pageIndex);
     }
 
-    // 2. Still in the saved file's own text.
+    // 2. Still in the saved file's own text. A page already reported as
+    // visible in its picture isn't reported again: a picture page can carry
+    // its other words as searchable text (RED-12), and both lines would
+    // point at the same uncovered match.
     for (const page of saved.pages) {
+      if (seen.has(`visible-in-picture:${page.text.pageIndex}`)) continue;
       if (term.finder(page.text.text).length > 0) {
         addPageFinding('in-text', page.text.pageIndex);
       }

@@ -108,5 +108,7 @@ export default function useFind(pdfDocument: PDFDocumentProxy | null, numPages: 
     prev: () => step(-1),
     nextOpenAfter,
     matchesOnPage,
+    /** The text measurement Find places its boxes with (RED-17 reuses it). */
+    measure,
   };
 }

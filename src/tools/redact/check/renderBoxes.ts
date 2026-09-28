@@ -23,5 +23,10 @@ export async function checkBoxesOnPage(
   await page.render({ canvasContext: ctx, viewport }).promise;
 
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  return boxSolidity({ data: imageData.data, width: canvas.width, height: canvas.height }, boxes);
+  // Free the page's decoded resources and the canvas's backing store: a
+  // check walks every page with a box, one after another.
+  page.cleanup();
+  canvas.width = 0;
+  canvas.height = 0;
+  return boxSolidity({ data: imageData.data, width: imageData.width, height: imageData.height }, boxes);
 }

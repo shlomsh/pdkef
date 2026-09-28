@@ -42,6 +42,24 @@ describe('checkSavedFile', () => {
     expect(results).toEqual([{ term: nameTerm, findings: [] }]);
   });
 
+  it('counts a box drawn tightly around the letters as covering them, though it misses Find\'s padding', () => {
+    // "Jane Doe" at 12pt from x 100 to 148 on baseline 700: its letters sit
+    // between viewport y 91.6 and 101.8. Find's own box reaches y 87.
+    const original = [page(0, item('Jane Doe', 100, 700))];
+    const tight: CheckBox = { pageIndex: 0, type: 'blackout', left: (99 / 600) * 100, top: (91 / 800) * 100, width: (50 / 600) * 100, height: (12 / 800) * 100 };
+    const results = checkSavedFile({ terms: [nameTerm], original, boxes: [tight], saved: emptySavedFile({ picturePages: [0] }) });
+
+    expect(results[0].findings).toEqual([]);
+  });
+
+  it('still flags a match a box only half hides', () => {
+    const original = [page(0, item('Jane Doe', 100, 700))];
+    const half: CheckBox = { pageIndex: 0, type: 'blackout', left: (99 / 600) * 100, top: (91 / 800) * 100, width: (25 / 600) * 100, height: (12 / 800) * 100 };
+    const results = checkSavedFile({ terms: [nameTerm], original, boxes: [half], saved: emptySavedFile({ picturePages: [0] }) });
+
+    expect(results[0].findings).toEqual([{ kind: 'visible-in-picture', pageIndex: 0 }]);
+  });
+
   it('flags an uncovered match on a page saved as a picture', () => {
     const original = [page(0, item('Jane Doe', 100, 700))];
     const results = checkSavedFile({
@@ -92,6 +110,15 @@ describe('checkSavedFile', () => {
       { kind: 'in-place', place: 'title', pageIndex: undefined },
       { kind: 'in-place', place: 'field', pageIndex: 2 },
     ]);
+  });
+
+  it('reports an uncovered match on a picture page once, although the page also carries it as text', () => {
+    const original = [page(0, item('Jane Doe', 100, 700))];
+    const saved = emptySavedFile({ pages: [page(0, item('Jane Doe', 100, 700))], picturePages: [0] });
+
+    const results = checkSavedFile({ terms: [nameTerm], original, boxes: [], saved });
+
+    expect(results[0].findings).toEqual([{ kind: 'visible-in-picture', pageIndex: 0 }]);
   });
 
   it('orders page findings by page, visible-in-picture before in-text, then places last', () => {

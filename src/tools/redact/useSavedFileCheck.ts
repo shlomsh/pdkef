@@ -4,6 +4,7 @@ import { checkSavedFile } from './check/checkSavedFile.ts';
 import type { CheckOutcome } from './check/runCheck.ts';
 import type { CheckBox, CheckTerm, TermResult } from './check/types.ts';
 import { termFinder } from './find/finders.ts';
+import type { MeasureText } from './find/matchBoxes.ts';
 
 export type SavedFileCheckState =
   | { status: 'idle' }
@@ -22,12 +23,14 @@ export default function useSavedFileCheck({
   boxes,
   findTerms,
   picturePages,
+  measure,
 }: {
   pdfDocument: PDFDocumentProxy | null;
   saved: Blob | null;
   boxes: CheckBox[];
   findTerms: CheckTerm[];
   picturePages: number[];
+  measure?: MeasureText;
 }) {
   const [state, setState] = useState<SavedFileCheckState>({ status: 'idle' });
 
@@ -44,7 +47,7 @@ export default function useSavedFileCheck({
       try {
         const savedBytes = new Uint8Array(await saved.arrayBuffer());
         const { runSavedFileCheck } = await import('./check/runCheck.ts');
-        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, boxes, extraTerms: findTerms, picturePages });
+        const outcome = await runSavedFileCheck({ originalDoc: pdfDocument, savedBytes, boxes, extraTerms: findTerms, picturePages, measure });
         if (current) setState({ status: 'done', outcome, typed: [] });
       } catch (error) {
         console.error('Redact could not check the saved file', error);

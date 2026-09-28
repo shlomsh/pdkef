@@ -1,0 +1,179 @@
+[
+  {
+    "file": "shared-header-image-full.pdf",
+    "page": 1,
+    "rect": [
+      29.333333333333332,
+      4.5,
+      41.333333333333336,
+      11
+    ],
+    "removalMethod": "box",
+    "secret": null,
+    "keepText": "Page 1: body text that must survive redaction untouched.",
+    "imageSecretColor": [
+      255,
+      0,
+      0
+    ],
+    "imageKeepColor": [
+      0,
+      0,
+      255
+    ],
+    "imageAssertions": [
+      {
+        "page": 1,
+        "secretColorRemaining": 0,
+        "keepColorRemaining": 0
+      },
+      {
+        "page": 2,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 3,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 4,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 5,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      }
+    ],
+    "sharedAcrossPages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "feature": "one image XObject (logo) drawn at the top of every page from the same object; box on page 1 fully covers it"
+  },
+  {
+    "file": "shared-header-image-half.pdf",
+    "page": 1,
+    "rect": [
+      29.333333333333332,
+      4.5,
+      20.666666666666668,
+      11
+    ],
+    "removalMethod": "box",
+    "secret": null,
+    "keepText": "Page 1: body text that must survive redaction untouched.",
+    "imageSecretColor": [
+      255,
+      0,
+      0
+    ],
+    "imageKeepColor": [
+      0,
+      0,
+      255
+    ],
+    "imageAssertions": [
+      {
+        "page": 1,
+        "secretColorRemaining": 0,
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 2,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 3,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 4,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      },
+      {
+        "page": 5,
+        "secretColorRemaining": ">0",
+        "keepColorRemaining": ">0"
+      }
+    ],
+    "sharedAcrossPages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "feature": "one image XObject (logo) drawn at the top of every page from the same object; box on page 1 covers only half of it"
+  },
+  {
+    "file": "text-watermark-form.pdf",
+    "page": 1,
+    "rect": [
+      27.00133333333333,
+      5,
+      45.99733333333334,
+      5.5
+    ],
+    "removalMethod": "box",
+    "secret": "CONFIDENTIAL",
+    "keepText": "Page 1: body text that must survive redaction untouched.",
+    "sharedAcrossPages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "feature": "\"CONFIDENTIAL\" drawn at the top of every page from one shared Form XObject; box on page 1 only"
+  },
+  {
+    "file": "watermark-annotation.pdf",
+    "page": 1,
+    "rect": [
+      16,
+      7.000000000000001,
+      68,
+      8.5
+    ],
+    "removalMethod": "box",
+    "secret": "WATERMARK-ANNOTATION-SECRET",
+    "annotationOnly": true,
+    "annotationSubtype": "Watermark",
+    "keepText": "Page 1: body text that must survive redaction untouched.",
+    "sharedAcrossPages": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "feature": "/Watermark annotation with text on each page (independent objects, same text); box on page 1 over its annotation"
+  },
+  {
+    "file": "diagonal-behind-text.pdf",
+    "page": 1,
+    "rect": null,
+    "removalMethod": "delete",
+    "deleteTarget": "diagonal DRAFT watermark image (semi-transparent, drawn behind body text)",
+    "secret": null,
+    "keepText": "This document has several lines of ordinary body text.",
+    "imageSecretColor": [
+      200,
+      0,
+      200
+    ],
+    "imageAssertions": [
+      {
+        "page": 1,
+        "secretColorRemaining": 0
+      }
+    ],
+    "feature": "semi-transparent diagonal \"DRAFT\" image drawn behind body text; removed by Delete, not a box"
+  }
+]
