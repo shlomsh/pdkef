@@ -186,6 +186,14 @@ describe('wordsUnderBoxes', () => {
     expect(wordsUnderBoxes(logical, geometry, boxes)[0]).toEqual(['עולם', 'שלום']);
   });
 
+  it('keeps Latin words in order on a line that also has a Hebrew word', () => {
+    // "Approved by John Smith, מנהל", the Hebrew word stored in visual order.
+    // 5 units per glyph: "John " spans 60-85 and "Smith, " 85-120.
+    const glyphs = makeLine('Approved by John Smith, להנמ');
+    const [words] = wordsUnderBoxes(glyphs, geometry, [box(62, 112, 390, 405)]);
+    expect(words).toEqual(['John', 'Smith,']);
+  });
+
   it('gives one entry per box, empty for a box that reaches no word', () => {
     const glyphs = makeLine('aaa bbb ccc');
     const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];

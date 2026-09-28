@@ -281,38 +281,48 @@ function positionalWords(line: { along: number; glyph: PageGlyph }[]): PageGlyph
   return words;
 }
 
-const hasStrongRTL = (glyphs: PageGlyph[]) => glyphs.some((glyph) => [...glyph.unicode].some(isStrongRTL));
+/** More than half of the letters are right-to-left: the same majority rule
+ * Find's own line direction uses (find/pageText.ts), so a Latin line with one
+ * Hebrew word still reads left to right, and the reverse. */
+function isMostlyRTL(glyphs: PageGlyph[]): boolean {
+  let letters = 0;
+  let rtl = 0;
+  for (const glyph of glyphs) {
+    for (const ch of glyph.unicode) {
+      if (!/\p{L}/u.test(ch)) continue;
+      letters += 1;
+      if (isStrongRTL(ch)) rtl += 1;
+    }
+  }
+  return letters > 0 && rtl / letters > 0.5;
+}
 
 /**
  * RED-17: for each of `boxes` (same index), the words a box reaches by the
  * rule `planTextLayer` uses (any glyph core touching it), as text in logical
  * reading order. Words are built from glyph positions, not storage order,
- * so a Hebrew line reads the same however its bytes are stored. Words in a
- * box's list follow the line's reading direction; lines go top to bottom.
- * Pure.
+ * so a Hebrew line reads the same however its bytes are stored. A box's
+ * words on one line read in the direction most of their own letters have,
+ * each word likewise; lines go top to bottom. Pure.
  */
 export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
   const covers = boxes.map((box) => percentToViewport(geometry, box));
-  const perBox: { top: number; seq: number; text: string }[][] = boxes.map(() => []);
-  let seq = 0;
+  const perBox: { top: number; texts: string[] }[][] = boxes.map(() => []);
+  const text = (word: PageGlyph[]) => (isMostlyRTL(word) ? [...word].reverse() : word).map((glyph) => glyph.unicode).join('');
 
   for (const line of positionalLines(glyphs)) {
     const words = positionalWords(line);
     if (words.length === 0) continue;
-    const rtl = words.some(hasStrongRTL);
     const top = Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0));
-    for (const word of rtl ? [...words].reverse() : words) {
-      const ordered = hasStrongRTL(word) ? [...word].reverse() : word;
-      const text = ordered.map((glyph) => glyph.unicode).join('');
-      if (!text) continue;
-      seq += 1;
-      covers.forEach((cover, i) => {
-        if (wordTouchesCover(geometry, word, cover)) perBox[i].push({ top, seq, text });
-      });
-    }
+    covers.forEach((cover, i) => {
+      const reached = words.filter((word) => wordTouchesCover(geometry, word, cover));
+      if (reached.length === 0) return;
+      const ordered = isMostlyRTL(reached.flat()) ? [...reached].reverse() : reached;
+      perBox[i].push({ top, texts: ordered.map(text).filter(Boolean) });
+    });
   }
 
-  return perBox.map((words) => [...words].sort((a, b) => a.top - b.top || a.seq - b.seq).map((word) => word.text));
+  return perBox.map((lines) => [...lines].sort((a, b) => a.top - b.top).flatMap((line) => line.texts));
 }
 
 function wordTexts(runs: { glyphs: { unicode: string }[] }[]): string[] {
