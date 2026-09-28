@@ -694,9 +694,8 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
-| RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
-| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
+| RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
+| RED-16 | P2 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |
 
 ### In progress
 
@@ -713,7 +712,10 @@ _None._
 | RED-01 | P1 | [RED-01](backlog/tasks/RED-01.md) · Spike: remove the text and images under a box instead of flattening the page |
 | RED-02 | P2 | [RED-02](backlog/tasks/RED-02.md) · Find and redact: search text, review every match, redact all or some |
 | RED-03 | P2 | [RED-03](backlog/tasks/RED-03.md) · Repeat a box on every page |
+| RED-09 | P1 | [RED-09](backlog/tasks/RED-09.md) · Read-back check after every export: nothing extractable under any box |
+| RED-10 | P3 | [RED-10](backlog/tasks/RED-10.md) · Sign's Whiteout: decide whether it removes what it covers, or says plainly that it only covers |
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
+| RED-12 | P1 | [RED-12](backlog/tasks/RED-12.md) · Covered pages keep their text: the picture plus an invisible text layer without the boxed words |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 | RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
 
