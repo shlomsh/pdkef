@@ -60,3 +60,10 @@ first month as a fallback, or remove it outright? The plan recommends removing i
   guard asserts under 1600 ms so a CI runner at half that speed does not flake, and prints the
   measured number. Done.
 - Direction A (2026-09-13): the preparing state is honest on the control itself ("Preparing 18 pages…", aria-busy, render progress) instead of a button labelled Download that could not download yet; a re-prepare after an edit swaps the label without remounting or replaying the check.
+- 2026-09-28: the 1600 ms guard had lost its CI margin and started flaking on `main` - failed
+  1625.7/1713.9ms (09-25), 2143.1/1777.5ms (09-26), 2097.2/1779.2ms (09-28), with the very next push
+  passing at only 1523.8ms. Nothing in `mergePdfs`/`usePreparedMerge` or `@cantoo/pdf-lib`'s version
+  changed since 09-13, and `merge-thumbnail-throughput.spec.js`'s 2500ms budget on the same runners in
+  the same job stayed nowhere near its ceiling across those runs, so this was this guard's own margin
+  eroding (general app growth since 09-13 raising fixed overhead), not a CI-wide slowdown. Recalibrated
+  to 2600 ms, about 20% above the worst run observed.
