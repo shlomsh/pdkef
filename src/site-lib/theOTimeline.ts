@@ -111,13 +111,15 @@ export function theOTimelineCss(timeline: TheOTimeline = theOTimeline()): string
   const { lit, wipes, intoO, intoWindow, waypoints: w } = timeline;
 
   const css = `
-@keyframes o-into-o {
-  0%, ${pct(intoO[0])} { --o-into-o: 0; }
-  ${pct(intoO[1])}, 100% { --o-into-o: 1; }
+@keyframes o-path {
+  0%, ${pct(intoO[0])} { translate: 0 0; }
+  ${pct(intoO[1])}, ${pct(intoWindow[0])} { translate: var(--o-tx) var(--o-ty); }
+  ${pct(intoWindow[1])}, 100% { translate: var(--w-tx) var(--w-ty); }
 }
-@keyframes o-into-window {
-  0%, ${pct(intoWindow[0])} { --o-into-window: 0; }
-  ${pct(intoWindow[1])}, 100% { --o-into-window: 1; }
+@keyframes o-shape {
+  0%, ${pct(intoO[0])} { scale: var(--zx) 1; }
+  ${pct(intoO[1])}, ${pct(intoWindow[0])} { scale: var(--o-sx) var(--o-sy); }
+  ${pct(intoWindow[1])}, 100% { scale: 1.04 1.3; }
 }
 @keyframes o-fly {
   0%, ${pct(timeline.takeoff)} { translate: 0 0; rotate: 0deg; scale: 1; }
