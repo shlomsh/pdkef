@@ -464,6 +464,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 | RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
+| RED-28 | P3 | [RED-28](backlog/tasks/RED-28.md) · A deleted object peels off like a sticker |
+| RED-29 | P1 | [RED-29](backlog/tasks/RED-29.md) · Delete finds what a page draws inside a Form XObject |
 
 
 ## Migrated context and history

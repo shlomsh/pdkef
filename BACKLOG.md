@@ -700,6 +700,7 @@ _None._
 | RED-16 | P2 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
+| RED-29 | P1 | [RED-29](backlog/tasks/RED-29.md) · Delete finds what a page draws inside a Form XObject |
 
 ### In progress
 
@@ -725,6 +726,7 @@ _None._
 | RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
+| RED-28 | P3 | [RED-28](backlog/tasks/RED-28.md) · A deleted object peels off like a sticker |
 
 ### Retired
 
