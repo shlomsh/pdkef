@@ -3,7 +3,7 @@ import path from 'path';
 import { pathToFileURL } from 'url';
 import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { compressPdf, compressPdfToTarget } from './compress.js';
+import { compressPdf, compressPdfToTarget, pickStartScaleIndex, MAX_RENDER_MEMORY_BYTES } from './compress.js';
 
 vi.mock('pdfjs-dist', async () => {
   return await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -106,5 +106,32 @@ describe('compressPdf library integration with real fixtures', () => {
     expect(result.blob).toBeInstanceOf(Blob);
     const pageCount = await getPdfPageCount(result.blob);
     expect(pageCount).toBe(5);
+  });
+});
+
+describe('pickStartScaleIndex', () => {
+  const SCALES = [1.5, 1.1, 0.85, 0.65, 0.5];
+  // A4 in points, matching the real ladder's units.
+  const A4_AREA = 595.28 * 841.89;
+
+  it('starts at the top tier when the document easily fits the memory cap', () => {
+    const totalArea = A4_AREA * 5; // 5-page document
+    expect(pickStartScaleIndex(SCALES, totalArea)).toBe(0);
+  });
+
+  it('skips down to the first tier that fits the cap for a large page count', () => {
+    // A 100-page A4 doc: top two tiers exceed MAX_RENDER_MEMORY_BYTES
+    // (~451MB and ~243MB against a 200MB cap), the third (0.85) fits.
+    const totalArea = A4_AREA * 100;
+    const bytesAt = (scale) => totalArea * scale * scale * 4;
+    expect(bytesAt(SCALES[0])).toBeGreaterThan(MAX_RENDER_MEMORY_BYTES);
+    expect(bytesAt(SCALES[1])).toBeGreaterThan(MAX_RENDER_MEMORY_BYTES);
+    expect(bytesAt(SCALES[2])).toBeLessThanOrEqual(MAX_RENDER_MEMORY_BYTES);
+    expect(pickStartScaleIndex(SCALES, totalArea)).toBe(2);
+  });
+
+  it('falls back to the lowest tier when even that exceeds the cap', () => {
+    const absurdArea = A4_AREA * 100000;
+    expect(pickStartScaleIndex(SCALES, absurdArea)).toBe(SCALES.length - 1);
   });
 });

@@ -364,6 +364,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
 | MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open |
+| MEM-11 | P2 | [MEM-11](backlog/tasks/MEM-11.md) · Surface the 28-day / 6-file retention limit in the UI, not just the FAQ |
 
 
 ## Form understanding: read what a form asks, ask the person, fill it back (2026-09-20)
