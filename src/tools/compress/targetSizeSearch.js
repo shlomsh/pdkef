@@ -32,6 +32,13 @@
  * @param {number} options.deadlineMs - `Date.now()`-comparable deadline; once
  *   passed, the search ships the best result found so far instead of trying
  *   further scales or quality steps.
+ * @param {(handle: any) => void} [options.releaseHandle] - called on every
+ *   handle that turns out NOT to be part of the final result, as soon as
+ *   that's known (once the next scale tier's handle has been produced and
+ *   compared). Lets a caller holding something heavy (e.g. one canvas per
+ *   PDF page) free it eagerly instead of waiting on GC, so at most two
+ *   tiers' worth of handles are ever alive at once. Never called on the
+ *   handle this function returns - that one is still the caller's to use.
  * @returns {Promise<{ scale: number, scaleIndex: number, handle: any, quality: number, encoded: { size: number } }>}
  */
 export async function searchTargetSize({
@@ -43,11 +50,13 @@ export async function searchTargetSize({
   maxQuality,
   qualitySteps = 6,
   deadlineMs,
+  releaseHandle,
 }) {
   let best = null; // { scale, scaleIndex, handle, quality, encoded }
 
   for (let scaleIndex = 0; scaleIndex < scales.length; scaleIndex += 1) {
     if (best && Date.now() > deadlineMs) break; // time's up - ship the best-effort result
+    const previousBestHandle = best?.handle ?? null;
     const scale = scales[scaleIndex];
     const handle = await renderAtScale(scale, scaleIndex);
 
@@ -58,26 +67,32 @@ export async function searchTargetSize({
       best = { scale, scaleIndex, handle, quality: minQuality, encoded: floorEncoded };
     }
 
-    if (floorEncoded.size > budgetBytes) continue; // even minimum quality is too big at this scale
-
-    // Binary search the highest quality, at this scale, that still fits.
-    let lo = minQuality;
-    let hi = maxQuality;
-    let feasible = best;
-    for (let step = 0; step < qualitySteps; step += 1) {
-      if (Date.now() > deadlineMs) break; // time's up - keep the best quality found so far
-      const mid = (lo + hi) / 2;
-      const encoded = await encode(handle, mid);
-      if (encoded.size <= budgetBytes) {
-        feasible = { scale, scaleIndex, handle, quality: mid, encoded };
-        lo = mid;
-      } else {
-        hi = mid;
+    let tierFits = floorEncoded.size <= budgetBytes;
+    if (tierFits) {
+      // Binary search the highest quality, at this scale, that still fits.
+      let lo = minQuality;
+      let hi = maxQuality;
+      let feasible = best.handle === handle ? best : { scale, scaleIndex, handle, quality: minQuality, encoded: floorEncoded };
+      for (let step = 0; step < qualitySteps; step += 1) {
+        if (Date.now() > deadlineMs) break; // time's up - keep the best quality found so far
+        const mid = (lo + hi) / 2;
+        const encoded = await encode(handle, mid);
+        if (encoded.size <= budgetBytes) {
+          feasible = { scale, scaleIndex, handle, quality: mid, encoded };
+          lo = mid;
+        } else {
+          hi = mid;
+        }
       }
+      best = feasible;
     }
 
-    best = feasible;
-    break; // this scale fits the budget - no need to drop further
+    // Whichever of this tier's handle and the previous best's handle didn't
+    // end up as the survivor is now dead weight - release it.
+    if (previousBestHandle && previousBestHandle !== best.handle) releaseHandle?.(previousBestHandle);
+    if (handle !== best.handle) releaseHandle?.(handle);
+
+    if (tierFits) break; // this scale fits the budget - no need to drop further
   }
 
   return best;
