@@ -71,6 +71,25 @@ function xobjectBytes(page, slashName) {
   return stream.getContents();
 }
 
+/** Every dict/array/stream header and every decompressed stream, lowercased, as one haystack. */
+async function decompressedObjectText(doc) {
+  let haystack = '';
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    const header = obj?.toString?.();
+    if (typeof header === 'string') haystack += `${header}\n`;
+    if (obj instanceof PDFStream) {
+      try {
+        const decoded = decodePDFRawStream(obj).decode();
+        haystack += `${new TextDecoder('latin1').decode(decoded)}\n`;
+      } catch {
+        // Binary image data (the flattened JPEG picture itself) doesn't
+        // decode as a PDF filter stream here; it can't hold a text URI.
+      }
+    }
+  }
+  return haystack.toLowerCase();
+}
+
 describe('RED CamScanner footer: A - footer as its own image XObject, removed with Delete', () => {
   async function buildFixtureA() {
     const doc = await PDFDocument.create();
@@ -83,6 +102,27 @@ describe('RED CamScanner footer: A - footer as its own image XObject, removed wi
     // CamScanner's own footer graphic, its own XObject placed at the bottom.
     const footer = await doc.embedPng(b64ToBytes(PNG_1X1_BASE64));
     page.drawImage(footer, { x: 20, y: 0, width: 160, height: 20 });
+
+    // The real file's shape (SEO-38): a Link on exactly the footer's rect,
+    // its URI action registered as its own indirect object (as CamScanner's
+    // writer emits it, and as pdf-lib does not by default), plus Info that
+    // names the app, device and the exact scan time.
+    const linkAction = doc.context.obj({
+      Type: 'Action',
+      S: 'URI',
+      URI: PDFString.of('https://v3.camscanner.com/user/download'),
+    });
+    const linkAnnot = doc.context.obj({
+      Type: 'Annot',
+      Subtype: 'Link',
+      Rect: [20, 0, 180, 20],
+      Border: [0, 0, 0],
+      A: doc.context.register(linkAction),
+    });
+    page.node.addAnnot(doc.context.register(linkAnnot));
+
+    doc.setTitle('CamScanner 05-21-2025 11.14');
+    doc.setAuthor('CamScanner');
 
     return new Uint8Array(await doc.save());
   }
@@ -135,6 +175,12 @@ describe('RED CamScanner footer: A - footer as its own image XObject, removed wi
     // scale, which could never reproduce the original embedded bytes exactly.
     const survivingScanBytes = xobjectBytes(outDoc.getPage(0), afterImages[0].name);
     expect(survivingScanBytes).toEqual(originalScanBytes);
+
+    // The Link over the footer went with it, and no trace of it (or the
+    // Info's app name/device/scan time) survives anywhere in the saved file.
+    const annots = outDoc.getPage(0).node.Annots();
+    expect(annots === undefined || annots.size() === 0).toBe(true);
+    expect(await decompressedObjectText(outDoc)).not.toContain('camscanner');
   });
 });
 
@@ -202,25 +248,6 @@ describe('RED CamScanner footer: B - footer text + Link annotation, covered with
     page.node.addAnnot(doc.context.register(linkAnnot));
 
     return new Uint8Array(await doc.save());
-  }
-
-  /** Every dict/array/stream header and every decompressed stream, lowercased, as one haystack. */
-  async function decompressedObjectText(doc) {
-    let haystack = '';
-    for (const [, obj] of doc.context.enumerateIndirectObjects()) {
-      const header = obj?.toString?.();
-      if (typeof header === 'string') haystack += `${header}\n`;
-      if (obj instanceof PDFStream) {
-        try {
-          const decoded = decodePDFRawStream(obj).decode();
-          haystack += `${new TextDecoder('latin1').decode(decoded)}\n`;
-        } catch {
-          // Binary image data (the flattened JPEG picture itself) doesn't
-          // decode as a PDF filter stream here; it can't hold a text URI.
-        }
-      }
-    }
-    return haystack.toLowerCase();
   }
 
   it('fixture sanity: the source really carries the CamScanner text and Link annotation', async () => {
