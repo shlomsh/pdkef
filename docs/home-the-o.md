@@ -118,10 +118,32 @@ complete.
 - **The hero demo's autoplay** looped from its second story back to the first while the demo was
   leaving the screen under this section. `ScrollDriver.tsx` now holds the finished story once the tour
   has been scrolled past.
+- **A pinned section sized in `svh` leaves a gap when the browser's own toolbar auto-hides.** Reported
+  on a real iPhone (Safari and Chrome, same WebKit engine underneath): scrolling down shrinks the
+  toolbar, the visible viewport grows past `.o-stage`/`.o-beat`'s fixed `100svh`, and a bare strip of
+  page background shows below the pinned section until scrolling back up lets the reappearing toolbar
+  cover it again. `svh` was the right call for the pin's total scroll *distance*
+  (`theOTimeline.ts`'s `.o-track`, unaffected), wrong for the box that has to visually fill whatever the
+  toolbar currently leaves visible. `100dvh` on `.o-beat`/`.o-stage` tracks the real viewport in both
+  directions; the one cost is `--R` (fed by this container's `cqh`) doing a small correlated resize
+  while the toolbar itself animates.
+- **Real iOS WebKit can settle a scroll-driven ring shape a little late relative to a stepped cue on a
+  different element, even at a complete stop, not just mid-gesture.** Reported on a real iPhone
+  (Safari and Chrome): the ring printed oversized and mid-morph under already-lit "Open source" text,
+  something Chromium cannot reproduce - reading the ring's computed `scale`/`translate` back at every
+  scroll position confirms the ring settles before `--o-lit` fires, exactly as `theOTimeline.ts` intends.
+  Both read the same scroll offset off the same named `view-timeline` range ("contain"), and WebKit's
+  scroll-driven-animations implementation has shipped range-computation fixes as recently as Safari
+  26.5. `PACE.beat` (the pause between a change finishing and its words fading in) was widened from 9
+  to 70svh as a hedge, cheap on any browser where nothing is wrong; not yet confirmed against a real
+  device, since this container has none to test against.
 
 ## Measured
 
 Chromium and WebKit at 1440x900, 559x845, 390x844, 820x1180 and 852x393: no horizontal overflow, no
 console errors, every beat's resting pose, the flight and the landing checked frame by frame. Not yet
 checked: Firefox (no scroll timelines there, so it gets the still version; its `text-box` fallback
-margins need a real look) and RTL, which no page renders yet (DEMO-11).
+margins need a real look) and RTL, which no page renders yet (DEMO-11). The two hazards above were
+found on a real iPhone, which this container has no way to test against; Chromium re-verifies the
+maths (computed `scale`/`translate`/opacity at every scroll position) but cannot reproduce either bug
+itself, so treat both fixes as reasoned, not device-confirmed.
