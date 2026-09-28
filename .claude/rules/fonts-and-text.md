@@ -80,10 +80,6 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   (the shared esbuild-and-serve harness) stays in `e2e/sign/fixtures/` rather than moving with them,
   because `cjk-advance-parity-guard.spec.js` (a `fonts` guard) and `shapingGuardHarness.js` also import
   it; the two `e2e/export/` specs import it across the directory boundary instead of duplicating it.
-- **Redact's invisible text layer is the one exception to everything below** (RED-12,
-  `src/editor/adapters/pdf/invisibleText.js`): it is never drawn (render mode 3), so it uses one
-  glyphless font for every script, with each code mapped back through ToUnicode and given its original
-  advance through `/W`, and needs no fonts.js family, shaping or guard. Never reuse it for visible text.
 - **Resolve every family through `src/editor/text/fonts.js`** (`resolveFontFamily(family, text)`),
   from `TextNode`, `SignatureDialog` and `src/editor/registry/text.ts` alike. The browser substitutes a
   system font per missing glyph; a PDF embeds one font per run and draws an empty rectangle. Latin-only

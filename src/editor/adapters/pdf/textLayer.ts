@@ -1,16 +1,15 @@
 /**
- * RED-12: which words of a covered page go back into its saved file, and
- * where. A covered page is saved as a picture; over it goes invisible text
- * for every word no box touches, so the rest of the page can still be
- * selected, searched and read aloud. Pure; no DOM, no pdf.js import.
+ * RED-17: which words of a page a set of boxes reaches. A covered page is now
+ * saved as a picture alone, with no text layer (2026-09-28), so this module
+ * exists only to answer the saved-file check's question - "what did the
+ * boxes on this page cover?" - by the same touch rule the flatten pass would
+ * use if it still wrote text. Pure; no DOM, no pdf.js import.
  *
  * A word is a run of glyphs that follow on from each other along one
  * baseline with no space between them. If a box reaches into the core of any
- * of its glyphs, where covering it hides the letter, the whole word is left
- * out, never cut to letters, and is written nowhere in the file. A box that
- * only grazes an ascender, a descender or a side bearing leaves the letter
- * readable in the picture, so the word stays. The words keep the page's own glyph order and positions, so a
- * right-to-left line reads back exactly as the original's does.
+ * of its glyphs, where covering it hides the letter, the whole word counts as
+ * covered. A box that only grazes an ascender, a descender or a side bearing
+ * leaves the letter readable in the picture, so the word does not count.
  */
 
 import {
@@ -30,32 +29,6 @@ export interface PercentBox {
   height: number;
 }
 
-export interface LayerGlyph {
-  unicode: string;
-  /** Pen position along the run's baseline, in ems from its first glyph. */
-  x: number;
-  /** Advance in ems. */
-  width: number;
-}
-
-/** One run of kept words to write, invisibly, over the picture. */
-export interface LayerRun {
-  /** The run's characters in the page's own glyph order. */
-  text: string;
-  /** Em space of the run's first glyph into the page's top-left-origin
-   * viewport (`PageGeometry`). */
-  matrix: AffineTransform;
-  glyphs: LayerGlyph[];
-}
-
-export interface TextLayerPlan {
-  runs: LayerRun[];
-  /** Words written. */
-  kept: number;
-  /** Words left out because a box reaches them. */
-  dropped: number;
-}
-
 /** A glyph's core, in ems: from just under the baseline to x-height and
  * a little over, inset from its sides by up to `SIDE_INSET_EM` (never more
  * than `SIDE_INSET_SHARE` of a narrow glyph's width). On the Latin and Hebrew
@@ -69,7 +42,6 @@ const SIDE_INSET_SHARE = 0.3;
  * and still continue that word, in ems. */
 const SAME_LINE_EM = 0.2;
 const JOIN_GAP_EM = 0.25;
-const BACKWARD_EM = 0.1;
 /** Two glyphs belong to one word only at nearly the same size and angle. */
 const SAME_SHAPE = 0.01;
 
@@ -107,8 +79,7 @@ function touches(a: Box, b: Box): boolean {
 }
 
 /** Whether any glyph in `word` has a core that touches `cover`: the one rule
- * both `planTextLayer` (drop the word) and `wordsUnderBoxes` (the word is
- * under this box) use to decide a box reaches a word. */
+ * `wordsUnderBoxes` uses to decide a box reaches a word. */
 function wordTouchesCover(geometry: PageGeometry, word: PageGlyph[], cover: Box): boolean {
   return word.some((glyph) => touches(glyphCore(geometry, glyph), cover));
 }
@@ -121,110 +92,6 @@ function sameShape(a: AffineTransform, b: AffineTransform): boolean {
 /** A space between words. A glyph with no Unicode value is not one: it stays
  * inside its word (and is not written), so it can't split a word in two. */
 const isBlank = (glyph: PageGlyph) => glyph.isSpace || /^\s+$/.test(glyph.unicode);
-
-/**
- * Splits the page's glyphs into runs, in content order: glyphs that follow
- * on from each other along one baseline, the spaces between words included.
- */
-export function groupRuns(glyphs: PageGlyph[]): PageGlyph[][] {
-  const runs: PageGlyph[][] = [];
-  let run: PageGlyph[] = [];
-  let inverse: AffineTransform | null = null;
-  let pen = 0;
-
-  const close = () => {
-    if (run.length > 0) runs.push(run);
-    run = [];
-    inverse = null;
-  };
-
-  for (const glyph of glyphs) {
-    if (inverse && run.length > 0) {
-      const at = applyAffineTransform({ x: glyph.matrix[4], y: glyph.matrix[5] }, inverse);
-      const continues =
-        sameShape(run[0].matrix, glyph.matrix) &&
-        Math.abs(at.y) <= SAME_LINE_EM &&
-        at.x - pen <= JOIN_GAP_EM &&
-        at.x >= pen - Math.max(run[run.length - 1].width, 0) - BACKWARD_EM;
-      if (!continues) close();
-    }
-    if (run.length === 0) {
-      if (isBlank(glyph)) continue; // a run starts at a word
-      try {
-        inverse = invertAffineTransform(glyph.matrix);
-      } catch {
-        continue; // a degenerate text matrix shows nothing
-      }
-    }
-    const at = applyAffineTransform({ x: glyph.matrix[4], y: glyph.matrix[5] }, inverse!);
-    run.push(glyph);
-    pen = at.x + glyph.width;
-  }
-  close();
-  return runs;
-}
-
-/** A run's words: its glyphs split at blanks, as index ranges. */
-function wordRanges(run: PageGlyph[]): [number, number][] {
-  const ranges: [number, number][] = [];
-  let start = -1;
-  run.forEach((glyph, i) => {
-    if (isBlank(glyph)) {
-      if (start >= 0) ranges.push([start, i]);
-      start = -1;
-    } else if (start < 0) {
-      start = i;
-    }
-  });
-  if (start >= 0) ranges.push([start, run.length]);
-  return ranges;
-}
-
-/**
- * Plans one covered page's invisible text: every word in `glyphs` (from
- * `readPageGlyphs`) that no box in `boxes` reaches, placed exactly where its
- * glyphs sit in the picture, with the spaces between kept words.
- */
-export function planTextLayer(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): TextLayerPlan {
-  const covers = boxes.map((box) => percentToViewport(geometry, box));
-  const runs: LayerRun[] = [];
-  let kept = 0;
-  let dropped = 0;
-
-  for (const run of groupRuns(glyphs)) {
-    const keep = new Array<boolean>(run.length).fill(false);
-    for (const [start, end] of wordRanges(run)) {
-      const word = run.slice(start, end);
-      if (covers.some((cover) => wordTouchesCover(geometry, word, cover))) {
-        dropped += 1;
-      } else {
-        kept += 1;
-        keep.fill(true, start, end);
-      }
-    }
-    // A space is written only between two kept words; one beside a dropped
-    // word would say where it was.
-    const firstKept = keep.indexOf(true);
-    const lastKept = keep.lastIndexOf(true);
-    if (firstKept < 0) continue;
-    const chosen = run.filter((glyph, i) => (keep[i] || (i > firstKept && i < lastKept && isBlank(glyph) && keep[i - 1])) && glyph.unicode.length > 0);
-
-    const first = chosen[0].matrix;
-    const inverse = invertAffineTransform(first);
-    const layerGlyphs = chosen.map((glyph) => ({
-      unicode: glyph.unicode,
-      x: applyAffineTransform({ x: glyph.matrix[4], y: glyph.matrix[5] }, inverse).x,
-      width: Math.max(glyph.width, 0),
-    }));
-    runs.push({
-      text: layerGlyphs.map((glyph) => glyph.unicode).join(''),
-      matrix: composeAffineTransforms(geometry.pdfToViewport, first),
-      glyphs: layerGlyphs,
-    });
-  }
-
-  return { runs, kept, dropped };
-}
 
 /** Hebrew and Arabic letter ranges (plus their presentation forms): a
  * character in one of these is "strongly" right-to-left, the same signal
@@ -298,12 +165,12 @@ function isMostlyRTL(glyphs: PageGlyph[]): boolean {
 }
 
 /**
- * RED-17: for each of `boxes` (same index), the words a box reaches by the
- * rule `planTextLayer` uses (any glyph core touching it), as text in logical
- * reading order. Words are built from glyph positions, not storage order,
- * so a Hebrew line reads the same however its bytes are stored. A box's
- * words on one line read in the direction most of their own letters have,
- * each word likewise; lines go top to bottom. Pure.
+ * RED-17: for each of `boxes` (same index), the words a box reaches (any
+ * glyph core touching it), as text in logical reading order. Words are built
+ * from glyph positions, not storage order, so a Hebrew line reads the same
+ * however its bytes are stored. A box's words on one line read in the
+ * direction most of their own letters have, each word likewise; lines go top
+ * to bottom. Pure.
  */
 export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
   const covers = boxes.map((box) => percentToViewport(geometry, box));
@@ -323,30 +190,4 @@ export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, box
   }
 
   return perBox.map((lines) => [...lines].sort((a, b) => a.top - b.top).flatMap((line) => line.texts));
-}
-
-function wordTexts(runs: { glyphs: { unicode: string }[] }[]): string[] {
-  return runs.flatMap((run) => run.glyphs.map((glyph) => glyph.unicode).join('').split(/\s+/)).filter(Boolean);
-}
-
-/**
- * RED-09: whether a saved page's text, read back as `glyphs`, is exactly what
- * `plan` wrote: no glyph under any box, and the same words, no more and no
- * fewer. A layer that fails is never trusted; the page is saved again as its
- * picture alone.
- */
-export function textLayerReadsBack(
-  plan: TextLayerPlan,
-  glyphs: PageGlyph[],
-  geometry: PageGeometry,
-  boxes: PercentBox[],
-): boolean {
-  const covers = boxes.map((box) => percentToViewport(geometry, box));
-  const underABox = glyphs.some(
-    (glyph) => !isBlank(glyph) && covers.some((cover) => touches(glyphCore(geometry, glyph), cover)),
-  );
-  if (underABox) return false;
-  const written = wordTexts(plan.runs).sort();
-  const read = wordTexts(groupRuns(glyphs).map((run) => ({ glyphs: run }))).sort();
-  return written.length === read.length && written.every((word, i) => word === read[i]);
 }
