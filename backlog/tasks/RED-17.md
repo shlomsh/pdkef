@@ -1,7 +1,7 @@
 ---
 id: "RED-17"
 title: "Check the saved file: search it for what you covered, everywhere a secret can hide"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -68,3 +68,17 @@ OCR is out of scope.
 - A Blackout area that is not one flat colour in the saved render is reported (a unit test with a
   sabotaged render).
 - Copy review: no string in the result claims a term is absent from the file.
+
+## Result (2026-09-28)
+
+Built in `src/tools/redact/check/` (pure `checkSavedFile`, `coveredTerms`, `boxSolidity`, `checkCopy`;
+adapters `readSavedFile`, `renderBoxes`, `runCheck`, loaded only after an export) and shown under the
+export actions by `SavedFileCheck.tsx` through `useSavedFileCheck.ts`.
+
+- Coverage is judged on the letters' own extent (`uncoveredMatches`, Find's `core` box shape), so a
+  tightly drawn box counts and Cover it doesn't re-box what is hidden. Find's estimates still drive it,
+  so RED-15's exact glyph boxes will sharpen it.
+- Covered words come from glyph positions, in the direction most of their own letters read.
+- Guards: `checkCopy.test.ts` (no string claims absence), `realForms.test.js` (the three real forms),
+  and a Playwright flow (a boxed word's uncovered repeat, Cover it, the check clears).
+- Remove it is RED-25. OCR stays out.
