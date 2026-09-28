@@ -564,7 +564,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open |
-| MEM-11 | P2 | [MEM-11](backlog/tasks/MEM-11.md) · Surface the 28-day / 6-file retention limit in the UI, not just the FAQ |
 
 ### In progress
 
@@ -581,6 +580,7 @@ _None._
 | MEM-01 | P1 | [MEM-01](backlog/tasks/MEM-01.md) · The store: one recents memory space, work saved per file, the per-tool draft folded in |
 | MEM-02 | P1 | [MEM-02](backlog/tasks/MEM-02.md) · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer |
 | MEM-03 | P1 | [MEM-03](backlog/tasks/MEM-03.md) · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays |
+| MEM-11 | P2 | [MEM-11](backlog/tasks/MEM-11.md) · Surface the 28-day / 6-file retention limit in the UI, not just the FAQ |
 
 ### Retired
 

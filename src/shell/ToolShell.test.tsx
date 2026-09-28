@@ -3,6 +3,7 @@ import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ToolShell, { ToolShellContext } from './ToolShell.tsx';
 import styles from './ToolShell.module.css';
+import { englishShellMessages } from '../i18n/toolMessages';
 
 /* BasePdfTool.test.tsx covers the default shell (thumbnail, actions). This is
    the editor variant Sign and Redact mount themselves. */
@@ -82,8 +83,64 @@ describe('ToolShell editor variant', () => {
 
     const chip = container.querySelector(`.${styles.pending}`);
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toBe('Draft saved, but this browser might not keep it - download to be safe');
+    // MEM-11: the retention hint rides along too (unpersisted is not error/conflict).
+    expect(chip!.textContent).toBe(
+      'Draft saved, but this browser might not keep it - download to be safe'
+      + englishShellMessages.draftRetentionInfo,
+    );
     expect(container.querySelector(`.${styles.error}`)).toBeNull();
     expect(chip!.getAttribute('role')).toBeNull();
+  });
+
+  // MEM-11: the retention tooltip rides along with a non-alarming draft
+  // status ('saved' here) but never with the danger states.
+  it('shows the retention tooltip next to a saved draft chip', () => {
+    const file = new File(['%PDF-1.4'], 'form.pdf', { type: 'application/pdf' });
+    act(() => {
+      render(
+        <ToolShellContext.Provider
+          value={{
+            requestReplace: vi.fn(),
+            requestClear: vi.fn(),
+            fileLabel: 'form.pdf',
+            file,
+            draftSaveState: 'saved',
+          }}
+        >
+          <ToolShell />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+
+    const trigger = container.querySelector('[tabindex="0"][aria-describedby]');
+    expect(trigger).not.toBeNull();
+    const tipId = trigger!.getAttribute('aria-describedby')!;
+    const tooltip = container.querySelector(`#${tipId}`);
+    expect(tooltip).not.toBeNull();
+    expect(tooltip!.getAttribute('role')).toBe('tooltip');
+    expect(tooltip!.textContent).toBe(englishShellMessages.draftRetentionInfo);
+  });
+
+  it('does not show the retention tooltip for an error draft state', () => {
+    const file = new File(['%PDF-1.4'], 'form.pdf', { type: 'application/pdf' });
+    act(() => {
+      render(
+        <ToolShellContext.Provider
+          value={{
+            requestReplace: vi.fn(),
+            requestClear: vi.fn(),
+            fileLabel: 'form.pdf',
+            file,
+            draftSaveState: 'error',
+          }}
+        >
+          <ToolShell />
+        </ToolShellContext.Provider>,
+        container,
+      );
+    });
+
+    expect(container.querySelector('[tabindex="0"][aria-describedby]')).toBeNull();
   });
 });

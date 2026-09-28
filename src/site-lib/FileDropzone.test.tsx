@@ -12,6 +12,7 @@ vi.mock('../lib/drafts/draftStore.js', () => ({
   setCurrentEntry: vi.fn(),
   readRecentFiles: vi.fn(() => []),
   loadRecentFile: vi.fn(() => Promise.resolve(null)),
+  MAX_RECENT_FILES: 6,
 }));
 
 function dropOn(dropzone, files) {

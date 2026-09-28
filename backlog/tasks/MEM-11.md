@@ -1,7 +1,7 @@
 ---
 id: "MEM-11"
 title: "Surface the 28-day / 6-file retention limit in the UI, not just the FAQ"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "one-memory-space"
 phase: "near-term"
