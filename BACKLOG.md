@@ -696,6 +696,14 @@ _None._
 | --- | --- | --- |
 | RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
 | RED-16 | P2 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |
+| RED-17 | P1 | [RED-17](backlog/tasks/RED-17.md) · Check the saved file: search it for what you covered, everywhere a secret can hide |
+| RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
+| RED-19 | P1 | [RED-19](backlog/tasks/RED-19.md) · True redaction, text: delete the glyphs under each box and keep every other glyph as it was |
+| RED-20 | P1 | [RED-20](backlog/tasks/RED-20.md) · True redaction, images and drawn shapes: paint the box into what it touches, once per shared image |
+| RED-21 | P1 | [RED-21](backlog/tasks/RED-21.md) · True redaction: form field values, comments, watermark annotations and shared form content under a box |
+| RED-22 | P1 | [RED-22](backlog/tasks/RED-22.md) · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires |
+| RED-23 | P2 | [RED-23](backlog/tasks/RED-23.md) · Sign's Whiteout removes what it covers, through the same removal as Redact |
+| RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · A new blur box starts at medium strength, not strong; a chosen light blur is trusted |
 
 ### In progress
 
