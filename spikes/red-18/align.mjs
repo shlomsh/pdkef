@@ -27,9 +27,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFDocument, PDFName, PDFDict, PDFArray, PDFStream, PDFRawStream, decodePDFRawStream } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFDict, PDFArray, PDFStream, PDFRawStream, PDFNumber, decodePDFRawStream } from '@cantoo/pdf-lib';
 
 const ROOT = process.cwd();
 const CORPUS_DIR = path.join(ROOT, 'spikes/red-01/corpus');
@@ -219,13 +220,28 @@ class Tokenizer {
     }
     return ops;
   }
-  /** BI <dict entries> ID <binary> EI. No /L (Length) support attempted
-   * (rare in content streams); scans for a whitespace-bounded EI, the same
-   * heuristic simple PDF parsers use. */
+  /** BI <dict entries> ID <binary> EI. RED-18: the data's exact extent is
+   * knowable in exactly two cases - an explicit /L (/Length) entry, or a
+   * single recognised filter that can be decoded to its own natural end
+   * (only /Fl /FlateDecode is attempted, using Node's sync zlib with
+   * `{info: true}` to read back the exact number of compressed bytes it
+   * consumed - the one filter this can do without a bigger decoder). Either
+   * way `lengthKnownVia` is set and the mandatory EI is consumed straight
+   * after the known-length data, not searched for. Anything else (no /L, no
+   * filter, or a filter this can't decode) falls back to the old
+   * whitespace-bounded-EI scan - the same fragile heuristic pdf.js's own
+   * evaluator uses, and `lengthKnownVia` stays null so the caller can report
+   * it as a fallback (see results-fallbacks.md, case 2). */
   readInlineImage(start) {
+    const dict = new Map();
     while (this.p < this.n) {
       this.skipWs();
-      if (this.b[this.p] === 0x2f) { this.readName(); this.readValue(); continue; }
+      if (this.b[this.p] === 0x2f) {
+        const key = this.readName().value.v;
+        const val = this.readValue().value;
+        dict.set(key, val);
+        continue;
+      }
       const kwStart = this.p;
       while (this.p < this.n && isRegular(this.b[this.p])) this.p++;
       const kw = latin1(this.b, kwStart, this.p);
@@ -234,15 +250,45 @@ class Tokenizer {
     }
     if (this.p < this.n && isWs(this.b[this.p])) this.p++; // the one whitespace byte after ID
     const dataStart = this.p;
-    while (this.p < this.n - 1) {
-      if (isWs(this.b[this.p]) && this.b[this.p + 1] === 0x45 && this.b[this.p + 2] === 0x49 && (this.p + 3 >= this.n || isWs(this.b[this.p + 3]) || isDelim(this.b[this.p + 3]))) {
-        break;
-      }
-      this.p++;
+
+    const lengthEntry = dict.get('L') ?? dict.get('Length');
+    const filterEntry = dict.get('F') ?? dict.get('Filter');
+    const filterNames = !filterEntry ? []
+      : filterEntry.t === 'name' ? [filterEntry.v]
+      : filterEntry.t === 'arr' ? filterEntry.v.filter((v) => v.t === 'name').map((v) => v.v)
+      : [];
+
+    let knownLength = null;
+    let lengthKnownVia = null;
+    if (lengthEntry && lengthEntry.t === 'num' && Number.isFinite(lengthEntry.v) && lengthEntry.v >= 0) {
+      knownLength = Math.round(lengthEntry.v);
+      lengthKnownVia = 'L';
+    } else if (filterNames.length === 1 && (filterNames[0] === 'Fl' || filterNames[0] === 'FlateDecode')) {
+      try {
+        const remaining = Buffer.from(this.b.buffer, this.b.byteOffset + dataStart, this.n - dataStart);
+        const { engine } = zlib.inflateSync(remaining, { info: true });
+        knownLength = engine.bytesWritten;
+        lengthKnownVia = `filter:${filterNames[0]}`;
+      } catch { /* undecodable with what we have; fall through to the EI scan */ }
     }
-    const end = this.p;
-    this.p += 3; // whitespace + 'EI'
-    return { op: 'INLINE_IMAGE', args: [], start, end: end + 3, dataLength: end - dataStart };
+
+    let end;
+    if (knownLength !== null) {
+      end = dataStart + knownLength;
+      this.p = end;
+      this.skipWs();
+      if (this.b[this.p] === 0x45 && this.b[this.p + 1] === 0x49) this.p += 2; // 'EI'
+    } else {
+      while (this.p < this.n - 1) {
+        if (isWs(this.b[this.p]) && this.b[this.p + 1] === 0x45 && this.b[this.p + 2] === 0x49 && (this.p + 3 >= this.n || isWs(this.b[this.p + 3]) || isDelim(this.b[this.p + 3]))) {
+          break;
+        }
+        this.p++;
+      }
+      end = this.p;
+      this.p += 3; // whitespace + 'EI'
+    }
+    return { op: 'INLINE_IMAGE', args: [], start, end: this.p, dataLength: end - dataStart, lengthKnownVia, filterNames };
   }
 }
 const isHex = (b) => (b >= 0x30 && b <= 0x39) || (b >= 0x41 && b <= 0x46) || (b >= 0x61 && b <= 0x66);
@@ -284,8 +330,21 @@ function classifyFont(fontDict) {
   const subtype = fontDict.lookupMaybe(PDFName.of('Subtype'), PDFName)?.asString();
   const isType0 = subtype === '/Type0';
   let encodingName = null;
-  if (isType0) encodingName = fontDict.lookupMaybe(PDFName.of('Encoding'), PDFName)?.asString() ?? null;
-  const cls = { subtype, isType0, isType3: subtype === '/Type3', encodingName };
+  let embeddedCMap = false;
+  if (isType0) {
+    // RED-18: a Type0 font's /Encoding is a PDFName for Identity-H/V and any
+    // predefined CMap, but per spec may equally be an indirect reference to
+    // an embedded CMap *stream* for a custom/legacy CID font. The old
+    // `lookupMaybe(ref, PDFName)` assumed it was always a name and threw
+    // (`Expected instance of PDFName, but got instance of PDFRawStream`) the
+    // moment a real-world file used the stream form - see
+    // results-fallbacks.md case 1. `lookup(key)` with no type arg resolves
+    // the reference without throwing regardless of what it turns out to be.
+    const enc = fontDict.lookup(PDFName.of('Encoding'));
+    if (enc instanceof PDFName) encodingName = enc.asString();
+    else if (enc) embeddedCMap = true;
+  }
+  const cls = { subtype, isType0, isType3: subtype === '/Type3', encodingName, embeddedCMap };
   fontCache.set(fontDict, cls);
   return cls;
 }
@@ -299,6 +358,7 @@ function decodeCodes(bytes, cls) {
       for (let i = 0; i < bytes.length; i += 2) codes.push((bytes[i] << 8) | bytes[i + 1]);
       return { codes };
     }
+    if (cls.embeddedCMap) return { error: 'unsupported cmap (embedded)', codes: [] };
     return { error: `unsupported cmap (${cls.encodingName ?? 'embedded or unresolved'})`, codes: [] };
   }
   return { codes: Array.from(bytes) };
@@ -410,7 +470,24 @@ function rawShowOps(node) {
           const combined = concatBytes(pieces);
           const cls = classifyFont(state.font);
           const decoded = decodeCodes(combined, cls);
-          ops.push({ op: o.op, start: o.start, end: o.end, byteLen: combined.length, cls, source, ...decoded });
+          // RED-18: fontDict is additive (results-fallbacks.md's Type3
+          // bbox check needs the actual font dict, not just its
+          // classification) - every existing field is unchanged.
+          ops.push({ op: o.op, start: o.start, end: o.end, byteLen: combined.length, cls, source, fontDict: state.font, ...decoded });
+          break;
+        }
+        case 'INLINE_IMAGE': {
+          // RED-18 (results-fallbacks.md case 2): report, via the existing
+          // `notes` channel, whether this inline image's data length was
+          // knowable (so the EI that ends it is real, not a guess) or
+          // whether the old whitespace-scan heuristic had to be used - never
+          // silent either way.
+          if (o.lengthKnownVia) {
+            notes.push(`inline image: length known via ${o.lengthKnownVia === 'L' ? '/L' : o.lengthKnownVia}`);
+          } else {
+            const filterNote = o.filterNames.length ? `unsupported filter(s) ${o.filterNames.join(',')}` : 'no /Filter';
+            notes.push(`fallback: inline image (length not knowable - no /L, ${filterNote}; used EI-scan heuristic)`);
+          }
           break;
         }
         default: break;
@@ -421,6 +498,206 @@ function rawShowOps(node) {
   const resources = node.Resources() ?? null;
   run(pageBytes, resources, 0, { kind: 'page' });
   return { ops, forms, notes, pageBytes, formSources, pageFormInvocations };
+}
+
+// ---------------------------------------------------------------------------
+// RED-18 additional detectors (results-fallbacks.md cases 3, 4 and the
+// Type3 check). Each is new, additive surface - none of the functions above
+// change what they return for a page that doesn't exercise the construct in
+// question, and nothing here is called from the corpus-report driver below
+// unless that driver is changed too (it isn't, for spikes/red-01/corpus -
+// see results-align.md, still byte-identical).
+// ---------------------------------------------------------------------------
+
+/** True if a decoded content stream's bytes contain any text-showing
+ * operator (Tj, TJ, ', "), regardless of what draws it. Used to check
+ * whether a pattern cell or an annotation appearance stream carries text
+ * that the alignment above never looks inside. */
+function streamHasTextOps(bytes) {
+  const toks = new Tokenizer(bytes).readOperators();
+  return toks.some((o) => o.op === 'Tj' || o.op === 'TJ' || o.op === "'" || o.op === '"');
+}
+
+/** Every /Name referenced by an `scn`/`SCN` fill-color operator in a
+ * decoded content stream. Per spec, `scn`/`SCN` take a trailing pattern
+ * name only when the Pattern color space is in effect - a name operand is
+ * unambiguous evidence of a pattern fill, so this doesn't need to track
+ * `cs`/`CS` state to be correct. */
+function collectPatternRefs(bytes) {
+  const toks = new Tokenizer(bytes).readOperators();
+  const names = new Set();
+  for (const o of toks) {
+    if (o.op === 'scn' || o.op === 'SCN') {
+      const last = o.args[o.args.length - 1];
+      if (isName(last)) names.add(last.v);
+    }
+  }
+  return names;
+}
+
+function resolvePatternObj(resources, name) {
+  if (!resources) return null;
+  try {
+    const pd = resources.lookupMaybe(PDFName.of('Pattern'), PDFDict);
+    return pd?.lookup(PDFName.of(name)) ?? null; // no type arg: never throws on a wrong type
+  } catch { return null; }
+}
+
+/** RED-18 (results-fallbacks.md case 3): every Pattern name filled via
+ * `scn`/`SCN` on the page or in any of its Form XObjects (raw's own
+ * `pageBytes`/`formSources`, already computed by `rawShowOps` - not
+ * re-walked), resolved and checked, that is a PatternType 1 (tiling)
+ * pattern whose own content stream contains a text-showing operator. A
+ * hit here means text is painted through the pattern and never reaches
+ * either side of `align()` - it must be reported, not treated as covered
+ * by a numerically-equal page. Never throws: a malformed Resources/Pattern
+ * entry is skipped, not fatal. */
+function detectPatternTextFallback(node, raw) {
+  const hits = [];
+  try {
+    const resources = node.Resources() ?? null;
+    const sources = [{ resources, bytes: raw.pageBytes }];
+    for (const entry of raw.formSources.values()) sources.push({ resources: entry.resources, bytes: entry.bytes });
+    const checked = new Set();
+    for (const { resources: res, bytes } of sources) {
+      for (const name of collectPatternRefs(bytes)) {
+        const obj = resolvePatternObj(res, name);
+        if (!obj || checked.has(obj)) continue;
+        checked.add(obj);
+        if (!(obj instanceof PDFStream)) continue; // PatternType 2 (shading): no content stream, no text ops possible
+        let patternType;
+        try { patternType = obj.dict?.lookupMaybe(PDFName.of('PatternType'), PDFNumber)?.asNumber(); } catch { continue; }
+        if (patternType !== 1) continue;
+        if (streamHasTextOps(decodeStreamBytes(obj))) hits.push(name);
+      }
+    }
+  } catch { /* never let a detector crash the report; just report nothing found */ }
+  return hits;
+}
+
+/** RED-18 (results-fallbacks.md case 4): every annotation on the page whose
+ * /AP /N appearance stream (direct, or the first text-bearing entry of a
+ * sub-dictionary keyed by appearance state) contains a text-showing
+ * operator. This is deliberately NOT folded into a "fallback" verdict -
+ * annotation appearance text is out of scope for this alignment by
+ * `align.mjs`'s own design (`AnnotationMode.DISABLE`, and `rawShowOps`
+ * never reads `Annots()`); it exists so a caller building on this spike
+ * knows which pages to route to the annotations step (RED-21) instead. */
+function detectAnnotationText(node) {
+  const hits = [];
+  let annots;
+  try { annots = node.Annots(); } catch { return hits; }
+  if (!annots) return hits;
+  for (let i = 0; i < annots.size(); i++) {
+    try {
+      const annot = annots.lookup(i, PDFDict);
+      const subtype = annot.lookupMaybe(PDFName.of('Subtype'), PDFName)?.asString() ?? '/Unknown';
+      const ap = annot.lookupMaybe(PDFName.of('AP'), PDFDict);
+      const n = ap?.lookup(PDFName.of('N'));
+      const streams = [];
+      if (n instanceof PDFStream) streams.push(n);
+      else if (n instanceof PDFDict) {
+        for (const v of n.values()) {
+          const resolved = n.context.lookup(v);
+          if (resolved instanceof PDFStream) streams.push(resolved);
+        }
+      }
+      if (streams.some((s) => streamHasTextOps(decodeStreamBytes(s)))) hits.push({ index: i, subtype });
+    } catch { /* one malformed annotation doesn't stop the others */ }
+  }
+  return hits;
+}
+
+/** RED-18 (results-fallbacks.md Type3 case): a Type3 font's glyphs are
+ * drawn by arbitrary CharProc content-stream procedures, not bounded by
+ * width the way a simple/Type0 font's are - `decodeCodes` returning the
+ * right *codes* (which it already does, see `classifyFont`'s isType3
+ * branch) says nothing about where a glyph actually draws. This walks
+ * every CharProc, tracking `cm`/`q`/`Q` the same way `rawShowOps` tracks
+ * font state, and transforms every path-construction operand (`m`, `l`,
+ * `c`, `v`, `y`, `re`) through the accumulated CTM - correct because
+ * /FontBBox and a CharProc's own operators share one coordinate system
+ * (glyph space); FontMatrix maps that space to text space and plays no
+ * part in this containment check. Curves are bounded via their control
+ * points, which is conservative (a cubic Bezier never leaves the convex
+ * hull of its control points) but never optimistic. Returns
+ * `{safe, reason}`; `safe: false` is what results-fallbacks.md reports as
+ * "fallback: Type3 font". */
+function checkType3Bounds(fontDict) {
+  try {
+    const bboxArr = fontDict.lookupMaybe(PDFName.of('FontBBox'), PDFArray);
+    const bboxNums = bboxArr && bboxArr.size() === 4
+      ? Array.from({ length: 4 }, (_, i) => { try { return bboxArr.lookup(i, PDFNumber).asNumber(); } catch { return null; } })
+      : null;
+    if (!bboxNums || bboxNums.some((v) => typeof v !== 'number' || !Number.isFinite(v))) {
+      return { safe: false, reason: 'no usable /FontBBox' };
+    }
+    const [bx0, by0, bx1, by1] = bboxNums;
+    const minBX = Math.min(bx0, bx1), maxBX = Math.max(bx0, bx1);
+    const minBY = Math.min(by0, by1), maxBY = Math.max(by0, by1);
+    if (minBX === maxBX && minBY === maxBY) return { safe: false, reason: 'degenerate /FontBBox (zero area)' };
+
+    const charProcs = fontDict.lookupMaybe(PDFName.of('CharProcs'), PDFDict);
+    if (!charProcs) return { safe: false, reason: 'no /CharProcs to check' };
+
+    const EPS = 1e-3;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, anyPoint = false;
+
+    for (const [, ref] of charProcs.entries()) {
+      let stream;
+      try { stream = charProcs.context.lookup(ref); } catch { continue; }
+      if (!(stream instanceof PDFStream)) continue;
+      const toks = new Tokenizer(decodeStreamBytes(stream)).readOperators();
+      let ctm = [1, 0, 0, 1, 0, 0];
+      const stack = [];
+      let curX = 0, curY = 0;
+      const n = (o, i) => (o.args[i] && o.args[i].t === 'num' ? o.args[i].v : 0);
+      const tp = (x, y) => {
+        const tx = ctm[0] * x + ctm[2] * y + ctm[4];
+        const ty = ctm[1] * x + ctm[3] * y + ctm[5];
+        minX = Math.min(minX, tx); maxX = Math.max(maxX, tx);
+        minY = Math.min(minY, ty); maxY = Math.max(maxY, ty);
+        anyPoint = true;
+      };
+      for (const o of toks) {
+        switch (o.op) {
+          case 'q': stack.push(ctm); break;
+          case 'Q': if (stack.length) ctm = stack.pop(); break;
+          case 'cm': {
+            const m = [n(o, 0), n(o, 1), n(o, 2), n(o, 3), n(o, 4), n(o, 5)];
+            ctm = [
+              m[0] * ctm[0] + m[1] * ctm[2],
+              m[0] * ctm[1] + m[1] * ctm[3],
+              m[2] * ctm[0] + m[3] * ctm[2],
+              m[2] * ctm[1] + m[3] * ctm[3],
+              m[4] * ctm[0] + m[5] * ctm[2] + ctm[4],
+              m[4] * ctm[1] + m[5] * ctm[3] + ctm[5],
+            ];
+            break;
+          }
+          case 'm': curX = n(o, 0); curY = n(o, 1); tp(curX, curY); break;
+          case 'l': curX = n(o, 0); curY = n(o, 1); tp(curX, curY); break;
+          case 'c': tp(n(o, 0), n(o, 1)); tp(n(o, 2), n(o, 3)); tp(n(o, 4), n(o, 5)); curX = n(o, 4); curY = n(o, 5); break;
+          case 'v': tp(curX, curY); tp(n(o, 0), n(o, 1)); tp(n(o, 2), n(o, 3)); curX = n(o, 2); curY = n(o, 3); break;
+          case 'y': tp(n(o, 0), n(o, 1)); tp(n(o, 2), n(o, 3)); curX = n(o, 2); curY = n(o, 3); break;
+          case 're': {
+            const x = n(o, 0), y = n(o, 1), w = n(o, 2), h = n(o, 3);
+            tp(x, y); tp(x + w, y); tp(x, y + h); tp(x + w, y + h);
+            curX = x; curY = y;
+            break;
+          }
+          default: break;
+        }
+      }
+    }
+
+    if (!anyPoint) return { safe: true, reason: 'no path-drawing ops in any CharProc (nothing to bound)' };
+    const within = minX >= minBX - EPS && maxX <= maxBX + EPS && minY >= minBY - EPS && maxY <= maxBY + EPS;
+    if (within) return { safe: true, reason: `all CharProc drawing within /FontBBox [${bboxNums.join(' ')}]` };
+    return { safe: false, reason: `CharProc drawing [${minX.toFixed(2)},${minY.toFixed(2)},${maxX.toFixed(2)},${maxY.toFixed(2)}] exceeds /FontBBox [${bboxNums.join(' ')}]` };
+  } catch (e) {
+    return { safe: false, reason: `error inspecting Type3 font: ${e.message}` };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -482,6 +759,14 @@ export {
   resolveExtGStateFont,
   resolveXObject,
   concatBytes,
+  // RED-18 additive detectors (results-fallbacks.md); none of the above
+  // changed shape or behaviour to add these.
+  streamHasTextOps,
+  collectPatternRefs,
+  resolvePatternObj,
+  detectPatternTextFallback,
+  detectAnnotationText,
+  checkType3Bounds,
 };
 
 // ---------------------------------------------------------------------------
