@@ -66,39 +66,46 @@ async function flattenPage(pdfjsPage, pageElements) {
     getElementDefinition(element.type).serialize(element, { redaction: true }),
   );
 
-  // A blur box's radius is a fraction of its OWN height (blurStrength.ts),
-  // so boxes can't share one page-wide blurred canvas. Snapshot the
-  // original, unredacted page once, before any box is painted, so every
-  // blur box keeps sourcing unredacted pixels the same way the old
-  // shared canvas did.
-  let original = null;
-  if (instructions.some((instruction) => instruction?.kind === 'blur')) {
-    original = document.createElement('canvas');
-    original.width = canvas.width;
-    original.height = canvas.height;
-    original.getContext('2d').drawImage(canvas, 0, 0);
-  }
-
-  // Draw the registry-provided redaction instructions.
-  for (const instruction of instructions) {
-    if (!instruction) continue;
+  const placed = instructions.filter(Boolean).map((instruction) => {
     const { element } = instruction;
-    const x = (element.left / 100) * viewport.width;
-    const y = (element.top / 100) * viewport.height;
-    const w = (element.width / 100) * viewport.width;
-    const h = (element.height / 100) * viewport.height;
-
-    if (instruction.kind === 'blur') {
-      // Paste the blurred section over the original, at a radius scaled
-      // to this box's own height.
-      const radius = blurRadiusPx(element.strength, h, scale);
-      const { canvas: blurred, sx, sy } = buildBoxBlur(original, x, y, w, h, radius);
-      ctx.drawImage(blurred, x - sx, y - sy, w, h, x, y, w, h);
-    } else {
-      // Solid color redact box (defaults to black)
-      ctx.fillStyle = element.color || '#000000';
+    return {
+      instruction,
+      x: (element.left / 100) * viewport.width,
+      y: (element.top / 100) * viewport.height,
+      w: (element.width / 100) * viewport.width,
+      h: (element.height / 100) * viewport.height,
+    };
+  });
+  const solids = placed.filter(({ instruction }) => instruction.kind !== 'blur');
+  const blurs = placed.filter(({ instruction }) => instruction.kind === 'blur');
+  const paintSolids = () => {
+    for (const { instruction, x, y, w, h } of solids) {
+      ctx.fillStyle = instruction.element.color || '#000000';
       ctx.fillRect(x, y, w, h);
     }
+  };
+
+  // Solid boxes are painted before a blur samples the page and again after
+  // every blur, whatever order the boxes were drawn in. A blur overlapping a
+  // Blackout used to paste the original, blurred, back over it: it sampled
+  // the page before any box, secret included. Now a blur only ever sees
+  // what the solid boxes left, and a solid box always ends on top.
+  paintSolids();
+  if (blurs.length > 0) {
+    // A blur box's radius is a fraction of its OWN height (blurStrength.ts),
+    // so boxes can't share one page-wide blurred canvas. One snapshot, taken
+    // after the solid boxes and before any blur, is every blur's source, so
+    // overlapping blurs don't blur each other twice.
+    const source = document.createElement('canvas');
+    source.width = canvas.width;
+    source.height = canvas.height;
+    source.getContext('2d').drawImage(canvas, 0, 0);
+    for (const { instruction, x, y, w, h } of blurs) {
+      const radius = blurRadiusPx(instruction.element.strength, h, scale);
+      const { canvas: blurred, sx, sy } = buildBoxBlur(source, x, y, w, h, radius);
+      ctx.drawImage(blurred, x - sx, y - sy, w, h, x, y, w, h);
+    }
+    paintSolids();
   }
 
   // Convert canvas to high-quality JPEG

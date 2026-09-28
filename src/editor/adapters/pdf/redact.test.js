@@ -73,12 +73,17 @@ describe('redactPdf library integration with real fixtures', () => {
   // fillRect on a temp (blur) canvas; a solid redaction box's fillRect lands
   // here too, with its own color.
   let fillRectStyles;
+  // Every fillRect and drawImage, in order, with the canvas it landed on,
+  // and the canvases the export encoded (the flattened pages).
+  let paintOps;
+  let encodedCanvases;
 
   beforeAll(() => {
     originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
     originalGetContext = HTMLCanvasElement.prototype.getContext;
 
     HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
+      encodedCanvases.push(this);
       return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
     };
 
@@ -98,7 +103,13 @@ describe('redactPdf library integration with real fixtures', () => {
             return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
           }
           if (prop === 'fillRect') {
-            return () => fillRectStyles.push(target.fillStyle);
+            return () => {
+              fillRectStyles.push(target.fillStyle);
+              paintOps.push({ canvas: canvasEl, op: 'fill', style: target.fillStyle });
+            };
+          }
+          if (prop === 'drawImage') {
+            return (source) => paintOps.push({ canvas: canvasEl, op: 'draw', source });
           }
           return vi.fn();
         },
@@ -116,6 +127,8 @@ describe('redactPdf library integration with real fixtures', () => {
   beforeEach(() => {
     appliedFilters = [];
     fillRectStyles = [];
+    paintOps = [];
+    encodedCanvases = [];
   });
 
   afterAll(() => {
@@ -241,6 +254,27 @@ describe('redactPdf library integration with real fixtures', () => {
     // r1: 50% of 500px = 250px tall -> strong radius 125px.
     // r2: 20% of 500px = 100px tall -> strong radius 50px.
     expect(appliedFilters).toEqual(['blur(125px)', 'blur(50px)']);
+  });
+
+  it('never lets a blur drawn after a blackout paint over it, or sample what it hides', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'b1', type: 'blackout', pageIndex: 3, left: 10, top: 10, width: 40, height: 20, color: '#000000' },
+      { id: 'r1', type: 'blur', pageIndex: 3, left: 30, top: 10, width: 40, height: 20 },
+    ]);
+
+    const [page] = encodedCanvases;
+    const onPage = paintOps.filter((op) => op.canvas === page);
+    const firstBlackout = onPage.findIndex((op) => op.op === 'fill' && op.style === '#000000');
+    const lastBlackout = onPage.map((op) => op.op === 'fill' && op.style === '#000000').lastIndexOf(true);
+    const blurPastes = onPage.map((op, i) => (op.op === 'draw' ? i : -1)).filter((i) => i >= 0);
+    // The blackout ends on top of every blur pasted onto the page.
+    expect(blurPastes.length).toBeGreaterThan(0);
+    expect(lastBlackout).toBeGreaterThan(Math.max(...blurPastes));
+    // The blur's source is a copy of the page taken after the blackout was
+    // painted, so it never samples the pixels under it.
+    const snapshot = paintOps.findIndex((op) => op.op === 'draw' && op.source === page && op.canvas !== page);
+    expect(snapshot).toBeGreaterThan(paintOps.indexOf(onPage[firstBlackout]));
   });
 
   it('fills the temp canvas with opaque white before drawing the blurred region', async () => {
