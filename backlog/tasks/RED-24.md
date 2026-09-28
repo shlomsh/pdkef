@@ -1,7 +1,7 @@
 ---
 id: "RED-24"
 title: "Blur defaults to medium, and medium is the blur PDkef had before the levels"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -41,3 +41,11 @@ One rule keeps both findings: **radius = factor × max(box height, 24pt)**.
 - Medium's export radius on a 14pt-high box is 24px at 2.5x (9.6pt); on a 40pt box it is 16pt.
 - The on-screen blur is the same fraction of the box as the export at any zoom.
 - After picking light, the next new box is light, with no warning anywhere.
+
+## Result (2026-09-28)
+
+`blurFraction(strength, boxHeightPt)` in `blurStrength.ts` is the one rule: `redact.js` applies it at the
+2.5x export scale, and the on-screen box applies the same fraction in `cqh`, from the page's height in
+points (`usePageHeightsPt.ts` through `RedactBox`'s `pageHeightPoints`). `DEFAULT_BLUR_STRENGTH` is
+medium for new boxes and for boxes saved before the levels. The drag-draw preview, whose size lives only
+in the DOM during the gesture, draws the plain fraction until the box is committed.
