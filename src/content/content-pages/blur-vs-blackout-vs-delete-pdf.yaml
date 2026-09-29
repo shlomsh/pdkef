@@ -98,20 +98,21 @@ sections:
     blocks:
       - kind: 'prose'
         text: >-
-          Whiteout is the visual alternative. Draw a white box over the old answer, download the
-          flattened page, then add a new answer with <a href="/sign/">Sign &amp; Fill PDF</a>. It is
-          especially useful when the old value is part of a scan and cannot be selected as its own
+          Whiteout is the visual alternative. Draw a box over the old answer, pick its color to match
+          the page or field behind it (it starts white), download the flattened page, then add a new
+          answer with <a href="/sign/">Sign &amp; Fill PDF</a>. It is especially useful when the old value is part of a scan and cannot be selected as its own
           text element.
       - kind: 'compareFigure'
         beforeSrc: '/images/redaction-guide/whiteout-before.jpg'
         afterSrc: '/images/redaction-guide/whiteout-after.jpg'
         beforeLabel: 'Before'
         afterLabel: 'After'
-        alt: 'A filled-in street address field, wiping to the same field covered in white'
+        alt: 'A filled-in street address field, wiping to the same field with the text gone and its grey-green color kept'
         width: 1000
         height: 181
         caption: >-
-          <strong>Whiteout covers the street address with a clean white patch.</strong> Unlike
+          <strong>Whiteout covers the street address in the field's own color.</strong> The color is
+          picked from the box's color control, so the patch is invisible against the field. Unlike
           Delete, it becomes part of a flattened page image when you download.
         wipe: true
       - kind: 'prose'
