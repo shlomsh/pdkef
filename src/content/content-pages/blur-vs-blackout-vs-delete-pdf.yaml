@@ -43,17 +43,17 @@ sections:
     blocks:
       - kind: 'prose'
         text: >-
-          A form arrives with an old email address already on the page. Choose <strong>Delete</strong>
+          A form arrives with an old phone number already filled in. Choose <strong>Delete</strong>
           and click the highlighted value. The selected element is removed from the PDF page. The
           field label, lines and all other page text stay in place and remain selectable.
       - kind: 'image'
         src: '/images/redaction-guide/delete.jpg'
-        alt: 'Real PDkef editor showing an existing email address selected with the Delete tool'
+        alt: 'Real PDkef editor showing a filled-in phone number highlighted by the Delete tool on a practice form'
         width: 640
         height: 555
         caption: >-
-          <strong>Delete removes the selected element from the page.</strong> Here the old email is
-          marked for deletion while the form around it remains normal PDF content.
+          <strong>Delete removes the selected element from the page.</strong> Here a filled-in
+          phone number is highlighted for deletion while the form around it remains normal PDF content.
       - kind: 'steps'
         items:
           - >-
