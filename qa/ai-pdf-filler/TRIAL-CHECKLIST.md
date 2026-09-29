@@ -15,7 +15,9 @@ here is synthetic. Copy the results table at the bottom into your notes.
 - [ ] Compare the tool's candidate fields with `targets` in `expected/<name>.json`. A match is one-to-one,
       same page, compatible kind, and IoU >= 0.5 on the normalised top-left `bounds`.
 - [ ] Reuse `greedyMatch` and `kindsCompatible` from `src/tools/sign/fields/corpus/scoring/match.js`,
-      read-only. Do not write a new scorer.
+      read-only. Do not write a new scorer. Load the expected file with `loadTruth` from
+      `src/tools/sign/fields/corpus/scoring/score.js`: it copies the file's top-level `pageIndex` onto
+      each target, and without that `greedyMatch` matches nothing.
 - [ ] Report recall and precision separately. Precision is undefined when there are zero candidates; write "undefined".
 - [ ] List the misses, the false fields, and any wrong labels or kinds.
 
@@ -24,7 +26,9 @@ here is synthetic. Copy the results table at the bottom into your notes.
 Compare each answer with `expectedAnswers` in the facts file.
 
 - [ ] Mark each field: correct, wrong value, or invented (an answer where status is `missing` or `conflict`).
+- [ ] A value listed in `alsoAccept` counts as correct.
 - [ ] Mark any answer written into a `not-for-applicant` field or the signature.
+- [ ] Mark any `leave-unchecked` box that was checked, and any `check` box left empty.
 - [ ] `missing` and `conflict` fields show up as questions, with both values shown for a conflict.
 - [ ] The distractor fact (favourite vegetable or colour) appears nowhere.
 

@@ -18,7 +18,11 @@ here claims AI accuracy or a live integration.
 - [x] Scans verified image-only (generator asserts it, and checked independently)
 - [x] Visual inspection, Hebrew crops at 3x (see README "Visual verification")
 - [x] `TRIAL-CHECKLIST.md`
-- [ ] Independent review (fresh subagent), then mark PR ready
+- [x] Independent review (fresh subagent, no shared context): no serious defects; all 34 scan
+      rects match drawn ink within ~1 px. Addressed: Node >= 22.18 guard, honest I/O comments,
+      `alsoAccept` for date/address spellings, an explicitly undecided start date, `loadTruth`
+      note in the checklist, README wording. Not done: unit tests for `lib/geometry.mjs`, because
+      vitest only collects `src/` and `scripts/` and `vitest.config.js` is outside this folder
 
 ## Finding for the team
 
@@ -28,4 +32,4 @@ passes RTL runs straight to it. Sign's export very likely draws `(Email)` inside
 
 Draft PR: https://github.com/shlomsh/pdkef/pull/29
 
-Last updated: all deliverables in; independent review running.
+Last updated: complete, ready for the team lead to review and integrate.
