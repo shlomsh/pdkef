@@ -175,3 +175,24 @@ describe('historyStack', () => {
     expect(past.some((entry) => entry.id === 'entry-0')).toBe(false);
   });
 });
+
+describe('RED-30: blur strength drags in the history stack', () => {
+  const blur = { id: 'b', type: 'blur', pageIndex: 0, left: 1, top: 1, width: 10, height: 5 } as EditorElement;
+  const strengthEntry = (before: number, after: number, timestamp: number) => ({
+    ...createActionEntry<EditorElement>({
+      operation: 'update', type: 'UPDATE_ELEMENT', pageIndex: 0, description: 'Blur strength',
+      updates: [{ id: 'b', before: { strength: before }, after: { strength: after } }],
+    }),
+    timestamp,
+  }) as UpdateHistoryEntry<EditorElement>;
+
+  it('quick repeats within the window fold into one step; a pause makes a second', () => {
+    let stack = pushCommand([], [], strengthEntry(0.4, 0.3, 1000));
+    stack = pushCommand(stack.past, stack.future, strengthEntry(0.3, 0.25, 1100));
+    expect(stack.past).toHaveLength(1);
+    expect((stack.past[0] as UpdateHistoryEntry<EditorElement>).updates[0]).toEqual({ id: 'b', before: { strength: 0.4 }, after: { strength: 0.25 } });
+    stack = pushCommand(stack.past, stack.future, strengthEntry(0.25, 0.6, 5000));
+    expect(stack.past).toHaveLength(2);
+    expect(blur.id).toBe('b');
+  });
+});

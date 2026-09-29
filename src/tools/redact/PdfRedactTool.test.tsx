@@ -64,6 +64,19 @@ vi.mock('../../lib/gestures/controller.ts', async (importOriginal) => {
   };
 });
 
+// RED-30: drag the blur slider to `value` and release: input events paint live,
+// the one change event commits.
+async function dragBlurSlider(value: number, steps: number[] = []): Promise<void> {
+  const input = required(document.querySelector<HTMLInputElement>('[data-editor-blur-strength-input]'), 'blur slider');
+  for (const step of [...steps, value]) {
+    await act(async () => {
+      input.value = String(step);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+}
+
 function makePdfFile(name: string): File {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
@@ -1044,9 +1057,10 @@ describe('PdfRedactTool UI flow', () => {
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
       expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
-      // Blur additionally gets its own strength trigger (SITE-41), so its
-      // toolbar has one more button than blackout's duplicate/repeat/delete trio.
-      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(4);
+      // Blur additionally gets its strength slider (RED-30), which is a range
+      // input, not a button: its buttons are blackout's duplicate/repeat/delete trio.
+      expect(box.querySelector('[data-editor-actions] [data-editor-blur-strength-input]')).not.toBeNull();
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(3);
     });
 
     it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength and redo reapplies it', async () => {
@@ -1069,17 +1083,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      const strengthTrigger = required(
-        box.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
-        'blur strength trigger',
-      );
-      await act(async () => { strengthTrigger.click(); });
-
-      const lightItem = required(
-        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
-        'light strength item',
-      );
-      await act(async () => { lightItem.click(); });
+      await dragBlurSlider(0.3, [0.2, 0.25]);
 
       const blurLayer = required(box.querySelector<HTMLElement>('.redact-surface__blur'), 'blur layer');
       expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
@@ -1087,8 +1091,8 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so undo restores the
-      // box's original, unpicked strength to that, not 'light'.
+      // 0.4 is DEFAULT_BLUR_STRENGTH (RED-24), so undo restores the
+      // box's original, unpicked strength to that, not 0.3.
       expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
 
       // Redo brings the picked strength back.
@@ -1113,16 +1117,7 @@ describe('PdfRedactTool UI flow', () => {
       });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
 
-      const strengthTrigger = required(
-        firstBox.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
-        'blur strength trigger',
-      );
-      await act(async () => { strengthTrigger.click(); });
-      const lightItem = required(
-        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
-        'light strength item',
-      );
-      await act(async () => { lightItem.click(); });
+      await dragBlurSlider(0.3);
 
       await act(async () => { blurBtn.click(); });
       await drawBox(drawArea, 50, 550, 200, 700);
@@ -2166,9 +2161,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(boxes()[1])).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'medium' is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
-      // 'light' is the choice that actually differs from what a fresh blur box starts with.
-      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      // 0.4 is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
+      // 0.3 is the choice that actually differs from what a fresh blur box starts with.
+      await dragBlurSlider(0.3);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(boxes()[1])).toBe(after);
@@ -2227,8 +2222,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(copyOnPage2)).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so 'light' actually differs.
-      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      // 0.4 is DEFAULT_BLUR_STRENGTH (RED-24), so 0.3 actually differs.
+      await dragBlurSlider(0.3);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(otherFoundBox)).toBe(after);

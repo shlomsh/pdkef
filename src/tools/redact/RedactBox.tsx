@@ -235,6 +235,7 @@ export default function RedactBox({
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
       data-peeking={peekAll || undefined}
+      data-redact-box-id={el.id}
       onMouseDown={handlePress}
       onTouchStart={handlePress}
       onMouseEnter={onHoverEnter}

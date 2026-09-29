@@ -26,13 +26,37 @@ import { blurFraction, type BlurStrength } from '../model/blurStrength.ts';
  * know the box's height in points yet, `boxHeightPt` is left undefined and
  * `blurFraction` falls back to the plain, unfloored factor.
  */
-function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
+function blurFilter(strength: unknown, boxHeightPt?: number): string {
   // Rounded so boxes of the same size write the same string, whatever float
   // noise their percent geometry carries.
   const fraction = Number(blurFraction(strength, boxHeightPt ?? NaN).toFixed(4));
-  const filter = `blur(calc(${fraction} * 100cqh))`;
+  return `blur(calc(${fraction} * 100cqh))`;
+}
+
+/**
+ * RED-30: the slider's live paint. While the knob moves, the box's blur layer
+ * is rewritten straight in the DOM (the gesture golden rule: no state, no
+ * store per input event); the one commit on release re-renders the same
+ * string. The box is found by `data-redact-box-id`, so it works from a
+ * toolbar portalled out of the box. Returns whether a layer was painted.
+ */
+export function paintBlurStrength(root: ParentNode, elementId: string, strength: number): boolean {
+  const box = Array.from(root.querySelectorAll<HTMLElement>('[data-redact-box-id]'))
+    .find((node) => node.dataset.redactBoxId === elementId);
+  const layer = box?.querySelector<HTMLElement>('.redact-surface__blur');
+  if (!layer) return false;
+  const pt = Number(layer.dataset.boxHeightPt);
+  const filter = blurFilter(strength, Number.isFinite(pt) && layer.dataset.boxHeightPt ? pt : undefined);
+  layer.style.backdropFilter = filter;
+  layer.style.setProperty('-webkit-backdrop-filter', filter);
+  return true;
+}
+
+function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
+  const filter = blurFilter(strength, boxHeightPt);
   return h('div', {
     class: 'redact-surface__blur',
+    'data-box-height-pt': boxHeightPt === undefined ? undefined : String(boxHeightPt),
     style: {
       position: 'absolute',
       inset: 0,
