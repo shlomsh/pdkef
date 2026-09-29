@@ -226,6 +226,16 @@ describe('redactPdf library integration with real fixtures', () => {
     expect(appliedFilters).toEqual(['blur(150px)']);
   });
 
+  it('exports the slider ends: 0.1 and 0.7 of the box\'s own height (RED-30)', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 0.1, pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+      { id: 'r2', type: 'blur', strength: 0.7, pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+
+    expect(appliedFilters).toEqual(['blur(50px)', 'blur(350px)']);
+  });
+
   it('gives two boxes of different heights different radii', async () => {
     const file = getFixtureFile('num-5.pdf');
 

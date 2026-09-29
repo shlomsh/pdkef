@@ -4,7 +4,7 @@ import { TrashIcon } from './toolIcons.tsx';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import BlurStrengthMenu from './BlurStrengthMenu.tsx';
+import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from './ToolbarMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
@@ -419,11 +419,11 @@ export default function ElementToolbar({
       )}
       {element.type === 'blur' && (
         <>
-          <BlurStrengthMenu
+          <BlurStrengthSlider
+            elementId={element.id}
             value={element.strength}
             onChange={(strength) => onChange({ strength })}
-            title={t.blurStrengthTitle}
-            labels={{ light: t.blurStrengthLight, medium: t.blurStrengthMedium, strong: t.blurStrengthStrong }}
+            labels={{ title: t.blurStrengthTitle, lighter: t.blurStrengthLighter, stronger: t.blurStrengthStronger, defaultTick: t.blurStrengthDefault }}
           />
           <div className={styles.divider} />
         </>

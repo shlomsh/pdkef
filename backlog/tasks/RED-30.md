@@ -1,7 +1,7 @@
 ---
 id: "RED-30"
 title: "Blur strength is a slider on the box, from vaguely readable to strong, medium by default"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -54,3 +54,17 @@ Through the existing stack (`historyStack.ts`), never a separate one.
 
 Acceptance: drag strength twice with a pause, undo twice returns to the original strength; redo twice
 returns to the last. An old draft with `strong` in its history undoes and redoes to 0.5 after reload.
+
+## Result
+
+Landed. `src/editor/model/blurStrength.ts` is now a continuous 0.1 to 0.7 factor (`resolveBlurStrength`
+maps light/medium/strong to 0.3/0.4/0.5, `snapBlurStrength` snaps to 0.4 within 0.02); the floor rule and
+`blurFraction`/`blurRadiusPx` signatures are unchanged. `src/editor-ui/BlurStrengthSlider.tsx` (+ CSS module)
+replaces `BlurStrengthMenu.tsx` in the box toolbar (floating on desktop, the fixed bar on touch). While
+dragging, `paintBlurStrength` in `redactionSurface.ts` rewrites the box's blur in the DOM (boxes carry
+`data-redact-box-id`); one `onChange` fires on release, so one drag is one `update` entry on `strength`
+and `canCoalesce` folds quick repeats. `draftValidation.ts` accepts both forms and `migrateDraftRecord`
+rewrites legacy strings in elements and persisted history without pushing history. The remembered
+strength (`preferenceStore.ts`) stores a number and reads legacy strings through the resolver. Tests:
+`blurStrength.test.ts`, `draftValidation.test.ts`, `historyStack.test.ts`, `preferenceStore.test.ts`,
+`redact.test.js`, `BlurStrengthSlider.test.tsx`, `PdfRedactTool.test.tsx`.
