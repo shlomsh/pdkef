@@ -29,6 +29,7 @@ export default function DeletableObjectOverlay({ objects, markedIds, onSelect }:
       <div
         key={object.id}
         className={styles['delete-candidate']}
+        data-delete-id={object.id}
         title={
           object.kind === 'image'
             ? 'Click to delete this image'

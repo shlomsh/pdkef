@@ -94,6 +94,25 @@
   border-color: var(--color-danger);
 }
 
+/* RED-33: a target the drag box currently covers by half or more. Same look
+   as hover, toggled straight on the element during the gesture. */
+.delete-candidate-hot {
+  background: rgba(184, 76, 88, 0.1);
+  border-color: var(--color-danger);
+}
+
+/* RED-33: the drag box itself; the component positions it in percent. */
+.delete-marquee {
+  display: none;
+  position: absolute;
+  z-index: 13;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--color-danger);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
 /* RED-35: no hover on touch, so with Delete armed every target wears a
    lighter version of the hover outline, which makes "Tap outlined text or an
    image" true. */

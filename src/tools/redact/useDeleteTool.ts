@@ -6,6 +6,7 @@ import useDeletePreviews from './useDeletePreviews.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { RedactCommands } from './useRedactCommands.ts';
+import { deletedSummary } from './deleteMarquee.ts';
 import type { RedactElement } from './redactElements.ts';
 
 // See redactElements.ts's own comment on RedactElement for why the
@@ -31,6 +32,7 @@ export interface UseDeleteToolResult {
   finishLift: (id: string) => void;
   clearLifts: () => void;
   markObject: (object: DeletablePdfObject) => void;
+  markObjects: (objects: readonly DeletablePdfObject[]) => void;
 }
 
 /**
@@ -66,45 +68,49 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
   // recording the byte span pdfObjects.js found for it. A marked object
   // renders no hover target of its own (DeletableObjectOverlay filters it
   // out), so this is only ever reached for an object not yet queued.
-  const markObject = (object: DeletablePdfObject) => {
-    const id = uniqueId();
-    // RED-13: the object lifts off the page once the page is drawn without it.
+  const markObjects = (objects: readonly DeletablePdfObject[]) => {
+    if (objects.length === 0) return;
+    // RED-13: each object lifts off the page once the page is drawn without it.
     const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const image = reducedMotion ? null : snapshotRect(pageWrapperRefs.current[object.pageIndex]?.querySelector('canvas'), object.rect);
-    if (image) {
-      setLifts((prev) => [...prev, {
-        id, pageIndex: object.pageIndex, rect: object.rect, image,
-        paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
-      }]);
-    }
-    const element: RedactElementLike = {
-      id,
-      pageIndex: object.pageIndex,
-      type: 'delete',
-      sourceObjectId: object.id,
-      kind: object.kind,
-      preview: object.preview,
-      left: object.rect.left,
-      top: object.rect.top,
-      width: object.rect.width,
-      height: object.rect.height,
-      start: object.start,
-      end: object.end,
-    };
-    add([element], {
-      type: 'ADD_DELETE',
-      description: object.kind === 'image' ? 'Deleted an image' : 'Deleted text',
-      undoChip: true,
+    const newLifts: Lift[] = [];
+    const created: RedactElementLike[] = objects.map((object) => {
+      const id = uniqueId();
+      const image = reducedMotion ? null : snapshotRect(pageWrapperRefs.current[object.pageIndex]?.querySelector('canvas'), object.rect);
+      if (image) {
+        newLifts.push({
+          id, pageIndex: object.pageIndex, rect: object.rect, image,
+          paintedFrom: deletePreviews.get(object.pageIndex) ?? pdfDocument,
+        });
+      }
+      return {
+        id,
+        pageIndex: object.pageIndex,
+        type: 'delete',
+        sourceObjectId: object.id,
+        kind: object.kind,
+        preview: object.preview,
+        left: object.rect.left,
+        top: object.rect.top,
+        width: object.rect.width,
+        height: object.rect.height,
+        start: object.start,
+        end: object.end,
+      };
     });
-    announce(object.kind === 'image' ? 'Image deleted.' : 'Text deleted.');
+    if (newLifts.length) setLifts((prev) => [...prev, ...newLifts]);
+    // RED-33: one drag is one history entry, so one undo restores them all.
+    const summary = deletedSummary(objects);
+    add(created, { type: 'ADD_DELETE', description: summary, undoChip: true });
+    announce(`${summary}.`);
     // Marking is this tool's placement, so it spends the arming.
     disarmTool();
   };
+  const markObject = (object: DeletablePdfObject) => markObjects([object]);
 
   const finishLift = (id: string) => setLifts((prev) => prev.filter((lift) => lift.id !== id));
   // The island calls this on file load, where it used to call setLifts([])
   // directly: a lift from the last file must never show over this one.
   const clearLifts = () => setLifts([]);
 
-  return { deletableObjects, markedForDeletionIds, deletePreviews, lifts, finishLift, clearLifts, markObject };
+  return { deletableObjects, markedForDeletionIds, deletePreviews, lifts, finishLift, clearLifts, markObject, markObjects };
 }
