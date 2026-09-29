@@ -7,6 +7,7 @@ import ElementResizers from '../../editor-ui/ElementResizers.tsx';
 import { createElementRenderers } from '../../editor/registry/renderers.ts';
 import type { ElementType } from '../../editor/model/editorModel.ts';
 import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
+import usePressAndHold from './usePressAndHold.ts';
 import useElementResize from '../../editor-ui/hooks/useElementResize.js';
 import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
@@ -65,6 +66,7 @@ export default function RedactBox({
   findSetSize,
   onRemoveFindSet,
   pageHeightPoints,
+  peekAll = false,
 }: {
   el: any;
   isSelected: boolean;
@@ -91,6 +93,8 @@ export default function RedactBox({
   onRemoveFindSet?: () => void;
   /** RED-24: the page's height in points, for the blur box's on-screen radius. */
   pageHeightPoints?: number;
+  /** RED-31: view state only - every box shows what is under it. */
+  peekAll?: boolean;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
   const coarsePointer = useCoarsePointer();
@@ -149,6 +153,16 @@ export default function RedactBox({
     touchNeedsSelection: true,
     isSelected,
   });
+  // RED-31: press and hold still to peek. The visual is one attribute written
+  // straight to the DOM (never state, never the element), and the drag hook
+  // above still gets every press.
+  const { onPressStart } = usePressAndHold({
+    onPeekChange: (on) => elementRef.current?.toggleAttribute('data-peeking', on),
+  });
+  const handlePress = (e: any) => {
+    onPressStart(e);
+    handleDragPointerDown(e);
+  };
   const { handleResizeStart } = useElementResize({
     element: el,
     elementRef,
@@ -220,8 +234,9 @@ export default function RedactBox({
       }}
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
-      onMouseDown={handleDragPointerDown}
-      onTouchStart={handleDragPointerDown}
+      data-peeking={peekAll || undefined}
+      onMouseDown={handlePress}
+      onTouchStart={handlePress}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       style={{
@@ -243,7 +258,7 @@ export default function RedactBox({
         zIndex: isSelected ? 50 : el.type === 'blur' ? 9 : 10
       }}
     >
-      {surface}
+      <div className={styles['redact-surface-host']}>{surface}</div>
       {hasShapeHandles ? (
         <ElementResizers
           element={el}

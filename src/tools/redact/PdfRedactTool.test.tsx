@@ -220,6 +220,81 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('RED-31: Space peeks under every box, the Peek button shows it, and an export taken while peeking is unchanged', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const box = query(container, `.${REDACT_BOX}`);
+      const peekButton = query(container, '[data-redact-peek]');
+      expect(peekButton.getAttribute('aria-pressed')).toBe('false');
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true })); });
+      expect(box.hasAttribute('data-peeking')).toBe(true);
+      expect(peekButton.getAttribute('aria-pressed')).toBe('true');
+
+      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      const revokedBefore = (window.URL.revokeObjectURL as Mock).mock.calls.length;
+      const callsBefore = mockedRedactPdf.mock.calls.length;
+      await act(async () => { download().click(); });
+      await settleUntil('the export while peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedBefore);
+      const whilePeeking = JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore][1]));
+
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      const revokedMid = (window.URL.revokeObjectURL as Mock).mock.calls.length;
+      await act(async () => { download().click(); });
+      await settleUntil('the export after peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedMid);
+      expect(JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore + 1][1]))).toEqual(whilePeeking);
+      expect(JSON.stringify(whilePeeking)).not.toContain('peek');
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('RED-31: holding a box for 250ms peeks it, release covers it, and it never moves', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = query(container, `.${REDACT_BOX}`);
+    const style = box.getAttribute('style');
+    vi.useFakeTimers();
+    try {
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(box.hasAttribute('data-peeking')).toBe(true);
+      document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, clientY: 380, bubbles: true }));
+      expect(box.style.transform).not.toContain('translate(');
+      act(() => { document.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new MouseEvent('mouseup')); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      expect(box.getAttribute('style')).toContain(style!.split(';')[1] ?? '');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('RED-31: moving 5px before 250ms is a normal move, not a peek', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = query(container, `.${REDACT_BOX}`);
+    vi.useFakeTimers();
+    try {
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
+      act(() => { document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 108, clientY: 300, bubbles: true })); });
+      expect(box.style.transform).toContain('translate(');
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      act(() => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps the same PDF page mounted while redacting', async () => {
     let finishRedaction!: (value: { blob: Blob }) => void;
     mockedRedactPdf.mockImplementationOnce(() => new Promise((resolve) => {
