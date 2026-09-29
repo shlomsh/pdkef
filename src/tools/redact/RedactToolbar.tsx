@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import { Search } from 'lucide-preact';
+import { Search, Eye } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
 import EditorToolStatus, { type ToolCopy } from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
@@ -61,6 +61,8 @@ export default function RedactToolbar({
   onToggleFind,
   findBar = null,
   statusMessage,
+  peeking = false,
+  onPeekChange,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -107,6 +109,9 @@ export default function RedactToolbar({
   /** A message from the island (export progress, done, an export cancelled by
    * an edit) for the status slot. The undo chip wins the slot when both exist. */
   statusMessage?: ComponentChildren;
+  /** RED-31: the Peek button is held down (or Space is). View state only. */
+  peeking?: boolean;
+  onPeekChange?: (on: boolean) => void;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -247,6 +252,25 @@ export default function RedactToolbar({
           >
             <Search size={18} aria-hidden="true" />
             <span className={styles.label}>Find</span>
+          </button>
+        )}
+
+        {/* RED-31: hold to see what is under every box; release covers it again. */}
+        {onPeekChange && (
+          <button
+            type="button"
+            className={`${styles.button}${peeking ? ` ${styles.active}` : ''}`}
+            onPointerDown={(e) => { e.preventDefault(); onPeekChange(true); }}
+            onPointerUp={() => onPeekChange(false)}
+            onPointerCancel={() => onPeekChange(false)}
+            onPointerLeave={() => onPeekChange(false)}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-pressed={peeking}
+            title="Hold to see what is under the boxes"
+            data-redact-peek
+          >
+            <Eye size={18} aria-hidden="true" />
+            <span className={styles.label}>Peek</span>
           </button>
         )}
 

@@ -212,3 +212,28 @@
      must win until the final canvas sets its viewport. */
   visibility: hidden !important;
 }
+
+/* RED-31: peek. The cover is hidden, not removed, and a dashed outline keeps
+   the box findable. Screen only: it is an attribute on the DOM node, never
+   part of the element. touch-callout and user-select stop iOS opening its
+   callout or selecting text on a long press. */
+.redact-box {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.redact-surface-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.redact-box[data-peeking] .redact-surface-host {
+  visibility: hidden;
+}
+
+.redact-box[data-peeking] {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -1px;
+}

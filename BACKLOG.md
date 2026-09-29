@@ -702,7 +702,6 @@ _None._
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 | RED-29 | P1 | [RED-29](backlog/tasks/RED-29.md) · Delete finds what a page draws inside a Form XObject |
 | RED-30 | P2 | [RED-30](backlog/tasks/RED-30.md) · Blur strength is a slider on the box, from vaguely readable to strong, medium by default |
-| RED-31 | P2 | [RED-31](backlog/tasks/RED-31.md) · Press and hold to peek under a blur, a whiteout or a brush stroke |
 | RED-32 | P2 | [RED-32](backlog/tasks/RED-32.md) · Blur and whiteout brushes: any size, any color, removed from the saved file like a box |
 | RED-33 | P2 | [RED-33](backlog/tasks/RED-33.md) · Delete by dragging a box: everything under it goes on release, one undo brings it back |
 
@@ -738,6 +737,7 @@ _None._
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 | RED-28 | P3 | [RED-28](backlog/tasks/RED-28.md) · A deleted object peels off like a sticker |
+| RED-31 | P2 | [RED-31](backlog/tasks/RED-31.md) · Press and hold to peek under a blur, a whiteout or a brush stroke |
 
 ### Retired
 
