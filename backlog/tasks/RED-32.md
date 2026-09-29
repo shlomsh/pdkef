@@ -1,7 +1,7 @@
 ---
 id: "RED-32"
 title: "Blur and whiteout brushes: any size, any color, removed from the saved file like a box"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -60,3 +60,11 @@ toolbar Undo, redo and the five-second undo chip behave exactly as they do for b
 Acceptance: paint three strokes, undo three times, redo three times: identical pixels and order to
 before. Recolor a stroke, undo restores its color. Reload mid-way; undo still takes back the strokes
 drawn before the reload.
+
+## Result
+
+Shipped on branch `red32-brushes`. Box or Brush inside Blur and Whiteout, size 2 to 40 in page points,
+whiteout quick colours, picker and eyedropper, one element per stroke, saved as pictures like boxes. The
+saved-file check counts strokes (`checkBoxesFromElements`). Strokes use the page's real width and height
+in points (`usePageSizesPt`), so a tap is round on A4 and Letter. Brush mode and size live in the
+document's carried style (`brushMode`, `brushSize`) and the app-wide style, not browser-wide storage.
