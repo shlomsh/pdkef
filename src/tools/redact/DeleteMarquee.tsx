@@ -110,8 +110,8 @@ export default function DeleteMarquee({ objects, onCommit }: {
       if (!rect) return; // a plain click falls through to the target under it
       // The release also produces a click; it must not delete the target it lands on.
       const swallow = (ev: Event) => ev.stopPropagation();
-      wrapper.addEventListener('click', swallow, { capture: true, once: true });
-      setTimeout(() => wrapper.removeEventListener('click', swallow, { capture: true }), 0);
+      wrapper?.addEventListener('click', swallow, { capture: true, once: true });
+      setTimeout(() => wrapper?.removeEventListener('click', swallow, { capture: true }), 0);
       const picked = objectsInMarquee(latest.current.objects, rect);
       if (picked.length) latest.current.onCommit(picked);
     }
