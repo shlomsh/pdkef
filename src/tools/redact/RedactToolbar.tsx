@@ -28,7 +28,7 @@ import barStyles from './RedactToolbar.module.css';
 // third line that every tool's row then paid for (e2e/tool-toolbars/
 // toolbar-phone-row.spec.js).
 const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
-  delete:   { action: 'Click highlighted text or an image to delete it.', actionTouch: 'Tap outlined text or an image to delete it.', button: 'Delete' },
+  delete:   { action: 'Click text or an image to delete it, or drag across several.', actionTouch: 'Tap outlined text or an image to delete it.', button: 'Delete' },
   blackout: { action: 'Click and drag to draw a blackout box.',           actionTouch: 'Drag to draw a blackout box.',                button: 'Blackout' },
   whiteout: { action: 'Click and drag to draw a whiteout box.',           actionTouch: 'Drag to draw a whiteout box.',                button: 'Whiteout' },
   blur:     { action: 'Click and drag to draw a blur box.',               actionTouch: 'Drag to draw a blur box.',                    button: 'Blur' },

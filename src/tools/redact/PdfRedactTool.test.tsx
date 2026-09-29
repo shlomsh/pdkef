@@ -367,6 +367,74 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
     });
 
+    // RED-33: a pointer event by name, since jsdom has no PointerEvent.
+    function pointer(target: EventTarget, type: string, x: number, y: number) {
+      const event = new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+      target.dispatchEvent(event);
+    }
+    async function dragBox(drawArea: HTMLElement, from: [number, number], to: [number, number]) {
+      await act(async () => { pointer(drawArea, 'pointerdown', ...from); });
+      await act(async () => { pointer(window, 'pointermove', ...to); });
+      await act(async () => { pointer(window, 'pointerup', ...to); });
+      // The release's own click is swallowed until the next task.
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+    }
+    const candidates = () => container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+    const toolbarBtn = (title: string) => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === title),
+      `${title} button`,
+    );
+
+    it('deletes everything a dragged box covers as one undo step (RED-33)', async () => {
+      // Ten separate text runs: nine in a row near the top, one lower down.
+      const { PDFDocument, StandardFonts } = await import('@cantoo/pdf-lib');
+      const pdf = await PDFDocument.create();
+      const page = pdf.addPage([500, 1000]);
+      const font = await pdf.embedFont(StandardFonts.Helvetica);
+      for (let n = 0; n < 9; n++) page.drawText(String(n), { x: 40 + n * 40, y: 900, size: 20, font });
+      page.drawText('word', { x: 40, y: 300, size: 20, font });
+      const drawArea = await loadFileAndGetDrawArea(new File([new Uint8Array(await pdf.save())], 'ten.pdf', { type: 'application/pdf' }));
+      await armTool('Delete');
+      await settleUntil('the ten text runs', () => candidates().length === 10);
+      expect(candidates()).toHaveLength(10);
+
+      // A drag that covers nothing does nothing, and the tool stays armed.
+      await dragBox(drawArea, [480, 500], [495, 520]);
+      expect(candidates()).toHaveLength(10);
+
+      // Drag across the row of nine.
+      await dragBox(drawArea, [10, 40], [490, 140]);
+      expect(candidates()).toHaveLength(0); // deleting spent the arming
+      const chip = required(container.querySelector(`.${redactStyles['undo-chip-btn']}`)?.parentElement, 'undo chip');
+      expect(chip.textContent).toContain('Deleted 9 pieces of text');
+      const chipUndo = () => required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo');
+
+      // The chip restores all nine together.
+      await act(async () => { chipUndo().click(); });
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(10);
+
+      // Delete them again, then hover-delete the word as its own step.
+      await dragBox(drawArea, [10, 40], [490, 140]);
+      expect(candidates()).toHaveLength(0);
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(1);
+      await act(async () => { candidates()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      // Undo steps back one entry at a time: the word first, then all nine at once.
+      await act(async () => { toolbarBtn('Undo').click(); });
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(1);
+      await act(async () => { toolbarBtn('Undo').click(); });
+      expect(candidates()).toHaveLength(10);
+
+      // Redo deletes the nine together again.
+      await act(async () => { toolbarBtn('Redo').click(); });
+      expect(candidates()).toHaveLength(1);
+    });
+
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
       const drawArea = await loadRealPdfAndSwitchToDelete();
 
@@ -1371,7 +1439,7 @@ describe('PdfRedactTool UI flow', () => {
       const describedBy = required(deleteBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
       const hint = required(document.getElementById(describedBy), 'tool hint');
-      expect(hint.textContent).toContain('Click highlighted text or an image to delete it');
+      expect(hint.textContent).toContain('Click text or an image to delete it, or drag across several');
       expect(hint.textContent).toContain('Double-click to keep Delete on');
     });
 

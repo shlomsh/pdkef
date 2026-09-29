@@ -19,6 +19,7 @@ import RedactBox from './RedactBox.tsx';
 import usePageHeightsPt from './usePageHeightsPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
+import DeleteMarquee from './DeleteMarquee.tsx';
 import { groupMembers, repeatCopies } from './repeatGroup.ts';
 import { findSetMembers } from './findSet.ts';
 import useLinkedBoxes from './useLinkedBoxes.ts';
@@ -1144,6 +1145,12 @@ export default function PdfRedactTool() {
                       objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i)}
                       markedIds={deleteTool.markedForDeletionIds}
                       onSelect={deleteTool.markObject}
+                    />
+                  )}
+                  {activeStyle === 'delete' && (
+                    <DeleteMarquee
+                      objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i && !deleteTool.markedForDeletionIds.has(object.id))}
+                      onCommit={deleteTool.markObjects}
                     />
                   )}
 
