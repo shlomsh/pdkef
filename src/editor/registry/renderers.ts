@@ -2,7 +2,7 @@ import { h } from 'preact';
 import type { ComponentChildren, ComponentType } from 'preact';
 import type { ElementType, SignToolType } from '../model/editorModel.ts';
 import type { ElementForType, NodeRenderContext } from './types.ts';
-import { renderRedactionSurface } from './redactionSurface.ts';
+import { renderRedactionSurface, renderStrokeSurface } from './redactionSurface.ts';
 
 // isActive/isEditing/onBeginEdit/onResizeStart below are all placeholders:
 // DraggableWrapper injects the real values via cloneElement, the same channel
@@ -72,6 +72,9 @@ export function createElementRenderers(
         : undefined;
       return renderRedactionSurface('blur', undefined, element.strength, boxHeightPt);
     },
+    // RED-32: brush strokes are core-only surfaces like blur and blackout.
+    blurStroke: ({ element, pageWidthPoints, pageHeightPoints }) => renderStrokeSurface(element, pageWidthPoints, pageHeightPoints),
+    whiteoutStroke: ({ element, pageWidthPoints, pageHeightPoints }) => renderStrokeSurface(element, pageWidthPoints, pageHeightPoints),
   };
   return renderers;
 }

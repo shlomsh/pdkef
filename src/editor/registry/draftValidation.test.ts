@@ -420,3 +420,52 @@ describe('dropUnsafeUpdates', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 });
+
+describe('brush strokes (RED-32)', () => {
+  const stroke = {
+    id: 'st-1', pageIndex: 0, left: 10, top: 10, width: 20, height: 5,
+    points: [[12, 12], [25, 13]], sizePt: 14,
+  };
+  const whiteoutStroke = { ...stroke, type: 'whiteoutStroke', color: '#e0e0e0' };
+  const blurStroke = { ...stroke, id: 'st-2', type: 'blurStroke', strength: 'light' };
+
+  it('accepts both stroke types, with or without a blur strength', () => {
+    expect(isDraftElement(whiteoutStroke)).toBe(true);
+    expect(isDraftElement(blurStroke)).toBe(true);
+    const { strength: _drop, ...noStrength } = blurStroke;
+    expect(isDraftElement(noStrength)).toBe(true);
+  });
+
+  it('rejects points outside 0..100, non-finite or malformed pairs, and empty lists', () => {
+    expect(isDraftElement({ ...whiteoutStroke, points: [[12, 101]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[-1, 5]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[NaN, 5]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[1, 2, 3]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: 'nope' })).toBe(false);
+  });
+
+  it('rejects a brush size outside 1..200, a missing color on whiteout, an unknown strength and a missing bbox', () => {
+    expect(isDraftElement({ ...whiteoutStroke, sizePt: 0.5 })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, sizePt: 201 })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, color: undefined })).toBe(false);
+    expect(isDraftElement({ ...blurStroke, strength: 'huge' })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, width: undefined })).toBe(false);
+  });
+
+  it('keeps an add entry for a stroke so undo still reaches it after a reload', () => {
+    const record = validateDraftRecord({
+      fileName: 'a.pdf',
+      fileBytes: bytesOf(),
+      elements: [whiteoutStroke],
+      extra: {
+        actionHistory: [{
+          id: 'h1', type: 'whiteoutStroke', operation: 'add', pageIndex: 0, description: 'Whiteout stroke',
+          timestamp: 1, elements: [{ element: whiteoutStroke, index: 0 }],
+        }],
+      },
+    });
+    expect(record?.elements).toEqual([whiteoutStroke]);
+    expect(record?.extra?.actionHistory).toHaveLength(1);
+  });
+});

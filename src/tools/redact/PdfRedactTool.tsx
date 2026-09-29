@@ -10,13 +10,17 @@ import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
-import usePageHeightsPt from './usePageHeightsPt.ts';
+import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
+import BrushControls, { brushStyleOf, resolveBrush, useEyedropper, type BrushSettings } from './BrushControls.tsx';
+import { checkBoxesFromElements } from './check/checkBoxes.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
+import usePageSizesPt from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
 import { groupMembers, repeatCopies } from './repeatGroup.ts';
@@ -66,7 +70,7 @@ import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blu
 // own comment there for why it isn't just RedactElement, and why that's also
 // what lets useDeleteTool.ts/useLinkedBoxes.ts import it without a cycle).
 
-const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whiteout', 'blackout', 'blur', 'delete']);
+const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<string>(['whiteout', 'blackout', 'blur', 'delete', 'blurStroke', 'whiteoutStroke']);
 
 function isRedactElement(value: unknown): value is RedactElement {
   return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
@@ -160,6 +164,21 @@ export default function PdfRedactTool() {
   const [toolLocked, setToolLocked] = useState(false);
   const [activeColor, setActiveColor] = useState('#ffffff');
   const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(DEFAULT_BLUR_STRENGTH);
+  // RED-32: Box or Brush inside Blur and Whiteout, and the brush's size. Both
+  // are remembered like the whiteout colour and become the default for the
+  // next document. A brush is not a tool of its own: it is one of these two
+  // tools armed in brush mode.
+  // RED-32: the brush is a document setting. `brushCarried` holds only what
+  // this document's owner explicitly chose (it rides in the draft); a document
+  // that never chose follows the person's latest choice in any document.
+  const [brushCarried, setBrushCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
+  const [brush, setBrush] = useState<BrushSettings>(() => resolveBrush(undefined, getAppStyle()));
+  const changeBrush = (next: BrushSettings) => {
+    setBrush(next);
+    setBrushCarried(brushStyleOf(next));
+    rememberAppStyle(brushStyleOf(next));
+  };
+  const [eyedropping, setEyedropping] = useState(false);
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
@@ -174,6 +193,11 @@ export default function PdfRedactTool() {
   const disarmTool = () => {
     if (!toolLocked) setTool(null);
   };
+  // The brush is armed when Blur or Whiteout is armed in brush mode. It is the
+  // one documented exception to "a tool disarms after one placement": painting
+  // takes several strokes, so it stays armed until Stop or Esc.
+  const brushKind: 'blur' | 'whiteout' | null =
+    brush.mode === 'brush' && (activeStyle === 'blur' || activeStyle === 'whiteout') ? activeStyle : null;
   const [drawingState, setDrawingState] = useState<RedactDrawingState | null>(null);
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
   const cancelDrawingRef = useRef<(() => void) | null>(null);
@@ -192,6 +216,15 @@ export default function PdfRedactTool() {
     setActiveColor(color);
     setEditorPreference('lastWhiteoutColor', color);
   };
+
+  useEyedropper(
+    eyedropping && brushKind === 'whiteout',
+    rememberColor,
+    () => setEyedropping(false),
+  );
+  useEffect(() => {
+    if (brushKind !== 'whiteout') setEyedropping(false);
+  }, [brushKind]);
 
   useEffect(() => {
     const stored = getEditorPreference('lastBlurStrength');
@@ -471,6 +504,8 @@ export default function PdfRedactTool() {
         setNumPages(0);
         setErrorDetail(null);
         setProgress(0);
+        setBrushCarried(preset.carried);
+        setBrush(resolveBrush(preset.carried, getAppStyle()));
         setElements(presetElements);
         setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
         setDraftBaselineRevision(documentRevisionRef.current);
@@ -516,6 +551,7 @@ export default function PdfRedactTool() {
     fileBytes: fileBytesRef.current,
     elements,
     actionHistory,
+    carried: brushCarried,
     status,
     isDirty: documentRevision !== draftBaselineRevision,
     loadStartedRef,
@@ -529,6 +565,8 @@ export default function PdfRedactTool() {
     // below) and never draws one either, so it may not start the drag
     // gesture this function owns.
     if (!activeStyle || activeStyle === 'delete') return;
+    // A brush paints through BrushLayer, which owns the press.
+    if (brushKind) return;
 
     const target = e.target as Element | null;
     if (target?.closest(`.${styles['redact-box']}`)) {
@@ -582,6 +620,14 @@ export default function PdfRedactTool() {
         setDrawingState(null);
       },
     });
+  };
+
+  // RED-32: one stroke, one history entry. The brush stays armed afterwards
+  // (no disarmTool): painting is several strokes in a row.
+  const addStroke = (stroke: CommittedStroke) => {
+    const word = stroke.type === 'blurStroke' ? 'blur' : 'whiteout';
+    commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: `Painted a ${word} stroke` });
+    setAnnouncement(`Painted a ${word} stroke.`);
   };
 
   // Registers a short-lived Undo chip for a delete/clear command already
@@ -781,7 +827,7 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
-  const pageHeightsPt = usePageHeightsPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur'));
+  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur' || el.type === 'blurStroke') || brushKind !== null);
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
@@ -824,9 +870,7 @@ export default function PdfRedactTool() {
   // RED-17: the check of each saved export. Every page with a box is saved
   // as a picture, with no text layer at all (redact.js), so those are the
   // pages text search can't see.
-  const checkBoxes: CheckBox[] = elements
-    .filter((el) => el.type === 'blur' || el.type === 'blackout' || el.type === 'whiteout')
-    .map((el) => ({ pageIndex: el.pageIndex, left: el.left, top: el.top, width: el.width, height: el.height, type: el.type as CheckBox['type'], color: el.color }));
+  const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
   const savedCheck = useSavedFileCheck({
     pdfDocument,
     saved: exportedForHandoff?.blob ?? null,
@@ -1035,6 +1079,18 @@ export default function PdfRedactTool() {
             onUndoAction={runUndoChip}
             statusMessage={finishStatusText(finishFacts)}
             showWelcomeTip={showWelcomeTip}
+            brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
+              <BrushControls
+                tool={activeStyle}
+                settings={brush}
+                onSettings={changeBrush}
+                color={activeColor}
+                onColor={rememberColor}
+                eyedropping={eyedropping}
+                onToggleEyedropper={() => setEyedropping((on) => !on)}
+              />
+            )}
+            brushMode={brushKind !== null}
             findOpen={find.open}
             onToggleFind={() => find.setOpen(!find.open)}
             findBar={find.open && (
@@ -1125,7 +1181,8 @@ export default function PdfRedactTool() {
                         onRemoveGroup={() => removeLinked(el.id, 'repeatGroup')}
                         findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
                         onRemoveFindSet={() => removeLinked(el.id, 'findSet')}
-                        pageHeightPoints={pageHeightsPt[el.pageIndex]}
+                        pageWidthPoints={pageSizesPt[el.pageIndex]?.width}
+                        pageHeightPoints={pageSizesPt[el.pageIndex]?.height}
                       />
                     );
                   })}
@@ -1153,6 +1210,19 @@ export default function PdfRedactTool() {
                       currentId={find.currentId}
                       coveredIds={find.coveredIds}
                       onPick={find.setCurrentId}
+                    />
+                  )}
+
+                  {brushKind && (
+                    <BrushLayer
+                      pageIndex={i}
+                      kind={brushKind}
+                      sizePt={brush.size}
+                      color={brushKind === 'whiteout' ? activeColor : undefined}
+                      strength={brushKind === 'blur' ? activeBlurStrength : undefined}
+                      pageWidthPt={pageSizesPt[i]?.width}
+                      pageHeightPt={pageSizesPt[i]?.height}
+                      onCommit={addStroke}
                     />
                   )}
 

@@ -63,4 +63,26 @@ describe('registry/renderers createElementRenderers', () => {
       pageWidthPoints: 600,
     })).toThrow(/No renderer registered for element type "whiteout"/);
   });
+
+  it('renders a whiteout stroke as a round-capped SVG path in its color, and a blur stroke as a masked blur, with no supplied component', () => {
+    const renderers = createElementRenderers({});
+    const base = { id: 's', pageIndex: 0, left: 10, top: 10, width: 20, height: 10, points: [[15, 15], [25, 15]], sizePt: 12 };
+    const white = renderers.whiteoutStroke({
+      element: { ...base, type: 'whiteoutStroke', color: '#e5e5e5' } as any,
+      onChange: () => {}, onSelect: () => {}, pageWidthPoints: 600, pageHeightPoints: 800,
+    }) as any;
+    expect(white.type).toBe('svg');
+    const path = white.props.children;
+    expect(path.props).toMatchObject({ stroke: '#e5e5e5', 'stroke-width': 12, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    expect(path.props.d).toMatch(/^M [\d.]+ [\d.]+ L /);
+
+    const blur = renderers.blurStroke({
+      element: { ...base, type: 'blurStroke', strength: 'strong' } as any,
+      onChange: () => {}, onSelect: () => {}, pageWidthPoints: 600, pageHeightPoints: 800,
+    }) as any;
+    const layer = blur.props.children;
+    expect(layer.props.style.maskImage).toMatch(/^url\("data:image\/svg\+xml,/);
+    expect(layer.props.style.WebkitMaskImage).toBe(layer.props.style.maskImage);
+    expect(layer.props.style.backdropFilter).toMatch(/^blur\(calc\(/);
+  });
 });
