@@ -48,12 +48,19 @@
      override both - the segments stacked and a second Full screen appeared. */
   .bar.bar.bar > :not(button):not([role="radiogroup"]) { display: flex; flex-direction: column; }
   .bar.bar.bar > :not(button):not([role="radiogroup"]) > button { flex: 1 1 auto; }
-  .bar.bar.bar > [role="radiogroup"] { align-self: center; }
 }
 
 /* The view control's segments are icons in a segmented group, labelled by
    their title; the word rule above is for the toolbar's own buttons. */
 .bar.bar.bar [role="radiogroup"] button { flex-direction: row; }
+
+/* Below 920px the view control is one Full screen button in the grid. Its
+   word is two words, so it may wrap under the icon rather than clip. */
+.bar.bar.bar [role="radiogroup"] + button > span:last-child {
+  white-space: normal;
+  line-height: 1;
+  text-align: center;
+}
 
 /* The phone's five-per-row grid gives each control ~52px: "Download" and
    "Whiteout" need the smaller size to sit inside it with air on both sides. */
