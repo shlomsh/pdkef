@@ -1,7 +1,7 @@
 ---
 id: "RED-38"
 title: "Find: Cover all waits for every page, one Find control, 44px targets"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -21,3 +21,7 @@ depends_on: []
 ## Acceptance
 
 - A 20-page file: Find a term on every page, press Cover all during reading: every page is covered.
+
+## Result (2026-09-29)
+
+Cover all queues until every page is read (find/coverAllQueue.ts); the kinds menu is 'Kinds'; 44px targets on touch; Escape in Find closes Find only.

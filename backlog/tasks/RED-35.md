@@ -1,7 +1,7 @@
 ---
 id: "RED-35"
 title: "Redact on touch: a swipe scrolls, handles after a tap, Delete shows what it can take, controls in one bar"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -26,3 +26,7 @@ depends_on: []
 - Phone viewport: a swipe starting on an unselected box scrolls; tap, then drag, moves it.
 - Delete armed on touch shows outlines on every deletable object.
 - The selected box's bar is fixed at the bottom and never overlaps the box.
+
+## Result (2026-09-29)
+
+A swipe on an unselected box scrolls (touch-action pans until selected); Delete outlines what it can take on touch; on a touch device a selected box's controls sit in a fixed bottom bar (RedactBoxBar.tsx, useCoarsePointer asks for a fine pointer, as ArmHint does).

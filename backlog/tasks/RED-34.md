@@ -1,7 +1,7 @@
 ---
 id: "RED-34"
 title: "Redact toolbar you can read: words under every tool on touch and laptops, one icon per tool"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -24,3 +24,7 @@ word is always there or the control is not an icon."
 
 - At 375, 768, 1280 and 1440px every Redact tool shows its word; the row does not wrap past two rows on a phone.
 - The three cover tools are told apart by icon alone in a screenshot.
+
+## Result (2026-09-29)
+
+Every Redact control keeps its word at every width (RedactToolbar.module.css overrides the shared 1299px hide for Redact only); Blur and Blackout have their own icons (toolIcons.tsx); Compress left the toolbar; the status slot takes the island's message (statusMessage). Phone: two rows of five, full screen reads Expand.

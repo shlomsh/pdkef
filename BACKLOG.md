@@ -708,14 +708,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-34 | P1 | [RED-34](backlog/tasks/RED-34.md) · Redact toolbar you can read: words under every tool on touch and laptops, one icon per tool |
-| RED-35 | P1 | [RED-35](backlog/tasks/RED-35.md) · Redact on touch: a swipe scrolls, handles after a tap, Delete shows what it can take, controls in one bar |
-| RED-36 | P1 | [RED-36](backlog/tasks/RED-36.md) · Redact finishes like Merge: progress where you pressed, a done line with what was saved, then Compress it · Sign it |
-| RED-37 | P2 | [RED-37](backlog/tasks/RED-37.md) · Redact speaks one vocabulary, and every removal gets the undo chip |
-| RED-38 | P2 | [RED-38](backlog/tasks/RED-38.md) · Find: Cover all waits for every page, one Find control, 44px targets |
-| RED-39 | P2 | [RED-39](backlog/tasks/RED-39.md) · Redact recovers: a failed load offers another file, a new file starts clean |
+_None._
 
 ### Blocked
 
@@ -738,6 +731,12 @@ _None._
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 | RED-28 | P3 | [RED-28](backlog/tasks/RED-28.md) · A deleted object peels off like a sticker |
+| RED-34 | P1 | [RED-34](backlog/tasks/RED-34.md) · Redact toolbar you can read: words under every tool on touch and laptops, one icon per tool |
+| RED-35 | P1 | [RED-35](backlog/tasks/RED-35.md) · Redact on touch: a swipe scrolls, handles after a tap, Delete shows what it can take, controls in one bar |
+| RED-36 | P1 | [RED-36](backlog/tasks/RED-36.md) · Redact finishes like Merge: progress where you pressed, a done line with what was saved, then Compress it · Sign it |
+| RED-37 | P2 | [RED-37](backlog/tasks/RED-37.md) · Redact speaks one vocabulary, and every removal gets the undo chip |
+| RED-38 | P2 | [RED-38](backlog/tasks/RED-38.md) · Find: Cover all waits for every page, one Find control, 44px targets |
+| RED-39 | P2 | [RED-39](backlog/tasks/RED-39.md) · Redact recovers: a failed load offers another file, a new file starts clean |
 
 ### Retired
 

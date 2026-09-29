@@ -42,6 +42,21 @@
    (hint wrappers, dropdowns) stretch their button too. */
 @media (min-width: 920px) {
   .bar.bar.bar { align-items: stretch; }
-  .bar.bar.bar > * { display: flex; flex-direction: column; }
-  .bar.bar.bar > * > button { flex: 1 1 auto; }
+  /* Only the wrappers (ArmHint's span, dropdowns). Never the view control:
+     ViewControl.module.css shows its segmented control and hides the lone
+     full-screen button beside it by `display`, and a display set here would
+     override both - the segments stacked and a second Full screen appeared. */
+  .bar.bar.bar > :not(button):not([role="radiogroup"]) { display: flex; flex-direction: column; }
+  .bar.bar.bar > :not(button):not([role="radiogroup"]) > button { flex: 1 1 auto; }
+  .bar.bar.bar > [role="radiogroup"] { align-self: center; }
+}
+
+/* The view control's segments are icons in a segmented group, labelled by
+   their title; the word rule above is for the toolbar's own buttons. */
+.bar.bar.bar [role="radiogroup"] button { flex-direction: row; }
+
+/* The phone's five-per-row grid gives each control ~52px: "Download" and
+   "Whiteout" need the smaller size to sit inside it with air on both sides. */
+@media (max-width: 480px) {
+  .bar.bar.bar button { font-size: 0.66rem; padding-inline: 0.125rem; }
 }
