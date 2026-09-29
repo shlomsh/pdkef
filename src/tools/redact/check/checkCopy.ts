@@ -16,7 +16,7 @@ export const CHECK_FAILED = "I couldn't read the saved file to check it. Your do
 
 export const NO_MATCH = 'No match in the text I could read.';
 
-export const NOTHING_COVERED = "The boxes didn't cover any text I could read, so there was nothing to look for. You can search for something below.";
+export const NOTHING_COVERED = "Nothing you covered or deleted had text I could read, so there was nothing to look for. You can search for something below.";
 
 export const SEARCH_LABEL = 'Look for something else in the saved file';
 

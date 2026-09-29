@@ -38,12 +38,12 @@ sections:
           one real example.
       - kind: 'image'
         src: '/images/redaction-guide/delete.jpg'
-        alt: 'Real PDkef editor showing a prefilled email address marked with the Delete tool'
+        alt: 'Real PDkef editor showing a filled-in phone number highlighted by the Delete tool on a practice form'
         width: 640
         height: 555
         caption: >-
-          <strong>The selected email is being deleted from the page.</strong> The field label,
-          document lines and all surrounding page content stay in place.
+          <strong>The phone number is about to be deleted from the page.</strong> The field, its
+          label and every other answer on the form stay in place.
   - sketch: 'grid'
     icon: 'MousePointerClick'
     iconPos: 'tr'

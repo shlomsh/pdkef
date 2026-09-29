@@ -15,11 +15,11 @@
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { Finder, PercentBox } from '../find/types.ts';
 
-/** Where a term came from: under a box, a Find search, or typed in the check. */
-export type TermSource = 'covered' | 'find' | 'typed';
+/** Where a term came from: under a box, a deleted text run, a Find search, or typed in the check. */
+export type TermSource = 'covered' | 'deleted' | 'find' | 'typed';
 
 export interface CheckTerm {
-  /** What the person sees: the covered text, the Find term, or the preset's label. */
+  /** What the person sees: the covered or deleted text, the Find term, or the preset's label. */
   label: string;
   source: TermSource;
   finder: Finder;

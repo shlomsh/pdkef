@@ -27,6 +27,7 @@ import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
 import useSavedFileCheck from './useSavedFileCheck.ts';
+import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
 import { PRESET_FINDERS, termFinder } from './find/finders.ts';
 import type { CheckBox, CheckTerm } from './check/types.ts';
@@ -831,7 +832,7 @@ export default function PdfRedactTool() {
     pdfDocument,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
-    findTerms,
+    findTerms: [...deletedTerms(elements), ...findTerms],
     picturePages: [...new Set(checkBoxes.map((box) => box.pageIndex))].sort((a, b) => a - b),
     measure: find.measure,
   });
