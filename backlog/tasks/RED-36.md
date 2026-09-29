@@ -1,7 +1,7 @@
 ---
 id: "RED-36"
 title: "Redact finishes like Merge: progress where you pressed, a done line with what was saved, then Compress it · Sign it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -27,3 +27,7 @@ toolbar.
 - After Download the status slot shows the saved name and page count; Compress it and Sign it hand the
   file off.
 - A second export of an already redacted file keeps a single `redacted_` prefix.
+
+## Result (2026-09-29)
+
+RedactFinish.tsx + finishState.ts (pure wording): count, Download with progress in place, 'Saved x · N pages', what the pages are, Compress it · Sign it; the status line says the same; redactedFileName never chains; an edit that stops an export says so.

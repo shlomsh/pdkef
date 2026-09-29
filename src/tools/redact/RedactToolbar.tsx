@@ -286,7 +286,13 @@ export default function RedactToolbar({
           <span className={styles.label}>Redo</span>
         </button>
 
-        <ViewControl isFullscreen={isFullscreen} toggleFullscreen={toggleFullscreen} />
+        <ViewControl
+          isFullscreen={isFullscreen}
+          toggleFullscreen={toggleFullscreen}
+          // RED-34: on a phone this is a labelled button in the two-row grid,
+          // and "Full screen" does not fit under an icon.
+          labels={{ relaxed: 'Relaxed view', condensed: 'Condensed view', fullscreen: 'Expand', exitFullscreen: 'Exit', densityLabel: 'View density' }}
+        />
 
         {/* The united file action, in the exact slot Start over used to hold.
             Both meant "I want a different file"; this one says it once. */}

@@ -1,7 +1,7 @@
 ---
 id: "RED-39"
 title: "Redact recovers: a failed load offers another file, a new file starts clean"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -20,3 +20,7 @@ depends_on: []
 
 - Loading a corrupt file shows a working Choose another file button on a phone.
 - After a new file opens, no tool is armed and Find is closed.
+
+## Result (2026-09-29)
+
+A failed load shows the shell's Replace and points a locked PDF to Unlock; a new file disarms the tool, clears the selection and closes Find.
