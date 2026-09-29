@@ -701,10 +701,21 @@ _None._
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 | RED-29 | P1 | [RED-29](backlog/tasks/RED-29.md) · Delete finds what a page draws inside a Form XObject |
+| RED-30 | P2 | [RED-30](backlog/tasks/RED-30.md) · Blur strength is a slider on the box, from vaguely readable to strong, medium by default |
+| RED-31 | P2 | [RED-31](backlog/tasks/RED-31.md) · Press and hold to peek under a blur, a whiteout or a brush stroke |
+| RED-32 | P2 | [RED-32](backlog/tasks/RED-32.md) · Blur and whiteout brushes: any size, any color, removed from the saved file like a box |
+| RED-33 | P2 | [RED-33](backlog/tasks/RED-33.md) · Delete by dragging a box: everything under it goes on release, one undo brings it back |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-34 | P1 | [RED-34](backlog/tasks/RED-34.md) · Redact toolbar you can read: words under every tool on touch and laptops, one icon per tool |
+| RED-35 | P1 | [RED-35](backlog/tasks/RED-35.md) · Redact on touch: a swipe scrolls, handles after a tap, Delete shows what it can take, controls in one bar |
+| RED-36 | P1 | [RED-36](backlog/tasks/RED-36.md) · Redact finishes like Merge: progress where you pressed, a done line with what was saved, then Compress it · Sign it |
+| RED-37 | P2 | [RED-37](backlog/tasks/RED-37.md) · Redact speaks one vocabulary, and every removal gets the undo chip |
+| RED-38 | P2 | [RED-38](backlog/tasks/RED-38.md) · Find: Cover all waits for every page, one Find control, 44px targets |
+| RED-39 | P2 | [RED-39](backlog/tasks/RED-39.md) · Redact recovers: a failed load offers another file, a new file starts clean |
 
 ### Blocked
 
