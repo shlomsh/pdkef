@@ -1,7 +1,7 @@
 ---
 id: "FONT-09"
 title: "RTL export mirrors paired punctuation (Bidi_Mirroring)"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "fonts-and-script-support"
 phase: "near-term"
@@ -42,8 +42,6 @@ before and after this change (the ActualText bytes are unchanged), a separate mu
 - [x] `shapedWidth` and `drawShapedRun` share one layout path.
 - [x] `pdftotext` still extracts the typed text (W6 corpus).
 - [x] `npm run check:fast` is green; build, `test:weight`, `test:lazy-modules` and `test:csp` pass.
-- [ ] Font and export guards green on a pinned-Chromium machine. In the 2026-09-29 cloud session (Chromium
-  1194, not the pinned 1243), 130 of 133 font guards passed. The 3 failures were Indic pixel guards
-  (Gurmukhi, Malayalam, Telugu) that shape through fontkit directly and never reach `shapeRun.ts`.
-  `export-guards` could not render there (pdf.js needs `Map.prototype.getOrInsertComputed`). None of
-  the 39 export-render cases has a mirror-affected RTL run, so no baseline should move.
+- [x] Font and export guards green on a pinned-Chromium machine: CI run 710 on `d72fdfd` (both
+  `font-guards` shards, `export-guards`, and `checks` with poppler for the W6 pdftotext half). The
+  2026-09-29 cloud session could not run them (Chromium 1194, not the pinned 1243).

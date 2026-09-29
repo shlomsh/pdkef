@@ -77,9 +77,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| FONT-09 | P1 | [FONT-09](backlog/tasks/FONT-09.md) · RTL export mirrors paired punctuation (Bidi_Mirroring) |
+_None._
 
 ### Blocked
 
@@ -94,6 +92,7 @@ _None._
 | FONT-03 | P2 | [FONT-03](backlog/tasks/FONT-03.md) · Malayalam |
 | FONT-05 | P2 | [FONT-05](backlog/tasks/FONT-05.md) · Export-render-guard corpus cases for Simplified Chinese, Traditional Chinese and Korean |
 | FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
+| FONT-09 | P1 | [FONT-09](backlog/tasks/FONT-09.md) · RTL export mirrors paired punctuation (Bidi_Mirroring) |
 
 ### Retired
 
