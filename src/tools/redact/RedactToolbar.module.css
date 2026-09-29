@@ -1,0 +1,37 @@
+/* Redact keeps a visible word on every toolbar control at every width
+   (RED-34). SignToolbar.module.css hides `.toolbar .label` below 1300px and
+   for [data-icon-only]; this sheet overrides that for Redact's toolbar only.
+   The tripled class outranks those rules whatever order the sheets load in. */
+.bar.bar.bar button > span:last-child {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Under the icon where the row is tight: below 1300px and on the phone grid. */
+@media (max-width: 1299px) {
+  .bar.bar.bar button {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    padding-inline: 0.25rem;
+  }
+}
+
+/* The undo chip's Undo: a 44px hit area that does not grow the row. */
+.chip-hit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  margin-block: -14px;
+}

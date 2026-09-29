@@ -3,6 +3,8 @@ import {
   CHECK_LEAD,
   attachmentsNote,
   canCover,
+  COVER_IT,
+  COVER_IT_NOTE,
   findingText,
   pageList,
   picturePagesNote,

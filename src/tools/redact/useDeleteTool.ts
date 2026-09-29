@@ -93,9 +93,10 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
     };
     add([element], {
       type: 'ADD_DELETE',
-      description: object.kind === 'image' ? 'Marked image for deletion' : 'Marked text for deletion',
+      description: object.kind === 'image' ? 'Deleted an image' : 'Deleted text',
+      undoChip: true,
     });
-    announce(object.kind === 'image' ? 'Image marked for deletion.' : 'Text marked for deletion.');
+    announce(object.kind === 'image' ? 'Image deleted.' : 'Text deleted.');
     // Marking is this tool's placement, so it spends the arming.
     disarmTool();
   };

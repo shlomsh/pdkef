@@ -50,6 +50,10 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { FileActions } from '../../shell/ToolShell.tsx';
+import RedactFinish from './RedactFinish.tsx';
+import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
+import { redactedFileName } from './redactFileName.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
@@ -137,6 +141,10 @@ export default function PdfRedactTool() {
   // 'editing' and this renders alongside the workspace. A failed document load
   // still uses status='error', which unmounts the workspace (see below).
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  // RED-36: an edit retired a running export. Said where it is seen (the
+  // status line and the finish row), not only to a screen reader; cleared by
+  // the next export or the next file.
+  const [exportCancelled, setExportCancelled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
@@ -410,7 +418,8 @@ export default function PdfRedactTool() {
     if (statusRef.current !== 'redacting') return;
     setStatus('editing');
     setProgress(0);
-    setAnnouncement('Your edits changed while the PDF was being prepared. Export again to create an up-to-date file.');
+    setExportCancelled(true);
+    setAnnouncement('You changed something, so that download stopped. Download again when ready.');
     // Keyed on the revision, not on `elements`, so this fires on exactly what
     // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
     // two different notions of "the document moved", an edit that bumped the
@@ -447,6 +456,15 @@ export default function PdfRedactTool() {
         renderedPageNumbersRef.current = new Set();
         setSizedPageCount(0);
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
+        // RED-39: a new file starts clean - no tool armed, nothing selected, Find
+        // closed with its term. None of that belongs to the file just left.
+        disarmTool();
+        setActiveBoxId(null);
+        setSelectedBoxId(null);
+        find.setOpen(false);
+        find.setTerm('');
+        find.setPreset(null);
+        setExportCancelled(false);
         setShowWelcomeTip(!restored);
         setFile(selected);
         setPdfDocument(null);
@@ -477,7 +495,7 @@ export default function PdfRedactTool() {
     const pdfs = incoming.filter((f) => f.type === 'application/pdf');
 
     if (pdfs.length === 0) {
-      setAnnouncement('Please select a valid PDF file.');
+      setAnnouncement('Choose a PDF file.');
       return;
     }
 
@@ -665,7 +683,7 @@ export default function PdfRedactTool() {
     const el = elements.find(e => e.id === id);
     if (!el) return;
     commands.remove(new Set([id]), {
-      type: 'DELETE_ELEMENT', description: `Deleted ${el.type} box`, pageIndex: el.pageIndex, chipMessage: 'Removed 1 box',
+      type: 'DELETE_ELEMENT', description: `Removed the ${el.type} box`, pageIndex: el.pageIndex, chipMessage: `Removed the ${el.type} box`,
     });
   };
 
@@ -794,10 +812,11 @@ export default function PdfRedactTool() {
       additions.forEach((addition) => { addition.findSetId = findSetId; });
     }
     const nextId = find.nextOpenAfter(new Set(matches.map((match) => match.id)));
-    const description = matches.length === 1
-      ? `Redacted "${matches[0].text}"`
-      : `Redacted ${matches.length} matches`;
-    commands.add(additions, { type: 'FIND_AND_REDACT', description });
+    // RED-37: never the matched text itself - the description is announced
+    // and shown in the undo chip, and reading a secret aloud is what the box
+    // was for.
+    const description = matches.length === 1 ? 'Covered 1 match' : `Covered ${matches.length} matches`;
+    commands.add(additions, { type: 'FIND_AND_REDACT', description, undoChip: true });
     setAnnouncement(`${description}.`);
     find.setCurrentId(nextId);
   };
@@ -825,16 +844,17 @@ export default function PdfRedactTool() {
   const handleSavePdf = async (exportAction = 'download') => {
     if (!file) return;
     if (elements.length === 0) {
-      setAnnouncement('Please add at least one redaction box.');
+      setAnnouncement('Draw a box or delete something first.');
       return;
     }
 
     setErrorDetail(null);
+    setExportCancelled(false);
     setStatus('redacting');
     setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
     setAnnouncement(
-      hasBoxes ? 'Applying redactions and flattening pages...' : 'Removing selected content...',
+      hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
     );
 
     // DEBT-18: everything this run is an export *of*, captured before the
@@ -856,7 +876,7 @@ export default function PdfRedactTool() {
       });
       if (!run.isCurrent()) return;
       run.settle();
-      const filename = `redacted_${sourceFile.name}`;
+      const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
       setExportedForHandoff({ blob: redactedBlob, name: filename });
@@ -867,7 +887,7 @@ export default function PdfRedactTool() {
       } else {
         download(redactedBlob, filename);
         setStatus('editing');
-        setAnnouncement('PDF redacted successfully. Download started.');
+        setAnnouncement('Saved. Download started.');
       }
     } catch (err) {
       console.error(err);
@@ -883,7 +903,7 @@ export default function PdfRedactTool() {
       setStatus('editing');
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
       setErrorDetail(detail);
-      setAnnouncement(`Redaction stopped. ${detail}`);
+      setAnnouncement(`The download stopped. ${detail}`);
     }
   };
 
@@ -903,12 +923,12 @@ export default function PdfRedactTool() {
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
-      setAnnouncement('PDF shared successfully.');
+      setAnnouncement('Shared.');
     } else if (result.status === 'canceled') {
       setAnnouncement('Sharing canceled. Your redacted PDF is still ready to share.');
     } else if (result.status === 'error') {
       console.error(result.error);
-      setAnnouncement('Could not open the share sheet. Please try again.');
+      setAnnouncement('Could not open the share sheet. Try again.');
     }
   };
 
@@ -920,24 +940,42 @@ export default function PdfRedactTool() {
   // boundaries). Disabled until exportedForHandoff exists (an export has
   // actually succeeded), mirroring Merge's own `prepared.status !== 'ready'`
   // gate on its hand-off buttons.
-  const requestCompressHandoff = async () => {
+  const requestHandoff = async (tool: 'compress' | 'sign') => {
     if (handoffBusy || !exportedForHandoff) return;
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff('compress', {
+      const saved = await saveHandoff(tool, {
         fileName: exportedForHandoff.name,
         fileType: 'application/pdf',
         fileBytes: await exportedForHandoff.blob.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
-      window.location.href = '/compress/';
+      window.location.href = `/${tool}/`;
     } catch (err) {
       console.error(err);
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
+  };
+
+  // RED-36: everything the finish row and the status line say, from state
+  // that already exists. A page with any box is saved as a picture; a page
+  // with only deletions keeps its text (applyPageEdits.js).
+  const finishPhase: FinishPhase = status === 'redacting' ? 'exporting'
+    : exportedForHandoff ? 'saved'
+    : exportCancelled ? 'cancelled'
+    : elements.length === 0 ? 'empty'
+    : 'ready';
+  const finishFacts: FinishFacts = {
+    phase: finishPhase,
+    progress,
+    fileName: exportedForHandoff?.name ?? (file ? redactedFileName(file.name) : ''),
+    pageCount: numPages,
+    picturePages: new Set(elements.filter((el) => el.type !== 'delete').map((el) => el.pageIndex)).size,
+    boxCount: elements.filter((el) => el.type !== 'delete').length,
+    deletionCount: elements.filter((el) => el.type === 'delete').length,
   };
 
   return (
@@ -953,7 +991,7 @@ export default function PdfRedactTool() {
       // Download will actually produce once there is something to redact -
       // rename-in-place is not required, so this stays derived rather than
       // becoming its own editable field the way Merge's output name is.
-      fileLabel={elements.length > 0 && file ? `redacted_${file.name}` : file?.name}
+      fileLabel={elements.length > 0 && file ? redactedFileName(file.name) : file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaveState={draftSaveState}
       ownsShell
@@ -995,9 +1033,7 @@ export default function PdfRedactTool() {
             exporting={status === 'redacting'}
             undoAction={undoAction}
             onUndoAction={runUndoChip}
-            handoffReady={!!exportedForHandoff}
-            handoffBusy={handoffBusy}
-            onCompressHandoff={() => { void requestCompressHandoff(); }}
+            statusMessage={finishStatusText(finishFacts)}
             showWelcomeTip={showWelcomeTip}
             findOpen={find.open}
             onToggleFind={() => find.setOpen(!find.open)}
@@ -1031,7 +1067,7 @@ export default function PdfRedactTool() {
                   pageNumber={i + 1}
                   onClear={elements.some(el => el.pageIndex === i) ? () => clearPage(i) : null}
                   clearOptions={clearPageOptions(i)}
-                  clearTitle="Clear all redactions on this page"
+                  clearTitle="Clear every box on this page"
                 />
                 <div
                   className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
@@ -1147,75 +1183,53 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
-          {/* Finding #5: an honest count beside the always-visible completion
-              pair, updated live off `elements.length` - the Download control
-              used to never say what it would produce. */}
-          {elements.length > 0 && (
-            <p className={styles['export-count']}>
-              {elements.length} box{elements.length === 1 ? '' : 'es'} marked
-            </p>
-          )}
-
-          {/* Keep the document-completion actions available after the last
-              page, matching Sign. On mobile the compact toolbar prioritizes
-              editing controls and can hide Download when native file sharing
-              is available, so this is the reliable place to finish either
-              way. */}
-          <EditorExportActions
-            variant="completion"
+          {/* RED-36: the one finish row - what will be saved, Download (with
+              its progress while saving), what was saved, then Compress it and
+              Sign it. The export error and the saved-file check sit under it,
+              where the result is. */}
+          <RedactFinish
+            facts={finishFacts}
             canShare={canSharePdf}
             shareReady={shareReady}
-            disabled={elements.length === 0 || status === 'redacting'}
             onDownload={handleDownloadPdf}
             onPrepareShare={() => handleSavePdf('share')}
             onShare={handleSharePdf}
-            downloadTitle={elements.length === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
-            shareTitle={elements.length === 0
-              ? 'Add at least one redaction box first'
-              : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
-          />
-
-          {/* Export error - recoverable, so it renders alongside the still-mounted
-              workspace instead of replacing it (see handleSavePdf's catch). */}
-          {errorDetail && (
-            <ErrorMessage title="Redaction stopped." fullWidth>
-              {errorDetail}
-            </ErrorMessage>
-          )}
-
-          <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} />
-
-          {/* Finding #4: mirrors Merge's own handoffFailed line - the hand-off
-              is a nice-to-have next step, not the primary export, so a failed
-              save-to-IndexedDB reports itself quietly here rather than as a
-              blocking error. */}
-          {handoffFailed && (
-            <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-              Could not hand this off to Compress. Download it instead and open it there.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Redacting progress */}
-      {status === 'redacting' && (
-        <div className={pdfToolStyles['status-block--compact']}>
-          <span className={`${pdfToolStyles['tool-primary-action-progress']} ${pdfToolStyles['tool-primary-action-progress--standalone']}`}>
-            <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
-              <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
-            </svg>
-            Applying redactions… {Math.round(progress * 100)}%
-          </span>
+            onHandoff={(tool) => { void requestHandoff(tool); }}
+            handoffBusy={handoffBusy}
+            handoffFailed={handoffFailed}
+          >
+            {/* Export error - recoverable, so it renders alongside the still-mounted
+                workspace instead of replacing it (see handleSavePdf's catch). */}
+            {errorDetail && (
+              <ErrorMessage title="The download stopped." fullWidth>
+                {errorDetail}
+              </ErrorMessage>
+            )}
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} />
+          </RedactFinish>
         </div>
       )}
 
       {/* Error */}
       {status === 'error' && (
-        <ErrorMessage title="Redaction failed." fullWidth>
-          The PDF may be password-protected or corrupted.
+        <ErrorMessage title="This PDF didn't open." fullWidth>
+          <LoadErrorBody />
         </ErrorMessage>
       )}
 
     </BasePdfTool>
+  );
+}
+
+// RED-39: a failed load used to leave no way out on a phone - the file is
+// already set, so no dropzone shows, and Replace lives in the toolbar that
+// never mounted. It renders inside BasePdfTool, so the shell's own Replace
+// (FileActions, through useToolShell().requestReplace) is in reach.
+function LoadErrorBody() {
+  return (
+    <>
+      It may be damaged, or locked with a password. A locked PDF opens in <a href="/unlock/">Unlock</a> first.
+      <FileActions />
+    </>
   );
 }

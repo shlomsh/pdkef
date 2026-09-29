@@ -1,4 +1,5 @@
 import { useRef } from 'preact/hooks';
+import RedactBoxBar, { useCoarsePointer } from './RedactBoxBar.tsx';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
 import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
@@ -92,6 +93,7 @@ export default function RedactBox({
   pageHeightPoints?: number;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
+  const coarsePointer = useCoarsePointer();
   const { refs, floatingStyles, placement, update } = useFloating({
     placement: 'top-start',
     whileElementsMounted: autoUpdate,
@@ -187,6 +189,27 @@ export default function RedactBox({
     hasShapeHandles && elementStyles.shape,
   ].filter(Boolean).join(' ');
 
+  const toolbar = (
+    <ElementToolbar
+      element={el}
+      onChange={(changes: any) => {
+        if (changes.color) onChangeColor(el.id, changes.color);
+        if (changes.strength) onChangeStrength(el.id, changes.strength);
+      }}
+      // RED-03: the toolbar's own clone object can't identify a linked
+      // box's source once several boxes share the same geometry
+      // offset, so it's ignored in favour of duplicating by id.
+      onClone={() => onDuplicate(el.id)}
+      onDelete={() => onDelete(el.id)}
+      onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
+      repeatGroupSize={repeatGroupSize}
+      onUnlinkFromGroup={onUnlinkFromGroup}
+      onRemoveGroup={onRemoveGroup}
+      findSetSize={findSetSize}
+      onRemoveFindSet={onRemoveFindSet}
+    />
+  );
+
   return (
     <div
       ref={(node) => {
@@ -249,7 +272,12 @@ export default function RedactBox({
           }}
         />
       )}
-      {isSelected && (
+      {isSelected && coarsePointer && (
+        <RedactBoxBar boxRef={elementRef}>
+          {toolbar}
+        </RedactBoxBar>
+      )}
+      {isSelected && !coarsePointer && (
         <div
           ref={refs.setFloating}
           className={elementStyles.actions}
@@ -265,24 +293,7 @@ export default function RedactBox({
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
-          <ElementToolbar
-            element={el}
-            onChange={(changes: any) => {
-              if (changes.color) onChangeColor(el.id, changes.color);
-              if (changes.strength) onChangeStrength(el.id, changes.strength);
-            }}
-            // RED-03: the toolbar's own clone object can't identify a linked
-            // box's source once several boxes share the same geometry
-            // offset, so it's ignored in favour of duplicating by id.
-            onClone={() => onDuplicate(el.id)}
-            onDelete={() => onDelete(el.id)}
-            onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
-            repeatGroupSize={repeatGroupSize}
-            onUnlinkFromGroup={onUnlinkFromGroup}
-            onRemoveGroup={onRemoveGroup}
-            findSetSize={findSetSize}
-            onRemoveFindSet={onRemoveFindSet}
-          />
+          {toolbar}
         </div>
       )}
     </div>

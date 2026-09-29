@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { ChevronDown, ChevronUp, Search, X } from 'lucide-preact';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import type { PresetKey } from './find/types.ts';
+import { coverAllQueueStep } from './find/coverAllQueue.ts';
 import styles from './FindBar.module.css';
 
 /** What a found match becomes. Whiteout is left out on purpose: it hides
@@ -65,6 +66,18 @@ export default function FindBar({
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
+  // RED-38: Cover all pressed mid-read waits for every page, then fires once
+  // through the same callback. Closing Find unmounts the bar, which cancels it.
+  const [queued, setQueued] = useState(false);
+  const onRedactAllRef = useRef(onRedactAll);
+  onRedactAllRef.current = onRedactAll;
+  const isReading = summary.reading !== null;
+  const step = coverAllQueueStep({ queued, reading: isReading, failed: summary.failed, open: summary.open });
+  useEffect(() => {
+    if (step === 'deliver') onRedactAllRef.current();
+    if (step === 'deliver' || step === 'drop') setQueued(false);
+  }, [step]);
+
   const searching = preset !== null || term.trim() !== '';
   const hasMatches = summary.total > 0;
 
@@ -73,19 +86,25 @@ export default function FindBar({
       event.preventDefault();
       if (event.shiftKey) onPrev(); else onNext();
     } else if (event.key === 'Escape') {
+      // Escape in Find closes Find only; the island's window listener must
+      // not also disarm the tool.
       event.preventDefault();
+      event.stopPropagation();
+      setQueued(false);
       onClose();
     }
   };
 
+  const readingStatus = summary.reading ? `Reading page ${summary.reading.done} of ${summary.reading.of}` : '';
   let status = '';
   if (summary.failed) status = 'Could not read this file\'s text';
-  else if (!searching) status = summary.reading ? `Reading page ${summary.reading.done} of ${summary.reading.of}` : '';
-  else if (!hasMatches) status = summary.reading ? `Reading page ${summary.reading.done} of ${summary.reading.of}` : 'No matches';
+  else if (!searching) status = summary.reading ? readingStatus : '';
+  else if (!hasMatches) status = summary.reading ? readingStatus : 'No matches';
   else {
     status = `${summary.position} of ${summary.total}`;
     if (summary.pages > 1) status += ` on ${summary.pages} pages`;
     if (summary.covered > 0) status += `, ${summary.covered} covered`;
+    if (summary.reading) status += queued ? `. ${readingStatus}, then covering all` : `. ${readingStatus}`;
   }
 
   // A phone has room for the count alone; the full sentence stays for
@@ -93,7 +112,7 @@ export default function FindBar({
   const shortStatus = searching && hasMatches ? `${summary.position}/${summary.total}` : status;
 
   return (
-    <div className={styles['find-bar']} role="search" aria-label="Find and redact" data-redact-find-bar>
+    <div className={styles['find-bar']} role="search" aria-label="Find and cover" data-redact-find-bar>
       <div className={styles.field}>
         <Search size={16} aria-hidden="true" className={styles['field-icon']} />
         {preset ? (
@@ -113,6 +132,7 @@ export default function FindBar({
           placeholder={preset ? '' : 'Find text to redact'}
           aria-label="Find text to redact"
           onInput={(event) => {
+            setQueued(false);
             if (preset) onPresetChange(null);
             onTermChange((event.target as HTMLInputElement).value);
           }}
@@ -122,10 +142,10 @@ export default function FindBar({
           data-redact-find-input
         />
         <ToolbarMenu
-          title="Find a kind of detail"
+          title="Kinds of detail"
           triggerClassName={styles['preset-trigger']}
           triggerAttrs={{ 'data-redact-find-presets': true }}
-          triggerContent={<><span>Find</span><ChevronDown size={14} aria-hidden="true" /></>}
+          triggerContent={<><span>Kinds</span><ChevronDown size={14} aria-hidden="true" /></>}
           items={(Object.keys(PRESET_LABELS) as PresetKey[]).map((key) => ({
             label: PRESET_LABELS[key],
             onSelect: () => { onPresetChange(key); inputRef.current?.focus(); },
@@ -148,7 +168,7 @@ export default function FindBar({
         </button>
       </div>
 
-      <div className={styles.segmented} role="group" aria-label="Redact matches with">
+      <div className={styles.segmented} role="group" aria-label="Cover with">
         {(['blackout', 'blur'] as const).map((style) => (
           <button
             key={style}
@@ -170,16 +190,20 @@ export default function FindBar({
           disabled={!hasMatches || summary.currentCovered}
           data-redact-find-this
         >
-          Redact this
+          Cover this
         </button>
         <button
           type="button"
           className={`${styles.action} ${styles.primary}`}
-          onClick={onRedactAll}
-          disabled={summary.open === 0}
+          onClick={() => {
+            if (isReading) setQueued((was) => !was);
+            else onRedactAll();
+          }}
+          aria-pressed={isReading ? queued : undefined}
+          disabled={isReading ? !searching : summary.open === 0}
           data-redact-find-all
         >
-          {summary.open > 0 ? `Redact all ${summary.open}` : 'Redact all'}
+          {!isReading && summary.open > 0 ? `Cover all ${summary.open}` : 'Cover all'}
         </button>
       </div>
 

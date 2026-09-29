@@ -8,6 +8,7 @@ import {
   CHECK_LEAD,
   CHECKING,
   COVER_IT,
+  COVER_IT_NOTE,
   findingText,
   NO_MATCH,
   NOTHING_COVERED,
@@ -77,6 +78,7 @@ export default function SavedFileCheck({
           ))}
         </ul>
       )}
+      {results.some(({ findings }) => findings.some(canCover)) && <p className={styles.note}>{COVER_IT_NOTE}</p>}
       {pictures && <p className={styles.note}>{pictures}</p>}
       {attachments && <p className={styles.note}>{attachments}</p>}
       <form

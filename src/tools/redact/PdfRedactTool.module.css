@@ -13,10 +13,19 @@
   transition: opacity 0.15s ease;
 }
 
-.redact-box:hover .redact-box-resizer,
-.redact-box.active .redact-box-resizer {
+.redact-box.active .redact-box-resizer,
+.redact-box.selected .redact-box-resizer {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* RED-35: hover reveals handles for fine pointers only; on touch they show
+   when the box is selected (rule above). */
+@media (hover: hover) {
+  .redact-box:hover .redact-box-resizer {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Whiteout's border reads as a true erase at rest (transparent) and only
@@ -83,6 +92,16 @@
      the danger color, at low alpha, is the actual tint. */
   background: rgba(184, 76, 88, 0.1);
   border-color: var(--color-danger);
+}
+
+/* RED-35: no hover on touch, so with Delete armed every target wears a
+   lighter version of the hover outline, which makes "Tap outlined text or an
+   image" true. */
+@media (hover: none), (pointer: coarse) {
+  .delete-candidate {
+    background: color-mix(in srgb, var(--color-danger) 5%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  }
 }
 
 /* RED-13: the moment an object is deleted. A snapshot of it sits over the

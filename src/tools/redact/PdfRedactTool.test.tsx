@@ -150,7 +150,7 @@ describe('PdfRedactTool UI flow', () => {
     // this is the idle tip, not any tool's own copy.
     const header = query(container, `.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
-    expect(header.textContent).toContain('pick a tool to start');
+    expect(header.textContent).toContain('pick a tool');
     
     // Verify toolbar modes exist
     const toolbar = query(container, `.${toolbarStyles.toolbar}`);
@@ -158,15 +158,10 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
 
-    // Completion actions live below the document too. This matters on mobile,
-    // where the compact toolbar prioritizes editing tools and may hide its
-    // Download control when native sharing is available.
-    const exportActions = query(container, `.${workspaceStyles['export-actions']}`);
-    expect(exportActions).not.toBeNull();
-    const downloadButton = required(Array.from(exportActions.querySelectorAll<HTMLButtonElement>('button'))
-      .find((button) => button.textContent.trim() === 'Download'), 'Download button');
-    expect(downloadButton).not.toBeNull();
-    expect(downloadButton.disabled).toBe(true);
+    // RED-36: before anything is drawn, the finish row below the document is a
+    // sentence that says what to do, not a greyed Download (guideline §2).
+    expect(container.querySelector(`.${workspaceStyles['export-actions']}`)).toBeNull();
+    expect(container.textContent).toContain('Draw a box or delete something, then download it here.');
 
     // E9: ViewControl replaced FullscreenButton in this exact slot.
     const radiogroup = toolbar.querySelector('[role="radiogroup"]');
@@ -1376,7 +1371,7 @@ describe('PdfRedactTool UI flow', () => {
       const describedBy = required(deleteBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
       const hint = required(document.getElementById(describedBy), 'tool hint');
-      expect(hint.textContent).toContain('Click a highlighted image or text run to delete it');
+      expect(hint.textContent).toContain('Click highlighted text or an image to delete it');
       expect(hint.textContent).toContain('Double-click to keep Delete on');
     });
 
@@ -1459,11 +1454,11 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
-      expect(announcementRegion().textContent).toContain('Removed 1 box');
+      expect(announcementRegion().textContent).toContain('Removed the blackout box');
 
       const chip = statusSlot();
       expect(chip.querySelector(`.${redactStyles['undo-chip']}`)).not.toBeNull();
-      expect(chip.textContent).toContain('Removed 1 box');
+      expect(chip.textContent).toContain('Removed the blackout box');
       // The chip did not replace the stack: every tool's hidden reservation is
       // still there under it, holding the row's height, and the shell is told
       // the slot is live (that attribute is what hides the filename on a phone).
@@ -1477,7 +1472,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
-      expect(announcementRegion().textContent).toContain('Undid: Deleted');
+      expect(announcementRegion().textContent).toContain('Undid: Removed the blackout box');
     });
 
     it('announces and offers Undo when a page is cleared, and Undo restores every box', async () => {
@@ -1488,7 +1483,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
 
       const clearBtn = required(
-        container.querySelector<HTMLButtonElement>('button[title="Clear all redactions on this page"]'),
+        container.querySelector<HTMLButtonElement>('button[title="Clear every box on this page"]'),
         'Clear page button',
       );
       await act(async () => {
@@ -2496,7 +2491,7 @@ describe('PdfRedactTool UI flow', () => {
     it('shows no box count and the plain file name before any box exists', async () => {
       await loadFileWithoutArming(makePdfFile('secret.pdf'));
 
-      expect(container.querySelector(`.${redactStyles['export-count']}`)).toBeNull();
+      expect(container.querySelector('[data-redact-count]')).toBeNull();
       const name = query(container, `.${toolShellStyles.name}`);
       expect(name.textContent).toBe('secret.pdf');
     });
@@ -2505,13 +2500,13 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('1 box marked');
+      expect(query(container, '[data-redact-count]').textContent).toBe('1 box');
       expect(query(container, `.${toolShellStyles.name}`).textContent).toBe('redacted_secret.pdf');
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
 
-      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('2 boxes marked');
+      expect(query(container, '[data-redact-count]').textContent).toBe('2 boxes');
     });
   });
 
