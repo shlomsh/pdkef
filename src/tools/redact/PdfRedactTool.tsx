@@ -16,6 +16,7 @@ import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
+import usePeekAll from './usePeekAll.ts';
 import usePageHeightsPt from './usePageHeightsPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
@@ -218,6 +219,8 @@ export default function PdfRedactTool() {
   // color could be picked. Mirrors the Sign tool's activeElementId, which is click-set
   // and never cleared on mouseleave for the same reason.
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
+  // RED-31: hold Peek (or Space) to see under every box. View state only.
+  const { peekAll, setPeekAll } = usePeekAll();
 
   // Undo history mirrors the Sign tool's atomic add/delete/update commands
   // (see actionHistory.ts, useHistoryShortcuts.js). Add commands remove
@@ -1034,6 +1037,8 @@ export default function PdfRedactTool() {
             undoAction={undoAction}
             onUndoAction={runUndoChip}
             statusMessage={finishStatusText(finishFacts)}
+            peeking={peekAll}
+            onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}
             findOpen={find.open}
             onToggleFind={() => find.setOpen(!find.open)}
@@ -1087,8 +1092,8 @@ export default function PdfRedactTool() {
                   }}
                 >
                   <PdfPageCanvas
-                    pdfDocument={deleteTool.deletePreviews.get(i) ?? pdfDocument}
-                    pageNum={deleteTool.deletePreviews.has(i) ? 1 : i + 1}
+                    pdfDocument={(!peekAll && deleteTool.deletePreviews.get(i)) || pdfDocument}
+                    pageNum={!peekAll && deleteTool.deletePreviews.has(i) ? 1 : i + 1}
                     onViewportReady={handlePageViewportReady}
                   />
 
@@ -1126,6 +1131,7 @@ export default function PdfRedactTool() {
                         findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
                         onRemoveFindSet={() => removeLinked(el.id, 'findSet')}
                         pageHeightPoints={pageHeightsPt[el.pageIndex]}
+                        peekAll={peekAll}
                       />
                     );
                   })}

@@ -1,7 +1,7 @@
 ---
 id: "RED-31"
 title: "Press and hold to peek under a blur, a whiteout or a brush stroke"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -33,3 +33,14 @@ the export or the saved state.
 
 Peek is never a history entry and never changes `past` or `future`. Undo, redo or the undo chip used
 while a peek is held act normally, and the peek ends on release as usual.
+
+## Result
+
+- `usePressAndHold.ts` (`holdDecision`: 250ms, 3px slop) is called beside the box's drag hook; the peek is a
+  `data-peeking` attribute written straight to the DOM, hiding the cover (`.redact-surface-host`) and
+  leaving a dashed outline. Once a peek is on, moves are swallowed in the capture phase, so it never moves
+  the box. iOS callout and text selection are off on the box.
+- The Peek eye button (after Find) and Space (`usePeekAll.ts`, ignored while typing) set the island's
+  `peekAll`, passed to every box. While peeking, Delete's preview pages show the original page too.
+- Nothing is written to elements, history or the draft; a test checks an export taken while peeking passes
+  `redactPdf` the same boxes.
