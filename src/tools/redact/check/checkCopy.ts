@@ -22,7 +22,9 @@ export const SEARCH_LABEL = 'Look for something else in the saved file';
 
 export const SEARCH_BUTTON = 'Search';
 
-export const COVER_IT = 'Cover it';
+export const COVER_IT = 'Add a box over it';
+
+export const COVER_IT_NOTE = 'Adding a box covers it in your next download. Download again to get the new copy.';
 
 /** "3", "3 and 7", "2, 5 and 9", from zero-based indexes. */
 export function pageList(pages: readonly number[]): string {

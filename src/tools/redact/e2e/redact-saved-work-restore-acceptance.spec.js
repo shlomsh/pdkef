@@ -176,7 +176,7 @@ for (const restoreCase of RESTORE_CASES) {
     const pageCount = restored.getByText('77 pages', { exact: false });
     if (restoreCase.viewport.width < 560) await expect(pageCount).toHaveCount(1);
     else await expect(pageCount).toBeVisible();
-    await expect(restored.getByText('Tip: pick a tool to start. Delete takes an image or text run out of the file itself.', { exact: true })).toHaveCount(0);
+    await expect(restored.getByText('Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.', { exact: true })).toHaveCount(0);
 
     // More than the 700ms debounce: a restoration is not an edit, so neither
     // persistence state may appear and the stored work must be byte-for-byte

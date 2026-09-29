@@ -65,6 +65,7 @@
 }
 
 .chip-clear {
+  position: relative;
   display: inline-flex;
   padding: 0.2rem;
   color: inherit;
@@ -269,4 +270,22 @@
   .segment { padding: 0 0.6rem; }
   .actions { grid-area: actions; }
   .action { flex: 1 1 0; }
+}
+
+/* RED-38: 44px targets on touch. The chip's clear gets a halo so the chip
+   itself keeps its size; the rest simply grow. */
+@media (pointer: coarse) {
+  .chip-clear::before {
+    content: '';
+    position: absolute;
+    inset: -0.6rem;
+  }
+  .preset-trigger { min-height: 2.75rem; min-width: 2.75rem; }
+  .icon-button { width: 2.75rem; height: 2.75rem; }
+  .segment { min-height: 2.75rem; min-width: 2.75rem; }
+  .action { min-height: 2.75rem; }
+}
+
+@media (pointer: coarse) and (max-width: 719px) {
+  .find-bar { grid-template-columns: minmax(0, 1fr) auto auto 2.75rem; }
 }

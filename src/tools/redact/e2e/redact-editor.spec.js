@@ -709,7 +709,7 @@ test.describe('find and redact (RED-02)', () => {
 
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
-    await expect(page.locator('[data-redact-find-all]')).toHaveText('Redact all 4');
+    await expect(page.locator('[data-redact-find-all]')).toHaveText('Cover all 4');
   });
 
   // RED-11: the four boxes "Redact all" just added share one findSetId, so
@@ -933,7 +933,7 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     await expect(check).toBeVisible();
     const secretTerm = check.locator('[data-check-term="SECRET"]');
     await expect(secretTerm).toContainText('Page 1: still visible in the picture.');
-    const coverButton = secretTerm.getByRole('button', { name: 'Cover it' });
+    const coverButton = secretTerm.getByRole('button', { name: 'Add a box over it' });
     await expect(coverButton).toBeVisible();
 
     await coverButton.click();
