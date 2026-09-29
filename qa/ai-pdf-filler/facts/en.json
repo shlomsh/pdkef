@@ -2,8 +2,8 @@
   "form": "en",
   "fixtures": ["qa/ai-pdf-filler/fixtures/en-flat.pdf", "qa/ai-pdf-filler/fixtures/en-scan.pdf"],
   "synthetic": true,
-  "note": "All people, numbers, addresses and dates here are fictional. Two answers are deliberately absent (postcode, member_number) and one is deliberately contradictory (preferred_start): the tool must ask, never guess. The favourite-vegetable fact has no field on the form and must not appear anywhere on the page. The signature is never filled by the tool; the tester adds it.",
-  "factsText": "My name is Avery Quill and I was born on 4 March 1991.\nYou can reach me on 555-0142 or at avery.quill@example.org.\nI live at 14 Hollow Lane, Marlowe Vale.\nI would like the medium plot, and I would like to start on 1 March 2027. Actually, make that from mid-April instead.\nI do not need a raised bed, but I am happy to join the summer watering rota.\nMy favourite vegetable is the purple carrot.\nPlease sign it as of 2 October 2026.",
+  "note": "All people, numbers, addresses and dates here are fictional. Two answers are deliberately absent (postcode, member_number) and one is deliberately undecided between two dates (preferred_start): the tool must ask, never guess. The favourite-vegetable fact has no field on the form and must not appear anywhere on the page. The signature is never filled by the tool; the tester adds it.",
+  "factsText": "My name is Avery Quill and I was born on 4 March 1991.\nYou can reach me on 555-0142 or at avery.quill@example.org.\nI live at 14 Hollow Lane, Marlowe Vale.\nI would like the medium plot. I could start on 1 March 2027 or on 12 April 2027, I have not decided yet.\nI do not need a raised bed, but I am happy to join the summer watering rota.\nMy favourite vegetable is the purple carrot.\nPlease sign it as of 2 October 2026.",
   "facts": [
     { "key": "full_name", "value": "Avery Quill" },
     { "key": "date_of_birth", "value": "4 March 1991" },
@@ -13,7 +13,7 @@
     { "key": "city", "value": "Marlowe Vale" },
     { "key": "plot_size", "value": "medium" },
     { "key": "preferred_start", "value": "1 March 2027" },
-    { "key": "preferred_start", "value": "mid-April (stated later, contradicts the first)" },
+    { "key": "preferred_start", "value": "12 April 2027 (the person has not decided between the two)" },
     { "key": "needs_raised_bed", "value": "no" },
     { "key": "joins_watering_rota", "value": "yes" },
     { "key": "favourite_vegetable", "value": "purple carrot (distractor, no field)" },
@@ -31,11 +31,11 @@
     "plot_small": { "status": "leave-unchecked", "value": null, "why": "The medium plot was requested." },
     "plot_medium": { "status": "check", "value": null, "why": "The facts ask for the medium plot. Exactly one plot box is checked." },
     "plot_large": { "status": "leave-unchecked", "value": null, "why": "The medium plot was requested." },
-    "preferred_start": { "status": "conflict", "value": null, "why": "The facts say both '1 March 2027' and, later, 'actually from mid-April'. This must stay a question with both options shown." },
+    "preferred_start": { "status": "conflict", "value": null, "why": "The facts give two dates, '1 March 2027' or '12 April 2027', and say the choice is not made. This must stay a question with both options shown." },
     "needs_raised_bed": { "status": "leave-unchecked", "value": null, "why": "The facts say a raised bed is not needed." },
     "joins_watering_rota": { "status": "check", "value": null, "why": "The facts say the person is happy to join the watering rota." },
     "signature": { "status": "user-action", "value": null, "why": "Never filled by the tool. The person signs explicitly." },
-    "signed_date": { "status": "fill", "value": "02/10/2026", "why": "'Sign it as of 2 October 2026' written as DD/MM/YYYY." },
+    "signed_date": { "status": "fill", "value": "02/10/2026", "why": "'Sign it as of 2 October 2026'. The label names no format, so DD/MM/YYYY is preferred and any unambiguous spelling of that date is accepted.", "alsoAccept": ["2 October 2026", "2 Oct 2026"] },
     "office_received": { "status": "not-for-applicant", "value": null, "why": "Office-use field. It must stay empty." }
   }
 }

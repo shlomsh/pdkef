@@ -1,7 +1,8 @@
 /**
  * Writes the four AI-04 trial fixtures, their expected fields and review previews:
  *   node qa/ai-pdf-filler/generate.mjs   (any working directory)
- * The only module that does file I/O; everything it calls is a pure bytes/objects transform.
+ * The only module that writes files. lib/ modules return bytes/objects and only read fixed repo
+ * assets (fonts from public/fonts, pdf.js data from node_modules).
  * Outputs (deterministic): fixtures/<name>.pdf, expected/<name>.json, previews/<name>-expected.jpg.
  */
 import fs from 'node:fs';
@@ -48,4 +49,8 @@ async function generateVariant(variant) {
   for (const file of written) console.log(`  wrote ${file}`);
 }
 
+// lib/text.mjs imports Sign's .ts export helpers directly, which needs Node's built-in type stripping.
+if (!process.features.typescript) {
+  throw new Error(`generate.mjs needs Node >= 22.18 (type stripping); this is ${process.version}.`);
+}
 for (const variant of VARIANTS) await generateVariant(variant);

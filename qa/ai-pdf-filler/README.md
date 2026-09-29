@@ -24,16 +24,24 @@ nothing here measures it. Every person, number and organisation is fictional. Al
 node qa/ai-pdf-filler/generate.mjs
 ```
 
-The output is deterministic. It uses dependencies already in the repo: `@cantoo/pdf-lib`,
-`@pdf-lib/fontkit`, `bidi-js` (through `src/editor/text/bidiRuns.js`), and `pdfjs-dist` with
-`@napi-rs/canvas` for the scan raster. Fonts are Arimo (English) and Heebo (Hebrew) from `public/fonts`.
+Needs Node 22.18 or newer, because it imports Sign's `.ts` export helpers through Node's built-in
+type stripping; `generate.mjs` stops with a clear message on an older Node. With the locked
+dependency versions, two runs give byte-identical output. A different pdf.js or Skia build may change
+the scan bytes and the sha256 recorded in `expected/*.json`, so regenerate rather than hand-edit.
+
+It uses dependencies already in the repo, with no new ones: `@cantoo/pdf-lib`, `@pdf-lib/fontkit`,
+`bidi-js` (through `src/editor/text/bidiRuns.js`), and `pdfjs-dist` for the scan raster, with
+`@napi-rs/canvas`, which `pdfjs-dist` installs as its optional dependency. An install with
+`--omit=optional` cannot build the scans. Fonts are Arimo (English) and Heebo (Hebrew) from `public/fonts`.
 
 Text is drawn through Sign's own export code, imported read-only: `resolveBidiRuns`, `shapedWidth`
 and `drawShapedRun`. Nothing in `src/` is changed. One local addition: `lib/text.mjs` mirrors
 brackets inside right-to-left runs before shaping, because fontkit's RTL layout does not
 (Heebo's `(` is the same glyph in both directions). Without it, `(Email)` in a Hebrew line draws as
 `)Email(`. Sign's export takes the same path, so it very likely shows the same flip; that is
-reported to the team rather than fixed here.
+reported to the team rather than fixed here. A side effect: text extracted from `he-flat.pdf`
+(for example by pdf.js) shows those brackets swapped, as in `)יום/חודש/שנה(`, although the page
+draws them correctly.
 
 ## Coordinates
 
@@ -49,7 +57,8 @@ reported to the team rather than fixed here.
   Flat and scan rects are not interchangeable: the smallest flat-to-scan IoU is 0.32 (a checkbox),
   so score each fixture against its own `expected/<name>.json`.
 - A writable rect is the inside of a box, the checkbox square, or the space above the signature line.
-- The scans are image-only: one JPEG per page, no text layer, no AcroForm or widgets. The generator checks this.
+- The scans are image-only: one JPEG per page and nothing else. No text, no embedded fonts (the page's
+  font list is empty), no annotations (an empty list), no AcroForm or widgets. The generator checks this.
 
 ## Visual verification
 
@@ -64,3 +73,5 @@ Done on 2026-09-29 by rendering every fixture with pdf.js:
   operators, no annotations and no AcroForm. Flats have fonts and text, and no AcroForm.
 - The repo's `greedyMatch` scores each `expected/*.json` against itself as 17 of 17 at IoU 0.5.
 - Two runs, from different working directories, gave identical sha256 for every output.
+- A separate reviewer found the dark border pixels of every scan field in the rendered scans: all 34
+  `rectPx` rects match the drawn ink to within about 1 px.

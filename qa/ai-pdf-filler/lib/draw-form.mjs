@@ -1,5 +1,5 @@
 /**
- * forms.mjs layout -> flat (vector) PDF bytes. Pure: no file access. Rects from the layout are the
+ * forms.mjs layout -> flat (vector) PDF bytes. Writes nothing; reads fonts via text.mjs. Rects from the layout are the
  * contract and are drawn exactly; only label and heading text is positioned here.
  * Everything is a printed-form look: near-black and grey ink, no AcroForm, widgets or annotations.
  */
