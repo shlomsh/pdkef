@@ -57,6 +57,17 @@ test.describe('redact export actions on a phone', () => {
 
     // The completion row below the document is the reliable place to finish
     // either way, so it must never hide either control.
+    // The row only exists once there is something to download, so draw a box.
+    await page.getByRole('button', { name: 'Blackout', exact: true }).click();
+    const overlay = page.locator('.redact-draw-area').first();
+    await overlay.scrollIntoViewIfNeeded();
+    const area = await overlay.boundingBox();
+    if (!area) throw new Error('PDF redaction overlay has no bounding box');
+    await page.mouse.move(area.x + area.width * 0.3, area.y + area.height * 0.3);
+    await page.mouse.down();
+    await page.mouse.move(area.x + area.width * 0.6, area.y + area.height * 0.36, { steps: 6 });
+    await page.mouse.up();
+    await expect(page.locator('[class*="redact-box"]')).toHaveCount(1);
     const completionRow = page.locator('[class*="export-actions"]');
     await expect(completionRow).toBeVisible();
     const completionDownload = completionRow.getByRole('button', { name: 'Download', exact: true });

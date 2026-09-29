@@ -35,3 +35,13 @@
   min-width: 44px;
   margin-block: -14px;
 }
+
+/* One shared top: the column-labelled buttons are taller than the row-labelled
+   ones, and the shared toolbar centres, so the shorter controls sat a few px
+   lower. Stretch every control to the tallest, and let wrapped controls
+   (hint wrappers, dropdowns) stretch their button too. */
+@media (min-width: 920px) {
+  .bar.bar.bar { align-items: stretch; }
+  .bar.bar.bar > * { display: flex; flex-direction: column; }
+  .bar.bar.bar > * > button { flex: 1 1 auto; }
+}

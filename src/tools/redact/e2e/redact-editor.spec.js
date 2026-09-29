@@ -515,8 +515,15 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(resizerHit.width).toBeGreaterThanOrEqual(44);
     expect(resizerHit.height).toBeGreaterThanOrEqual(44);
 
-    const floatingButton = whiteout.locator('[data-editor-actions] button').first();
+    // The coarse-pointer box toolbar is portalled into a fixed bar on body.
+    const floatingButton = page.locator('[data-editor-actions] button').first();
     await expect(floatingButton).toBeVisible();
+    const actionBar = page.locator('[data-editor-actions]').first();
+    const barBox = await getBox(actionBar, 'Box action bar');
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    expect(Math.abs(barBox.y + barBox.height - viewportHeight), 'bar is fixed to the viewport bottom').toBeLessThanOrEqual(1);
+    const selectedBox = await getBox(whiteout, 'Selected box');
+    expect(selectedBox.y + selectedBox.height, 'bar does not overlap the selected box').toBeLessThanOrEqual(barBox.y + 1);
     const floatingVisual = await getBox(floatingButton, 'Floating toolbar button');
     const floatingHit = await insetHitSize(floatingButton);
     expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
@@ -561,7 +568,7 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     // `.redact-element-btn` - so it gets the same `.element-button::before`
     // 44px floor whiteout's toolbar buttons already got above, proven the
     // same way (visual stays ~28px, only the hit box grows).
-    const blackoutDelete = blackout.locator('[data-editor-actions] button[title="Delete element"]');
+    const blackoutDelete = page.locator('[data-editor-actions] button[title="Delete element"]');
     await expect(blackoutDelete).toBeVisible();
     const blackoutDeleteVisual = await getBox(blackoutDelete, 'Blackout toolbar delete button');
     expect(blackoutDeleteVisual.width, 'delete button visual should stay ~28px - only the hit box grows').toBeLessThan(32);
@@ -707,7 +714,8 @@ test.describe('find and redact (RED-02)', () => {
     await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages, 4 covered');
     await expect(page.locator('[data-redact-find-all]')).toBeDisabled();
 
-    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Covered 4 matches', { exact: true })).toBeVisible();
+    await page.locator('[role="toolbar"][aria-label="PDF redaction"]').getByRole('button', { name: 'Undo' }).click();
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
     await expect(page.locator('[data-redact-find-all]')).toHaveText('Cover all 4');
   });
@@ -841,7 +849,8 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const keepAfterDelete = await canvasRegionStats(pageCard, keepRatio);
     expect(keepAfterDelete.dark).toBeGreaterThan(keepBefore.dark * 0.8);
 
-    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Deleted text', { exact: true })).toBeVisible();
+    await page.locator('[role="toolbar"][aria-label="PDF redaction"]').getByRole('button', { name: 'Undo' }).click();
     await expect.poll(async () => (await canvasRegionStats(pageCard, secretRatio)).dark)
       .toBeGreaterThan(secretBefore.dark * 0.8);
   });

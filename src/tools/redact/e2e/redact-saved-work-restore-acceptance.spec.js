@@ -209,7 +209,7 @@ for (const restoreCase of RESTORE_CASES) {
       .getByRole('button', { name: 'Blackout', exact: true });
     await blackout.click();
     await expect(restored.locator('[data-tool-shell] [role="status"]')
-      .getByText('Click and drag on a page to draw a blackout box.', { exact: true })).toBeVisible();
+      .getByText('Click and drag to draw a blackout box.', { exact: true })).toBeVisible();
     // SIGN-27: the switch reads "Keep on" below 560px, "Keep Blackout on" above.
     await expect(restored.getByRole('switch', { name: /^Keep (Blackout )?on$/ })).toHaveAttribute('aria-checked', 'false');
 
