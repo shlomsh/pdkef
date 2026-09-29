@@ -1,0 +1,549 @@
+{
+ "form": "ai-pdf-filler-he-scan",
+ "synthetic": true,
+ "fixture": "qa/ai-pdf-filler/fixtures/he-scan.pdf",
+ "sha256": "f156d6a474645409a0f313ecc7ecf78386b4d87801bb48b68928b9ddf84246b5",
+ "language": "he",
+ "direction": "rtl",
+ "variant": "scan",
+ "pageIndex": 0,
+ "pageSize": {
+  "width": 595,
+  "height": 842
+ },
+ "units": "pt",
+ "render": {
+  "format": "jpeg",
+  "dpi": 150,
+  "pixelWidth": 1240,
+  "pixelHeight": 1754
+ },
+ "coordinates": {
+  "bounds": "Fractions 0..1 of page width/height, TOP-LEFT origin, y down (same as src/tools/sign/fields/corpus/scoring/ground-truth/*.json, so greedyMatch can score against it).",
+  "rectPt": "Page points (page is 595 x 842), TOP-LEFT origin, y down.",
+  "rectPdf": "PDF user space points, BOTTOM-LEFT origin: x, y = bottom edge, width, height.",
+  "rectPx": "Scan image pixels, TOP-LEFT origin: the bounding box of the rect's four transformed corners. rectPt, rectPdf and bounds are that same box mapped back to page units.",
+  "scan": {
+   "dpi": 150,
+   "pixelWidth": 1240,
+   "pixelHeight": 1754,
+   "rotateDeg": -0.5,
+   "rotationSign": "Positive rotateDeg turns the page clockwise as seen on screen (canvas rotate() in a y-down space), about the image centre, before offsetPx is added.",
+   "offsetPx": {
+    "x": -5,
+    "y": 3
+   },
+   "jpegQuality": 0.82,
+   "seed": 23,
+   "pointsTopLeftToPixels": [
+    2.083954,
+    -0.018186,
+    0.018179,
+    2.083056,
+    -12.629564,
+    8.443845
+   ]
+  }
+ },
+ "targets": [
+  {
+   "id": "full_name",
+   "kind": "text",
+   "label": "שם מלא",
+   "bounds": {
+    "x": 0.3736,
+    "y": 0.1868,
+    "width": 0.5381,
+    "height": 0.0294
+   },
+   "rectPt": {
+    "x": 222.31,
+    "y": 157.27,
+    "width": 320.18,
+    "height": 24.79
+   },
+   "rectPdf": {
+    "x": 222.31,
+    "y": 659.94,
+    "width": 320.18,
+    "height": 24.79
+   },
+   "rectPx": {
+    "x": 463.3,
+    "y": 327.62,
+    "width": 667.27,
+    "height": 51.65
+   }
+  },
+  {
+   "id": "id_number",
+   "kind": "comb",
+   "label": "מספר זהות",
+   "bounds": {
+    "x": 0.0728,
+    "y": 0.1903,
+    "width": 0.2726,
+    "height": 0.0278
+   },
+   "rectPt": {
+    "x": 43.32,
+    "y": 160.21,
+    "width": 162.19,
+    "height": 23.41
+   },
+   "rectPdf": {
+    "x": 43.32,
+    "y": 658.37,
+    "width": 162.19,
+    "height": 23.41
+   },
+   "rectPx": {
+    "x": 90.27,
+    "y": 333.75,
+    "width": 338,
+    "height": 48.77
+   },
+   "cells": 9
+  },
+  {
+   "id": "date_of_birth",
+   "kind": "date",
+   "label": "תאריך לידה (יום/חודש/שנה)",
+   "bounds": {
+    "x": 0.6601,
+    "y": 0.2485,
+    "width": 0.2524,
+    "height": 0.0277
+   },
+   "rectPt": {
+    "x": 392.76,
+    "y": 209.27,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPdf": {
+    "x": 392.76,
+    "y": 609.42,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPx": {
+    "x": 818.52,
+    "y": 435.94,
+    "width": 312.99,
+    "height": 48.56
+   }
+  },
+  {
+   "id": "phone",
+   "kind": "text",
+   "label": "טלפון נייד",
+   "bounds": {
+    "x": 0.3761,
+    "y": 0.2503,
+    "width": 0.2524,
+    "height": 0.0277
+   },
+   "rectPt": {
+    "x": 223.76,
+    "y": 210.75,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPdf": {
+    "x": 223.76,
+    "y": 607.95,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPx": {
+    "x": 466.33,
+    "y": 439.01,
+    "width": 312.99,
+    "height": 48.56
+   }
+  },
+  {
+   "id": "email",
+   "kind": "text",
+   "label": "דוא\"ל (Email)",
+   "bounds": {
+    "x": 0.0736,
+    "y": 0.2521,
+    "width": 0.2692,
+    "height": 0.0278
+   },
+   "rectPt": {
+    "x": 43.77,
+    "y": 212.23,
+    "width": 160.19,
+    "height": 23.4
+   },
+   "rectPdf": {
+    "x": 43.77,
+    "y": 606.37,
+    "width": 160.19,
+    "height": 23.4
+   },
+   "rectPx": {
+    "x": 91.22,
+    "y": 442.1,
+    "width": 333.83,
+    "height": 48.74
+   }
+  },
+  {
+   "id": "street_address",
+   "kind": "text",
+   "label": "רחוב ומספר בית",
+   "bounds": {
+    "x": 0.0743,
+    "y": 0.3103,
+    "width": 0.8389,
+    "height": 0.0313
+   },
+   "rectPt": {
+    "x": 44.22,
+    "y": 261.27,
+    "width": 499.17,
+    "height": 26.36
+   },
+   "rectPdf": {
+    "x": 44.22,
+    "y": 554.38,
+    "width": 499.17,
+    "height": 26.36
+   },
+   "rectPx": {
+    "x": 92.16,
+    "y": 544.26,
+    "width": 1040.29,
+    "height": 54.9
+   }
+  },
+  {
+   "id": "city",
+   "kind": "text",
+   "label": "יישוב",
+   "bounds": {
+    "x": 0.3759,
+    "y": 0.372,
+    "width": 0.5381,
+    "height": 0.0294
+   },
+   "rectPt": {
+    "x": 223.67,
+    "y": 313.27,
+    "width": 320.18,
+    "height": 24.79
+   },
+   "rectPdf": {
+    "x": 223.67,
+    "y": 503.94,
+    "width": 320.18,
+    "height": 24.79
+   },
+   "rectPx": {
+    "x": 466.14,
+    "y": 652.58,
+    "width": 667.27,
+    "height": 51.65
+   }
+  },
+  {
+   "id": "postcode",
+   "kind": "text",
+   "label": "מיקוד",
+   "bounds": {
+    "x": 0.0751,
+    "y": 0.3756,
+    "width": 0.2692,
+    "height": 0.0278
+   },
+   "rectPt": {
+    "x": 44.68,
+    "y": 316.23,
+    "width": 160.19,
+    "height": 23.4
+   },
+   "rectPdf": {
+    "x": 44.68,
+    "y": 502.38,
+    "width": 160.19,
+    "height": 23.4
+   },
+   "rectPx": {
+    "x": 93.11,
+    "y": 658.74,
+    "width": 333.83,
+    "height": 48.74
+   }
+  },
+  {
+   "id": "tier_adult",
+   "kind": "checkbox",
+   "label": "מבוגר/ת",
+   "bounds": {
+    "x": 0.895,
+    "y": 0.4908,
+    "width": 0.0203,
+    "height": 0.0144
+   },
+   "rectPt": {
+    "x": 532.53,
+    "y": 413.26,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPdf": {
+    "x": 532.53,
+    "y": 416.63,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPx": {
+    "x": 1109.81,
+    "y": 860.88,
+    "width": 25.23,
+    "height": 25.21
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "tier_student",
+   "kind": "checkbox",
+   "label": "סטודנט/ית",
+   "bounds": {
+    "x": 0.616,
+    "y": 0.4925,
+    "width": 0.0203,
+    "height": 0.0144
+   },
+   "rectPt": {
+    "x": 366.54,
+    "y": 414.71,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPdf": {
+    "x": 366.54,
+    "y": 415.18,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPx": {
+    "x": 763.88,
+    "y": 863.9,
+    "width": 25.23,
+    "height": 25.21
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "tier_senior",
+   "kind": "checkbox",
+   "label": "גמלאי/ת",
+   "bounds": {
+    "x": 0.337,
+    "y": 0.4943,
+    "width": 0.0203,
+    "height": 0.0144
+   },
+   "rectPt": {
+    "x": 200.54,
+    "y": 416.16,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPdf": {
+    "x": 200.54,
+    "y": 413.74,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPx": {
+    "x": 417.94,
+    "y": 866.92,
+    "width": 25.23,
+    "height": 25.21
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "membership_start",
+   "kind": "date",
+   "label": "תאריך תחילת המנוי",
+   "bounds": {
+    "x": 0.6638,
+    "y": 0.5478,
+    "width": 0.2524,
+    "height": 0.0277
+   },
+   "rectPt": {
+    "x": 394.95,
+    "y": 461.26,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPdf": {
+    "x": 394.95,
+    "y": 357.43,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPx": {
+    "x": 823.1,
+    "y": 960.87,
+    "width": 312.99,
+    "height": 48.56
+   }
+  },
+  {
+   "id": "wants_email_updates",
+   "kind": "checkbox",
+   "label": "אשמח לקבל עדכונים על אירועים בדוא\"ל",
+   "bounds": {
+    "x": 0.8964,
+    "y": 0.6001,
+    "width": 0.0203,
+    "height": 0.0144
+   },
+   "rectPt": {
+    "x": 533.33,
+    "y": 505.26,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPdf": {
+    "x": 533.33,
+    "y": 324.64,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPx": {
+    "x": 1111.48,
+    "y": 1052.52,
+    "width": 25.23,
+    "height": 25.21
+   }
+  },
+  {
+   "id": "wants_home_delivery",
+   "kind": "checkbox",
+   "label": "אני זקוק/ה למשלוח ספרים עד הבית",
+   "bounds": {
+    "x": 0.8967,
+    "y": 0.6286,
+    "width": 0.0203,
+    "height": 0.0144
+   },
+   "rectPt": {
+    "x": 533.54,
+    "y": 529.26,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPdf": {
+    "x": 533.54,
+    "y": 300.64,
+    "width": 12.1,
+    "height": 12.1
+   },
+   "rectPx": {
+    "x": 1111.92,
+    "y": 1102.52,
+    "width": 25.23,
+    "height": 25.21
+   }
+  },
+  {
+   "id": "signature",
+   "kind": "signature",
+   "label": "חתימה",
+   "bounds": {
+    "x": 0.4481,
+    "y": 0.7735,
+    "width": 0.4711,
+    "height": 0.0433
+   },
+   "rectPt": {
+    "x": 266.62,
+    "y": 651.25,
+    "width": 280.29,
+    "height": 36.44
+   },
+   "rectPdf": {
+    "x": 266.62,
+    "y": 154.3,
+    "width": 280.29,
+    "height": 36.44
+   },
+   "rectPx": {
+    "x": 555.64,
+    "y": 1356.65,
+    "width": 584.13,
+    "height": 75.92
+   },
+   "line": true
+  },
+  {
+   "id": "signed_date",
+   "kind": "date",
+   "label": "תאריך",
+   "bounds": {
+    "x": 0.0802,
+    "y": 0.7913,
+    "width": 0.2524,
+    "height": 0.0277
+   },
+   "rectPt": {
+    "x": 47.73,
+    "y": 666.3,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPdf": {
+    "x": 47.73,
+    "y": 152.39,
+    "width": 150.19,
+    "height": 23.31
+   },
+   "rectPx": {
+    "x": 99.47,
+    "y": 1387.99,
+    "width": 312.99,
+    "height": 48.56
+   }
+  },
+  {
+   "id": "office_received",
+   "kind": "text",
+   "label": "התקבל על ידי (משרד)",
+   "bounds": {
+    "x": 0.5304,
+    "y": 0.9066,
+    "width": 0.37,
+    "height": 0.026
+   },
+   "rectPt": {
+    "x": 315.59,
+    "y": 763.35,
+    "width": 220.17,
+    "height": 21.92
+   },
+   "rectPdf": {
+    "x": 315.59,
+    "y": 56.73,
+    "width": 220.17,
+    "height": 21.92
+   },
+   "rectPx": {
+    "x": 657.7,
+    "y": 1590.17,
+    "width": 458.83,
+    "height": 45.66
+   },
+   "officeUse": true
+  }
+ ]
+}

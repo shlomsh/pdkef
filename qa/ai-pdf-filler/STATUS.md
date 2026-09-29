@@ -9,21 +9,23 @@ here claims AI accuracy or a live integration.
 ## Plan
 
 - [x] Read CLAUDE.md, PRD, integration spike, AI-04
-- [x] Chose tooling: `@cantoo/pdf-lib` + `@pdf-lib/fontkit` (vector), `bidi-js` (Hebrew visual
-      order), `pdfjs-dist` in Playwright Chromium (rasterise for scans). No new dependencies.
 - [x] Layout contract `forms.mjs`: both forms, 17 fields each (text, date, comb, checkbox groups,
       signature line, one office-use field), rects in points, top-left origin
-- [ ] `generate.mjs` + `lib/` (in progress, subagent): one layout source -> flat PDF + image-only
-      scan PDF + expected-fields JSON + preview overlays. Reuses Sign's `resolveBidiRuns` and
-      `drawShapedRun` read-only; no change to `src/`
-- [ ] Four fixtures: en-flat, en-scan, he-flat, he-scan (single page, fictional facts)
-- [ ] `facts/*.json` + README + checklist (in progress, subagent): synthetic facts with
-      deliberately missing answers, one conflict, one distractor
-- [ ] Expected fields: label, kind, writable rect (PDF points, normalized top-left, scan pixels)
-- [ ] Verify scans are image-only (no text layer, no AcroForm/widgets)
-- [ ] Visual inspection of every fixture, especially Hebrew shaping and direction
-- [ ] `TRIAL-CHECKLIST.md`
+- [x] `generate.mjs` + `lib/`: flat PDF, image-only scan PDF, expected JSON, preview overlays.
+      Reuses Sign's `resolveBidiRuns`, `shapedWidth`, `drawShapedRun` read-only; `src/` unchanged
+- [x] Four fixtures: en-flat, en-scan, he-flat, he-scan (deterministic, sha256 in expected JSON)
+- [x] `facts/*.json`: facts text, deliberately missing answers, one conflict, one distractor
+- [x] Scans verified image-only (generator asserts it, and checked independently)
+- [x] Visual inspection, Hebrew crops at 3x (see README "Visual verification")
+- [x] `TRIAL-CHECKLIST.md`
+- [ ] Independent review (fresh subagent), then mark PR ready
+
+## Finding for the team
+
+fontkit's RTL `layout()` reverses glyphs but does not mirror brackets, and `drawShapedRun`
+passes RTL runs straight to it. Sign's export very likely draws `(Email)` inside Hebrew as
+`)Email(`. The fixtures work around it locally in `lib/text.mjs`; `src/` is not changed here.
 
 Draft PR: https://github.com/shlomsh/pdkef/pull/29
 
-Last updated: layout contract landed; generator and facts in progress.
+Last updated: all deliverables in; independent review running.
