@@ -704,7 +704,6 @@ _None._
 | RED-30 | P2 | [RED-30](backlog/tasks/RED-30.md) · Blur strength is a slider on the box, from vaguely readable to strong, medium by default |
 | RED-31 | P2 | [RED-31](backlog/tasks/RED-31.md) · Press and hold to peek under a blur, a whiteout or a brush stroke |
 | RED-32 | P2 | [RED-32](backlog/tasks/RED-32.md) · Blur and whiteout brushes: any size, any color, removed from the saved file like a box |
-| RED-33 | P2 | [RED-33](backlog/tasks/RED-33.md) · Delete by dragging a box: everything under it goes on release, one undo brings it back |
 
 ### In progress
 
@@ -731,6 +730,7 @@ _None._
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
 | RED-27 | P1 | [RED-27](backlog/tasks/RED-27.md) · Delete leaves nothing hidden behind: the link over what it removes, and the file's details |
 | RED-28 | P3 | [RED-28](backlog/tasks/RED-28.md) · A deleted object peels off like a sticker |
+| RED-33 | P2 | [RED-33](backlog/tasks/RED-33.md) · Delete by dragging a box: everything under it goes on release, one undo brings it back |
 | RED-34 | P1 | [RED-34](backlog/tasks/RED-34.md) · Redact toolbar you can read: words under every tool on touch and laptops, one icon per tool |
 | RED-35 | P1 | [RED-35](backlog/tasks/RED-35.md) · Redact on touch: a swipe scrolls, handles after a tap, Delete shows what it can take, controls in one bar |
 | RED-36 | P1 | [RED-36](backlog/tasks/RED-36.md) · Redact finishes like Merge: progress where you pressed, a done line with what was saved, then Compress it · Sign it |
