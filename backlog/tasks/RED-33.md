@@ -1,7 +1,7 @@
 ---
 id: "RED-33"
 title: "Delete by dragging a box: everything under it goes on release, one undo brings it back"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -40,3 +40,12 @@ dragging a box and deleting everything under it. Release deletes right away, wit
 
 Acceptance: drag-delete nine digits, hover-delete one more word, then use the chip from the first
 delete: the nine come back, the word stays deleted, and redo is empty.
+
+## Result
+
+Dragging past 5px in Delete draws a box (touch: press and hold 300ms first, so the page still scrolls).
+Targets with at least half their area inside light up live and go on release as one history entry
+("Deleted 9 pieces of text"), so Undo, Cmd/Ctrl+Z and the chip restore them together and Redo deletes
+them together. Pure logic is `deleteMarquee.ts`; the gesture is `DeleteMarquee.tsx` (DOM writes during
+the drag, one commit on release) and `useDeleteTool.markObjects`. Tests: `deleteMarquee.test.ts` and the
+drag/undo/redo flow in `PdfRedactTool.test.tsx`.
