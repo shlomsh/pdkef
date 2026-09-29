@@ -207,3 +207,9 @@ Every expensive failure here was an omission.
   its shaped position; never rasterise, and **never batch glyphs into a shared `showText` run**, which
   advances by `/W` and silently drifts wherever the shaper disagrees (checking against `hmtx` does not
   catch it).
+- **fontkit reverses an RTL run but never mirrors it.** `layout(..., 'rtl')` painted `א(ב)` as `)ב(א`
+  (FONT-09). `layoutRun` in `src/editor/text/shapeRun.ts` swaps each Bidi_Mirrored character for its
+  `bidi-js` mirror first (when the font has it, as HarfBuzz does) and is the only path to `layout()` for
+  both `shapedWidth` and `drawShapedRun`. `/ActualText` keeps the typed characters, so pdftotext
+  extracts what was typed; pdf.js ignores ActualText and reads the swapped brackets back. The module is
+  export-only because `bidi-js` in `textMetrics.ts` cost /sign/ 5.3 KB brotli of eager JS.

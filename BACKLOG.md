@@ -77,7 +77,9 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| FONT-09 | P1 | [FONT-09](backlog/tasks/FONT-09.md) · RTL export mirrors paired punctuation (Bidi_Mirroring) |
 
 ### Blocked
 
