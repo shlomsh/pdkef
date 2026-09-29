@@ -220,6 +220,7 @@ export default function RedactBox({
       }}
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
+      data-redact-box-id={el.id}
       onMouseDown={handleDragPointerDown}
       onTouchStart={handleDragPointerDown}
       onMouseEnter={onHoverEnter}

@@ -206,7 +206,7 @@ export interface WhiteoutElement extends ElementBase, BoxGeometry {
 export interface BlackoutElement extends ElementBase, BoxGeometry { type: 'blackout'; }
 
 /** Blurred destructive-redaction box, flattened by redact.js on export.
- * `strength` picks the blur level (blurStrength.ts); absent means 'strong'. */
+ * `strength` picks the blur level (blurStrength.ts); absent means the default (0.4); a draft saved before RED-30 may still hold light|medium|strong, which blurStrength.ts resolves. */
 export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; strength?: BlurStrength; }
 
 /**

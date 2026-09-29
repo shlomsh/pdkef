@@ -185,9 +185,9 @@ export interface SignMessages {
   signatureColorTitle: string;
   whiteoutColorTitle: string;
   blurStrengthTitle: string;
-  blurStrengthLight: string;
-  blurStrengthMedium: string;
-  blurStrengthStrong: string;
+  blurStrengthLighter: string;
+  blurStrengthDefault: string;
+  blurStrengthStronger: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;
   /** RED-03: ElementToolbar.tsx's Redact-only "repeat on every page" button. */

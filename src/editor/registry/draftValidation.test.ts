@@ -8,6 +8,7 @@ import {
   validateDraftRecord,
   type DraftElement,
 } from './draftValidation.ts';
+import { applyHistoryEntries, revertHistoryEntries } from '../model/actionHistory.ts';
 
 const bytesOf = (length = 4) => new ArrayBuffer(length);
 
@@ -418,5 +419,57 @@ describe('dropUnsafeUpdates', () => {
     const result = dropUnsafeUpdates([goodText] as DraftElement[], [validUpdate, validAdd] as any, isDraftElement);
     expect(result).toEqual([validUpdate, validAdd]);
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('RED-30: blur strength migration', () => {
+  const blur = { id: 'blur-1', type: 'blur', pageIndex: 0, left: 1, top: 2, width: 30, height: 10 };
+
+  it('turns legacy strings into numbers in elements and history without adding or dropping entries', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION,
+      elements: [{ ...blur, strength: 'strong' }, { ...blur, id: 'blur-2' }],
+      extra: {
+        actionHistory: [{
+          id: 'h1', type: 'UPDATE_ELEMENT', operation: 'update', pageIndex: 0, description: 'x', timestamp: 1,
+          updates: [{ id: 'blur-1', before: { strength: 'light' }, after: { strength: 'strong' } }],
+        }, {
+          id: 'h2', type: 'DELETE_ELEMENT', operation: 'delete', pageIndex: 0, description: 'y', timestamp: 2,
+          elements: [{ element: { ...blur, id: 'gone', strength: 'medium' }, index: 0 }],
+        }],
+      },
+    };
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    expect(migrated.elements[0].strength).toBe(0.5);
+    expect('strength' in migrated.elements[1]).toBe(false);
+    expect(migrated.extra.actionHistory).toHaveLength(2);
+    expect(migrated.extra.actionHistory[0].updates[0]).toEqual({ id: 'blur-1', before: { strength: 0.3 }, after: { strength: 0.5 } });
+    expect(migrated.extra.actionHistory[1].elements[0].element.strength).toBe(0.4);
+    // Idempotent.
+    expect(migrateDraftRecord(migrated)).toEqual(migrated);
+  });
+
+  it('accepts both a legacy string and a number as a valid blur element', () => {
+    expect(isDraftElement({ ...blur, strength: 'strong' })).toBe(true);
+    expect(isDraftElement({ ...blur, strength: 0.15 })).toBe(true);
+    expect(isDraftElement({ ...blur, strength: 'bogus' })).toBe(false);
+  });
+
+  it('an old draft with strong in its history undoes and redoes to 0.5 (and back to the original 0.3)', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: 2,
+      elements: [{ ...blur, strength: 'strong' }],
+      extra: { actionHistory: [{
+        id: 'h1', type: 'UPDATE_ELEMENT', operation: 'update', pageIndex: 0, description: 'x', timestamp: 1,
+        updates: [{ id: 'blur-1', before: { strength: 'light' }, after: { strength: 'strong' } }],
+      }] },
+    };
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    const [entry] = migrated.extra.actionHistory;
+    const live = migrated.elements as any[];
+    const undone = revertHistoryEntries(live, [entry]);
+    expect(undone[0].strength).toBe(0.3);
+    const redone = applyHistoryEntries(undone, [entry]);
+    expect(redone[0].strength).toBe(0.5);
   });
 });

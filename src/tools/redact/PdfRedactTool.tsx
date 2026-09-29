@@ -60,7 +60,7 @@ import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
-import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blurStrength.ts';
+import { DEFAULT_BLUR_STRENGTH, resolveBlurStrength, type BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -195,9 +195,9 @@ export default function PdfRedactTool() {
 
   useEffect(() => {
     const stored = getEditorPreference('lastBlurStrength');
-    if (stored) setActiveBlurStrength(stored);
+    if (stored) setActiveBlurStrength(resolveBlurStrength(stored));
     return subscribeToEditorPreference('lastBlurStrength', ({ value }) => {
-      if (value) setActiveBlurStrength(value);
+      if (value) setActiveBlurStrength(resolveBlurStrength(value));
     });
   }, []);
 

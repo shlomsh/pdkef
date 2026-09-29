@@ -6,6 +6,7 @@ import {
 import { MAX_HISTORY_DEPTH } from '../model/historyStack.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
+import { isBlurStrengthValue, resolveBlurStrength } from '../model/blurStrength.ts';
 import { isDateFormatId } from '../text/dateFormat.ts';
 // The version constant lives with the draft layer in src/lib/drafts/ (it is
 // stamped there); re-exported so the editor-side callers and tests keep one
@@ -60,6 +61,39 @@ export function isDraftElement(value: unknown): value is DraftElement {
 }
 
 /**
+ * RED-30: a blur `strength` saved as light|medium|strong becomes its number.
+ * Idempotent and applied to a record of any version: to the live elements and
+ * to every element or patch inside the persisted history (`before`, `after`,
+ * and add/delete snapshots), so undo and redo of a pre-slider entry restore
+ * the right blur. Nothing here touches history order or length.
+ */
+function legacyStrengthToNumber<T>(value: T): T {
+  if (!isRecord(value) || typeof value.strength !== 'string' || !isBlurStrengthValue(value.strength)) return value;
+  return { ...value, strength: resolveBlurStrength(value.strength) };
+}
+
+export function migrateBlurStrengths(record: Record<string, unknown>): Record<string, unknown> {
+  const elements = Array.isArray(record.elements) ? record.elements.map(legacyStrengthToNumber) : record.elements;
+  let extra = record.extra;
+  if (isRecord(extra) && Array.isArray(extra.actionHistory)) {
+    const actionHistory = extra.actionHistory.map((entry) => {
+      if (!isRecord(entry)) return entry;
+      const updates = Array.isArray(entry.updates)
+        ? entry.updates.map((update) => (isRecord(update)
+          ? { ...update, before: legacyStrengthToNumber(update.before), after: legacyStrengthToNumber(update.after) }
+          : update))
+        : entry.updates;
+      const captured = Array.isArray(entry.elements)
+        ? entry.elements.map((item) => (isRecord(item) ? { ...item, element: legacyStrengthToNumber(item.element) } : item))
+        : entry.elements;
+      return { ...entry, ...(updates !== undefined ? { updates } : {}), ...(captured !== undefined ? { elements: captured } : {}) };
+    });
+    extra = { ...extra, actionHistory };
+  }
+  return { ...record, ...(elements !== undefined ? { elements } : {}), ...(extra !== undefined ? { extra } : {}) };
+}
+
+/**
  * Version-to-version step function. Records written before this change (or
  * whose `schemaVersion` is behind the current one) pass through every step in
  * order; a record already at `DRAFT_SCHEMA_VERSION` is returned unchanged.
@@ -110,7 +144,7 @@ export function migrateDraftRecord(record: unknown): unknown {
     migrated = { ...migrated, extra: { ...migrated.extra, actionHistory } };
   }
 
-  return { ...migrated, schemaVersion: DRAFT_SCHEMA_VERSION };
+  return { ...migrateBlurStrengths(migrated), schemaVersion: DRAFT_SCHEMA_VERSION };
 }
 
 /**
