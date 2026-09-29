@@ -1,0 +1,40 @@
+{
+  "form": "he",
+  "fixtures": ["qa/ai-pdf-filler/fixtures/he-flat.pdf", "qa/ai-pdf-filler/fixtures/he-scan.pdf"],
+  "synthetic": true,
+  "note": "All people, numbers, addresses and dates here are fictional, and the 9-digit ID number is clearly synthetic. Two answers are deliberately absent (phone, postcode): the tool must ask, never guess. The favourite-colour fact has no field on the form and must not appear anywhere on the page. The email address is Latin text inside a right-to-left form and the street line mixes Hebrew letters with digits, to test mixed direction. The signature is never filled by the tool; the tester adds it. This form has no deliberate conflict.",
+  "factsText": "שמי נועה ברקן, נולדתי ב-17 בנובמבר 1998.\nמספר הזהות שלי הוא 000000018.\nהדוא\"ל שלי noa.barkan@example.com.\nאני גרה ברחוב האלון 12, גבעת הדובדבן.\nאני סטודנטית, ואני רוצה להתחיל את המנוי ב-1 בדצמבר 2026.\nאשמח לקבל עדכונים על אירועים בדוא\"ל, ואין לי צורך במשלוח ספרים עד הבית.\nהצבע האהוב עליי הוא תכלת.\nאת תאריך החתימה אפשר לכתוב 3 באוקטובר 2026.",
+  "facts": [
+    { "key": "full_name", "value": "נועה ברקן" },
+    { "key": "date_of_birth", "value": "17 בנובמבר 1998" },
+    { "key": "id_number", "value": "000000018" },
+    { "key": "email", "value": "noa.barkan@example.com" },
+    { "key": "street_address", "value": "רחוב האלון 12" },
+    { "key": "city", "value": "גבעת הדובדבן" },
+    { "key": "membership_tier", "value": "סטודנטית" },
+    { "key": "membership_start", "value": "1 בדצמבר 2026" },
+    { "key": "wants_email_updates", "value": "כן" },
+    { "key": "wants_home_delivery", "value": "לא" },
+    { "key": "favourite_colour", "value": "תכלת (distractor, no field)" },
+    { "key": "signed_date", "value": "3 באוקטובר 2026" }
+  ],
+  "expectedAnswers": {
+    "full_name": { "status": "fill", "value": "נועה ברקן", "why": "Stated in the first line." },
+    "id_number": { "status": "fill", "value": "000000018", "why": "Nine digits, one per comb cell, left to right within the cells. Synthetic number." },
+    "date_of_birth": { "status": "fill", "value": "17/11/1998", "why": "17 בנובמבר 1998 written as DD/MM/YYYY, as the label asks." },
+    "phone": { "status": "missing", "value": null, "why": "No phone number appears in the facts. The tool must ask, not invent one." },
+    "email": { "status": "fill", "value": "noa.barkan@example.com", "why": "Latin text, left to right, inside the right-to-left form." },
+    "street_address": { "status": "fill", "value": "האלון 12", "why": "Street name and house number. The label already says 'רחוב', so a leading 'רחוב' is also acceptable. Digits stay left to right after the Hebrew name." },
+    "city": { "status": "fill", "value": "גבעת הדובדבן", "why": "Town from the address line." },
+    "postcode": { "status": "missing", "value": null, "why": "No postcode appears in the facts. The tool must ask, not invent one." },
+    "tier_adult": { "status": "leave-unchecked", "value": null, "why": "The person is a student." },
+    "tier_student": { "status": "check", "value": null, "why": "The facts say student. Exactly one tier box is checked." },
+    "tier_senior": { "status": "leave-unchecked", "value": null, "why": "The person is a student." },
+    "membership_start": { "status": "fill", "value": "01/12/2026", "why": "1 בדצמבר 2026 written as DD/MM/YYYY." },
+    "wants_email_updates": { "status": "check", "value": null, "why": "The facts say yes to event updates by email." },
+    "wants_home_delivery": { "status": "leave-unchecked", "value": null, "why": "The facts say home delivery is not needed." },
+    "signature": { "status": "user-action", "value": null, "why": "Never filled by the tool. The person signs explicitly." },
+    "signed_date": { "status": "fill", "value": "03/10/2026", "why": "3 באוקטובר 2026 written as DD/MM/YYYY." },
+    "office_received": { "status": "not-for-applicant", "value": null, "why": "Office-use field. It must stay empty." }
+  }
+}
