@@ -405,6 +405,17 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | MOBI-34 | P3 | [MOBI-34](backlog/tasks/MOBI-34.md) · Field-to-field navigation reads the reviewed field map, not the raw detector output |
 
 
+## AI PDF Filler (Beta): fill and sign existing PDF forms (2026-09-29)
+
+| ID | Priority | Task |
+| --- | --- | --- |
+| AI-01 | P1 | [AI-01](backlog/tasks/AI-01.md) · Record the lean AI PDF Filler beta plan and naming evidence |
+| AI-02 | P1 | [AI-02](backlog/tasks/AI-02.md) · Explore the new ChatGPT connection with one live PDF-page request |
+| AI-03 | P1 | [AI-03](backlog/tasks/AI-03.md) · Build the complete PDF-to-filled-and-signed-PDF vertical slice |
+| AI-04 | P1 | [AI-04](backlog/tasks/AI-04.md) · Try four PDF forms and measure accuracy and correction effort |
+| AI-05 | P2 | [AI-05](backlog/tasks/AI-05.md) · Ship AI PDF Filler Beta through the proven supported flow |
+
+
 ## Sign, next generation: one editor for phone and desktop (2026-09-25)
 
 | ID | Priority | Task |
