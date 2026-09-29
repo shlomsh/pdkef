@@ -4,7 +4,8 @@ import { deleteObjectsFromPdf } from './deleteObjects.js';
 /**
  * Applies a Redact-tool session's elements to a PDF: `delete`-type elements
  * remove the underlying PDF object (vector-preserving), everything else
- * (blackout/blur/whiteout) redacts and flattens as `redactPdf` always has.
+ * (blackout/blur/whiteout boxes and the blur and whiteout brush
+ * strokes, which redactPdf counts as covering their page) redacts and flattens as `redactPdf` always has.
  *
  * The two run in sequence, deletions first, because they compose cleanly in
  * that order and not the reverse: `redactPdf` copies untouched pages

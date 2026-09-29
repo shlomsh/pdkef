@@ -1,0 +1,97 @@
+/* One line on a phone: the row scrolls sideways rather than wrapping, so it
+   never adds height to the sticky toolbar. Every target is 44px. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0.25rem 0.5rem;
+  scrollbar-width: none;
+}
+
+.segmented {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.seg {
+  min-height: 44px;
+  min-width: 56px;
+  padding: 0 0.85rem;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.seg.on {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.size {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.size input {
+  width: 8rem;
+  min-height: 44px;
+  accent-color: var(--color-primary);
+}
+
+.size output {
+  min-width: 1.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.colors {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.swatch,
+.pipette {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.swatch::before {
+  content: '';
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+
+.swatch.on::before {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.pipette.on {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-radius: var(--radius-md);
+}
