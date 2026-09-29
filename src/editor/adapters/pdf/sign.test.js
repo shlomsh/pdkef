@@ -663,6 +663,11 @@ describe('sign.js pure functions', () => {
       // Arabic: RTL, no niqud-style marks to reorder in this word, so both
       // extractors already agree with the typed text.
       { name: 'Arabic (مرحبا, Scheherazade New)', text: 'مرحبا', fontFamily: 'Scheherazade New', textDirection: 'rtl', pdfJsExpected: 'مرحبا' },
+      // FONT-09: an RTL run paints mirrored brackets, as the screen does.
+      // /ActualText keeps the typed ones, so pdftotext recovers exactly what
+      // was typed. pdf.js reads the ink's own codepoints and reverses them
+      // without mirroring back, so its brackets come out swapped.
+      { name: 'RTL brackets (א(ב), Heebo)', text: 'א(ב)', fontFamily: 'Heebo', textDirection: 'rtl', pdfJsExpected: 'א)ב(' },
     ];
 
     for (const testCase of corpus) {

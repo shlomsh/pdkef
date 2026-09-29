@@ -2,17 +2,18 @@
 // @pdf-lib/fontkit build needs this polyfill before any `layout()` call.
 import 'regenerator-runtime/runtime.js';
 import type { PDFFont } from '@cantoo/pdf-lib';
-import { composeHebrewClusters } from './hebrewComposition.js';
 import { findMissingGlyphs } from './textTransforms.js';
 
 export type BidiDirection = 'ltr' | 'rtl';
 
-type FontkitFont = {
+export type FontkitRun = {
+  glyphs: { id: number }[];
+  positions: { xAdvance: number; xOffset: number; yOffset: number }[];
+};
+
+export type FontkitFont = {
   unitsPerEm: number;
-  layout: (text: string, features?: undefined, script?: undefined, language?: undefined, direction?: BidiDirection) => {
-    glyphs: { id: number }[];
-    positions: { xAdvance: number; xOffset: number; yOffset: number }[];
-  };
+  layout: (text: string, features?: undefined, script?: undefined, language?: undefined, direction?: BidiDirection) => FontkitRun;
   hasGlyphForCodePoint: (codePoint: number) => boolean;
 };
 
@@ -29,13 +30,4 @@ export function unrepresentableCharacters(pdfFont: PDFFont | null, text: string)
   const fk = fontkitFont(pdfFont);
   if (!fk) return [];
   return findMissingGlyphs(text, (cp: number) => fk.hasGlyphForCodePoint(cp));
-}
-
-/** Returns shaped width in points, or null when the fontkit handle is absent. */
-export function shapedWidth(pdfFont: PDFFont | null, text: string, size: number, direction?: BidiDirection): number | null {
-  const fk = fontkitFont(pdfFont);
-  if (!fk) return null;
-  const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
-  const { positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
-  return positions.reduce((sum, p) => sum + p.xAdvance, 0) * size / fk.unitsPerEm;
 }
