@@ -338,3 +338,114 @@ describe('redactPdf: a covered page saves with no text layer', () => {
     expect(details.pageTexts[0]).toBe('11');
   });
 });
+
+// RED-32: brush strokes. A page with a stroke is a covered page (saved as one
+// picture, no text layer), a whiteout stroke is painted with the solids in its
+// own colour at the brush diameter, and a blur stroke blurs the post-solids
+// snapshot clipped to the stroke.
+describe('redactPdf: brush strokes', () => {
+  let originalToDataURL;
+  let originalGetContext;
+  let calls;
+  let appliedFilters;
+
+  beforeAll(() => {
+    originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
+      calls.push({ canvas: this, op: 'encode' });
+      return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
+    };
+    HTMLCanvasElement.prototype.getContext = function getContext() {
+      const canvasEl = this;
+      const state = { canvas: canvasEl, fillStyle: '', strokeStyle: '', lineWidth: 1, lineCap: 'butt', lineJoin: 'miter' };
+      return new Proxy(state, {
+        get(t, p) {
+          if (p in t) return t[p];
+          if (p === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+          return (...args) => {
+            calls.push({ canvas: canvasEl, op: String(p), args, strokeStyle: t.strokeStyle, fillStyle: t.fillStyle, lineWidth: t.lineWidth, lineCap: t.lineCap, lineJoin: t.lineJoin, composite: t.globalCompositeOperation });
+          };
+        },
+        set(t, p, v) {
+          t[p] = v;
+          if (p === 'filter' && v !== 'none') appliedFilters.push(v);
+          return true;
+        },
+      });
+    };
+  });
+
+  beforeEach(() => {
+    calls = [];
+    appliedFilters = [];
+  });
+
+  afterAll(() => {
+    HTMLCanvasElement.prototype.toDataURL = originalToDataURL;
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
+  });
+
+  const whiteoutStroke = (over = {}) => ({
+    id: 's1', type: 'whiteoutStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10,
+    points: [[20, 45], [40, 45]], sizePt: 20, color: '#dddddd', ...over,
+  });
+
+  it('saves a page carrying only a stroke as one picture with no text layer', async () => {
+    const { blob } = await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke()]);
+    const details = await getPdfDocDetails(blob);
+    expect(details.pageTexts).toEqual(['11', '12', '', '14', '15']);
+  });
+
+  it('paints a whiteout stroke across the page in its colour at the brush diameter, round-capped', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke()]);
+    const stroke = calls.find((c) => c.op === 'stroke');
+    // num-5.pdf renders at 500 x 500px (200 x 200pt, scale 2.5).
+    expect(stroke).toMatchObject({ strokeStyle: '#dddddd', lineWidth: 50, lineCap: 'round', lineJoin: 'round' });
+    const page = stroke.canvas;
+    const path = calls.filter((c) => c.canvas === page && (c.op === 'moveTo' || c.op === 'lineTo'));
+    expect(path.map((c) => [c.op, ...c.args])).toEqual([['moveTo', 100, 225], ['lineTo', 200, 225]]);
+  });
+
+  it('paints a tap as a disc of the brush diameter', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke({ points: [[50, 50]], sizePt: 10, left: 45, top: 45, width: 10, height: 10 })]);
+    const arc = calls.find((c) => c.op === 'arc');
+    expect(arc.args).toEqual([250, 250, 12.5, 0, Math.PI * 2]);
+    expect(arc.fillStyle).toBe('#dddddd');
+  });
+
+  it('paints a whiteout stroke again after a blur, so a solid always ends on top', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      whiteoutStroke(),
+      { id: 'b1', type: 'blur', pageIndex: 2, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+    const strokes = calls.filter((c) => c.op === 'stroke');
+    expect(strokes).toHaveLength(2);
+    const page = strokes[0].canvas;
+    const onPage = calls.filter((c) => c.canvas === page);
+    const lastDrawImage = onPage.map((c) => c.op).lastIndexOf('drawImage');
+    expect(onPage.indexOf(strokes[1])).toBeGreaterThan(lastDrawImage);
+  });
+
+  it('blurs a blur stroke at the rule applied to the brush diameter and clips it to the stroke', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      { id: 's2', type: 'blurStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10, points: [[20, 45], [40, 45]], sizePt: 40, strength: 'strong' },
+    ]);
+    // Diameter 40pt = 100px; strong 0.5 of max(diameter, 24pt) = 50px.
+    expect(appliedFilters).toEqual(['blur(50px)']);
+    const clip = calls.find((c) => c.op === 'stroke' && c.composite === 'destination-in');
+    expect(clip).toMatchObject({ lineWidth: 100, lineCap: 'round', lineJoin: 'round' });
+    // The piece is pasted at the stroke's bbox on the page canvas.
+    const page = calls.find((c) => c.op === 'encode').canvas;
+    const paste = calls.filter((c) => c.canvas === page && c.op === 'drawImage' && c.args.length === 3).pop();
+    expect(paste.args.slice(1)).toEqual([50, 200]);
+  });
+
+  it('gives a small blur stroke the 24pt-floor radius, like a small box', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      { id: 's3', type: 'blurStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10, points: [[20, 45], [40, 45]], sizePt: 8, strength: 'medium' },
+    ]);
+    // 8pt brush: medium radius = 0.4 x 24pt = 9.6pt = 24px.
+    expect(appliedFilters[0]).toMatch(/^blur\(24(\.\d+)?px\)$/);
+  });
+});

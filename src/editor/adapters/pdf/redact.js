@@ -5,6 +5,7 @@ import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
 import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
+import { strokeInPixels } from '../../model/strokeGeometry.ts';
 
 /**
  * Builds a blurred copy of one box's source region, opaque even where the
@@ -40,6 +41,53 @@ function buildBoxBlur(original, x, y, w, h, radius) {
 }
 
 /**
+ * Traces a brush stroke on a 2D context: round caps and joins at the brush
+ * diameter, the same shape the screen draws (redactionSurface.ts). `dx`/`dy`
+ * shift the path, for painting into a piece canvas cut from the page. A
+ * stroke of one spot (or every point the same) is a filled disc, so a tap is
+ * a dot whatever the canvas implementation does with zero-length lines.
+ */
+function traceStroke(ctx, stroke, dx = 0, dy = 0) {
+  const { points, diameter } = stroke;
+  ctx.lineWidth = diameter;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const [fx, fy] = points[0];
+  if (points.every(([px, py]) => px === fx && py === fy)) {
+    ctx.beginPath();
+    ctx.arc(fx + dx, fy + dy, diameter / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(fx + dx, fy + dy);
+  for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i][0] + dx, points[i][1] + dy);
+  ctx.stroke();
+}
+
+/**
+ * Builds a stroke's blur: the blurred source clipped to the stroke shape, in
+ * a piece canvas the size of the stroke's bbox. The radius is the blur rule
+ * applied to the brush diameter, as on screen.
+ */
+function buildStrokeBlur(source, stroke, strength, scale) {
+  const { x, y, w, h } = stroke;
+  const radius = blurRadiusPx(strength, stroke.diameter, scale);
+  const { canvas: blurred, sx, sy } = buildBoxBlur(source, x, y, w, h, radius);
+  const piece = document.createElement('canvas');
+  piece.width = Math.max(1, Math.ceil(w));
+  piece.height = Math.max(1, Math.ceil(h));
+  const pctx = piece.getContext('2d');
+  pctx.drawImage(blurred, x - sx, y - sy, w, h, 0, 0, w, h);
+  // Keep the blurred pixels only where the brush passed.
+  pctx.globalCompositeOperation = 'destination-in';
+  pctx.fillStyle = '#000000';
+  pctx.strokeStyle = '#000000';
+  traceStroke(pctx, stroke, -x, -y);
+  return piece;
+}
+
+/**
  * Renders one covered page, paints its boxes, and returns the picture as JPEG
  * bytes with the page's geometry.
  */
@@ -65,8 +113,13 @@ async function flattenPage(pdfjsPage, pageElements) {
 
   const placed = instructions.filter(Boolean).map((instruction) => {
     const { element } = instruction;
+    // RED-32: a brush stroke carries its points; every other element is a box.
+    const stroke = Array.isArray(element.points)
+      ? strokeInPixels(element, viewport.width, viewport.height, scale)
+      : null;
     return {
       instruction,
+      stroke,
       x: (element.left / 100) * viewport.width,
       y: (element.top / 100) * viewport.height,
       w: (element.width / 100) * viewport.width,
@@ -76,9 +129,15 @@ async function flattenPage(pdfjsPage, pageElements) {
   const solids = placed.filter(({ instruction }) => instruction.kind !== 'blur');
   const blurs = placed.filter(({ instruction }) => instruction.kind === 'blur');
   const paintSolids = () => {
-    for (const { instruction, x, y, w, h } of solids) {
-      ctx.fillStyle = instruction.element.color || '#000000';
-      ctx.fillRect(x, y, w, h);
+    for (const { instruction, stroke, x, y, w, h } of solids) {
+      const color = instruction.element.color || '#000000';
+      ctx.fillStyle = color;
+      if (stroke) {
+        ctx.strokeStyle = color;
+        traceStroke(ctx, stroke);
+      } else {
+        ctx.fillRect(x, y, w, h);
+      }
     }
   };
 
@@ -97,7 +156,12 @@ async function flattenPage(pdfjsPage, pageElements) {
     source.width = canvas.width;
     source.height = canvas.height;
     source.getContext('2d').drawImage(canvas, 0, 0);
-    for (const { instruction, x, y, w, h } of blurs) {
+    for (const { instruction, stroke, x, y, w, h } of blurs) {
+      if (stroke) {
+        const piece = buildStrokeBlur(source, stroke, instruction.element.strength, scale);
+        ctx.drawImage(piece, x, y);
+        continue;
+      }
       const radius = blurRadiusPx(instruction.element.strength, h, scale);
       const { canvas: blurred, sx, sy } = buildBoxBlur(source, x, y, w, h, radius);
       ctx.drawImage(blurred, x - sx, y - sy, w, h, x, y, w, h);
@@ -131,8 +195,8 @@ async function assemble(sourceDoc, covered) {
 }
 
 /**
- * Applies redactions to a PDF. A page with a Blur, Blackout or Whiteout box is
- * saved as one picture with the boxes painted in, so nothing under a box
+ * Applies redactions to a PDF. A page with a Blur, Blackout or Whiteout box
+ * or brush stroke is saved as one picture with them painted in, so nothing under a box
  * survives, and with no text layer at all. Pages with no box are copied
  * losslessly.
  *

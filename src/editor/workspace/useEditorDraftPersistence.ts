@@ -19,8 +19,8 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
   fileBytes: ArrayBuffer | null;
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
-  /** Sign's document-carried style (SIGN-33); Redact never supplies it, and
-   * it stays entirely out of its own draft record. */
+  /** The document-carried style (SIGN-33). Sign's whole style; Redact carries
+   * only its brush mode and size (RED-32), and only once the person chose. */
   carried?: Partial<DocumentStyle> | null;
   status: string;
   /** Explicitly supplied by the editor's document baseline/revision contract. */
@@ -38,7 +38,7 @@ export interface UseEditorDraftPersistenceOptions<TElement extends HistoryElemen
 export interface EditorDraftInitialState<TElement extends HistoryElement> {
   elements: TElement[];
   actionHistory: ActionHistoryEntry<TElement>[];
-  /** Sign only (SIGN-33); absent for Redact and for a fresh pick. */
+  /** SIGN-33 (Sign) and RED-32 (Redact's brush); absent for a fresh pick. */
   carried?: Partial<DocumentStyle>;
 }
 
@@ -69,8 +69,7 @@ export function useEditorDraftPersistence<TElement extends HistoryElement>({
   // `extra` participates in the autosave revision. Keep its identity tied to
   // actual history/carried-value changes, otherwise a save-state rerender
   // would look like a new edit and schedule another write forever. Redact
-  // never passes `carried`, so it stays undefined and out of its own draft
-  // record.
+  // passes `carried` only after an explicit brush choice.
   const extra = useMemo(
     () => ({
       actionHistory,

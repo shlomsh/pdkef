@@ -65,6 +65,7 @@ export default function RedactBox({
   onRemoveGroup,
   findSetSize,
   onRemoveFindSet,
+  pageWidthPoints,
   pageHeightPoints,
   peekAll = false,
 }: {
@@ -92,6 +93,7 @@ export default function RedactBox({
   findSetSize?: number;
   onRemoveFindSet?: () => void;
   /** RED-24: the page's height in points, for the blur box's on-screen radius. */
+  pageWidthPoints?: number;
   pageHeightPoints?: number;
   /** RED-31: view state only - every box shows what is under it. */
   peekAll?: boolean;
@@ -178,13 +180,21 @@ export default function RedactBox({
   // `.redact-element-btn` guard was the one piece of Redact-specific logic
   // that survived the convergence onto the shared hook; it went away with
   // the inline button it protected).
-  const isWhiteout = el.type === 'whiteout';
-  const hasShapeHandles = true;
+  // RED-32: a painted stroke is a box to the outside world (select, delete,
+  // recolour) with no resize handles and no drag: moving the bbox would leave
+  // its points behind. The floating toolbar sees it as the box type that has
+  // the same controls (whiteout colour, blur strength).
+  const isStroke = el.type === 'blurStroke' || el.type === 'whiteoutStroke';
+  const isWhiteout = el.type === 'whiteout' || el.type === 'whiteoutStroke';
+  const hasShapeHandles = !isStroke;
+  const toolbarElement = el.type === 'blurStroke'
+    ? { ...el, type: 'blur' }
+    : el.type === 'whiteoutStroke' ? { ...el, type: 'whiteout' } : el;
   const surface = ELEMENT_RENDERERS[el.type as ElementType]({
     element: el,
     onChange: () => {},
     onSelect: () => {},
-    pageWidthPoints: 0,
+    pageWidthPoints: pageWidthPoints ?? 0,
     pageHeightPoints,
     renderTarget: 'redact',
   });
@@ -205,7 +215,7 @@ export default function RedactBox({
 
   const toolbar = (
     <ElementToolbar
-      element={el}
+      element={toolbarElement}
       onChange={(changes: any) => {
         if (changes.color) onChangeColor(el.id, changes.color);
         if (changes.strength) onChangeStrength(el.id, changes.strength);
@@ -236,8 +246,8 @@ export default function RedactBox({
       data-editor-shape={hasShapeHandles || undefined}
       data-peeking={peekAll || undefined}
       data-redact-box-id={el.id}
-      onMouseDown={handlePress}
-      onTouchStart={handlePress}
+      onMouseDown={isStroke ? () => onSelect(el.id) : handlePress}
+      onTouchStart={isStroke ? undefined : handlePress}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       style={{
@@ -246,7 +256,7 @@ export default function RedactBox({
         top: `${el.top}%`,
         width: `${el.width}%`,
         height: `${el.height}%`,
-        cursor: 'move',
+        cursor: isStroke ? 'pointer' : 'move',
         // Unselected: native pan and pinch pass straight through (see
         // touchNeedsSelection above). Selected: one-finger drag is JS-owned,
         // two-finger pinch still belongs to the browser (MOBI-31).
@@ -260,7 +270,7 @@ export default function RedactBox({
       }}
     >
       <div className={styles['redact-surface-host']}>{surface}</div>
-      {hasShapeHandles ? (
+      {isStroke ? null : hasShapeHandles ? (
         <ElementResizers
           element={el}
           isActive={isSelected}

@@ -34,6 +34,13 @@ const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
   blur:     { action: 'Click and drag to draw a blur box.',               actionTouch: 'Drag to draw a blur box.',                    button: 'Blur' },
 };
 
+// RED-32: the same tools armed as a brush. The brush stays on until Stop or
+// Esc, so the keep-on switch reads the same as for a locked box tool.
+const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = {
+  blur:     { action: 'Click and drag to paint a blur.',    actionTouch: 'Drag to paint a blur.',    button: 'Blur' },
+  whiteout: { action: 'Click and drag to paint whiteout.', actionTouch: 'Drag to paint whiteout.', button: 'Whiteout' },
+};
+
 const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
 
 export default function RedactToolbar({
@@ -57,6 +64,8 @@ export default function RedactToolbar({
   undoAction = null,
   onUndoAction,
   showWelcomeTip = true,
+  brushControls = null,
+  brushMode = false,
   findOpen = false,
   onToggleFind,
   findBar = null,
@@ -103,6 +112,10 @@ export default function RedactToolbar({
   /** RED-02: whether the find row is open, and the row itself. It renders
    * inside this sticky card, under the buttons, so it stays in reach while
    * the pages scroll. */
+  /** RED-32: the Box / Brush row for Blur and Whiteout, under the buttons. */
+  brushControls?: ComponentChildren;
+  /** Blur or Whiteout is armed as a brush: the status line says how to paint. */
+  brushMode?: boolean;
   findOpen?: boolean;
   onToggleFind?: () => void;
   findBar?: ComponentChildren;
@@ -151,7 +164,9 @@ export default function RedactToolbar({
   // Absent when no tool is armed, which is also what a tool missing from
   // TOOL_COPY looks like: the status line falls back to the idle tip rather
   // than rendering a half-built sentence.
-  const activeToolCopy = activeStyle ? TOOL_COPY[activeStyle] : null;
+  const activeToolCopy = activeStyle
+    ? (brushMode && (activeStyle === 'blur' || activeStyle === 'whiteout') ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
+    : null;
 
   const toolClass = (tool: RedactToolType) =>
     `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`;
@@ -170,7 +185,7 @@ export default function RedactToolbar({
           // QUAL-10: restored work is not a newcomer's first visit, so it gets
           // no tip; the empty idle row still holds the stack's reserved height.
           idle={showWelcomeTip ? 'Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.' : ''}
-          reserveCopies={Object.values(TOOL_COPY)}
+          reserveCopies={[...Object.values(TOOL_COPY), ...Object.values(BRUSH_COPY)]}
           // Finding #3: one slot, and the undo chip wins it - matching
           // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While
           // it is showing, the armed-tool hint is not lost, just deferred: it
@@ -342,6 +357,7 @@ export default function RedactToolbar({
         />
 
       </div>
+      {brushControls}
       {findBar}
     </ToolShell>
   );

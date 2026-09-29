@@ -17,6 +17,7 @@ import type { GestureControllerOptions } from '../../lib/gestures/controller.ts'
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
+import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -682,6 +683,64 @@ describe('PdfRedactTool UI flow', () => {
 
     expectLatestGestureToCommitOnce();
     expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
+  });
+
+  describe('RED-32 brushes', () => {
+    const brushSegment = (label: string) => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === label),
+      `${label} segment`,
+    );
+    async function armBrush(tool: string) {
+      await armTool(tool);
+      await act(async () => { brushSegment('Brush').click(); });
+    }
+    async function paint(drawArea: HTMLElement, points: [number, number][]) {
+      const layer = query(drawArea, '[data-brush-layer]');
+      layer.getBoundingClientRect = drawArea.getBoundingClientRect;
+      await act(async () => {
+        layer.dispatchEvent(new MouseEvent('mousedown', { clientX: points[0][0], clientY: points[0][1], bubbles: true, cancelable: true }));
+      });
+      for (const [x, y] of points.slice(1)) {
+        await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y })); });
+      }
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+
+    afterEach(() => localStorage.clear());
+
+    it('a stroke commits exactly one simplified element and the brush stays armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armBrush('Whiteout');
+      // 40 points 0.1px apart: far closer than the simplifier's step.
+      const points: [number, number][] = Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200]);
+      await paint(drawArea, points);
+
+      expectLatestGestureToCommitOnce();
+      const strokes = container.querySelectorAll(`.${REDACT_BOX}`);
+      expect(strokes).toHaveLength(1);
+      // Still armed for the next stroke, with the brush layer on the page.
+      expect(container.querySelector('[data-brush-layer]')).not.toBeNull();
+      await paint(drawArea, [[100, 300], [160, 320]]);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+
+    it('Escape disarms the brush', async () => {
+      await loadFileAndGetDrawArea();
+      await armBrush('Blur');
+      expect(container.querySelector('[data-brush-layer]')).not.toBeNull();
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+      expect(container.querySelector('[data-brush-layer]')).toBeNull();
+    });
+
+    it('remembers the mode and size for the next document', async () => {
+      await loadFileAndGetDrawArea();
+      await armBrush('Whiteout');
+      const size = query<HTMLInputElement>(container, '[data-brush-controls] input[type="range"]');
+      size.value = '30';
+      await act(async () => { size.dispatchEvent(new Event('input', { bubbles: true })); });
+      expect(getAppStyle()).toMatchObject({ brushMode: 'brush', brushSize: 30 });
+      expect(localStorage.getItem('pdf-toolkit:redact-brush:v1')).toBeNull();
+    });
   });
 
   it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
