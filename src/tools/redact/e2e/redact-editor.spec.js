@@ -333,10 +333,13 @@ test.describe('Redact editor browser guardrails', () => {
       // cqh resolves against the container's content box, inside its 1px border.
       const surfaceHeight = await blur.locator('.redact-surface').evaluate((el) => el.clientHeight);
 
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), the pre-levels blur.
+      // 0.4 is DEFAULT_BLUR_STRENGTH (RED-24), the pre-levels blur.
       expect(await readBlurPx()).toBeCloseTo(0.4 * surfaceHeight, 0);
-      await toolbar.locator('[data-editor-blur-strength-trigger]').click();
-      await page.locator('[data-editor-blur-strength="light"]').click();
+      await toolbar.locator('[data-editor-blur-strength-input]').evaluate((input) => {
+        input.value = '0.3';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
       expect(await readBlurPx()).toBeCloseTo(0.3 * surfaceHeight, 0);
     }
 
