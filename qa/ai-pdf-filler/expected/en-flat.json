@@ -1,0 +1,420 @@
+{
+ "form": "ai-pdf-filler-en-flat",
+ "synthetic": true,
+ "fixture": "qa/ai-pdf-filler/fixtures/en-flat.pdf",
+ "sha256": "5f553e52a8aea93439cb43a2f2a5b5c3d9c7e4a88ffd0c2ba76733fcde4187b5",
+ "language": "en",
+ "direction": "ltr",
+ "variant": "flat",
+ "pageIndex": 0,
+ "pageSize": {
+  "width": 595,
+  "height": 842
+ },
+ "units": "pt",
+ "render": null,
+ "coordinates": {
+  "bounds": "Fractions 0..1 of page width/height, TOP-LEFT origin, y down (same as src/tools/sign/fields/corpus/scoring/ground-truth/*.json, so greedyMatch can score against it).",
+  "rectPt": "Page points (page is 595 x 842), TOP-LEFT origin, y down.",
+  "rectPdf": "PDF user space points, BOTTOM-LEFT origin: x, y = bottom edge, width, height."
+ },
+ "targets": [
+  {
+   "id": "full_name",
+   "kind": "text",
+   "label": "Full name",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.1876,
+    "width": 0.5378,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 158,
+    "width": 320,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 662,
+    "width": 320,
+    "height": 22
+   }
+  },
+  {
+   "id": "member_number",
+   "kind": "comb",
+   "label": "Member number",
+   "bounds": {
+    "x": 0.6504,
+    "y": 0.1876,
+    "width": 0.2689,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 387,
+    "y": 158,
+    "width": 160,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 387,
+    "y": 662,
+    "width": 160,
+    "height": 22
+   },
+   "cells": 8
+  },
+  {
+   "id": "date_of_birth",
+   "kind": "date",
+   "label": "Date of birth (DD/MM/YYYY)",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.2494,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 210,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 610,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "phone",
+   "kind": "text",
+   "label": "Phone",
+   "bounds": {
+    "x": 0.3647,
+    "y": 0.2494,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 217,
+    "y": 210,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 217,
+    "y": 610,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "email",
+   "kind": "text",
+   "label": "Email",
+   "bounds": {
+    "x": 0.6504,
+    "y": 0.2494,
+    "width": 0.2689,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 387,
+    "y": 210,
+    "width": 160,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 387,
+    "y": 610,
+    "width": 160,
+    "height": 22
+   }
+  },
+  {
+   "id": "street_address",
+   "kind": "text",
+   "label": "Street address",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.3112,
+    "width": 0.8387,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 262,
+    "width": 499,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 558,
+    "width": 499,
+    "height": 22
+   }
+  },
+  {
+   "id": "city",
+   "kind": "text",
+   "label": "Town / city",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.3729,
+    "width": 0.5378,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 314,
+    "width": 320,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 506,
+    "width": 320,
+    "height": 22
+   }
+  },
+  {
+   "id": "postcode",
+   "kind": "text",
+   "label": "Postcode",
+   "bounds": {
+    "x": 0.6504,
+    "y": 0.3729,
+    "width": 0.2689,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 387,
+    "y": 314,
+    "width": 160,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 387,
+    "y": 506,
+    "width": 160,
+    "height": 22
+   }
+  },
+  {
+   "id": "plot_small",
+   "kind": "checkbox",
+   "label": "Small plot (2 x 3 m)",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "plot_size"
+  },
+  {
+   "id": "plot_medium",
+   "kind": "checkbox",
+   "label": "Medium plot (3 x 4 m)",
+   "bounds": {
+    "x": 0.3597,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 214,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 214,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "plot_size"
+  },
+  {
+   "id": "plot_large",
+   "kind": "checkbox",
+   "label": "Large plot (4 x 6 m)",
+   "bounds": {
+    "x": 0.6387,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 380,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 380,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "plot_size"
+  },
+  {
+   "id": "preferred_start",
+   "kind": "date",
+   "label": "Preferred start date",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.5487,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 462,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 358,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "needs_raised_bed",
+   "kind": "checkbox",
+   "label": "I need a raised bed for accessibility",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.601,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 506,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 324,
+    "width": 12,
+    "height": 12
+   }
+  },
+  {
+   "id": "joins_watering_rota",
+   "kind": "checkbox",
+   "label": "I would like to join the summer watering rota",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.6295,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 530,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 300,
+    "width": 12,
+    "height": 12
+   }
+  },
+  {
+   "id": "signature",
+   "kind": "signature",
+   "label": "Signature",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.7743,
+    "width": 0.4706,
+    "height": 0.0404
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 652,
+    "width": 280,
+    "height": 34
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 156,
+    "width": 280,
+    "height": 34
+   },
+   "line": true
+  },
+  {
+   "id": "signed_date",
+   "kind": "date",
+   "label": "Date",
+   "bounds": {
+    "x": 0.6672,
+    "y": 0.7886,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 397,
+    "y": 664,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 397,
+    "y": 156,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "office_received",
+   "kind": "text",
+   "label": "Received by (office)",
+   "bounds": {
+    "x": 0.1008,
+    "y": 0.9074,
+    "width": 0.3697,
+    "height": 0.0238
+   },
+   "rectPt": {
+    "x": 60,
+    "y": 764,
+    "width": 220,
+    "height": 20
+   },
+   "rectPdf": {
+    "x": 60,
+    "y": 58,
+    "width": 220,
+    "height": 20
+   },
+   "officeUse": true
+  }
+ ]
+}
