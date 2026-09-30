@@ -4,6 +4,7 @@ import {createPageGeometry, pagePercentToPdfPoint, pdfPointToPagePercent} from '
 import {captureAddedElement, createActionEntry} from '../../../editor/model/actionHistory.ts';
 import {reducer, type SignToolState} from '../components/SignToolContext.tsx';
 
+const measureText = (text: string, _font: string, size: number) => text.length * size / 2;
 const field = {id: 'name', label: 'Name', kind: 'text' as const, x: 100, y: 200, width: 300, height: 40, value: 'Example Person'};
 const geometry = createPageGeometry({cropBox: {x: 25, y: 35, width: 600, height: 800}, rotation: 90, userUnit: 2});
 describe('AI PDF proposal boundaries and editable placement', () => {
@@ -19,7 +20,7 @@ describe('AI PDF proposal boundaries and editable placement', () => {
     expect(() => validateAnalysis({fields:[...fields,{...field,id:'overflow'}],questions:[]},1000,1000)).toThrow();
   });
   it('places normal Hebrew as a spanned editable cell, preserving rotated/cropped viewport coordinates', () => {
-    const [element] = proposalElements([{...field,value: 'דוגמה ישראלי'}], {width: 1000,height: 1000}, 1, geometry);
+    const [element] = proposalElements([{...field,value: 'דוגמה ישראלי'}], {width: 1000,height: 1000}, 1, geometry, measureText);
     expect(element).toMatchObject({type:'text',pageIndex:1,left:10,minWidth:30,text:'דוגמה ישראלי'});
     expect(element).not.toHaveProperty('width');
     const raw = pagePercentToPdfPoint({x:10,y:20},geometry);
@@ -27,12 +28,12 @@ describe('AI PDF proposal boundaries and editable placement', () => {
   });
   it('only marks answered checkboxes, with ink fitted to the target square', () => {
     const input = {...field,kind:'checkbox' as const,width:20,height:20,value:'true'};
-    const [element] = proposalElements([input],{width:1000,height:1000},0,geometry);
+    const [element] = proposalElements([input],{width:1000,height:1000},0,geometry, measureText);
     expect(element).toMatchObject({type:'symbol',pageIndex:0,mark:'check'});
-    expect(proposalElements([{...input,value:null},{...input,value:'false'}],{width:1000,height:1000},0,geometry)).toEqual([]);
+    expect(proposalElements([{...input,value:null},{...input,value:'false'}],{width:1000,height:1000},0,geometry, measureText)).toEqual([]);
   });
   it('the existing history restores an entire AI batch with one undo and redo', () => {
-    const elements = proposalElements([field,{...field,id:'address',x:500}],{width:1000,height:1000},0,geometry);
+    const elements = proposalElements([field,{...field,id:'address',x:500}],{width:1000,height:1000},0,geometry, measureText);
     let state: SignToolState = {selectedTool:null,toolLocked:false,elements:[],activeElementId:null,editingElementId:null,actionHistory:[],redoHistory:[],documentRevision:0,carried:{},appStyle:{}};
     for (const element of elements) state = reducer(state,{type:'ADD_ELEMENT',payload:element});
     state = reducer(state,{type:'ADD_ACTION_HISTORY',payload:createActionEntry({operation:'add',type:'AI_FILL',pageIndex:0,description:'Applied AI answers',elements:elements.map((element,index) => captureAddedElement(element,index))})});
