@@ -5,12 +5,16 @@ import AiPdfFillerPanel from './AiPdfFillerPanel.tsx';
 import type {PdfEditorSession} from '../PdfSignTool.tsx';
 import {createPageGeometry} from '../../../editor/geometry/coords.ts';
 
+const measureMock = vi.hoisted(() => vi.fn());
+vi.mock('./measureProposalText.ts', () => ({measureProposalText: measureMock}));
+
 describe('AI requests cannot replace manual work', () => {
   let host: HTMLDivElement;
   let session: PdfEditorSession;
   let complete!: (response: Response) => void;
   let fetchMock: ReturnType<typeof vi.fn>;
   beforeEach(() => {
+    measureMock.mockReset().mockResolvedValue((text: string, _font: string, size: number) => text.length * size / 2);
     host = document.createElement('div'); document.body.appendChild(host);
     const page = {getViewport: ({scale}: {scale:number}) => ({width: 500 * scale,height: 700 * scale}), render: () => ({promise: Promise.resolve(),cancel: vi.fn()})};
     session = {pdfDocument: {getPage: async () => page} as never,pageSizes:[createPageGeometry({cropBox:{x:0,y:0,width:500,height:700}})],currentPageIndex:0,documentRevision:1,status:'editing',applyElements:vi.fn(() => true)};
@@ -58,4 +62,29 @@ describe('AI requests cannot replace manual work', () => {
     expect(button('Apply reviewed answers')).toBeUndefined();
     expect(session.applyElements).not.toHaveBeenCalled();
   });
+  it('waits for font measurement before applying and discards cancellation during that wait', async () => {
+    let ready!: (measure: (text: string, font: string, size: number) => number) => void;
+    measureMock.mockImplementation(() => new Promise(resolve => {ready = resolve;}));
+    await start(); await act(async () => reply());
+    await vi.waitFor(() => expect(button('Apply reviewed answers')).toBeDefined());
+    act(() => button('Apply reviewed answers').click());
+    expect(session.applyElements).not.toHaveBeenCalled();
+    act(() => button('Use manual mode').click());
+    await act(async () => ready(() => 20));
+    expect(session.applyElements).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('Manual mode.');
+  });
+  it('rejects a document edit while waiting for the resolved font', async () => {
+    let ready!: (measure: (text: string, font: string, size: number) => number) => void;
+    measureMock.mockImplementation(() => new Promise(resolve => {ready = resolve;}));
+    await start(); await act(async () => reply());
+    await vi.waitFor(() => expect(button('Apply reviewed answers')).toBeDefined());
+    act(() => button('Apply reviewed answers').click());
+    session = {...session, documentRevision: 2};
+    act(() => render(<AiPdfFillerPanel session={session} />, host));
+    await act(async () => ready(() => 20));
+    expect(session.applyElements).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('PDF changed.');
+  });
+
 });
