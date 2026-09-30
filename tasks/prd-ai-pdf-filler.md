@@ -1,156 +1,152 @@
 # PRD: AI PDF Filler (Beta)
 
-Date: 2026-09-29. Epic: **AI PDF Filler (Beta)**. Route: `/ai-pdf-filler/`.
-Status: lean implementation in progress; local auth runner and editor slice under construction. No live sign-in or inference proven.
+Date: 2026-09-30. Epic: **AI PDF Filler (Beta)**. Route: `/ai-pdf-filler/`.
+Status: revised user intent recorded; reusable AI detector migration is not implemented or live-tested.
 
 ## Goal
 
-Deliver a small, fully working vertical tool around the new Sign in with ChatGPT integration:
-open an existing PDF form → provide facts → AI proposes positioned answers →
-review/apply → correct manually → sign → download the filled PDF.
+Analyze an original form page once to obtain persistent semantic field metadata. AI acts as a
+smarter detector: it describes what each writing spot means and where it is. PDkef then fills,
+corrects, signs and exports locally using that map. Editing answers, supplying new facts,
+signing, exporting and reopening a cached form must not resubmit facts or the page to an LLM.
 
-An old scanned or unfillable PDF is the central case. English and Hebrew documents first;
-English UI. General web forms and website autofill are outside scope.
-The first milestone must use live OpenAI inference and produce a real usable PDF.
-Fixtures are development aids, not completion.
+Start with one selected page of an English or Hebrew scanned/flat PDF while preserving the
+whole PDF for ordinary editing and export. Do not build a profile system, chat, provider
+framework or an LLM answer matcher. Reuse the existing Sign editor and detector contracts.
 
-## First exploration: the new OpenAI integration
+## Current evidence and architectural correction
 
-Prove the smallest supported connection and one image-analysis request using the user's ChatGPT
-plan before building a broad feature. No maintainer-paid API tokens.
+The authorized local ChatGPT connection, model catalog and page-image inference work. The
+2026-09-30 trials used the earlier architecture: original page plus synthetic facts produced
+positioned proposed answers. Those provider results, corrections, scoring and exported PDFs
+remain historical evidence, not proof of a reusable metadata detector or of facts staying local.
+The prompt-only exclusions and AI text-width fit belong to that preceding answer path.
 
-Current official docs describe open-source/local apps with a loopback listener at 127.0.0.1;
-remotely hosted apps have a separate interest path. A static PWA cannot open that listener.
-Resolve that fit first. A Continue with ChatGPT identity button alone does not prove inference.
-[Overview](https://developers.openai.com/siwc/token-sharing-open-source),
-[registration](https://developers.openai.com/siwc/token-sharing-open-source/sign-in).
+AI-02 remains completed as the local connection exploration. AI-03 is reopened for this revised
+vertical slice. AI-04 must evaluate the new metadata-only path separately. Hosted eligibility
+remains the AI-05 rollout gate; local success does not establish hosted-browser support.
 
-The exploration should establish:
-- Supported sign-in, granted plan-usage scope, and account-specific available models.
-- One completed streamed request on a non-personal sample PDF page image.
-- A user-funded response containing fields, labels, bounds, and proposed values.
-- Whether the flow can run in hosted PDkef. If local-only, demonstrate locally and document that
-  limitation without silently committing the public product to a companion installer.
+## Small user stories
 
-This is the first executable milestone. A locally hosted experiment can teach us about the
-integration even if the hosted release path needs OpenAI approval. Local success does not prove
-a hosted-browser flow. No credential exchange has been run yet.
-See [dated integration findings](../docs/ai-pdf-filler-integration-spike.md).
+### US-001: Discover a selected page once
 
-## Smallest useful product
+As someone opening an old form, I want AI to identify its fields so I can fill them locally.
 
-1. Open a PDF in the existing editor. Initially analyze one selected page while preserving
-   the whole PDF for manual editing/export. Include a scanned example.
-2. Continue with ChatGPT through the proven connection path.
-3. Enter/paste facts such as name, address, ID, and date. Do not imply account-memory access.
-4. Click Fill with AI after a short disclosure of the page image/text and facts being sent.
-5. Preview proposed answers over the PDF, plus a short list of missing/conflicting answers.
-   Supply those answers and regenerate explicitly if needed.
-6. Review/apply proposals as ordinary editable text/check marks.
-7. Move, edit, delete, or add anything manually with Sign's controls; undo works.
-8. Add a signature explicitly and download through the existing PDF export engine.
+- Explicit **Analyze form page** sends the original selected page image and optional original
+  printed text/local detector rectangles. It sends no user answers, facts, annotations or signatures.
+- The result contains field metadata only; no answer `value` or accepted declaration.
+- Validate unique IDs, kind, finite bounded coordinates and the exact page/render geometry.
+- Show analyzing, cancellation, unavailable/error and stale-result states beside Analyze. A page/document change announces cancellation or stale-result rejection rather than silently clearing review; retain the existing bounded timeout and show its failure. Manual editing continues.
+- Verify the real beta UI in the available in-app browser; provider contract tests use mocks.
 
-The PDF stays central. One compact panel holds connection, facts, missing answers and Apply.
-A comprehensive field-map management screen and separate chat interface are later scope.
-Unsupported complex fields remain manually fillable and visibly unresolved.
-No automatic declarations, signing, or remote submission.
+### US-002: Reopen and reuse the page map locally
 
-## Acceptance stories
+As someone returning to the same form, I want its detected fields remembered without another call.
 
-### Working live form-to-PDF loop
+- Persist the validated map under the existing content-hashed document memory entry, per page.
+- Reopen uses the cache; changing answers or annotations does not invalidate original-page metadata.
+- Different PDF bytes, page/geometry identity or detector schema/source version cannot reuse a stale map.
+- Changing detector version makes reanalysis available explicitly, never silently calls the provider.
+- Unavailable IndexedDB leaves an in-memory map and a truthful non-persistence notice, not broken editing.
+- Verify reload, another PDF, rotated/cropped page, cancellation and late-response behavior in-browser.
 
-- A real supported ChatGPT-plan connection completes page-image inference.
-- One English and one Hebrew legacy/scanned PDF with synthetic facts can be filled, reviewed,
-  corrected, signed and exported end to end.
-- Proposed values come from supplied facts; missing/contradictory facts remain questions.
-- Exported answers land in the intended fields; Hebrew/mixed text retains correct shaping.
-- Browser verification demonstrates the complete loop, including opening the exported PDF.
+### US-003: Fill and finish from that map
 
-### Optional, correctable AI
+As someone completing a form, I want local editable answers in the right fields and a usable PDF.
 
-- Existing Sign remains available without OpenAI access; no provider initialization in its default path.
-- Manual mode in the beta preserves applied answers, signatures and undo through cancellation,
-  offline use, unavailable access and provider failure.
-- Late responses never overwrite manual edits. Analysis is explicit, not a background loop.
-- Invalid/out-of-page positions are rejected; missing personal facts are never invented.
-- Reuse existing session/draft persistence rather than designing another storage system.
-- Browser verification exercises correction, cancellation, failure and manual export.
+- Compact per-field inputs use stable field ID; printed label and section distinguish duplicate Name
+  fields such as Employee / Employer. Values remain local and editable.
+- Any saved fact-property association is an explicitly reviewed local `fieldId → factKey` binding;
+  the first slice can simply accept each field's value. Do not add a second LLM semantic matcher.
+- Local comb geometry supplies cell count/pitch/writable strip when available. Unmatched scan combs
+  and uncertain/unsupported fields remain marked for manual work, not ordinary text over multiple cells.
+- Checkbox answers are explicit local choices; office-only areas stay blank for officials. Signature
+  metadata describes a location only; the person adds any signature explicitly with Sign.
+- Reuse Sign placement, font/width fitting, undo, manual corrections, signature and PDF export.
+- One English and one Hebrew example complete metadata detection → local fill → correction →
+  explicit signature → reopened/rendered PDF; editing/refilling/export produces zero further AI calls.
 
-### Truthful standalone beta
+## Minimal contracts
 
-- Name/epic/Beta badge agree: AI PDF Filler (Beta), at /ai-pdf-filler/.
-- Connection/cloud disclosures reflect the supported distribution and eligibility actually proven.
-- No maintainer-paid inference or promise of free unlimited AI.
-- Cloud analysis is a scoped exception to local processing; adjust affected privacy/CSP promises
-  without changing ordinary tools' behavior.
-- A public beta requires the working live flow; a fixture experiment is not advertised as usable AI.
+`PageFieldMap` owns `schemaVersion`, `detectorVersion`, `sourceId` (original bytes hash), `pageIndex`,
+original `PageGeometry`, recorded image width/height/render transform, and `fields`.
+Coordinates persisted for editor use are top-left page percentages; provider image-pixel bounds
+are converted through the recorded full-page PDF.js viewport, including crop/rotation/UserUnit.
+Keep this recorded transform; do not guess an independent y-flip.
 
-## Reuse only the architecture needed now
+Each field has a locally stable `id` independent of its printed label, `label`, nullable `section`
+and `semanticRole`, `kind` drawn from existing `FieldKind`, and `bounds`. At minimum preserve
+text/date, checkbox, comb, signature and unknown/manual classification. `officeOnly` is a local
+fill restriction. Optional `format` is limited to observed date/number structure or explicit
+segmented cell count, not invented validation rules. Optional confidence is a model estimate,
+not calibrated probability or a placement guarantee; omit it in the first slice if unused.
+No user answer or credential is stored in the provider/map response.
 
-Use Sign's actual document/session model, preview, geometry, fonts, manual tools, signature UI,
-history and PDF export. Add a second product island inside the existing Sign module, with an
-optional compact AI panel/session seam. Keep the standalone route and default manual Sign
-experience separate. No editor fork, sibling-tool imports, or broad shared-editor extraction.
-Coordinate with Sign-next-gen rather than starting another redesign.
+A provider ID is unique within one response; install local IDs once and preserve them with the
+cached map and reviewed bindings. Labels are display data, never keys. Reanalysis must explicitly
+replace/reconcile a map rather than silently remap existing answers by duplicate labels.
 
-Keep OpenAI behind a small analyze-page function with a typed validated result. Core editor
-code has no provider imports. This leaves room for Claude and eventual integration into Sign
-without building a provider framework now.
+`CachedSemanticFieldSource` implements existing `FieldSource.detect → SourceRegions` from the
+validated local map. It never calls a provider. Keep semantic metadata in a sidecar keyed by stable
+ID: the existing region reconciler is geometric and does not itself preserve semantic identity.
+Ordinary Sign retains its existing default sources and no provider initialization.
 
-Use existing widget/vector detection when useful, and vision for scans and semantics.
-Start with the simplest working combination; add OCR/line refinement when observed errors justify
-it. Reuse FORM-02 vocabulary where available; FORM-02/06/07/09 completion is not a prerequisite
-for this live vertical experiment.
+## Geometry and persistence seam
 
-Map recorded render-image → viewport → PDF transforms, including rotation/crop handling.
-Do not guess a y-flip or treat proposal rectangles as editor text widths.
-Respect intrinsic text/comb layout and RTL anchors. Apply reviewed answers as ordinary elements,
-so correction uses the existing editor.
+Run local detection first and reuse its ink/widget rectangles. Match compatible same-page fields
+one-to-one; deterministic widget/comb geometry wins matched bounds, comb cells/boxed/writable geometry and
+checkbox squares. Preserve AI semantics beside that geometry. Ambiguous matches remain visibly
+manual rather than merging nearby repeated fields. Unmatched AI geometry remains provisional and
+correctable. Unknown/source precedence must not promote confidence into geometric truth.
 
-Keep credentials out of drafts/logs/analytics/exports. Bound request/result sizes, validate
-output, allow cancellation, and use supported provider request settings. These are necessary
-integration mechanics, not a broader enterprise-control programme.
+The first selected-page call can use one full original raster for scans. Digital forms can send
+original text and local rectangles with the raster initially when context is needed. Do not promise
+that the first call is faster or raster transmission is unnecessary before measuring; later reuse amortizes that call only when a valid cache exists; do not add tiling/OCR here.
 
-## Recall, precision and placement: a small learning set
+Reuse `draftStore.js`'s content-hashed workspace entry and the existing Sign draft's optional
+extra metadata, with schema validation and one writer. Do not call `saveDraft('sign', …)` from a
+second panel writer that could overwrite editor elements/history. Thread beta metadata through
+Sign's existing autosave/restore seam; avoid a new database, tool profile or service.
 
-Start with four non-personal forms: English/Hebrew × scanned/flat digital, including two scanned
-examples. Reuse existing scoring. Independently mark expected fields and record misses,
-false fields, wrong labels/values and displaced answers.
+Cache identity is original source hash + page index/geometry + detector schema/source version.
+Ordinary annotation revision guards local Apply but does not erase the original map. Late analysis
+must compare original document/page identity and the active request generation before installing;
+it may never overwrite another document's map or the person's local work.
 
-Report recall and precision separately with one-to-one same-page compatible-kind matching at
-IoU ≥0.5. Precision is undefined when there are no candidates. Measure answer placement separately:
-field-box IoU alone does not prove correct x/y.
+## Narrow implementation sequence and concrete files
 
-Track corrections and time to a usable exported PDF against manual filling on the same forms.
-The immediate question is whether this live tool saves effort and is easy to correct.
-Earlier 90% recall / 90% precision / 85% association targets are comparison points, not a mandatory
-broad-corpus programme before the first working experiment.
-Do not infer general accuracy from four examples.
+1. **Contract and provider:** add AI-owned `src/tools/sign/ai/fieldMap.ts` for validation, transform
+   and metadata types, plus the cached source adapter. Change `scripts/ai-pdf-filler/analysis.mjs`
+   and `server.mjs` to one detect-page contract accepting only original-page input, no facts.
+   Keep the existing OAuth/models/SSE boundary; mocked checks reject answer-bearing responses.
+2. **One source and cache seam:** extend optional beta session wiring in `PdfSignTool.tsx` with
+   original source identity/geometry, local regions and cached-map install/read access. Thread
+   validated optional metadata through the existing draft restore/save owner in
+   `useEditorDraftPersistence.ts` only where necessary. `useFormFieldRegions.ts` may accept an
+   optional cached source or additional validated regions; its default invocation is unchanged.
+   Adapt into existing `fields/fieldTypes.ts` / `detectFormFields.ts` interfaces rather than fork detection.
+3. **Local beta panel:** change `AiPdfFillerPanel.tsx` from Fill-with-AI/facts to Analyze-once and
+   local field inputs, grouped lightly by section. Adapt `proposals.ts` into map+local-value placement;
+   keep `measureProposalText.ts` fitting. No extensive field-map management screen.
+4. **Small proof:** after implementation and review, one explicitly authorized metadata-only call
+   and real local reuse/reload/fill/sign/export. Then the four-form AI-04 trial uses detection and
+   semantic-label association metrics separately from local answer placement/correction effort.
 
-First-release blockers: invented personal facts, wrong-page application, uneditable answers,
-broken export/RTL, lost manual work, unsupported auth/billing. Missed/uncertain fields stay visible
-and manually fillable. Publish the supported scope and observed limitations.
+First integrate one selected page and existing local cache before extending to batch pages.
+Contract/runner, session/cache and local panel can be delegated on disjoint files after root approves
+these interfaces; independent review and one verifier own the integrated browser/export proof.
 
-## Five tasks, one vertical deliverable
+## Success and release scope
 
-| Task | Deliverable |
-| --- | --- |
-| AI-01 | Lean plan, chosen name and Trends evidence; completed |
-| AI-02 | New OpenAI connection: real auth + one PDF-page image request; first priority |
-| AI-03 | Working PDF → positioned editable answers → correction → signature → export |
-| AI-04 | Four-form English/Hebrew trial, recall/precision/placement and correction results; fix critical failures |
-| AI-05 | Separate beta at /ai-pdf-filler/ using the proven distribution and claims |
+Success is one reusable page map: no facts in the provider request, stable duplicate-field identity,
+precise local geometry where present, cached reopen and changed local answers with zero repeated
+inference, correctable/signable real PDF export. Record time and call counts; do not assume savings.
 
-Canonical tasks: [BACKLOG](../BACKLOG.md). Build AI-03 as one usable slice rather than splitting
-it into infrastructure epics. Measure AI-04 against that slice, improve it, then release AI-05.
+AI-04 starts a new baseline for field recall/precision (one-to-one same-page compatible kind,
+IoU ≥0.5), semantics/section association, comb geometry, answer placement and correction effort.
+Signature detection is measured as metadata; signature creation remains human controlled.
+Four forms are learning evidence, not universal accuracy. Hosted release, distribution permissions,
+provider availability and cloud disclosures remain AI-05. No paid fallback, account memory access,
+background retries, comprehensive profiles, bulk inference or automatic declarations/submission.
 
-## Later, when the experiment earns it
-
-Saved profiles, supporting-document facts, multipage batch AI, extensive field-map editing,
-broad holdout/calibration programmes, Claude, and optional AI inside Sign.
-These are possibilities, not first-beta dependencies.
-
-SEO title: “AI PDF Form Filler (Beta) – Fill & Sign | PDkef.” H1: “Fill PDF forms with AI.”
-Copy targets existing/scanned/unfillable PDFs. [Trends evidence](../docs/ai-form-filler-seo.md)
-informs the chosen name; it does not establish keyword volume or ranking.
-
+[Canonical tasks](../BACKLOG.md) · [Integration and historical trial evidence](../docs/ai-pdf-filler-integration-spike.md)
