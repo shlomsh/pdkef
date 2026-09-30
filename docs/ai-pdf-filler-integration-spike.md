@@ -4,7 +4,8 @@ Date: 2026-09-30. Task: AI-02. Status: local in-memory runner and editor slice i
 mocked browser form-to-signed-PDF verification completed in English/Hebrew. Production build
 and focused regression checks pass. One authorized local account catalog and live synthetic
 page-image inference succeeded on 2026-09-30. Saved-result replay into the actual editor, correction, signature and reviewed exports
-also passed. Hosted compatibility and the broader live English/Hebrew trial remain pending.
+also passed. The four-form live English/Hebrew trial has now run with material fit/manual/time
+limitations recorded below; hosted compatibility remains unproven.
 
 ## What the first experiment must prove
 
@@ -324,3 +325,89 @@ open. No model call, authorization refresh, authenticated-runner restart or depl
 was performed for this review. Next step: use the integrated fixtures for the authorized
 four-form trial, recording supported-answer correctness and placement separately from
 detection and manual work.
+
+
+## Original four-form live trial, 2026-09-30 (fit follow-up pending)
+
+The integrated QA fixtures at app head `e0fa10601690dc5f5a559321358596367a2210bb`
+were analyzed exactly once each, after human reconnection, with ordinary `gpt-5.6-sol`.
+Original PDF.js page images were 1190 × 1684; supplied synthetic `factsText` was sent
+verbatim. All four requests completed HTTP 200; elapsed times were 54.789 s (en-flat),
+56.380 s (en-scan), 58.625 s (he-flat), and 62.449 s (he-scan). No silent retries,
+provider fallback, borrowed credentials or extra inference for replay were used.
+
+Criteria were pinned before calls: existing one-to-one compatible-kind/same-page
+`greedyMatch` at IoU ≥0.5, all 17 detection targets separate from 14 supported
+text/date/check answers. Every form matched 14/17 targets with 15 proposals: aggregate
+56/68 recall (82.35%) and 56/60 precision (93.33%). Each supported set matched 14/14,
+with nine correct filled/checked answers and five **detected** safe abstentions;
+none of those abstentions was an undetected target. No supported answer was wrong or
+invented. Explicit questions requested missing facts; English questions retained both
+conflicting dates. Printed-label meanings agreed. These are four synthetic forms from
+two templates with derived fixture truth, not general or independent accuracy validation.
+
+The missed detection targets were comb, signature and office-use; the comb was instead
+proposed as ordinary text (strict kind false positive). English comb proposals were null.
+Both Hebrew responses proposed the supplied ID `000000018` as unsupported ordinary text
+over the nine-cell comb. This is a material unsupported automatic proposal, not an
+invented fact. The replay tester explicitly cleared it in review (one correction per
+Hebrew form, two total); the product did **not** automatically suppress it. Raw responses
+and scores retain this issue. No office-use/signature answer or distractor was proposed.
+
+All four saved live responses were replayed through the actual shared editor, applied
+as nine supported elements, explicitly signed and exported/reopened/rendered with PDF.js.
+Signatures were added manually and moved to the signature lines. Zero CSP violations and
+page errors were recorded. English text/check placement fitted visually. Both Hebrew
+emails overflowed their printed field: 7.0215 pt (flat) and 7.0615 pt (scan), measured
+from actual exported text bounds, despite passing proposal-box IoU. Other Hebrew answers,
+RTL/final forms, mixed digits/email direction and check marks were visually reviewed.
+A narrow AI-only text-fit follow-up is under review; this original result is not rewritten
+as a fit success. Manual Hebrew comb entry remains unverified: no native comb slot was
+found and the fallback Text-tool harness click did not expose an active input. That
+harness failure does not establish product inability. Human correction-time/manual
+baseline and fully completed missing-fact/comb PDFs were not measured.
+
+Local non-sensitive evidence, deliberately outside git:
+`/private/tmp/ai-pdf-filler-trial/criteria.md`, `trial-summary.json`, `scores.json`,
+`*-response.json`, `*-request-report.json`, `*-score.json`, `*-replay-report.json`,
+`*-raw-proposals.png`, `*-applied.pdf/png`, `*-signed.pdf/png`, and the small
+`run.mjs`, `evaluate.mjs`, `replay.mjs` harnesses. Independent review recomputed the
+raw scores and confirmed both email overflows and unsupported comb proposals.
+AI-04 is in progress: trial measurement is performed, with fit/manual/time limitations
+and follow-ups recorded. AI-02/03 local milestones stay done; AI-05 hosted eligibility
+and public release stay open. The authenticated runner was not restarted for the trial.
+
+
+## AI-only text-fit follow-up verification, 2026-09-30
+
+After independent review of the narrow AI-only change, one production build passed and
+all four unchanged saved live responses were replayed into the rebuilt editor. No new
+provider request, OAuth flow or authenticated-runner restart occurred. Original raw
+trial evidence remains under `/private/tmp/ai-pdf-filler-trial/`; post-fix exports,
+rasters/replay reports and `fit-comparison.json` are separate under
+`/private/tmp/ai-pdf-filler-trial-fit/`.
+
+All four replays apply nine supported elements. PDF.js exported text bounds for all
+28 filled text answers fit their expected field rectangles (1 pt numerical tolerance,
+with raster review); the eight checked-box marks and four explicitly added/moved
+signatures were visually reviewed. Hebrew remains readable RTL with final forms and
+mixed digits/Latin, including scan offsets. Short names and English emails stay at
+14 pt. Hebrew flat email now uses 12.8699 pt at x=50.7175 with width=153.9985,
+right=204.7160 inside the field's right=208.0000 pt; scan uses 12.8281 pt at x=46.7070
+with width=153.4985, right=200.2055 inside right=203.9600 pt. The original roughly 7 pt
+email overflow is fixed in these actual exports without manually changing email font
+sizes. Baselines are recomputed through existing placement. Zero CSP violations and
+page errors were recorded. Two focused ordinary Sign browser regressions passed
+(drag undo/redo and desktop fill text geometry), in addition to the author's reported
+12 focused AI checks and typecheck. No shared Sign implementation was changed for fit.
+
+Raw detection/value scores remain unchanged; replays do not improve model accuracy.
+The two original unsupported Hebrew ID-comb text answers were still explicitly cleared
+by the tester before Apply, one review correction each. The runner source now asks
+models to leave segmented/comb and officials-only answers blank with an explanation,
+but that revised prompt is **not loaded into the existing authenticated process** and
+has not been proven by another live response. No automatic comb suppression is claimed.
+Manual comb entry and human correction-time/manual baseline remain unverified/unmeasured.
+AI-04 stays in progress for those literal acceptance items and prospective prompt
+validation; the four-form trial and scoped exported-email fit follow-up are performed.
+AI-02/03 local milestones remain done; AI-05 hosted eligibility/public release stays open.
