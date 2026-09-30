@@ -1,3 +1,4 @@
+import { streamFailureDetails } from './diagnostics.mjs';
 const error = message => { throw new Error(message); };
 const short = (s, max) => typeof s === 'string' && s.length <= max;
 
@@ -47,7 +48,13 @@ export async function readResponseStream(body, signal, trace = () => {}) {
         if (first) { first = false; trace('first_event'); }
         if (event.type === 'response.output_text.delta') text += event.delta ?? '';
         if (text.length > 300000) error('AI proposal exceeded the exploration limit.');
-        if (['error', 'response.failed', 'response.incomplete'].includes(event.type)) error('AI analysis did not complete. Try again or use manual mode.');
+        if (['error', 'response.failed', 'response.incomplete'].includes(event.type)) {
+          const details = streamFailureDetails(event);
+          trace('stream_failure', details);
+          if (details.incompleteReason === 'max_output_tokens') error('AI analysis reached the output limit. Use manual mode.');
+          if (details.upstreamCode === 'server_error') error('AI provider reported a server error. Use manual mode.');
+          error('AI analysis did not complete. Try again or use manual mode.');
+        }
         if (event.type === 'response.completed') {
           if (event.response?.status && event.response.status !== 'completed') error('AI analysis did not complete.');
           completed = true; trace('completed');

@@ -4,12 +4,19 @@ export const clientStages = new Set(['started', 'review_ready', 'applied', 'stal
 const codes = new Set(['auth_missing', 'image_limit', 'invalid_request', 'model_unavailable', 'upstream_unavailable', 'stream_failure', 'schema_failure', 'local_failure']);
 export function errorCode(error) {
   const message = error?.message;
+  if (message === 'AI provider reported a server error. Use manual mode.') return 'stream_failure';
   if (message === 'ChatGPT analysis unavailable. Check access/usage or use manual mode.') return 'upstream_unavailable';
   if (typeof message === 'string' && /^AI (stream|analysis|response|proposal)/.test(message)) return 'stream_failure';
   if (typeof message === 'string' && /^AI returned/.test(message)) return 'schema_failure';
   return 'local_failure';
 }
-export const stages = new Set(['accepted', 'upstream_headers', 'first_event', 'completed', 'schema_valid', 'schema_invalid', 'cancel', 'timeout', 'error']);
+export function streamFailureDetails(event) {
+  const eventType = ['error', 'response.failed', 'response.incomplete'].includes(event?.type) ? event.type : 'unknown';
+  const code = eventType === 'error' ? event?.code : event?.response?.error?.code;
+  const reason = event?.response?.incomplete_details?.reason;
+  return { eventType, upstreamCode: code === 'server_error' ? code : 'unknown', incompleteReason: reason === 'max_output_tokens' ? reason : 'unknown' };
+}
+export const stages = new Set(['accepted', 'upstream_headers', 'first_event', 'completed', 'schema_valid', 'schema_invalid', 'stream_failure', 'cancel', 'timeout', 'error']);
 export function createDiagnostics(path, maxBytes = 1048576) {
   let queue = Promise.resolve(), pending = 0;
   return (requestId, stage, details = {}) => {
@@ -17,6 +24,9 @@ export function createDiagnostics(path, maxBytes = 1048576) {
     if (pending >= 128) return Promise.resolve(); // Drop bursts instead of retaining unbounded work.
     pending++;
     const record = { time: new Date().toISOString(), requestId, stage };
+    if (['error', 'response.failed', 'response.incomplete', 'unknown'].includes(details.eventType)) record.eventType = details.eventType;
+    if (['server_error', 'unknown'].includes(details.upstreamCode)) record.upstreamCode = details.upstreamCode;
+    if (['max_output_tokens', 'unknown'].includes(details.incompleteReason)) record.incompleteReason = details.incompleteReason;
     if (codes.has(details.code)) record.code = details.code;
     if (details.source === 'client') record.source = 'client';
     for (const key of ['elapsedMs', 'status', 'fields', 'questions']) {
