@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PdfEditorSession } from '../PdfSignTool.tsx';
 import { proposalElements, validateAnalysis, type Analysis } from './proposals.ts';
+import { measureProposalText } from './measureProposalText.ts';
 import styles from './AiPdfFillerPanel.module.css';
 
 type Runner = { localRunner: true; connected: boolean; models: {slug: string; display_name: string}[] };
@@ -15,6 +16,9 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   const [review, setReview] = useState<Review | null>(null);
   const [notice, setNotice] = useState('Checking the local preview connection…');
   const request = useRef<AbortController | null>(null);
+  const applying = useRef<Review | null>(null);
+  const latestReview = useRef(review);
+  latestReview.current = review;
   const live = useRef(session);
   live.current = session;
 
@@ -36,9 +40,10 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   useEffect(() => {
     const controller = new AbortController();
     void checkConnection(controller.signal);
-    return () => {controller.abort(); request.current?.abort();};
+    return () => {applying.current = null; controller.abort(); request.current?.abort();};
   }, []);
   function invalidateAnalysis() {
+    applying.current = null;
     request.current?.abort(); request.current = null;
     setBusy(false); setReview(null);
   }
@@ -47,6 +52,7 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   }, [session.pdfDocument, session.currentPageIndex]);
 
   function useManual() {
+    applying.current = null;
     request.current?.abort(); request.current = null;
     setBusy(false); setReview(null); setManual(true);
     setNotice('Manual mode. All applied answers and signatures remain editable below.');
@@ -86,17 +92,32 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
       if (request.current === controller) {setBusy(false); request.current = null;}
     }
   }
-  function apply() {
-    if (!review) return;
-    const geometry = session.pageSizes[review.pageIndex];
+  async function apply() {
+    if (!review || busy) return;
+    const selected = review;
+    const started = live.current;
+    const geometry = started.pageSizes[selected.pageIndex];
     if (!geometry) {setNotice('This page is not ready. Continue manually or retry.'); return;}
-    const validated = validateAnalysis(review, review.width, review.height);
-    const elements = proposalElements(validated.fields, review, review.pageIndex, geometry);
-    if (!elements.length) {setNotice('No supplied answers to apply. Update your facts or fill manually.'); return;}
-    if (!session.applyElements(elements, review.revision)) {
-      setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
+    applying.current = selected; setBusy(true);
+    try {
+      const validated = validateAnalysis(selected, selected.width, selected.height);
+      const measureText = await measureProposalText(validated.fields);
+      if (applying.current !== selected || latestReview.current !== selected) return;
+      if (live.current.pdfDocument !== started.pdfDocument || live.current.currentPageIndex !== selected.pageIndex
+        || live.current.documentRevision !== selected.revision) {
+        setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
+      }
+      const elements = proposalElements(validated.fields, selected, selected.pageIndex, geometry, measureText);
+      if (!elements.length) {setNotice('No supplied answers to apply. Update your facts or fill manually.'); return;}
+      if (!live.current.applyElements(elements, selected.revision)) {
+        setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
+      }
+      setReview(null); setNotice('Answers applied. Correct anything below, add your signature, then download.');
+    } catch (error) {
+      if (applying.current === selected) setNotice(error instanceof Error ? error.message : 'Answers could not be fitted. Continue manually.');
+    } finally {
+      if (applying.current === selected) {applying.current = null; setBusy(false);}
     }
-    setReview(null); setNotice('Answers applied. Correct anything below, add your signature, then download.');
   }
   return <section className={styles.panel} aria-label="AI PDF Filler beta">
     <div className={styles.row}><strong>AI PDF Filler <span className={styles.beta}>Beta · local preview</span></strong>
@@ -120,7 +141,7 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
         <p>These are proposals. Edit answers here, then apply and adjust their positions in the PDF editor.</p>
         <div className={styles.answers}>{review.fields.map(field => <label key={field.id}>{field.label || 'Unlabelled field'} {field.kind === 'checkbox' ? <input type="checkbox" checked={['true','yes','checked','check','x','1'].includes(field.value?.toLowerCase() ?? '')} onChange={event => setReview({...review, fields: review.fields.map(item => item.id === field.id ? {...item,value: event.currentTarget.checked ? 'true' : null} : item)})} /> : <input dir="auto" value={field.value ?? ''} maxLength={2000} onInput={event => setReview({...review, fields: review.fields.map(item => item.id === field.id ? {...item,value: event.currentTarget.value} : item)})} />}</label>)}</div>
         {review.questions.length > 0 && <div><strong>Missing or unclear facts</strong><ul>{review.questions.map(question => <li key={question}>{question}</li>)}</ul><p>Add these facts above, then analyze again.</p></div>}
-        <button type="button" onClick={apply} disabled={session.status !== 'editing' || session.documentRevision !== review.revision}>Apply reviewed answers</button>
+        <button type="button" onClick={() => void apply()} disabled={busy || session.status !== 'editing' || session.documentRevision !== review.revision}>Apply reviewed answers</button>
       </>}
     </>}
   </section>;

@@ -648,12 +648,13 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
-| AI-04 | P1 | [AI-04](backlog/tasks/AI-04.md) · Try four PDF forms and measure accuracy and correction effort |
 | AI-05 | P2 | [AI-05](backlog/tasks/AI-05.md) · Ship AI PDF Filler Beta through the proven supported flow |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| AI-04 | P1 | [AI-04](backlog/tasks/AI-04.md) · Try four PDF forms and measure accuracy and correction effort |
 
 ### Blocked
 
