@@ -2,7 +2,7 @@ import { it, expect } from 'vitest';
 import { mkdtemp, readFile, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createDiagnostics, validateClientEvent } from './diagnostics.mjs';
+import { createDiagnostics, validateClientEvent, errorCode } from './diagnostics.mjs';
 import { createRunner } from './server.mjs';
 import { analyzePage } from './analysis.mjs';
 const id = '12345678-1234-1234-1234-123456789abc';
@@ -49,4 +49,24 @@ it('collects bounded same-origin client events and request correlation; logs dis
     expect(events[0]).toMatchObject({source:'client',stage:'review_ready',fields:0});
     expect(JSON.stringify(events)).not.toMatch(/PRIVATE_|FAKE/);
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+});
+it('distinguishes SSE failures with fixed enums, never retaining upstream message or unknown codes', async () => {
+  expect(errorCode(new Error('AI provider reported a server error. Use manual mode.'))).toBe('stream_failure');
+  const cases = [
+    [{type:'error',code:'server_error',message:'PRIVATE_ERROR',param:'PRIVATE_PARAM'}, {eventType:'error',upstreamCode:'server_error',incompleteReason:'unknown'}, 'server error'],
+    [{type:'response.failed',response:{error:{code:'server_error',message:'PRIVATE_ERROR'},id:'PRIVATE_ID'}}, {eventType:'response.failed',upstreamCode:'server_error',incompleteReason:'unknown'}, 'server error'],
+    [{type:'response.incomplete',response:{incomplete_details:{reason:'max_output_tokens'},output:['PRIVATE_OUTPUT']}}, {eventType:'response.incomplete',upstreamCode:'unknown',incompleteReason:'max_output_tokens'}, 'output limit'],
+    [{type:'response.failed',response:{error:{code:'PRIVATE_CODE',message:'PRIVATE_ERROR'},incomplete_details:{reason:'PRIVATE_REASON'}}}, {eventType:'response.failed',upstreamCode:'unknown',incompleteReason:'unknown'}, 'did not complete'],
+  ];
+  for (const [event, expected, message] of cases) {
+    const traces=[];
+    await expect(analyzePage(input,{token:'FAKE',trace:(stage,details)=>traces.push({stage,...details}),fetchImpl:async()=>new Response(`data: ${JSON.stringify(event)}\n\n`)})).rejects.toThrow(message);
+    expect(traces.find(record=>record.stage==='stream_failure')).toEqual({stage:'stream_failure',...expected});
+    expect(JSON.stringify(traces)).not.toMatch(/PRIVATE_|FAKE/);
+  }
+  const dir=await mkdtemp(join(tmpdir(),'ai-safe-stream-')); const path=join(dir,'events.jsonl');
+  try {
+    await createDiagnostics(path)(id,'stream_failure',{eventType:'PRIVATE_TYPE',upstreamCode:'PRIVATE_CODE',incompleteReason:'PRIVATE_REASON',message:'PRIVATE_ERROR'});
+    expect(await readFile(path,'utf8')).not.toContain('PRIVATE_');
+  } finally {await rm(dir,{recursive:true,force:true});}
 });
