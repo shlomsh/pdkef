@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PdfEditorSession } from '../PdfSignTool.tsx';
 import { proposalElements, validateAnalysis, type Analysis } from './proposals.ts';
 import { measureProposalText } from './measureProposalText.ts';
+import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import styles from './AiPdfFillerPanel.module.css';
 
-type Runner = { localRunner: true; connected: boolean; models: {slug: string; display_name: string}[] };
-type Review = Analysis & {image: string; width: number; height: number; pageIndex: number; revision: number};
+type Runner = { localRunner: true; diagnostics?: boolean; connected: boolean; models: {slug: string; display_name: string}[] };
+type Review = Analysis & {image: string; width: number; height: number; pageIndex: number; revision: number; requestId: string};
 
 export default function AiPdfFillerPanel({session}: {session: PdfEditorSession}) {
   const [runner, setRunner] = useState<Runner | null>(null);
@@ -16,6 +17,14 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   const [review, setReview] = useState<Review | null>(null);
   const [notice, setNotice] = useState('Checking the local preview connection…');
   const request = useRef<AbortController | null>(null);
+  const requestId = useRef('');
+  const diagnostics = useRef(false);
+  function trace(stage: string, id = requestId.current, fields?: number) {
+    if (diagnostics.current && id) {
+      const event = {requestId: id, stage, ...(fields === undefined ? {} : {fields})};
+      void fetch('/api/ai/diagnostics', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(event), keepalive: true}).catch(() => {});
+    }
+  }
   const applying = useRef<Review | null>(null);
   const latestReview = useRef(review);
   latestReview.current = review;
@@ -28,6 +37,7 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
       if (!response.ok) throw new Error();
       const result = await response.json() as Runner;
       if (result.localRunner !== true || typeof result.connected !== 'boolean' || !Array.isArray(result.models) || result.models.some(item => !item || typeof item.slug !== 'string' || typeof item.display_name !== 'string')) throw new Error();
+      diagnostics.current = result.diagnostics === true;
       setRunner(result);
       setModel(previous => result.models.some(item => item.slug === previous) ? previous : result.models[0]?.slug ?? '');
       setNotice(result.connected ? 'Connected. Review every answer before signing.' : 'Connect your ChatGPT account to try this local preview.');
@@ -42,16 +52,19 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
     void checkConnection(controller.signal);
     return () => {applying.current = null; controller.abort(); request.current?.abort();};
   }, []);
-  function invalidateAnalysis() {
+  function invalidateAnalysis(reason = 'facts_change') {
+    if (request.current || latestReview.current) trace(reason);
     applying.current = null;
     request.current?.abort(); request.current = null;
     setBusy(false); setReview(null);
   }
   useEffect(() => {
-    invalidateAnalysis();
+    if (request.current || latestReview.current) setNotice('PDF or selected page changed. AI analysis/review was cancelled; your manual edits are safe.');
+    invalidateAnalysis('page_source_change');
   }, [session.pdfDocument, session.currentPageIndex]);
 
   function useManual() {
+    trace('manual_cancel');
     applying.current = null;
     request.current?.abort(); request.current = null;
     setBusy(false); setReview(null); setManual(true);
@@ -59,6 +72,9 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   }
   async function analyze() {
     const controller = new AbortController();
+    const id = crypto.randomUUID();
+    requestId.current = id;
+    trace('started');
     request.current?.abort(); request.current = controller;
     const started = live.current;
     const pageIndex = started.currentPageIndex;
@@ -69,24 +85,29 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
       const viewport = page.getViewport({scale: Math.min(2, 1800 / Math.max(base.width, base.height))});
       const canvas = document.createElement('canvas');
       canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
-      const render = page.render({canvas, canvasContext: canvas.getContext('2d')!, viewport});
+      const context = getPdfRenderContext(canvas);
+      if (!context) throw new Error('PDF page rendering is unavailable. Continue manually.');
+      const render = page.render({canvasContext: context, canvas, viewport});
       const cancelRender = () => render.cancel();
       controller.signal.addEventListener('abort', cancelRender, {once: true});
       try {await render.promise;} finally {controller.signal.removeEventListener('abort', cancelRender);}
       if (controller.signal.aborted) return;
       const image = canvas.toDataURL('image/png');
       const response = await fetch('/api/ai/analyze', {method: 'POST', signal: controller.signal,
-        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({model, image, facts, width: canvas.width, height: canvas.height})});
+        headers: {'Content-Type': 'application/json', 'X-AI-Request-ID': id}, body: JSON.stringify({model, image, facts, width: canvas.width, height: canvas.height})});
       const payload = await response.json();
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : 'AI analysis failed. You can continue manually.');
       const analysis = validateAnalysis(payload, canvas.width, canvas.height);
       if (controller.signal.aborted || request.current !== controller) return;
       if (live.current.pdfDocument !== started.pdfDocument || live.current.documentRevision !== started.documentRevision) {
+        trace('stale_result_discard', id);
         setNotice('The PDF changed during analysis. Your edits are safe; analyze again when ready.'); return;
       }
-      setReview({...analysis, image, width: canvas.width, height: canvas.height, pageIndex, revision: started.documentRevision});
+      setReview({...analysis, image, width: canvas.width, height: canvas.height, pageIndex, revision: started.documentRevision, requestId: id});
+      trace('review_ready', id, analysis.fields.length);
       setNotice(`Review ${analysis.fields.length} proposed fields on page ${pageIndex + 1}. Empty answers stay unfilled.`);
     } catch (error) {
+      if (!controller.signal.aborted) trace('error', id);
       if (!controller.signal.aborted) setNotice(error instanceof Error ? error.message : 'AI failed. You can continue manually.');
     } finally {
       if (request.current === controller) {setBusy(false); request.current = null;}
@@ -105,15 +126,17 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
       if (applying.current !== selected || latestReview.current !== selected) return;
       if (live.current.pdfDocument !== started.pdfDocument || live.current.currentPageIndex !== selected.pageIndex
         || live.current.documentRevision !== selected.revision) {
-        setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
+        trace('apply_stale', selected.requestId); setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
       }
       const elements = proposalElements(validated.fields, selected, selected.pageIndex, geometry, measureText);
-      if (!elements.length) {setNotice('No supplied answers to apply. Update your facts or fill manually.'); return;}
+      if (!elements.length) {trace('apply_empty', selected.requestId); setNotice('No supplied answers to apply. Update your facts or fill manually.'); return;}
       if (!live.current.applyElements(elements, selected.revision)) {
-        setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
+        trace('apply_stale', selected.requestId); setNotice('The PDF changed. Analyze again before applying; your manual edits are safe.'); return;
       }
+      trace('applied', selected.requestId, elements.length);
       setReview(null); setNotice('Answers applied. Correct anything below, add your signature, then download.');
     } catch (error) {
+      if (applying.current === selected) trace('font_error', selected.requestId);
       if (applying.current === selected) setNotice(error instanceof Error ? error.message : 'Answers could not be fitted. Continue manually.');
     } finally {
       if (applying.current === selected) {applying.current = null; setBusy(false);}
@@ -122,17 +145,18 @@ export default function AiPdfFillerPanel({session}: {session: PdfEditorSession})
   return <section className={styles.panel} aria-label="AI PDF Filler beta">
     <div className={styles.row}><strong>AI PDF Filler <span className={styles.beta}>Beta · local preview</span></strong>
       <button type="button" onClick={manual ? () => {setManual(false); setNotice('AI mode. Your manual work stays in the editor.');} : useManual}>{manual ? 'Use AI' : 'Use manual mode'}</button></div>
-    <p role="status" aria-live="polite">{notice}</p>
+    {manual && <p role="status" aria-live="polite">{notice}</p>}
     {!manual && <>
       <p>This experiment sends only the selected original PDF page image and the facts you enter to OpenAI using your connected ChatGPT plan. Applied annotations and signatures are not sent. Use synthetic facts while trying the beta.</p>
       <div className={styles.row}>
         {runner && !runner.connected && <a className={styles.connect} href="/auth/start" target="_blank" rel="noopener noreferrer">Continue with ChatGPT</a>}
         <button type="button" onClick={() => void checkConnection()}>Check connection</button>
-        {runner?.connected && <label>Model <select value={model} onChange={event => {invalidateAnalysis(); setModel(event.currentTarget.value); setNotice('Model changed. Analyze again when ready.');}}>{runner.models.map(item => <option key={item.slug} value={item.slug}>{item.display_name || item.slug}</option>)}</select></label>}
+        {runner?.connected && <label>Model <select value={model} onChange={event => {invalidateAnalysis('model_change'); setModel(event.currentTarget.value); setNotice('Model changed. Analyze again when ready.');}}>{runner.models.map(item => <option key={item.slug} value={item.slug}>{item.display_name || item.slug}</option>)}</select></label>}
       </div>
       <label className={styles.facts}>Facts to use <textarea rows={4} maxLength={12000} value={facts} onInput={event => {invalidateAnalysis(); setFacts(event.currentTarget.value); setNotice('Facts updated. Analyze again when ready.');}} placeholder="Name: Example Person&#10;Address: 12 Example Street" /></label>
       <div className={styles.row}><button type="button" disabled={busy || !runner?.connected || !model || !facts.trim() || session.status !== 'editing'} onClick={() => void analyze()}>Fill page {session.currentPageIndex + 1} with AI</button>
         {busy && <button type="button" onClick={useManual}>Cancel and fill manually</button>}</div>
+      <p role="status" aria-live="polite">{notice}</p>
       {review && <>
         <div className={styles.preview} aria-label={`Proposed answers on page ${review.pageIndex + 1}`}>
           <img src={review.image} alt="Original PDF page with proposed answers" />

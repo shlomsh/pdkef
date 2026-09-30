@@ -654,6 +654,7 @@ _None._
 
 | ID | Priority | Task |
 | --- | --- | --- |
+| AI-03 | P1 | [AI-03](backlog/tasks/AI-03.md) · Build the complete PDF-to-filled-and-signed-PDF vertical slice |
 | AI-04 | P1 | [AI-04](backlog/tasks/AI-04.md) · Try four PDF forms and measure accuracy and correction effort |
 
 ### Blocked
@@ -666,7 +667,6 @@ _None._
 | --- | --- | --- |
 | AI-01 | P1 | [AI-01](backlog/tasks/AI-01.md) · Record the lean AI PDF Filler beta plan and naming evidence |
 | AI-02 | P1 | [AI-02](backlog/tasks/AI-02.md) · Explore the new ChatGPT connection with one live PDF-page request |
-| AI-03 | P1 | [AI-03](backlog/tasks/AI-03.md) · Build the complete PDF-to-filled-and-signed-PDF vertical slice |
 
 ### Retired
 

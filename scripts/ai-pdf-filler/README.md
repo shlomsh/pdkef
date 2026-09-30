@@ -47,3 +47,12 @@ Live sign-in/inference remains unproven until tested with an explicitly particip
 user and a non-personal form. The official flow is documented at
 https://developers.openai.com/siwc/token-sharing-open-source/sign-in and
 https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference.
+
+### Opt-in local development diagnostics
+
+On a future runner start, use `AI_PDF_FILLER_DIAGNOSTICS=1 node scripts/ai-pdf-filler/server.mjs`.
+Do not restart an active signed-in process to inspect a previous call: logging cannot reconstruct earlier requests, and restarting loses process-only credentials.
+Logs: `node_modules/.cache/ai-pdf-filler/diagnostics.jsonl`, owner-only, ignored by Git, at most 1 MiB plus one rotated `.1` file.
+Server and client events share a random request UUID. Events record elapsed milliseconds, fixed outcome codes, HTTP statuses and field/question counts only; no document names, page images, facts, labels, answers, credentials, account identifiers, URLs or upstream bodies.
+The local status response enables a same-origin, 512-byte, allowlisted client diagnostics endpoint only when opted in. Client review readiness, stale discards, cancellation, and apply outcomes enter the same log; telemetry failures do not block editing.
+Use `tail -n 40 node_modules/.cache/ai-pdf-filler/diagnostics.jsonl` locally. `completed` means upstream stream completion, `schema_valid` means validated proposals, and client `review_ready` means the UI accepted them: these are different milestones. A later `applied` event means shared-editor insertion, not a claim of answer accuracy. No hosted collector is installed.
