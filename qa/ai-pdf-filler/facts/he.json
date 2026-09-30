@@ -20,7 +20,7 @@
   ],
   "expectedAnswers": {
     "full_name": { "status": "fill", "value": "נועה ברקן", "why": "Stated in the first line." },
-    "id_number": { "status": "fill", "value": "000000018", "why": "Nine digits, one per comb cell, left to right within the cells. Synthetic number." },
+    "id_number": { "status": "fill", "value": "000000018", "why": "Nine digits, one per comb cell, left to right within the cells. Synthetic number. The tester enters the comb by hand; the AI slice does not fill combs." },
     "date_of_birth": { "status": "fill", "value": "17/11/1998", "why": "17 בנובמבר 1998 written as DD/MM/YYYY, as the label asks." },
     "phone": { "status": "missing", "value": null, "why": "No phone number appears in the facts. The tool must ask, not invent one." },
     "email": { "status": "fill", "value": "noa.barkan@example.com", "why": "Latin text, left to right, inside the right-to-left form." },
