@@ -11,10 +11,11 @@ hosted apps", its only documented callback is a `127.0.0.1` loopback, and paid o
 are sent to an interest form with no published criteria or timeline. A hosted beta therefore starts
 with an application to OpenAI, not with infrastructure.
 
-The lean path recommended below costs nothing to run. We ask OpenAI for hosted access, specifically
+The lean path recommended below adds no server and no hosting cost; whether OpenAI ever charges a
+developer is not documented (question 5). We ask OpenAI for hosted access, specifically
 for a browser-only client where the page image goes straight from the person's device to OpenAI.
 Meanwhile the hosted page stays manual Sign and says AI filling is not on the website yet. Build only
-after a written answer. Every AI failure falls back to the manual Sign editor, which already works on
+after a written answer, which must also say how a browser client verifies its ID token. Every AI failure falls back to the manual Sign editor, which already works on
 its own.
 
 ## Verified facts
@@ -31,10 +32,10 @@ as Markdown (append `.md`, index at `https://developers.openai.com/siwc/llms.txt
 | Partner client IDs: "Sign in with ChatGPT is currently offered to a select group of commercial partners. To join the waitlist, complete the Sign in with ChatGPT interest form." | [Request a client ID](https://developers.openai.com/siwc/request-client-id) |
 | The open-source flow's callback: "Use an HTTP loopback callback on `127.0.0.1` from initial registration onward", "only the port may vary", "Do not substitute with `localhost`." | [Registration and sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) |
 | Registration uses `client_id=dynamic_agent_client` and "This direct flow needs neither a client secret nor a partner API key." | [Registration and sign-in](https://developers.openai.com/siwc/token-sharing-open-source/sign-in) |
-| The only remote-host pattern is a person's own VM, with OAuth still done locally: "A `127.0.0.1` callback reaches the computer running the browser, not the remote VM. Complete OAuth locally", then transfer the credential file "over a secure channel such as SSH". | [Self-hosted VMs](https://developers.openai.com/siwc/token-sharing-open-source/self-hosted-vms) |
+| The only remote-host pattern in the open-source docs is a person's own VM, with OAuth still done locally: "A `127.0.0.1` callback reaches the computer running the browser, not the remote VM. Complete OAuth locally", then transfer the credential file "over a secure channel such as SSH". | [Self-hosted VMs](https://developers.openai.com/siwc/token-sharing-open-source/self-hosted-vms) |
 | Eligible people: "Eligible ChatGPT Plus and Pro users can use their ChatGPT plan for AI requests in participating apps". | [Quickstart](https://developers.openai.com/siwc/quickstart) |
-| Refusals exist for eligibility and region: `subscription_sharing_user_not_eligible` (403) and a 403 when "a policy or permission check, such as the permitted serving region, prevented admission." | [Errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery) |
-| The website sign-in guide is identity only (`openid profile email`): "For standard identity-only sign-in, the required artifact is `id_token`." It uses an exact registered `https` callback per environment and supports "both public and confidential clients". | [Sign-in on your website](https://developers.openai.com/siwc/website) |
+| Refusals exist for eligibility and region: `subscription_sharing_user_not_eligible` (403) and a 403 described as "A policy or permission check, such as the permitted serving region, prevented admission." | [Errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery) |
+| The website sign-in guide is identity only (`openid profile email`): "For standard identity-only sign-in, the required artifact is `id_token`." It uses an exact registered `https` callback per environment, supports "both public and confidential clients", and has the app's backend do the code exchange ("Your backend exchanges the authorization code"). | [Sign-in on your website](https://developers.openai.com/siwc/website) |
 
 ### Where credentials and requests run
 
@@ -42,7 +43,7 @@ as Markdown (append `.md`, index at `https://developers.openai.com/siwc/llms.txt
 | --- | --- |
 | "Keep access, refresh, and retained ID tokens in protected local or self-hosted runtime storage. Keep tokens out of browser storage, source control, logs, analytics, and support transcripts." | [Profiles and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions) |
 | Inference goes to the public Responses API ("do not point it at ChatGPT's `backend-api` endpoints"), and "Set `store` to `false` and `stream` to `true` on each HTTP inference request in this flow." | [Models and inference](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference) |
-| Images are accepted; the Files API is not: "Audio/video input, the Files upload API, and the transcription API are not supported by this flow." | [Preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) |
+| "Text, images, and files are supported when the selected model accepts them." The Files API is not: "Audio/video input, the Files upload API, and the transcription API are not supported by this flow." | [Preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations) |
 | Access tokens last an hour (`expires_in: 3600`). | [Token reference](https://developers.openai.com/siwc/token-sharing-open-source/token-reference) |
 | Refresh tokens rotate, and refreshes for one session must be serialised. | [Profiles and sessions](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions) |
 
@@ -77,9 +78,13 @@ as Markdown (append `.md`, index at `https://developers.openai.com/siwc/llms.txt
 
 On 2026-09-30 a CORS preflight (`OPTIONS`, `Origin: https://pdkef.example`) to
 `https://api.openai.com/v1/responses` and `https://auth.openai.com/api/accounts/oauth/token` returned
-`access-control-allow-origin: *` and allowed `authorization,content-type`. A browser page can
-technically reach both. No official page says a browser may call them with a person's token, so this
-shows feasibility, not permission.
+`access-control-allow-origin: *` and allowed `authorization,content-type`. `GET /v1/models` also
+returned that header. `GET https://auth.openai.com/.well-known/jwks.json` and
+`/.well-known/openid-configuration` returned 200 with no `access-control-allow-origin`, so a browser
+page cannot read the signing keys or the discovery document. A browser page can make the token
+exchange, the model list and inference calls, but it cannot verify the ID token the way the
+integration notes require. No official page says a browser may call these endpoints with a person's
+token, so this shows partial feasibility, not permission.
 
 ## What the repository already has
 
@@ -111,10 +116,11 @@ shows feasibility, not permission.
 2. If granted, what client do we get (dynamic or an issued `oaiapp_` ID), and which `https` redirect
    URIs are allowed?
 3. May the OAuth exchange and inference run in the browser with tokens in memory, or must tokens be
-   held server-side by a confidential client?
+   held server-side by a confidential client? If the browser is allowed, how should it verify the ID
+   token, given that the JWKS and discovery documents are not readable cross-origin?
 4. Which plans beyond Plus and Pro (Business, Enterprise, Edu) and which regions are eligible?
 5. Is there ever a fee or billing to the developer, and are there data-use terms specific to this
-   flow? No Sign in with ChatGPT terms page exists; the general policies page did not load here.
+   flow? We found no terms page specific to Sign in with ChatGPT, and `https://openai.com/policies/` returned 403 to our command-line fetch, so its content was not read.
 6. Does the preview request shape (`store:false`, `stream:true`, the omitted parameters) change for
    approved hosted apps?
 7. Only if a server is required: does a relay function count as "Proxies and VPNs" under Vercel's
@@ -124,12 +130,12 @@ shows feasibility, not permission.
 
 | | A. Local runner only | B. Hosted, browser-direct | C. Hosted, server relay |
 | --- | --- | --- | --- |
-| Allowed by the docs today | Yes | Only with OpenAI approval | Only with OpenAI approval |
+| Allowed by the docs today | Yes | Only with OpenAI approval; ID token check has no browser path yet | Only with OpenAI approval |
 | Where tokens live | Runner memory on the device | Tab memory, never storage | PDkef server or sealed cookie |
 | Where the page image goes | Device to OpenAI via local runner | Device straight to OpenAI | Device to PDkef server to OpenAI |
 | New infrastructure | None | None | Vercel function, maybe Redis |
-| Operating cost | None | None | Likely Vercel Pro, $20/month, since Hobby excludes commercial use and proxies |
-| Image limit | Runner's 12 MB | OpenAI's own | 4.5 MB function body |
+| Hosting cost | None | None | Likely Vercel Pro, $20/month, if the beta counts as commercial use; Vercel would also need to accept a relay under its "Proxies and VPNs" rule |
+| Image limit | Runner's 12 MB | Not documented | 4.5 MB function body |
 | Privacy change | None on the website | One page adds two OpenAI origins to `connect-src` | Files pass through a PDkef server, which breaks the core invariant |
 
 ## Recommendation: apply for B, keep manual Sign as the default
@@ -141,10 +147,13 @@ shows feasibility, not permission.
    only, and requests from the browser straight to `api.openai.com`. Record the date and any reply in
    the integration notes.
 2. **Until a written answer, ship nothing AI on the website.** The hosted page stays `noindex` and
-   works as manual Sign with honest copy that AI filling is not available there yet. The local runner
-   remains a development tool in the repository, not an advertised product.
+   works as manual Sign with honest copy that AI filling is not available there yet. Today it still
+   carries an "Optional cloud AI" label and a description about filling with your ChatGPT plan
+   (`src/pages/ai-pdf-filler.astro`); a small follow-up should change those before any deploy of
+   this branch. The local runner remains a development tool in the repository, not an advertised
+   product.
 3. **If OpenAI approves B, build it as AI-05** (plan below). Option B keeps "files never pass through
-   a PDkef server" true and adds no running cost.
+   a PDkef server" true and adds no hosting cost.
 4. **If OpenAI only allows server-held tokens (C),** stop and bring it back as a separate maintainer
    decision. It changes the core privacy invariant, needs a paid plan and a relay, and deserves its
    own review rather than riding in on AI-05.
@@ -159,9 +168,11 @@ eligibility, recorded in the integration notes. Task status changes are for the 
 1. **Record the grant.** Client ID, allowed callback URIs, scopes, eligible plans and regions, any
    terms. Compare the request shape with the preview limits.
 2. **Browser transport behind the existing seam.** A browser OAuth module with PKCE, `state`, `nonce`,
-   and ID token checks against the discovered JWKS. Tokens stay in memory, and sign-out forgets and
-   revokes them. Inference reuses the runner's validation and parsing, so the island still sees one
-   typed result. The shared Sign editor does not change.
+   and the ID token check OpenAI specifies for a browser client (the runner's `node:crypto` check
+   cannot be reused, and the JWKS is not readable cross-origin today). Tokens stay in memory, and
+   sign-out forgets and revokes them. Inference reuses the request validation and response parsing in
+   `scripts/ai-pdf-filler/analysis.mjs`, moved into a module both can import, so the island still sees
+   one typed result. The shared Sign editor does not change.
 3. **Scope the CSP to one page.** Allow only `https://auth.openai.com` and `https://api.openai.com`
    on `/ai-pdf-filler/` and keep every other page at `connect-src 'self'`. First verify that Astro's
    CSP support can do this for one prerendered page; if it cannot, stop and decide before widening the
