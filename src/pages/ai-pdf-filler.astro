@@ -1,0 +1,21 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AppBar from '../components/AppBar.astro';
+import PdfAiPdfFillerTool from '../tools/sign/PdfAiPdfFillerTool.tsx';
+import '../styles/toolPage.css';
+import '../styles/editorFonts.css';
+---
+<BaseLayout title="AI PDF Filler (Beta) – PDkef local preview" description="A local experiment to fill existing and scanned PDF forms using your ChatGPT plan, review every answer, correct manually and sign." noindex socialImageAlt="PDkef AI PDF Filler local beta experiment">
+  <AppBar toolName="AI PDF Filler" labels={{onDevice: 'Optional cloud AI', homeAriaLabel: 'PDkef home, all tools', homepageAriaLabel: 'PDkef homepage'}} />
+  <main>
+    <h1>AI PDF Filler <small>Beta</small></h1>
+    <p>Fill an existing PDF form, check the answers, correct anything and sign. AI currently requires the local preview runner; manual filling remains available.</p>
+    <PdfAiPdfFillerTool client:load />
+  </main>
+</BaseLayout>
+<style>
+  main { max-width: 1280px; margin-inline: auto; padding: 1.5rem; }
+  h1 { margin-bottom: 0.75rem; }
+  main > p { margin-bottom: 1.5rem; }
+  small { font-size: 0.6em; }
+</style>

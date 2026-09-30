@@ -1,6 +1,8 @@
 # AI PDF Filler: new OpenAI integration exploration
 
-Date: 2026-09-29. Task: AI-02. Status: official mechanics verified; local in-memory runner construction started. No live sign-in or inference run.
+Date: 2026-09-30. Task: AI-02. Status: local in-memory runner and editor slice implemented;
+mocked browser form-to-signed-PDF verification completed in English/Hebrew. Production build
+and focused regression checks pass. Live sign-in/inference and account eligibility remain pending.
 
 ## What the first experiment must prove
 
@@ -71,7 +73,7 @@ account eligibility have not been tested.
 | Authorization | `https://auth.openai.com/api/accounts/authorize` |
 | Code exchange | `https://auth.openai.com/api/accounts/oauth/token` |
 | Initial client | `dynamic_agent_client` |
-| Initial display hint | `agent_name_hint=AI PDF Filler` |
+| Initial display hint | `agent_name_hint=PDkef AI PDF Filler` |
 | Host | Persist `ext_agent_host_id=urn:uuid:<UUIDv4>` |
 | Callback | `http://127.0.0.1:<available-port>/auth/callback` |
 | Resource | `https://api.openai.com/v1` |
@@ -135,7 +137,76 @@ validation is enough initially; avoid assuming every standard API structured-out
 works on this preview route.
 [Preview limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations).
 
+## Implemented exploration, not yet live proof
+
+2026-09-30 completed local browser verification (mocked analysis, not live OpenAI):
+one production build passed; runner 6 tests, focused UI 17 tests and architecture/actual
+Sign seam 42 tests passed. Four existing Chromium Sign regressions passed: legacy
+click-to-select/double-click-to-edit, undo/redo stacking, drag undo/redo, and current
+desktop fill-mode text geometry. Ordinary Sign loaded no AI panel/provider API assets.
+
+English and Hebrew synthetic image-only two-page PDFs completed real browser opening,
+selected-page rasterization, mocked positioned text/check proposals, review/apply,
+manual text correction, applied-checkbox movement, delete/Undo, cancellation/manual
+continuation, explicit typed signature and download. PDF.js reopened and rendered both
+exports: names land inside the intended rectangle, Hebrew is readable/right-aligned
+RTL, signatures are visible, and the second page is preserved. Both journeys recorded
+zero CSP violations and page errors. No PDF/facts request occurred before explicit Fill;
+no live authentication, provider traffic or account eligibility was tested.
+
+Temporary evidence (local paths, deliberately not committed):
+`/private/tmp/ai-pdf-filler-verification/report.json`, `recovery-report.json`,
+`verify.mjs`, `en-filled.pdf`, `he-filled.pdf`, `en-proposals.png`, `he-proposals.png`,
+`en-manual.png`, `he-manual.png`, `en-export-render.png`, `he-export-render.png`.
+The runner remains available at `http://127.0.0.1:1455/ai-pdf-filler/` for user-controlled
+sign-in; launch from the implementation checkout with
+`node scripts/ai-pdf-filler/server.mjs`. The local module-worker MIME issue is fixed.
+Vercel analytics scripts return local 404 warnings; editor operation was unaffected.
+
+The recovery probe removed seeded stale local auth/status cache entries and observed
+actual disconnected status with `Cache-Control: no-store` and a rejected synthetic
+callback (400). The replacement worker has no fetch handler. One worker registration
+was still reported; replacement of an already controlling production worker remains
+unverified by this cache-seeding probe. Real user-authorized registration, account-model
+availability, completed plan-funded image inference and hosted compatibility remain
+pending. AI-02 and AI-03 remain in progress; scripted mocks do not satisfy live milestones.
+
+The isolated implementation checkout is `/private/tmp/pdkef-ai-pdf-filler`.
+Its `scripts/ai-pdf-filler/README.md` explains how to build and launch the loopback runner.
+No dependencies were added for it. The first spike uses Node crypto with a narrow RS256
+allowlist and verified JWKS, issuer, audience, nonce and expiry; this implementation choice
+still requires independent review. Durable accounts, refresh and remote revocation are deferred:
+tokens live only in process memory, expiry requires reconnecting, and restart discards credentials.
+
+The runner serves the built distribution on `http://127.0.0.1:1455`, exposes only status,
+account models and validated proposals to the browser, and requires same-origin analysis.
+The local `/sw.js` is replaced with a no-fetch recovery worker which removes local caches
+and unregisters itself; IndexedDB/document memory and the production worker are untouched.
+This prevents the ordinary offline worker caching connection status or authorization callbacks.
+Canonical completed Responses output is preferred over intermediate deltas.
+
+Six focused mocked runner tests pass. The UI contributor reports 17 focused UI tests passing.
+The production build passed. Independent architecture review found the optional Sign seam
+suitable for this lean exploration. Actual browser verification exposed a local-server
+module MIME issue; `.mjs` JavaScript and font MIME mappings were corrected and regression
+checked before retrying browser verification. These checks validate local mechanics and reviewed mocked exports; they do not demonstrate
+account eligibility, live provider behavior or general placement accuracy.
+
 Before calling the experiment proven, record one authorized connection, one account catalog,
 one completed image response and a reviewed exported PDF. Mocks can verify invalid state,
 nonce/audience/signature rejection, interrupted SSE and cancellation; they do not establish
 live access. A local success still leaves hosted production eligibility unresolved.
+
+## Separate Claude fixture contribution
+
+2026-09-30 independent review of [Claude PR #29](https://github.com/shlomsh/pdkef/pull/29),
+head `9bfe98ac19c7485a38fa7d54eb355c3adf44f81d`: **required changes; do not merge this revision**.
+The four fixtures are valid/reproducible with the recorded platform caveat, but the PR
+also changes shared editor shaping, FONT-09, guidance and backlog scope. Its PDF.js
+extraction changes typed `א(ב)` to `א)ב(`, and `sign.test.js:670` accepts that regression.
+Split the shared-editor/FONT-09 work from the QA contribution, keep fixture generation
+independent (its text helper currently imports the new `shapeRun`), correct the QA-only
+scope claim in documentation/PR description, and distinguish detection metrics from
+actionable text/check fields. Derived fixture truth is not independent accuracy evidence.
+The reported 76 passing Claude tests do not approve that extraction regression. PR #29
+remains separate and unmerged; no live accuracy trial has been completed.

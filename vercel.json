@@ -15,6 +15,11 @@
   ],
   "redirects": [
     {
+      "source": "/ai-pdf-filler",
+      "destination": "/ai-pdf-filler/",
+      "permanent": true
+    },
+    {
       "source": "/remove-pages/",
       "destination": "/edit-pdf/",
       "permanent": true

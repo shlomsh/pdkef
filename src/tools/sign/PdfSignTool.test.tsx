@@ -3,7 +3,9 @@ import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // @ts-expect-error -- this browser-first project intentionally omits Node ambient types; Vitest provides the runtime.
 import fs from 'node:fs';
-import PdfSignTool from './PdfSignTool.tsx';
+import PdfSignTool, { type PdfEditorSession } from './PdfSignTool.tsx';
+import { useSignTool, type SignToolState } from './components/SignToolContext.tsx';
+import type { TextElement } from '../../editor/model/editorModel.ts';
 import * as signModule from '../../editor/adapters/pdf/sign.js';
 import * as maintenanceTelemetry from '../../lib/maintenanceTelemetry.ts';
 import toolbarStyles from '../../editor-ui/SignToolbar.module.css';
@@ -92,6 +94,91 @@ describe('PdfSignTool UI flow', () => {
     restoreFetch();
     vi.restoreAllMocks();
     window.history.pushState({}, '', '/');
+  });
+
+  async function openExtensionSession() {
+    let session: PdfEditorSession | undefined;
+    let state: SignToolState | undefined;
+    function ObserveDocument() {
+      state = useSignTool().state;
+      return null;
+    }
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    await act(async () => {
+      render(<PdfSignTool renderPanel={value => {
+        session = value;
+        return <ObserveDocument />;
+      }} />, container);
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [extensionFile('extension.pdf')]);
+    });
+    await vi.waitFor(() => expect(session?.status).toBe('editing'));
+    return {
+      get session() { return required(session, 'loaded extension session'); },
+      get state() { return required(state, 'observed document state'); },
+    };
+  }
+
+  const extensionFile = (name: string) => new File(
+    [fs.readFileSync(`${__dirname}/../../lib/__fixtures__/num-1.pdf`)], name, {type: 'application/pdf'},
+  );
+
+  const extensionText = (id: string, text: string): TextElement => ({
+    id, type: 'text', pageIndex: 0, left: 10, top: 20, text,
+    fontSize: 12, fontFamily: 'Arimo', color: '#000000',
+  });
+
+  it('applies an extension batch once, preserves manual work, and uses the shared undo/export paths', async () => {
+    const document = await openExtensionSession();
+    await act(async () => { findButton(container, 'Symbol').click(); });
+    await act(async () => {
+      query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`).dispatchEvent(
+        new MouseEvent('click', { clientX: 200, clientY: 200, bubbles: true }),
+      );
+    });
+    const manualElements = [...document.state.elements];
+    expect(manualElements).toHaveLength(1);
+    const previousHistory = document.state.actionHistory.length;
+    const captured = document.session;
+    const batch = [extensionText('extension-name', 'Example Person'), extensionText('extension-address', '12 Example Street')];
+    act(() => {
+      expect(captured.applyElements(batch, captured.documentRevision)).toBe(true);
+      // Exercise the same callback before Preact can publish the next revision.
+      expect(captured.applyElements([extensionText('extension-repeat', 'Repeated')], captured.documentRevision)).toBe(false);
+    });
+    expect(document.state.elements).toEqual([...manualElements, ...batch]);
+    expect(document.state.actionHistory).toHaveLength(previousHistory + 1);
+    expect(document.state.actionHistory[0]).toMatchObject({operation: 'add', elements: batch.map(element => ({element}))});
+    expect(container.querySelectorAll('[data-editor-element]')).toHaveLength(3);
+    expect(container.textContent).toContain('Example Person');
+    expect(document.session.applyElements([extensionText('extension-stale', 'Stale')], captured.documentRevision)).toBe(false);
+
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', {key: 'z', ctrlKey: true, bubbles: true})); });
+    expect(document.state.elements).toEqual(manualElements);
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', {key: 'z', ctrlKey: true, shiftKey: true, bubbles: true})); });
+    expect(document.state.elements).toEqual([...manualElements, ...batch]);
+
+    const sign = vi.spyOn(signModule, 'signPdf').mockResolvedValue(new Blob(['%PDF-1.4'], {type: 'application/pdf'}));
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:extension-export');
+    await act(async () => { query<HTMLButtonElement>(container, 'button[title="Save your changes and download the signed PDF"]').click(); });
+    await vi.waitFor(() => expect(sign).toHaveBeenCalledOnce());
+    expect(sign.mock.calls[0][1]).toEqual([...manualElements, ...batch]);
+  });
+
+  it('rejects a retained extension callback after replacing the source PDF, even with the new revision', async () => {
+    const document = await openExtensionSession();
+    const previous = document.session;
+    await act(async () => {
+      setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [extensionFile('replacement.pdf')]);
+    });
+    await act(async () => { findButton(container, 'Replace file').click(); });
+    await vi.waitFor(() => {
+      expect(document.session.status).toBe('editing');
+      expect(document.session.pdfDocument).not.toBe(previous.pdfDocument);
+    });
+    expect(previous.applyElements([extensionText('wrong-source', 'Old answer')], document.session.documentRevision)).toBe(false);
+    expect(document.state.elements).toEqual([]);
+    expect(document.state.actionHistory).toEqual([]);
   });
 
   it('renders the initial file dropper zone', () => {
