@@ -324,3 +324,7 @@ open. No model call, authorization refresh, authenticated-runner restart or depl
 was performed for this review. Next step: use the integrated fixtures for the authorized
 four-form trial, recording supported-answer correctness and placement separately from
 detection and manual work.
+
+2026-09-30 hosted path: see [hosted beta findings](./ai-pdf-filler-hosted-beta.md) for what the
+official documentation allows for a hosted website, the open questions for OpenAI, and the proposed
+AI-05 plan.
