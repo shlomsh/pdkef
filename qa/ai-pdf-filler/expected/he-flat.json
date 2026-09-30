@@ -1,0 +1,420 @@
+{
+ "form": "ai-pdf-filler-he-flat",
+ "synthetic": true,
+ "fixture": "qa/ai-pdf-filler/fixtures/he-flat.pdf",
+ "sha256": "5b43bef9331a470632bd48bd2d91540c9c0ecf3269169b17f62e970a4aa81fe2",
+ "language": "he",
+ "direction": "rtl",
+ "variant": "flat",
+ "pageIndex": 0,
+ "pageSize": {
+  "width": 595,
+  "height": 842
+ },
+ "units": "pt",
+ "render": null,
+ "coordinates": {
+  "bounds": "Fractions 0..1 of page width/height, TOP-LEFT origin, y down (same as src/tools/sign/fields/corpus/scoring/ground-truth/*.json, so greedyMatch can score against it).",
+  "rectPt": "Page points (page is 595 x 842), TOP-LEFT origin, y down.",
+  "rectPdf": "PDF user space points, BOTTOM-LEFT origin: x, y = bottom edge, width, height."
+ },
+ "targets": [
+  {
+   "id": "full_name",
+   "kind": "text",
+   "label": "שם מלא",
+   "bounds": {
+    "x": 0.3815,
+    "y": 0.1876,
+    "width": 0.5378,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 227,
+    "y": 158,
+    "width": 320,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 227,
+    "y": 662,
+    "width": 320,
+    "height": 22
+   }
+  },
+  {
+   "id": "id_number",
+   "kind": "comb",
+   "label": "מספר זהות",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.1876,
+    "width": 0.2723,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 158,
+    "width": 162,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 662,
+    "width": 162,
+    "height": 22
+   },
+   "cells": 9
+  },
+  {
+   "id": "date_of_birth",
+   "kind": "date",
+   "label": "תאריך לידה (יום/חודש/שנה)",
+   "bounds": {
+    "x": 0.6672,
+    "y": 0.2494,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 397,
+    "y": 210,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 397,
+    "y": 610,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "phone",
+   "kind": "text",
+   "label": "טלפון נייד",
+   "bounds": {
+    "x": 0.3832,
+    "y": 0.2494,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 228,
+    "y": 210,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 228,
+    "y": 610,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "email",
+   "kind": "text",
+   "label": "דוא\"ל (Email)",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.2494,
+    "width": 0.2689,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 210,
+    "width": 160,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 610,
+    "width": 160,
+    "height": 22
+   }
+  },
+  {
+   "id": "street_address",
+   "kind": "text",
+   "label": "רחוב ומספר בית",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.3112,
+    "width": 0.8387,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 262,
+    "width": 499,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 558,
+    "width": 499,
+    "height": 22
+   }
+  },
+  {
+   "id": "city",
+   "kind": "text",
+   "label": "יישוב",
+   "bounds": {
+    "x": 0.3815,
+    "y": 0.3729,
+    "width": 0.5378,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 227,
+    "y": 314,
+    "width": 320,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 227,
+    "y": 506,
+    "width": 320,
+    "height": 22
+   }
+  },
+  {
+   "id": "postcode",
+   "kind": "text",
+   "label": "מיקוד",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.3729,
+    "width": 0.2689,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 314,
+    "width": 160,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 506,
+    "width": 160,
+    "height": 22
+   }
+  },
+  {
+   "id": "tier_adult",
+   "kind": "checkbox",
+   "label": "מבוגר/ת",
+   "bounds": {
+    "x": 0.8992,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 535,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 535,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "tier_student",
+   "kind": "checkbox",
+   "label": "סטודנט/ית",
+   "bounds": {
+    "x": 0.6202,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 369,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 369,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "tier_senior",
+   "kind": "checkbox",
+   "label": "גמלאי/ת",
+   "bounds": {
+    "x": 0.3412,
+    "y": 0.4917,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 203,
+    "y": 414,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 203,
+    "y": 416,
+    "width": 12,
+    "height": 12
+   },
+   "group": "membership_tier"
+  },
+  {
+   "id": "membership_start",
+   "kind": "date",
+   "label": "תאריך תחילת המנוי",
+   "bounds": {
+    "x": 0.6672,
+    "y": 0.5487,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 397,
+    "y": 462,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 397,
+    "y": 358,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "wants_email_updates",
+   "kind": "checkbox",
+   "label": "אשמח לקבל עדכונים על אירועים בדוא\"ל",
+   "bounds": {
+    "x": 0.8992,
+    "y": 0.601,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 535,
+    "y": 506,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 535,
+    "y": 324,
+    "width": 12,
+    "height": 12
+   }
+  },
+  {
+   "id": "wants_home_delivery",
+   "kind": "checkbox",
+   "label": "אני זקוק/ה למשלוח ספרים עד הבית",
+   "bounds": {
+    "x": 0.8992,
+    "y": 0.6295,
+    "width": 0.0202,
+    "height": 0.0143
+   },
+   "rectPt": {
+    "x": 535,
+    "y": 530,
+    "width": 12,
+    "height": 12
+   },
+   "rectPdf": {
+    "x": 535,
+    "y": 300,
+    "width": 12,
+    "height": 12
+   }
+  },
+  {
+   "id": "signature",
+   "kind": "signature",
+   "label": "חתימה",
+   "bounds": {
+    "x": 0.4487,
+    "y": 0.7743,
+    "width": 0.4706,
+    "height": 0.0404
+   },
+   "rectPt": {
+    "x": 267,
+    "y": 652,
+    "width": 280,
+    "height": 34
+   },
+   "rectPdf": {
+    "x": 267,
+    "y": 156,
+    "width": 280,
+    "height": 34
+   },
+   "line": true
+  },
+  {
+   "id": "signed_date",
+   "kind": "date",
+   "label": "תאריך",
+   "bounds": {
+    "x": 0.0807,
+    "y": 0.7886,
+    "width": 0.2521,
+    "height": 0.0261
+   },
+   "rectPt": {
+    "x": 48,
+    "y": 664,
+    "width": 150,
+    "height": 22
+   },
+   "rectPdf": {
+    "x": 48,
+    "y": 156,
+    "width": 150,
+    "height": 22
+   }
+  },
+  {
+   "id": "office_received",
+   "kind": "text",
+   "label": "התקבל על ידי (משרד)",
+   "bounds": {
+    "x": 0.5294,
+    "y": 0.9074,
+    "width": 0.3697,
+    "height": 0.0238
+   },
+   "rectPt": {
+    "x": 315,
+    "y": 764,
+    "width": 220,
+    "height": 20
+   },
+   "rectPdf": {
+    "x": 315,
+    "y": 58,
+    "width": 220,
+    "height": 20
+   },
+   "officeUse": true
+  }
+ ]
+}
