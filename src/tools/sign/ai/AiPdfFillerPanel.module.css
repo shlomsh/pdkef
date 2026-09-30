@@ -1,0 +1,16 @@
+.panel { width: 100%; padding: var(--space-4); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); margin-bottom: var(--space-4); }
+.panel p { margin-block: var(--space-3); }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.panel button, .connect, .panel select { min-height: 44px; padding: 0.5rem 0.75rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); }
+.panel button { cursor: pointer; background: var(--color-bg); }
+.panel button:disabled { opacity: 0.5; cursor: default; }
+.beta { font-size: 0.8rem; font-weight: normal; }
+.facts { display: block; margin-block: var(--space-3); }
+.facts textarea { display: block; width: 100%; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg); }
+.preview { position: relative; max-width: 600px; margin: var(--space-4) auto; }
+.preview img { display: block; width: 100%; }
+.proposal { position: absolute; border: 1px solid var(--color-primary); color: var(--color-primary); background: #ffffffc9; font-size: clamp(8px, 1.2vw, 13px); overflow: hidden; }
+.answers { display: grid; gap: var(--space-3); margin-block: var(--space-4); }
+.answers label { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.answers input:not([type='checkbox']) { min-height: 44px; flex: 1; padding: 0.5rem; border: 1px solid var(--color-border-strong); background: var(--color-bg); }
+.answers input[type='checkbox'] { width: 24px; height: 24px; margin: 10px; }

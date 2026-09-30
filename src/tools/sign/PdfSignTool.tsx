@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type {
@@ -97,15 +98,28 @@ const SPECULATIVE_EXPORT_DEBOUNCE_MS = 1500;
    are not covered yet and stay English - see that catalogue's header
    comment. `messages` is optional and English-default, same as
    `shellMessages`, so every existing English caller is unaffected. */
-export default function PdfSignTool({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> } = {}) {
+export interface PdfEditorSession {
+  pdfDocument: PDFDocumentProxy;
+  pageSizes: PageGeometry[];
+  currentPageIndex: number;
+  documentRevision: number;
+  status: string;
+  applyElements: (elements: EditorElement[], expectedRevision: number) => boolean;
+}
+interface PdfSignToolProps {
+  shellMessages?: Partial<ShellMessages>;
+  messages?: Partial<SignMessages>;
+  renderPanel?: (session: PdfEditorSession) => ComponentChildren;
+}
+export default function PdfSignTool({ shellMessages, messages, renderPanel }: PdfSignToolProps = {}) {
   return (
     <SignToolProvider>
-      <PdfSignToolInner shellMessages={shellMessages} messages={messages} />
+      <PdfSignToolInner shellMessages={shellMessages} messages={messages} renderPanel={renderPanel} />
     </SignToolProvider>
   );
 }
 
-function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial<ShellMessages>; messages?: Partial<SignMessages> }) {
+function PdfSignToolInner({ shellMessages, messages, renderPanel }: PdfSignToolProps) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
@@ -968,6 +982,28 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, documentRevision, exportReadiness.blocked, status]);
 
+  // An extension can propose ordinary editable elements, never replace the
+  // document. A reviewed batch is one existing undo command. The source/revision
+  // guard prevents late inference from writing over manual changes.
+  const sessionRef = useRef({ documentRevision, pdfDocument, elements, status });
+  sessionRef.current = { documentRevision, pdfDocument, elements, status };
+  const applyElements = (added: EditorElement[], expectedRevision: number): boolean => {
+    const live = sessionRef.current;
+    if (live.documentRevision !== expectedRevision || live.pdfDocument !== pdfDocument
+      || live.status !== 'editing' || !added.length
+      || added.some(el => !isEditorElement(el) || !Number.isInteger(el.pageIndex)
+        || el.pageIndex < 0 || el.pageIndex >= numPages || live.elements.some(old => old.id === el.id))
+      || new Set(added.map(el => el.id)).size !== added.length) return false;
+    const snapshots = added.map((el, index) => captureAddedElement(el, live.elements.length + index));
+    added.forEach(el => dispatch({ type: 'ADD_ELEMENT', payload: el }));
+    logAction('add', 'AI_FILL', added[0].pageIndex, 'Applied AI answers', snapshots);
+    // Protect against a second apply before Preact's next render.
+    sessionRef.current = { ...live, documentRevision: live.documentRevision + added.length,
+      elements: [...live.elements, ...added] };
+    setAnnouncement('AI answers applied. Review and correct them before signing.');
+    return true;
+  };
+
   const hasFiles = !!file;
 
   return (
@@ -997,6 +1033,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
                 keeps every consumer on production's current behaviour -
                 see FillContext.tsx and docs/sign-fill-mode.md. */}
             <FillContext.Provider value={enabled ? fillContextValue : FILL_OFF}>
+              {pdfDocument && renderPanel?.({pdfDocument, pageSizes,
+                currentPageIndex: Math.max(0, currentPage - 1), documentRevision, status, applyElements})}
               <PdfWorkspace
                 status={status}
                 isPseudoFullscreen={isPseudoFullscreen}
