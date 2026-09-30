@@ -1,6 +1,7 @@
 # AI PDF Filler: from the local prototype to a hosted beta
 
-Date: 2026-09-30. Input for AI-05. Checkpoint: `codex/ai-pdf-filler` at `e0fa106`.
+Date: 2026-09-30. Input for AI-05. Checkpoint: `codex/ai-pdf-filler` at `e0fa106`, refreshed
+against `c2a7618`.
 Status: research only. Nothing hosted has been built, requested or proven.
 
 ## Short answer
@@ -92,8 +93,9 @@ token, so this shows partial feasibility, not permission.
   memory only, never sends it to the browser, and relays one page image to `/v1/responses`.
 - The island asks `/api/ai/status`. Without the runner it says AI needs the local runner and leaves
   the whole Sign editor usable (`src/tools/sign/ai/AiPdfFillerPanel.tsx`).
-- One live local inference on one account is recorded in the integration notes. Hosted use, Hebrew
-  live results, token usage and refresh are not.
+- The integration notes record live local inference on one account: a first request, then the
+  four-form English and Hebrew trial, where each request took 55 to 62 seconds. Hosted use, token
+  usage, refresh and the manual comb path are not recorded.
 - Hosting constraints: `output: 'static'`, one global meta CSP with `connect-src 'self'`
   (`astro.config.mjs`), and the invariant that no file bytes leave the device. The AI page is the
   scoped exception the PRD already anticipates.
