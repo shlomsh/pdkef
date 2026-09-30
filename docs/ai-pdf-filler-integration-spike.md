@@ -210,3 +210,25 @@ scope claim in documentation/PR description, and distinguish detection metrics f
 actionable text/check fields. Derived fixture truth is not independent accuracy evidence.
 The reported 76 passing Claude tests do not approve that extraction regression. PR #29
 remains separate and unmerged; no live accuracy trial has been completed.
+
+
+2026-09-30 final requested-change checkpoint: GitHub still reports head
+`9bfe98ac19c7485a38fa7d54eb355c3adf44f81d` (last update 2026-09-29 20:31:48 UTC),
+open and non-draft. The current diff has 38 files: 28 QA files, six shared-editor files,
+fonts/text guidance, FONT-09, and generated BACKLOG/TODO. The PR body still says QA-only;
+`qa/ai-pdf-filler/README.md:38` still says no src changes. No separate FONT-09 PR exists
+in the repository PR list. No reviews or inline review comments exist; only Vercel and
+Vercel Preview Comments are green, not a product/font/export CI suite.
+**Required changes remain unaddressed; this revision is not ready to merge.**
+Current-source inspection reconfirms the new shaping import at `lib/text.mjs:13`, mirrored
+logical codepoints at `src/editor/text/shapeRun.ts:22-28`, and the PDF.js extraction
+regression accepted at `src/editor/adapters/pdf/sign.test.js:670`. The checklist still
+scores all targets together (`TRIAL-CHECKLIST.md:15-21`) and expects comb placement
+(`:41`), although the active AI slice accepts only text/check proposals and deliberately
+excludes signatures. Separate detection coverage from actionable supported fields and
+manual signature/comb work. Reuse the preceding same-head fixture validation as prior
+evidence, including platform-dependent scan hashes, rather than claiming new generation
+or accuracy results; broad suites were not repeated for an unchanged revision.
+AI-04 stays open: the live four-form trial, recorded answers/positions, correction effort,
+manual comparison and complete exported-PDF review are still pending. No merge, push,
+GitHub comment, authorization flow or live inference was performed.
