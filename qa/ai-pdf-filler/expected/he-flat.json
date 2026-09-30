@@ -2,7 +2,7 @@
  "form": "ai-pdf-filler-he-flat",
  "synthetic": true,
  "fixture": "qa/ai-pdf-filler/fixtures/he-flat.pdf",
- "sha256": "384ea73f34a55449a9ca3bb4ef68a98d81181ffef438a59641a7fd789a924797",
+ "sha256": "5b43bef9331a470632bd48bd2d91540c9c0ecf3269169b17f62e970a4aa81fe2",
  "language": "he",
  "direction": "rtl",
  "variant": "flat",

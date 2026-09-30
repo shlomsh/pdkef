@@ -2,7 +2,7 @@
  "form": "ai-pdf-filler-en-scan",
  "synthetic": true,
  "fixture": "qa/ai-pdf-filler/fixtures/en-scan.pdf",
- "sha256": "064823c569561c2355f0133f5c35ab9c86d5cba76cd5673de149c2d9ed29615a",
+ "sha256": "9562998b326b9a507c193c6118ae328a16a0ad0c9a39514b2ae7dc2e59a0a3fc",
  "language": "en",
  "direction": "ltr",
  "variant": "scan",

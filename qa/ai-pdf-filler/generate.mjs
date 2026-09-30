@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { FORMS, VARIANTS } from './forms.mjs';
+import { FORMS, VARIANTS, SYNTHETIC_BANNER } from './forms.mjs';
 import { drawFlatForm } from './lib/draw-form.mjs';
 import { buildScanPdf } from './lib/scan.mjs';
 import { verifyFixture } from './lib/verify.mjs';
@@ -28,13 +28,24 @@ function write(dir, file, content) {
   return path.relative(REPO_ROOT, target);
 }
 
+/** Every string the form draws, as typed (logical order): what a flat fixture must yield when extracted. */
+function drawnTexts(form) {
+  return [
+    SYNTHETIC_BANNER[form.id], form.title, form.subtitle, form.footer, form.officeBox.heading,
+    ...form.sections.map((section) => section.heading),
+    ...form.paragraphs.flatMap((paragraph) => paragraph.lines),
+    ...Object.values(form.groups).map((group) => group.label),
+    ...form.fields.map((field) => field.label),
+  ];
+}
+
 async function generateVariant(variant) {
   const form = FORMS[variant.form];
   const flatBytes = await drawFlatForm(form);
   const scanResult = variant.scan ? await buildScanPdf(flatBytes, variant.scan, `Synthetic scanned test form (${variant.name})`) : null;
   const bytes = scanResult ? scanResult.bytes : flatBytes;
 
-  const held = await verifyFixture(bytes, scanResult ? 'scan' : 'flat');
+  const held = await verifyFixture(bytes, scanResult ? 'scan' : 'flat', drawnTexts(form));
   const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
   const fixturePath = path.relative(REPO_ROOT, path.join(ROOT, OUT.fixtures, `${variant.name}.pdf`));
   const expected = buildExpected({ variant, form, sha256, fixturePath, scanResult });
@@ -49,8 +60,4 @@ async function generateVariant(variant) {
   for (const file of written) console.log(`  wrote ${file}`);
 }
 
-// lib/text.mjs imports Sign's .ts export helpers directly, which needs Node's built-in type stripping.
-if (!process.features.typescript) {
-  throw new Error(`generate.mjs needs Node >= 22.18 (type stripping); this is ${process.version}.`);
-}
 for (const variant of VARIANTS) await generateVariant(variant);
