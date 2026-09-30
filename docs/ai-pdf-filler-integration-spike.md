@@ -508,3 +508,8 @@ Opt-in development diagnostics now capture future server and client outcomes und
 The earlier private 101-form request cannot be reconstructed: screenshot ending and 182 local detections establish neither successful AI completion nor the cause of missing review. Local detections do not increment editor revision. PDF/page cancellation now announces its outcome beside the Fill action; existing PDF render context helper also protects RTL page rasterization. Diagnostics do not implement the new metadata-only detector plan.
 
 Focused verification: nine mocked runner/diagnostics tests, ten AI panel/render tests (including correlated client review/cancel and page-change late-response rejection), TypeScript, module boundaries, backlog validation and production build passed. Independent logging review READY. Existing signed-in runner was not restarted; diagnostics remain inactive there. A later human-controlled start with `AI_PDF_FILLER_DIAGNOSTICS=1 node scripts/ai-pdf-filler/server.mjs` requires reconnecting process-only credentials. No live calls or private-document operations occurred for this patch.
+
+
+2026-09-30 hosted path: see [hosted beta findings](./ai-pdf-filler-hosted-beta.md) for what the
+official documentation allows for a hosted website, the open questions for OpenAI, and the proposed
+AI-05 plan.
