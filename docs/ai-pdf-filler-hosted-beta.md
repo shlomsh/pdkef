@@ -1,8 +1,49 @@
 # AI PDF Filler: from the local prototype to a hosted beta
 
 Date: 2026-09-30. Input for AI-05. Checkpoint: `codex/ai-pdf-filler` at `e0fa106`, refreshed
-against `c2a7618`.
-Status: research only. Nothing hosted has been built, requested or proven.
+against `5ba92ed`.
+Status: spike closed. Nothing hosted has been built or proven. The next step is OpenAI's answer to
+the interest form request at the end of this page.
+
+## Spike conclusion
+
+**Can PDkef offer AI filling to real people on pdkef.com today? No.** It works on a person's own
+machine, and it is blocked for the website on OpenAI, not on engineering.
+
+What the spike learned:
+
+1. **Locally it works.** The loopback runner signed in with a ChatGPT plan and completed live page
+   inference: a first request in about 14 seconds, then the four-form English and Hebrew trial at 55
+   to 62 seconds per request. That is proof of the concept, not a product: PDkef serves people from a
+   static website, and nobody installs a runner.
+2. **The website needs OpenAI's approval.** The open-source flow is documented for "open-source and
+   locally hosted apps", its only callback is `127.0.0.1`, and remotely hosted apps are sent to an
+   interest form with no published criteria or timeline.
+3. **A client-only site does not fit the documented token rules.** Tokens belong in "protected local
+   or self-hosted runtime storage" and out of browser storage, and the signing keys (JWKS) are not
+   readable cross-origin, so a browser cannot verify the ID token the documented way. OpenAI has to
+   say how a browser-only client should work, or approve one.
+4. **It needs one scoped privacy exception.** A page image leaves the device, which the
+   "no file bytes leave the device" invariant and `connect-src 'self'` forbid everywhere today. That
+   exception is the maintainer's decision and belongs to the AI page only.
+5. **No server is the right shape.** A PDkef relay would put files on our server, need paid hosting
+   and likely conflict with Vercel's "Proxies and VPNs" rule. Browser-direct (option B below) keeps
+   the invariant's spirit and adds no cost.
+
+Engineering notes for whoever resumes this (not committed as code):
+
+- **Surface the real failure.** OpenAI documents that plan failures such as
+  `subscription_sharing_usage_limit_exceeded` and `subscription_sharing_usage_unavailable` can arrive
+  as `response.failed` after streaming has begun. The runner turns every such event into "AI analysis
+  did not complete", so the one failed request on a real Hebrew form 101 cannot be explained. Map the
+  documented codes to their own messages and log the code (a closed list, never the message).
+- **Dense forms need Sign's detected fields.** On form 101 Sign already finds 182 fields. Asking the
+  model to list every writable box with coordinates is slow and output-heavy. A prototype sent the
+  selected page's detected fields as candidates and asked for only the fields the facts answer, taking
+  the exact local box for the one the model picks. It passed unit tests, was never run live, and was
+  not committed. It fits the revised PRD's local geometry fusion.
+- **Keep the spike small when it resumes.** Once OpenAI answers, the first proof is one hosted
+  sign-in and one page, not the full AI-05 plan.
 
 ## Short answer
 
@@ -84,8 +125,10 @@ returned that header. `GET https://auth.openai.com/.well-known/jwks.json` and
 `/.well-known/openid-configuration` returned 200 with no `access-control-allow-origin`, so a browser
 page cannot read the signing keys or the discovery document. A browser page can make the token
 exchange, the model list and inference calls, but it cannot verify the ID token the way the
-integration notes require. No official page says a browser may call these endpoints with a person's
-token, so this shows partial feasibility, not permission.
+integration notes require. These are headers only: no
+authenticated browser sign-in, model call or inference was run, and no official page says a browser
+may call these endpoints with a person's token. They show that a browser request would not be blocked
+by CORS, not that the flow works or is permitted.
 
 ## What the repository already has
 
@@ -94,8 +137,12 @@ token, so this shows partial feasibility, not permission.
 - The island asks `/api/ai/status`. Without the runner it says AI needs the local runner and leaves
   the whole Sign editor usable (`src/tools/sign/ai/AiPdfFillerPanel.tsx`).
 - The integration notes record live local inference on one account: a first request, then the
-  four-form English and Hebrew trial, where each request took 55 to 62 seconds. Hosted use, token
-  usage, refresh and the manual comb path are not recorded.
+  four-form English and Hebrew trial, where each request took 55 to 62 seconds. That trial used the
+  earlier design, where typed facts go to the model and answers come back. It is historical evidence.
+- The [revised PRD](../tasks/prd-ai-pdf-filler.md) now targets a metadata-only detector: the
+  original page is analysed once, the field map is cached, and filling, correction and export stay
+  local with no facts sent. It is planned, not implemented or live-tested.
+- Hosted use, token usage, refresh and the manual comb path are not recorded.
 - Hosting constraints: `output: 'static'`, one global meta CSP with `connect-src 'self'`
   (`astro.config.mjs`), and the invariant that no file bytes leave the device. The AI page is the
   scoped exception the PRD already anticipates.
@@ -174,16 +221,18 @@ eligibility, recorded in the integration notes. Task status changes are for the 
    cannot be reused, and the JWKS is not readable cross-origin today). Tokens stay in memory, and
    sign-out forgets and revokes them. Inference reuses the request validation and response parsing in
    `scripts/ai-pdf-filler/analysis.mjs`, moved into a module both can import, so the island still sees
-   one typed result. The shared Sign editor does not change.
+   one typed result. The request is the revised PRD's metadata-only one: the original page once per
+   field map, no typed facts or answers. The shared Sign editor does not change.
 3. **Scope the CSP to one page.** Allow only `https://auth.openai.com` and `https://api.openai.com`
    on `/ai-pdf-filler/` and keep every other page at `connect-src 'self'`. First verify that Astro's
    CSP support can do this for one prerendered page; if it cannot, stop and decide before widening the
    site-wide policy. Extend `test:csp` to prove the other pages are unchanged.
 4. **Disclosure and OpenAI's required UI.** Continue with ChatGPT, the first-run "You're using your
-   ChatGPT plan" notice, "Using ChatGPT plan" with Manage usage, and before each Fill a short note
-   that this page image and the typed facts go to OpenAI.
+   ChatGPT plan" notice, "Using ChatGPT plan" with Manage usage, and before each Analyze a short note
+   that this page image goes to OpenAI. Answers are typed and stay on the device.
 5. **Every failure lands in manual Sign.**
-   - Expired session (401): reconnect.
+   - Refused identity or permission (401): keep the status, error code and request ID, and offer
+     reconnect only when the code says the session expired or was revoked. Never loop consent.
    - Not eligible or wrong region (403): explain and continue manually.
    - Usage limit (429): Manage usage as the main action.
    - Unavailable (503), offline, cancel, or invalid output: nothing applies, and edits are kept.
@@ -194,7 +243,8 @@ eligibility, recorded in the integration notes. Task status changes are for the 
    removing `noindex`, with the existing redirect kept.
 8. **Evidence before announcing.** A preview deployment completes a live hosted sign-in and an English
    and a Hebrew fill, then export. The AI-04 trial results are recorded. Browser checks cover
-   cancellation, offline, a refused account and manual export.
+   cancellation, offline, a refused account and manual export. Refilling and exporting from a cached
+   field map make zero further AI calls.
 
 ## Stale statements noticed, not changed here
 
@@ -204,3 +254,26 @@ eligibility, recorded in the integration notes. Task status changes are for the 
   "not been tested", which later sections supersede.
 - The runner requests `offline_access` but has no refresh or revocation, and it hardcodes endpoints
   rather than using discovery. That is fine for the prototype, but step 2 above should not copy it.
+
+## Interest form request
+
+Submitted by the maintainer through [OpenAI's interest form](https://openai.com/form/sign-in-with-chatgpt-interest/),
+the path the [token sharing overview](https://developers.openai.com/siwc/token-sharing-open-source)
+names for remotely hosted apps. Record the submission date and any reply in the integration notes.
+Suggested text:
+
+> PDkef (pdkef.com) is a free, open-source suite of PDF tools that runs entirely in the browser. It
+> has no accounts, no ads and no PDF-processing server. We would like to offer ChatGPT plan usage in
+> one optional beta page that helps people fill old PDF forms, in English and Hebrew. We have run the
+> documented open-source flow locally with the loopback callback.
+>
+> We are asking for a browser-only public PKCE client with an exact `https` callback on pdkef.com.
+> Tokens would stay in tab memory only, never in storage, and the page image would go straight from
+> the person's browser to `api.openai.com` with `store:false` and `stream:true`, with no PDkef server
+> in between. We would show your required Continue with ChatGPT and Using ChatGPT plan UI, and every
+> failure falls back to manual filling.
+>
+> Questions: Is this allowed for a free open-source website? Which client type and redirect URIs
+> would we get? How should a browser client verify the ID token, given that the JWKS is not readable
+> cross-origin? Which plans and regions are eligible? Is there any developer fee or data-use term
+> specific to this flow?

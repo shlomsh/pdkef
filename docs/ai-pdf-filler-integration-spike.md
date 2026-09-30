@@ -7,7 +7,14 @@ page-image inference succeeded on 2026-09-30. Saved-result replay into the actua
 also passed. The four-form live English/Hebrew trial has now run with material fit/manual/time
 limitations recorded below; hosted compatibility remains unproven.
 
-## What the first experiment must prove
+## Current intent
+
+As of the user's 2026-09-30 correction, the target is metadata-only analysis of the original page
+once, then reusable cached detection and entirely local answer mapping/fill/sign/export. The
+existing implementation and trial evidence below describe the earlier answer-generation path.
+Migration is planned, not implemented or validated. See the revised PRD and correction record.
+
+## Historical first experiment
 
 Use the new ChatGPT-plan connection to analyze one non-personal scanned PDF page with synthetic
 facts, then turn its output into editable positioned answers and export through PDkef.
@@ -411,6 +418,97 @@ Manual comb entry and human correction-time/manual baseline remain unverified/un
 AI-04 stays in progress for those literal acceptance items and prospective prompt
 validation; the four-form trial and scoped exported-email fit follow-up are performed.
 AI-02/03 local milestones remain done; AI-05 hosted eligibility/public release stays open.
+
+
+## User architecture correction: reusable semantic detector, 2026-09-30
+
+The user clarified that the LLM should analyze the original form once and return persistent
+field metadata, acting as a smarter existing detector. All subsequent facts mapping, filling,
+correction, signing and export stay local. The preceding live requests/trials sent synthetic
+facts and returned proposed answers: retain those records as historical results, not proof
+of this corrected architecture. No metadata-only provider request has been run.
+
+The [revised PRD](../tasks/prd-ai-pdf-filler.md) records the lean contract and migration sequence:
+metadata-only runner → document/page/version cache through existing draft owner → optional cached
+FieldSource and precise local geometry fusion → compact local field inputs and existing export.
+Stable local field IDs separate duplicate printed labels; section/semantic role remain sidecar
+metadata because existing reconciliation is geometric. AI can describe comb/signature locations;
+local comb geometry is preferred, signatures require explicit manual creation, office-only areas
+remain blank. Unknown/unmatched scan geometry remains correctable/manual.
+
+AI-02 remains done for the proven local auth/model/image connection. AI-03 is reopened/in progress
+for the corrected vertical slice. AI-04 remains in progress with its earlier baseline explicitly
+historical; new detector/cache/local-fill evidence is required. AI-05 remains open with hosted
+eligibility unproven. Planning only: no source changes, provider call, auth restart or new accuracy
+claim accompanies this correction.
+
+
+Planning checkpoint validation: `npm run generate:backlog`, `npm run check:backlog` and
+`npm run check:guidance` passed in primary and isolated checkouts. `npm run check:push`
+expanded to the whole existing feature branch and stopped with 174/176 tests passing:
+`src/lib/pdfRender.test.js:50` reports the existing AI panel render bypassing
+`getPdfRenderContext`; runner boundary test could not bind its mocked loopback port
+under the sandbox (`EPERM`). The docs-only planning change did not change those sites.
+The render-context correction belongs in the next narrow implementation slice; no
+full pre-push success is claimed. Publication was rejected by automatic approval review
+before Git ran because direct user authorization for remote planning-document publication
+was not established. Planning remains saved locally, with no commit/push from this update.
+
+
+## Independent hosted-research review, PR #30, 2026-09-30
+
+Reviewed [PR #30](https://github.com/shlomsh/pdkef/pull/30) at exact head
+`32989a62adce1e7f59defe22980f8caf9edda537` (reconfirmed unchanged, open). It adds only
+`docs/ai-pdf-filler-hosted-beta.md` and links in AI-05/integration: no production,
+infrastructure, dependency or task-status changes. **Useful research, but update before
+integrating as the current implementation plan.** No PR merge, comment, application,
+provider request, deployment or credential access was performed in this review.
+
+Official OpenAI pages were opened/refetched on 2026-09-30. The main gate is supported:
+[OSS overview](https://developers.openai.com/siwc/token-sharing-open-source) directs remote
+apps to the interest path; [client-ID guidance](https://developers.openai.com/siwc/request-client-id)
+describes selected partners. [Website sign-in](https://developers.openai.com/siwc/website)
+is identity/backend guidance, not proof of browser-direct plan inference. The documented
+[user plan/credit path](https://developers.openai.com/siwc/quickstart) does not establish
+PDkef hosted eligibility or a guaranteed zero developer fee. [Credential guidance](https://developers.openai.com/siwc/token-sharing-open-source/profiles-and-sessions)
+keeps tokens in protected runtime storage and out of browser storage; browser tab-memory
+handling must stay an explicitly unapproved question. Manual Sign fallback and no paid
+fallback are coherent with this project's scope. Vercel/Astro observations were not
+independently re-fetched in this OpenAI-only review and do not authorize deployment.
+
+Required documentation adjustments in the new research file:
+
+1. Lines 172–184 retain the old repeated answer-generation plan, including sending typed
+   facts before each Fill. Replace with the user's current original-page-only, once-per-map
+   metadata request; stable-ID semantic cache and local inputs/fill/correction/export send
+   no user facts/answers. Reuse the corrected detector contract, not the old answer parser.
+   Lines 195–197 should prove cache reuse and zero additional calls when locally refilling,
+   and treat the former AI-04 answer-generation trial as historical evidence.
+2. Lines 80–88 infer authenticated browser calls from reported CORS headers/preflight.
+   Qualify that headers permit an attempted cross-origin request; no complete authenticated
+   browser OAuth/model/inference flow, token verification or hosted permission was proven.
+   Keep the reported observations distinct from independently reproduced tests.
+3. Lines 96–98 and 199–206 describe an older repository checkpoint. Refresh current-state
+   wording against the revised PRD and separate local proven access/export from the new
+   unimplemented metadata detector. The old trial is not current architecture validation.
+4. Line 186 labels every 401 as expiry. [Official recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery)
+   also covers rejected identity/direct permission/scopes. Preserve actual status/error/request
+   diagnostics, then offer reconnect only when appropriate; do not infer expiry or loop consent.
+
+Recommendation: retain approval-first/manual-hosted behavior and the scoped credential/cost
+questions, apply these small documentation corrections, then integrate the research as AI-05
+input. Browser-direct transport is a requested option, not a supported implementation yet.
+The one-time detector can continue locally without an interest submission or hosted work.
+
+
+### 2026-09-30 local diagnostics checkpoint
+
+Opt-in development diagnostics now capture future server and client outcomes under a shared random request UUID. The owner-only ignored `node_modules/.cache/ai-pdf-filler/diagnostics.jsonl` rotates at 1 MiB with one backup; pending writes cap at 128. Only fixed stages/codes, statuses, elapsed times and bounded counts are logged. Same-origin client events are allowlisted and body-limited to 512 bytes. No PDFs, images, facts, answers, field labels, document names, credentials, account IDs or upstream bodies are recorded.
+
+The earlier private 101-form request cannot be reconstructed: screenshot ending and 182 local detections establish neither successful AI completion nor the cause of missing review. Local detections do not increment editor revision. PDF/page cancellation now announces its outcome beside the Fill action; existing PDF render context helper also protects RTL page rasterization. Diagnostics do not implement the new metadata-only detector plan.
+
+Focused verification: nine mocked runner/diagnostics tests, ten AI panel/render tests (including correlated client review/cancel and page-change late-response rejection), TypeScript, module boundaries, backlog validation and production build passed. Independent logging review READY. Existing signed-in runner was not restarted; diagnostics remain inactive there. A later human-controlled start with `AI_PDF_FILLER_DIAGNOSTICS=1 node scripts/ai-pdf-filler/server.mjs` requires reconnecting process-only credentials. No live calls or private-document operations occurred for this patch.
+
 
 2026-09-30 hosted path: see [hosted beta findings](./ai-pdf-filler-hosted-beta.md) for what the
 official documentation allows for a hosted website, the open questions for OpenAI, and the proposed

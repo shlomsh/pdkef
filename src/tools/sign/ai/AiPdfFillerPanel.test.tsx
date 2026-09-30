@@ -33,6 +33,38 @@ describe('AI requests cannot replace manual work', () => {
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   }
   function reply() {complete(new Response(JSON.stringify({fields:[{id:'name',label:'Name',kind:'text',x:10,y:10,width:100,height:25,value:'Example'}],questions:[]})));}
+  it('correlates opt-in client review and cancellation using only fixed diagnostics fields', async () => {
+    fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+      if (url.endsWith('/status')) return Promise.resolve(Response.json({localRunner:true,diagnostics:true,connected:true,models:[{slug:'model',display_name:'Model'}]}));
+      if (url.endsWith('/diagnostics')) return Promise.resolve(Response.json({ok:true}));
+      return new Promise<Response>(resolve => {complete=resolve;});
+    });
+    act(() => render(<AiPdfFillerPanel session={session} />, host));
+    await vi.waitFor(() => expect(host.textContent).toContain('Connected.'));
+    act(() => {const facts=host.querySelector('textarea')! as HTMLTextAreaElement; facts.value='PRIVATE_TEST_FACT'; facts.dispatchEvent(new Event('input',{bubbles:true}));});
+    act(() => button('Fill page 1 with AI').click());
+    await vi.waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url.endsWith('/analyze'))).toBe(true));
+    await act(async () => reply());
+    await vi.waitFor(() => expect(button('Apply reviewed answers')).toBeDefined());
+    act(() => button('Use manual mode').click());
+    const events=fetchMock.mock.calls.filter(([url])=>url.endsWith('/diagnostics')).map(([,options])=>JSON.parse(options!.body as string));
+    const analyze=fetchMock.mock.calls.find(([url])=>url.endsWith('/analyze'))!;
+    expect(events.map(event=>event.stage)).toEqual(['started','review_ready','manual_cancel']);
+    expect(events.every(event=>event.requestId===(analyze[1]!.headers as Record<string,string>)['X-AI-Request-ID'])).toBe(true);
+    expect(JSON.stringify(events)).not.toMatch(/PRIVATE_TEST_FACT|Example|Name/);
+    expect(events.every(event=>Object.keys(event).every(key=>['requestId','stage','fields'].includes(key)))).toBe(true);
+  });
+  it('explains selected-page cancellation and ignores the late response', async () => {
+    await start();
+    const signal = fetchMock.mock.calls[1][1]?.signal as AbortSignal;
+    session = {...session, currentPageIndex: 1};
+    await act(async () => render(<AiPdfFillerPanel session={session} />, host));
+    expect(signal.aborted).toBe(true);
+    expect(host.textContent).toContain('PDF or selected page changed');
+    await act(async () => reply());
+    expect(button('Apply reviewed answers')).toBeUndefined();
+    expect(session.applyElements).not.toHaveBeenCalled();
+  });
   it('discards a completed response after a manual document edit', async () => {
     await start();
     session={...session,documentRevision:2};
