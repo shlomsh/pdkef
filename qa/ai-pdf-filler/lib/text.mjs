@@ -1,20 +1,27 @@
 /**
- * Bidi-aware text for the flat fixtures - the only module that touches fontkit and bidi runs.
- * It reuses the app's own export path (read-only imports from src/): `resolveBidiRuns` splits a
- * line into same-direction runs in visual order, `shapedWidth` measures a run and `drawShapedRun`
- * emits shaped glyphs with an ActualText span, so the fixtures are drawn exactly like a Sign export.
+ * Bidi-aware text for the flat fixtures - the only module that touches fontkit and bidi.
+ *
+ * Deliberately self-contained: it imports nothing from src/. These fixtures are the yardstick the
+ * Sign editor is later tested against, so drawing them with Sign's own bidi, shaping or export code
+ * would make the yardstick agree with the code under test by construction. Instead the line is
+ * reordered with the standalone `bidi-js` (UAX #9 levels, L2 reordering, Bidi_Mirroring) and painted
+ * one character at a time with pdf-lib's public `drawText`, so pdf-lib alone keeps widths,
+ * ToUnicode and subsetting right. A single character is never reordered by fontkit; the price is
+ * lost kerning, which does not matter for a printed-form fixture.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import bidiFactory from 'bidi-js';
 import fontkit from '@pdf-lib/fontkit';
-import { resolveBidiRuns } from '../../../src/editor/text/bidiRuns.js';
-import { drawShapedRun } from '../../../src/editor/registry/textPdf.ts';
-import { shapedWidth } from '../../../src/editor/text/textMetrics.ts';
+import { PDFHexString, PDFName, PDFOperator, PDFOperatorNames, endMarkedContent } from '@cantoo/pdf-lib';
 
 const FONT_DIR = fileURLToPath(new URL('../../../public/fonts/', import.meta.url));
 /** Fixed subset tags (six capitals, as the PDF spec asks) so font names do not depend on a random suffix. */
 const SUBSET_TAGS = { regular: 'QAFRGR', bold: 'QAFBLD' };
+const SURROGATE = /[\uD800-\uDFFF]/;
+
+const bidi = bidiFactory();
 
 /** Embeds a `{regular, bold}` pair of font files from public/fonts/ as subsets. */
 export async function embedFonts(doc, fontFiles) {
@@ -28,20 +35,29 @@ export async function embedFonts(doc, fontFiles) {
 }
 
 /**
- * Unicode Bidi_Mirroring for the brackets these forms use. fontkit's `layout(..., 'rtl')` reverses
- * glyph order but does NOT mirror brackets (measured: Heebo '(' is glyph 386 in both directions),
- * so `drawShapedRun` alone paints an unmirrored "(" inside a right-to-left run. The fixtures
- * mirror them before shaping, as a browser does; src/ is left as is.
+ * Lays out one line for painting: the glyph characters to paint, in visual
+ * (left-to-right) order (mirrored where UAX #9 says so, e.g. "(" at an odd level paints ")").
+ * Every character is one UTF-16 unit, which holds for the text of these forms and is asserted.
  */
-const MIRRORED = { '(': ')', ')': '(', '[': ']', ']': '[', '{': '}', '}': '{', '<': '>', '>': '<' };
-const mirrorBrackets = (text) => Array.from(text, (char) => MIRRORED[char] ?? char).join('');
+function visualOrder(text, direction) {
+  if (SURROGATE.test(text)) throw new Error(`"${text}" contains a surrogate pair; the fixture line layout is BMP-only`);
+  // getReorderedString applies L2 reordering and Bidi_Mirroring together. (getMirroredCharactersMap
+  // wants the raw levels array, not the result object, and silently mirrors nothing if given the object.)
+  return Array.from(bidi.getReorderedString(text, bidi.getEmbeddingLevels(text, direction)));
+}
 
-function shapeLine(font, text, size, direction) {
-  const runs = resolveBidiRuns(text, direction).map((run) => {
-    const runText = run.direction === 'rtl' ? mirrorBrackets(run.text) : run.text;
-    return { text: runText, direction: run.direction, width: shapedWidth(font, runText, size, run.direction) };
-  });
-  return { runs, width: runs.reduce((sum, run) => sum + run.width, 0) };
+/**
+ * Wraps `paint` in a marked-content span carrying /ActualText, the replacement text extractors
+ * that honour it use for the span. Per the PDF spec it is the text in reading order, so it is the
+ * LOGICAL string as typed, not the visual order the glyphs are painted in. pdf.js ignores it
+ * (measured: extraction is identical with a wrong or absent span, and comes out logical either
+ * way), which is why verify.mjs checks the spans in the content stream as well as pdf.js output.
+ */
+function withActualText(page, actualText, paint) {
+  const props = page.doc.context.obj({ ActualText: PDFHexString.fromText(actualText) });
+  page.pushOperators(PDFOperator.of(PDFOperatorNames.BeginMarkedContentSequence, [PDFName.of('Span'), props]));
+  paint();
+  page.pushOperators(endMarkedContent());
 }
 
 /**
@@ -50,12 +66,15 @@ function shapeLine(font, text, size, direction) {
  * direction. Returns the horizontal extent actually painted, so callers can check margins.
  */
 export function drawLine(page, font, text, { x, baseline, size, color, direction, align }) {
-  const { runs, width } = shapeLine(font, text, size, direction);
+  const glyphs = visualOrder(text, direction).map((glyph) => ({ glyph, width: font.widthOfTextAtSize(glyph, size) }));
+  const width = glyphs.reduce((sum, item) => sum + item.width, 0);
   const left = { left: x, right: x - width, center: x - width / 2 }[align];
-  let pen = left;
-  for (const run of runs) {
-    drawShapedRun(page, { text: run.text, pdfFont: font, size, x: pen, y: baseline, color, direction: run.direction });
-    pen += run.width;
-  }
+  withActualText(page, text, () => {
+    let pen = left;
+    for (const { glyph, width: advance } of glyphs) {
+      page.drawText(glyph, { x: pen, y: baseline, size, font, color });
+      pen += advance;
+    }
+  });
   return { left, right: left + width };
 }

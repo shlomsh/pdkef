@@ -2,7 +2,7 @@
  "form": "ai-pdf-filler-en-flat",
  "synthetic": true,
  "fixture": "qa/ai-pdf-filler/fixtures/en-flat.pdf",
- "sha256": "d16771411284096d049e9fa44b4b812e2881bd4209222838d3412f1449539e71",
+ "sha256": "5f553e52a8aea93439cb43a2f2a5b5c3d9c7e4a88ffd0c2ba76733fcde4187b5",
  "language": "en",
  "direction": "ltr",
  "variant": "flat",

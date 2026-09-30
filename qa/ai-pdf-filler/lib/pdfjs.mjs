@@ -36,4 +36,5 @@ export function renderFirstPage(bytes, { pixelWidth, pixelHeight, matrix }) {
   });
 }
 
-export const countTextItems = (bytes) => withFirstPage(bytes, async (page) => (await page.getTextContent()).items.length);
+/** The text items of page 1 as pdf.js extracts them, one string per item. */
+export const extractTextItems = (bytes) => withFirstPage(bytes, async (page) => (await page.getTextContent()).items.map((item) => item.str));
