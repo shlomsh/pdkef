@@ -2,7 +2,9 @@
 
 Date: 2026-09-30. Task: AI-02. Status: local in-memory runner and editor slice implemented;
 mocked browser form-to-signed-PDF verification completed in English/Hebrew. Production build
-and focused regression checks pass. Live sign-in/inference and account eligibility remain pending.
+and focused regression checks pass. One authorized local account catalog and live synthetic
+page-image inference succeeded on 2026-09-30. Saved-result replay into the actual editor, correction, signature and reviewed exports
+also passed. Hosted compatibility and the broader live English/Hebrew trial remain pending.
 
 ## What the first experiment must prove
 
@@ -233,3 +235,64 @@ AI-04 stays open: the live four-form trial, recorded answers/positions, correcti
 manual comparison and complete exported-PDF review are still pending. No fixture branch merge
 or push, GitHub comment, authorization flow or live inference was performed. Only these
 review notes were committed and pushed on `codex/ai-pdf-filler` for cloud visibility.
+
+
+## Authorized live image inference, 2026-09-30
+
+After the participating user confirmed sign-in and approval, the existing local
+runner returned `connected:true` and an account-specific model catalog. Available
+slugs were `gpt-6-astra`, `gpt-reserve`, `gpt-5.6-sol`, `gpt-5.6-terra`,
+`gpt-5.6-luna`, `gpt-5.5`, and `codex-auto-review`; `gpt-6.1-sol` was absent.
+One explicitly authorized request used ordinary `gpt-5.6-sol` with the original
+1224 × 1584 first-page PNG and only `Name: Example Person`. No second inference,
+credential borrowing, account history, annotations or signatures were sent.
+
+`POST /api/ai/analyze` completed with HTTP 200 in 13.562232 seconds. The runner used
+`store:false`, `stream:true`, inline image input and validated completed response
+fields. It returned Name text at `(238,394,624,84)` with value `Example Person`, and
+an unlabeled checkbox at `(238,632,44,45)` with null value. Its question was
+“Should the unlabeled checkbox be checked or unchecked?” The name matches supplied
+facts; the checkbox remains unresolved; no signature/declaration or additional
+personal fact was invented. The independently known printed Name rectangle is
+`(240,396,620,80)`, giving box IoU approximately 0.946 on this single synthetic
+example. This is not general accuracy evidence or proof of final answer placement.
+
+Local non-sensitive evidence: `/private/tmp/ai-pdf-filler-live/catalog.json`,
+`response.json`, `live-report.json`, `page-1.png`, `facts.txt`, and `sample.json`.
+The local runner exposes validated proposals, not upstream usage/cost; token usage,
+credits and cost were not measured. The downstream saved-response replay and actual export are recorded below. Hosted
+compatibility remains unproven; process-only lifecycle limits are deliberate local
+exploration scope. No public beta/hosted-access completion is claimed.
+
+
+## Live-result editor replay and local milestone, 2026-09-30
+
+The single human-authorized live `gpt-5.6-sol` response was replayed from saved
+`response.json` into the real built AI PDF Filler island, with all browser analysis
+requests intercepted locally. **No additional model request was made.** The original
+English image-only two-page sample rendered at 1224 × 1584. Apply created exactly one
+Name text element; the null-valued unlabeled checkbox was not applied automatically.
+
+The initial actual export contains `Example Person` at PDF x=122.5, y≈567.50, font size
+14, inside the printed Name rectangle. Manual correction to `Corrected Example`, an
+explicit typed `Sample Signer` signature, and a second real download succeeded. Both
+exports were reopened/rendered using PDF.js, retained two pages, and were visually
+reviewed: text stays in the intended field, signature is visible, and checkbox remains
+empty. Zero CSP violations/page errors occurred. Ordinary Sign again loaded no AI
+panel/provider assets. This combines one genuine provider result with a downstream
+saved-response replay; it is not an uninterrupted second live browser inference.
+
+Local non-sensitive artifacts (not committed): `/private/tmp/ai-pdf-filler-live/`
+`replay-report.json`, `replay.mjs`, `replay-proposals.png`, `replay-manual-signed.png`,
+`live-response-applied.pdf`, `live-response-applied.png`,
+`live-response-corrected-signed.pdf`, and `live-response-corrected-signed.png`.
+The existing authenticated runner was left running without restart or credential access.
+
+AI-02's local exploration and AI-03's narrow local vertical milestone are complete.
+The broader English/Hebrew four-form live trial, general precision/recall, correction-time
+comparison and independently marked fixture assessment remain AI-04 work. Hebrew has
+mocked editor/export proof only, not a live provider result. AI-05 still gates hosted
+availability/approved distribution and public beta release. No main merge or deployment
+is implied. The runner deliberately keeps tokens only in memory, requires reconnect on
+expiry/restart, and has no durable refresh/revocation UX. Generic access/usage error and
+cancellation paths have mocked coverage; no upstream usage-error event or cost was observed.
