@@ -230,5 +230,6 @@ manual signature/comb work. Reuse the preceding same-head fixture validation as 
 evidence, including platform-dependent scan hashes, rather than claiming new generation
 or accuracy results; broad suites were not repeated for an unchanged revision.
 AI-04 stays open: the live four-form trial, recorded answers/positions, correction effort,
-manual comparison and complete exported-PDF review are still pending. No merge, push,
-GitHub comment, authorization flow or live inference was performed.
+manual comparison and complete exported-PDF review are still pending. No fixture branch merge
+or push, GitHub comment, authorization flow or live inference was performed. Only these
+review notes were committed and pushed on `codex/ai-pdf-filler` for cloud visibility.
