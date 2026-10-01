@@ -100,13 +100,9 @@ const inkSource: FieldSource = {
     return {
       combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns, rules, maxHeight }),
       checkboxes,
-      // The cell and line detectors are untyped JS that infer `kind` as `string`; every kind they
-      // assign is in `DETECTOR_FIELD_KINDS` (FORM-23). Narrowed here, once, until they are
-      // `@ts-check`ed (FORM-29).
-      //
       // A page that wires nearly every drawn cell to a widget has left the rest blank on purpose, so
       // those are dropped here (FORM-15). The line pass above still saw them, as ground a cell explains.
-      cells: [...dropUnwiredCells(cells, widgetFootprints(page, geometry)), ...lines] as DetectedCell[],
+      cells: [...dropUnwiredCells(cells, widgetFootprints(page, geometry)), ...lines],
     };
   },
 };
@@ -122,8 +118,7 @@ const widgetsSource: FieldSource = {
   name: 'widgets',
   async detect(page, { pageIndex }) {
     const { combs, cells } = detectWidgetRegions(page, pageIndex);
-    // `formWidgets.js` assigns only 'text' here; see the matching note on `inkSource` (FORM-29).
-    return { combs, checkboxes: [], cells: cells as DetectedCell[] };
+    return { combs, checkboxes: [], cells };
   },
 };
 

@@ -1,3 +1,4 @@
+// @ts-check
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
@@ -41,6 +42,12 @@ const FIELD_COMB = 1 << 24;
  * `pdfObjects.js` (editor), the module that actually produces this shape via
  * `widgetEntries()`; this file only interprets it (ARCH-24 step D).
  * @typedef {import('../../../editor/adapters/pdf/pdfObjects.js').WidgetEntry} WidgetEntry
+ */
+
+/**
+ * @typedef {import('./fieldTypes.ts').PercentBox} PercentBox
+ * @typedef {import('./fieldTypes.ts').CombRegion} CombRegion
+ * @typedef {import('./fieldTypes.ts').DetectedCell} DetectedCell
  */
 
 /** A writable text field, in PDF user space. `combCells` marks a comb run. */
@@ -91,7 +98,7 @@ export function visibleWritableRect(entry) {
 function visibleRect(entry) {
   if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
   const { rect } = entry;
-  if (!(rect?.width > 0) || !(rect?.height > 0)) return null;
+  if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
   const { x, y, width, height } = rect;
   return { x, y, width, height };
 }
@@ -139,7 +146,7 @@ export function fillableTextField(entry) {
   if (entry.fieldType !== '/Tx') return null;
   const rect = visibleWritableRect(entry);
   if (!rect) return null;
-  const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && entry.maxLen > 1;
+  const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && (entry.maxLen ?? 0) > 1;
   return isComb ? { ...rect, combCells: entry.maxLen } : rect;
 }
 
@@ -162,10 +169,12 @@ export function fillableTextField(entry) {
  * @param {TextFieldWidget[]} fields
  * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
- * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ * @returns {{combs: Array<CombRegion & {kind: 'comb'}>, cells: DetectedCell[]}} in the editor's page percentages
  */
 export function widgetRegions(fields, geometry, pageIndex = 0) {
+  /** @type {Array<CombRegion & {kind: 'comb'}>} */
   const combs = [];
+  /** @type {DetectedCell[]} */
   const cells = [];
   for (const field of fields) {
     const box = toPagePercentBox(geometry, {
@@ -205,7 +214,14 @@ export function collectCheckboxWidgets(page) {
   return collectWidgets(page, markableButtonField);
 }
 
-/** Every widget on the page that `decide` accepts. */
+/**
+ * Every widget on the page that `decide` accepts.
+ *
+ * @template T
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {(entry: WidgetEntry) => T | null} decide
+ * @returns {T[]}
+ */
 function collectWidgets(page, decide) {
   return pageWidgets(page)
     .map((widget) => decide(widgetEntries(page.doc.context, widget)))
@@ -217,7 +233,7 @@ function collectWidgets(page, decide) {
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex
- * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ * @returns {{combs: Array<CombRegion & {kind: 'comb'}>, cells: DetectedCell[]}} in the editor's page percentages
  */
 export function detectWidgetRegions(page, pageIndex = 0) {
   const geometry = createPageGeometry({
@@ -255,7 +271,12 @@ export function widgetFootprints(page, geometry) {
   }));
 }
 
-/** The share of `cell` (page percent) that one widget box covers, 0..1. */
+/**
+ * The share of `cell` (page percent) that one widget box covers, 0..1.
+ *
+ * @param {PercentBox} cell
+ * @param {PercentBox} box
+ */
 function coveredShare(cell, box) {
   const width = Math.min(cell.left + cell.width, box.left + box.width) - Math.max(cell.left, box.left);
   const height = Math.min(cell.top + cell.height, box.top + box.height) - Math.max(cell.top, box.top);

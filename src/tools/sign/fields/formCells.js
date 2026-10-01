@@ -1,6 +1,23 @@
+// @ts-check
 import { createPageGeometry, pagePercentToPdfPoint, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { collectPageInk, pageCropBox } from './pageInk.js';
 import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
+
+/**
+ * Shapes shared by the cell walk below, all in PDF points (origin bottom-left, y up).
+ * @typedef {{x: number, y0: number, y1: number}} VerticalEdge
+ * @typedef {{y: number, x0: number, x1: number}} HorizontalRule
+ * @typedef {{str: string, x0: number, x1: number, y0: number, y1: number}} TextPoints
+ * @typedef {{left: number, right: number, bottom: number, top: number}} Bounds
+ * @typedef {Bounds & {width: number, height: number}} CellBox
+ * @typedef {CellBox & {closure: number, narrow: boolean, lone: boolean, square: boolean,
+ *   floorTicked: boolean, nextRuleY: number | null, rowLeft?: number, rowRight?: number,
+ *   tickDivided?: boolean}} ClosedCell
+ * @typedef {{bounds: PercentBox, enclosureBounds: PercentBox | undefined,
+ *   writableBounds: PercentBox | undefined, cell: ClosedCell,
+ *   kind: import('./fieldTypes.ts').DetectorFieldKind, label: string | undefined,
+ *   ownTextCount: number, coverage: number, closure: number}} ResolvedCell
+ */
 
 /**
  * Closed table/box cells from vector ink (`pageInk.js`) that `formGrid.js`'s comb/checkbox
@@ -180,10 +197,16 @@ const HEADER_SEARCH_HEIGHT = 220;
  * Form 101's large frames are stroked, so they keep their walls. Passed to `inkEdges.js` as
  * `excludeRect`.
  */
-function isBackgroundPanel(rect) {
+function isBackgroundPanel(/** @type {object} */ panel) {
+  // `inkEdges.js` hands over the ink walk's rect, typed there only as `object`.
+  const rect = /** @type {{filled: boolean, stroked: boolean, width: number, height: number}} */ (panel);
   return rect.filled && !rect.stroked && rect.width > MAX_ROW_HEIGHT && rect.height > MAX_ROW_HEIGHT;
 }
 
+/**
+ * @param {number[]} values
+ * @param {number} tolerance
+ */
 function distinctPositions(values, tolerance) {
   const sorted = [...values].sort((a, b) => a - b);
   const out = [];
@@ -193,13 +216,20 @@ function distinctPositions(values, tolerance) {
   return out;
 }
 
-/** Share of `[bottom, top]` at position `x` that vertical ink actually covers. */
+/**
+ * Share of `[bottom, top]` at position `x` that vertical ink actually covers.
+ *
+ * @param {VerticalEdge[]} edges
+ * @param {number} x
+ * @param {number} bottomY
+ * @param {number} topY
+ */
 function verticalCoverage(edges, x, bottomY, topY) {
   const span = topY - bottomY;
   if (!(span > 0)) return 0;
   const parts = edges
     .filter((edge) => Math.abs(edge.x - x) <= BAND_TOLERANCE)
-    .map((edge) => [Math.max(edge.y0, bottomY), Math.min(edge.y1, topY)])
+    .map((edge) => /** @type {[number, number]} */ ([Math.max(edge.y0, bottomY), Math.min(edge.y1, topY)]))
     .filter(([from, to]) => to > from)
     .sort((a, b) => a[0] - b[0]);
   let covered = 0;
@@ -217,8 +247,18 @@ function verticalCoverage(edges, x, bottomY, topY) {
  * height's rules are chained outward while they touch (within POS_TOLERANCE), and the two
  * reaches are intersected. A lone square drawn as its own rect has a span the width of the
  * square; a table's page-wide rules give a page-wide span.
+ *
+ * @param {HorizontalRule[]} topRules
+ * @param {HorizontalRule[]} bottomRules
+ * @param {number} left
+ * @param {number} right
+ * @returns {[number, number]}
  */
 function bandSpan(topRules, bottomRules, left, right) {
+  /**
+   * @param {HorizontalRule[]} rules
+   * @returns {[number, number]}
+   */
   const reach = (rules) => {
     let from = left;
     let to = right;
@@ -243,6 +283,10 @@ function bandSpan(topRules, bottomRules, left, right) {
  */
 const MAX_SQUARE_SIDE = 20;
 const SQUARE_ASPECT = 0.75;
+/**
+ * @param {number} width
+ * @param {number} height
+ */
 function isSquare(width, height) {
   const side = Math.max(width, height);
   return side <= MAX_SQUARE_SIDE && Math.min(width, height) / side >= SQUARE_ASPECT;
@@ -282,6 +326,9 @@ function isSquare(width, height) {
  * MAX_HEIGHTS_BETWEEN + 1 bottoms, and each band costs a pass over the vertical edges plus, per
  * column, the rules at its own few heights, so the walk is O(heights x MAX_HEIGHTS_BETWEEN x
  * (edges + columns x rules-at-the-band's-heights)), never every rule on the page per band.
+ *
+ * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
+ * @returns {ClosedCell[]}
  */
 function buildClosedCells(ink) {
   const edges = verticalEdges(ink, { excludeRect: isBackgroundPanel });
@@ -291,6 +338,7 @@ function buildClosedCells(ink) {
   const nearRules = ys.map((y) => rules.filter((rule) => Math.abs(rule.y - y) <= BAND_TOLERANCE));
   const rulesAt = nearRules.map((near, m) => near.filter((rule) => Math.abs(rule.y - ys[m]) <= POS_TOLERANCE));
 
+  /** @type {ClosedCell[]} */
   const cells = [];
   for (let i = 0; i < ys.length - 1; i += 1) {
     const top = ys[i];
@@ -303,12 +351,14 @@ function buildClosedCells(ink) {
       // Rules that veto a column: those in between for any column they reach, those just
       // outside for one they cross. ys is sorted, so the heights just outside are index
       // neighbours.
+      /** @type {HorizontalRule[]} */
       const inside = [];
+      /** @type {HorizontalRule[]} */
       const outside = [];
       if (k - i > 1) {
-        const ownEdge = (rule) => Math.abs(rule.y - top) <= POS_TOLERANCE
+        const ownEdge = (/** @type {HorizontalRule} */ rule) => Math.abs(rule.y - top) <= POS_TOLERANCE
           || Math.abs(rule.y - bottom) <= POS_TOLERANCE;
-        const collect = (list, m) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
+        const collect = (/** @type {HorizontalRule[]} */ list, /** @type {number} */ m) => { for (const rule of rulesAt[m]) if (!ownEdge(rule)) list.push(rule); };
         for (let m = i + 1; m < k; m += 1) collect(inside, m);
         for (let m = i - 1; m >= 0 && ys[m] - top <= BAND_TOLERANCE; m -= 1) collect(outside, m);
         for (let m = k + 1; m < ys.length && bottom - ys[m] <= BAND_TOLERANCE; m += 1) collect(outside, m);
@@ -318,10 +368,10 @@ function buildClosedCells(ink) {
       // A column edge either spans the whole band (an ordinary ruled wall), or starts at the
       // band's own floor and rises far enough into it to be a tick dividing the writing strip
       // above an underline, rather than a wall - see MIN_FLOOR_RISE_FRACTION's doc comment.
-      const spansBand = (edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE;
-      const risesFromFloor = (edge) => edge.y0 <= bottom + BAND_TOLERANCE
+      const spansBand = (/** @type {VerticalEdge} */ edge) => edge.y1 >= top - BAND_TOLERANCE && edge.y0 <= bottom + BAND_TOLERANCE;
+      const risesFromFloor = (/** @type {VerticalEdge} */ edge) => edge.y0 <= bottom + BAND_TOLERANCE
         && Math.min(edge.y1, top) - bottom >= MIN_FLOOR_RISE_FRACTION * height;
-      const edgeXs = (keep) => distinctPositions(bandEdges.filter(keep).map((edge) => edge.x), POS_TOLERANCE)
+      const edgeXs = (/** @type {(edge: VerticalEdge) => boolean} */ keep) => distinctPositions(bandEdges.filter(keep).map((edge) => edge.x), POS_TOLERANCE)
         .sort((a, b) => a - b);
       const xs = edgeXs((edge) => spansBand(edge) || risesFromFloor(edge));
       // A box with no interior wall of its own is a single undivided box: an instructional/
@@ -341,7 +391,7 @@ function buildClosedCells(ink) {
       // nowhere near it (FORM-10). A closed square is its own case, tagged `square`: see
       // `isSquare`.
       if (xs.length < 2) continue;
-      const isLone = (walls, left, right) => {
+      const isLone = (/** @type {number[]} */ walls, /** @type {number} */ left, /** @type {number} */ right) => {
         const [spanLeft, spanRight] = bandSpan(rulesAt[i], rulesAt[k], left, right);
         return walls.filter((x) => x >= spanLeft - POS_TOLERANCE && x <= spanRight + POS_TOLERANCE).length === 2;
       };
@@ -350,8 +400,8 @@ function buildClosedCells(ink) {
       // rule (FORM-26 part B, see `captionBelowFloor`). Scoped to the column's own x-range like
       // every other rule lookup here: an unrelated box's rule a few points lower elsewhere on the
       // page would otherwise close the strip over the caption.
-      const nextRuleBelow = (left, right) => rules.reduce(
-        (best, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
+      const nextRuleBelow = (/** @type {number} */ left, /** @type {number} */ right) => rules.reduce(
+        (/** @type {number | null} */ best, rule) => (rule.y < bottom - POS_TOLERANCE && rule.x0 < right && rule.x1 > left
           && (best === null || rule.y > best) ? rule.y : best),
         null,
       );
@@ -360,15 +410,16 @@ function buildClosedCells(ink) {
       // width, which also carries whatever unrelated wall happens to bound the same band (this
       // band's own top/bottom rules run the width of the page, so `xs` here reaches page margins
       // far outside the address row's own box).
-      const columnsBetween = (walls) => {
+      const columnsBetween = (/** @type {number[]} */ walls) => {
+        /** @type {ClosedCell[]} */
         const columns = [];
         for (let j = 0; j < walls.length - 1; j += 1) {
           const left = walls[j];
           const right = walls[j + 1];
           const width = right - left;
           if (width < MIN_TICK_CELL_WIDTH) continue;
-          const crosses = (rule) => rule.x0 < right && rule.x1 > left;
-          const reaches = (rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
+          const crosses = (/** @type {HorizontalRule} */ rule) => rule.x0 < right && rule.x1 > left;
+          const reaches = (/** @type {HorizontalRule} */ rule) => rule.x0 < right + POS_TOLERANCE && rule.x1 > left - POS_TOLERANCE;
           if (!rulesAt[i].some(crosses) || !rulesAt[k].some(crosses)) continue;
           if (inside.some(reaches) || outside.some(crosses)) continue;
 
@@ -382,7 +433,7 @@ function buildClosedCells(ink) {
           // makes it a tick rather than a wall - so it is exempt from the full-height coverage a
           // spanning wall needs. `closure` still carries its real (lower) coverage number, so a
           // tick-bounded cell is never mistaken for one closed by real walls on every side.
-          const isFloorTick = (x) => bandEdges.some(
+          const isFloorTick = (/** @type {number} */ x) => bandEdges.some(
             (edge) => Math.abs(edge.x - x) <= POS_TOLERANCE && risesFromFloor(edge),
           );
           if ((leftCoverage < CLOSED_EDGE_COVERAGE && !isFloorTick(left))
@@ -428,7 +479,7 @@ function buildClosedCells(ink) {
         // keeps it unless a captioned floor-ticked column inside it survives. Only a wall column
         // that actually holds a floor-ticked one is added: a column the ticks did not divide is
         // already in `bandCells` as it is.
-        const holdsTicked = (column) => ticked.some(
+        const holdsTicked = (/** @type {ClosedCell} */ column) => ticked.some(
           (c) => c.left >= column.left - POS_TOLERANCE && c.right <= column.right + POS_TOLERANCE,
         );
         const walls = edgeXs(spansBand);
@@ -449,6 +500,11 @@ function buildClosedCells(ink) {
 // transform, so cells and text share a coordinate system for containment tests.
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {PageTextRun} item
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @returns {TextPoints}
+ */
 function textItemToPoints(item, geometry) {
   const topLeft = pagePercentToPdfPoint({ x: item.left, y: item.top }, geometry);
   const bottomRight = pagePercentToPdfPoint({ x: item.left + item.width, y: item.top + item.height }, geometry);
@@ -461,6 +517,10 @@ function textItemToPoints(item, geometry) {
   };
 }
 
+/**
+ * @param {{x0: number, y0: number, x1: number, y1: number}} a
+ * @param {{x0: number, y0: number, x1: number, y1: number}} b
+ */
 function rectIntersectArea(a, b) {
   const ix0 = Math.max(a.x0, b.x0);
   const iy0 = Math.max(a.y0, b.y0);
@@ -473,12 +533,20 @@ function rectIntersectArea(a, b) {
 
 /** `{left, right, bottom, top}` (buildClosedCells' own shape) -> `{x0, y0, x1, y1}`
  * (rectIntersectArea's shape). A cell and a text item are otherwise the same kind of box; this
- * is the one place that difference in field names has to be bridged. */
+ * is the one place that difference in field names has to be bridged.
+ *
+ * @param {Bounds} cell
+ */
 function cellRect(cell) {
   return { x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top };
 }
 
-/** Text items whose bulk (>=50% of their own area) sits inside the cell. */
+/**
+ * Text items whose bulk (>=50% of their own area) sits inside the cell.
+ *
+ * @param {Bounds} cell
+ * @param {TextPoints[]} textItems
+ */
 function textInsideCell(cell, textItems) {
   const rect = cellRect(cell);
   return textItems.filter((item) => {
@@ -489,7 +557,9 @@ function textInsideCell(cell, textItems) {
 }
 
 /** Nearest text above the cell, in the same column - a column header/label. */
+/** @type {(cell: ClosedCell, textItems: TextPoints[]) => TextPoints | null} */
 function headerAbove(cell, textItems) {
+  /** @type {TextPoints | null} */
   let best = null;
   let bestGap = Infinity;
   for (const item of textItems) {
@@ -522,11 +592,15 @@ function headerAbove(cell, textItems) {
  * `LONE_CAPTION_GAP` - reused rather than a fresh constant, since both ask the same question, "is
  * this caption actually close to what it names": form 101's own gap (floor 582.71 to the row's
  * outer bottom rule 575.79, 6.92pt) sits well inside it.
+ *
+ * @param {ClosedCell} cell
+ * @param {TextPoints[]} textItems
  */
 function captionBelowFloor(cell, textItems) {
   const limit = cell.nextRuleY !== null && cell.nextRuleY !== undefined
     ? Math.max(cell.nextRuleY, cell.bottom - LONE_CAPTION_GAP)
     : cell.bottom - LONE_CAPTION_GAP;
+  /** @type {TextPoints | null} */
   let best = null;
   let bestGap = Infinity;
   for (const item of textItems) {
@@ -615,6 +689,7 @@ const HEADER_GAP_RATIO = 3;
  * it. `GLYPH_NOISE_RE` above is the same idea for a third kind of own text
  * (checkbox glyphs, dropped outright rather than written on or beside).
  */
+/** @param {string} ownStr */
 function isPrintedSeparators(ownStr) {
   return ownStr.length > 0 && SLASH_DATE_RE.test(ownStr);
 }
@@ -631,6 +706,11 @@ function isPrintedSeparators(ownStr) {
  * typed box was the 40pt sliver left of the slash (w6.72, w5.60 of the page)
  * where the cell is w28.94 and w26.13. On the caption alone the carve is a
  * band, and the box takes the cell's whole width under the caption.
+ *
+ * @param {CellBox} cell
+ * @param {TextPoints[]} ownText
+ * @param {CellBox | null} sideStrip
+ * @returns {CellBox | null}
  */
 function typingStrip(cell, ownText, sideStrip) {
   const caption = ownText.filter((t) => t.str.trim() && !isPrintedSeparators(t.str.trim()));
@@ -639,6 +719,11 @@ function typingStrip(cell, ownText, sideStrip) {
   return writableArea(cell, caption)?.area ?? sideStrip;
 }
 
+/**
+ * @param {TextPoints[]} ownText
+ * @param {string | undefined} label
+ * @returns {import('./fieldTypes.ts').DetectorFieldKind}
+ */
 function classifyKind(ownText, label) {
   const ownStr = ownText.map((t) => t.str).join(' ').trim();
   if (isPrintedSeparators(ownStr)) return 'date';
@@ -668,9 +753,14 @@ function classifyKind(ownText, label) {
  * are trusted outright, same as always, but any other own text must be RTL
  * (`RTL_RE`) and must hug the wall it is carving against
  * (`HEADER_GAP_RATIO`) - see both constants' doc comments.
+ *
+ * @param {CellBox} cell
+ * @param {TextPoints[]} ownText
+ * @returns {{area: CellBox, carve: 'none' | 'band' | 'side'} | null}
  */
 function writableArea(cell, ownText) {
   let area = cell;
+  /** @type {'none' | 'band' | 'side'} */
   let carve = 'none';
   if (ownText.length > 0) {
     const textLeft = Math.min(...ownText.map((t) => t.x0));
@@ -703,6 +793,9 @@ function writableArea(cell, ownText) {
 /**
  * Honest and below the comb detector's 0.8: rewarded for fully closed
  * geometry and a label; a date/signature matched a keyword, not just geometry.
+ *
+ * @param {ResolvedCell} resolved
+ * @param {import('./fieldTypes.ts').DetectorFieldKind} kind
  */
 function confidenceOf(resolved, kind) {
   let confidence = 0.45;
@@ -716,16 +809,20 @@ function confidenceOf(resolved, kind) {
  * @typedef {import('./fieldTypes.ts').PercentBox} PercentBox
  * @typedef {import('./fieldTypes.ts').PageTextRun} PageTextRun
  * @typedef {import('./fieldTypes.ts').FieldCandidate} FieldCandidate
+ * @typedef {import('./fieldTypes.ts').DetectedCell} DetectedCell
+ * @typedef {DetectedCell & {id: string, label?: string, required: string, confidence: number,
+ *   source: string, notes: string}} CellCandidate
  */
 
 /**
  * Closed-cell candidate fields on one page: text/date/signature/table-cell regions the
  * comb/checkbox detector deliberately leaves alone.
  *
- * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
+ * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
  * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @param {PageTextRun[]} textItems page text, page-percent bounds
+ * @returns {CellCandidate[]}
  */
 export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const textItemsPoints = textItems.map((item) => textItemToPoints(item, geometry));
@@ -733,7 +830,8 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
 
   // Counted over every closed cell rather than the survivors below, because a tick column is
   // admitted by the fact that it repeats and the filters it has to pass come after.
-  const columnKey = (c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
+  const columnKey = (/** @type {ClosedCell} */ c) => `${Math.round(c.left)}|${Math.round(c.right)}`;
+  /** @type {Map<string, number>} */
   const closedColumnCounts = new Map();
   for (const cell of closedCells) {
     const key = columnKey(cell);
@@ -743,13 +841,14 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // A row of a stack: another cell in its own column abuts it and is about as tall. Equal rows
   // repeating down one column are a divided box (a two-line answer area, a table), where a ledge
   // or underline inside one box leaves a short strip beside a tall one.
-  const isStackedRow = (cell) => closedCells.some((other) => other !== cell
+  const isStackedRow = (/** @type {ClosedCell} */ cell) => closedCells.some((other) => other !== cell
     && columnKey(other) === columnKey(cell)
     && (Math.abs(other.top - cell.bottom) <= POS_TOLERANCE || Math.abs(other.bottom - cell.top) <= POS_TOLERANCE)
     && Math.min(other.height, cell.height) / Math.max(other.height, cell.height) >= STACKED_ROW_HEIGHT_RATIO);
 
   // First pass: geometry + text classification; the column-repeat count
   // (table-cell vs text) below needs the whole population.
+  /** @type {ResolvedCell[]} */
   const resolved = [];
   for (const cell of closedCells) {
     const ownText = textInsideCell(cell, textItemsPoints);
@@ -761,12 +860,15 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       // 101's own row caption ("כתובת פרטית") sits over one column only, not centred, yet the
       // whole row's writable strip stops at the same height under it. Falling back to the band's
       // own real top when nothing carves it - no invented ceiling either way.
+      // `buildClosedCells` sets the row span on every floor-ticked column.
+      const rowLeft = /** @type {number} */ (cell.rowLeft);
+      const rowRight = /** @type {number} */ (cell.rowRight);
       const row = {
-        left: cell.rowLeft,
-        right: cell.rowRight,
+        left: rowLeft,
+        right: rowRight,
         bottom: cell.bottom,
         top: cell.top,
-        width: cell.rowRight - cell.rowLeft,
+        width: rowRight - rowLeft,
         height: cell.top - cell.bottom,
       };
       const rowOwnText = textInsideCell(row, textItemsPoints);
@@ -909,24 +1011,26 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // A wall column the floor ticks divided (`tickDivided`, FORM-27) yields to them only when one of
   // them survived as a captioned field: the address row's ticks are real dividers, a comb's teeth
   // are not, and without captions the printed column is the field.
-  const sameBand = (a, b) => Math.abs(a.top - b.top) <= POS_TOLERANCE && Math.abs(a.bottom - b.bottom) <= POS_TOLERANCE;
-  const dividedByCaptionedTicks = (column) => resolved.some(({ cell }) => cell.floorTicked && sameBand(cell, column)
+  const sameBand = (/** @type {Bounds} */ a, /** @type {Bounds} */ b) => Math.abs(a.top - b.top) <= POS_TOLERANCE && Math.abs(a.bottom - b.bottom) <= POS_TOLERANCE;
+  const dividedByCaptionedTicks = (/** @type {ClosedCell} */ column) => resolved.some(({ cell }) => cell.floorTicked && sameBand(cell, column)
     && cell.left >= column.left - POS_TOLERANCE && cell.right <= column.right + POS_TOLERANCE);
   const fields = resolved.filter(({ cell }) => !cell.tickDivided || !dividedByCaptionedTicks(cell));
 
   // table-cell vs text: a column that recurs across >=3 row bands (same left/right within
   // POS_TOLERANCE) is a real repeating table row; a one-off labelled field (the common case
   // here - a header row over one blank data row) stays `text`.
+  /** @type {Map<string, number>} */
   const columnCounts = new Map();
   for (const r of fields) {
     const key = columnKey(r.cell);
     columnCounts.set(key, (columnCounts.get(key) || 0) + 1);
   }
 
+  /** @type {CellCandidate[]} */
   const candidates = [];
   let index = 0;
   for (const r of fields) {
-    const kind = r.kind === 'text' && columnCounts.get(columnKey(r.cell)) >= 3 ? 'table-cell' : r.kind;
+    const kind = r.kind === 'text' && (columnCounts.get(columnKey(r.cell)) ?? 0) >= 3 ? 'table-cell' : r.kind;
 
     candidates.push({
       id: `combined-heuristic-${String(index).padStart(4, '0')}`,
