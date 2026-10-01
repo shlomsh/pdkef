@@ -1,4 +1,4 @@
-import { PDFName, PDFArray, PDFDict, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
+import { PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 import {
   tokenize,
   multiplyMatrix,
@@ -13,7 +13,9 @@ import { visualToLogical } from './visualOrder.js';
  *
  * Two kinds are reported, and only these two, because they are the ones a PDF
  * genuinely stores as self-contained units:
- *   - `image`: one `cm ... /Name Do` placement of an image XObject.
+ *   - `image`: one `cm ... /Name Do` placement of an image XObject, carrying
+ *     `imageRef` ("12 0 R") so the same picture drawn on several pages can be
+ *     recognised as one object. Inline images are not reported.
  *   - `text`:  one `BT ... ET` block.
  *
  * A `BT`/`ET` block is whatever the producing tool chose to emit, which is
@@ -256,7 +258,12 @@ function buildXObjectTable(context, resources) {
     const stream = context.lookup(value);
     if (!(stream instanceof PDFStream)) continue;
     const subtype = context.lookup(stream.dict.get(PDFName.of('Subtype')))?.asString?.();
-    table.set(key.asString(), { isImage: subtype === '/Image' });
+    table.set(key.asString(), {
+      isImage: subtype === '/Image',
+      // The indirect reference as "12 0 R", the same on every page that draws
+      // this one image (RED-26). Absent for a direct (inline-in-dict) stream.
+      imageRef: value instanceof PDFRef ? value.tag : undefined,
+    });
   }
   return table;
 }
@@ -690,10 +697,12 @@ export function extractPageObjects(page, pageIndex = 0) {
           // is left behind. The preceding `cm` stays: it sits inside the
           // enclosing q/Q and is undone by the `Q` regardless.
           const box = transformedUnitBox(ctm);
+          const imageRef = xobjects.get(key).imageRef;
           objects.push({
             kind: 'image',
             pageIndex,
             name: key,
+            ...(imageRef ? { imageRef } : {}),
             bbox: box,
             start: name.start,
             end: token.end,

@@ -1,10 +1,14 @@
-import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
+import { tokenize } from './contentStream.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
 
 /**
  * Removes chosen drawing operations from a PDF by rewriting the affected page
- * content streams, leaving every other page byte-identical.
+ * content streams, leaving every other page byte-identical. An image whose
+ * every draw was deleted, and which no page (or form, or annotation
+ * appearance) still draws, is dropped from the file as well (RED-26), so a
+ * watermark removed on every page is really gone and not just unreferenced.
  *
  * This is the counterpart to `redactPdf`, and deliberately unlike it. Redaction
  * paints over content and must then flatten the page to an image, because a
@@ -35,6 +39,7 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
     byPage.get(deletion.pageIndex).push(deletion);
   }
 
+  const deletedImageRefs = new Set();
   const pageIndexes = [...byPage.keys()].sort((a, b) => a - b);
   for (const [step, pageIndex] of pageIndexes.entries()) {
     const page = doc.getPage(pageIndex);
@@ -44,9 +49,11 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
     // the rewrite splices the content stream and its byte offsets stop
     // matching `start`/`end`.
     const { objects } = extractPageObjects(page, pageIndex);
-    const deletedBoxes = spans
-      .map((span) => objects.find((o) => o.start === span.start && o.end === span.end)?.bbox)
+    const deletedObjects = spans
+      .map((span) => objects.find((o) => o.start === span.start && o.end === span.end))
       .filter(Boolean);
+    const deletedBoxes = deletedObjects.map((o) => o.bbox);
+    for (const o of deletedObjects) if (o.imageRef) deletedImageRefs.add(o.imageRef);
 
     rewritePageContent(doc, page, spans);
     removeLinksOverDeleted(doc, page, deletedBoxes);
@@ -54,10 +61,157 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
     onProgress?.((step + 1) / pageIndexes.length);
   }
 
+  removeUndrawnImages(doc, deletedImageRefs);
   clearDocumentDetails(doc);
 
   const saved = await doc.save();
   return new Blob([saved], { type: 'application/pdf' });
+}
+
+/** The `/XObject` dict of a resources dict, if it has one. */
+function xobjectDict(context, resources) {
+  const found = context.lookup(resources?.get(PDFName.of('XObject')));
+  return found instanceof PDFDict ? found : undefined;
+}
+
+/**
+ * Adds to `drawn` every image XObject reachable from a Form XObject's (or an
+ * annotation appearance's) own resources. Deliberately generous: it counts
+ * everything the form lists, not only what its content draws, because wrongly
+ * keeping an image costs bytes while wrongly deleting one breaks a page.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFContext} context
+ * @param {PDFStream} form
+ * @param {PDFDict|undefined} fallbackResources the page's, for a form with none
+ * @param {Set<string>} drawn image ref tags
+ * @param {Set<PDFStream>} seen forms already walked (they may nest or loop)
+ */
+function collectFormImages(context, form, fallbackResources, drawn, seen) {
+  if (seen.has(form)) return;
+  seen.add(form);
+  const own = context.lookup(form.dict.get(PDFName.of('Resources')));
+  const resources = own instanceof PDFDict ? own : fallbackResources;
+  const xobjects = xobjectDict(context, resources);
+  if (!xobjects) return;
+  for (const [, value] of xobjects.entries()) noteXObject(context, value, resources, drawn, seen);
+}
+
+function noteXObject(context, value, resources, drawn, seen) {
+  const target = context.lookup(value);
+  if (!(target instanceof PDFStream)) return;
+  const subtype = context.lookup(target.dict.get(PDFName.of('Subtype')))?.asString?.();
+  if (subtype === '/Image') {
+    if (value instanceof PDFRef) drawn.add(value.tag);
+  } else if (subtype === '/Form') {
+    collectFormImages(context, target, resources, drawn, seen);
+  }
+}
+
+/**
+ * Every image XObject (as a ref tag) that something in the document still
+ * draws: a `Do` in a page's current content, a Form XObject that lists it, or
+ * an annotation appearance that lists it. Called after the pages were
+ * rewritten, so a draw that was just deleted no longer counts.
+ *
+ * @param {PDFDocument} doc
+ * @returns {Set<string>}
+ */
+function stillDrawnImages(doc) {
+  const context = doc.context;
+  const drawn = new Set();
+  const seen = new Set();
+
+  for (const page of doc.getPages()) {
+    const resources = page.node.Resources();
+    const xobjects = xobjectDict(context, resources);
+    if (xobjects) {
+      const names = new Set();
+      let previous = null;
+      for (const token of tokenize(getPageContentBytes(page))) {
+        if (token.type === 'operator') {
+          if (token.value === 'Do' && previous?.type === 'name') names.add(previous.value);
+          previous = null;
+        } else {
+          previous = token;
+        }
+      }
+      for (const name of names) {
+        const value = xobjects.get(PDFName.of(name));
+        if (value) noteXObject(context, value, resources, drawn, seen);
+      }
+    }
+
+    const annots = context.lookup(page.node.get(PDFName.of('Annots')));
+    if (!(annots instanceof PDFArray)) continue;
+    for (let i = 0; i < annots.size(); i += 1) {
+      const annot = context.lookup(annots.get(i));
+      const ap = annot instanceof PDFDict ? context.lookup(annot.get(PDFName.of('AP'))) : undefined;
+      if (!(ap instanceof PDFDict)) continue;
+      for (const [, state] of ap.entries()) {
+        const entry = context.lookup(state);
+        // /N, /R, /D are a stream or a dict of streams keyed by state name.
+        const streams = entry instanceof PDFDict ? [...entry.entries()].map(([, v]) => context.lookup(v)) : [entry];
+        for (const stream of streams) {
+          if (stream instanceof PDFStream) collectFormImages(context, stream, resources, drawn, seen);
+        }
+      }
+    }
+  }
+  return drawn;
+}
+
+/**
+ * Removes from the file every image whose draw was deleted and that nothing
+ * still draws (RED-26): its name is dropped from each page's `/XObject`
+ * resources and the stream itself, plus any indirect `/SMask` or `/Mask` that
+ * only it used, leaves the document so `save` no longer writes it. An image
+ * that another page, form or annotation still draws is left alone.
+ *
+ * @param {PDFDocument} doc
+ * @param {Set<string>} deletedImageRefs ref tags ("12 0 R") of images that
+ *   had a draw deleted
+ */
+function removeUndrawnImages(doc, deletedImageRefs) {
+  if (deletedImageRefs.size === 0) return;
+  const context = doc.context;
+  const drawn = stillDrawnImages(doc);
+  const removable = [...deletedImageRefs].filter((tag) => !drawn.has(tag));
+  if (removable.length === 0) return;
+  const removableSet = new Set(removable);
+
+  for (const page of doc.getPages()) {
+    const xobjects = xobjectDict(context, page.node.Resources());
+    if (!xobjects) continue;
+    const names = [];
+    for (const [key, value] of xobjects.entries()) {
+      if (value instanceof PDFRef && removableSet.has(value.tag)) names.push(key);
+    }
+    for (const key of names) xobjects.delete(key);
+  }
+
+  const maskRefs = new Map();
+  for (const tag of removable) {
+    const [objectNumber, generationNumber] = tag.split(' ').map(Number);
+    const ref = PDFRef.of(objectNumber, generationNumber);
+    const image = context.lookup(ref);
+    if (image instanceof PDFStream) {
+      for (const key of ['SMask', 'Mask']) {
+        const mask = image.dict.get(PDFName.of(key));
+        if (mask instanceof PDFRef) maskRefs.set(mask.tag, mask);
+      }
+    }
+    context.delete(ref);
+  }
+
+  // A mask another surviving image also points at stays.
+  for (const [, object] of context.enumerateIndirectObjects()) {
+    if (!(object instanceof PDFStream)) continue;
+    for (const key of ['SMask', 'Mask']) {
+      const mask = object.dict.get(PDFName.of(key));
+      if (mask instanceof PDFRef) maskRefs.delete(mask.tag);
+    }
+  }
+  for (const ref of maskRefs.values()) context.delete(ref);
 }
 
 /**

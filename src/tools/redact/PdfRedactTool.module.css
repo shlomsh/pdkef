@@ -204,6 +204,7 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+  flex-shrink: 0;
 }
 
 /* Redact design-review finding #5: the Download control never said what it
