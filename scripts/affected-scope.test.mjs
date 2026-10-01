@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob } from './affected-scope.mjs';
+import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf } from './affected-scope.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,
@@ -640,5 +640,204 @@ describe('matchesFontsGlob', () => {
     'package-lock.json',
   ])('%s does not match', (file) => {
     expect(matchesFontsGlob(file)).toBe(false);
+  });
+});
+
+/* ARCH-32: file-level e2e selection for a core-project verdict. The graph below is a small
+   literal one - imports[file] lists what `file` imports - turned into the reverse map the scan
+   hands over, the same way commonLayerConsumers' tests hand it a literal graph. */
+function graphOf(imports) {
+  const reverseEdges = new Map();
+  const knownFiles = new Set();
+  for (const [from, targets] of Object.entries(imports)) {
+    knownFiles.add(from);
+    for (const to of targets) {
+      knownFiles.add(to);
+      if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
+      reverseEdges.get(to).add(from);
+    }
+  }
+  return { knownFiles, reverseEdges };
+}
+
+const ROUTES = new Map([['/sign', 'sign'], ['/redact', 'redact'], ['/merge', 'merge']]);
+const toolOf = makeToolOf(ROUTES);
+
+const IMPORTS = {
+  // Sign and Redact import the editor core; only Sign imports signHelper; Merge alone imports mergeOnly.
+  'src/tools/sign/PdfSignTool.tsx': ['src/editor/model.ts', 'src/lib/shared.ts', 'src/lib/signHelper.ts', 'src/layouts/ToolLayout.astro'],
+  'src/tools/redact/PdfRedactTool.tsx': ['src/editor/model.ts', 'src/lib/shared.ts'],
+  'src/tools/merge/PdfMergeTool.tsx': ['src/lib/shared.ts', 'src/lib/mergeOnly.ts'],
+  'src/editor/model.ts': ['src/editor/geometry.ts'],
+  'src/editor/model.test.ts': ['src/editor/model.ts'],
+  // Pages: three tool routes, one that is not a tool's own, all through the layout.
+  'src/pages/sign.astro': ['src/tools/sign/PdfSignTool.tsx', 'src/layouts/ToolLayout.astro'],
+  'src/pages/redact.astro': ['src/tools/redact/PdfRedactTool.tsx', 'src/layouts/ToolLayout.astro'],
+  'src/pages/merge.astro': ['src/tools/merge/PdfMergeTool.tsx', 'src/layouts/ToolLayout.astro'],
+  'src/pages/index.astro': ['src/lib/homeOnly.ts', 'src/lib/shared.ts'],
+  'src/lib/neverImported.ts': [],
+  'src/lib/signHelper.test.ts': ['src/lib/signHelper.ts'],
+  'src/layouts/Orphan.astro': [],
+  'middleware.ts': ['src/lib/viaMiddleware.ts'],
+  'src/test/fixtures/data.js': [],
+  'src/test/cross-tool/shared.test.js': ['src/test/fixtures/data.js', 'src/lib/shared.ts'],
+};
+const GRAPH = { ...graphOf(IMPORTS), toolOf };
+const reach = (changedFiles) => narrowByReachability({ changedFiles, ...GRAPH });
+
+describe('makeToolOf', () => {
+  it('names the tool of a file under src/tools/<t>/ and of a tool route page, nothing else', () => {
+    expect(toolOf('src/tools/sign/fields/detect.ts')).toBe('sign');
+    expect(toolOf('src/pages/redact.astro')).toBe('redact');
+    expect(toolOf('src/pages/index.astro')).toBe(null);
+    expect(toolOf('src/lib/shared.ts')).toBe(null);
+    expect(toolOf('src/layouts/ToolLayout.astro')).toBe(null);
+  });
+});
+
+describe('narrowByReachability', () => {
+  it('a change under src/editor/ selects sign and redact only, each named with the file that reaches it', () => {
+    const result = reach(['src/editor/geometry.ts']);
+    expect(result.tools).toEqual(['redact', 'sign']);
+    expect(result.via.get('sign')).toBe('src/editor/geometry.ts');
+    expect(result.via.get('redact')).toBe('src/editor/geometry.ts');
+  });
+
+  it('a lib file one tool imports selects that tool', () => {
+    expect(reach(['src/lib/signHelper.ts']).tools).toEqual(['sign']);
+    expect(reach(['src/lib/mergeOnly.ts']).tools).toEqual(['merge']);
+  });
+
+  it('a lib file several tools import selects all of them, and a tool file selects its own tool', () => {
+    expect(reach(['src/lib/shared.ts']).tools).toEqual(['merge', 'redact', 'sign']);
+    expect(reach(['src/tools/merge/PdfMergeTool.tsx']).tools).toEqual(['merge']);
+  });
+
+  it('a file only a non-tool page imports selects no tool: the site-wide specs, which always run, cover it', () => {
+    expect(reach(['src/lib/homeOnly.ts'])).toMatchObject({ tools: [] });
+  });
+
+  it('unit tests carry no e2e consequence, and neither does test support nothing live imports', () => {
+    expect(reach(['src/editor/model.test.ts'])).toMatchObject({ tools: [] });
+    expect(reach(['src/test/fixtures/data.js'])).toMatchObject({ tools: [] });
+    expect(reach(['src/lib/signHelper.test.ts'])).toMatchObject({ tools: [] });
+  });
+
+  it('goes wide for a file the scan never saw: CSS, content YAML, an image, a deleted file', () => {
+    for (const file of ['src/styles/global.css', 'src/content/content-pages/x.yaml', 'src/assets/logo.svg', 'src/lib/deleted.ts']) {
+      expect(reach([file]).wide, file).toContain('not a source file the import graph knows');
+    }
+  });
+
+  it('goes wide when the walk ends at a file that is no tool, no page and has no live importer', () => {
+    expect(reach(['src/lib/neverImported.ts']).wide).toContain('has no importer to walk on');
+    expect(reach(['src/layouts/Orphan.astro']).wide).toContain('src/layouts/Orphan.astro');
+  });
+
+  it('goes wide when a request-time entry point outside src/ imports the file', () => {
+    const result = reach(['src/lib/viaMiddleware.ts']);
+    expect(result.wide).toContain('middleware.ts');
+  });
+
+  it('one unclassifiable file widens the whole change, however many others narrow', () => {
+    expect(reach(['src/lib/signHelper.ts', 'src/styles/global.css']).wide).toContain('src/styles/global.css');
+  });
+
+  it('terminates on an import cycle', () => {
+    const cyclic = graphOf({
+      'src/lib/a.ts': ['src/lib/b.ts'],
+      'src/lib/b.ts': ['src/lib/a.ts'],
+      'src/tools/sign/PdfSignTool.tsx': ['src/lib/a.ts'],
+    });
+    expect(narrowByReachability({ changedFiles: ['src/lib/b.ts'], ...cyclic, toolOf }).tools).toEqual(['sign']);
+  });
+});
+
+describe('deriveScope: a core-project verdict narrowed by reachability (ARCH-32)', () => {
+  const core = ['site', 'shell', 'editor', 'lib', 'tool-sign', 'tool-redact', 'tool-merge', 'site-e2e', 'export-guards', 'fonts'];
+  const derive = (files, extra = {}) => deriveScope({
+    files,
+    affected: core,
+    roots: ROOTS,
+    siteE2ePaths: ['e2e/home/'],
+    loadReachGraph: () => GRAPH,
+    ...extra,
+  });
+
+  it('an src/editor/ change runs sign and redact plus the site-wide specs, and keeps the export guards', () => {
+    const scope = derive(['src/editor/geometry.ts']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/redact/e2e/ src/tools/sign/e2e/ e2e/home/');
+    expect(scope.export_guards).toBe(true);
+    expect(scope.fonts).toBe(false);
+    expect(scope.reason).toContain('narrowed by import reachability to redact, sign');
+    expect(scope.reason).toContain('sign via src/editor/geometry.ts');
+  });
+
+  it('a lib file one tool imports runs only that tool', () => {
+    const scope = derive(['src/lib/mergeOnly.ts']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/merge/e2e/ e2e/home/');
+  });
+
+  it('a file only a non-tool page imports runs the site-wide specs alone', () => {
+    const scope = derive(['src/lib/homeOnly.ts']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('e2e/home/');
+  });
+
+  it('a change under src/editor/text/ still turns the font guards on (the glob decides, not reachability)', () => {
+    const graph = graphOf({ 'src/editor/text/fonts.js': [], 'src/tools/sign/PdfSignTool.tsx': ['src/editor/text/fonts.js'], 'src/pages/sign.astro': ['src/tools/sign/PdfSignTool.tsx'] });
+    const scope = derive(['src/editor/text/fonts.js'], { loadReachGraph: () => ({ ...graph, toolOf }) });
+    expect(scope.everything).toBe(false);
+    expect(scope.fonts).toBe(true);
+    expect(scope.e2e_paths).toBe('src/tools/sign/e2e/ e2e/home/');
+  });
+
+  it('a CSS change goes wide, with the reason, and keeps the glob-decided fonts value', () => {
+    const scope = derive(['src/styles/global.css']);
+    expect(scope.everything).toBe(true);
+    expect(scope.fonts).toBe(false);
+    expect(scope.reason).toContain('core project(s) affected: site, shell, editor, lib');
+    expect(scope.reason).toContain('src/styles/global.css is not a source file the import graph knows');
+  });
+
+  it('a file the scanner cannot resolve goes wide', () => {
+    expect(derive(['src/lib/brandNew.ts']).everything).toBe(true);
+  });
+
+  it('a change reaching a layout nothing live imports goes wide', () => {
+    const scope = derive(['src/layouts/Orphan.astro']);
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toContain('has no importer to walk on');
+  });
+
+  it('a layout every tool page imports reaches every tool page, so it selects those tools', () => {
+    const scope = derive(['src/layouts/ToolLayout.astro']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/merge/e2e/ src/tools/redact/e2e/ src/tools/sign/e2e/ e2e/home/');
+  });
+
+  it('goes wide with no graph supplied (the pure default), when the scan throws, and when no src/ file explains the verdict', () => {
+    expect(derive(['src/editor/geometry.ts'], { loadReachGraph: null }).reason).toContain('no import graph supplied');
+    const thrown = derive(['src/editor/geometry.ts'], { loadReachGraph: () => { throw new Error('boom'); } });
+    expect(thrown.everything).toBe(true);
+    expect(thrown.reason).toContain('import graph unavailable: boom');
+    expect(derive(['e2e/home/handoff.spec.js']).reason).toContain('no src/ file explains the core verdict');
+  });
+
+  it('a file outside src/ riding along with an src/ change does not widen it', () => {
+    const scope = derive(['src/lib/signHelper.ts', 'e2e/home/handoff.spec.js', 'scripts/check-push.mjs']);
+    expect(scope.everything).toBe(false);
+    expect(scope.e2e_paths).toBe('src/tools/sign/e2e/ e2e/home/');
+  });
+
+  it('the unowned-file and oracle rules still run first', () => {
+    expect(derive(['src/editor/geometry.ts', 'package.json']).reason).toContain('unowned files: package.json');
+    expect(derive(['src/editor/geometry.ts', 'scripts/import-graph.mjs']).reason).toContain('CI oracle changed: scripts/import-graph.mjs');
+  });
+
+  it('the import scan is part of the oracle: a change to it never narrows itself', () => {
+    expect(ORACLE_FILES.has('scripts/import-graph.mjs')).toBe(true);
   });
 });
