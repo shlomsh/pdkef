@@ -36,6 +36,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
+- [DEBT-31](backlog/tasks/DEBT-31.md) · The privacy-page sentence for action names in error reports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
