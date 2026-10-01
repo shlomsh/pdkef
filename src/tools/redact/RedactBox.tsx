@@ -2,7 +2,8 @@ import { useRef } from 'preact/hooks';
 import RedactBoxBar, { useCoarsePointer } from './RedactBoxBar.tsx';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
-import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
+import RedactBoxToolbar from './RedactBoxToolbar.tsx';
+import toolbarStyles from './RedactBoxToolbar.module.css';
 import ElementResizers from '../../editor-ui/ElementResizers.tsx';
 import { createElementRenderers } from '../../editor/registry/renderers.ts';
 import type { ElementType } from '../../editor/model/editorModel.ts';
@@ -35,7 +36,7 @@ const ELEMENT_RENDERERS = createElementRenderers({});
 // map() because useFloating (below) is a hook and can't run per-iteration inline.
 //
 // All three types are styled to match the Sign tool's whiteout element as closely as
-// possible: the same floating toolbar on selection (ElementToolbar - color picker for
+// possible: the same floating toolbar on selection (RedactBoxToolbar - colour controls for
 // whiteout only, then duplicate and delete for every type), positioned with the same
 // Floating UI middleware as SignTool/DraggableWrapper.tsx so it flips below the box
 // instead of clipping off-screen near the top of a page; the same 8-handle resize UI as
@@ -57,7 +58,10 @@ export default function RedactBox({
   onHoverEnter,
   onHoverLeave,
   onDelete,
-  onChangeColor,
+  onPickColor,
+  onMatchPage,
+  eyedropping,
+  onToggleEyedropper,
   onChangeStrength,
   onDuplicate,
   onRepeatOnEveryPage,
@@ -79,7 +83,11 @@ export default function RedactBox({
   onHoverEnter: (...args: any[]) => void;
   onHoverLeave: (...args: any[]) => void;
   onDelete: (id: string) => void;
-  onChangeColor: (id: string, color: string) => void;
+  onPickColor: (id: string, color: string) => void;
+  /** RED-51: back to following the page's colour. */
+  onMatchPage: (id: string) => void;
+  eyedropping: boolean;
+  onToggleEyedropper: () => void;
   onChangeStrength: (id: string, strength: BlurStrength) => void;
   /** RED-03: duplicates `el`'s whole repeat group by id - the toolbar's own
    * pre-built clone object is ignored (see onClone below). */
@@ -188,9 +196,6 @@ export default function RedactBox({
   const isStroke = el.type === 'blurStroke' || el.type === 'whiteoutStroke';
   const isWhiteout = el.type === 'whiteout' || el.type === 'whiteoutStroke';
   const hasShapeHandles = !isStroke;
-  const toolbarElement = el.type === 'blurStroke'
-    ? { ...el, type: 'blur' }
-    : el.type === 'whiteoutStroke' ? { ...el, type: 'whiteout' } : el;
   // RED-43: keyboard access. Key handling is boxKeys.ts's pure function; this
   // only dispatches to the callbacks a click, the delete button and a drag
   // release already use. Keys from the floating toolbar's controls are ignored.
@@ -235,16 +240,14 @@ export default function RedactBox({
   ].filter(Boolean).join(' ');
 
   const toolbar = (
-    <ElementToolbar
-      element={toolbarElement}
-      onChange={(changes: any) => {
-        if (changes.color) onChangeColor(el.id, changes.color);
-        if (changes.strength) onChangeStrength(el.id, changes.strength);
-      }}
-      // RED-03: the toolbar's own clone object can't identify a linked
-      // box's source once several boxes share the same geometry
-      // offset, so it's ignored in favour of duplicating by id.
-      onClone={() => onDuplicate(el.id)}
+    <RedactBoxToolbar
+      element={el}
+      eyedropping={eyedropping}
+      onToggleEyedropper={onToggleEyedropper}
+      onMatchPage={() => onMatchPage(el.id)}
+      onPickColor={(c: string) => onPickColor(el.id, c)}
+      onChangeStrength={(s: BlurStrength) => onChangeStrength(el.id, s)}
+      onDuplicate={() => onDuplicate(el.id)}
       onDelete={() => onDelete(el.id)}
       onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
       repeatGroupSize={repeatGroupSize}
@@ -331,7 +334,7 @@ export default function RedactBox({
       {isSelected && !coarsePointer && (
         <div
           ref={refs.setFloating}
-          className={elementStyles.actions}
+          className={`${toolbarStyles.pill} ${toolbarStyles.floating}`}
           data-editor-actions
           style={{
             ...floatingStyles,

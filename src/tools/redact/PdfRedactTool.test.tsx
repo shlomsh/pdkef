@@ -136,6 +136,16 @@ vi.mock('./check/removePlace.ts', () => ({
   PlaceNotFoundError: class PlaceNotFoundError extends Error {},
 }));
 
+// RED-51: sets the selected box's colour through its toolbar's colour input.
+async function setSelectedBoxColor(color: string) {
+  const input = query<HTMLInputElement>(document.body, '[data-editor-actions] input[type="color"]');
+  await act(async () => {
+    input.value = color;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
 
@@ -204,8 +214,9 @@ describe('PdfRedactTool UI flow', () => {
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
-  it('uses the remembered app-wide whiteout color for a newly drawn redaction', async () => {
-    // RED-40: the colour is per-document style; the app-wide style seeds a new document.
+  it('RED-51: a newly drawn whiteout takes the page colour, not the remembered color', async () => {
+    // RED-51: a new whiteout is auto (colorMode 'auto') and takes the page's colour, '#ffffff'
+    // in jsdom where the canvas cannot be read. The remembered colour seeds the brush only.
     rememberAppStyle({ whiteoutColor: '#123456' });
 
     try {
@@ -215,7 +226,7 @@ describe('PdfRedactTool UI flow', () => {
 
       const surface = container.querySelector('.redact-surface--whiteout');
       expect(surface).not.toBeNull();
-      expect(surface.style.backgroundColor).toBe('rgb(18, 52, 86)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     } finally {
       localStorage.clear();
     }
@@ -244,22 +255,22 @@ describe('PdfRedactTool UI flow', () => {
 
     afterEach(() => { localStorage.clear(); });
 
-    it('a restored document draws whiteout in its own colour, not the app-wide one', async () => {
+    it('a restored document still draws whiteout in the page colour (auto), not its remembered one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
       const drawArea = await mountRestored({ whiteoutColor: '#ff0000' });
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
-      expect(surface.style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     });
 
-    it('a fresh document draws whiteout in the app-wide colour', async () => {
+    it('a fresh document draws whiteout in the page colour (auto), not the app-wide one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
       const drawArea = await loadFileAndGetDrawArea();
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
-      expect(surface.style.backgroundColor).toBe('rgb(0, 255, 0)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     });
 
     it('a restored document draws blur at its own strength, not the app-wide one', async () => {
@@ -2254,17 +2265,7 @@ describe('PdfRedactTool UI flow', () => {
       // duplicateElement selects the duplicate of the box that was pressed
       // (page 0's), so its own toolbar/color trigger is already on screen.
       const originalColor = query<HTMLElement>(pageCards[0], '.redact-surface--whiteout').style.backgroundColor;
-      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
-      await act(async () => {
-        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      const swatch = required(
-        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
-        'a preset color swatch',
-      );
-      await act(async () => {
-        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await setSelectedBoxColor('#000000');
 
       pageCards.forEach((card) => {
         const surfaces = Array.from(card.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
@@ -2853,29 +2854,14 @@ describe('PdfRedactTool UI flow', () => {
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
       const originalColor = surface.style.backgroundColor;
 
-      // Select the box, open its color picker trigger, then pick a preset
-      // swatch. The popover portals to document.body (Popover.tsx's
-      // createPortal), so the swatch is queried there rather than in `container`.
+      // Select the box, then set a colour through its toolbar's colour input.
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
-      await act(async () => {
-        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      // Default whiteout color is #ffffff (no remembered color set by this
-      // test), so the first preset swatch (#000000, ColorPicker.tsx's
-      // PRESET_COLORS[0]) is always a genuine change.
-      const swatch = required(
-        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
-        'a preset color swatch',
-      );
-      await act(async () => {
-        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await setSelectedBoxColor('#000000');
 
       const changedColor = surface.style.backgroundColor;
       expect(changedColor).not.toBe(originalColor);
