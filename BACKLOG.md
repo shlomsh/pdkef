@@ -55,7 +55,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
-| DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | In progress. Needs Shlomi: The privacy-page sentence for action names in error reports |
+| DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | In progress |
 
 ### Then, in order
 
