@@ -79,7 +79,7 @@ committed.
   with per-epic done and retired counts. Done and retired tickets are never listed; their files stay in
   `tasks/` as the record.
 - [`TODO.md`](../TODO.md): what is next across the board. Up next by lane, waiting by date, and what needs Shlomi.
-- The local board: a localhost-only viewer that stays synchronized without generating HTML.
+- The local board: a localhost-only viewer that stays synchronized without generating HTML. Click a card to read the ticket; `#ID` in the address bar links straight to it.
 
 ```sh
 npm run backlog:serve
