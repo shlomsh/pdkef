@@ -34,7 +34,7 @@ The approved runtime licenses are MIT, Apache-2.0, ISC, BSD-2-Clause, BSD-3-Clau
 | [@vercel/analytics](https://github.com/vercel/analytics) | 2.0.1 | MIT |
 | [@vercel/functions](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package) | 3.9.9 | Apache-2.0 |
 | [@vercel/speed-insights](https://github.com/vercel/speed-insights) | 2.0.0 | Apache-2.0 |
-| [astro](https://astro.build) | 7.3.1 | MIT |
+| [astro](https://astro.build) | 7.3.5 | MIT |
 | [bidi-js](https://github.com/lojjic/bidi-js) | 1.1.0 | MIT |
 | [color](https://github.com/Qix-/color) | 4.2.3 | MIT |
 | [color-convert](https://github.com/Qix-/color-convert) | 2.0.1 | MIT |
@@ -837,7 +837,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### astro (7.3.1) - MIT
+### astro (7.3.5) - MIT
 
 withastro
 
