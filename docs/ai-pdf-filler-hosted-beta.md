@@ -2,8 +2,8 @@
 
 Date: 2026-09-30. Input for AI-05. Checkpoint: `codex/ai-pdf-filler` at `e0fa106`, refreshed
 against `5ba92ed`.
-Status: spike closed. Nothing hosted has been built or proven. The next step is OpenAI's answer to
-the interest form request at the end of this page.
+Status: spike closed. Nothing hosted has been built or proven. The interest form request at the end
+of this page was submitted on 2026-10-01; the next step is OpenAI's answer.
 
 ## Spike conclusion
 
@@ -259,8 +259,10 @@ eligibility, recorded in the integration notes. Task status changes are for the 
 
 Submitted by the maintainer through [OpenAI's interest form](https://openai.com/form/sign-in-with-chatgpt-interest/),
 the path the [token sharing overview](https://developers.openai.com/siwc/token-sharing-open-source)
-names for remotely hosted apps. Record the submission date and any reply in the integration notes.
-Suggested text:
+names for remotely hosted apps, on 2026-10-01. The form asks for work email, name, company (PDkef),
+website (`https://pdkef.com`), job title, capabilities ("Sign in and ChatGPT plan use for AI
+requests") and a product description. No reply yet; record any reply in the integration notes. The
+product description submitted:
 
 > PDkef (pdkef.com) is a free, open-source suite of PDF tools that runs entirely in the browser. It
 > has no accounts, no ads and no PDF-processing server. We would like to offer ChatGPT plan usage in
