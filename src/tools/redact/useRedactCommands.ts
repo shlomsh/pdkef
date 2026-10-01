@@ -4,6 +4,10 @@
  * document edited, drop a removed box from the selection, push one history
  * entry, and for a removal show the undo chip. Handlers now only decide what
  * changes; these three commands do the rest, so no two of them can drift.
+ *
+ * SNG-08: the change, the revision bump, the selection clean-up and the
+ * history entry are one `EditCommit` handed to `commit` (the reducer's
+ * EDIT_COMMITTED), so a render never sees half of an edit.
  */
 import {
   captureAddedElement,
@@ -12,16 +16,13 @@ import {
   createActionEntry,
   type ActionHistoryEntry,
 } from '../../editor/model/actionHistory.ts';
-import { pushCommand, type HistoryStack } from '../../editor/model/historyStack.ts';
+import type { EditCommit } from './state/redactState.ts';
 import { createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 
 export interface RedactCommandDeps<T extends { id: string; pageIndex: number }> {
   elements: readonly T[];
-  setElements: (update: (prev: T[]) => T[]) => void;
-  setHistory: (update: (current: HistoryStack<T>) => HistoryStack<T>) => void;
-  markDocumentEdited: () => void;
-  /** Clears the active and selected box when it is one of `ids`. */
-  forgetSelection: (ids: ReadonlySet<string>) => void;
+  /** Applies one edit whole: elements, revision, selection (a removal forgets its ids) and history. */
+  commit: (commit: EditCommit<T>) => void;
   /** Shows the undo chip and announces `message` (the island's registerUndo). */
   registerUndo: (message: string, entry: ActionHistoryEntry<T>, extra?: UndoExtra) => void;
   /** Resolves update descriptions the way the island does today (describeRedactUpdate). */
@@ -78,13 +79,11 @@ export interface RedactCommands<T> {
 export default function useRedactCommands<T extends { id: string; pageIndex: number }>(
   deps: RedactCommandDeps<T>,
 ): RedactCommands<T> {
-  const { elements, setElements, setHistory, markDocumentEdited, forgetSelection, registerUndo, describeUpdate } = deps;
+  const { elements, commit, registerUndo, describeUpdate } = deps;
 
   const add = (additions: readonly T[], options: AddOptions) => {
     if (additions.length === 0) return;
     const baseIndex = elements.length;
-    setElements((prev) => [...prev, ...additions]);
-    markDocumentEdited();
     const entry = createActionEntry<T>({
       operation: 'add',
       type: options.type,
@@ -92,16 +91,13 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       description: options.description,
       elements: additions.map((el, i) => captureAddedElement(el, baseIndex + i)),
     });
-    setHistory((current) => pushCommand(current.past, current.future, entry));
+    commit({ edit: { kind: 'add', additions }, entry });
     if (options.undoChip) registerUndo(options.chipMessage ?? options.description, entry, options.undoExtra);
   };
 
   const remove = (ids: ReadonlySet<string>, options: RemoveOptions) => {
     const snapshots = captureElementSnapshots(elements, (el) => ids.has(el.id));
     if (snapshots.length === 0) return;
-    setElements((prev) => prev.filter((el) => !ids.has(el.id)));
-    markDocumentEdited();
-    forgetSelection(ids);
     const entry = createActionEntry<T>({
       operation: 'delete',
       type: options.type,
@@ -109,7 +105,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       description: options.description,
       elements: snapshots,
     });
-    setHistory((current) => pushCommand(current.past, current.future, entry));
+    commit({ edit: { kind: 'remove', ids }, entry });
     registerUndo(options.chipMessage ?? options.description, entry);
   };
 
@@ -120,18 +116,14 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
   ) => {
     const element = elements.find((el) => el.id === id);
     if (!element) return;
-    setElements((prev) => {
-      const changesById = new Map(perBox.map(({ id: boxId, changes: boxChanges }) => [boxId, boxChanges]));
-      return prev.map((el) => {
-        const boxChanges = changesById.get(el.id);
-        return boxChanges ? { ...el, ...boxChanges } : el;
-      });
-    });
-    markDocumentEdited();
+    const edit = { kind: 'update' as const, changesById: new Map(perBox.map(({ id: boxId, changes: boxChanges }) => [boxId, boxChanges])) };
     const changes = perBox.find(({ id: boxId }) => boxId === id)?.changes ?? {};
     const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(kind, element));
     const entry = createUpdateEntry(element, changes, describe);
-    if (!entry) return;
+    if (!entry) {
+      commit({ edit, entry: null });
+      return;
+    }
     const otherUpdates = perBox
       .filter(({ id: boxId }) => boxId !== id)
       .flatMap(({ id: boxId, changes: boxChanges }) => {
@@ -140,7 +132,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
         return boxUpdate ? [boxUpdate] : [];
       });
     const fullEntry = otherUpdates.length === 0 ? entry : { ...entry, updates: [...entry.updates, ...otherUpdates] };
-    setHistory((current) => pushCommand(current.past, current.future, fullEntry));
+    commit({ edit, entry: fullEntry });
   };
 
   return { add, remove, update };
