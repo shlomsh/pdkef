@@ -1,11 +1,9 @@
 ---
 id: "RED-50"
 title: "A download that fails after the file is made says so, not \"Saved\""
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -18,3 +16,7 @@ depends_on: []
 
 ## Acceptance
 - A thrown download leaves the finish row on the error with a way to try again, and does not say the file was saved.
+
+## Result
+
+`EXPORT_FAILED` also clears the kept export, so a download that throws leaves the finish row on "The download stopped." with no "Saved" line, and Download works again. No share-prepared copy exists at that point (`prepare()` runs only before delivery), so nothing else needs clearing. Tested in the reducer and in the island, including a retry that completes. (a3e97654)
