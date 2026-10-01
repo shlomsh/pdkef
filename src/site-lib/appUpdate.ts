@@ -331,7 +331,11 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   function watchInstalling(worker: WorkerLike | null) {
     worker?.addEventListener?.('statechange', () => {
-      if (worker.state === 'installed') void refreshLine();
+      if (worker.state !== 'installed') return;
+      void refreshLine();
+      // A force started at the end of install has no event keeping that worker
+      // alive; this message restarts it under waitUntil.
+      nudgeWaiting();
     });
   }
   reg.addEventListener('updatefound', () => watchInstalling(reg.installing));

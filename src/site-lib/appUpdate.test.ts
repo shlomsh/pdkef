@@ -740,6 +740,21 @@ describe('discovery', () => {
     expect(criticalChecks(worker)).toBe(before + 1);
   });
 
+  it('a new build reaching installed is nudged at once, without waiting for a check', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const installing: any = new Emitter();
+    installing.state = 'installing';
+    tab.reg.installing = installing;
+    tab.reg.emit('updatefound');
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    tab.reg.waiting = worker;
+    installing.state = 'installed';
+    installing.emit('statechange');
+    expect(criticalChecks(worker)).toBe(1);
+    expect(tab.reg.update).not.toHaveBeenCalled();
+  });
+
   it('visible checks are throttled to VISIBLE_CHECK_MIN_MS; a hidden tab does not ask', async () => {
     const tab = makeTab(new Bus());
     await tab.start();
