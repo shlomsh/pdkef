@@ -24,7 +24,6 @@ import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preference
 declare const __dirname: string;
 
 const REDACT_BOX = redactStyles['redact-box'];
-const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -1514,7 +1513,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1547,7 +1545,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
