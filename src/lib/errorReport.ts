@@ -92,8 +92,7 @@ function safely<T>(read: () => T, fallback: T): T {
  */
 export function reportError(area: ErrorArea, error: unknown, step: string): void {
   try {
-    if (!enabled) return;
-    if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;
+    if (!canSend()) return;
     if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     const report = toErrorReport(area, error, step, readPageContext());
     if (!report) return;
@@ -105,12 +104,31 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
     if (sent.has(key) || (report.area === 'uncaught' && sentSites.has(site))) return;
     sent.add(key);
     sentSites.add(site);
-    navigator.sendBeacon(
-      ERROR_REPORT_PATH,
-      new Blob([JSON.stringify(report)], { type: 'application/json' }),
-    );
+    sendBeacon(report);
   } catch {
     // Reporting must never change what the caller does next.
+  }
+}
+
+function canSend(): boolean {
+  return enabled && navigator.onLine !== false && typeof navigator.sendBeacon === 'function';
+}
+
+/**
+ * Hands one JSON payload to `ERROR_REPORT_PATH` with `navigator.sendBeacon`:
+ * production builds only, nothing when offline. Never throws. Returns whether
+ * the browser accepted it; callers must not change their flow on the answer.
+ * Shared by error reports and maintenance events (DEBT-27).
+ */
+export function sendBeacon(payload: object): boolean {
+  try {
+    if (!canSend()) return false;
+    return navigator.sendBeacon(
+      ERROR_REPORT_PATH,
+      new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+    );
+  } catch {
+    return false;
   }
 }
 

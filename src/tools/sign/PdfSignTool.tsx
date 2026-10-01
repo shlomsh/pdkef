@@ -54,7 +54,7 @@ import {
   signFormDetectionFailed,
   signFormDetectionNotStarted,
   signFormDetectionUnavailable,
-  vercelMaintenanceTransport,
+  beaconMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
@@ -552,7 +552,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // starts over for a different file.
   useEffect(() => {
     if (formRegions.detection === 'pending') return;
-    const transport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    const transport = beaconMaintenanceTransport;
     const detectionEvent = () => {
       // Four outcomes, four signals. A run that never started, a detector
       // that never loaded (a stale cached shell after a deploy) and a
@@ -866,7 +866,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const exportStartedAt = performance.now();
     // Development/test exports never contact the production analytics adapter.
     // In production it remains optional: no injected Vercel queue means no send.
-    const telemetryTransport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    const telemetryTransport = beaconMaintenanceTransport;
 
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
