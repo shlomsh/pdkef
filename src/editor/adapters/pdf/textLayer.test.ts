@@ -88,6 +88,16 @@ describe('wordsUnderBoxes', () => {
     expect(words).toEqual(['John', 'Smith,']);
   });
 
+  it('splits two words a narrow space apart even when that space opens its line in the stream', () => {
+    // The real health declaration's "לאומי" and "לביטחון": a space 0.244 em
+    // wide, under the join gap, and stored before the letters of its line.
+    const word = makeLine('bbb', { x: 0 });
+    const next = makeLine('ccc', { x: 15 + 2.44 });
+    const space: PageGlyph = { unicode: ' ', isSpace: false, matrix: [10, 0, 0, 10, 15, 400], width: 0.244 };
+    const [words] = wordsUnderBoxes([space, ...word, ...next], geometry, [box(0, 40, 390, 405)]);
+    expect(words).toEqual(['bbb', 'ccc']);
+  });
+
   it('gives one entry per box, empty for a box that reaches no word', () => {
     const glyphs = makeLine('aaa bbb ccc');
     const boxes = [box(18, 37, 390, 405), box(200, 210, 390, 405)];

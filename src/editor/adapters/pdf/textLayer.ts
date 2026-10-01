@@ -111,21 +111,32 @@ function isStrongRTL(ch: string): boolean {
  * order; position is the only order both agree on. */
 function positionalLines(glyphs: PageGlyph[]): { along: number; glyph: PageGlyph }[][] {
   const lines: { inverse: AffineTransform; first: PageGlyph; glyphs: { along: number; glyph: PageGlyph }[] }[] = [];
+  const lineOf = (glyph: PageGlyph, origin: { x: number; y: number }) => lines.find((candidate) =>
+    sameShape(candidate.first.matrix, glyph.matrix)
+    && Math.abs(applyAffineTransform(origin, candidate.inverse).y) <= SAME_LINE_EM);
+  // Blanks join a line the letters made but never start one, so they are
+  // placed after every letter: a blank that came first in the stream (the
+  // space that opens a run) would otherwise be dropped, and two words a space
+  // apart in a font whose space is under JOIN_GAP_EM would read as one (RED-15).
   for (const glyph of glyphs) {
+    if (isBlank(glyph)) continue;
     const origin = { x: glyph.matrix[4], y: glyph.matrix[5] };
-    const line = lines.find((candidate) =>
-      sameShape(candidate.first.matrix, glyph.matrix)
-      && Math.abs(applyAffineTransform(origin, candidate.inverse).y) <= SAME_LINE_EM);
+    const line = lineOf(glyph, origin);
     if (line) {
       line.glyphs.push({ along: applyAffineTransform(origin, line.inverse).x, glyph });
       continue;
     }
-    if (isBlank(glyph)) continue;
     try {
       lines.push({ inverse: invertAffineTransform(glyph.matrix), first: glyph, glyphs: [{ along: 0, glyph }] });
     } catch {
       // A degenerate text matrix shows nothing.
     }
+  }
+  for (const glyph of glyphs) {
+    if (!isBlank(glyph)) continue;
+    const origin = { x: glyph.matrix[4], y: glyph.matrix[5] };
+    const line = lineOf(glyph, origin);
+    if (line) line.glyphs.push({ along: applyAffineTransform(origin, line.inverse).x, glyph });
   }
   return lines.map((line) => line.glyphs.sort((a, b) => a.along - b.along));
 }
