@@ -143,8 +143,8 @@ which unit test files run; see the section above for that.
   import reachability (ARCH-32) can name the tools: Nx cannot (it connects `editor` to 18 of 19
   projects), so `narrowByReachability()` walks "who imports me" from every changed `src/` file
   (graph from `scripts/import-graph.mjs`, the scan `check-module-boundaries.mjs` shares) and every
-  walk must end at a tool file, a tool's own page, a non-tool page or an `e2e/` file (the site-wide
-  specs, which always run, cover those). Then only those tools' `e2e/` run, plus the site-wide specs
+  walk must end at a tool file, a tool's own page or an `e2e/` file under the always-run site-wide specs
+  (tool specs also visit the home page and `/he/merge/`, so reaching any other page or spec goes wide). Then only those tools' `e2e/` run, plus the site-wide specs
   and the export guards; the summary line names the file that reaches each tool. It fails open to
   everything, with the reason, for CSS, content or any file the scan never saw, a module nothing
   live imports (`middleware.ts`, `api/`, `content.config.ts`, a file only a build script or a path

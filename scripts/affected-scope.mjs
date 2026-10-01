@@ -252,8 +252,7 @@ export function wide(affected, reason, fonts = true) {
 // src/editor/ or src/lib/ reaches (the project graph connects `editor` to 18 of 19 projects), but
 // the import graph can: walk "who imports me" from each changed file up to the files that no one
 // imports, and every such end must be a tool (a file under src/tools/<t>/) or a tool's own page.
-// A page that is not a tool's, or a file under e2e/, ends the walk too: the site-wide specs that
-// always run cover it.
+// A non-tool page, or an e2e/ file outside the site-wide specs, widens: tool specs may visit it.
 // Anything else - a module nothing live imports (middleware, an api/ entry, a framework-loaded
 // config), a file the scan never saw (CSS, YAML, an image, a deleted file) - is something this
 // walk cannot speak for, so it answers
@@ -266,12 +265,11 @@ const UNIT_TEST_FILE = /\.(?:test|contract)\.[cm]?[jt]sx?$/;
 // spec is a live importer, which the walk follows like any other. With no live importer at all it
 // is not a loose end the way a runtime file is: unit tests are all it serves.
 const TEST_SUPPORT_FILE = /^src\/test\/|\.test-helper\.[cm]?[jt]sx?$/;
-// Ends of the walk the site-wide specs, which always run, already cover: a page that is not a
-// tool's own (home, privacy, the localized routes, 404, the endpoints), because a spec under
-// src/tools/<t>/e2e/ may only visit tool <t>'s page (boundary rule 7) and every other page's specs
-// live under e2e/; and a file under e2e/ itself (site-wide specs, the font guards the fonts glob
-// decides, the export guards that always run with a core change).
-const FLOOR_COVERED_FILE = /^(?:src\/pages|e2e)\//;
+// Tool specs may visit any page (the home page, the localized routes), so only a tool's own page
+// ends the walk safely: a page under src/pages/ that is not one goes wide, and so does an e2e/ file
+// unless it sits under an always-run site-wide spec path (`siteE2ePaths`).
+const PAGE_FILE = /^src\/pages\//;
+const E2E_FILE = /^e2e\//;
 
 // Tool folder of a file: anything under src/tools/<t>/, or a top-level page that renders a tool
 // (`routeMap` is import-graph's buildToolRouteMap(): '/<slug>' -> tool folder).
@@ -287,7 +285,7 @@ export function narrowByReachability({
   changedFiles, knownFiles, reverseEdges, toolOf,
   isInert = (f) => UNIT_TEST_FILE.test(f),
   isTestSupport = (f) => TEST_SUPPORT_FILE.test(f),
-  isFloorCovered = (f) => FLOOR_COVERED_FILE.test(f),
+  siteE2ePaths = [],
 }) {
   const via = new Map();
   for (const seed of changedFiles) {
@@ -304,7 +302,11 @@ export function narrowByReachability({
         if (!via.has(tool)) via.set(tool, seed);
         continue; // a tool is one identity; nothing legitimately imports past it
       }
-      if (isFloorCovered(node)) continue;
+      if (PAGE_FILE.test(node)) return { wide: `${seed} reaches ${node}, which tool specs also visit` };
+      if (E2E_FILE.test(node)) {
+        if (siteE2ePaths.some((p) => node === p || (p.endsWith('/') && node.startsWith(p)))) continue;
+        return { wide: `${seed} reaches ${node}, a spec the site-wide run does not cover` };
+      }
       // A unit test importing a file does not make it reachable from a page: only live importers
       // count, and a file with none (an entry the graph does not see, say) is a dead end that widens.
       const live = [...(reverseEdges.get(node) ?? [])].filter((importer) => !isInert(importer));
@@ -342,7 +344,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
     const fonts = files.some(matchesFontsGlob);
     const coreReason = `core project(s) affected: ${wideCore.join(', ')}`;
     // ARCH-32: before going wide, ask the import graph which tools the changed files reach.
-    const reached = reachFromCore({ files, loadReachGraph });
+    const reached = reachFromCore({ files, loadReachGraph, siteE2ePaths });
     if (reached.wide) return wide(affected, `${coreReason} (${reached.wide})`, fonts);
     return narrowResult({
       files,
@@ -381,7 +383,7 @@ export function deriveScope({ files, affected, roots, toolE2eExists = () => true
 // Nx call a core project affected (nothing in src/ depends on those projects), and the rules in
 // narrowResult already cover what they do run. A diff with no src/ file at all therefore leaves
 // the core verdict unexplained, which widens.
-function reachFromCore({ files, loadReachGraph }) {
+function reachFromCore({ files, loadReachGraph, siteE2ePaths }) {
   if (!loadReachGraph) return { wide: 'no import graph supplied' };
   const seeds = files.filter((f) => f.startsWith('src/'));
   if (seeds.length === 0) return { wide: 'no src/ file explains the core verdict' };
@@ -391,7 +393,7 @@ function reachFromCore({ files, loadReachGraph }) {
   } catch (err) {
     return { wide: `import graph unavailable: ${err.message}` };
   }
-  const result = narrowByReachability({ changedFiles: seeds, knownFiles: graph.knownFiles, reverseEdges: graph.reverseEdges, toolOf: graph.toolOf });
+  const result = narrowByReachability({ changedFiles: seeds, knownFiles: graph.knownFiles, reverseEdges: graph.reverseEdges, toolOf: graph.toolOf, siteE2ePaths });
   if (result.wide) return { wide: result.wide };
   const why = result.tools.length ? result.tools.map((t) => `${t} via ${result.via.get(t)}`).join('; ') : 'nothing e2e imports the changed files';
   return { tools: result.tools, seeds, why };
