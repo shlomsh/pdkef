@@ -3,6 +3,8 @@ import {
   deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
 } from '../../../lib/drafts/draftStore.js';
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
+import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
 import { reportError } from '../../../lib/errorReport.ts';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
 
@@ -354,21 +356,28 @@ export function useMergeDraft({
   // closes, exactly as useDraftPersistence.js's own flush effect documents.
   useEffect(() => {
     if (!enabled) return undefined;
-    const flush = () => {
-      if (restoreInProgressRef.current || skipRestoredSnapshotAutosaveRef.current) return;
+    const flush = (): Promise<unknown> | undefined => {
+      if (restoreInProgressRef.current || skipRestoredSnapshotAutosaveRef.current) return undefined;
       const { entries, plan, options, title, outputName } = latest.current;
-      if (entries.length === 0) return;
+      if (entries.length === 0) return undefined;
       const revision = revisionRef.current;
-      if (savedRevisionRef.current === revision) return;
+      if (savedRevisionRef.current === revision) return undefined;
       setSaveState({ state: 'pending', revision });
-      buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
+      return buildRecord(entries, plan, options, title, outputName).then((record) => persist(revision, record));
     };
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush();
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', flush);
+    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
+    // outrun the write: flush (build + persist), then await in-flight saves.
+    const unregister = registerBeforeUpdateReload(async () => {
+      await Promise.allSettled([flush(), ...writePromisesRef.current.values()]);
+      await Promise.allSettled([...writePromisesRef.current.values()]);
+    });
     return () => {
+      unregister();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
     };
@@ -409,6 +418,10 @@ export function useMergeDraft({
     : saveState.revision === currentRevision
     ? saveState.state
     : (canPersist ? 'pending' : 'idle');
+
+  // A plan whose save failed (over MERGE_DRAFT_MAX_BYTES, no IndexedDB,
+  // quota) lives only in memory, so it holds an update back (MEM-10).
+  useHoldUpdate(draftSaveState === 'error');
 
   return { isRestoring, draftSaveState, clearDraft };
 }

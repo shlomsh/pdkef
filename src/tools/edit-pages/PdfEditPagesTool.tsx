@@ -14,6 +14,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
 
@@ -34,6 +35,7 @@ export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
+  useHoldUpdate(file !== null || status === 'processing');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');

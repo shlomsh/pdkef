@@ -48,6 +48,7 @@ import {
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
@@ -109,6 +110,7 @@ export default function PdfRedactTool() {
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
 
   const { file, numPages, pdfDocument, sizedPageCount, status, errorDetail, progress, showWelcomeTip } = state.document;
+  useHoldUpdate(status === 'redacting'); // finishPhase 'exporting' is this same state
   const { exportedForHandoff, handoffFailed, findTerms, removing, removedNote } = state.finish;
 
   // A returning person already knows this editor contains saved work. Do not

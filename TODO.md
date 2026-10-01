@@ -32,7 +32,6 @@ _Nothing is up next._
 
 ## Needs Shlomi
 
-- [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
