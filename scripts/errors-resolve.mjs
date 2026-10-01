@@ -5,7 +5,8 @@
 // rebuild each commit with hidden sourcemaps, stop at the one that emits the
 // chunk, and decode the position. Decoder: @jridgewell/trace-mapping.
 //
-//   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [--max 40]
+//   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [more frames, top first] [--max 40]
+// The first frame picks the build; every frame is mapped in that build.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -48,24 +49,38 @@ export function mapFrame(mapJson, line, col) {
 
 export function parseArgs(argv) {
   let max = 40;
-  let frame = null;
+  const frames = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--max') max = Number(argv[++i]);
-    else frame = frame ?? argv[i];
+    else frames.push(argv[i]);
   }
-  return { frame, max: Number.isInteger(max) && max > 0 ? max : 40 };
+  return { frames, max: Number.isInteger(max) && max > 0 ? max : 40 };
+}
+
+// Parses every raw frame; one bad frame fails the lot with a one-line message.
+export function parseFrames(raws) {
+  if (!raws.length) return { error: 'no frames given' };
+  const frames = [];
+  for (let i = 0; i < raws.length; i++) {
+    const f = parseFrame(raws[i]);
+    if (!f) return { error: `frame #${i + 1} is not chunk.js:line:col: ${raws[i]}` };
+    frames.push(f);
+  }
+  return { frames };
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
 function main() {
-  const { frame: raw, max } = parseArgs(process.argv.slice(2));
-  const frame = parseFrame(raw);
-  if (!frame) {
-    console.error('usage: npm run errors:resolve -- <chunk.js:line:col> [--max 40]');
+  const { frames: raws, max } = parseArgs(process.argv.slice(2));
+  const parsed = parseFrames(raws);
+  if (parsed.error) {
+    console.error(`errors:resolve: ${parsed.error} (usage: npm run errors:resolve -- <chunk.js:line:col>... [--max 40])`);
     process.exit(2);
   }
+  const frames = parsed.frames;
+  const frame = frames[0];
   const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), 'origin/main').split('\n').filter(Boolean);
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'errors-resolve-')), 'wt');
   let added = false;
@@ -95,19 +110,21 @@ function main() {
       const hit = b.status === 0 && existsSync(astroDir) && readdirSync(astroDir).includes(frame.chunk);
       console.error(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : b.status === 0 ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
       if (!hit) continue;
-      const mapFile = path.join(astroDir, `${frame.chunk}.map`);
-      const mapJson = JSON.parse(readFileSync(mapFile, 'utf8'));
-      const pos = mapFrame(mapJson, frame.line, frame.col);
       console.log(`${sha.slice(0, 8)} ${git(root, 'log', '-1', '--format=%s', sha)}`);
-      if (!pos) { console.log('no source mapping for that position'); found = true; break; }
-      console.log(`${pos.source}:${pos.line}:${pos.column}${pos.name ? ` (${pos.name})` : ''}`);
-      const file = path.resolve(path.dirname(mapFile), pos.source);
-      if (existsSync(file)) {
-        const lines = readFileSync(file, 'utf8').split('\n');
-        for (let n = Math.max(1, pos.line - 1); n <= Math.min(lines.length, pos.line + 1); n++) {
-          console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${lines[n - 1]}`);
+      frames.forEach((fr, k) => {
+        const mapFile = path.join(astroDir, `${fr.chunk}.map`);
+        if (!existsSync(mapFile)) { console.log(`#${k + 1} ${fr.chunk}:${fr.line}:${fr.col}\n  (chunk not in this build)`); return; }
+        const pos = mapFrame(JSON.parse(readFileSync(mapFile, 'utf8')), fr.line, fr.col);
+        if (!pos) { console.log(`#${k + 1} ${fr.chunk}:${fr.line}:${fr.col}\n  no source mapping for that position`); return; }
+        console.log(`#${k + 1} ${pos.source}:${pos.line}:${pos.column}${pos.name ? ` (${pos.name})` : ''}`);
+        const file = path.resolve(path.dirname(mapFile), pos.source);
+        if (existsSync(file)) {
+          const lines = readFileSync(file, 'utf8').split('\n');
+          for (let n = Math.max(1, pos.line - 1); n <= Math.min(lines.length, pos.line + 1); n++) {
+            console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${lines[n - 1]}`);
+          }
         }
-      }
+      });
       found = true;
       break;
     }
