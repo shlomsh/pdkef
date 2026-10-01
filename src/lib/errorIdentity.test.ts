@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { errorName, topFrame } from './errorIdentity.ts';
+import { errorName, stackFrames, topFrame } from './errorIdentity.ts';
 
 describe('errorName', () => {
   it('uses the declared name, then the constructor, else Error', () => {
@@ -31,5 +31,14 @@ describe('topFrame', () => {
     expect(topFrame(e)).toBe('');
     e.stack = 'Error\n at chrome-extension://abc/content.js:1:2';
     expect(topFrame(e)).toBe('');
+  });
+});
+
+describe('stackFrames', () => {
+  it('returns built-asset frames top first, skipping others, cut at max', () => {
+    const e = new Error('x');
+    e.stack = 'Error: x\n at a (https://pdkef.com/_astro/A.js:1:2)\n at b (https://cdn.x/o.js:9:9)\n at c (https://pdkef.com/_astro/B.js:3:4)';
+    expect(stackFrames(e)).toEqual(['A.js:1:2', 'B.js:3:4']);
+    expect(stackFrames(e, 1)).toEqual(['A.js:1:2']);
   });
 });
