@@ -338,6 +338,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
+        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
         promise.catch(() => setIsPseudoFullscreen(true));
       }
     } else {
@@ -617,6 +618,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         const selected: File = await launchParams.files[0].getFile();
         await loadFreshFile(selected);
       } catch (error) {
+        // expected: loadFreshFile has its own failure UI, the launch-queue file is external
         console.error(error);
       }
     });
@@ -864,8 +866,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportToolLifecycleEvent('tool_operation_started', 'sign');
     }
     const exportStartedAt = performance.now();
-    // Development/test exports never contact the production analytics adapter.
-    // In production it remains optional: no injected Vercel queue means no send.
+    // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
     const telemetryTransport = beaconMaintenanceTransport;
 
     try {

@@ -54,6 +54,7 @@ export function sampleCanvasColor(canvas: HTMLCanvasElement, clientX: number, cl
     const data = canvas.getContext('2d')?.getImageData(x, y, 1, 1).data;
     return data ? `#${toHex(data[0])}${toHex(data[1])}${toHex(data[2])}` : null;
   } catch {
+    // expected: getImageData can throw on a tainted or empty canvas, null means no colour
     return null;
   }
 }

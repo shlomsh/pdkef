@@ -30,6 +30,7 @@ export function useAutoFontProvisioning(elements) {
     for (const family of families) {
       if (attempted.current.has(family) || !fontPackDescriptor(family)) continue;
       attempted.current.add(family);
+      // expected: background fetch, retried by clearing attempted, offline is the norm
       provisionFontPack(family).catch(() => attempted.current.delete(family));
     }
   }, [elements]);

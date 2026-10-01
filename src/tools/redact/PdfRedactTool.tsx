@@ -330,6 +330,7 @@ export default function PdfRedactTool() {
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
+        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
         promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
       }
     } else {
@@ -873,6 +874,7 @@ export default function PdfRedactTool() {
       if (!saved) throw new Error('handoff');
       window.location.href = `/${tool}/`;
     } catch (err) {
+      // expected: saveHandoff reports its own failure, this shows the handoff-failed state
       console.error(err);
       dispatch({ type: 'HANDOFF_FAILED' });
       setHandoffBusy(false);
