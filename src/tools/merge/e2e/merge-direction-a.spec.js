@@ -95,6 +95,9 @@ test('a caption is visible, not painted under the thumbnail (critique P0)', asyn
 
   const caption = page.locator('li[class*="caption"]').first();
   await expect(caption).toBeVisible();
+  // Bring it to mid-screen: what sits above it on the page (the airplane-mode
+  // line, SEO-37) decides whether the rail's sticky bottom sheet covers it at rest.
+  await caption.evaluate((el) => el.scrollIntoView({ block: 'center' }));
   const box = await caption.boundingBox();
   if (!box) throw new Error('Caption has no bounding box');
   const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };

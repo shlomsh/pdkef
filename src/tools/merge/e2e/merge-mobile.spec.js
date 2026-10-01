@@ -43,7 +43,9 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(chooseButton).toBeVisible();
     const box = await chooseButton.boundingBox();
     if (!box) throw new Error('Choose files has no bounding box');
-    expect(box.y).toBeLessThan(600);
+    // The whole button sits inside the first screen, whatever the device's height
+    // and however many lines the notices above it wrap to.
+    expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
   });
 
   test('loaded state: no horizontal overflow, the chip row is visible, Download fits the viewport', async ({ page }, testInfo) => {
@@ -319,6 +321,8 @@ test.describe('Merge on a phone (MERGE-06)', () => {
     await expect(caption).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('li[data-key]').first()).toBeVisible();
 
+    // Mid-screen, clear of the rail's sticky bottom sheet whatever sits above the list.
+    await page.locator('li[data-key]').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
     const hit = await page.evaluate(() => {
       const firstCell = document.querySelector('li[data-key]');
       const rect = firstCell.getBoundingClientRect();
