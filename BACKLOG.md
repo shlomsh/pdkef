@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 3 up next, 13 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 3 up next, 13 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -88,6 +88,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
 ## Search and languages
