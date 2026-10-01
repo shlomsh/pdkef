@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 21 then, 19 waiting, 10 parked.
 
 ## Redact: finish removal
 
@@ -50,12 +50,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |  |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -76,6 +70,7 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
 | FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |  |
+| FORM-29 | P3 | [FORM-29](backlog/tasks/FORM-29.md) · The detector's cell, line and widget readers are type-checked |  |
 
 ## Robustness and debt
 
@@ -174,7 +169,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 8 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
-- Form detector accuracy: 1 done, 0 retired
+- Form detector accuracy: 2 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 1 done, 0 retired
 - Polish: 2 done, 0 retired
