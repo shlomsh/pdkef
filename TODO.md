@@ -12,7 +12,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
-- [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
+- [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it (in progress)
 
 ## Waiting, by date
 
@@ -38,7 +38,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
