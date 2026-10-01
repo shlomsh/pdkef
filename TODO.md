@@ -50,7 +50,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - An Android phone: [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware
 - LOC-17 and SEO-40: [LOC-13](backlog/tasks/LOC-13.md) · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
 - Shlomi's read-through: [LOC-18](backlog/tasks/LOC-18.md) · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through
-- Shlomi's wording picks: [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for
+- Shlomi's Hebrew card pick, and whether to ship before or after the 2026-10-08 GSC read: [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for
 - SEO-06 crawl gate and a volume check: [SEO-20](backlog/tasks/SEO-20.md) · New tool: crop a PDF, the only one of these with nothing to apologise for
 - SEO-05's verdict: [SEO-30](backlog/tasks/SEO-30.md) · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
 - About four weeks after indexing: [SEO-38](backlog/tasks/SEO-38.md) · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
@@ -69,7 +69,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
-- [RED-46](backlog/tasks/RED-46.md) · Pick the Redact page wording (RED-46 findings)
+- [RED-46](backlog/tasks/RED-46.md) · Hebrew card: חלקים or מה שצריך (or unchanged); ship now or after 2026-10-08
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
 

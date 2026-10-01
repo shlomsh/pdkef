@@ -5,8 +5,8 @@ status: "blocked"
 priority: "P2"
 epic: "redact"
 depends_on: []
-waiting_on: "Shlomi's wording picks"
-needs: "Pick the Redact page wording (RED-46 findings)"
+waiting_on: "Shlomi's Hebrew card pick, and whether to ship before or after the 2026-10-08 GSC read"
+needs: "Hebrew card: חלקים or מה שצריך (or unchanged); ship now or after 2026-10-08"
 ---
 
 # RED-46 · The Redact page speaks the tool's words, without losing what people search for
@@ -87,3 +87,9 @@ JSON-LD means the FAQ rows change both the visible answer and the FAQPage entry;
 7. **Order of work after he picks:** edit tools.js and contentPages.js only (page, JSON-LD and Markdown follow); `npm run test:seo` and `test:csp` after `build`; update the Hebrew card in the same change only with his read (LOC gate); ask for an indexing request on `/redact/`. File a follow-up ticket for the two guide pages (28 occurrences of flatten / text run / text layer, plus `flatten.svg` alt text) so this one stays on /redact/.
 
 Blocked 2026-10-01 on Shlomi's picks from the findings above, and the 2026-10-08 GSC export for `/redact/` queries.
+
+## Decisions (Shlomi, 2026-10-01)
+
+- "Flatten" stays once, in FAQ 6, explained ("Do I need to flatten the PDF myself?" ... "Some tools call this flattening").
+- The two optional facts (document details left out; the saved-file check) are skipped.
+- Open: the Hebrew card's "אזורים" becomes "חלקים" or "מה שצריך", or stays; and whether the copy ships now or after the 2026-10-08 Search Console read, which measures the 2026-09-17 change on this page.
