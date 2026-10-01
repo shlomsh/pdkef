@@ -17,8 +17,10 @@ const isBox = (cover: Cover): cover is Cover & PercentBox => (
 const NO_MATCHES: FindMatch[] = [];
 
 /** A sans-serif measurement, to split one text item's advance between its
- * letters more closely than an equal share each. The PDF's own font is not
- * available here; the cut-edge padding in matchBoxes covers the difference. */
+ * letters more closely than an equal share each. Since RED-15 this is only
+ * the fallback for an item whose glyphs could not be mapped (matchBoxes boxes
+ * the rest on their real glyphs); the PDF's own font is not available here,
+ * so the cut-edge padding in matchBoxes covers the difference. */
 function createMeasure(): MeasureText | undefined {
   const context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
   if (!context) return undefined;
