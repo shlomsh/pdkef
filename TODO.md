@@ -16,10 +16,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
 - [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
 
-### Search and languages
-
-- [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is (in progress)
-
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
@@ -53,5 +49,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
+- [SEO-41](backlog/tasks/SEO-41.md) · Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed
 
 See [BACKLOG.md](BACKLOG.md) for every lane.
