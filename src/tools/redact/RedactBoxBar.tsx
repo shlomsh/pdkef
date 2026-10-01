@@ -1,3 +1,4 @@
+import { overlayHost } from './overlayHost.ts';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { ComponentChildren, RefObject } from 'preact';
@@ -24,25 +25,20 @@ export function useCoarsePointer(): boolean {
   return coarse;
 }
 
-/** The element to portal into: the fullscreen one when there is one, else body. */
-function useHost(boxRef: RefObject<HTMLElement>): HTMLElement {
+/** The element to portal into: see overlayHost. Re-read on each render and on fullscreenchange. */
+function useHost(): HTMLElement {
   const [, bump] = useState(0);
   useEffect(() => {
     const onChange = () => bump((n) => n + 1);
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
-  // iPhone Safari has no element full screen: the workspace goes position: fixed at z-index 9999 instead, so the pill must live inside it to stay on top.
-  return (
-    (document.fullscreenElement as HTMLElement | null) ??
-    (boxRef.current?.closest('[data-pseudo-fullscreen]') as HTMLElement | null) ??
-    document.body
-  );
+  return overlayHost();
 }
 
 /**
  * The selected box's controls as a light pill fixed to the bottom of the
- * viewport (portalled to the fullscreen element, else document.body). Mounted
+ * viewport (portalled to the overlay host: the fullscreen element, else the pseudo full screen workspace, else document.body). Mounted
  * only while the box is selected, so on mount it scrolls the box minimally
  * into view if the bar would cover its bottom edge.
  */
@@ -51,7 +47,7 @@ export default function RedactBoxBar({ boxRef, children }: {
   children: ComponentChildren;
 }) {
   const barRef = useRef<HTMLDivElement | null>(null);
-  const host = useHost(boxRef);
+  const host = useHost();
   useEffect(() => {
     const bar = barRef.current;
     const box = boxRef.current;

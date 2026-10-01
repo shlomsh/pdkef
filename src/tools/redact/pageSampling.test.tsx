@@ -212,6 +212,23 @@ describe('eyedropper', () => {
       cleanup();
     });
 
+    it('the loupe lives in the pseudo full screen element, else in body', () => {
+      const host = document.createElement('div');
+      host.setAttribute('data-pseudo-fullscreen', '');
+      document.body.appendChild(host);
+      const a = mountDropper();
+      a.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.parentElement).toBe(host);
+      a.cleanup();
+      host.remove();
+      const b = mountDropper();
+      b.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.parentElement).toBe(document.body);
+      b.cleanup();
+    });
+
     it('hovering the selected box pill hides the loupe', () => {
       const { canvas, area, cleanup } = mountDropper();
       const pill = document.createElement('div');
