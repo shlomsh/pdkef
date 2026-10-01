@@ -65,6 +65,7 @@ import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -797,6 +798,7 @@ export default function PdfRedactTool() {
       type: 'EXPORT_STARTED',
       announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
     });
+    reportToolLifecycleEvent('tool_operation_started', 'redact');
 
     // DEBT-18: everything this run is an export *of*, captured before the
     // first await. `sourceFile` is used below instead of `file` so the name
@@ -824,9 +826,11 @@ export default function PdfRedactTool() {
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
+        reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
         download(redactedBlob, filename);
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
+        reportToolLifecycleEvent('tool_result_ready', 'redact');
       }
     } catch (err) {
       reportError('redact', err, 'export');
@@ -836,6 +840,7 @@ export default function PdfRedactTool() {
       // current boxes for a run they replaced.
       if (!run.isCurrent()) return;
       run.settle();
+      reportToolLifecycleEvent('tool_operation_failed', 'redact');
       // Recoverable: keep the workspace mounted so the boxes that caused the
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
@@ -915,6 +920,7 @@ export default function PdfRedactTool() {
 
   return (
     <BasePdfTool
+      analyticsTool="redact"
       hasFiles={!!file}
       onFilesAdded={handleFilesAdded}
       multiple={false}
