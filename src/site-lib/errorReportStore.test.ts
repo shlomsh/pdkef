@@ -87,7 +87,7 @@ describe('eventCommands', () => {
 
 describe('usage commands', () => {
   it('counts a day total apart from errors, then one field under the day', () => {
-    expect(USAGE_DAILY_CAP).toBe(1000);
+    expect(USAGE_DAILY_CAP).toBe(3000);
     expect(usageCapCommands('2026-10-01')).toEqual([['INCR', 'usage:total:2026-10-01']]);
     const event = { name: 'tool_result_ready', properties: { tool: 'merge' } } as const;
     expect(usageCommands(event, '2026-10-01')).toEqual([

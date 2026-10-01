@@ -9,14 +9,14 @@ import { usageEventField, type UsageEvent } from '../lib/usageEventSchema.js';
  * Reports and Sign events counted per UTC day; past it the day is full. Budget: the cap step is one
  * INCR, and the day's first count adds one EXPIRE on the total. A report then costs 5 commands, a
  * Sign event 3, a usage event 3, and anything past the cap 1. Counted traffic tops out near
- * 1000 x 5 + 1000 x 3 = 8K commands a day (about 240K a month), inside Upstash Free's 500K with room
- * for reads. Past the cap each request still costs 1 command until an instance caches the cap; the
+ * 1000 x 5 + 3000 x 3 = 14K commands a day (about 420K a month), inside Upstash Free's 500K with
+ * room for reads. Raise either cap only with that sum in view. Past the cap each request still costs 1 command until an instance caches the cap; the
  * firewall's per-IP limit of 10 per minute is what bounds that, so a flood from many IPs can still
  * spend the month.
  */
 export const DAILY_CAP = 1000;
 /** Usage events counted per UTC day, apart from the cap above. */
-export const USAGE_DAILY_CAP = 1000;
+export const USAGE_DAILY_CAP = 3000;
 const TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export type Command = readonly (string | number)[];
