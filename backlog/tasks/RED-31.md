@@ -4,7 +4,6 @@ title: "Press and hold to peek under a blur, a whiteout or a brush stroke"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

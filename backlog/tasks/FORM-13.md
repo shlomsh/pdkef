@@ -4,7 +4,6 @@ title: "Tell a table's caption row from a writable row"
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["FORM-12"]
 ---
 

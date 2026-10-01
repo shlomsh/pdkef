@@ -4,9 +4,7 @@ title: "Make required undo dependable"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done — dependable add/delete undo landed 2026-09-03"
 ---
 
 # SIGN-12 · Make required undo dependable

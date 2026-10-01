@@ -1,10 +1,9 @@
 ---
 id: "MOBI-33"
 title: "Decide whether Sign gets a review layer for the proposed field map, or stays hints-only"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["MOBI-11"]
 ---
 
@@ -31,3 +30,7 @@ which is why it did not ship. This ticket is that weighing, and it is Shlomi's c
 ## Carried from MOBI-11
 
 - [ ] Each proposal carries its label and kind; a low-confidence proposal is visibly tentative.
+
+## Closed 2026-10-01
+
+`docs/sign-next-gen.md` principle 6 rules out a review layer over detected fields, so hints-only stays.

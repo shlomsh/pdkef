@@ -632,6 +632,9 @@ describe('matchesFontsGlob', () => {
     'src/editor/model/editorModel.ts',
     'src/editor-ui/ElementToolbar.tsx',
     'src/tools/sign/PdfSignTool.tsx',
+    // Sign's product specs moved here; the font guards stayed in e2e/sign/,
+    // and a Sign spec change running all 25 guards is what ARCH-23 removed.
+    'src/tools/sign/e2e/sign-editor.spec.js',
     'e2e/export/export-render-guard.spec.js',
     'package.json',
     'package-lock.json',

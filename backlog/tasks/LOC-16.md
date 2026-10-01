@@ -4,9 +4,7 @@ title: "Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the co
 status: "done"
 priority: "P2"
 epic: "hebrew-edition"
-phase: "near-term"
 depends_on: ["LOC-09"]
-legacy_state: "Open"
 ---
 
 # LOC-16 · Finish the Hebrew edition: HeroDemo, the rest of the Sign editor, the compress-hub guides, and the home page sign-off

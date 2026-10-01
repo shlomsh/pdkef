@@ -4,7 +4,6 @@ title: "Redact recovers: a failed load offers another file, a new file starts cl
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

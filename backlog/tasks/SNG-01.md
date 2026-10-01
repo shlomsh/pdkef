@@ -4,7 +4,6 @@ title: "Plan of record for the next-generation Sign editor, with the learnings t
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

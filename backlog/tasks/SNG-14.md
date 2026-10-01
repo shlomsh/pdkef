@@ -1,10 +1,9 @@
 ---
 id: "SNG-14"
 title: "Spike: the keyboard's own ∧ ∨ hop between invisible text fields over the page"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 
@@ -123,6 +122,10 @@ Each item is what he hit, then what changed on the test page.
 
 ## Acceptance
 
-- [ ] Each of the three questions has an observed answer on the Simulator and on a real iPhone, recorded
+- [x] Each of the three questions has an observed answer on the Simulator and on a real iPhone, recorded
   here.
-- [ ] The plan and guidelines carry the result. The pending hop-model edits get a second pass.
+- [x] The plan and guidelines carry the result. The pending hop-model edits get a second pass.
+
+## Closed 2026-10-01
+
+All three spike questions are answered, on the Simulator and on an iPhone; the results live in `docs/sign-next-gen-guidelines.md`.

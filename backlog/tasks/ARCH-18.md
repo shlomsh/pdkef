@@ -4,7 +4,6 @@ title: "Merge and Sign into src/tools/, once the merge-tool epic's branch has la
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-17"]
 ---
 

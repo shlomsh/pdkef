@@ -4,7 +4,6 @@ title: "True redaction, images and drawn shapes: paint the box into what it touc
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-18"]
 ---
 

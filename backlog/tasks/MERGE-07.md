@@ -4,9 +4,7 @@ title: "Every row says pages: counts, sizes, true aspect, undo on remove, duplic
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-01"]
-legacy_state: "Open"
 ---
 
 # MERGE-07 · Every row says pages: counts, sizes, true aspect, undo on remove, duplicates, insert where dropped

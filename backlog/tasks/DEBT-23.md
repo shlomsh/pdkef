@@ -4,7 +4,6 @@ title: "One page-range parser: PDF to Image reads ranges the way Split does"
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

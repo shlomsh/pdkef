@@ -4,7 +4,6 @@ title: "Redact finishes like Merge: progress where you pressed, a done line with
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

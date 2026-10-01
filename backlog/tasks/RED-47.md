@@ -4,7 +4,6 @@ title: "Desktop review: a lighter blur range, an Every page button that explains
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

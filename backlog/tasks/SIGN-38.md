@@ -1,10 +1,9 @@
 ---
 id: "SIGN-38"
 title: "Text placed in a form cell sits at the same height in every font"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
 ---
 
@@ -63,3 +62,7 @@ Changing the font of an already-placed field element afterwards does not re-plac
 - [x] `formCells.test.js`, `fillSlots.test.ts`, `slotElement.test.ts`, `FieldSlot.test.tsx` and the
   `*.practiceForm.test.tsx` suites pass with `fontFamily` threaded through.
 - [ ] `npm run check:fast` is green.
+
+## Closed 2026-10-01
+
+Shipped in 0245d8b (`figureCentreEm` in `fonts.js` and `fontManifest.js`); main CI is green.

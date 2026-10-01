@@ -4,9 +4,7 @@ title: "The home hero's first screen overlaps itself in a short desktop window"
 status: "done"
 priority: "P3"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-19"
 ---
 
 # QUAL-16 · The first screen overlaps itself in a short desktop window

@@ -3,9 +3,10 @@ id: "LOC-18"
 title: "Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through"
 status: "blocked"
 priority: "P2"
-epic: "hebrew-edition"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["LOC-16"]
+waiting_on: "Shlomi's read-through"
+needs: "Israeli portal size limits and a read-through of /he/"
 ---
 
 # LOC-18 · Hebrew edition sign-off: Israeli portal-limit guides and Shlomi's own /he/ read-through

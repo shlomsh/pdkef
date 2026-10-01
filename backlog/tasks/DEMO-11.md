@@ -3,10 +3,10 @@ id: "DEMO-11"
 title: "The O on the Hebrew home page"
 status: "open"
 priority: "P3"
-epic: "landing-story-demo"
-phase: "near-term"
+epic: "search-and-languages"
+horizon: "later"
 depends_on: ["DEMO-10"]
-legacy_state: "Open"
+needs: "Your call on beat 4"
 ---
 
 # DEMO-11 · The O on the Hebrew home page

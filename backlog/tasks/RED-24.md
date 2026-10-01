@@ -4,7 +4,6 @@ title: "Blur defaults to medium, and medium is the blur PDkef had before the lev
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

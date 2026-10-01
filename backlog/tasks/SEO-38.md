@@ -1,12 +1,11 @@
 ---
 id: "SEO-38"
 title: "One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF"
-status: "in_progress"
+status: "blocked"
 priority: "P2"
-epic: "english-base"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["RED-27"]
-legacy_state: "Open"
+waiting_on: "About four weeks after indexing"
 ---
 
 # SEO-38 · One honest guide: remove the "Scanned with CamScanner" footer from a PDF
@@ -44,3 +43,7 @@ Out of scope: a "same spot on every page" action (its own ticket if the page ear
 - The test is green in `check:fast`; the real-file check is recorded here with the file's structure.
 - The page builds, passes `test:seo`, and its FAQ JSON-LD matches the page.
 - Re-read GSC for "camscanner" queries four weeks after the page is indexed; record it here.
+
+## 2026-10-01 board cleanup
+
+- Status in_progress -> blocked: the page is built; it waits for indexing and a read about four weeks after.

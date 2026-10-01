@@ -4,7 +4,6 @@ title: "True redaction, text: delete the glyphs under each box and keep every ot
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-18"]
 ---
 

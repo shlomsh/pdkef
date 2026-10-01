@@ -4,9 +4,7 @@ title: "The O: build the chosen scroll story on the home page"
 status: "done"
 priority: "P2"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEMO-10 · The O: build the chosen scroll story on the home page

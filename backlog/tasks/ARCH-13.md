@@ -4,9 +4,7 @@ title: "Restore CSS delivery-budget headroom"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-04"
 ---
 
 ## Problem

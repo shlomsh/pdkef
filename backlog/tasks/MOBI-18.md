@@ -4,9 +4,7 @@ title: "The practice form is the benchmark: make it a common form, then hold the
 status: "retired"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MOBI-18 · The practice form is the benchmark: make it a common form, then hold the editor to looking good on it

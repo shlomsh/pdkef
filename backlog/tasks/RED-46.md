@@ -3,9 +3,10 @@ id: "RED-46"
 title: "The Redact page speaks the tool's words, without losing what people search for"
 status: "blocked"
 priority: "P2"
-epic: "redact-tool"
-phase: "near-term"
+epic: "redact"
 depends_on: []
+waiting_on: "Shlomi's wording picks"
+needs: "Pick the Redact page wording (RED-46 findings)"
 ---
 
 # RED-46 · The Redact page speaks the tool's words, without losing what people search for

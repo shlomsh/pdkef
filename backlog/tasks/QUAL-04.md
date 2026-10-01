@@ -3,10 +3,10 @@ id: "QUAL-04"
 title: "--color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline"
 status: "open"
 priority: "P3"
-epic: "site-quality"
-phase: "later"
+epic: "polish"
+horizon: "next"
+order: 1
 depends_on: []
-legacy_state: "Open"
 ---
 
 # QUAL-04 · `--color-border-strong` is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline

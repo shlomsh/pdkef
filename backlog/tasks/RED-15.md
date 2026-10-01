@@ -3,9 +3,8 @@ id: "RED-15"
 title: "Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses"
 status: "done"
 priority: "P1"
-epic: "redact-tool"
-phase: "near-term"
-depends_on: ["RED-12"]
+epic: "redact"
+depends_on: []
 ---
 
 # RED-15 · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses
@@ -32,6 +31,10 @@ match against the page's text as today, map the match to its glyphs, and box the
 - On the three real forms and the Hebrew line, a Find box covers every glyph of its match and no glyph
   core of a neighbouring word (a corpus test, scored against PDFium's glyph boxes like the spike did).
 - Boxing a middle word from Find keeps both neighbours in the saved file's text layer.
+
+## 2026-10-01 board cleanup
+
+- Dropped RED-12 from depends_on: RED-12 is retired (its text layer was reverted on 2026-09-28). Note the acceptance line about keeping neighbours "in the saved file's text layer" no longer has a layer to check; the box-coverage half still stands.
 
 ## Result
 

@@ -4,7 +4,6 @@ title: "One typed vocabulary for field kinds and candidates"
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["ARCH-24", "FORM-24"]
 ---
 

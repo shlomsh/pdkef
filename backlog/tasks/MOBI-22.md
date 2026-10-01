@@ -4,9 +4,7 @@ title: "A field move scrolls twice and lands the field behind the keyboard"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-16"]
-legacy_state: "Open"
 ---
 
 # MOBI-22 · A field move scrolls twice and lands the field behind the keyboard

@@ -26,6 +26,19 @@
   }
 }
 
+/* Where the labels sit beside the icon (1300px and up), Redact's twelve
+   labelled controls (Share present) are 1177.6px wide in the wide DejaVu face CI
+   lands on, against the toolbar's 1172px content box: the twelfth wrapped, 5.6px
+   short (e2e/tool-toolbars/toolbar-desktop-one-line.spec.js). Redact is the only
+   toolbar that labels Undo, Redo and Peek at this width (RED-34), so rather than
+   take a word off one of them, the shared .5rem side padding comes in to .4rem:
+   3.2px a button over eleven buttons is 35.2px back, 29.6px spare. SignToolbar's
+   own spare is 32.3px; keep this one near it. The doubled class outranks the
+   shared `.toolbar { --btn-padding }` whatever order the sheets load in. */
+@media (min-width: 1300px) {
+  .bar.bar { --btn-padding: .6rem .4rem; }
+}
+
 /* The undo chip's Undo: a 44px hit area that does not grow the row. */
 .chip-hit {
   display: inline-flex;

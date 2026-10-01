@@ -4,9 +4,7 @@ title: "Full-height story panels that read as slides without hijacking the scrol
 status: "done"
 priority: "P2"
 epic: "landing-story-demo"
-phase: "later"
 depends_on: ["DEMO-01"]
-legacy_state: "Open"
 ---
 
 # DEMO-05 · Full-height story panels that read as slides without hijacking the scroll

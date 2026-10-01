@@ -4,7 +4,6 @@ title: "Every setting a person chooses is remembered per document, and going bac
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-32"]
 ---
 

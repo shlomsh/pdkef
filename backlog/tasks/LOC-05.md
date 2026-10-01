@@ -4,9 +4,7 @@ title: "Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages
 status: "done"
 priority: "P3"
 epic: "hebrew-edition"
-phase: "near-term"
 depends_on: ["LOC-03"]
-legacy_state: "Open"
 ---
 
 # LOC-05 · Publish the eight reviewed Hebrew guides alongside the Hebrew tool pages, so the edition cross-links

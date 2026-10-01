@@ -4,9 +4,7 @@ title: "One privacy vocabulary across the ten tool pages and the hero: each phra
 status: "done"
 priority: "P2"
 epic: "english-base"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-36 · One privacy vocabulary across the ten tool pages and the hero: each phrase gets one job, the intensifiers go

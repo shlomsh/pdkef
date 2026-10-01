@@ -4,9 +4,7 @@ title: "Restore the CSS release gate after adding language-request actions"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "release-blocker"
 depends_on: []
-legacy_state: "Done 2026-09-03 — emitted project tokens replace invalid utilities"
 ---
 
 # SIGN-22 · Restore the CSS release gate after adding language-request actions

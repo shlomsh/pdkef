@@ -3,10 +3,9 @@ id: "SEO-16"
 title: "Positioning review: Merge, Split and Protect & Unlock"
 status: "open"
 priority: "P3"
-epic: "english-base"
-phase: "later"
-depends_on: ["SEO-11", "SEO-09", "SEO-10"]
-legacy_state: "Open"
+epic: "search-and-languages"
+horizon: "later"
+depends_on: ["SEO-11", "SEO-39"]
 ---
 
 # SEO-16 · Positioning review: Merge, Split and Protect & Unlock
@@ -47,3 +46,7 @@ more credibility than it buys clicks.
 - No overlap with SEO-09 or SEO-10; where this review disagrees with what they shipped, it says so
   rather than silently re-editing.
 - Concrete copy as a diff; `npm run test:seo` passes.
+
+## 2026-10-01 board cleanup
+
+- depends_on: SEO-09 and SEO-10 replaced by SEO-39 (the merged 2026-10-08 read). Merge was settled by SEO-35.

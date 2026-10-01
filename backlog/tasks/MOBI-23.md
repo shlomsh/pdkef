@@ -4,9 +4,7 @@ title: "A narrow text box that is selected but not open is all resize handle on 
 status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-21"]
-legacy_state: "Open"
 ---
 
 # MOBI-23 · A narrow text box that is selected but not open is all resize handle on touch

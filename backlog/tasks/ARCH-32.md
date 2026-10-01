@@ -3,9 +3,10 @@ id: "ARCH-32"
 title: "e2e selected by file-level reachability: a src/editor/ change runs the pages that import it"
 status: "open"
 priority: "P2"
-epic: "module-boundaries"
-phase: "near-term"
-depends_on: ["ARCH-31", "DEBT-07"]
+epic: "robustness"
+horizon: "next"
+order: 5
+depends_on: ["ARCH-31"]
 ---
 
 # ARCH-32 · e2e selected by file-level reachability
@@ -28,3 +29,11 @@ of the suite's test time, so the estimate is 30-40s saved on about a quarter of 
 - Fail open exactly as now: CSS, unowned files, anything the scanner cannot resolve widens.
 - The site-wide specs (~25s wall on any tool change) are the remaining floor; splitting them by tool
   is a separate question.
+
+## Folded in
+
+- DEBT-07: the `editor`-leaves-`CORE_PROJECTS` branch, and the `SignMessages` re-export cut (`i18n` -> `editor`), which is why the project graph still connects `editor` to 18 of 19 projects. The Nx-removal branch is not taken (ARCH-27).
+
+## 2026-10-01 board cleanup
+
+- depends_on: dropped DEBT-07 (merged into this ticket).

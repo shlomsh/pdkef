@@ -4,7 +4,6 @@ title: "Replay real pushes through a path map and decide whether Nx still earns 
 status: "done"
 priority: "P3"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-22"]
 ---
 

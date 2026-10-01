@@ -4,9 +4,7 @@ title: "Enforce editor dependency directions in CI"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "longer-term"
 depends_on: ["ARCH-10"]
-legacy_state: "Done — editor dependency directions enforced in CI 2026-09-04"
 ---
 
 # ARCH-11 · Enforce editor dependency directions in CI
@@ -14,7 +12,7 @@ legacy_state: "Done — editor dependency directions enforced in CI 2026-09-04"
 ## Scope and acceptance
 
 **The target module boundaries are prose-only while several agents are changing the editor in
-parallel.** `docs/editor-module-boundaries-plan.md` explicitly calls its dependency table a smell
+parallel.** `docs/archive/editor-module-boundaries-plan.md` explicitly calls its dependency table a smell
 test rather than an enforced import graph. The broader architecture standard calls `editor/`
 framework-agnostic, while current files intentionally or accidentally mix concerns: registry
 renderers import Preact, registry serialization types import pdf-lib, and a workspace hook imports

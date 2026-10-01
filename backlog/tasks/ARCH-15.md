@@ -4,7 +4,6 @@ title: "Module boundaries: the target layout, the dependency rules, and a checke
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: []
 ---
 

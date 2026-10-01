@@ -1,5 +1,8 @@
 # RED-18: calibrating the four checks on RED-01's known outputs
 
+(`spikes/red-01/out/` is no longer committed; `spikes/red-01/engine-ours.mjs` and
+`spikes/red-01/pdfium/engine-pdfium.mjs` regenerate it.)
+
 `spikes/red-18/checks.mjs` was run over `spikes/red-01/out/ours` and `spikes/red-01/out/pdfium`
 against `spikes/red-01/corpus/corpus.json` (the calibration this spike asked for), and separately
 over the new watermark corpus (`spikes/red-18/corpus/`) with the *original* file passed as its own

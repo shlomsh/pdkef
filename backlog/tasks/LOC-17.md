@@ -3,9 +3,9 @@ id: "LOC-17"
 title: "Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family"
 status: "blocked"
 priority: "P1"
-epic: "seo-awaiting-read"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["LOC-15"]
+waiting_on: "2026-11-08"
 ---
 
 # LOC-17 · Read 2026-11-08 · Indonesian pilot: kompres pdf 1 mb / di bawah 1 mb family

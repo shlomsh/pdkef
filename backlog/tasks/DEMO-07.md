@@ -4,9 +4,7 @@ title: "Lead with blur where the traffic actually lands"
 status: "done"
 priority: "P1"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-04"
 ---
 
 # DEMO-07 · Lead with blur where the traffic actually lands

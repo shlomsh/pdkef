@@ -4,9 +4,7 @@ title: "Double-click locks every Sign toolbar tool"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Opened 2026-09-22 from Shlomi's report that double-click does not keep a tool armed; closed 2026-09-24"
 ---
 
 # SIGN-30 · Double-click locks every Sign toolbar tool

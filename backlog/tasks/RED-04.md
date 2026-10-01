@@ -4,7 +4,6 @@ title: "What you see is what you save: the editor shows the page as it will expo
 status: "retired"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-07"]
 ---
 

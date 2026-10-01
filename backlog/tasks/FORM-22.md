@@ -4,7 +4,6 @@ title: "A CI guard keeps field detection pure"
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["ARCH-24"]
 ---
 

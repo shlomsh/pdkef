@@ -4,7 +4,6 @@ title: "Flaky CLS assertion in tool-layout.spec.js's stale-restore test"
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
 ---
 

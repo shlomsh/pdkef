@@ -4,9 +4,7 @@ title: "Tapping a field makes iOS zoom the page, and the floating toolbar is pun
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-24"
 ---
 
 # MOBI-17 · Tapping a field makes iOS zoom the page, and the floating toolbar is punished twice for it

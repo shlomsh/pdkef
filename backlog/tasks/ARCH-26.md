@@ -4,7 +4,6 @@ title: "Rule 9 counts the site once; site-only shell modules move to src/site-li
 status: "done"
 priority: "P3"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-25"]
 ---
 

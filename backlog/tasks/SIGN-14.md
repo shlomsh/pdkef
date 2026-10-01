@@ -4,9 +4,7 @@ title: "Separate editor core, UI, and export adapters incrementally"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "longer-term"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # SIGN-14 · Separate editor core, UI, and export adapters incrementally

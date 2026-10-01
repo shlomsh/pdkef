@@ -4,7 +4,6 @@ title: "Fill mode, slice 2: the app-owned camera (a locked page scale, layout zo
 status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-15"]
 ---
 

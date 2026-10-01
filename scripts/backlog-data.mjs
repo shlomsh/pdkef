@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { epics, statuses, priorities, phases } from './backlog-epics.mjs';
+import { epics, lanes, statuses, priorities, HORIZONS, LIVE_STATUSES } from './backlog-epics.mjs';
 
 // fileURLToPath rather than `new URL(...).pathname`: the pathname form leaves a
 // checkout under a directory with a space as `%20`, and readdir then fails on a
@@ -12,6 +12,9 @@ const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const taskDirectory = resolve(projectDirectory, 'backlog/tasks');
 
 const ID_PATTERN = /^[A-Z]+-\d{2,}$/;
+// phase and legacy_state are listed so they get their own migration message below.
+const KNOWN_FIELDS = new Set(['id', 'title', 'status', 'priority', 'epic', 'horizon', 'order', 'depends_on', 'waiting_on', 'needs', 'phase', 'legacy_state']);
+const INTERNAL_FIELDS = new Set(['file', 'body']);
 
 function parseScalar(value) {
   const trimmed = value.trim();
@@ -19,17 +22,23 @@ function parseScalar(value) {
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     return trimmed.slice(1, -1).split(',').map((item) => item.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '')).filter(Boolean);
   }
-  return trimmed.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\(["\\])/g, '$1');
+  }
+  return trimmed.replace(/^'|'$/g, '');
 }
 
 export function parseTask(markdown, path = 'task') {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) throw new Error(`${path} must start with YAML front matter.`);
-  const metadata = Object.fromEntries(match[1].split('\n').filter(Boolean).map((line) => {
+  const metadata = {};
+  for (const line of match[1].split('\n').filter(Boolean)) {
     const separator = line.indexOf(':');
     if (separator < 1) throw new Error(`${path} has invalid front matter: ${line}`);
-    return [line.slice(0, separator).trim(), parseScalar(line.slice(separator + 1))];
-  }));
+    const key = line.slice(0, separator).trim();
+    if (Object.hasOwn(metadata, key)) throw new Error(`${path} sets "${key}" twice.`);
+    metadata[key] = parseScalar(line.slice(separator + 1));
+  }
   for (const field of ['id', 'title', 'status', 'priority', 'epic']) {
     if (!metadata[field]) throw new Error(`${path} is missing required ${field}.`);
   }
@@ -47,7 +56,6 @@ export async function readTasks() {
 // (ARCH-12's note). Returns messages, each naming the task at fault.
 export function validateTasks(tasks, registry = epics) {
   const errors = [];
-  const epicKeys = new Set(registry.map((epic) => epic.key));
   const statusKeys = new Set(statuses.map(([status]) => status));
   const byId = new Map();
 
@@ -59,8 +67,24 @@ export function validateTasks(tasks, registry = epics) {
     else byId.set(task.id, task);
     if (!statusKeys.has(task.status)) errors.push(`${where}: unsupported status "${task.status}" (one of ${[...statusKeys].join(', ')}).`);
     if (!priorities.includes(task.priority)) errors.push(`${where}: unsupported priority "${task.priority}" (one of ${priorities.join(', ')}).`);
-    if (!epicKeys.has(task.epic)) errors.push(`${where}: epic "${task.epic}" is not registered in scripts/backlog-epics.mjs.`);
-    if (task.phase !== undefined && !phases.includes(task.phase)) errors.push(`${where}: unsupported phase "${task.phase}" (one of ${phases.join(', ')}).`);
+    const registered = registry.find((epic) => epic.key === task.epic);
+    if (!registered) errors.push(`${where}: epic "${task.epic}" is not registered in scripts/backlog-epics.mjs.`);
+    else if (registered.closed && LIVE_STATUSES.has(task.status)) errors.push(`${where}: ${task.status} tickets cannot sit in the closed epic "${task.epic}"; move it to one of the six lanes (${lanes.map((lane) => lane.key).join(', ')}).`);
+    for (const key of Object.keys(task)) {
+      if (!KNOWN_FIELDS.has(key) && !INTERNAL_FIELDS.has(key)) errors.push(`${where}: unknown field "${key}" (fields: ${[...KNOWN_FIELDS].slice(0, 10).join(', ')}).`);
+    }
+    if (task.phase !== undefined) errors.push(`${where}: "phase" was removed; it became "horizon" (now | next | later).`);
+    if (task.legacy_state !== undefined) errors.push(`${where}: "legacy_state" was removed; delete the line.`);
+    const needsHorizon = task.status === 'open' || task.status === 'in_progress';
+    if (task.horizon === undefined) {
+      if (needsHorizon) errors.push(`${where}: ${task.status} ticket needs a horizon (one of ${HORIZONS.join(', ')}).`);
+    } else if (!needsHorizon) errors.push(`${where}: horizon is only for open and in_progress tickets, not ${task.status}.`);
+    else if (!HORIZONS.includes(task.horizon)) errors.push(`${where}: unsupported horizon "${task.horizon}" (one of ${HORIZONS.join(', ')}).`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(task.waiting_on ?? '')) && !isDate(task.waiting_on)) errors.push(`${where}: waiting_on "${task.waiting_on}" is not a real date.`);
+    if (task.status === 'blocked' && !task.waiting_on) errors.push(`${where}: blocked ticket needs waiting_on (an ISO date or short text).`);
+    else if (task.status !== 'blocked' && task.waiting_on !== undefined) errors.push(`${where}: waiting_on is only for blocked tickets, not ${task.status}.`);
+    if (task.order !== undefined && !/^[1-9]\d*$/.test(String(task.order))) errors.push(`${where}: order "${task.order}" must be a positive integer.`);
+    if (task.needs !== undefined && (typeof task.needs !== 'string' || !task.needs.trim())) errors.push(`${where}: needs must be a non-empty string.`);
     if (task.depends_on !== undefined && !Array.isArray(task.depends_on)) errors.push(`${where}: depends_on must be a list.`);
   }
 
@@ -91,4 +115,34 @@ export function validateTasks(tasks, registry = epics) {
   for (const id of byId.keys()) visit(id, []);
 
   return [...new Set(errors)];
+}
+
+// Board columns, shared by BACKLOG.md, TODO.md and the local board so the three
+// views cannot disagree. Returns null for done and retired tickets.
+export const COLUMNS = [
+  ['next', 'Up next'],
+  ['then', 'Then, in order'],
+  ['waiting', 'Waiting'],
+  ['parked', 'Parked'],
+];
+
+export function columnOf(task) {
+  if (task.status === 'in_progress') return 'next';
+  if (task.status === 'blocked') return 'waiting';
+  if (task.status !== 'open') return null;
+  return { now: 'next', next: 'then', later: 'parked' }[task.horizon] ?? null;
+}
+
+// order ascending (missing last), then priority, then id.
+export function compareTasks(a, b) {
+  const orderOf = (task) => (task.order === undefined ? Infinity : Number(task.order));
+  return (orderOf(a) - orderOf(b)) || a.priority.localeCompare(b.priority) || a.id.localeCompare(b.id, undefined, { numeric: true });
+}
+
+// A real calendar date in ISO form: 2026-02-30 and 2026-13-01 are not.
+export function isDate(value) {
+  const text = String(value ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const parsed = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }

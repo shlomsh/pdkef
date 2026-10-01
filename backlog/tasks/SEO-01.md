@@ -4,9 +4,7 @@ title: "An indexing baseline, and the two mechanical reasons pages are not being
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-09-10"
 ---
 
 # SEO-01 · An indexing baseline, and the two mechanical reasons pages are not being crawled

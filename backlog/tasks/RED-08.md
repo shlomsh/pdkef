@@ -4,7 +4,6 @@ title: "Annotations, form field values and form XObjects under a box"
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-07"]
 ---
 

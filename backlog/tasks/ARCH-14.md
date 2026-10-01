@@ -4,9 +4,7 @@ title: "Type the editor interaction tests now covered by shared contracts"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "near-term"
 depends_on: ["ARCH-10"]
-legacy_state: "Done 2026-09-09"
 ---
 
 ## Problem

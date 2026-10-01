@@ -4,7 +4,6 @@ title: "Delete leaves nothing hidden behind: the link over what it removes, and 
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

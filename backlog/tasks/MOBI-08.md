@@ -2,11 +2,10 @@
 id: "MOBI-08"
 title: "Offer install at the moment it pays off, not in a card about working offline"
 status: "open"
-priority: "P2"
-epic: "mobile-round-trip"
-phase: "near-term"
+priority: "P3"
+epic: "robustness"
+horizon: "later"
 depends_on: ["MOBI-01"]
-legacy_state: "Open"
 ---
 
 # MOBI-08 · Offer install at the moment it pays off, not in a card about working offline
@@ -47,3 +46,7 @@ down here. Nothing appears on browsers without `beforeinstallprompt`. Verified t
 `npm run build && npm run preview`, not `npm run dev`, because a CSP-blocked script looks identical to
 a working one in dev. An installed instance then shows PDkef in the Android share sheet, which is the
 outcome the whole ticket is for.
+
+## 2026-10-01 board cleanup
+
+- Priority P2 -> P3: it sits behind MOBI-01.

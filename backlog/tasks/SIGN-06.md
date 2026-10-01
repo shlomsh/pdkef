@@ -4,9 +4,7 @@ title: "Report actual draft-save state"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-08-29"
 ---
 
 # SIGN-06 · Report actual draft-save state

@@ -4,9 +4,7 @@ title: "Give text policy its own home, and stop composing English sentences insi
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-08-30"
 ---
 
 # ARCH-03 · Give text policy its own home, and stop composing English sentences inside it

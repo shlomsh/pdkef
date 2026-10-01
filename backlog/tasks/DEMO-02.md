@@ -4,9 +4,7 @@ title: "The hero demo: fill and sign a form from a chat, and blur what's private
 status: "done"
 priority: "P1"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: ["DEMO-01"]
-legacy_state: "Open"
 ---
 
 # DEMO-02 · The hero demo: fill and sign a form from a chat, and blur what's private before sending it

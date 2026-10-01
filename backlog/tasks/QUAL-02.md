@@ -4,9 +4,7 @@ title: "Two competing header padding rules, where specificity beats the media qu
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-05"
 ---
 
 # QUAL-02 · Two competing header padding rules, where specificity beats the media query

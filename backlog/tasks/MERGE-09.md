@@ -4,9 +4,7 @@ title: "Page-level editing: rotate, skip and reorder pages across files, all fre
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-08"]
-legacy_state: "Open"
 ---
 
 # MERGE-09 · Page-level editing: rotate, skip and reorder pages across files, all free

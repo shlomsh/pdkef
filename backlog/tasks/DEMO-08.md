@@ -4,7 +4,6 @@ title: "The hero demo still acts out the v1 field-trip slip: decide whether it s
 status: "done"
 priority: "P3"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
 ---
 
