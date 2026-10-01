@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
-- [QUAL-20](backlog/tasks/QUAL-20.md) P2 · The home demo's scroll-progress e2e fails under a full 4-worker run (in progress)
 
 ## Waiting, by date
 
