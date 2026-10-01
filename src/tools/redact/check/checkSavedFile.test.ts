@@ -107,8 +107,8 @@ describe('checkSavedFile', () => {
     const results = checkSavedFile({ terms: [nameTerm], original, boxes: [], saved });
 
     expect(results[0].findings).toEqual([
-      { kind: 'in-place', place: 'title', pageIndex: undefined },
-      { kind: 'in-place', place: 'field', pageIndex: 2 },
+      { kind: 'in-place', place: 'title', pageIndex: undefined, text: 'Report for Jane Doe', placeIndex: 0 },
+      { kind: 'in-place', place: 'field', pageIndex: 2, text: 'Jane Doe', placeIndex: 1 },
     ]);
   });
 
@@ -125,7 +125,9 @@ describe('checkSavedFile', () => {
       saved,
     });
 
-    expect(results[0].findings).toEqual([{ kind: 'in-place', place: 'link', pageIndex: 1 }]);
+    expect(results[0].findings).toEqual([
+      { kind: 'in-place', place: 'link', pageIndex: 1, text: 'jane-doe-profile', placeIndex: 0 },
+    ]);
   });
 
   it('reports an uncovered match on a picture page once, although the page also carries it as text', () => {
@@ -153,8 +155,29 @@ describe('checkSavedFile', () => {
     expect(results[0].findings).toEqual([
       { kind: 'in-text', pageIndex: 0 },
       { kind: 'visible-in-picture', pageIndex: 1 },
-      { kind: 'in-place', place: 'comment', pageIndex: 0 },
+      { kind: 'in-place', place: 'comment', pageIndex: 0, text: 'Jane Doe was here', placeIndex: 0 },
     ]);
+  });
+
+  it('gives each matching place its own finding, carrying its index in the saved places', () => {
+    const original = [page(0, item('Jane Doe', 100, 700))];
+    const saved = emptySavedFile({
+      places: [
+        { kind: 'comment', text: 'Jane Doe, first', pageIndex: 0 },
+        { kind: 'comment', text: 'unrelated', pageIndex: 0 },
+        { kind: 'comment', text: 'Jane Doe, second', pageIndex: 0 },
+      ],
+    });
+
+    const results = checkSavedFile({ terms: [nameTerm], original, boxes: [], saved });
+
+    expect(results[0].findings).toEqual([
+      { kind: 'in-place', place: 'comment', pageIndex: 0, text: 'Jane Doe, first', placeIndex: 0 },
+      { kind: 'in-place', place: 'comment', pageIndex: 0, text: 'Jane Doe, second', placeIndex: 2 },
+    ]);
+    for (const finding of results[0].findings) {
+      if (finding.kind === 'in-place') expect(saved.places[finding.placeIndex].text).toBe(finding.text);
+    }
   });
 
   it('dedupes repeated matches on the same page into one finding', () => {

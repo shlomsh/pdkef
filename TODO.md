@@ -6,12 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-15](backlog/tasks/RED-15.md) P1 · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses (in progress)
-- [RED-26](backlog/tasks/RED-26.md) P2 · Delete: remove an image on every page it appears, for watermarks (in progress)
-- [RED-25](backlog/tasks/RED-25.md) P2 · Check the saved file: Remove it, for a secret in a place a box can't reach (in progress)
-
 ### Sign: finish fill mode
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too

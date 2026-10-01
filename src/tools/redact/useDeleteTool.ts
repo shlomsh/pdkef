@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { uniqueId } from '../../editor/model/ids.ts';
 import useDeletableObjects from './useDeletableObjects.js';
@@ -8,6 +8,7 @@ import { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { RedactCommands } from './useRedactCommands.ts';
 import { deletedSummary } from './deleteMarquee.ts';
 import type { RedactElement } from './redactElements.ts';
+import { EVERY_PAGE_MESSAGE, restOfImage, sharedImageMessage } from './sameImage.ts';
 
 // See redactElements.ts's own comment on RedactElement for why the
 // island's element type, not RedactElement, is what this hook takes.
@@ -32,7 +33,7 @@ export interface UseDeleteToolResult {
   finishLift: (id: string) => void;
   clearLifts: () => void;
   markObject: (object: DeletablePdfObject) => void;
-  markObjects: (objects: readonly DeletablePdfObject[]) => void;
+  markObjects: (objects: readonly DeletablePdfObject[], options?: { summary?: string }) => void;
 }
 
 /**
@@ -68,7 +69,7 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
   // recording the byte span pdfObjects.js found for it. A marked object
   // renders no hover target of its own (DeletableObjectOverlay filters it
   // out), so this is only ever reached for an object not yet queued.
-  const markObjects = (objects: readonly DeletablePdfObject[]) => {
+  const markObjects = (objects: readonly DeletablePdfObject[], options: { summary?: string } = {}) => {
     if (objects.length === 0) return;
     // RED-13: each object lifts off the page once the page is drawn without it.
     const reducedMotion = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -99,12 +100,26 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
     });
     if (newLifts.length) setLifts((prev) => [...prev, ...newLifts]);
     // RED-33: one drag is one history entry, so one undo restores them all.
-    const summary = deletedSummary(objects);
-    add(created, { type: 'ADD_DELETE', description: summary, undoChip: true });
-    announce(`${summary}.`);
+    const summary = options.summary ?? deletedSummary(objects);
+    // RED-26: one image that other pages also draw offers "Every page" on the
+    // chip, which says so; the history entry keeps the plain summary.
+    let chipMessage: string | undefined;
+    let undoExtra: { label: string; onSelect: () => void } | undefined;
+    if (!options.summary && objects.length === 1) {
+      const { rest, otherPages } = restOfImage(deletableObjects, markedForDeletionIds, objects[0]);
+      if (otherPages > 0) {
+        chipMessage = sharedImageMessage(otherPages);
+        // Through a ref: this runs on a later render, and `add` must see that render's elements.
+        undoExtra = { label: 'Every page', onSelect: () => latest.current(rest, { summary: EVERY_PAGE_MESSAGE }) };
+      }
+    }
+    add(created, { type: 'ADD_DELETE', description: summary, undoChip: true, undoExtra, chipMessage });
+    announce(`${chipMessage ?? summary}.`);
     // Marking is this tool's placement, so it spends the arming.
     disarmTool();
   };
+  const latest = useRef(markObjects);
+  latest.current = markObjects;
   const markObject = (object: DeletablePdfObject) => markObjects([object]);
 
   const finishLift = (id: string) => setLifts((prev) => prev.filter((lift) => lift.id !== id));
