@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 0 up next, 14 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 1 up next, 14 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -49,6 +49,12 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| MEM-13 | P1 | [MEM-13](backlog/tasks/MEM-13.md) · A build that fixes a major bug can force every open tab onto it | In progress |
 
 ### Then, in order
 

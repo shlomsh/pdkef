@@ -6,7 +6,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-_Nothing is up next._
+### Robustness and debt
+
+- [MEM-13](backlog/tasks/MEM-13.md) P1 · A build that fixes a major bug can force every open tab onto it (in progress)
 
 ## Waiting, by date
 
