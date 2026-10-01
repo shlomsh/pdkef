@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 3 up next, 18 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 48 live: 3 up next, 17 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -49,7 +49,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |  |
-| FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |  |
 | FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach |  |
 | FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
 
@@ -153,7 +152,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
-- Form detector accuracy: 5 done, 0 retired
+- Form detector accuracy: 6 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 2 done, 0 retired

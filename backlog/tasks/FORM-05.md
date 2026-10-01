@@ -1,11 +1,9 @@
 ---
 id: "FORM-05"
 title: "Do the clip-path rectangles a form rules its cells with belong in the ink?"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "form-detection"
-horizon: "next"
-order: 5
 depends_on: []
 ---
 
@@ -34,3 +32,30 @@ geometry on forms that rule cells that way. Nobody has checked, and the answer i
   76 phantom squares are what merging costs, and `findCheckboxes` reads `rects` directly.
 - [ ] A finding of "not worth it on any form we have" closes this ticket and belongs in
   `pageInk.js`'s docstring beside the rule it confirms, so the next agent does not re-open it.
+
+## 2026-10-01 done
+
+Measured on every scored form (page-stream clip rectangles only, `re ... W n`; Form XObjects are not
+walked, as in `pageInk.js`). "Would-be" is the change in detector candidates when the distinct clip
+rects are fed to the cell and line detectors as a separate stroked channel (a throwaway probe, deleted;
+its baseline run reproduced every recorded candidate and match count exactly). "Matches" is the change
+in matched targets.
+
+| Form (page) | Clip rects (operators / distinct) | Would-be candidates | Matches |
+| --- | --- | --- | --- |
+| Practice form | 0 / 0 | 0 | 0 |
+| Health declaration | 1,027 / 129 | +6 | +1 (65 to 66 of 75) |
+| Form 101 | 1 / 1 | +1 | 0 |
+| IRS 1040 2024 | 0 / 0 | 0 | 0 |
+| IRS 1040 1970 | 0 / 0 | 0 | 0 |
+| Thai pnd90 (p3) | 36 / 7 | 0 | 0 |
+| Thai lor-yor 01 | 593 / 11 | 0 | 0 |
+| USCIS I-9 | 1 / 1 | 0 | 0 |
+| Thai SSO 1-10 | 14 / 4 | 0 | 0 |
+| HMRC SA100 (p6) | 1 / 1 | 0 | 0 |
+
+On health, 14 of the 129 distinct clip rects overlap a target at IoU 0.5, yet only one new target
+is matched (the e-mail text field), at a cost of 5 false positives (precision 100 to 93%); no target
+was lost. Restricting to cell-sized rects (not page-sized) gives +4 candidates and no match at all. Decision: not worth it on any form we have. The rule stays as is, with the numbers recorded in
+`pageInk.js`'s docstring beside it; detection is unchanged (`node scripts/score-form.mjs --all`
+reports 0 changed).
