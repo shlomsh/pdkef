@@ -40,7 +40,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
   const line = document.createElement('p');
   line.hidden = true;
   line.dataset.appUpdateState = 'ready';
-  line.innerHTML = '<button type="button" data-app-update-reload></button>';
+  line.innerHTML = '<button type="button" data-app-update-reload></button><button type="button" data-app-update-dismiss></button>';
   const reg: any = new Emitter();
   reg.waiting = opts.waiting ?? null;
   reg.installing = null;
@@ -183,6 +183,40 @@ describe('startAppUpdates', () => {
     await vi.advanceTimersByTimeAsync(6000);
     expect(a.line.dataset.appUpdateState).toBe('ready');
     expect(a.reload).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when registration is refused or blocked', async () => {
+    const refused = makeTab(new Bus());
+    refused.sw.register = vi.fn(async () => { throw new Error('SecurityError'); });
+    await expect(refused.start()).resolves.toBeUndefined();
+    const blocked = makeTab(new Bus());
+    blocked.sw.register = vi.fn(async () => undefined);
+    await expect(blocked.start()).resolves.toBeUndefined();
+    expect(blocked.line.hidden).toBe(true);
+  });
+
+  it('dismiss hides the line for this page only; it stays in the update', async () => {
+    const bus = new Bus();
+    const worker = makeWorker();
+    const a = makeTab(bus, { waiting: worker });
+    const b = makeTab(bus, { waiting: makeWorker() });
+    await a.start();
+    await b.start();
+    (b.line.querySelector('[data-app-update-dismiss]') as HTMLButtonElement).click();
+    expect(b.line.hidden).toBe(true);
+    expect(a.line.hidden).toBe(false);
+    // A state change elsewhere does not bring it back...
+    new FakeChannel(bus).postMessage({ type: 'update-waiting' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(b.line.hidden).toBe(true);
+    await vi.advanceTimersByTimeAsync(6000);
+    // ...and it still counts as an answering window and reloads with the rest.
+    a.button.click();
+    await vi.advanceTimersByTimeAsync(500);
+    expect(worker.messages).toEqual([{ type: 'pdkef:skip-waiting', windows: 2 }]);
+    b.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(b.reload).toHaveBeenCalledTimes(1);
   });
 
   it('shows the line for a worker that was already installing when the tab loaded', async () => {

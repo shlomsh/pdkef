@@ -1,5 +1,5 @@
 /**
- * MEM-10: the four strings of the update line (`AppUpdateLine.astro`). They
+ * MEM-10: the five strings of the update line (`AppUpdateLine.astro`). They
  * live in the static markup, never in the registration script, so the line
  * costs no JavaScript to localize. English for every locale but Hebrew.
  */
@@ -8,6 +8,7 @@ export interface AppUpdateMessages {
   reload: string;
   blocked: string;
   waiting: string;
+  dismiss: string;
 }
 
 const english: AppUpdateMessages = {
@@ -15,6 +16,7 @@ const english: AppUpdateMessages = {
   reload: 'Reload',
   blocked: 'Close your other PDkef tabs to load the new version',
   waiting: 'A new version is ready. You can reload once the export finishes.',
+  dismiss: 'Hide until the next page',
 };
 
 const hebrew: AppUpdateMessages = {
@@ -22,6 +24,7 @@ const hebrew: AppUpdateMessages = {
   reload: 'טעינה מחדש',
   blocked: 'סגרו את שאר הלשוניות של PDkef כדי לטעון את הגרסה החדשה',
   waiting: 'גרסה חדשה מוכנה. אפשר לטעון מחדש כשהייצוא יסתיים.',
+  dismiss: 'הסתרה עד העמוד הבא',
 };
 
 export function getAppUpdateMessages(lang: string): AppUpdateMessages {
