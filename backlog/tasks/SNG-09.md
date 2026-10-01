@@ -154,6 +154,25 @@ the corpus nor `baselines.json`). `rasterInk.js` exports `otsuThreshold`, `estim
 OCR spike also found that Tesseract reads ruled-line fragments as `|` and `[`, so any later OCR needs the
 rules masked first.
 
+## 2026-10-01 progress: the corpus is built, the function is not
+
+Committed on branch `worktree-sng09-marks-land-neatly` (75b1df5d), not pushed. The snap corpus lives in
+`src/tools/sign/fields/corpus/snap/` (its README is the contract): five forms at 200 dpi with exact rule
+truth, seeded scan/fax/phone degradation at three zoom views, a tap sampler, the three-outcome scorer and the
+Clopper-Pearson bound. Controls: declining everything scores no snaps; an oracle that reads the truth scores
+100% on clean pages and above 97% under skew. The oracle exposed two harness bugs (the expected target must
+be the clearly nearest rule; fax breaks must cut a rule across its thickness), both fixed.
+
+Next, in order:
+1. More documents: the other pages of these forms (about 12 documents, about 2.5 MB), then more
+   public-domain forms (needs a download decision). The gate needs at least 30 documents.
+2. Truth for boxes; drop hyperlink underlines from the rule truth; a faint-ink level (hmrc-sa100,
+   thai-pnd90 were skipped for pale rules).
+3. `snapToPrintedLine(window, tap, { maxSnapPx })`, pure, reusing `rasterInk` exports, registered in
+   `scripts/check-detection-purity.mjs`; then `scripts/score-snap.mjs` with a two-way ratchet in
+   `snapBaselines.json`; then hook it into placement behind fill mode.
+4. 10-20 hand-labelled public-domain real scans as the calibration set.
+
 ## 2026-10-01 board cleanup
 
 - Status in_progress -> open. The Zapf checkbox part shipped (`zapfCheckboxSquare.test.js`); the tap-local snap to the printed line remains. Dropped SNG-03 from depends_on (retired).
