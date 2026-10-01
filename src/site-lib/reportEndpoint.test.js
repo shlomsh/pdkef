@@ -83,4 +83,46 @@ describe('/api/report stays silent', () => {
     expect(junk.status).toBe(204);
     expect(GET().status).toBe(405);
   });
+
+  describe('maintenance events', () => {
+    const event = { name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'not_started' } };
+    const postJson = (value) =>
+      POST(
+        new Request('https://pdkef.com/api/report', {
+          method: 'POST',
+          headers: { 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Version/17.5 Safari/604.1' },
+          body: JSON.stringify(value),
+        }),
+      );
+
+    it('runs the cap pipeline, then exactly one HINCRBY and no HSET', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+      expect((await postJson(event)).status).toBe(204);
+      const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0][0]).toBe('INCR');
+      const commands = calls.flat();
+      expect(commands.filter(([name]) => name === 'HSET')).toHaveLength(0);
+      const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
+      expect(hincrbys).toHaveLength(1);
+      expect(hincrbys[0][1]).toMatch(/^events:\d{4}-\d{2}-\d{2}$/);
+      expect(hincrbys[0][2]).toBe('sign_form_detection|failure|not_started|ios-17');
+    });
+
+    const rejected = {
+      'an extra property': { ...event, properties: { ...event.properties, note: 'x' } },
+      'an unknown error_code': { ...event, properties: { outcome: 'failure', error_code: 'boom' } },
+      'a success with an error_code': { ...event, properties: { outcome: 'success', error_code: 'not_started' } },
+      'both report and event keys': { ...report, ...event },
+    };
+    for (const [what, value] of Object.entries(rejected)) {
+      it(`answers 204 without calling out for ${what}`, async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch');
+        expect((await postJson(value)).status).toBe(204);
+        expect(fetchSpy).not.toHaveBeenCalled();
+      });
+    }
+  });
 });

@@ -5,6 +5,7 @@ import {
   countCommands,
   dayKey,
   engineBucket,
+  eventCommands,
   readEnv,
   reportCommands,
 } from './errorReportStore.js';
@@ -63,5 +64,15 @@ describe('readEnv', () => {
     expect(readEnv({ UPSTASH_REDIS_REST_URL: 'https://b', UPSTASH_REDIS_REST_TOKEN: 'u' })).toEqual({ url: 'https://b', token: 'u' });
     expect(readEnv({ KV_REST_API_URL: 'https://a' })).toBeNull();
     expect(readEnv({})).toBeNull();
+  });
+});
+
+describe('eventCommands', () => {
+  it('counts one field under the day, with no sample', () => {
+    const event = { name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'not_started' } } as const;
+    expect(eventCommands(event, 'ios-17', '2026-10-01')).toEqual([
+      ['HINCRBY', 'events:2026-10-01', 'sign_form_detection|failure|not_started|ios-17', 1],
+      ['EXPIRE', 'events:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
   });
 });

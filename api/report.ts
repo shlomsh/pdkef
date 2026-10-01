@@ -1,6 +1,7 @@
 // Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
 // and counts them in Upstash Redis (DEBT-17), keeping the latest example of
-// each (DEBT-27). The second request-time component after middleware.ts; Astro
+// each (DEBT-27), and also counts Sign's maintenance events (counts only, no
+// sample). The second request-time component after middleware.ts; Astro
 // itself stays output 'static' with no adapter, so this is a plain function
 // under api/. It never sees a PDF byte: a report is positions in our own code,
 // identifiers, flags and a bucket, validated by parseErrorReport.
@@ -13,12 +14,14 @@
 // with an engine bucket - no IP, no full user agent, no time finer than the
 // day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
+import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
 import {
   DAILY_CAP,
   capCommands,
   countCommands,
   dayKey,
   engineBucket,
+  eventCommands,
   readEnv,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
@@ -51,9 +54,11 @@ export async function POST(request: Request): Promise<Response> {
     if (declared > MAX_REPORT_BYTES) return NO_CONTENT();
     const body = await request.text();
     if (body.length > MAX_REPORT_BYTES) return NO_CONTENT();
-    const report = parseErrorReport(JSON.parse(body));
+    const json: unknown = JSON.parse(body);
+    const report = parseErrorReport(json);
+    const event = report ? null : parseMaintenanceEvent(json);
     const store = readEnv(process.env);
-    if (!report || !store) return NO_CONTENT();
+    if ((!report && !event) || !store) return NO_CONTENT();
 
     const day = dayKey(new Date());
     if (day === cappedDay) return NO_CONTENT();
@@ -61,7 +66,7 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
     else if (typeof total?.result === 'number') {
       const engine = engineBucket(request.headers.get('user-agent') ?? '');
-      await pipeline(store, countCommands(report, engine, day));
+      await pipeline(store, report ? countCommands(report, engine, day) : eventCommands(event!, engine, day));
     }
   } catch {
     console.error('error-report: dropped');

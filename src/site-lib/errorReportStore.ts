@@ -1,7 +1,8 @@
 // Pure pieces of the error-report endpoint (api/report.ts, DEBT-17): what is
-// counted, under which keys, and how much of a user agent survives. Nothing
-// here does I/O.
+// counted (error reports and Sign's maintenance events), under which keys, and
+// how much of a user agent survives. Nothing here does I/O.
 import type { ErrorReport } from '../lib/errorReportSchema.js';
+import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenanceEventSchema.js';
 
 /** Reports counted per UTC day; past it the day is full and nothing more is stored. */
 export const DAILY_CAP = 5000;
@@ -56,6 +57,14 @@ export function countCommands(report: ErrorReport, engine: string, day: string):
     ['EXPIRE', `errors:${day}`, TTL_SECONDS],
     ['HSET', `errors:sample:${day}`, field, sample],
     ['EXPIRE', `errors:sample:${day}`, TTL_SECONDS],
+  ];
+}
+
+/** Second step for a maintenance event: a count per day and field, no sample. */
+export function eventCommands(event: MaintenanceEvent, engine: string, day: string): Command[] {
+  return [
+    ['HINCRBY', `events:${day}`, maintenanceEventField(event, engine), 1],
+    ['EXPIRE', `events:${day}`, TTL_SECONDS],
   ];
 }
 
