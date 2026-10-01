@@ -237,7 +237,7 @@ test.describe('Redact editor browser guardrails', () => {
   // inside the box - different icon, different colour, a position that
   // itself moved (top/right 8px with resize handles shown, -10px without).
   // All three types now share exactly one selection chrome: the same
-  // floating toolbar (ElementToolbar via RedactBox's `[data-editor-actions]`
+  // floating toolbar (RedactBoxToolbar via RedactBox's `[data-editor-actions]`
   // wrapper), positioned the same way, showing nothing until the box is
   // selected and nothing on hover alone.
   test('keeps one shared selection chrome across whiteout, blackout and blur, resizable and page-bound, in the real browser', async ({ page }) => {
@@ -272,9 +272,11 @@ test.describe('Redact editor browser guardrails', () => {
       await expect(toolbar).toBeVisible();
       await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       // Whiteout is the only type with a per-element colour control - its
-      // toolbar carries one extra button (colour trigger, duplicate, delete)
-      // over blackout's two (duplicate, delete).
-      await expect(toolbar.locator('button')).toHaveCount(3);
+      // toolbar carries two extra buttons (Auto, eyedropper) plus a custom
+      // colour input over blackout's two (duplicate, delete): four buttons
+      // and one input[type="color"] on this single-page fixture.
+      await expect(toolbar.locator('button')).toHaveCount(4);
+      await expect(toolbar.locator('input[type="color"]')).toHaveCount(1);
       const boxRect = await getBox(whiteout, 'whiteout box');
       const toolbarRect = await getBox(toolbar, 'whiteout toolbar');
       offsetAboveBoxTop.whiteout = boxRect.y - (toolbarRect.y + toolbarRect.height);
@@ -519,19 +521,33 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(resizerHit.width).toBeGreaterThanOrEqual(44);
     expect(resizerHit.height).toBeGreaterThanOrEqual(44);
 
-    // The coarse-pointer box toolbar is portalled into a fixed bar on body.
+    // The coarse-pointer box toolbar is a floating pill fixed near the viewport bottom.
     const floatingButton = page.locator('[data-editor-actions] button').first();
     await expect(floatingButton).toBeVisible();
     const actionBar = page.locator('[data-editor-actions]').first();
     const barBox = await getBox(actionBar, 'Box action bar');
-    const viewportHeight = await page.evaluate(() => window.innerHeight);
-    expect(Math.abs(barBox.y + barBox.height - viewportHeight), 'bar is fixed to the viewport bottom').toBeLessThanOrEqual(1);
+    const { viewportHeight, viewportWidth } = await page.evaluate(() => ({
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+    }));
+    const gapBelow = viewportHeight - (barBox.y + barBox.height);
+    expect(gapBelow, 'pill bottom sits 4-24px above the viewport bottom').toBeGreaterThanOrEqual(4);
+    expect(gapBelow, 'pill bottom sits 4-24px above the viewport bottom').toBeLessThanOrEqual(24);
+    expect(barBox.x, 'pill is at least 8px inside the left side').toBeGreaterThanOrEqual(8);
+    expect(viewportWidth - (barBox.x + barBox.width), 'pill is at least 8px inside the right side').toBeGreaterThanOrEqual(8);
     const selectedBox = await getBox(whiteout, 'Selected box');
     expect(selectedBox.y + selectedBox.height, 'bar does not overlap the selected box').toBeLessThanOrEqual(barBox.y + 1);
-    const floatingVisual = await getBox(floatingButton, 'Floating toolbar button');
-    const floatingHit = await insetHitSize(floatingButton);
-    expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
-    expect(floatingHit.height, `visual was ${floatingVisual.height}px`).toBeGreaterThanOrEqual(44);
+    // The pill's controls are real 44px targets by their own bounding boxes;
+    // the old 28px-plus-::before-halo design is gone.
+    const barControls = actionBar.locator('button, label');
+    const controlCount = await barControls.count();
+    expect(controlCount).toBeGreaterThan(0);
+    for (let i = 0; i < controlCount; i += 1) {
+      const control = barControls.nth(i);
+      const rect = await getBox(control, `Bar control ${i}`);
+      expect(rect.width, `bar control ${i} width`).toBeGreaterThanOrEqual(44);
+      expect(rect.height, `bar control ${i} height`).toBeGreaterThanOrEqual(44);
+    }
 
     // Deselect before drawing the next box. The floating toolbar
     // (`[data-editor-actions]`) is a DOM descendant of `.redact-box`, so the
@@ -567,18 +583,13 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     const blackout = await drawRedaction(page, 'Blackout', { x: 0.15, y: 0.5 }, { x: 0.55, y: 0.7 });
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(2);
     await selectRedaction(blackout);
-    // Blackout's delete control is now the shared floating toolbar's own
-    // `.element-button` (E7.5's toolbar-parity fix), not a Redact-only
-    // `.redact-element-btn` - so it gets the same `.element-button::before`
-    // 44px floor whiteout's toolbar buttons already got above, proven the
-    // same way (visual stays ~28px, only the hit box grows).
+    // Blackout's delete control is a real 44px target by its own bounding
+    // box, like every other control in the pill.
     const blackoutDelete = page.locator('[data-editor-actions] button[title="Delete"]');
     await expect(blackoutDelete).toBeVisible();
-    const blackoutDeleteVisual = await getBox(blackoutDelete, 'Blackout toolbar delete button');
-    expect(blackoutDeleteVisual.width, 'delete button visual should stay ~28px - only the hit box grows').toBeLessThan(32);
-    const blackoutDeleteHit = await insetHitSize(blackoutDelete);
-    expect(blackoutDeleteHit.width, `visual was ${blackoutDeleteVisual.width}px`).toBeGreaterThanOrEqual(44);
-    expect(blackoutDeleteHit.height, `visual was ${blackoutDeleteVisual.height}px`).toBeGreaterThanOrEqual(44);
+    const blackoutDeleteRect = await getBox(blackoutDelete, 'Blackout toolbar delete button');
+    expect(blackoutDeleteRect.width).toBeGreaterThanOrEqual(44);
+    expect(blackoutDeleteRect.height).toBeGreaterThanOrEqual(44);
   });
 });
 

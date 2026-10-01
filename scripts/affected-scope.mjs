@@ -67,8 +67,11 @@
 //      the boundary checker's rules), the tool pages' Tailwind `@source`
 //      lists name no island files (no CSS side channel to a third tool), and
 //      the graph already answers precisely for it - `nx show projects
-//      --affected --files=src/editor-ui/ElementToolbar.tsx` names exactly
-//      editor-ui, tool-sign, tool-redact, cross-tool-tests, site-e2e.
+//      --affected --files=src/editor-ui/ColorPickerMenu.tsx` names editor-ui,
+//      the two tools and only projects downstream of them (measured
+//      2026-10-01, RED-51: editor-ui, tool-sign, tool-redact,
+//      cross-tool-tests, site-e2e, export-guards, form-corpus,
+//      sign-spike-mobi10, tooling), never a third tool.
 //      `editor`'s own fate (whether it can leave too) is DEBT-07, after
 //      DEBT-04. ARCH-23: unlike everything else this rule forces, `fonts` is
 //      NOT automatically true here - it is matchesFontsGlob(files), the same

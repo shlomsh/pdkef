@@ -22,7 +22,7 @@ import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
-import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
+import useCoarsePointer from './useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
 import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';

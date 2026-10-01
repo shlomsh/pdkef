@@ -1,7 +1,7 @@
 import {
   BLUR_MAX, BLUR_MIN, DEFAULT_BLUR_STRENGTH, resolveBlurStrength, snapBlurStrength,
-} from '../editor/model/blurStrength.ts';
-import { paintBlurStrength } from '../editor/registry/redactionSurface.ts';
+} from '../../editor/model/blurStrength.ts';
+import { paintBlurStrength } from '../../editor/registry/redactionSurface.ts';
 import styles from './BlurStrengthSlider.module.css';
 
 /** Where the default's tick sits along the track, as a percentage. */
