@@ -200,11 +200,13 @@ describe('actions field', () => {
       expect(parseErrorReport({ ...ok, actions: [bad] })).toBeNull();
     }
   });
-  it('rejects a non-array actions, and a missing or extra key', () => {
+  it('rejects a non-array actions, and an extra key, accepting a missing one (older build)', () => {
     expect(parseErrorReport({ ...ok, actions: { 0: 'add_files', length: 1 } })).toBeNull();
     expect(parseErrorReport({ ...ok, actions: 'add_files' })).toBeNull();
     const { actions: _drop, ...without } = ok as Record<string, unknown>;
-    expect(parseErrorReport(without)).toBeNull();
+    expect(parseErrorReport(without)?.actions).toEqual([]);
+    expect(parseErrorReport({ ...without, tenth: 1 })).toBeNull();
+    expect(parseErrorReport({ ...ok, actions: null })).toBeNull();
     expect(parseErrorReport({ ...ok, actions: [], tenth: 1 })).toBeNull();
   });
   it('returns a frozen copy, not the input array', () => {
