@@ -208,7 +208,10 @@ _None._
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The IRS 1040 saved-file check test finishes inside its timeout under a full run |
+| QUAL-18 | P3 | [QUAL-18](backlog/tasks/QUAL-18.md) · npm install in a fresh worktree leaves package-lock.json unchanged |
 
 ### Blocked
 
@@ -702,10 +705,18 @@ _None._
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
 | RED-29 | P1 | [RED-29](backlog/tasks/RED-29.md) · Delete finds what a page draws inside a Form XObject |
+| RED-42 | P3 | [RED-42](backlog/tasks/RED-42.md) · Keep Blur on / Keep Whiteout on is hidden while a brush is armed |
+| RED-45 | P3 | [RED-45](backlog/tasks/RED-45.md) · A restored document says its boxes are back |
 
 ### In progress
 
-_None._
+| ID | Priority | Task |
+| --- | --- | --- |
+| RED-40 | P2 | [RED-40](backlog/tasks/RED-40.md) · Redact remembers the whiteout colour and blur strength per document, like Sign |
+| RED-41 | P3 | [RED-41](backlog/tasks/RED-41.md) · The box toolbar says Duplicate and Delete, in Sign and Redact |
+| RED-43 | P2 | [RED-43](backlog/tasks/RED-43.md) · A box can be reached and removed with the keyboard |
+| RED-44 | P3 | [RED-44](backlog/tasks/RED-44.md) · The saved-file check's buttons are 44px touch targets |
+| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for |
 
 ### Blocked
 
