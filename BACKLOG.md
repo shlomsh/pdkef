@@ -709,6 +709,7 @@ _None._
 | RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
 | RED-25 | P2 | [RED-25](backlog/tasks/RED-25.md) · Check the saved file: Remove it, for a secret in a place a box can't reach |
 | RED-26 | P2 | [RED-26](backlog/tasks/RED-26.md) · Delete: remove an image on every page it appears, for watermarks |
+| RED-47 | P1 | [RED-47](backlog/tasks/RED-47.md) · Desktop review: a lighter blur range, an Every page button that explains itself, a swatch that looks clickable |
 
 ### Blocked
 

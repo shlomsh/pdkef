@@ -486,6 +486,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-44 | P3 | [RED-44](backlog/tasks/RED-44.md) · The saved-file check's buttons are 44px touch targets |
 | RED-45 | P3 | [RED-45](backlog/tasks/RED-45.md) · A restored document says its boxes are back |
 | RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for |
+| RED-47 | P1 | [RED-47](backlog/tasks/RED-47.md) · Desktop review: a lighter blur range, an Every page button that explains itself, a swatch that looks clickable |
 
 
 ## Migrated context and history
