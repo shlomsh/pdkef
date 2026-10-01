@@ -13,11 +13,27 @@
  *   up by another tab: 'waiting' when that tab is working, 'blocked' when it
  *   does not answer. A single tab, or several idle ones, never see it.
  *
+ * MEM-13 adds two things on top, neither changing the above for an ordinary
+ * build. A forced update (`pdkef:critical-update`, sent by the worker for a
+ * build that fixes a major bug) shows the line in its force variant, flushes
+ * draft saves, waits for an export in flight (never longer than
+ * `CRITICAL_PAGE_CAP_MS`) and answers ready; a file merely open in a tool
+ * without drafts does not hold it. And discovery: the tab asks for a new
+ * build when it becomes visible, comes online and once an hour, then tells a
+ * waiting worker to look at it (`pdkef:critical-check`), so a tab nobody
+ * navigates in still learns. Offline all of it is silent.
+ *
  * Decisions are small pure functions; `startAppUpdates` is thin wiring over
  * injected dependencies so it runs against fakes in tests. No string lives
  * here: the line's copy is static markup (`AppUpdateLine.astro`).
  */
-import { flushBeforeUpdateReload, isUpdateHeld, onUpdateHoldChange } from '../lib/appUpdate/updateHolds.ts';
+import {
+  flushBeforeUpdateReload,
+  isExportInFlight,
+  isUpdateHeld,
+  onExportInFlightChange,
+  onUpdateHoldChange,
+} from '../lib/appUpdate/updateHolds.ts';
 
 export const CHANNEL_NAME = 'pdkef:app-update';
 export const BUSY_QUERY = 'pdkef:busy-query';
@@ -28,6 +44,14 @@ export const TAB_CLOSED_RECHECK_MS = 1000;
 export const LEAVING_RESET_MS = 1000;
 export const RECHECK_SHOWN_MS = 5000;
 export const REFRESH_EVERY_MS = 60 * 1000;
+/** MEM-13: the most a forced update waits in this tab for an export to finish. */
+export const CRITICAL_PAGE_CAP_MS = 60_000;
+/** MEM-13: a force that no controllerchange followed is dropped after this. */
+export const CRITICAL_ABANDON_MS = 90_000;
+/** MEM-13: a tab coming back to the foreground asks for a new build at most this often. */
+export const VISIBLE_CHECK_MIN_MS = 60 * 1000;
+export const CRITICAL_UPDATE = 'pdkef:critical-update';
+export const CRITICAL_CHECK = 'pdkef:critical-check';
 
 /** 'waiting': another tab is working. 'blocked': another tab does not answer. */
 export type LineState = 'waiting' | 'blocked';
@@ -56,6 +80,38 @@ export function lineStateFor(reply: StatusReply | null): LineState | null {
 
 export function shouldCheckForUpdate(lastCheck: number, now: number, afterMs = CHECK_AFTER_MS): boolean {
   return now - lastCheck >= afterMs;
+}
+
+export interface CriticalResponseDeps {
+  /** Resolves once pending draft saves are written (never rejects past its own timeout). */
+  flushDrafts: () => Promise<void>;
+  exportInFlight: () => boolean;
+  /** Subscribes to export-in-flight changes; returns the unsubscribe. */
+  onExportChange: (listener: (inFlight: boolean) => void) => () => void;
+  capMs: number;
+  setTimeout: (fn: () => void, ms: number) => unknown;
+  clearTimeout: (id: unknown) => void;
+}
+
+/**
+ * The tab's answer to a forced update: flush draft saves, then wait while an
+ * export is in flight, at most `capMs`, then say ready. Only an export holds:
+ * a file open in a tool without drafts is overridden by design.
+ */
+export async function respondToCriticalUpdate(deps: CriticalResponseDeps): Promise<{ ready: true }> {
+  await deps.flushDrafts();
+  if (deps.exportInFlight()) {
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        off();
+        deps.clearTimeout(timer);
+        resolve();
+      };
+      const timer = deps.setTimeout(done, deps.capMs);
+      const off = deps.onExportChange((inFlight) => { if (!inFlight) done(); });
+    });
+  }
+  return { ready: true };
 }
 
 interface WorkerLike {
@@ -120,6 +176,11 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // answers busy queries and still reloads with the others on an update.
   let dismissed = false;
   let reloading = false;
+  // A forced update (MEM-13) is under way: the line stays in its force
+  // variant, and the reload no longer waits for a file merely open here.
+  let forced = false;
+  let forcing: Promise<{ ready: true }> | null = null;
+  let abandonTimer: unknown = null;
   let lastCheck = deps.now();
 
   const post = (message: UpdateMessage) => channel?.postMessage(message);
@@ -142,7 +203,12 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // Answered before the page finishes loading: the worker asks every tab on
   // every navigation, and a tab that does not answer counts as holding.
   serviceWorker.addEventListener('message', (event) => {
-    if (event.data?.type !== BUSY_QUERY) return;
+    const type = event.data?.type;
+    if (type === CRITICAL_UPDATE) {
+      forceUpdate(event.ports?.[0]);
+      return;
+    }
+    if (type !== BUSY_QUERY) return;
     event.ports?.[0]?.postMessage?.({ busy: isUpdateHeld() && !leaving });
   });
   serviceWorker.startMessages?.();
@@ -154,6 +220,36 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     else deps.window.removeEventListener('beforeunload', onBeforeUnload);
     post({ type: 'busy-changed' });
   });
+
+  // Single-flight: the worker may ask more than once; every ask gets its reply.
+  function forceUpdate(port: PortLike | undefined) {
+    forced = true;
+    if (line) {
+      line.dataset.appUpdateState = 'critical';
+      // Shown even after a dismissal: the reload is on its way.
+      line.hidden = false;
+    }
+    if (!forcing) {
+      // The worker may give up (its own cap) and never claim; the force must
+      // not stay sticky, or a later ask would be answered with no new wait.
+      abandonTimer = deps.setTimeout(() => {
+        abandonTimer = null;
+        if (reloading) return;
+        forced = false;
+        forcing = null;
+        void refreshLine();
+      }, CRITICAL_ABANDON_MS);
+    }
+    forcing ??= respondToCriticalUpdate({
+      flushDrafts: () => flushBeforeUpdateReload(),
+      exportInFlight: isExportInFlight,
+      onExportChange: onExportInFlightChange,
+      capMs: CRITICAL_PAGE_CAP_MS,
+      setTimeout: deps.setTimeout,
+      clearTimeout: deps.clearTimeout,
+    });
+    void forcing.then((reply) => port?.postMessage?.(reply));
+  }
 
   function waitForRelease(): Promise<void> {
     if (!isUpdateHeld()) return Promise.resolve();
@@ -175,8 +271,12 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     }
     if (reloading) return;
     reloading = true;
+    if (abandonTimer !== null) deps.clearTimeout(abandonTimer);
+    abandonTimer = null;
     hideLine();
-    await waitForRelease();
+    // A force overrides a file merely open here; its export wait is over
+    // (it answered ready, or the cap passed and the worker went ahead).
+    if (!forced) await waitForRelease();
     await flushBeforeUpdateReload();
     deps.reload();
   });
@@ -213,7 +313,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   let refreshSeq = 0;
   async function refreshLine(): Promise<void> {
-    if (reloading) return;
+    if (reloading || forced) return;
     const seq = ++refreshSeq;
     const worker = reg.waiting;
     if (!worker || !serviceWorker.controller) {
@@ -247,28 +347,46 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   function watchInstalling(worker: WorkerLike | null) {
     worker?.addEventListener?.('statechange', () => {
-      if (worker.state === 'installed') void refreshLine();
+      if (worker.state !== 'installed') return;
+      void refreshLine();
+      // A force started at the end of install has no event keeping that worker
+      // alive; this message restarts it under waitUntil.
+      nudgeWaiting();
     });
   }
   reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
   // A tab that loads mid-install missed that updatefound.
   watchInstalling(reg.installing);
 
+  // MEM-13: a waiting worker decides for itself whether its build is critical
+  // and ready; this only nudges it, so a tab nobody navigates in finds out.
+  function nudgeWaiting() {
+    try {
+      reg.waiting?.postMessage({ type: CRITICAL_CHECK });
+    } catch {
+      // expected: the worker went away between the check and the message
+    }
+  }
   function checkForUpdate() {
     lastCheck = deps.now();
-    // expected: an update check fails offline; the next one retries
-    reg.update().catch(() => {});
+    reg.update().then(nudgeWaiting, () => {
+      // expected: an update check fails offline; the next trigger retries
+      nudgeWaiting();
+    });
   }
   doc.addEventListener('visibilitychange', () => {
     if (doc.visibilityState !== 'visible') return;
     void refreshLine();
-    if (shouldCheckForUpdate(lastCheck, deps.now())) checkForUpdate();
+    if (shouldCheckForUpdate(lastCheck, deps.now(), VISIBLE_CHECK_MIN_MS)) checkForUpdate();
   });
   deps.setInterval(() => {
     if (doc.visibilityState === 'visible') checkForUpdate();
   }, CHECK_EVERY_MS);
 
-  deps.window.addEventListener('online', () => { void refreshLine(); });
+  deps.window.addEventListener('online', () => {
+    void refreshLine();
+    checkForUpdate();
+  });
   deps.window.addEventListener('offline', () => { void refreshLine(); });
   deps.window.addEventListener('pagehide', () => post({ type: 'tab-closed' }));
   // A shown line follows the other tabs closely (a holder that crashed sends
@@ -276,5 +394,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   deps.setInterval(() => { if (state !== 'hidden') void refreshLine(); }, RECHECK_SHOWN_MS);
   deps.setInterval(() => { if (state === 'hidden' && reg.waiting) void refreshLine(); }, REFRESH_EVERY_MS);
 
+  // A build already waiting when this page loads (found while it was offline).
+  nudgeWaiting();
   await refreshLine();
 }

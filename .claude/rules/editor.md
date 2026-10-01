@@ -72,6 +72,9 @@ retire with SNG-06.
   that must *not* be detected, which is what catches a change that makes the detector greedier. It is
   not a recall/precision measurement - those live in `docs/mobi-10-field-map-spike.md` and a synthetic
   fixture cannot contribute to them.
+- How the detectors are reconciled, how a box is placed on each kind of field, and the live-form
+  measurements behind the numbers are in [docs/sign-form-fields.md](../../docs/sign-form-fields.md); the
+  comments in `formCells.js`, `fieldRegions.js` and `fieldOrder.ts` carry only the reasons.
 - Warnings you may find in old tickets about "the branch broke the PDF math" or per-frame `onChange`
   in `DraggableWrapper` describe one early wip snapshot and were fixed under E0.1. Do not act on them.
 
