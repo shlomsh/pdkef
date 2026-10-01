@@ -25,7 +25,7 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on Shlomi's Hebrew card pick, and whether to ship before or after the 2026-10-08 GSC read. Needs Shlomi: Hebrew card: חלקים or מה שצריך (or unchanged); ship now or after 2026-10-08 |
+| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
 
 ## Sign: finish fill mode
 
