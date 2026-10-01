@@ -40,7 +40,7 @@ const CACHE_PREFIX = 'pdkef-';
 // the next quiet navigation. It rides in the cache name so a waiting build can
 // read, from the cache keys alone, whether it is critical over the build the
 // tabs run. Keys from before this (`pdkef-<hash>`) read as 0.
-const CRITICAL_VERSION = 0;
+const CRITICAL_VERSION = 1;
 const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
