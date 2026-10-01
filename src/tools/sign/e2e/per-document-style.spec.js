@@ -208,8 +208,15 @@ async function currentDateText(element) {
   const title = await dateFormatButton(element).getAttribute('title');
   return title.replace(/^Date format: /, '').replace(/\. Click to change\.$/, '');
 }
+// One click at a time: each waits for the format it asked for before the next,
+// or a second click lands before the first re-render and is read as one.
 async function cycleDateFormat(element, times) {
-  for (let i = 0; i < times; i += 1) await dateFormatButton(element).click();
+  for (let i = 0; i < times; i += 1) {
+    const button = dateFormatButton(element);
+    const before = await button.getAttribute('title');
+    await button.click();
+    await expect(button).not.toHaveAttribute('title', before);
+  }
 }
 
 async function setTextColor(element, hex) {
