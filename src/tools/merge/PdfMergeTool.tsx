@@ -500,7 +500,13 @@ export default function PdfMergeTool({
         applyFileReorder(evt.oldIndex, evt.newIndex);
       },
     });
-    return () => sortableRef.current?.destroy();
+    return () => {
+      // Clear the ref: Sortable's destroy() nulls its element, so a second
+      // destroy() on the same instance throws (a production report from
+      // Firefox caught it).
+      sortableRef.current?.destroy();
+      sortableRef.current = null;
+    };
   }, [entries.length > 0, applyFileReorder]);
 
   // The phone chip row: the same whole-file reorder, but a short press-and-hold
@@ -523,7 +529,10 @@ export default function PdfMergeTool({
         applyFileReorder(evt.oldIndex, evt.newIndex);
       },
     });
-    return () => chipSortableRef.current?.destroy();
+    return () => {
+      chipSortableRef.current?.destroy();
+      chipSortableRef.current = null;
+    };
   }, [entries.length > 0, applyFileReorder]);
 
   // ToolPageLayout's pre-paint script sets `html[data-draft-hint]` when a

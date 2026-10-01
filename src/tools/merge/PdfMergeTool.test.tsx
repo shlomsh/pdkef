@@ -877,6 +877,39 @@ describe('PdfMergeTool UI flow', () => {
     }));
   });
 
+  it('re-creates a live Sortable on the rail and chip row after Clear all and re-adding files, without destroying a destroyed instance', async () => {
+    // Sortable's destroy() nulls its element, so a second destroy() on the same
+    // instance throws. Re-running the effects after their cleanup must not.
+    const errors = [];
+    const onError = (e) => { errors.push(e.error || e.message); e.preventDefault(); };
+    window.addEventListener('error', onError);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      mount();
+      await loadFiles(['a.pdf', 'b.pdf']);
+
+      const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearTrigger.click());
+      const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+      await act(async () => clearButtons.at(-1).click());
+      expect(container.querySelector(`ul.${railStyles['file-list']}`)).toBeNull();
+
+      await loadFiles(['c.pdf', 'd.pdf']);
+      await flush(10);
+
+      const list = container.querySelector(`ul.${railStyles['file-list']}`);
+      const chipRow = container.querySelector(`ul.${docStyles['chip-row']}`);
+      expect(list).not.toBeNull();
+      expect(chipRow).not.toBeNull();
+      expect(errors).toEqual([]);
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(Sortable.get(list)).toBeDefined();
+      expect(Sortable.get(chipRow)).toBeDefined();
+    } finally {
+      window.removeEventListener('error', onError);
+    }
+  });
+
   it('keeps whole-file drag enabled after pages are rearranged and regroups on drop', async () => {
     const createSpy = vi.spyOn(Sortable, 'create');
     mount();
