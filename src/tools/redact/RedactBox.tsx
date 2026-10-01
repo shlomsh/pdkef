@@ -101,7 +101,8 @@ export default function RedactBox({
   /** RED-11: how many boxes are in this box's find set, `el` included. */
   findSetSize?: number;
   onRemoveFindSet?: () => void;
-  /** RED-24: the page's height in points, for the blur box's on-screen radius. */
+  /** The page's size in points: the blur box's on-screen radius (RED-24) and
+   * every box's arrow-key move (RED-43). Until it is known, arrows do nothing. */
   pageWidthPoints?: number;
   pageHeightPoints?: number;
   /** RED-31: view state only - every box shows what is under it. */

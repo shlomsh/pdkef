@@ -695,7 +695,11 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
-  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur' || el.type === 'blurStroke') || brushKind !== null);
+  // Every box and stroke needs its page's size in points: a blur draws its
+  // radius from it, a stroke its round brush, and an arrow key moves a box by
+  // points (RED-43). Reading it only for blur left whiteout and blackout boxes
+  // deaf to the arrow keys (RED-52). A document with no boxes reads nothing.
+  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => !isDeleteElement(el)) || brushKind !== null);
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
