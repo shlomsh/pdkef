@@ -124,6 +124,11 @@ jobs:
     - name: Validate agent guidance budget
       run: npm run check:guidance
 
+    # SEO-37: English copy must not use the section 7 never-say phrases or the
+    # intensifiers SEO-36 removed (scripts/check-never-say.mjs holds the list).
+    - name: Validate never-say copy
+      run: npm run check:never-say
+
     # ARCH-28: unit tests are selected by Vitest's own module graph
     # (`vitest related` against the changed files, plus a small widen-rule
     # table for what that graph can't see - scripts/unit-scope.mjs), not by

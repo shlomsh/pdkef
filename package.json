@@ -46,6 +46,7 @@
     "gate:ios": "node scripts/ios-gate/run.mjs",
     "check:backlog": "node scripts/generate-backlog.mjs --check",
     "check:guidance": "node scripts/check-guidance-budget.js",
+    "check:never-say": "node scripts/check-never-say.mjs",
     "backlog:serve": "node scripts/serve-backlog-board.mjs",
     "seo:crawl-staleness": "node scripts/seo-crawl-staleness.mjs"
   },

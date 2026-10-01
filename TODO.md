@@ -30,7 +30,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Search and languages
 
-- [SEO-37](backlog/tasks/SEO-37.md) P2 · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI
 - [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
 
 ### Polish

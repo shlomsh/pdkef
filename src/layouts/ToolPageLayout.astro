@@ -197,17 +197,19 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         build-time HTML - putting the invitation inside it would mean it
         never renders for a crawler and flashes in after hydration for a
         visitor. This is the nearest server-rendered spot, directly above
-        where the dropzone appears. Kept to Sign and Redact only, same as
-        the live status line below. Hangs off the trailing edge of the tool
+        where the dropzone appears. Shown on every tool (SEO-37): the service
+        worker precaches the whole build on install, pdfjs worker and wasm
+        included, and every tool runs on pdf-lib or pdfjs from those bundles,
+        so once the install has finished a visited tool opens and exports
+        offline (Merge and Sign are proved in e2e/offline). Only the live
+        status line below is Sign/Redact-only. Hangs off the trailing edge of the tool
         card below it (left in RTL, right in LTR), so it copies <main>'s own
         max-width and padding rather than the hero's, and stays a bare <p>,
         not a wrapped one: e2e/tool-layout.spec.js's `body > div > div`
         locator must keep resolving to the app bar only. */}
-    {(tool.slug === 'sign' || tool.slug === 'redact') && (
-      <p data-tool-restore-followup class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
-        {messages.airplaneModeNotice}
-      </p>
-    )}
+    <p data-tool-restore-followup class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
+      {messages.airplaneModeNotice}
+    </p>
 
     {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
         result actually lands, not buried in the FAQ below the tool. Kept to
