@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-52](backlog/tasks/RED-52.md) P2 · Arrow keys move a whiteout or blackout box on a document with no blur (in progress)
-
 ### Robustness and debt
 
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)

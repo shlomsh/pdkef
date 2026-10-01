@@ -21,7 +21,7 @@ import BrushControls, { brushStyleOf, resolveBrush, type BrushSettings } from '.
 import { useEyedropper, sampleRingColor } from './pageSampling.ts';
 import { autoColorChanges, type PercentBox } from './pageColor.ts';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
-import usePageSizesPt from './usePageSizesPt.ts';
+import usePageSizesPt, { needsPageSizes } from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
 import DeleteMarquee from './DeleteMarquee.tsx';
@@ -695,11 +695,9 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
-  // Every box and stroke needs its page's size in points: a blur draws its
-  // radius from it, a stroke its round brush, and an arrow key moves a box by
-  // points (RED-43). Reading it only for blur left whiteout and blackout boxes
-  // deaf to the arrow keys (RED-52). A document with no boxes reads nothing.
-  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => !isDeleteElement(el)) || brushKind !== null);
+  // RED-52: reading sizes only for blur left whiteout and blackout boxes deaf
+  // to the arrow keys; needsPageSizes names everything that needs them.
+  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, needsPageSizes(elements, brushKind !== null));
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
