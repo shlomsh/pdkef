@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deriveScope, ownerOf, toolNameOf, siteE2eOwnPaths, CORE_PROJECTS, ORACLE_FILES, wide, matchesFontsGlob, narrowByReachability, makeToolOf } from './affected-scope.mjs';
+import { buildReachGraph } from './import-graph.mjs';
 
 /* scripts/affected-scope.mjs's deriveScope() is the pure mapping this project
    set relies on: given changed files, the projects `nx` says are affected,
@@ -674,7 +675,7 @@ const IMPORTS = {
   'src/pages/sign.astro': ['src/tools/sign/PdfSignTool.tsx', 'src/layouts/ToolLayout.astro'],
   'src/pages/redact.astro': ['src/tools/redact/PdfRedactTool.tsx', 'src/layouts/ToolLayout.astro'],
   'src/pages/merge.astro': ['src/tools/merge/PdfMergeTool.tsx', 'src/layouts/ToolLayout.astro'],
-  'src/pages/index.astro': ['src/lib/homeOnly.ts', 'src/lib/shared.ts'],
+  'src/pages/index.astro': ['src/lib/homeOnly.ts'],
   'src/lib/neverImported.ts': [],
   'src/lib/signHelper.test.ts': ['src/lib/signHelper.ts'],
   'src/layouts/Orphan.astro': [],
@@ -713,8 +714,16 @@ describe('narrowByReachability', () => {
     expect(reach(['src/tools/merge/PdfMergeTool.tsx']).tools).toEqual(['merge']);
   });
 
-  it('a file only a non-tool page imports selects no tool: the site-wide specs, which always run, cover it', () => {
-    expect(reach(['src/lib/homeOnly.ts'])).toMatchObject({ tools: [] });
+  it('a file a non-tool page imports goes wide: tool specs also visit that page', () => {
+    expect(reach(['src/lib/homeOnly.ts']).wide).toContain('src/pages/index.astro, which tool specs also visit');
+  });
+
+  it('an e2e/ file ends the walk only under an always-run site-wide spec path, else it goes wide', () => {
+    const graph = { ...graphOf({ 'src/lib/a.ts': [], 'e2e/home/a.spec.js': ['src/lib/a.ts'], 'e2e/fonts/b.spec.js': ['src/lib/a.ts'] }), toolOf };
+    const run = (siteE2ePaths) => narrowByReachability({ changedFiles: ['src/lib/a.ts'], ...graph, siteE2ePaths });
+    expect(run(['e2e/home/', 'e2e/fonts/'])).toMatchObject({ tools: [] });
+    expect(run(['e2e/home/']).wide).toContain('e2e/fonts/b.spec.js');
+    expect(run([]).wide).toContain('a spec the site-wide run does not cover');
   });
 
   it('unit tests carry no e2e consequence, and neither does test support nothing live imports', () => {
@@ -780,10 +789,10 @@ describe('deriveScope: a core-project verdict narrowed by reachability (ARCH-32)
     expect(scope.e2e_paths).toBe('src/tools/merge/e2e/ e2e/home/');
   });
 
-  it('a file only a non-tool page imports runs the site-wide specs alone', () => {
+  it('a file a non-tool page imports goes wide, naming the page', () => {
     const scope = derive(['src/lib/homeOnly.ts']);
-    expect(scope.everything).toBe(false);
-    expect(scope.e2e_paths).toBe('e2e/home/');
+    expect(scope.everything).toBe(true);
+    expect(scope.reason).toContain('reaches src/pages/index.astro, which tool specs also visit');
   });
 
   it('a change under src/editor/text/ still turns the font guards on (the glob decides, not reachability)', () => {
@@ -839,5 +848,20 @@ describe('deriveScope: a core-project verdict narrowed by reachability (ARCH-32)
 
   it('the import scan is part of the oracle: a change to it never narrows itself', () => {
     expect(ORACLE_FILES.has('scripts/import-graph.mjs')).toBe(true);
+  });
+});
+
+describe('narrowByReachability on the real repo graph (ARCH-32 review fix)', () => {
+  const real = buildReachGraph(process.cwd());
+  const realReach = (f) => narrowByReachability({ changedFiles: [f], knownFiles: real.knownFiles, reverseEdges: real.reverseEdges, toolOf: makeToolOf(real.routeMap), siteE2ePaths: ['e2e/home/'] });
+
+  it('site-lib files and the localized tool page go wide: tool specs start from the home page and /he/merge/', () => {
+    for (const f of ['src/site-lib/RecentFiles.tsx', 'src/site-lib/sampleDocument.ts', 'src/pages/[locale]/[tool].astro']) {
+      expect(realReach(f).wide, f).toMatch(/which tool specs also visit|a spec the site-wide run does not cover/);
+    }
+  });
+
+  it('a redact-only editor adapter still narrows to redact', () => {
+    expect(realReach('src/editor/adapters/pdf/deleteObjects.js').tools).toEqual(['redact']);
   });
 });
