@@ -77,6 +77,8 @@ There is no PWA build plugin (`vite-plugin-pwa` and `@vite-pwa/astro` were both 
   - **A 404 on the manifest makes the worker uninstall itself** (`OrphanedWorkerError` → `removeSelf`), and cache deletion is scoped to the `pdkef-` prefix. A worker installed by `npm run preview` is scoped to the *origin*, which on localhost is just a port, so it kept serving that build's assets cache-first to `astro dev` afterwards. The page then got modules from two different Vite optimize passes and hydration died on `Cannot read properties of undefined (reading '__H')` in `preact_hooks` - with nothing in the console naming the cache. The tell is two different `?v=` hashes on `preact.js` and `preact_hooks.js` in the Network tab; Vite stamps one `browserHash` per optimize pass, so two means two generations are live at once. Prefer different ports for `dev` and `preview` regardless.
 - Registration lives in `BaseLayout.astro` as a non-`is:inline` script (see the CSP section above for why it must not be `is:inline`). It registers only when `import.meta.env.PROD`; in dev it does the opposite and actively unregisters any worker plus deletes any `pdkef-` cache, so a leftover preview worker heals on the next reload instead of poisoning the dev server indefinitely.
 
+`/api/report` (DEBT-17) is a same-origin beacon POST, so `connect-src 'self'` is untouched. The service worker must not intercept it: `public/sw.js`'s fetch handler only handles GET plus the share-target POST (every other method returns before `respondWith`), so the beacon always goes straight to the network. Keep it that way.
+
 Icons referenced in the manifest are generated and live in `public/icons/` (`icon-192`, `icon-512`, `icon-512-maskable`, `apple-touch-icon`, plus `favicon-16`/`favicon-32`).
 
 
