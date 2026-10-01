@@ -9,7 +9,7 @@
  * injected dependencies so it runs against fakes in tests. No string lives
  * here: the line's copy is static markup (`AppUpdateLine.astro`).
  */
-import { flushBeforeUpdateReload, isUpdateHeld, onUpdateHoldChange } from '../lib/appUpdate/updateHolds';
+import { flushBeforeUpdateReload, isUpdateHeld, onUpdateHoldChange } from '../lib/appUpdate/updateHolds.ts';
 
 export const CHANNEL_NAME = 'pdkef:app-update';
 export const CHECK_AFTER_MS = 30 * 60 * 1000;
@@ -87,7 +87,10 @@ export interface AppUpdateDeps {
 
 export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   const { serviceWorker, line, document: doc } = deps;
-  const hadController = !!serviceWorker.controller;
+  // Whether this tab was already controlled before the next controllerchange.
+  // Not a snapshot at load: a first visit is uncontrolled until the worker
+  // claims it, and that tab must still reload on the update after that.
+  let controlled = !!serviceWorker.controller;
   const id = deps.randomId();
   const channel = deps.createChannel(CHANNEL_NAME);
   const button = line?.querySelector<HTMLButtonElement>('[data-app-update-reload]') ?? null;
@@ -192,7 +195,13 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }
 
   serviceWorker.addEventListener('controllerchange', async () => {
-    if (!hadController || reloading) return;
+    // The first claim (no controller -> controller) is a first install, not
+    // an update: nothing in this tab is running against a deleted cache.
+    if (!controlled) {
+      controlled = !!serviceWorker.controller;
+      return;
+    }
+    if (reloading) return;
     reloading = true;
     await waitForRelease();
     await flushBeforeUpdateReload();

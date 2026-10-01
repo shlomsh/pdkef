@@ -201,6 +201,19 @@ describe('startAppUpdates', () => {
     expect(tab.reload).not.toHaveBeenCalled();
   });
 
+  it('a tab first controlled by the install claim still reloads on the next update', async () => {
+    const tab = makeTab(new Bus(), { controller: false });
+    await tab.start();
+    tab.sw.controller = {};
+    tab.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(tab.reload).not.toHaveBeenCalled();
+    tab.sw.controller = {};
+    tab.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(tab.reload).toHaveBeenCalledTimes(1);
+  });
+
   it('reloads once even if controllerchange fires twice', async () => {
     const tab = makeTab(new Bus());
     await tab.start();
