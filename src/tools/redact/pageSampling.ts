@@ -1,4 +1,5 @@
-import { useEffect } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
+import { createLoupe } from './eyedropperLoupe.ts';
 import { boxPixelRect, medianColor, ringStrips, type PercentBox } from './pageColor.ts';
 
 const toHex = (n: number) => n.toString(16).padStart(2, '0');
@@ -66,40 +67,108 @@ export function sampleRingColor(canvas: HTMLCanvasElement | null | undefined, bo
   }
 }
 
-/** While `active`, the next press on a page picks that pixel's colour instead
- * of painting: it is swallowed in the capture phase so no stroke starts. Esc
- * cancels. */
+/** While `active`, a magnifier loupe follows the pointer and the next press picks
+ * the centre pixel's colour instead of painting: the press is swallowed in the
+ * capture phase so no stroke starts. Mouse picks on press. Touch is press, slide,
+ * lift: the loupe rides above the finger and the lift picks; a second finger or a
+ * cancel hides it and stays armed. Esc cancels. Handlers write the DOM only (the
+ * loupe's transform), never Preact state, per the gesture golden rule. */
 export function useEyedropper(active: boolean, onPick: (color: string) => void, onDone: () => void) {
+  // Callers pass new closures each render; depending on them would re-run the effect
+  // mid-touch, destroy the loupe and drop the tracked gesture. Read the latest instead.
+  const pickRef = useRef(onPick);
+  const doneRef = useRef(onDone);
+  pickRef.current = onPick;
+  doneRef.current = onDone;
   useEffect(() => {
     if (!active) return undefined;
-    const point = (e: MouseEvent | TouchEvent) => ('touches' in e && e.touches?.length ? e.touches[0] : (e as MouseEvent));
-    const onPress = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Element | null;
+    const loupe = createLoupe(document.fullscreenElement ?? document.body);
+    document.documentElement.setAttribute('data-redact-eyedropping', '');
+    const cardOf = (target: EventTarget | null) => (target as Element | null)?.closest?.('[data-editor-page-card]') ?? null;
+    const canvasOf = (card: Element | null) => card?.querySelector<HTMLCanvasElement>('canvas') ?? null;
+    let tracked: { id: number; canvas: HTMLCanvasElement | null; x: number; y: number } | null = null;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const canvas = canvasOf(cardOf(e.target));
+      if (canvas) loupe.update(canvas, e.clientX, e.clientY, false);
+      else loupe.hide();
+    };
+    const onMouseDown = (e: MouseEvent) => {
       // The eyedropper button and the rest of the chrome keep working.
-      const card = target?.closest?.('[data-editor-page-card]');
+      const card = cardOf(e.target);
       if (!card) return;
       e.preventDefault();
       e.stopPropagation();
-      const canvas = card.querySelector<HTMLCanvasElement>('canvas');
-      const p = point(e);
-      const color = canvas ? sampleCanvasColor(canvas, p.clientX, p.clientY) : null;
-      if (e.type === 'mousedown') swallowNextClick();
-      if (color) onPick(color);
-      onDone();
+      const canvas = canvasOf(card);
+      const color = canvas ? sampleCanvasColor(canvas, e.clientX, e.clientY) : null;
+      swallowNextClick();
+      if (color) pickRef.current(color);
+      doneRef.current();
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (tracked) {
+        // a second finger is a pinch or a stray touch, not a pick
+        tracked = null;
+        loupe.hide();
+        return;
+      }
+      const card = cardOf(e.target);
+      if (!card) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const canvas = canvasOf(card);
+      tracked = { id: t.identifier, canvas, x: t.clientX, y: t.clientY };
+      if (canvas) loupe.update(canvas, t.clientX, t.clientY, true);
+    };
+    const touchOf = (e: TouchEvent) => (tracked ? Array.from(e.changedTouches).find((t) => t.identifier === tracked!.id) : undefined);
+    const onTouchMove = (e: TouchEvent) => {
+      const t = touchOf(e);
+      if (!t || !tracked) return;
+      e.preventDefault();
+      tracked.x = t.clientX;
+      tracked.y = t.clientY;
+      if (tracked.canvas) loupe.update(tracked.canvas, t.clientX, t.clientY, true);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const t = touchOf(e);
+      if (!t || !tracked) return;
+      e.preventDefault();
+      const { canvas, x, y } = tracked;
+      tracked = null;
+      loupe.hide();
+      const color = canvas ? sampleCanvasColor(canvas, x, y) : null;
+      if (color) pickRef.current(color);
+      doneRef.current();
+    };
+    const onTouchCancel = () => {
+      tracked = null;
+      loupe.hide();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.stopPropagation();
-      onDone();
+      doneRef.current();
     };
-    window.addEventListener('mousedown', onPress, true);
-    window.addEventListener('touchstart', onPress, { capture: true, passive: false });
+    const nonPassive = { capture: true, passive: false } as const;
+    window.addEventListener('mousemove', onMouseMove, { capture: true, passive: true });
+    window.addEventListener('mousedown', onMouseDown, true);
+    window.addEventListener('touchstart', onTouchStart, nonPassive);
+    window.addEventListener('touchmove', onTouchMove, nonPassive);
+    window.addEventListener('touchend', onTouchEnd, nonPassive);
+    window.addEventListener('touchcancel', onTouchCancel, true);
     window.addEventListener('keydown', onKey, true);
     return () => {
-      window.removeEventListener('mousedown', onPress, true);
-      window.removeEventListener('touchstart', onPress, true);
+      window.removeEventListener('mousemove', onMouseMove, true);
+      window.removeEventListener('mousedown', onMouseDown, true);
+      window.removeEventListener('touchstart', onTouchStart, true);
+      window.removeEventListener('touchmove', onTouchMove, true);
+      window.removeEventListener('touchend', onTouchEnd, true);
+      window.removeEventListener('touchcancel', onTouchCancel, true);
       window.removeEventListener('keydown', onKey, true);
+      loupe.destroy();
+      document.documentElement.removeAttribute('data-redact-eyedropping');
     };
-  }, [active, onPick, onDone]);
+  }, [active]);
 }
-
