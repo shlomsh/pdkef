@@ -166,6 +166,13 @@ which unit test files run; see the section above for that.
 
 ## `npm run check:push` (`scripts/check-push.mjs`, ARCH-29)
 
+**Two commands, split by who runs them.** `check:push` is the lead's pre-push gate and has no
+Playwright: guards, unit, typecheck, build and the dist guards, with independent steps run
+concurrently (guards + unit + typecheck + build in one stage, dist guards after the build; output
+shown only for a failure, the first failure kills the stage). `npm run check:e2e` is the build plus
+the Playwright projects the diff selects, chromium only (webkit is CI's); `-- --perf` adds the
+wall-clock perf project. Subagents run neither, only `check:fast`. CI still runs everything.
+
 The local pre-push command: computes the same scope as CI, once, then runs only the steps that scope
 needs, stopping at the first failure. It never re-derives the scope itself - it calls
 `affected-scope.mjs`'s own exported `resolveScope`/`runE2eProduct`/`runE2ePerf`/`runFonts`/
