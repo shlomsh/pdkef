@@ -24,7 +24,9 @@ const ELEMENT_TYPES: readonly ElementType[] = [
  * registry (that unification is SIGN-14 scope), so it needs its own shape
  * guard here or every real Redact draft carrying one would be quarantined as
  * invalid. `start`/`end` are the byte span in the page's merged content
- * stream, required because both the download and the on-screen preview
+ * stream, or in the Form XObject stream named by `formPath` (the forms from
+ * page to the stream holding the span; absent in older drafts, meaning the
+ * page's own content), required because both the download and the on-screen preview
  * (RED-13) key off them - a restored draft missing them would otherwise pass
  * validation and then break the save.
  */
@@ -38,6 +40,7 @@ export interface DeleteElement extends HistoryElement {
   height: number;
   start: number;
   end: number;
+  formPath?: string[];
   preview?: string;
   [field: string]: unknown;
 }
@@ -48,7 +51,9 @@ function isDeleteElement(value: unknown): value is DeleteElement {
   return isRecord(value) && value.type === 'delete' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasString(value, 'sourceObjectId') && hasString(value, 'kind')
     && hasNumber(value, 'left') && hasNumber(value, 'top') && hasNumber(value, 'width') && hasNumber(value, 'height')
-    && hasNumber(value, 'start') && hasNumber(value, 'end');
+    && hasNumber(value, 'start') && hasNumber(value, 'end')
+    && (value.formPath === undefined
+      || (Array.isArray(value.formPath) && value.formPath.every((tag) => typeof tag === 'string')));
 }
 
 export function isEditorElement(value: unknown): value is EditorElement {

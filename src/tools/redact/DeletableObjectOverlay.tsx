@@ -10,6 +10,8 @@ export interface DeletablePdfObject {
   rect: { left: number; top: number; width: number; height: number };
   start: number;
   end: number;
+  /** RED-29: the Form XObjects from page to the stream holding the span; absent or empty for the page's own content. */
+  formPath?: string[];
 }
 
 /**

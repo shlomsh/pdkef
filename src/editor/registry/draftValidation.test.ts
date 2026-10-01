@@ -68,6 +68,20 @@ describe('validateDraftElements', () => {
     expect(droppedCount).toBe(0);
   });
 
+  it('accepts a delete element with no formPath (older drafts) or a string[] formPath', () => {
+    const withPath = { ...goodDeleteElement, id: 'delete-2', formPath: ['7 0 R', '9 0 R'] };
+    expect(validateDraftElements([goodDeleteElement, withPath]).valid).toEqual([goodDeleteElement, withPath]);
+    expect(validateDraftElements([{ ...goodDeleteElement, formPath: [] }]).droppedCount).toBe(0);
+  });
+
+  it('drops a delete element whose formPath is not an array of strings', () => {
+    for (const formPath of ['7 0 R', [7], [null], {}, null]) {
+      const { valid, droppedCount } = validateDraftElements([{ ...goodDeleteElement, formPath }]);
+      expect(valid).toEqual([]);
+      expect(droppedCount).toBe(1);
+    }
+  });
+
   it('drops a delete element missing its byte span (start/end)', () => {
     const { start, end, ...withoutSpan } = goodDeleteElement;
     const { valid, droppedCount } = validateDraftElements([withoutSpan]);

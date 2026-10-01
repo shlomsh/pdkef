@@ -96,6 +96,7 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
         height: object.rect.height,
         start: object.start,
         end: object.end,
+        formPath: object.formPath ?? [],
       };
     });
     if (newLifts.length) setLifts((prev) => [...prev, ...newLifts]);
