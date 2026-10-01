@@ -5,7 +5,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1) var(--space-3);
+  gap: var(--space-1) var(--space-2);
   padding: var(--space-1);
   box-sizing: border-box;
   border-radius: var(--radius);
@@ -23,11 +23,14 @@
   z-index: 10;
 }
 
+/* No gap inside a group: every control is already a 44px box, so its icon
+   sits well clear of the next one. Measured in WebKit (2026-10-01): the
+   whiteout pill with Every page is one 54px row at 375, 390 and 402px; blur's
+   labelled slider takes a row of its own at those widths. */
 .group {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-1);
 }
 
 .button,
@@ -61,13 +64,13 @@
 
 .buttonWide {
   width: auto;
-  padding-inline: 10px;
+  padding-inline: 7px;
   white-space: nowrap;
 }
 
-.buttonWide svg { margin-inline-end: 6px; }
+.buttonWide svg { margin-inline-end: 4px; }
 
-.label { font-size: .78rem; font-weight: 600; white-space: nowrap; }
+.label { font-size: .75rem; font-weight: 600; white-space: nowrap; }
 
 .danger:hover {
   background: var(--color-danger-soft);
@@ -77,13 +80,13 @@
 .separator {
   width: 1px;
   height: 24px;
+  margin-inline: 5px;
   background: var(--color-border);
   flex: none;
 }
 
 .auto {
   height: 44px;
-  padding-inline: 2px;
 }
 
 .autoFace {
@@ -91,7 +94,7 @@
   align-items: center;
   justify-content: center;
   height: 30px;
-  padding-inline: 12px;
+  padding-inline: 8px;
   box-sizing: border-box;
   border: 1px solid var(--color-border);
   border-radius: 999px;
