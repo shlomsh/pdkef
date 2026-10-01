@@ -10,7 +10,9 @@ import { startTwoBuildServer } from './twoBuildServer.js';
  * worker's build id and tagging every page with the build that rendered it.
  * What this proves that no unit test can: a real waiting worker, a real
  * SKIP_WAITING, a real controllerchange reload in every tab, the old cache
- * gone, and a draft that was still inside its debounce window surviving.
+ * gone, and a draft that was still inside its debounce window surviving. It
+ * does not single out the reload flush (the reload lands after the debounce,
+ * and pagehide flushes too); the draft hooks' unit tests pin that it awaits.
  * Chromium only (a live service worker, and the line is not engine-specific).
  */
 
