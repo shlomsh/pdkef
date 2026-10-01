@@ -1,7 +1,7 @@
 ---
 id: "RED-47"
 title: "Desktop review: a lighter blur range, an Every page button that explains itself, a swatch that looks clickable"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
@@ -19,3 +19,8 @@ depends_on: []
 ## Acceptance
 - Slider min 0.05, max 0.55, default tick 0.3; new boxes start at 0.3 unless the document or app-wide style says otherwise.
 - The repeat button and the linked trigger show their word; the swatch shows the caret.
+
+## Result
+
+- `blurStrength.ts`: 0.05 to 0.55, default 0.3; legacy names unchanged; the slider's default tick stays mid-track. (960513ee)
+- `ElementToolbar.tsx`: the repeat button reads "Every page", the linked trigger "On 12 pages". `ColorPickerMenu.tsx`: the swatch has a ring in the toolbar's ink and a caret, in Sign and Redact. (fa1ede90)
