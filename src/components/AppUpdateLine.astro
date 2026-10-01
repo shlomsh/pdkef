@@ -1,0 +1,88 @@
+---
+// MEM-10: the quiet "a new version is ready" line, in the markup of every page
+// and hidden until the coordinator in src/site-lib/appUpdate.ts shows it. Fixed
+// at the top so it never takes layout space (no CLS, nothing inserted into the
+// home first screen) and never a modal. Strings live here, not in the script.
+import { getAppUpdateMessages } from '../i18n/appUpdateMessages';
+
+interface Props {
+  lang?: string;
+}
+const { lang = 'en' } = Astro.props;
+const messages = getAppUpdateMessages(lang);
+---
+
+<p class="app-update" data-app-update data-state="ready" role="status" hidden>
+  <span class="app-update-ready">{messages.ready}<span aria-hidden="true"> · </span><button type="button" data-app-update-reload>{messages.reload}</button></span>
+  <span class="app-update-waiting">{messages.waiting}</span>
+</p>
+
+<style>
+  .app-update {
+    position: fixed;
+    inset-block-start: max(8px, env(safe-area-inset-top));
+    inset-inline: 0;
+    margin-inline: auto;
+    inline-size: max-content;
+    max-inline-size: calc(100vw - 32px);
+    z-index: 80;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    text-align: center;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+  }
+  .app-update[hidden] {
+    display: none;
+  }
+  .app-update[data-state='ready'] .app-update-waiting,
+  .app-update[data-state='waiting'] .app-update-ready {
+    display: none;
+  }
+  .app-update-ready {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 0.3rem;
+  }
+  .app-update button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 28px;
+    padding: 0.1rem 0.5rem;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text);
+    background: none;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .app-update button::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 50%;
+    block-size: 44px;
+    transform: translateY(-50%);
+  }
+  .app-update button:hover {
+    background: var(--color-primary-soft);
+    border-color: var(--color-primary);
+  }
+  .app-update button:focus-visible {
+    outline-offset: 0;
+    border-color: var(--color-primary);
+  }
+  .app-update button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+</style>

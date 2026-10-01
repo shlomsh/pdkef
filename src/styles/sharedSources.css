@@ -19,4 +19,5 @@
    and names the page and the class. */
 @source "../layouts/BaseLayout.astro";
 @source "../components/Footer.astro";
+@source "../components/AppUpdateLine.astro";
 @source "../i18n";

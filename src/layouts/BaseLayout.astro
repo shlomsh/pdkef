@@ -2,6 +2,7 @@
 import { getImage } from 'astro:assets';
 import SpeedInsights from '@vercel/speed-insights/astro';
 import OrganizationSchema from '../components/OrganizationSchema.astro';
+import AppUpdateLine from '../components/AppUpdateLine.astro';
 import ogImageSrc from '../assets/og-image.jpg';
 
 interface Props {
@@ -85,6 +86,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
   </head>
   <body>
     <slot />
+    <AppUpdateLine lang={lang} />
     {import.meta.env.PROD && <SpeedInsights />}
     <script>
       import { inject } from '@vercel/analytics';
@@ -111,9 +113,23 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       // cache-first alongside the dev server's own — the page ends up with
       // modules from two Vite optimize passes and hydration dies on an undefined
       // internal. Dev actively uninstalls it instead of leaving it to rot.
+      import { startAppUpdates } from '../site-lib/appUpdate.ts';
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
-          window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+          // MEM-10: registration plus the update line. The line only ever
+          // shows for an update (a waiting worker beside a controlling one).
+          window.addEventListener('load', () => startAppUpdates({
+            serviceWorker: navigator.serviceWorker,
+            line: document.querySelector('[data-app-update]'),
+            createChannel: (name) => ('BroadcastChannel' in window ? new BroadcastChannel(name) : null),
+            reload: () => location.reload(),
+            document,
+            setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+            clearTimeout: (id) => window.clearTimeout(id as number),
+            setInterval: (fn, ms) => window.setInterval(fn, ms),
+            now: () => Date.now(),
+            randomId: () => crypto.randomUUID(),
+          }));
         } else {
           navigator.serviceWorker.getRegistrations()
             .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
