@@ -98,6 +98,25 @@ describe('flattenPdf keep-text', () => {
     expect(error.message).toContain('1 of 2');
   });
 
+  it.each([
+    ['an unknown /FT', { FT: 'Zzz' }, '1 of 1'],
+    // pdf-lib itself throws while regenerating; flattenDoc wraps that, still whole-document.
+    ['no /FT at all', {}, 'Expected instance of PDFName'],
+  ])('refuses the whole document for a widget with no /AP that regeneration cannot repair (%s)', async (_label, extra, message) => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([300, 300]);
+    const { context } = doc;
+    const widget = context.register(context.obj({
+      Type: 'Annot', Subtype: 'Widget', T: PDFString.of('odd'), Rect: [10, 10, 110, 60], F: 4, ...extra,
+    }));
+    page.node.set(PDFName.of('Annots'), context.obj([widget]));
+    doc.catalog.set(PDFName.of('AcroForm'), context.obj({ Fields: [widget] }));
+
+    const error = await flattenPdf(await doc.save()).catch((e) => e);
+    expect(error).toBeInstanceOf(FormFlattenError);
+    expect(error.message).toContain(message);
+  });
+
   it('regenerates a missing appearance for a text field that has a value, then draws it', async () => {
     const doc = await PDFDocument.create();
     const page = doc.addPage([300, 300]);

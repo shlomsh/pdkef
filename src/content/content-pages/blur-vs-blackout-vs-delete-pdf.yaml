@@ -254,6 +254,8 @@ faq:
       Flattening renders a page and its Whiteout, Blackout or Blur marks into one page image. The
       marks cannot be moved in the downloaded copy, and the page text is no longer selectable or
       searchable. PDkef does this automatically when you download a page carrying those marks.
+      The word has a gentler meaning in Sign, where a filled-in form is flattened on download: the
+      answers become part of the page and the text stays selectable.
   - question: 'Does Delete flatten the PDF page?'
     answer: >-
       No. A page with Delete edits only is not flattened. The selected element is removed and the
