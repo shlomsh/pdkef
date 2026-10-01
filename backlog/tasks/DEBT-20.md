@@ -254,3 +254,24 @@ performance; justify it with the 1,250 ms.
 ## 2026-10-01 board cleanup
 
 - Stays in_progress. Phase 1 shipped in 643fc21; left: the PageSpeed TBT re-run and the phase 2 trace.
+
+## 2026-10-01 Phase 2 trace: the CSS is not the cost (lab result, PageSpeed still to confirm)
+
+Headless Chromium (Playwright, CDP `Tracing`), production build of `main` + `npm run preview`,
+`/redact/` at 1350x940, trace started before navigation and held 4s after `load`. Hydration happened
+(449 DOM elements). Style and layout events summed from the trace:
+
+| CPU throttle | UpdateLayoutTree | Layout | Style recalcs / layouts |
+| --- | ---: | ---: | --- |
+| 1x | 8 ms | 7 ms | 6 / 2 (one full 411-element recalc of 7.3 ms, one full 495-object layout of 7.4 ms) |
+| 4x | 15 ms | 58 ms | all recalcs under 8 ms each |
+
+No long animation frames or long tasks at 1x. Even at 4x, style plus layout is under 75 ms against
+Lighthouse's 995 ms, so DOM size, the 104 KB of inline CSS and the 618 rules do not account for it, and
+there is no forced synchronous layout in the hydration path. The 995 ms is therefore most likely an
+artefact of how Lighthouse attributes time under its tracing and throttling, not a cost a visitor pays.
+Nothing in CSS or DOM should change on the strength of it.
+
+Not yet done: a trace from the PageSpeed machine itself. The Phase 1 TBT re-run on `/redact/` desktop
+settles whether the 1,250 ms was mostly pdf-lib (gone now) or something else. If TBT lands low, close
+Phase 2 as "not this". Scripts: the throwaway harness was kept in the session scratchpad only.
