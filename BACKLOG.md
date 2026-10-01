@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 51 live: 4 up next, 19 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 3 up next, 19 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -22,7 +22,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too | In progress |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
 
 ### Then, in order
@@ -154,7 +153,7 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 9 done, 0 retired
-- Sign: finish fill mode: 0 done, 1 retired
+- Sign: finish fill mode: 1 done, 1 retired
 - Form detector accuracy: 4 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 3 done, 0 retired
