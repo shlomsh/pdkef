@@ -10,18 +10,15 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too
 - [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
-- [SNG-17](backlog/tasks/SNG-17.md) P1 · Fill mode keeps the toolbar in reach under iOS's native zoom (in progress)
 
 ### Form detector accuracy
 
-- [FORM-18](backlog/tasks/FORM-18.md) P1 · A comb drawn as separate squares is a comb, not a row of checkboxes
 - [FORM-25](backlog/tasks/FORM-25.md) P2 · Detection's contract is type-checked, not only documented
 
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
 - [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
-- [DEBT-20](backlog/tasks/DEBT-20.md) P2 · Every tool page ships the whole of pdf-lib before anyone opens a file (in progress)
 
 ### Search and languages
 
@@ -59,7 +56,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
 - [MERGE-18](backlog/tasks/MERGE-18.md) · Decide route A and the Merge bookmarks switch
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
-- [SNG-17](backlog/tasks/SNG-17.md) · A check on your iPhone
 - [QUAL-14](backlog/tasks/QUAL-14.md) · The Hebrew wording
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports

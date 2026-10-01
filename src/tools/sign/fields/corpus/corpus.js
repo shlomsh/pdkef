@@ -228,6 +228,30 @@ const PRINTED = [
     expect: none,
   },
   {
+    name: 'a run of separate painted squares on one baseline',
+    why: 'FORM-18: SA100 paints each amount-box cell as its own square with a gap between, so there '
+      + 'are no shared walls. Equal cells on one baseline at a regular pitch are a comb whether or '
+      + 'not they touch, and none of its squares is also a checkbox',
+    doc: {
+      ink: Array.from({ length: 8 }, (_, i) => (
+        { ink: 'paintedRect', x: 40 + i * 15, y: 200, width: 12, height: 12 }
+      )),
+    },
+    expect: { ...none, combs: 1 },
+    comb: { cells: 8, boxed: true },
+  },
+  {
+    name: 'a column of the same separate painted squares',
+    why: 'FORM-18: the same squares stacked on one x are tick boxes, not a comb - a real checkbox '
+      + 'stands alone or in a column, and a run needs a shared baseline',
+    doc: {
+      ink: Array.from({ length: 8 }, (_, i) => (
+        { ink: 'paintedRect', x: 40, y: 100 + i * 20, width: 12, height: 12 }
+      )),
+    },
+    expect: { ...none, checkboxes: 8 },
+  },
+  {
     name: 'a ruled row of three cells',
     why: 'a form row: two rules and four walls, so three closed cells',
     doc: { ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }] },

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 11 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 8 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -30,7 +30,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | --- | --- | --- | --- |
 | SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too |  |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
-| SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom | In progress. Needs Shlomi: A check on your iPhone |
 
 ### Then, in order
 
@@ -55,7 +54,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| FORM-18 | P1 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |  |
 | FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |  |
 
 ### Then, in order
@@ -89,7 +87,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | Needs Shlomi: The telemetry governance call |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |  |
-| DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file | In progress |
 
 ### Then, in order
 
@@ -183,9 +180,9 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 8 done, 0 retired
-- Sign: finish fill mode: 0 done, 0 retired
-- Form detector accuracy: 0 done, 0 retired
-- Robustness and debt: 2 done, 0 retired
+- Sign: finish fill mode: 0 done, 1 retired
+- Form detector accuracy: 1 done, 0 retired
+- Robustness and debt: 3 done, 0 retired
 - Search and languages: 0 done, 0 retired
 - Polish: 1 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
