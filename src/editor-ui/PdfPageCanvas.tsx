@@ -3,6 +3,7 @@ import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from 'pdfjs-dist';
 import type { PageGeometry } from '../editor/geometry/coords.ts';
 import { getPdfRenderContext } from '../lib/pdfRender.js';
 import workspaceStyles from './Workspace.module.css';
+import { reportError } from '../lib/errorReport.ts';
 
 // Dedicated canvas rendering component for clean lifecycles and race-free layout paints
 export default function PdfPageCanvas({
@@ -74,6 +75,7 @@ export default function PdfPageCanvas({
         // Cancellation is the normal teardown path when a document/page is
         // replaced or this canvas unmounts; only report real render failures.
         if (active && (!(err instanceof Error) || err.name !== 'RenderingCancelledException')) {
+          reportError('pdf_render', err);
           console.error(`Error rendering page ${pageNum}:`, err);
         }
       }

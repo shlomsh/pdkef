@@ -13,6 +13,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { formatFileSize } from '../../lib/format.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 let nextId = 0;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
@@ -166,6 +167,7 @@ export default function PdfImageToPdfTool() {
       setStatus('done');
       setAnnouncement('Your PDF is ready.');
     } catch (err) {
+      reportError('pdf_tool_run', err);
       console.error(err);
       setStatus('error');
       setAnnouncement('Conversion failed.');

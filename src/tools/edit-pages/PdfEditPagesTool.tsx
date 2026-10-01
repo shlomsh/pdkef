@@ -15,6 +15,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { describeFile } from '../../lib/format.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 interface EditPage {
   pageNumber: number;
@@ -136,9 +137,11 @@ export default function PdfEditPagesTool() {
           ),
         }));
       }).catch((err) => {
+        reportError('pdf_render', err);
         console.error('Thumbnail generation failed:', err);
       });
     } catch (err) {
+      reportError('pdf_tool_run', err);
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
@@ -246,6 +249,7 @@ export default function PdfEditPagesTool() {
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
     } catch (err) {
+      reportError('pdf_tool_run', err);
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to edit PDF.');

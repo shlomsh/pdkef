@@ -3,6 +3,7 @@ import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
 import { dropUnreachable } from './reachability.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
+import { reportError } from '../../../lib/errorReport.ts';
 
 /**
  * Removes chosen drawing operations from a PDF by rewriting the affected page
@@ -631,6 +632,7 @@ export async function listDeletableObjects(file) {
       const { objects } = extractPageObjects(doc.getPage(i), i);
       all.push(...objects);
     } catch (err) {
+      reportError('redact', err);
       console.error(`Could not read deletable objects on page ${i + 1}`, err);
     }
   }

@@ -9,6 +9,8 @@
   "scripts": {
     "postinstall": "patch-package && node scripts/sync-pdfjs-wasm.mjs",
     "dev": "astro dev",
+    "errors:resolve": "node scripts/errors-resolve.mjs",
+    "errors:read": "node scripts/errors-read.mjs",
     "build": "node scripts/generate-font-manifest.mjs --check && node scripts/generate-language-acceptance.mjs --check && astro build && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
