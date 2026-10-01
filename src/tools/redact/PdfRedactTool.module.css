@@ -28,21 +28,14 @@
   }
 }
 
-/* Whiteout's border reads as a true erase at rest (transparent) and only
-   appears on hover/selection - selection wins over hover when both apply,
-   which this rule order encodes (E7.4: state-driven visuals live in CSS,
-   not JS-computed color ternaries). Blackout/blur's border is static and
-   owned by the registry's renderRedactionSurface instead. */
-.redact-box--whiteout {
-  border: 1px dashed transparent;
-}
-
-.redact-box--whiteout.active {
-  border-color: var(--color-muted-light);
-}
-
+/* RED-51: whiteout is correction fluid. No border at rest or on hover: a
+   transparent 1px border used to inset the fill and leave a sliver of the
+   page around it. Selection draws an outline, which takes no space, so the
+   fill always covers the box exactly. Peek's outline below still finds every
+   patch. */
 .redact-box--whiteout.selected {
-  border-color: var(--color-primary);
+  outline: 1px dashed var(--color-primary);
+  outline-offset: -1px;
   box-shadow: 0 0 0 1px var(--color-primary-ring);
 }
 
