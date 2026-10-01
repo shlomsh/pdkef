@@ -6,6 +6,7 @@ import { PDFDocument, PDFName, PDFRef, PDFStream, StandardFonts, decodePDFRawStr
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { deleteObjectsFromPdf, listDeletableObjects } from './deleteObjects.js';
 import { buildFormXObjectPdf } from './formXObjectFixture.test-helper.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 
 const decoder = new TextDecoder();
 const toHex = (text) => [...text].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
@@ -61,7 +62,7 @@ const line = (y, text) => `BT /F1 12 Tf 72 ${y} Td (${text}) Tj ET`;
 
 /** The listed object whose rendered text is `text`. */
 async function objectShowing(bytes, text, pageIndex = 0) {
-  const objects = await listDeletableObjects(bytes);
+  const objects = await withPreviews(bytes, await listDeletableObjects(bytes));
   const found = objects.find((o) => o.pageIndex === pageIndex && o.preview?.includes(text));
   if (found) return found;
   throw new Error(`no deletable object shows ${text}: ${JSON.stringify(objects.map((o) => o.preview))}`);

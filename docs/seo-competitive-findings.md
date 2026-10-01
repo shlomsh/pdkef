@@ -527,6 +527,8 @@ architecture, which means we can evidence them. **A review may lean on a claim o
 | Open source | MIT, auditable, public repository. | The repository and `/licenses/`. | Implying an audit that has not happened. |
 | Works on any device | Mobile-first, installable, offline once provisioned. | Mobile ranks better than desktop in our own data (3.3). | "Works everywhere" without the browser constraints. |
 
+Guarded by `scripts/check-never-say.mjs` (`npm run check:never-say`, part of `check:fast`); the banned list lives there.
+
 Re-checked 2026-09-11: no `src/data/tools.js`, `.astro` or content-page entry uses a "never say" phrase
 about our own product.
 

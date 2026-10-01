@@ -240,6 +240,65 @@ export function findCombRuns(ink) {
   ];
 }
 
+/** Painted cells of one comb are the same size to within this (PDF points). */
+const SQUARE_SIZE_TOLERANCE = 0.5;
+/** Least space between two separately painted cells; touching ones are the wall-based runs' job. */
+const MIN_CELL_GAP = 0.5;
+
+/**
+ * Comb runs drawn as separately painted cells, in PDF user space (FORM-18).
+ *
+ * Some forms (SA100's amount boxes) paint every cell as its own rectangle with a gap between,
+ * so there are no shared walls for `findCombRuns` to seed on. Equal cells on one baseline at a
+ * regular pitch are a comb whether or not they touch, so this reads them the same way. Cells are
+ * grouped by size, baseline and paint, which keeps a differently painted end cell (the unfilled
+ * '£' and pence cells around SA100's filled digit cells) out of the run: only the cells a person
+ * writes in remain. A column of the same squares has no shared baseline and stays checkboxes.
+ */
+export function findSquareCombRuns(ink) {
+  const cells = [];
+  for (const rect of ink.rects) {
+    if (rect.width < MIN_PITCH || rect.width > MAX_PITCH) continue;
+    if (rect.height < CHECKBOX_MIN_SIZE || rect.height > BOXED_COMB_MAX_HEIGHT) continue;
+    const duplicate = cells.some((c) => Math.abs(c.x - rect.x) <= DUPLICATE_TOLERANCE
+      && Math.abs(c.y - rect.y) <= DUPLICATE_TOLERANCE);
+    if (!duplicate) cells.push(rect);
+  }
+
+  const groups = [];
+  for (const cell of cells) {
+    const group = groups.find((g) => Math.abs(g.y - cell.y) <= BASELINE_TOLERANCE
+      && Math.abs(g.width - cell.width) <= SQUARE_SIZE_TOLERANCE
+      && Math.abs(g.height - cell.height) <= SQUARE_SIZE_TOLERANCE
+      && g.filled === cell.filled);
+    if (group) group.cells.push(cell);
+    else groups.push({ y: cell.y, width: cell.width, height: cell.height, filled: cell.filled, cells: [cell] });
+  }
+
+  const found = [];
+  for (const group of groups) {
+    if (group.cells.length < MIN_CELLS) continue;
+    const positions = distinctPositions(group.cells.map((cell) => cell.x));
+    for (const run of runsFromTeeth(positions)) {
+      const count = run.separators.length;
+      if (count < MIN_CELLS || count > MAX_COMB_CELLS) continue;
+      if (run.pitch - group.width < MIN_CELL_GAP) continue;
+      const left = run.separators[0];
+      const right = run.separators[count - 1] + group.width;
+      found.push({
+        left,
+        right,
+        bottom: group.y,
+        top: group.y + group.height,
+        cells: count,
+        pitch: (right - left) / count,
+        boxed: true,
+      });
+    }
+  }
+  return found;
+}
+
 /** Checkbox squares on one page, in PDF user space. */
 export function findCheckboxes(ink) {
   const boxes = [];
@@ -272,7 +331,12 @@ function uniqueCheckboxes(boxes) {
  * @param {number} pageIndex
  */
 export function detectRegions(ink, geometry, pageIndex = 0, checkboxBoxes = findCheckboxes(ink)) {
-  const combs = findCombRuns(ink).map((run) => ({
+  const runs = [...findCombRuns(ink), ...findSquareCombRuns(ink)];
+  const inRun = (box) => runs.some((run) => box.x >= run.left - DUPLICATE_TOLERANCE
+    && box.x + box.width <= run.right + DUPLICATE_TOLERANCE
+    && box.y >= run.bottom - DUPLICATE_TOLERANCE
+    && box.y + box.height <= run.top + DUPLICATE_TOLERANCE);
+  const combs = runs.map((run) => ({
     kind: 'comb',
     pageIndex,
     cells: run.cells,
@@ -283,7 +347,7 @@ export function detectRegions(ink, geometry, pageIndex = 0, checkboxBoxes = find
     }),
   }));
 
-  const checkboxes = uniqueCheckboxes(checkboxBoxes).map((box) => ({
+  const checkboxes = uniqueCheckboxes(checkboxBoxes).filter((box) => !inRun(box)).map((box) => ({
     kind: 'checkbox',
     pageIndex,
     ...toPagePercentBox(geometry, {

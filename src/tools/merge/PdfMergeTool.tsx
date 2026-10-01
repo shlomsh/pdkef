@@ -4,6 +4,7 @@ import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
+import DraftRetentionHint from '../../shell/DraftRetentionHint';
 import {
   insertPages,
   isGrouped,
@@ -1207,6 +1208,7 @@ export default function PdfMergeTool({
       // shell copy, not a change to what Split/ImageToPdf/ToImage show.
       shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
       emptyVariant="band"
+      showCloudDriveHint
       emptyBandHeading={t.emptyHeading}
       emptyBandBody={t.emptyBody}
       checkingDraft={!hasFiles && draftState.isRestoring}
@@ -1501,7 +1503,14 @@ export default function PdfMergeTool({
                       <>
                         {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
                       </>
-                    ) : (draftStatusLabel ?? '\u00a0')}
+                    ) : draftStatusLabel ? (
+                      <>
+                        <span>{draftStatusLabel}</span>
+                        {draftState.draftSaveState !== 'error' && draftState.draftSaveState !== 'conflict' && (
+                          <DraftRetentionHint label={sm.draftRetentionInfo} />
+                        )}
+                      </>
+                    ) : '\u00a0'}
                   </div>
                 )}
 

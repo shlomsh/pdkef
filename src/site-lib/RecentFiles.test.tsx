@@ -2,7 +2,10 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import RecentFiles from './RecentFiles.tsx';
+import RecentFiles, { retentionNotice } from './RecentFiles.tsx';
+import { englishRecentFilesMessages } from '../i18n/toolMessages';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe('RecentFiles', () => {
   let container;
@@ -89,5 +92,45 @@ describe('RecentFiles', () => {
     const bdi = container.querySelector('button bdi');
     expect(bdi).not.toBeNull();
     expect(bdi.textContent).toBe('הרגע');
+  });
+
+  describe('retentionNotice', () => {
+    const now = Date.now();
+
+    it('returns the age-based message when the entry is within the expiry warning window', () => {
+      const file = { cacheId: 'sha256:a', tool: 'sign', fileName: 'a.pdf', savedAt: now - 26 * DAY_MS };
+      const notice = retentionNotice(file, 0, 3, englishRecentFilesMessages, now);
+      expect(notice).toBe('Expires in 2 days');
+    });
+
+    it('returns the rank-based message only when total is 6 and index is the last (5)', () => {
+      const file = { cacheId: 'sha256:b', tool: 'sign', fileName: 'b.pdf', savedAt: now - DAY_MS };
+      expect(retentionNotice(file, 5, 6, englishRecentFilesMessages, now)).toBe('Oldest of 6 saved files');
+      expect(retentionNotice(file, 4, 6, englishRecentFilesMessages, now)).toBe('');
+      expect(retentionNotice(file, 5, 5, englishRecentFilesMessages, now)).toBe('');
+    });
+
+    it('prefers the age-based message when both conditions are true on the same entry', () => {
+      const file = { cacheId: 'sha256:c', tool: 'sign', fileName: 'c.pdf', savedAt: now - 27 * DAY_MS };
+      expect(retentionNotice(file, 5, 6, englishRecentFilesMessages, now)).toBe('Expires in 1 day');
+    });
+
+    it('returns "" when neither condition applies, so the caller falls back to formatSavedAt', () => {
+      const file = { cacheId: 'sha256:d', tool: 'sign', fileName: 'd.pdf', savedAt: now - DAY_MS };
+      expect(retentionNotice(file, 0, 6, englishRecentFilesMessages, now)).toBe('');
+    });
+  });
+
+  it('keeps the same number of .sub elements per tile whether or not a retention notice is shown', () => {
+    const now = Date.now();
+    const soonToExpire = { cacheId: 'sha256:e', tool: 'sign', fileName: 'expiring.pdf', savedAt: now - 26 * DAY_MS };
+    const ordinary = { cacheId: 'sha256:f', tool: 'sign', fileName: 'ordinary.pdf', savedAt: now - DAY_MS };
+    mount([soonToExpire, ordinary]);
+    const buttons = container.querySelectorAll('button');
+    expect(buttons).toHaveLength(2);
+    const subCounts = Array.from(buttons).map((button) => button.querySelectorAll('[class*="sub"]').length);
+    // Both tiles must carry the same sub-line count: the notice replaces text
+    // in the existing slot, it never adds a new element.
+    expect(subCounts[0]).toBe(subCounts[1]);
   });
 });

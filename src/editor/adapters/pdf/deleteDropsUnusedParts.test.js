@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFHexString, PDFString, PDFStream, StandardFonts, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { deleteObjectsFromPdf, listDeletableObjects, buildDeletePreviewPage } from './deleteObjects.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 import { unreachableRefs } from './reachability.js';
 
 const decoder = new TextDecoder();
@@ -47,7 +48,7 @@ describe('delete drops unused parts of the source', () => {
 
   it('export leaves neither leftover and nothing unreachable', async () => {
     const source = await buildSource();
-    const target = (await listDeletableObjects(source)).find((o) => o.preview?.includes('GoneWord'));
+    const target = (await withPreviews(source, await listDeletableObjects(source))).find((o) => o.preview?.includes('GoneWord'));
     const out = new Uint8Array(await (await deleteObjectsFromPdf(source, [target])).arrayBuffer());
     const text = await everyText(out);
     expect(text).not.toContain('LeftoverSecret');
@@ -58,7 +59,7 @@ describe('delete drops unused parts of the source', () => {
 
   it('the preview page leaves no leftover either', async () => {
     const source = await buildSource();
-    const target = (await listDeletableObjects(source)).find((o) => o.preview?.includes('GoneWord'));
+    const target = (await withPreviews(source, await listDeletableObjects(source))).find((o) => o.preview?.includes('GoneWord'));
     const sourceDoc = await PDFDocument.load(source);
     const out = await buildDeletePreviewPage(sourceDoc, 0, [target]);
     const text = await everyText(out);

@@ -1232,6 +1232,7 @@ export interface ShellMessages {
    * succeeded, and never in place of draftNotSaved/draftConflict, which stay
    * the more urgent states. */
   draftUnpersisted: string;
+  draftRetentionInfo: string;
   addLabel: string;
   addShort: string;
   addTitle: string;
@@ -1267,6 +1268,10 @@ export interface ShellMessages {
    * Files-app route, never Web Share Target by name, and never implies iOS
    * gets the Android path. */
   iosFilesHint: string;
+  /** MERGE-18 (Route A): the OS picker already lists Google Drive, Dropbox
+   * and iCloud. Shown on phones only, after the same mount-effect check as
+   * iosFilesHint, on tools that opt in with `showCloudDriveHint`. */
+  cloudDriveHint: string;
 }
 
 const englishShellMessages: ShellMessages = {
@@ -1285,6 +1290,7 @@ const englishShellMessages: ShellMessages = {
   draftNotSaved: 'Draft not saved',
   draftConflict: 'Newer draft in another tab - saving here will replace it',
   draftUnpersisted: 'Draft saved, but this browser might not keep it - download to be safe',
+  draftRetentionInfo: 'Saved on this device for up to 28 days, and only for your 6 most recent files.',
   addLabel: 'Add files',
   addShort: 'Add',
   addTitle: 'Add more files',
@@ -1315,6 +1321,7 @@ const englishShellMessages: ShellMessages = {
   pageCountOther: '{count} pages',
   pageOf: 'Page {current} of {total}',
   iosFilesHint: 'On iPhone or iPad, share the PDF to Files from Mail, WhatsApp, or any other app, then tap Choose file. It opens on Recents, with the file you just saved at the top.',
+  cloudDriveHint: 'On a phone, Choose files can open Google Drive, Dropbox or iCloud too.',
 };
 
 const hebrewShellMessages: ShellMessages = {
@@ -1333,6 +1340,8 @@ const hebrewShellMessages: ShellMessages = {
   draftNotSaved: 'הטיוטה לא נשמרה',
   draftConflict: 'יש טיוטה חדשה יותר בלשונית אחרת. שמירה כאן תחליף אותה',
   draftUnpersisted: 'הטיוטה נשמרה, אבל הדפדפן עלול לא לשמור אותה - כדאי להוריד ליתר ביטחון',
+  // TODO(MEM-11): AI draft, not reviewed copy - see hebrewRecentFilesMessages' LOC-09 comment for the convention.
+  draftRetentionInfo: 'נשמר רק במכשיר הזה, למשך עד 28 יום, ועבור 6 הקבצים האחרונים שלך.',
   addLabel: 'הוספת קבצים',
   addShort: 'הוספה',
   addTitle: 'הוספת קבצים נוספים',
@@ -1360,6 +1369,7 @@ const hebrewShellMessages: ShellMessages = {
   pageCountOther: '{count} עמודים',
   pageOf: 'עמוד {current} מתוך {total}',
   iosFilesHint: 'באייפון או אייפד, שתפו את קובץ ה-PDF ל-Files מתוך Mail, WhatsApp או כל אפליקציה אחרת, ואז לחצו על בחירת קובץ. הוא ייפתח בכרטיסיית "אחרונים" ב-Files, עם הקובץ ששמרתם הרגע למעלה.',
+  cloudDriveHint: 'בטלפון, בחירת קבצים יכולה לפתוח גם את Google Drive, Dropbox או iCloud.',
 };
 
 const shellMessages: Partial<Record<DocumentationLocaleId, ShellMessages>> = {
@@ -1460,6 +1470,11 @@ export interface RecentFilesMessages {
   /** MERGE-13: the page count on a saved Merge draft's card. */
   pageCountOne: string;
   pageCountOther: string;
+  /** MEM-11 Part B: replaces the relative "saved N ago" line when this
+   * entry is within EXPIRY_WARNING_DAYS of the 28-day age limit. */
+  expiresInDaysOne: string;
+  expiresInDaysOther: string; // '{count}' placeholder
+  oldestKeptFile: string; // '{count}' placeholder
 }
 
 const englishRecentFilesMessages: RecentFilesMessages = {
@@ -1469,6 +1484,9 @@ const englishRecentFilesMessages: RecentFilesMessages = {
   justNow: 'just now',
   pageCountOne: '1 page',
   pageCountOther: '{count} pages',
+  expiresInDaysOne: 'Expires in 1 day',
+  expiresInDaysOther: 'Expires in {count} days',
+  oldestKeptFile: 'Oldest of {count} saved files',
 };
 
 // LOC-09: an AI draft, not reviewed copy - see hebrewFileDropzoneMessages above.
@@ -1479,6 +1497,9 @@ const hebrewRecentFilesMessages: RecentFilesMessages = {
   justNow: 'הרגע',
   pageCountOne: 'עמוד אחד',
   pageCountOther: '{count} עמודים',
+  expiresInDaysOne: 'פג תוקף מחר',
+  expiresInDaysOther: 'פג תוקף בעוד {count} ימים',
+  oldestKeptFile: 'הישן מבין {count} הקבצים השמורים',
 };
 
 const recentFilesMessages: Partial<Record<DocumentationLocaleId, RecentFilesMessages>> = {

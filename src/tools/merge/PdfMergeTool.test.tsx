@@ -732,6 +732,8 @@ describe('PdfMergeTool UI flow', () => {
     expect(statusRow).not.toBeNull();
     expect(statusRow.textContent).toBe('Draft not saved');
     expect(container.textContent).not.toContain('Draft saved');
+    // MEM-11: the retention hint never rides along with the error state.
+    expect(statusRow.querySelector('[tabindex="0"][aria-describedby]')).toBeNull();
   });
 
   it('restores a saved draft into the list, the plan and the options, and clears it on Start again (MERGE-13)', async () => {
@@ -801,6 +803,9 @@ describe('PdfMergeTool UI flow', () => {
     vi.useRealTimers();
     expect(container.textContent).not.toContain('Picked up where you left off');
     expect(container.textContent).toContain('Draft saved');
+    // MEM-11: the retention hint's trigger rides along with the saved chip.
+    const statusRow = container.querySelector(`.${railStyles['draft-status-row']}`);
+    expect(statusRow.querySelector('[tabindex="0"][aria-describedby]')).not.toBeNull();
 
     await act(async () => downloadLink().dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })));
     const startAgain = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Start again');

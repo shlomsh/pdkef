@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
@@ -14,14 +13,12 @@ import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
-import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import usePeekAll from './usePeekAll.ts';
 import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
 import BrushControls, { brushStyleOf, resolveBrush, useEyedropper, type BrushSettings } from './BrushControls.tsx';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
-import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import usePageSizesPt from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
@@ -43,16 +40,11 @@ import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
 import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
+import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
-  applyHistoryEntries,
-  revertHistoryEntries,
-  type ActionHistoryEntry,
-} from '../../editor/model/actionHistory.ts';
-import {
-  redoStep,
-  revertCommands,
-  type HistoryStack,
-} from '../../editor/model/historyStack.ts';
+  initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
+  canRedo as canRedoOf, restoredNoteVisible,
+} from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
@@ -63,7 +55,6 @@ import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './RedactFinish.tsx';
 import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
 import { redactedFileName } from './redactFileName.ts';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
@@ -92,17 +83,6 @@ function describeRedactUpdate(kind: ElementUpdateKind, type: string): string {
   return `Changed ${type} box color`;
 }
 
-type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
-
-interface RedactDrawingState {
-  pageIndex: number;
-  startX: number;
-  startY: number;
-  type: DrawnRedactTool;
-  color?: string;
-  strength?: BlurStrength;
-}
-
 type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 
 // Redact design-review finding #3: one Undo chip, one slot, timed the same as
@@ -111,39 +91,40 @@ type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLEleme
 // stacking a second one.
 const UNDO_WINDOW_MS = 5000;
 
-interface RedactUndoAction {
-  message: string;
-  entryId: string;
-  extra?: { label: string; onSelect: () => void };
-}
-
 export default function PdfRedactTool() {
-  const [file, setFile] = useState<File | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [elements, setElements] = useState<RedactElement[]>([]);
+  // SNG-08: the island's state lives in redactState.ts; the preferences it
+  // starts from are read once, here.
+  const [state, dispatch] = useReducer(redactReducer, undefined, () => initialRedactState({
+    activeColor: resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')),
+    activeBlurStrength: resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')),
+    brush: resolveBrush(undefined, getAppStyle()),
+  }));
+  const { elements, documentRevision } = state.edits;
+  const { activeBoxId, selectedBoxId } = state.selection;
+  const { announcement, isPseudoFullscreen } = state.view;
+  const { activeStyle, toolLocked, activeColor, activeBlurStrength, brush, eyedropping, drawingState } = state.tool;
+  const undoAction = state.edits.undoAction;
+  const actionHistory = state.edits.history.past;
+  const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
+
+  const { file, numPages, pdfDocument, sizedPageCount, status, errorDetail, progress, showWelcomeTip } = state.document;
+  const { exportedForHandoff, handoffFailed, findTerms, removing, removedNote } = state.finish;
+
   // A returning person already knows this editor contains saved work. Do not
   // spend the identity row repeating the neutral newcomer tip after that work
   // restores; tool-specific instructions remain available whenever a tool is
   // armed. Manual picks deliberately reset this to the welcoming default.
-  const [showWelcomeTip, setShowWelcomeTip] = useState(true);
-  // RED-45: a document reopened with its work says so, quietly, until the first edit.
-  const [restoredWithWork, setRestoredWithWork] = useState(false);
   // Draft persistence needs an editor-owned baseline, not a guess based on
   // when a File object first appeared. A load/restoration captures the current
   // revision; every real document operation advances it.
-  const [documentRevision, setDocumentRevision] = useState(0);
-  const [draftBaselineRevision, setDraftBaselineRevision] = useState(0);
   const documentRevisionRef = useRef(documentRevision);
   documentRevisionRef.current = documentRevision;
-  const markDocumentEdited = () => setDocumentRevision((revision) => revision + 1);
   // DEBT-18: an export is only wanted while the document it was started from
   // is still the document on screen. Both keys are read fresh on every check,
   // so a file swap or any edit that bumps the revision - including an undo or
   // redo arriving by keyboard while `.is-processing` blocks the pointer -
   // retires the run in flight.
   const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
-  const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Read by the invalidation effect below, which fires after the render that
   // already moved status on (a replacement file sets 'loading' in the same
   // batch as `file`), so it must ask what the workspace is showing now.
@@ -152,29 +133,21 @@ export default function PdfRedactTool() {
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
   // still uses status='error', which unmounts the workspace (see below).
-  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   // RED-36: an edit retired a running export. Said where it is seen (the
   // status line and the finish row), not only to a screen reader; cleared by
   // the next export or the next file.
-  const [exportCancelled, setExportCancelled] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
-  // null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null - nothing armed -
-  // is the resting state, exactly as it is in the Sign tool: a tool arms for one
-  // box and disarms itself once that box is committed, unless it has been locked
-  // on. Before this the tool was permanently armed (it even started on Delete),
-  // so there was no state in which a drag on the document meant anything but
-  // "draw a box" - which on a phone meant the page could not be scrolled.
-  const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
-  const [toolLocked, setToolLocked] = useState(false);
+  // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
+  // nothing armed - is the resting state, exactly as it is in the Sign tool: a
+  // tool arms for one box and disarms itself once that box is committed, unless
+  // it has been locked on. Before this the tool was permanently armed (it even
+  // started on Delete), so there was no state in which a drag on the document
+  // meant anything but "draw a box" - which on a phone meant the page could not
+  // be scrolled.
+  //
   // RED-40: the browser-wide preferences are only the last fallback now.
-  const [activeColor, setActiveColor] = useState(() =>
-    resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
-  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(() =>
-    resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')));
   // RED-32: Box or Brush inside Blur and Whiteout, and the brush's size. Both
   // are remembered like the whiteout colour and become the default for the
   // next document. A brush is not a tool of its own: it is one of these two
@@ -183,34 +156,26 @@ export default function PdfRedactTool() {
   // settings. `carried` holds only what this document's owner explicitly chose
   // (it rides in the draft); a document that never chose follows the person's
   // latest choice in any document.
-  const [carried, setCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
-  const [brush, setBrush] = useState<BrushSettings>(() => resolveBrush(undefined, getAppStyle()));
+  const { carried } = state.tool;
   const changeBrush = (next: BrushSettings) => {
-    setBrush(next);
-    setCarried((c) => ({ ...c, ...brushStyleOf(next) }));
+    dispatch({ type: 'BRUSH_CHOSEN', brush: next, carriedPatch: brushStyleOf(next) });
     rememberAppStyle(brushStyleOf(next));
   };
-  const [eyedropping, setEyedropping] = useState(false);
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
   // tool, so disarming always clears it.
   const setTool = (tool: RedactToolType | null, locked = false) => {
-    setActiveStyle(tool);
-    setToolLocked(tool ? locked : false);
+    dispatch(tool ? { type: 'TOOL_ARMED', tool, locked } : { type: 'TOOL_DISARMED' });
   };
 
   // Fired once a placement is committed. A locked tool ignores it and stays
   // armed - the same contract as the Sign reducer's DISARM_TOOL.
-  const disarmTool = () => {
-    if (!toolLocked) setTool(null);
-  };
+  const disarmTool = () => dispatch({ type: 'PLACEMENT_COMMITTED' });
   // The brush is armed when Blur or Whiteout is armed in brush mode. It is the
   // one documented exception to "a tool disarms after one placement": painting
   // takes several strokes, so it stays armed until Stop or Esc.
-  const brushKind: 'blur' | 'whiteout' | null =
-    brush.mode === 'brush' && (activeStyle === 'blur' || activeStyle === 'whiteout') ? activeStyle : null;
-  const [drawingState, setDrawingState] = useState<RedactDrawingState | null>(null);
+  const brushKind = brushKindOf(state);
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
   const cancelDrawingRef = useRef<(() => void) | null>(null);
 
@@ -218,29 +183,26 @@ export default function PdfRedactTool() {
 
   // RED-40: colour and strength are per-document style, like the brush.
   const rememberColor = (color: string) => {
-    setActiveColor(color);
-    setCarried((c) => ({ ...c, whiteoutColor: color }));
+    dispatch({ type: 'COLOR_CHOSEN', color });
     rememberAppStyle({ whiteoutColor: color });
   };
 
   useEyedropper(
     eyedropping && brushKind === 'whiteout',
     rememberColor,
-    () => setEyedropping(false),
+    () => dispatch({ type: 'EYEDROPPER_STOPPED' }),
   );
   useEffect(() => {
-    if (brushKind !== 'whiteout') setEyedropping(false);
+    if (brushKind !== 'whiteout') dispatch({ type: 'EYEDROPPER_STOPPED' });
   }, [brushKind]);
 
   const rememberBlurStrength = (strength: BlurStrength) => {
-    setActiveBlurStrength(strength);
-    setCarried((c) => ({ ...c, blurStrength: strength }));
+    dispatch({ type: 'BLUR_STRENGTH_CHOSEN', strength });
     rememberAppStyle({ blurStrength: strength });
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
   // otherwise and don't clutter pages full of redaction boxes.
-  const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
   // Which box shows its whiteout color-picker toolbar. Deliberately a separate,
   // click-driven *sticky* selection (cleared only by clicking elsewhere), not tied to
   // hover like activeBoxId above. ColorPickerMenu's Popover portals its open dropdown
@@ -249,7 +211,6 @@ export default function PdfRedactTool() {
   // box's mouseleave and unmount the toolbar (and the open popover with it) before a
   // color could be picked. Mirrors the Sign tool's activeElementId, which is click-set
   // and never cleared on mouseleave for the same reason.
-  const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   // RED-31: hold Peek (or Space) to see under every box. View state only.
   const { peekAll, setPeekAll } = usePeekAll();
 
@@ -277,9 +238,6 @@ export default function PdfRedactTool() {
   // (ordinary key auto-repeat, no re-render between them) act on the actual
   // result of each other rather than both reverting the same render-scoped
   // "newest" entry - see applyRevert, undoLast and redoLast below.
-  const [history, setHistory] = useState<HistoryStack<RedactElement>>({ past: [], future: [] });
-  const actionHistory = history.past;
-  const redoHistory = history.future;
 
   // Redact design-review finding #3: deleteElement and clearPage used to
   // change elements with no announcement and no way back short of the full
@@ -288,7 +246,6 @@ export default function PdfRedactTool() {
   // toolbar's status slot, naming the entry it can revert by id rather than
   // "whatever is newest" - correct even if another action lands before it is
   // clicked (see runUndoChip below).
-  const [undoAction, setUndoAction] = useState<RedactUndoAction | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redact design-review finding #4: the exported (redacted) bytes an
@@ -304,17 +261,13 @@ export default function PdfRedactTool() {
   // and handleSavePdf checks its ticket before committing anything, so the
   // hand-off and the Share sheet only ever carry an export of the boxes
   // currently on the page.
-  const [exportedForHandoff, setExportedForHandoff] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+      dispatch({ type: 'FULLSCREEN_CHANGED', active: document.fullscreenElement === workspaceRef.current });
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -327,9 +280,7 @@ export default function PdfRedactTool() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (!activeStyle && !activeBoxId && !selectedBoxId) return;
-      setTool(null);
-      setActiveBoxId(null);
-      setSelectedBoxId(null);
+      dispatch({ type: 'ESCAPED' });
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -339,10 +290,7 @@ export default function PdfRedactTool() {
   // selection (the tool disarms after one placement, so this is the usual state
   // right after drawing a box). An armed tool's own page handler deselects.
   const tapOutside = useTapOutsideDeselect({
-    onDeselect: () => {
-      setActiveBoxId(null);
-      setSelectedBoxId(null);
-    },
+    onDeselect: () => dispatch({ type: 'SELECTION_CLEARED' }),
     isArmed: () => !!activeStyle,
     excludedSelector: [
       `.${styles['redact-box']}`,
@@ -372,7 +320,7 @@ export default function PdfRedactTool() {
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
-      setIsPseudoFullscreen(false);
+      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: false });
       return;
     }
 
@@ -381,10 +329,10 @@ export default function PdfRedactTool() {
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
-        promise.catch(() => setIsPseudoFullscreen(true));
+        promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
       }
     } else {
-      setIsPseudoFullscreen(true);
+      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true });
     }
   };
 
@@ -396,7 +344,6 @@ export default function PdfRedactTool() {
   // This is deliberately Redact-local; Sign's workspace has its own render
   // path and this is not a layout contract shared with Merge.
   const renderedPageNumbersRef = useRef(new Set<number>());
-  const [sizedPageCount, setSizedPageCount] = useState(0);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
@@ -421,10 +368,10 @@ export default function PdfRedactTool() {
     // correctly accepts a legitimate 300×150 PDF page.
     if (renderedPageNumbersRef.current.has(pageNum)) return;
     renderedPageNumbersRef.current.add(pageNum);
-    setSizedPageCount(renderedPageNumbersRef.current.size);
+    dispatch({ type: 'PAGE_SIZED', sizedPageCount: renderedPageNumbersRef.current.size });
   }, []);
 
-  const isFullscreenActive = isFullscreen || isPseudoFullscreen;
+  const isFullscreenActive = isFullscreenActiveOf(state);
   const currentPage = useCurrentPage({
     active: isFullscreenActive,
     rootRef: workspaceRef,
@@ -437,7 +384,7 @@ export default function PdfRedactTool() {
   // change, so it is cleared alongside usePdfShare's own prepared file.
   useEffect(() => {
     clearPrepared();
-    setExportedForHandoff(null);
+    dispatch({ type: 'SAVED_EXPORT_DISCARDED' });
     // An export still running was started from boxes that no longer exist.
     // Retiring it here rather than in handleSavePdf's own bail is what lets
     // the workspace come back out of `.is-processing`: only this effect knows
@@ -450,10 +397,7 @@ export default function PdfRedactTool() {
     // workspace into 'loading' - saying "editing" over that would show an
     // empty editor for the file still being read.
     if (statusRef.current !== 'redacting') return;
-    setStatus('editing');
-    setProgress(0);
-    setExportCancelled(true);
-    setAnnouncement('You changed something, so that download stopped. Download again when ready.');
+    dispatch({ type: 'EXPORT_CANCELLED', announcement: 'You changed something, so that download stopped. Download again when ready.' });
     // Keyed on the revision, not on `elements`, so this fires on exactly what
     // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
     // two different notions of "the document moved", an edit that bumped the
@@ -466,6 +410,10 @@ export default function PdfRedactTool() {
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   }, []);
+
+  // loadPdf.ts reports a coarse status; each one is its own transition here.
+  const setLoadStatus = (next: 'loading' | 'editing' | 'error') =>
+    dispatch({ type: next === 'loading' ? 'FILE_LOAD_STARTED' : next === 'editing' ? 'FILE_LOADED' : 'FILE_LOAD_FAILED' });
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `presetElements` seeds restored redaction boxes.
@@ -485,42 +433,30 @@ export default function PdfRedactTool() {
     // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
     const presetElements = preset.elements || [];
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus: setLoadStatus, setAnnouncement,
       initialize: () => {
         renderedPageNumbersRef.current = new Set();
-        setSizedPageCount(0);
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
         // RED-39: a new file starts clean - no tool armed, nothing selected, Find
         // closed with its term. None of that belongs to the file just left.
-        disarmTool();
-        setActiveBoxId(null);
-        setSelectedBoxId(null);
         find.setOpen(false);
         find.setTerm('');
         find.setPreset(null);
-        setExportCancelled(false);
-        setShowWelcomeTip(!restored);
-        setRestoredWithWork(restored && presetElements.length > 0);
-        setFile(selected);
-        setPdfDocument(null);
-        setNumPages(0);
-        setErrorDetail(null);
-        setProgress(0);
-        setCarried(preset.carried);
-        setBrush(resolveBrush(preset.carried, getAppStyle()));
         // RED-40: a restored document keeps its own colour and strength.
-        setActiveColor(resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
-        setActiveBlurStrength(resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength')));
-        setElements(presetElements);
-        setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
-        setDraftBaselineRevision(documentRevisionRef.current);
+        const brush = resolveBrush(preset.carried, getAppStyle());
+        const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
+        const strength = resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength'));
+        // A restored draft has no redoable future - future is never persisted.
+        dispatch({
+          type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
+          carried: preset.carried, brush, activeColor: color, activeBlurStrength: strength,
+        });
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
       },
       onDocument: (doc, isCurrent) => {
         if (!isCurrent()) return;
-        setPdfDocument(doc);
-        setNumPages(doc.numPages);
+        dispatch({ type: 'DOCUMENT_READY', pdfDocument: doc, numPages: doc.numPages });
         void cacheRecentFile('redact', {
           fileName: selected.name,
           fileType: selected.type || 'application/pdf',
@@ -558,7 +494,7 @@ export default function PdfRedactTool() {
     actionHistory,
     carried,
     status,
-    isDirty: documentRevision !== draftBaselineRevision,
+    isDirty: isDirty(state),
     loadStartedRef,
     loadPdf,
     isElement: isRedactElement,
@@ -578,15 +514,14 @@ export default function PdfRedactTool() {
       return; // Ignore clicks on an existing box or its floating toolbar
     }
 
-    setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
-    setSelectedBoxId(null);
     e.preventDefault();
     const container = e.currentTarget;
     const origin = getPointerPercent(e, container);
     const type = activeStyle;
     const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
     const strength = type === 'blur' ? activeBlurStrength : undefined;
-    setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color, strength });
+    // Clicking blank page area deselects/hides any box's controls as the draw begins.
+    dispatch({ type: 'DRAW_STARTED', drawing: { pageIndex, startX: origin.x, startY: origin.y, type, color, strength } });
     cancelDrawingRef.current?.();
     cancelDrawingRef.current = startGesture({
       computePatch: (moveEvent) => {
@@ -606,7 +541,7 @@ export default function PdfRedactTool() {
       },
       commit: (patch) => {
         cancelDrawingRef.current = null;
-        setDrawingState(null);
+        dispatch({ type: 'DRAW_ENDED' });
         // A press that drew nothing has not spent the tool's one placement, so
         // it stays armed - otherwise a mistimed tap would silently disarm and
         // the next real drag would do nothing at all.
@@ -622,7 +557,7 @@ export default function PdfRedactTool() {
       },
       cancel: () => {
         cancelDrawingRef.current = null;
-        setDrawingState(null);
+        dispatch({ type: 'DRAW_ENDED' });
       },
     });
   };
@@ -641,35 +576,23 @@ export default function PdfRedactTool() {
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
   const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
-    setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, entryId: entry.id, extra });
-    undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
+    dispatch({ type: 'UNDO_CHIP_SHOWN', message, entryId: entry.id, extra });
+    undoTimerRef.current = setTimeout(() => dispatch({ type: 'UNDO_CHIP_DISMISSED' }), UNDO_WINDOW_MS);
   };
 
   const clearUndoChip = () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     undoTimerRef.current = null;
-    setUndoAction(null);
+    dispatch({ type: 'UNDO_CHIP_DISMISSED' });
   };
 
-  // Clears a removed box from both selection states - passed to
-  // useRedactCommands as forgetSelection, and shared by every handler that
-  // removes elements so a stale id can never linger in activeBoxId/selectedBoxId.
-  const forgetSelection = (ids: ReadonlySet<string>) => {
-    setActiveBoxId(prev => (prev && ids.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && ids.has(prev) ? null : prev));
-  };
-
-  // RED-14: the one commit path every edit below goes through - change
-  // `elements`, mark the document edited, forget any removed selection, push
-  // one history entry and, for a removal, show the undo chip.
+  // RED-14: the one commit path every edit below goes through - one
+  // EDIT_COMMITTED (elements, selection, history entry and revision change
+  // together) and, for a removal, the undo chip.
   const commands = useRedactCommands<RedactElement>({
     elements,
-    setElements,
-    setHistory,
-    markDocumentEdited,
-    forgetSelection,
+    commit: (commit) => dispatch({ type: 'EDIT_COMMITTED', ...commit }),
     registerUndo,
     describeUpdate: (kind, element) => describeRedactUpdate(kind, element.type),
   });
@@ -687,48 +610,6 @@ export default function PdfRedactTool() {
     announce: setAnnouncement,
     disarmTool,
   });
-
-  // Reverts a set of history entries and keeps every dependent piece in sync
-  // - selection and the action history list. Shared by Cmd/Ctrl+Z and the
-  // toolbar's Undo (undoLast) and by the short-lived undo chip (runUndoChip),
-  // so the two triggers cannot drift on what reverting actually does.
-  //
-  // Neither declares whether its revert is redoable. They used to, and they
-  // were guessing about something only knowable at the moment of the revert:
-  // `revertCommands` looks at the stack and keeps a redo whenever what was
-  // reverted is the newest command, or the newest few together. The chip is
-  // why that still matters - it reverts one named entry by id, which is a
-  // plain undo while nothing has landed above it and a middle-of-the-stack
-  // revert once something has.
-  //
-  // `select` runs inside `setHistory`'s updater, reading the actual current
-  // `past` rather than a value this render closed over - what makes two undo
-  // keydowns landing in the same task two distinct reverts instead of the
-  // same render-scoped "newest" entry reverted twice. An empty result reverts
-  // nothing, which is also how a stale chip id becomes a silent no-op.
-  const applyRevert = (
-    describeReverted: (entries: ActionHistoryEntry<RedactElement>[]) => string,
-    select: (past: ActionHistoryEntry<RedactElement>[]) => ActionHistoryEntry<RedactElement>[],
-  ) => {
-    let reverted: ActionHistoryEntry<RedactElement>[] = [];
-    setHistory((current) => {
-      reverted = select(current.past);
-      if (reverted.length === 0) return current;
-      return revertCommands(current.past, current.future, new Set(reverted.map((entry) => entry.id)));
-    });
-    if (reverted.length === 0) return;
-
-    let survivingIds = new Set<string>();
-    setElements((prevElements) => {
-      const nextElements = revertHistoryEntries(prevElements, reverted);
-      survivingIds = new Set(nextElements.map((element) => element.id));
-      return nextElements;
-    });
-    markDocumentEdited();
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setAnnouncement(describeReverted(reverted));
-  };
 
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
@@ -749,68 +630,31 @@ export default function PdfRedactTool() {
     numPages,
     uniqueId,
     commands,
-    select: (id) => { setSelectedBoxId(id); setActiveBoxId(id); },
+    select: (id) => dispatch({ type: 'BOX_SELECTED', id }),
   });
   const { updateElement, unlinkFromGroup, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions } = linkedBoxes;
 
-  // Cmd/Ctrl+Z: revert the single newest command. `past.slice(0, 1)` is read
-  // inside applyRevert's own updater, not from this render's closure, which
-  // is exactly the staleness two undo keydowns in the same task (ordinary key
-  // auto-repeat) would otherwise exploit. Nothing to undo reverts nothing.
-  const undoLast = () => {
-    applyRevert((entries) => `Undid: ${entries[0].description}`, (past) => past.slice(0, 1));
-  };
+  // Cmd/Ctrl+Z reverts the single newest command; the reducer reads the
+  // current `past`, so two undo keydowns landing in the same task (key
+  // auto-repeat) are two distinct reverts. Nothing to undo reverts nothing.
+  const undoLast = () => dispatch({ type: 'UNDO' });
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
   // it named, by id, rather than "whatever is newest" - if another action
   // landed after this one and before the chip was clicked, reverting the
   // newest would silently revert the wrong thing. A stale id is a silent
-  // no-op, handled by applyRevert itself.
-  //
-  // Whether that revert leaves a redo behind is no longer this caller's
-  // guess. While the chip's entry is still the newest, reverting it is a
-  // plain undo and the redo survives; once something has landed above it
-  // inside the five-second window, it is a middle-of-the-stack revert and the
-  // future is dropped.
+  // no-op. Whether that revert leaves a redo behind is historyStack.ts's
+  // `revertCommands` call, made from the stack itself.
   const runUndoChip = () => {
     if (!undoAction) return;
     const entryId = undoAction.entryId;
     clearUndoChip();
-    applyRevert(
-      (entries) => `Undid: ${entries[0].description}`,
-      (past) => past.filter((action) => action.id === entryId),
-    );
+    dispatch({ type: 'UNDO', entryId });
   };
 
   // Shift+Cmd/Ctrl+Z or Ctrl+Y: reapplies the single most recently undone
-  // command, historyStack.ts's own `redoStep`, the exact mirror of undoLast -
-  // same reasoning for reading `future` inside the functional update rather
-  // than this render's closed-over `redoHistory`. applyHistoryEntries is
-  // revertHistoryEntries' mirror (an 'add' entry is restored, a 'delete'
-  // entry is re-removed), so the same surviving-id reconciliation applies:
-  // an id the redo just removed again is cleared from selection.
-  const redoLast = () => {
-    let redone: ActionHistoryEntry<RedactElement>[] = [];
-    setHistory((current) => {
-      const step = redoStep(current.past, current.future);
-      if (!step) return current;
-      redone = [step.entry];
-      return { past: step.past, future: step.future };
-    });
-    if (redone.length === 0) return;
-    const nextAction = redone[0];
-
-    let survivingIds = new Set<string>();
-    setElements((prevElements) => {
-      const nextElements = applyHistoryEntries(prevElements, [nextAction]);
-      survivingIds = new Set(nextElements.map((element) => element.id));
-      return nextElements;
-    });
-    markDocumentEdited();
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setAnnouncement(`Redid: ${nextAction.description}`);
-  };
+  // command, the exact mirror of undoLast.
+  const redoLast = () => dispatch({ type: 'REDO' });
 
   useHistoryShortcuts(undoLast, redoLast);
 
@@ -836,13 +680,11 @@ export default function PdfRedactTool() {
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
-  const [findTerms, setFindTerms] = useState<CheckTerm[]>([]);
-  useEffect(() => { setFindTerms([]); }, [pdfDocument]);
   const rememberFindTerm = () => {
     const term: CheckTerm | null = find.preset
       ? { label: PRESET_LABELS[find.preset], source: 'find', finder: PRESET_FINDERS[find.preset] }
       : (find.term.trim() ? { label: find.term.trim(), source: 'find', finder: termFinder(find.term.trim()) } : null);
-    if (term) setFindTerms((terms) => [...terms.filter((known) => known.label !== term.label), term]);
+    if (term) dispatch({ type: 'FIND_TERM_REMEMBERED', term });
   };
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
@@ -893,37 +735,32 @@ export default function PdfRedactTool() {
   // RED-25: Remove it. Bytes in, bytes out (check/removePlace.ts); the new
   // file replaces the saved one under the same name, downloads again, and the
   // saved-file check re-runs on it because `exportedForHandoff` changed.
-  const [removing, setRemoving] = useState(false);
-  const [removedNote, setRemovedNote] = useState<string | null>(null);
   const removeFromCheck = async (finding: InPlaceFinding) => {
     if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
     const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
     if (!place) return;
     const { blob, name } = exportedForHandoff;
-    setRemoving(true);
+    dispatch({ type: 'REMOVE_STARTED' });
     try {
       const { removePlace, PlaceNotFoundError } = await import('./check/removePlace.ts');
       try {
         const bytes = await removePlace(new Uint8Array(await blob.arrayBuffer()), place);
         const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
         clearPrepared();
-        setExportedForHandoff({ blob: next, name });
+        dispatch({ type: 'EXPORT_SAVED', saved: { blob: next, name } });
         download(next, name);
-        setRemovedNote(removedMessage(place));
-        setAnnouncement(removedMessage(place));
+        dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
         if (!(error instanceof PlaceNotFoundError)) throw error;
         // Nothing changed; a fresh blob object makes the check read it again.
-        setExportedForHandoff({ blob: new Blob([blob], { type: blob.type }), name });
-        setRemovedNote(ALREADY_GONE);
-        setAnnouncement(ALREADY_GONE);
+        dispatch({ type: 'EXPORT_SAVED', saved: { blob: new Blob([blob], { type: blob.type }), name } });
+        dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
       }
     } catch (error) {
       console.error(error);
-      setRemovedNote(null);
-      setAnnouncement("I couldn't remove that. Your saved file is unchanged.");
+      dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
     } finally {
-      setRemoving(false);
+      dispatch({ type: 'REMOVE_SETTLED' });
     }
   };
 
@@ -934,15 +771,11 @@ export default function PdfRedactTool() {
       return;
     }
 
-    setErrorDetail(null);
-    setRemovedNote(null);
-    setExportCancelled(false);
-    setStatus('redacting');
-    setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
-    setAnnouncement(
-      hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
-    );
+    dispatch({
+      type: 'EXPORT_STARTED',
+      announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
+    });
 
     // DEBT-18: everything this run is an export *of*, captured before the
     // first await. `sourceFile` is used below instead of `file` so the name
@@ -959,22 +792,20 @@ export default function PdfRedactTool() {
       // "try again". Repeat exports reuse the module registry's copy.
       const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
       const { blob: redactedBlob } = await applyPageEdits(sourceFile, elements, (p) => {
-        if (run.isCurrent()) setProgress(p);
+        if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
       });
       if (!run.isCurrent()) return;
       run.settle();
       const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
-      setExportedForHandoff({ blob: redactedBlob, name: filename });
+      dispatch({ type: 'EXPORT_SAVED', saved: { blob: redactedBlob, name: filename } });
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
-        setStatus('editing');
-        setAnnouncement('Your redacted PDF is ready to share.');
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
       } else {
         download(redactedBlob, filename);
-        setStatus('editing');
-        setAnnouncement('Saved. Download started.');
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
       }
     } catch (err) {
       console.error(err);
@@ -987,10 +818,8 @@ export default function PdfRedactTool() {
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
       // failed document load, which never gets this far).
-      setStatus('editing');
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
-      setErrorDetail(detail);
-      setAnnouncement(`The download stopped. ${detail}`);
+      dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
     }
   };
 
@@ -999,7 +828,7 @@ export default function PdfRedactTool() {
   // automatically by the effect above whenever file/elements change, so this
   // never serves a stale export). Mirrors PdfSignTool's handleDownloadPdf.
   const handleDownloadPdf = () => {
-    setErrorDetail(null);
+    dispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (downloadPrepared()) {
       setAnnouncement('Download started.');
       return;
@@ -1030,7 +859,7 @@ export default function PdfRedactTool() {
   const requestHandoff = async (tool: 'compress' | 'sign') => {
     if (handoffBusy || !exportedForHandoff) return;
     setHandoffBusy(true);
-    setHandoffFailed(false);
+    dispatch({ type: 'HANDOFF_STARTED' });
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
@@ -1042,7 +871,7 @@ export default function PdfRedactTool() {
       window.location.href = `/${tool}/`;
     } catch (err) {
       console.error(err);
-      setHandoffFailed(true);
+      dispatch({ type: 'HANDOFF_FAILED' });
       setHandoffBusy(false);
     }
   };
@@ -1050,11 +879,7 @@ export default function PdfRedactTool() {
   // RED-36: everything the finish row and the status line say, from state
   // that already exists. A page with any box is saved as a picture; a page
   // with only deletions keeps its text (applyPageEdits.js).
-  const finishPhase: FinishPhase = status === 'redacting' ? 'exporting'
-    : exportedForHandoff ? 'saved'
-    : exportCancelled ? 'cancelled'
-    : elements.length === 0 ? 'empty'
-    : 'ready';
+  const finishPhase: FinishPhase = finishPhaseOf(state);
   const finishFacts: FinishFacts = {
     phase: finishPhase,
     progress,
@@ -1106,7 +931,7 @@ export default function PdfRedactTool() {
             setTool={setTool}
             setAnnouncement={setAnnouncement}
             toggleFullscreen={toggleFullscreen}
-            isFullscreen={isFullscreen || isPseudoFullscreen}
+            isFullscreen={isFullscreenActive}
             handleDownloadPdf={handleDownloadPdf}
             handlePrepareShare={() => handleSavePdf('share')}
             handleSharePdf={handleSharePdf}
@@ -1116,7 +941,7 @@ export default function PdfRedactTool() {
             actionHistory={actionHistory}
             onUndo={undoLast}
             onRedo={redoLast}
-            canRedo={redoHistory.length > 0}
+            canRedo={canRedoOf(state)}
             exporting={status === 'redacting'}
             undoAction={undoAction && {
               message: undoAction.message,
@@ -1131,7 +956,7 @@ export default function PdfRedactTool() {
             peeking={peekAll}
             onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}
-            restoredNote={restoredWithWork && documentRevision === draftBaselineRevision}
+            restoredNote={restoredNoteVisible(state)}
             brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
               <BrushControls
                 tool={activeStyle}
@@ -1140,7 +965,7 @@ export default function PdfRedactTool() {
                 color={activeColor}
                 onColor={rememberColor}
                 eyedropping={eyedropping}
-                onToggleEyedropper={() => setEyedropping((on) => !on)}
+                onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED' })}
               />
             )}
             brushMode={brushKind !== null}
@@ -1219,11 +1044,11 @@ export default function PdfRedactTool() {
                         el={el}
                         isSelected={el.id === selectedBoxId}
                         isActiveHover={el.id === activeBoxId}
-                        onSelect={(id: string) => { setActiveBoxId(id); setSelectedBoxId(id); }}
+                        onSelect={(id: string) => dispatch({ type: 'BOX_SELECTED', id })}
                         onChange={updateElement}
                         getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
-                        onHoverEnter={() => setActiveBoxId(el.id)}
-                        onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
+                        onHoverEnter={() => dispatch({ type: 'BOX_HOVERED', id: el.id })}
+                        onHoverLeave={() => dispatch({ type: 'BOX_UNHOVERED', id: el.id })}
                         onDelete={deleteElement}
                         onChangeColor={changeElementColor}
                         onChangeStrength={changeBlurStrength}

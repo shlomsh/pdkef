@@ -1,11 +1,9 @@
 ---
 id: "FORM-18"
 title: "A comb drawn as separate squares is a comb, not a row of checkboxes"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "form-detection"
-horizon: "now"
-order: 1
 depends_on: ["FORM-16"]
 ---
 
@@ -29,3 +27,11 @@ pitch is a comb whether its cells touch or not; a real checkbox stands alone or 
 ## 2026-10-01 board cleanup
 
 - Priority P2 -> P1: with fill mode, this ticket's false positives become wrong stops.
+
+## 2026-10-01 done
+
+`findSquareCombRuns` (`formGrid.js`) reads separately painted equal cells on one baseline at a regular
+pitch as a comb, grouped by size, baseline and paint so the unfilled '£' and pence cells stay out, and
+`detectRegions` drops checkboxes inside such a run. SA100: recall 26.7 -> 100, precision 4.3 -> 93.8
+(11/11 combs, 88 false checkboxes gone); the other 8 scored forms are unchanged. Two element-corpus
+rows pin the run (one comb) and the column (checkboxes). Baseline re-recorded.

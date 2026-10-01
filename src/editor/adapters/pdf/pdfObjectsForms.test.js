@@ -3,14 +3,17 @@ import { PDFDocument, PDFName, StandardFonts } from '@cantoo/pdf-lib';
 import { extractPageObjects } from './pdfObjects.js';
 import { listDeletableObjects } from './deleteObjects.js';
 import { buildFormXObjectPdf } from './formXObjectFixture.test-helper.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 
 const PAGE_W = 612;
 const PAGE_H = 792;
 
 /** The objects of every page of a built fixture, with the form refs it used. */
 async function extractAll(options) {
-  const doc = await PDFDocument.load(await buildFormXObjectPdf(options));
-  return doc.getPages().map((page, i) => extractPageObjects(page, i).objects);
+  const bytes = await buildFormXObjectPdf(options);
+  const doc = await PDFDocument.load(bytes);
+  const all = await withPreviews(bytes, doc.getPages().flatMap((page, i) => extractPageObjects(page, i).objects));
+  return doc.getPages().map((_, i) => all.filter((o) => o.pageIndex === i));
 }
 
 const text = (objects, preview) => objects.find((o) => o.kind === 'text' && o.preview === preview);
@@ -55,8 +58,10 @@ describe('extractPageObjects inside Form XObjects (RED-29)', () => {
   });
 
   it('keeps start/end inside the Form stream, with the span rules of a page-level object', async () => {
-    const doc = await PDFDocument.load(await buildFormXObjectPdf({ pages: 1 }));
-    const { objects, bytes } = extractPageObjects(doc.getPage(0), 0);
+    const source = await buildFormXObjectPdf({ pages: 1 });
+    const doc = await PDFDocument.load(source);
+    const { objects: found, bytes } = extractPageObjects(doc.getPage(0), 0);
+    const objects = await withPreviews(source, found);
     // The page's own content is only `q /Xf1 Do Q`; no span points into it.
     expect(bytes.length).toBeLessThan(20);
     const secret = text(objects, 'Secret 0');
@@ -102,8 +107,9 @@ describe('extractPageObjects inside Form XObjects (RED-29)', () => {
     const doc = await PDFDocument.load(await buildFormXObjectPdf({ pages: 1 }));
     const font = await doc.embedFont(StandardFonts.Helvetica);
     doc.getPage(0).drawText('On the page', { x: 50, y: 100, font });
-    const reloaded = await PDFDocument.load(await doc.save({ useObjectStreams: false }));
-    const { objects } = extractPageObjects(reloaded.getPage(0), 0);
+    const saved = await doc.save({ useObjectStreams: false });
+    const reloaded = await PDFDocument.load(saved);
+    const objects = await withPreviews(saved, extractPageObjects(reloaded.getPage(0), 0).objects);
     const own = text(objects, 'On the page');
     expect(own.formPath).toEqual([]);
     expect(own.id).toMatch(/^obj-0-\d+$/);
@@ -173,8 +179,10 @@ describe('Form XObject transform and guards', () => {
     const page = doc.addPage([PAGE_W, PAGE_H]);
     page.node.set(PDFName.of('Resources'), context.obj({ Font: { F1: font.ref }, XObject: { Xf1: form } }));
     page.node.set(PDFName.of('Contents'), context.register(context.stream('/Xf1 Do')));
-    const reloaded = await PDFDocument.load(await doc.save({ useObjectStreams: false }));
-    expect(extractPageObjects(reloaded.getPage(0), 0).objects[0].preview).toBe('A');
+    const bytes = await doc.save({ useObjectStreams: false });
+    const reloaded = await PDFDocument.load(bytes);
+    const [object] = await withPreviews(bytes, extractPageObjects(reloaded.getPage(0), 0).objects);
+    expect(object.preview).toBe('A');
   });
 
   it('keeps the page objects when a Form cannot be read', async () => {

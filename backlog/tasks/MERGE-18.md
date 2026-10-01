@@ -1,13 +1,10 @@
 ---
 id: "MERGE-18"
 title: "Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "polish"
-horizon: "now"
-order: 2
 depends_on: ["MERGE-11"]
-needs: "Decide route A and the Merge bookmarks switch"
 ---
 
 # MERGE-18 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
@@ -52,6 +49,10 @@ Ship Route A inside MERGE-11's disclosure work and measure whether anyone asks f
 feedback link and the funnel in MERGE-16). Take Route B only on evidence, and only after CLAUDE.md's
 first invariant is rewritten by Shlomi to name the exception, since every agent reads that line before
 touching the CSP.
+
+## Decision
+
+*2026-10-01*: Shlomi chose Route A. Shipped: the phone-only hint under Choose files (`showCloudDriveHint`, Merge only) and a FAQ entry on `/merge/` and `/he/merge/`. No CSP change. Route B stays closed unless evidence turns up. The bookmarks switch below is still undecided and belongs to MERGE-15.
 
 ## Acceptance
 
