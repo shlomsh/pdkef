@@ -13,7 +13,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
-- [MEM-10](backlog/tasks/MEM-10.md) P1 · A shipped fix has no way to reach someone who keeps the app open (in progress)
 
 ## Waiting, by date
 

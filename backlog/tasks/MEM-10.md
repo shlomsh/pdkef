@@ -1,11 +1,9 @@
 ---
 id: "MEM-10"
 title: "A shipped fix has no way to reach someone who keeps the app open"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "next"
-order: 3
 depends_on: []
 ---
 
