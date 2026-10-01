@@ -181,6 +181,7 @@ export default function RedactToolbar({
     // above their toolbars; spacing belongs to the shared shell.
     <ToolShell
       editor
+      inlineStatus
       status={
         <EditorToolStatus
           copy={activeToolCopy}

@@ -9,6 +9,11 @@ describe('redactedFileName', () => {
     expect(redactedFileName('redacted_x.pdf')).toBe('redacted_x.pdf');
     expect(redactedFileName(redactedFileName('x.pdf'))).toBe('redacted_x.pdf');
   });
+  it('collapses a name chained before the rule existed, Hebrew included', () => {
+    expect(redactedFileName('redacted_redacted_x.pdf')).toBe('redacted_x.pdf');
+    expect(redactedFileName('redacted_redacted_redacted_כולם מפטרים.pdf')).toBe('redacted_כולם מפטרים.pdf');
+    expect(redactedFileName('Redacted_redacted_x.pdf')).toBe('Redacted_x.pdf');
+  });
   it('leaves a capitalised prefix alone', () => {
     expect(redactedFileName('Redacted_x.pdf')).toBe('Redacted_x.pdf');
   });
