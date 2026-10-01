@@ -5,7 +5,7 @@ const sel = { isSelected: true, isStroke: false };
 describe('boxKeyIntent', () => {
   it('maps select, deselect, delete', () => {
     expect(boxKeyIntent('Enter', {}, sel)).toEqual({ kind: 'select' });
-    expect(boxKeyIntent(' ', {}, { isSelected: false, isStroke: false })).toEqual({ kind: 'select' });
+    expect(boxKeyIntent(' ', {}, { isSelected: false, isStroke: false })).toBeNull();
     expect(boxKeyIntent('Escape', {}, sel)).toEqual({ kind: 'deselect' });
     expect(boxKeyIntent('Escape', {}, { isSelected: false, isStroke: false })).toBeNull();
     expect(boxKeyIntent('Delete', {}, sel)).toEqual({ kind: 'delete' });
