@@ -1,20 +1,20 @@
 // FORM-07 spike harness (not part of the test suite): raster ink -> the existing detectors -> scored against truth.
-// Usage: node src/tmpspike/scoreRaster.mjs [pdf] [truth] [--dump]
+// Usage: node scripts/spike/form-07/scoreRaster.mjs [pdf] [truth] [--dump]
 import fs from 'node:fs';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { extractPageImage } from './extractImage.mjs';
-import { inkFromRaster } from '../tools/sign/fields/rasterInk.js';
-import { detectFormFields } from '../tools/sign/fields/detectFormFields.ts';
-import { toPagePercentBox } from '../editor/geometry/coords.ts';
-import { titleLineWritable } from '../tools/sign/fields/combTitleLine.js';
-import { pageGeometry } from '../tools/sign/fields/detectFormFields.ts';
-import { detectRegions } from '../tools/sign/fields/formGrid.js';
-import { detectCellCandidates } from '../tools/sign/fields/formCells.js';
-import { detectLineCandidates } from '../tools/sign/fields/formLines.js';
-import { horizontalRules } from '../tools/sign/fields/inkEdges.js';
-import { greedyMatch } from '../tools/sign/fields/corpus/scoring/match.js';
-import { toCandidates } from '../tools/sign/fields/corpus/scoring/candidates.js';
-import { loadTruth, IOU } from '../tools/sign/fields/corpus/scoring/score.js';
+import { inkFromRaster } from '../../../src/tools/sign/fields/rasterInk.js';
+import { detectFormFields } from '../../../src/tools/sign/fields/detectFormFields.ts';
+import { toPagePercentBox } from '../../../src/editor/geometry/coords.ts';
+import { titleLineWritable } from '../../../src/tools/sign/fields/combTitleLine.js';
+import { pageGeometry } from '../../../src/tools/sign/fields/detectFormFields.ts';
+import { detectRegions } from '../../../src/tools/sign/fields/formGrid.js';
+import { detectCellCandidates } from '../../../src/tools/sign/fields/formCells.js';
+import { detectLineCandidates } from '../../../src/tools/sign/fields/formLines.js';
+import { horizontalRules } from '../../../src/tools/sign/fields/inkEdges.js';
+import { greedyMatch } from '../../../src/tools/sign/fields/corpus/scoring/match.js';
+import { toCandidates } from '../../../src/tools/sign/fields/corpus/scoring/candidates.js';
+import { loadTruth, IOU } from '../../../src/tools/sign/fields/corpus/scoring/score.js';
 
 const ROOT = 'src/tools/sign/fields/corpus/scoring/';
 const pos = process.argv.slice(2).filter((a) => !a.startsWith('--'));
