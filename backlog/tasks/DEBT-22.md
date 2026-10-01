@@ -1,9 +1,11 @@
 ---
 id: "DEBT-22"
 title: "tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else"
-status: "retired"
+status: "open"
 priority: "P2"
-epic: "architecture-debt"
+epic: "robustness"
+horizon: "now"
+order: 4
 depends_on: []
 ---
 
@@ -37,3 +39,11 @@ the same breath; whatever the mechanism, a test that races the app it measures i
 ## Closed 2026-10-01
 
 No tool-layout first-paint failure has appeared in the main e2e runs since 2026-09-22. Reopen if it recurs.
+
+## Reopened 2026-10-01
+
+It recurred the same day: CI run 36847659395 (main at 631196fc, a vitest 5.0.0 -> 5.0.1 bump that
+touches no browser code), e2e shard 1, `e2e/tool-layout.spec.js:86` "uses the hydrated Sign/Redact
+density geometry for a validated first-paint restore only": `expect(firstPaintRestore).not.toEqual(fresh)`
+failed, the restore measured the fresh hero geometry (height 202.375, title 32px). The race is still
+there; the retirement was wrong.
