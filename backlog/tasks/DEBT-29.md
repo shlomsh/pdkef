@@ -1,10 +1,9 @@
 ---
 id: "DEBT-29"
 title: "formCells.js: one cell-box helper, and detectCellCandidates split into one resolver per branch"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "later"
 depends_on: []
 ---
 
@@ -39,3 +38,22 @@ and the unit tests are the oracle and must be unchanged; `test:detection-purity`
 
 - The scored corpus reports identical recall and precision for every form, before and after.
 - `detectCellCandidates` reads as an ordered list of resolvers, each unit-tested on its own branch.
+
+## Done (2026-10-02)
+
+- `cellBox` / `tickBoxCell` replace the four repeated cell-to-percent-box conversions and the
+  `resolved.push({...})` literals; `centreY` in `fieldOrder.ts` is inlined.
+- `detectCellCandidates`' first pass is an ordered list of per-branch resolvers (`resolveFloorTicked`,
+  `resolveNarrowTick`, `resolveLoneSquare`, `resolveLoneBox`, `resolveGeneralCell`), 175 lines down to 77.
+  A resolver answers `undefined` (not my cell, ask the next), `null` (mine, and dropped) or the resolved
+  cell; a plain `null` for "ask the next" would have let a rejected narrow or lone cell fall into the
+  general path, which is a behaviour change. 19 tests in `formCellResolvers.test.js`, two sabotage-checked.
+- `buildClosedCells` is a short pipeline over `findBands`, `columnsBetween` and `applyFloorTicks` (135
+  lines down to 14, with `vetoRules`, `closedColumn` and the rise/span helpers as top-level functions).
+  18 tests in `formCellColumns.test.js`, two sabotage-checked. The file grew from 851 to 1,045 lines
+  because every extracted function carries its own JSDoc types.
+- **Oracle, stronger than the KPIs:** a temporary test dumped every detected cell for every corpus form
+  (316,119 bytes of JSON) from the untouched code and from each step. All three steps are byte-identical,
+  so recall and precision are identical by construction. The test was not committed.
+- Checks: field and text unit tests 1,335 green, `test:detection-purity`, `test:module-boundaries` and
+  `check:fast` green.
