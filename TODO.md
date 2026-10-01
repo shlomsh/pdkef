@@ -22,7 +22,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
 - [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
 - [DEBT-20](backlog/tasks/DEBT-20.md) P2 · Every tool page ships the whole of pdf-lib before anyone opens a file (in progress)
-- [DEBT-22](backlog/tasks/DEBT-22.md) P2 · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else (in progress)
 
 ### Search and languages
 
