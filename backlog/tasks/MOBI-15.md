@@ -1,7 +1,7 @@
 ---
 id: "MOBI-15"
 title: "Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "mobile-round-trip"
 phase: "near-term"
@@ -66,3 +66,7 @@ anything else, because a guard that silently tested two LTR documents would have
 
 **Clause 2 is still open**: the keyboard-clearance nudge. It is being reworked under MOBI-22, where the
 scroll was found to fire before the element exists; its proof belongs with that change.
+
+## Closed 2026-10-01
+
+Clause 1 is covered by `field-nav-arrow-direction.spec.js` and clause 2 by `field-move-scroll.spec.js` (MOBI-22). Fill mode replaced the app's own arrows.

@@ -1,7 +1,7 @@
 ---
 id: "FORM-09"
 title: "Ask the person what the form asks, and fill only what they confirm"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "form-understanding"
 phase: "longer-term"
@@ -40,3 +40,7 @@ Do not start this before FORM-01 and FORM-02 land, and re-read the gate numbers 
 - [ ] Reuse between forms is the point (the second form should not ask again), and it is also the
   sharpest privacy question in the epic. Decide retention and deletion explicitly, in the ticket,
   before building it.
+
+## Closed 2026-10-01
+
+Merged into SNG-12: the question flow that asks and writes confirmed answers moves there, behind the same 90/90/85 gate.

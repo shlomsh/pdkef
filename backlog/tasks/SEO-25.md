@@ -1,7 +1,7 @@
 ---
 id: "SEO-25"
 title: "Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised"
-status: "blocked"
+status: "retired"
 priority: "P3"
 epic: "seo-awaiting-read"
 phase: "later"
@@ -289,3 +289,7 @@ sits directly under the hero at 390x844 (measured: card top equals hero bottom) 
 the result card lands. The same change removed the 310 to 610px of blank space under the tool card on
 desktop; the card-to-section gap is a constant 116px on every tool route now. `e2e/tool-layout.spec.js`
 guards both.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the compress-quality CTR read after the preview moves there, to be done at the 2026-10-08 refresh.

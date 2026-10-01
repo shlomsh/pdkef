@@ -249,3 +249,7 @@ has a guard waiting to hold it.
 Not an SEO fix. Core Web Vitals rank on field data, and CrUX reports "No Data" for this page at current
 traffic, so none of these lab numbers is a ranking input today. Do not justify this work with search
 performance; justify it with the 1,250 ms.
+
+## 2026-10-01 board cleanup
+
+- Stays in_progress. Phase 1 shipped in 643fc21; left: the PageSpeed TBT re-run and the phase 2 trace.

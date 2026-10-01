@@ -1,7 +1,7 @@
 ---
 id: "SEO-03"
 title: "External signals: the work that moves the constraint and does not live in this repo"
-status: "in_progress"
+status: "open"
 priority: "P1"
 epic: "english-base"
 phase: "longer-term"
@@ -162,3 +162,7 @@ over the search proxy if one becomes accessible.
   `038b5d7` (main had moved past `054b8db` by then, which is fine - the release includes the notes file
   itself). awesome-selfhosted eligible from 2027-01-12.
 - Still queued from the second pass: the PWA directories, Lissy93/awesome-privacy (rules unchecked).
+
+## 2026-10-01 board cleanup
+
+- Status in_progress -> open: this is a permanent background ticket, not active work.

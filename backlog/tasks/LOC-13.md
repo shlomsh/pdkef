@@ -5,7 +5,7 @@ status: "blocked"
 priority: "P2"
 epic: "localization-pilots"
 phase: "near-term"
-depends_on: ["LOC-10", "LOC-11"]
+depends_on: ["LOC-17", "SEO-40"]
 legacy_state: "Open"
 ---
 
@@ -129,3 +129,7 @@ follow the term that wins and the limits the research verifies; do not fix them 
   Success: top ten on at least one target-size query in Mexico. Kill: no impressions on any of them,
   same as the English page's own bar in SEO-17.
 - No second Spanish page and no second language until that read is in.
+
+## 2026-10-01 board cleanup
+
+- depends_on is now LOC-17 and SEO-40 (LOC-10 and LOC-11 are done).

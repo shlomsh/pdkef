@@ -1,7 +1,7 @@
 ---
 id: "MERGE-15"
 title: "Spike: a bookmark per source file in the merged PDF"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "merge-tool"
 phase: "optional"
@@ -49,3 +49,7 @@ installed on this machine.
 Decisions still Shlomi's: whether the flag goes on at all, and whether the person gets a switch (the Options disclosure this ticket
 mentioned no longer exists; the nearest home is a checkbox row next to "Add page numbers") or the
 outline is simply always there.
+
+## Closed 2026-10-01
+
+The spike landed (`outline.js`; the `bookmarks` option in `merge.js`) but the UI never passes the option. The open product question moved to MERGE-18.

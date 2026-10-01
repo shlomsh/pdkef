@@ -1,7 +1,7 @@
 ---
 id: "SIGN-37"
 title: "Typed signatures are saved sharp enough for the size they are placed at"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
 phase: "near-term"
@@ -38,3 +38,7 @@ recreated; this change only affects signatures typed from here on.
   with its canvas inside the pixel budget, a very long name computes down to the minimum, a short name
   clamps to the maximum, and bad input returns the minimum.
 - [ ] `npm run check:fast` is green.
+
+## Closed 2026-10-01
+
+Shipped in bc4019d (`typedSignatureFontPx`); main CI has been green since.
