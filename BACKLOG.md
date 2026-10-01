@@ -2,23 +2,23 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 5 up next, 21 then, 19 waiting, 10 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
+
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" | In progress |
 
 ### Waiting
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
-
-### Parked
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" |  |
 
 ## Sign: finish fill mode
 
