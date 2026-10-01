@@ -707,11 +707,21 @@ test.describe('find and redact (RED-02)', () => {
     // highlight's left edge sits at 100/612 of the page and its top just
     // above the cap height, 1pt of padding included.
     const pageCard = page.locator('[data-editor-page-card]').first();
-    const overlay = await getBox(pageCard.locator('.redact-draw-area'), 'page overlay');
-    const match = await getBox(pageCard.locator('[data-redact-find-match]').first(), 'first match');
-    expect(Math.abs((match.x - overlay.x) / overlay.width - 99 / 612)).toBeLessThan(0.01);
-    expect(Math.abs((match.y - overlay.y) / overlay.height - (792 - 713) / 792)).toBeLessThan(0.01);
-    expect(match.height / overlay.height).toBeGreaterThan(12 / 792);
+    // Find smoothly scrolls to the current match. Read both rectangles in the
+    // same browser evaluation so scrolling cannot move one between reads.
+    const matchWithinPage = await pageCard.evaluate((card) => {
+      const overlay = card.querySelector('.redact-draw-area')?.getBoundingClientRect();
+      const match = card.querySelector('[data-redact-find-match]')?.getBoundingClientRect();
+      if (!overlay || !match) throw new Error('Find match or page overlay has no bounding box');
+      return {
+        x: (match.x - overlay.x) / overlay.width,
+        y: (match.y - overlay.y) / overlay.height,
+        height: match.height / overlay.height,
+      };
+    });
+    expect(Math.abs(matchWithinPage.x - 99 / 612)).toBeLessThan(0.01);
+    expect(Math.abs(matchWithinPage.y - (792 - 713) / 792)).toBeLessThan(0.01);
+    expect(matchWithinPage.height).toBeGreaterThan(12 / 792);
 
     await page.locator('[data-redact-find-all]').click();
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);

@@ -84,6 +84,7 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | FONT-06 | P3 | [FONT-06](backlog/tasks/FONT-06.md) · Urdu in Nastaliq |
 | FONT-07 | P3 | [FONT-07](backlog/tasks/FONT-07.md) · Emoji |
 | FONT-08 | P3 | [FONT-08](backlog/tasks/FONT-08.md) · Second-font / missing-style research across every single-font script |
+| FONT-09 | P1 | [FONT-09](backlog/tasks/FONT-09.md) · RTL export mirrors paired punctuation (Bidi_Mirroring) |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |
 
 

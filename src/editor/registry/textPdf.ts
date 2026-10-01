@@ -12,11 +12,11 @@ import type { SerializeContext } from './types.ts';
 import { DEFAULT_LINE_HEIGHT_EM } from '../../constants/signGeometry.js';
 import { combCellCount, combCharacters, combCellCenterFraction, isComb } from '../text/comb.js';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
-import { composeHebrewClusters } from '../text/hebrewComposition.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting } from '../text/textTransforms.js';
 import { fieldTextInset, getEffectiveTextDirection, getTextAlign, hexToRgbFractions } from '../../lib/signHelpers.js';
 import { resolveTypography } from '../text/fonts.js';
-import { fontkitFont, shapedWidth, type BidiDirection } from '../text/textMetrics.ts';
+import { fontkitFont, type BidiDirection } from '../text/textMetrics.ts';
+import { layoutRun, shapedWidth } from '../text/shapeRun.ts';
 
 const gidHex = (id: number) => id.toString(16).toUpperCase().padStart(4, '0');
 
@@ -62,10 +62,11 @@ function fontDictionaryKey(page: PDFPage, pdfFont: PDFFont): PDFName {
 export function drawShapedRun(page: PDFPage, { text, pdfFont, size, x, y, color, direction }: { text: string; pdfFont: PDFFont; size: number; x: number; y: number; color: Color; direction?: BidiDirection }): void {
   const fk = fontkitFont(pdfFont);
   if (!fk) throw new Error('drawShapedRun requires a font with a reachable fontkit instance');
-  const composedText = composeHebrewClusters(text, (cp) => fk.hasGlyphForCodePoint(cp));
-  const { glyphs, positions } = fk.layout(composedText, undefined, undefined, undefined, direction);
+  const { glyphs, positions } = layoutRun(fk, text, direction);
   const scale = size / fk.unitsPerEm;
   const fontKey = fontDictionaryKey(page, pdfFont);
+  // Built from the typed `text`, never the mirrored ink: a searched or copied
+  // bracket must be the one that was typed.
   const actualText = direction === 'rtl' ? Array.from(text).reverse().join('') : text;
   const actualTextProps = page.doc.context.obj({ ActualText: PDFHexString.fromText(actualText) });
   const beginSpan = PDFOperator.of(
