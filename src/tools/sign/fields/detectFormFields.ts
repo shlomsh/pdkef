@@ -99,7 +99,10 @@ const inkSource: FieldSource = {
     return {
       combs: titleLineWritable(combs, { cells: [...cells, ...lines], checkboxes, textRuns, rules, maxHeight }),
       checkboxes,
-      cells: [...cells, ...lines],
+      // The cell and line detectors are untyped JS that infer `kind` as `string`; every kind they
+      // assign is in `DETECTOR_FIELD_KINDS` (FORM-23). Narrowed here, once, until they are
+      // `@ts-check`ed (FORM-29).
+      cells: [...cells, ...lines] as DetectedCell[],
     };
   },
 };
@@ -115,7 +118,8 @@ const widgetsSource: FieldSource = {
   name: 'widgets',
   async detect(page, { pageIndex }) {
     const { combs, cells } = detectWidgetRegions(page, pageIndex);
-    return { combs, checkboxes: [], cells };
+    // `formWidgets.js` assigns only 'text' here; see the matching note on `inkSource` (FORM-29).
+    return { combs, checkboxes: [], cells: cells as DetectedCell[] };
   },
 };
 
