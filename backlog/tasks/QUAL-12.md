@@ -1,11 +1,9 @@
 ---
 id: "QUAL-12"
 title: "Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "polish"
-horizon: "now"
-order: 1
 depends_on: ["QUAL-11"]
 ---
 

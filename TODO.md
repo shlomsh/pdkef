@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-16](backlog/tasks/RED-16.md) P3 · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes (in progress)
-
 ### Sign: finish fill mode
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too
@@ -34,7 +30,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [QUAL-12](backlog/tasks/QUAL-12.md) P3 · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback
 - [MERGE-18](backlog/tasks/MERGE-18.md) P2 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
 
 ## Waiting, by date
