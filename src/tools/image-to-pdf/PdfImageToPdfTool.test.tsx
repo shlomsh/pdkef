@@ -11,6 +11,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 function makeImageFile(name, type = 'image/png') {
   return new File(['fake-image-bytes'], name, { type });
@@ -170,5 +171,19 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(list).not.toBeNull();
     expect(createSpy).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledWith(list, expect.any(Object));
+  });
+
+  it('records what the person did, by name only, in order', async () => {
+    resetActionTrailForTests();
+    mount();
+    await loadFiles(['a.png', 'b.jpg']);
+    await act(async () => {
+      container.querySelector(`.${styles['remove-button']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(recentActions()).toEqual(['add_files', 'remove_file', 'export']);
   });
 });

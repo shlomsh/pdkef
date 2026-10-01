@@ -15,6 +15,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 let nextId = 0;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
@@ -73,6 +74,7 @@ export default function PdfImageToPdfTool() {
         });
         setStatus('idle');
         clearDownload();
+        recordAction('reorder');
       },
     });
     return () => sortableRef.current?.destroy();
@@ -94,6 +96,7 @@ export default function PdfImageToPdfTool() {
     setAnnouncement(
       `${newEntries.length} image${newEntries.length === 1 ? '' : 's'} added.`,
     );
+    recordAction('add_files');
   }, []);
 
   const removeEntry = useCallback((id: number) => {
@@ -107,6 +110,7 @@ export default function PdfImageToPdfTool() {
     });
     setStatus('idle');
     clearDownload();
+    recordAction('remove_file');
   }, []);
 
   const reset = useCallback(() => {
@@ -119,6 +123,7 @@ export default function PdfImageToPdfTool() {
     setRejectedFiles([]);
     clearDownload();
     setAnnouncement('Cleared. Add images to start again.');
+    recordAction('clear_all');
   }, []);
 
   const moveEntry = useCallback((id: number, delta: number) => {
@@ -141,9 +146,11 @@ export default function PdfImageToPdfTool() {
       if (event.key === 'ArrowUp') {
         event.preventDefault();
         moveEntry(id, -1);
+        recordAction('reorder');
       } else if (event.key === 'ArrowDown') {
         event.preventDefault();
         moveEntry(id, 1);
+        recordAction('reorder');
       }
     },
     [moveEntry],
@@ -154,10 +161,12 @@ export default function PdfImageToPdfTool() {
     setStatus('idle');
     clearDownload();
     setAnnouncement('Images reordered.');
+    recordAction('sort');
   }, []);
 
   const handleConvert = useCallback(async () => {
     if (entries.length === 0) return;
+    recordAction('export');
     setStatus('converting');
     setProgress(0);
     try {
@@ -179,6 +188,7 @@ export default function PdfImageToPdfTool() {
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement('PDF shared successfully.');
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
@@ -289,7 +299,7 @@ export default function PdfImageToPdfTool() {
 
           {status === 'done' && downloadUrl && (
             <>
-              <DownloadButton href={downloadUrl} download="images.pdf" />
+              <DownloadButton href={downloadUrl} download="images.pdf" onClick={() => recordAction('download')} />
               <PdfShareButton visible={shareReady} onShare={handleShare} />
             </>
           )}
