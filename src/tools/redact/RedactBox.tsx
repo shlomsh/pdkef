@@ -13,6 +13,7 @@ import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+import { boxKeyIntent, boxMovePatch, boxAriaLabel } from './boxKeys.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // MOBI-17: which corner of the bar actually touches the box it belongs to, so
@@ -190,6 +191,26 @@ export default function RedactBox({
   const toolbarElement = el.type === 'blurStroke'
     ? { ...el, type: 'blur' }
     : el.type === 'whiteoutStroke' ? { ...el, type: 'whiteout' } : el;
+  // RED-43: keyboard access. Key handling is boxKeys.ts's pure function; this
+  // only dispatches to the callbacks a click, the delete button and a drag
+  // release already use. Keys from the floating toolbar's controls are ignored.
+  const handleKeyDown = (e: any) => {
+    if (e.target !== e.currentTarget) return;
+    const intent = boxKeyIntent(
+      e.key,
+      { shift: e.shiftKey, ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey },
+      { isSelected, isStroke },
+    );
+    if (!intent) return;
+    e.preventDefault();
+    if (intent.kind === 'select') onSelect(el.id);
+    else if (intent.kind === 'deselect') onSelect('');
+    else if (intent.kind === 'delete') onDelete(el.id);
+    else {
+      const patch = boxMovePatch(el, intent.dx, intent.dy, pageWidthPoints ?? 0, pageHeightPoints ?? 0);
+      if (patch) onChange(el.id, patch);
+    }
+  };
   const surface = ELEMENT_RENDERERS[el.type as ElementType]({
     element: el,
     onChange: () => {},
@@ -246,6 +267,10 @@ export default function RedactBox({
       data-editor-shape={hasShapeHandles || undefined}
       data-peeking={peekAll || undefined}
       data-redact-box-id={el.id}
+      tabIndex={0}
+      role="group"
+      aria-label={boxAriaLabel(el.type)}
+      onKeyDown={handleKeyDown}
       onMouseDown={isStroke ? () => onSelect(el.id) : handlePress}
       onTouchStart={isStroke ? undefined : handlePress}
       onMouseEnter={onHoverEnter}
