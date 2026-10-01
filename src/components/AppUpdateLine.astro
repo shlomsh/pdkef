@@ -33,15 +33,12 @@ const messages = getAppUpdateMessages(lang);
     inset-inline-end: 1.5rem;
     max-inline-size: calc(100% - 32px);
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    column-gap: 0.3rem;
+    column-gap: 0.4rem;
     z-index: 80;
     padding: 0.25rem 0.7rem;
     font-size: 0.8rem;
     line-height: 1.4;
-    text-align: center;
     color: var(--color-muted);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
@@ -57,6 +54,8 @@ const messages = getAppUpdateMessages(lang);
       inset-inline: 0;
       margin-inline: auto;
       inline-size: max-content;
+      /* Two lines here: the sentence wraps, the dismiss stays beside it. */
+      border-radius: var(--radius-lg);
     }
   }
   .app-update[hidden] {
@@ -70,6 +69,7 @@ const messages = getAppUpdateMessages(lang);
   /* Hides the line in this tab until its next page load. The 44px hit area
      comes from ::before, so the visible button stays small. */
   .app-update-dismiss {
+    flex: none;
     position: relative;
     display: inline-flex;
     align-items: center;
