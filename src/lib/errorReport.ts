@@ -16,6 +16,7 @@ import {
 } from './errorReportSchema.ts';
 
 export * from './errorReportSchema.ts';
+import { recentActions } from './actionTrail.ts';
 
 /**
  * Failures of the environment or of the person's own file, never of our code:
@@ -60,7 +61,7 @@ export function toErrorReport(
 
 /**
  * The page facts, read at report time. Never throws; any fact it cannot read
- * falls back to the plainest value (`/`, false, false).
+ * falls back to the plainest value (`/`, false, false, no actions).
  */
 export function readPageContext(): PageContext {
   // One fact per guard: a browser missing one API keeps the other three.
@@ -71,6 +72,7 @@ export function readPageContext(): PageContext {
     installed: safely(() => matchMedia('(display-mode: standalone)').matches === true, false),
     sw: safely(() => Boolean(navigator.serviceWorker?.controller), false),
     age: safely(() => pageAge(performance.now()), 'under_10s' as const),
+    actions: safely(() => recentActions(), []),
   };
 }
 
