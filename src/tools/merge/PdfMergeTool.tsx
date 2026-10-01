@@ -4,6 +4,7 @@ import Sortable from 'sortablejs';
 import { Shrink, FileSignature } from 'lucide-preact';
 import { inspectPdf, MergeFileError } from './merge.js';
 import { hasDraftHint } from '../../lib/drafts/draftStore.js';
+import DraftRetentionHint from '../../shell/DraftRetentionHint';
 import {
   insertPages,
   isGrouped,
@@ -1501,7 +1502,14 @@ export default function PdfMergeTool({
                       <>
                         {t.pickedUp} <button type="button" class={railStyles['quiet-button']} onClick={requestClear}>{t.startFresh}</button>
                       </>
-                    ) : (draftStatusLabel ?? '\u00a0')}
+                    ) : draftStatusLabel ? (
+                      <>
+                        <span>{draftStatusLabel}</span>
+                        {draftState.draftSaveState !== 'error' && draftState.draftSaveState !== 'conflict' && (
+                          <DraftRetentionHint label={sm.draftRetentionInfo} />
+                        )}
+                      </>
+                    ) : '\u00a0'}
                   </div>
                 )}
 

@@ -471,27 +471,27 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/hmrc-sa100-2026.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/hmrc-sa100-2026-page6.json",
       "pageIndex": 5,
-      "note": "HMRC SA100 (2026) Self Assessment tax return, page TR 4 (tax reliefs, charitable giving, Blind Person's Allowance; 0-based pageIndex 5 of 10). Crown copyright, Open Government Licence v3.0. The first flat English form (FORM-16): annotated by eye, snapped to the page's ink, and checked by Shlomi against the overlay (2026-09-24). This page was picked because it carries all three of the form's answer shapes (amount boxes, tick boxes, a text box) and none of its 4 widgets. Each amount box is 11 separately painted squares: a '£' cell, 8 digit cells and 2 pre-printed '0' pence cells; the target is the 8 digit cells a person writes in. The detector reports no comb at all here: it emits 88 checkbox candidates, 8 per amount box, consistent with reading each digit square as a tick box, so all 11 amount targets are missed and those 88 squares are the false positives (plus one text cell). The 3 tick boxes and the text box are found. Source: https://assets.publishing.service.gov.uk/media/69c14d07cfa346b9d4704a8d/SA100-2026.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "note": "HMRC SA100 (2026) Self Assessment tax return, page TR 4 (tax reliefs, charitable giving, Blind Person's Allowance; 0-based pageIndex 5 of 10). Crown copyright, Open Government Licence v3.0. The first flat English form (FORM-16): annotated by eye, snapped to the page's ink, and checked by Shlomi against the overlay (2026-09-24). This page was picked because it carries all three of the form's answer shapes (amount boxes, tick boxes, a text box) and none of its 4 widgets. Each amount box is 11 separately painted squares: a '£' cell, 8 digit cells and 2 pre-printed '0' pence cells; the target is the 8 digit cells a person writes in. FORM-18 (2026-10-01): the detector now reads separately painted equal cells on one baseline as a comb (findSquareCombRuns), grouped by size and paint so the unfilled '£' and pence cells stay out; all 11 amount targets are found and the 88 tick-column false positives are gone (recall 26.7 -> 100, precision 4.3 -> 93.8). Before: no comb at all, 88 checkbox candidates, 8 per amount box. The 3 tick boxes and the text box are found. Source: https://assets.publishing.service.gov.uk/media/69c14d07cfa346b9d4704a8d/SA100-2026.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
       "targets": 15,
-      "candidates": 93,
-      "matched": 4,
-      "recall": 26.7,
-      "precision": 4.3,
+      "candidates": 16,
+      "matched": 15,
+      "recall": 100,
+      "precision": 93.8,
       "byKind": {
         "comb": {
-          "recall": 0,
+          "recall": 100,
           "targets": 11,
-          "found": 0,
-          "precision": null,
-          "candidates": 0,
-          "matchedCandidates": 0
+          "found": 11,
+          "precision": 100,
+          "candidates": 11,
+          "matchedCandidates": 11
         },
         "checkbox": {
           "recall": 100,
           "targets": 3,
           "found": 3,
-          "precision": 3.3,
-          "candidates": 91,
+          "precision": 100,
+          "candidates": 3,
           "matchedCandidates": 3
         },
         "text": {

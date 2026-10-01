@@ -2,24 +2,23 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 12 up next, 21 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 56 live: 7 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-16 | P3 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes | In progress |
-| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Consolidate Redact's state before it grows further | In progress |
 
 ### Waiting
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" |  |
 
 ## Sign: finish fill mode
 
@@ -31,7 +30,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | --- | --- | --- | --- |
 | SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too |  |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
-| SNG-17 | P1 | [SNG-17](backlog/tasks/SNG-17.md) · Fill mode keeps the toolbar in reach under iOS's native zoom | In progress. Needs Shlomi: A check on your iPhone |
 
 ### Then, in order
 
@@ -56,7 +54,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| FORM-18 | P1 | [FORM-18](backlog/tasks/FORM-18.md) · A comb drawn as separate squares is a comb, not a row of checkboxes |  |
 | FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |  |
 
 ### Then, in order
@@ -90,16 +87,15 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | Needs Shlomi: The telemetry governance call |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |  |
-| DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| QUAL-19 | P2 | [QUAL-19](backlog/tasks/QUAL-19.md) · Sign's corpus scoring test sets up inside its hook timeout under a full run |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |  |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open | Needs Shlomi: A ruling on updates with several tabs open |
-| MEM-11 | P2 | [MEM-11](backlog/tasks/MEM-11.md) · Surface the 28-day / 6-file retention limit in the UI, not just the FAQ |  |
 | ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it |  |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |  |
 
@@ -182,10 +178,10 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 6 done, 0 retired
-- Sign: finish fill mode: 0 done, 0 retired
-- Form detector accuracy: 0 done, 0 retired
-- Robustness and debt: 1 done, 0 retired
+- Redact: finish removal: 8 done, 0 retired
+- Sign: finish fill mode: 0 done, 1 retired
+- Form detector accuracy: 1 done, 0 retired
+- Robustness and debt: 3 done, 0 retired
 - Search and languages: 1 done, 0 retired
 - Polish: 1 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

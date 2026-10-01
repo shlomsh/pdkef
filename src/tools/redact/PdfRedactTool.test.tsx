@@ -712,9 +712,17 @@ describe('PdfRedactTool UI flow', () => {
         const { extractPageObjects } = await import('../../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
-        const doc = await PDFDocument.load(outBytes);
-        const { objects } = extractPageObjects(doc.getPage(0), 0);
-        expect(objects.map((o) => o.preview)).not.toContain('1');
+        // RED-16: previews come from the glyph read, not the parser, so read
+        // them the way the island does. The source has the "1" (the control
+        // that keeps this from passing vacuously); the export does not.
+        const { withPreviews } = await import('../../editor/adapters/pdf/objectPreviews.test-helper.js');
+        const previewsOf = async (bytes: Uint8Array) => {
+          const doc = await PDFDocument.load(bytes);
+          const { objects } = extractPageObjects(doc.getPage(0), 0);
+          return (await withPreviews(bytes, objects)).map((o: { preview?: string }) => o.preview);
+        };
+        expect(await previewsOf(new Uint8Array(fs.readFileSync(fixturePath)))).toContain('1');
+        expect(await previewsOf(outBytes)).not.toContain('1');
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -1710,6 +1718,32 @@ describe('PdfRedactTool UI flow', () => {
     });
   });
 
+  // Opens a second file over the loaded one and confirms the replace dialog.
+  async function openSecondFile(name: string): Promise<void> {
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    await act(async () => { setInputFiles(input, [makePdfFile(name)]); });
+    const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
+      .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
+    await act(async () => { confirmReplace.click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+  }
+
+  describe('opening another file (SNG-08)', () => {
+    it('leaves no tool armed, even one that was locked', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+
+      await openSecondFile('second.pdf');
+
+      const next = query<HTMLElement>(container, '.redact-draw-area');
+      expect(next.style.touchAction).toBe('auto');
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.active);
+    });
+  });
+
   describe('Escape disarms the tool', () => {
     it('disarms a one-shot armed tool and restores scrolling', async () => {
       const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
@@ -2295,6 +2329,26 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+
+    it('forgets the Find terms of the previous file when another file is opened (SNG-08)', async () => {
+      const seen: string[][] = [];
+      checkOverride.current = (args: { findTerms: Array<{ label: string }> }) => {
+        seen.push(args.findTerms.map((t) => t.label));
+        return { state: { status: 'idle' }, search: vi.fn() };
+      };
+      try {
+        await loadFileAndGetDrawArea();
+        await openFindAndSearch('jane doe');
+        await clickRedactAll();
+        expect(seen.at(-1)).toContain('jane doe');
+
+        await openSecondFile('second.pdf');
+
+        expect(seen.at(-1)).not.toContain('jane doe');
+      } finally {
+        checkOverride.current = null;
+      }
+    });
 
     it('gives every box added by Redact all one findSetId, offered as "All N from this search"', async () => {
       await loadFileAndGetDrawArea();

@@ -135,3 +135,16 @@ soon.
 ## 2026-10-01 board cleanup
 
 - Status blocked -> open. Part A (the shared flattener, replacing `sign.js`'s `getForm().flatten()`) ships now; Part B (the Flatten page) waits on the SEO-06 crawl gate and is tracked in this ticket's body.
+
+## 2026-10-01 decision: no Flatten inside Redact; Part B reduced
+
+Considered folding Flatten into Redact instead of a `/flatten/` page. Rejected as the tool's home:
+
+- A `flatten pdf` searcher wants forms and comments baked in with text still selectable. Redact's title, h1 and job are the opposite (rasterise so content cannot be recovered), so a keep-text mode there bounces the searcher the same way `/compress/` would.
+- Demand is noise-floor (Trends 1-2), so neither a new URL nor a new Redact mode is justified yet.
+
+What changes:
+
+- **Part A ships as written.** The shared flattener's `'image'` mode reuses Redact's rasteriser (so they cannot drift); `'keep-text'` is used by Sign's export.
+- **Part B becomes a copy change, no new URL.** Add a clause to Redact's FAQ entry "Do I need to flatten the PDF separately?" and to `/blur-vs-blackout-vs-delete-pdf/` naming the two meanings of "flatten": the page becomes an image (Redact), or fields are baked in with the text kept (Sign). Checked against the code, in voice, no em dashes.
+- **The `/flatten/` page is parked.** Revisit only after a Keyword Planner absolute-volume read (LOC-14 access) and the SEO-06 gate outcome are recorded here. The page scope above stays as the spec if it is ever built.
