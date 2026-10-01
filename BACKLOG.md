@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 2 up next, 16 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 17 then, 19 waiting, 7 parked.
 
 ## Redact: finish removal
 
@@ -61,12 +61,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -77,6 +71,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |  |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open | Needs Shlomi: A ruling on updates with several tabs open |
 | DEBT-25 | P3 | [DEBT-25](backlog/tasks/DEBT-25.md) · A guard so the next swallowed error is a decision, not an accident |  |
+| DEBT-26 | P3 | [DEBT-26](backlog/tasks/DEBT-26.md) · Rate-limit /api/report at the firewall, so a forged flood cannot spend the day's cap |  |
 | ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it |  |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |  |
 
@@ -149,7 +144,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 1 done, 1 retired
 - Form detector accuracy: 10 done, 0 retired
-- Robustness and debt: 3 done, 0 retired
+- Robustness and debt: 4 done, 0 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
