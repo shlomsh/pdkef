@@ -1,9 +1,11 @@
 /**
- * MEM-10: the update line's coordinator. Registers the service worker, shows
- * the quiet "a new version is ready" line when a worker is waiting beside a
- * controlling one, and on one click moves every open tab onto the new build
- * together, unless a tab has an export in flight (see
- * `src/lib/appUpdate/updateHolds.ts`).
+ * MEM-10: the update line's coordinator. Registers the service worker and
+ * shows the quiet "a new version is ready" line only when the worker cannot
+ * update silently: a waiting build, fully precached and online, beside several
+ * open tabs (one tab's navigation cannot switch builds under the others). A
+ * single tab never sees it; the worker switches builds on its next navigation.
+ * On one click every open tab moves onto the new build together, unless a tab
+ * has an export in flight (see `src/lib/appUpdate/updateHolds.ts`).
  *
  * Decisions are small pure functions; `startAppUpdates` is thin wiring over
  * injected dependencies so it runs against fakes in tests. No string lives
@@ -19,6 +21,8 @@ export const ACK_TIMEOUT_MS = 3000;
 export const RETRY_DELAY_MS = 1500;
 export const MAX_ATTEMPTS = 3;
 export const RECHECK_WAITING_MS = 5000;
+export const STATUS_TIMEOUT_MS = 2000;
+export const REFRESH_EVERY_MS = 60 * 1000;
 
 /**
  * 'ready': the Reload button. 'waiting': a tab has an export in flight; the
@@ -34,11 +38,17 @@ export type UpdateMessage =
   | { type: 'hold-query'; from: string; query: string }
   | { type: 'hold-answer'; to: string; from: string; query: string; held: boolean }
   | { type: 'hold-changed' }
-  | { type: 'update-waiting' };
+  | { type: 'update-waiting' }
+  | { type: 'tab-closed' };
 
 /** An update, never a first install: a waiting worker beside a controller. */
 export function isUpdateWaiting(reg: { waiting?: unknown } | null | undefined, controller: unknown): boolean {
   return !!reg?.waiting && !!controller;
+}
+
+/** The line is for several tabs on a build that is fully precached and reachable offline. */
+export function shouldShowLine({ ready, windows }: { ready: boolean; windows: number }): boolean {
+  return ready && windows > 1;
 }
 
 export interface Answer { from: string; held: boolean }
@@ -77,7 +87,8 @@ interface ChannelLike {
   postMessage(message: unknown): void;
   addEventListener(type: 'message', listener: (event: { data: UpdateMessage }) => void): void;
 }
-interface PortLike { onmessage: ((event: { data: { ok?: boolean } }) => void) | null }
+interface WorkerReply { ok?: boolean; ready?: boolean; windows?: number }
+interface PortLike { onmessage: ((event: { data: WorkerReply }) => void) | null }
 interface MessageChannelLike { port1: PortLike; port2: unknown }
 
 export interface AppUpdateDeps {
@@ -86,6 +97,7 @@ export interface AppUpdateDeps {
   createChannel: (name: string) => ChannelLike | null;
   reload: () => void;
   document: Pick<Document, 'visibilityState' | 'addEventListener'>;
+  window: { addEventListener(type: string, listener: () => void): void };
   setTimeout: (fn: () => void, ms: number) => unknown;
   clearTimeout: (id: unknown) => void;
   setInterval: (fn: () => void, ms: number) => unknown;
@@ -136,8 +148,41 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   if (!registered) return;
   const reg = registered;
 
-  function showIfWaiting() {
-    if (state === 'hidden' && isUpdateWaiting(reg, serviceWorker.controller)) setState('ready');
+  // One question to the waiting worker; null when it does not answer in time.
+  function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<WorkerReply | null> {
+    const mc = deps.createMessageChannel ? deps.createMessageChannel() : (new MessageChannel() as unknown as MessageChannelLike);
+    return new Promise<WorkerReply | null>((resolve) => {
+      const timer = deps.setTimeout(() => resolve(null), timeoutMs);
+      mc.port1.onmessage = (event) => {
+        deps.clearTimeout(timer);
+        resolve(event.data ?? {});
+      };
+      worker.postMessage(message, [mc.port2]);
+    });
+  }
+
+  function hideLine() {
+    state = 'hidden';
+    if (line) line.hidden = true;
+  }
+
+  // Show only when the worker cannot update silently (several tabs) and the
+  // waiting build is ready. Anything else hides: a single tab is updated at its
+  // next navigation, and a not-ready build leaves the old one working offline.
+  let refreshSeq = 0;
+  async function refreshLine(): Promise<void> {
+    if (reloading) return;
+    const seq = ++refreshSeq;
+    const worker = reg.waiting;
+    if (!worker || !serviceWorker.controller) {
+      hideLine();
+      return;
+    }
+    const reply = await ask(worker, { type: 'pdkef:update-status' }, STATUS_TIMEOUT_MS);
+    if (seq !== refreshSeq || reloading) return;
+    const show = shouldShowLine({ ready: !!reply?.ready, windows: reply?.windows ?? 0 });
+    if (!show) hideLine();
+    else if (state === 'hidden') setState('ready');
   }
 
   function collectAnswers(): Promise<Answer[]> {
@@ -147,18 +192,10 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     return sleep(ANSWER_WINDOW_MS).then(() => [...answers].map(([from, held]) => ({ from, held })));
   }
 
-  function postSkipWaiting(windows: number): Promise<boolean> {
+  function postSkipWaiting(windows: number): Promise<WorkerReply | null> {
     const worker = reg.waiting;
-    if (!worker) return Promise.resolve(false);
-    const mc = deps.createMessageChannel ? deps.createMessageChannel() : (new MessageChannel() as unknown as MessageChannelLike);
-    return new Promise<boolean>((resolve) => {
-      const timer = deps.setTimeout(() => resolve(false), ACK_TIMEOUT_MS);
-      mc.port1.onmessage = (event) => {
-        deps.clearTimeout(timer);
-        resolve(!!event.data?.ok);
-      };
-      worker.postMessage({ type: 'pdkef:skip-waiting', windows }, [mc.port2]);
-    });
+    if (!worker) return Promise.resolve(null);
+    return ask(worker, { type: 'pdkef:skip-waiting', windows }, ACK_TIMEOUT_MS);
   }
 
   async function requestUpdate(): Promise<void> {
@@ -173,7 +210,13 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
           post({ type: 'update-waiting' });
           return;
         }
-        if (await postSkipWaiting(decision.windows)) return;
+        const reply = await postSkipWaiting(decision.windows);
+        if (reply?.ok) return;
+        if (reply?.ready === false) {
+          // The build is not ready (or the device is offline): nothing to offer.
+          await refreshLine();
+          return;
+        }
         if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS);
       }
       if (!reloading) setState('blocked');
@@ -194,6 +237,8 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
       setState('waiting');
     } else if (message.type === 'hold-changed') {
       void recheckWaiting();
+    } else if (message.type === 'tab-closed') {
+      void refreshLine();
     }
   });
 
@@ -249,7 +294,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   function watchInstalling(worker: WorkerLike | null) {
     worker?.addEventListener?.('statechange', () => {
-      if (worker.state === 'installed') showIfWaiting();
+      if (worker.state === 'installed') void refreshLine();
     });
   }
   reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
@@ -261,11 +306,18 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     reg.update().catch(() => {});
   }
   doc.addEventListener('visibilitychange', () => {
-    if (doc.visibilityState === 'visible' && shouldCheckForUpdate(lastCheck, deps.now())) checkForUpdate();
+    if (doc.visibilityState !== 'visible') return;
+    void refreshLine();
+    if (shouldCheckForUpdate(lastCheck, deps.now())) checkForUpdate();
   });
   deps.setInterval(() => {
     if (doc.visibilityState === 'visible') checkForUpdate();
   }, CHECK_EVERY_MS);
 
-  showIfWaiting();
+  deps.window.addEventListener('online', () => { void refreshLine(); });
+  deps.window.addEventListener('offline', () => { void refreshLine(); });
+  deps.window.addEventListener('pagehide', () => post({ type: 'tab-closed' }));
+  deps.setInterval(() => { if (reg.waiting) void refreshLine(); }, REFRESH_EVERY_MS);
+
+  await refreshLine();
 }

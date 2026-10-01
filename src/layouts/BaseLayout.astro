@@ -116,14 +116,15 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
-          // MEM-10: registration plus the update line. The line only ever
-          // shows for an update (a waiting worker beside a controlling one).
+          // MEM-10: registration plus the update line. The line only shows
+          // when the worker cannot update silently (several open tabs).
           window.addEventListener('load', () => startAppUpdates({
             serviceWorker: navigator.serviceWorker,
             line: document.querySelector('[data-app-update]'),
             createChannel: (name) => ('BroadcastChannel' in window ? new BroadcastChannel(name) : null),
             reload: () => location.reload(),
             document,
+            window,
             setTimeout: (fn, ms) => window.setTimeout(fn, ms),
             clearTimeout: (id) => window.clearTimeout(id as number),
             setInterval: (fn, ms) => window.setInterval(fn, ms),
