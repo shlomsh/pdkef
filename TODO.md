@@ -37,5 +37,6 @@ _Nothing is up next._
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
+- [DEBT-28](backlog/tasks/DEBT-28.md) · Whether the usage funnel is wanted, and the privacy-page sentence for it
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 0 up next, 13 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 0 up next, 14 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -59,6 +59,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |  |
 | ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it |  |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |  |
+| DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | Needs Shlomi: Whether the usage funnel is wanted, and the privacy-page sentence for it |
 
 ### Waiting
 
