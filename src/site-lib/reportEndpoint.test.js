@@ -125,4 +125,73 @@ describe('/api/report stays silent', () => {
       });
     }
   });
+
+  describe('usage events', () => {
+    const usage = { name: 'tool_result_ready', properties: { tool: 'merge' } };
+    const postUsage = (value) =>
+      POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) }));
+    const answer = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
+
+    it('runs the usage cap, then exactly one HINCRBY on usage:<day>, never errors:total', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1));
+      expect((await postUsage(usage)).status).toBe(204);
+      const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
+      expect(calls).toHaveLength(2);
+      expect(calls[0][0]).toEqual(['INCR', expect.stringMatching(/^usage:total:\d{4}-\d{2}-\d{2}$/)]);
+      const commands = calls.flat();
+      const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
+      expect(hincrbys).toHaveLength(1);
+      expect(hincrbys[0][1]).toMatch(/^usage:\d{4}-\d{2}-\d{2}$/);
+      expect(hincrbys[0][2]).toBe('tool_result_ready|merge');
+      expect(JSON.stringify(commands)).not.toContain('errors:total');
+    });
+
+    // The caps are per warm instance; a fresh module is a fresh instance.
+    const freshPost = async () => {
+      vi.resetModules();
+      const { POST: fresh } = await import('../../api/report.ts');
+      return (value) => fresh(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) }));
+    };
+
+    it('does not count past the usage cap, and the next event makes no store call', async () => {
+      const send = await freshPost();
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1001));
+      expect((await send(usage)).status).toBe(204);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy.mock.calls[0][1].body).not.toContain('HINCRBY');
+      expect((await send(usage)).status).toBe(204);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the two caps apart: a capped error day still counts usage, and the reverse', async () => {
+      const respond = (capped) => async (_url, init) => {
+        const first = JSON.parse(init.body)[0][1];
+        return new Response(JSON.stringify([{ result: first.startsWith(capped) ? 9999 : 1 }, { result: 1 }]), { status: 200 });
+      };
+      const hincrbyKeys = (spy) =>
+        spy.mock.calls.flatMap(([, init]) => JSON.parse(init.body)).filter(([name]) => name === 'HINCRBY').map(([, key]) => key.split(':')[0]);
+
+      let send = await freshPost();
+      let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(respond('errors:'));
+      await send(report);
+      expect(hincrbyKeys(fetchSpy)).toEqual([]);
+      await send(usage);
+      expect(hincrbyKeys(fetchSpy)).toEqual(['usage']);
+
+      send = await freshPost();
+      fetchSpy.mockClear();
+      fetchSpy.mockImplementation(respond('usage:'));
+      await send(usage);
+      expect(hincrbyKeys(fetchSpy)).toEqual([]);
+      await send(report);
+      expect(hincrbyKeys(fetchSpy)).toEqual(['errors']);
+    });
+
+    it('answers 204 without calling out for an extra property', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch');
+      const extra = { ...usage, properties: { ...usage.properties, note: 'x' } };
+      expect((await postUsage(extra)).status).toBe(204);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
 });

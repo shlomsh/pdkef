@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DAILY_CAP,
+  USAGE_DAILY_CAP,
   capCommands,
   countCommands,
   dayKey,
@@ -8,6 +9,8 @@ import {
   eventCommands,
   readEnv,
   reportCommands,
+  usageCapCommands,
+  usageCommands,
 } from './errorReportStore.js';
 
 const report = {
@@ -58,7 +61,7 @@ describe('commands', () => {
       ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
     expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(6);
-    expect(DAILY_CAP).toBe(5000);
+    expect(DAILY_CAP).toBe(1000);
   });
 });
 
@@ -77,6 +80,21 @@ describe('eventCommands', () => {
     expect(eventCommands(event, 'ios-17', '2026-10-01')).toEqual([
       ['HINCRBY', 'events:2026-10-01', 'sign_form_detection|failure|not_started|ios-17', 1],
       ['EXPIRE', 'events:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+  });
+});
+
+describe('usage commands', () => {
+  it('counts a day total apart from errors, then one field under the day', () => {
+    expect(USAGE_DAILY_CAP).toBe(1000);
+    expect(usageCapCommands('2026-10-01')).toEqual([
+      ['INCR', 'usage:total:2026-10-01'],
+      ['EXPIRE', 'usage:total:2026-10-01', 90 * 24 * 60 * 60],
+    ]);
+    const event = { name: 'tool_result_ready', properties: { tool: 'merge' } } as const;
+    expect(usageCommands(event, '2026-10-01')).toEqual([
+      ['HINCRBY', 'usage:2026-10-01', 'tool_result_ready|merge', 1],
+      ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
   });
 });

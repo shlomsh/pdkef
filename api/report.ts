@@ -1,7 +1,7 @@
 // Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
 // and counts them in Upstash Redis (DEBT-17), keeping the latest example of
 // each (DEBT-27), and also counts Sign's maintenance events (counts only, no
-// sample). The second request-time component after middleware.ts; Astro
+// sample), and per-tool usage (counts only, no engine, no sample). The second request-time component after middleware.ts; Astro
 // itself stays output 'static' with no adapter, so this is a plain function
 // under api/. It never sees a PDF byte: a report is positions in our own code,
 // identifiers, flags and a bucket, validated by parseErrorReport.
@@ -15,14 +15,18 @@
 // day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
+import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
 import {
   DAILY_CAP,
+  USAGE_DAILY_CAP,
   capCommands,
   countCommands,
   dayKey,
   engineBucket,
   eventCommands,
   readEnv,
+  usageCapCommands,
+  usageCommands,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
 
@@ -47,6 +51,7 @@ async function pipeline(
 // The day the cap was last reached, per warm instance: past it, a flood of
 // forged reports costs no store calls at all.
 let cappedDay = '';
+let cappedUsageDay = '';
 
 export async function POST(request: Request): Promise<Response> {
   try {
@@ -57,10 +62,18 @@ export async function POST(request: Request): Promise<Response> {
     const json: unknown = JSON.parse(body);
     const report = parseErrorReport(json);
     const event = report ? null : parseMaintenanceEvent(json);
+    const usage = report || event ? null : parseUsageEvent(json);
     const store = readEnv(process.env);
-    if ((!report && !event) || !store) return NO_CONTENT();
+    if ((!report && !event && !usage) || !store) return NO_CONTENT();
 
     const day = dayKey(new Date());
+    if (usage) {
+      if (day === cappedUsageDay) return NO_CONTENT();
+      const [total] = await pipeline(store, usageCapCommands(day));
+      if (typeof total?.result === 'number' && total.result > USAGE_DAILY_CAP) cappedUsageDay = day;
+      else if (typeof total?.result === 'number') await pipeline(store, usageCommands(usage, day));
+      return NO_CONTENT();
+    }
     if (day === cappedDay) return NO_CONTENT();
     const [total] = await pipeline(store, capCommands(day));
     if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
