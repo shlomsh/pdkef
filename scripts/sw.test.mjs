@@ -938,7 +938,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
       const worker = build({ windows: [criticalWindow('a'), criticalWindow('frozen', 'never')] });
       const done = runCheck(worker);
       await settle();
-      await vi.advanceTimersByTimeAsync(64_999);
+      await vi.advanceTimersByTimeAsync(74_999);
       expect(worker.self.skipWaiting).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(1);
       await done;
@@ -1049,7 +1049,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
       await settle();
       expect(frozen.postMessage).toHaveBeenCalledWith(UPDATE, [expect.anything()]);
       expect(worker.self.skipWaiting).not.toHaveBeenCalled();
-      await vi.advanceTimersByTimeAsync(65_000);
+      await vi.advanceTimersByTimeAsync(75_000);
       expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
     } finally {
       vi.useRealTimers();

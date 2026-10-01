@@ -69,13 +69,14 @@ const BUSY_TIMEOUT_MS = 750;
 // MEM-13: a critical build tells every tab (CRITICAL_UPDATE_MESSAGE) and waits
 // for each to reply { ready: true } before it skips waiting. The page holds its
 // reply for an export in flight, at most 60s (CRITICAL_PAGE_CAP_MS in
-// appUpdate), so this cap sits just above it: a tab that never answers cannot
+// appUpdate), so this cap sits above it: a tab that never answers cannot
 // keep a fix from reaching everyone. The page sends CRITICAL_CHECK_MESSAGE to
 // the waiting worker after it looked for an update, so a tab nobody navigates
 // in still gets the fix.
 const CRITICAL_UPDATE_MESSAGE = 'pdkef:critical-update';
 const CRITICAL_CHECK_MESSAGE = 'pdkef:critical-check';
-const CRITICAL_TAKEOVER_CAP_MS = 65_000;
+// The page's own cap is 60s plus up to 3s of draft flush, so 75s leaves a 12s margin.
+const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 
 // Written into this build's cache once install precached every URL with none
 // missed. A waiting build may take over only when it is present: activation
@@ -537,7 +538,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(installed);
   // MEM-13: after install, not part of it, so a critical build's wait for the
   // tabs never holds the install open. A failed install forces nothing.
-  installed.then(afterInstallSettles).then(tryForcedTakeover, () => {});
+  installed.then(afterInstallSettles).then(tryForcedTakeover, () => {
+    // expected: a failed install is already reported by install itself; nothing to force.
+  });
 });
 
 self.addEventListener('activate', (event) => {
@@ -752,7 +755,7 @@ function tryForcedTakeover() {
   if (!forcing) {
     forcing = forceTakeover()
       .catch(() => {
-        // A failed force is retried by the next pdkef:critical-check.
+        // expected: a failed force is retried by the next pdkef:critical-check.
       })
       .finally(() => { forcing = null; });
   }
