@@ -83,7 +83,7 @@ document could never be opened (reported 2026-09-22 on iOS); Merge's "Compress" 
 Split's and Redact's "Compress" came back greyed out the same way. The hook clears the flag on a
 `pageshow` whose `persisted` is true, and only that one: an ordinary load fires `pageshow` after
 `load`, long after a `client:load` island is interactive, and clearing there would drop the flag out
-from under a hand-off still reading its file. No check enforces this yet (DEBT-21). **Two Playwright
+from under a hand-off still reading its file. `npm run test:navigating-away` enforces it (DEBT-21). **Two Playwright
 defaults hide the whole class, and each one on its own makes a guard pass against the bug**: the
 default headless `chromium` is chrome-headless-shell, which has no back/forward cache at all, and
 Playwright launches Chromium with `--disable-back-forward-cache` among its default switches (an
