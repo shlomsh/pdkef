@@ -1,11 +1,9 @@
 ---
 id: "RED-16"
 title: "One text reader: Delete's previews read their text from the glyph read, and the second decoder goes"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "redact"
-horizon: "now"
-order: 2
 depends_on: []
 ---
 
@@ -38,3 +36,5 @@ Done 2026-10-01 on `red16-one-reader`.
 - **Tests:** `deletePreviews.test.ts` (Latin, Hebrew visual and logical storage, number in Hebrew, outside glyph, no glyphs, run-end), `check/deletePreviews.corpus.test.js` (mid-run-hebrew and hebrew-rtl-line equal pdf.js's text in Find's order; the real Hebrew form's words are in pdf.js's order), `useObjectPreviews.test.tsx`; the editor delete tests that found a run by `preview` now go through `objectPreviews.test-helper.js`.
 - **Known edge:** a number with punctuation in a Hebrew line ("1.") reads ".1" by position, as in the saved-file check; pdf.js's bidi puts the dot after. Letters are right either way.
 - **Follow-up (island, not touched here):** pass `readPreviews: activeStyle === 'delete'` to `useDeleteTool` in `PdfRedactTool.tsx` so the text is read only once Delete is in use. Until then it is read when a file opens.
+
+Lead's check, 2026-10-01: against the old decoder, previews on the three real forms are the same or better (health declaration 438/844 both, the 406 blanks were blank before; IRS 1040 208/208 both; I-9 119 -> 123), and the two Hebrew fixtures read identically. The read starts when a file opens, not when Delete is armed: a delete box stores its preview at the click, and the saved-file check searches for it, so a late read would leave a quick first deletion unchecked. A finished read is reused when Delete is armed again.
