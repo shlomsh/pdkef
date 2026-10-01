@@ -8,8 +8,10 @@ export interface PageSizePt { width: number; height: number }
  * RED-24: each page's size in PDF points, as displayed (rotation applied),
  * so a blur box can size its on-screen blur from its own height in points,
  * the same way the export does. RED-32 adds the width, so a brush stroke is
- * round on a Letter page and an A4 page alike. Read only once `enabled` (a blur box exists);
- * pdf.js has already loaded the pages to draw them, so this costs no parsing.
+ * round on a Letter page and an A4 page alike, and RED-43's arrow keys move a
+ * box by points. Read only once `enabled` (a box or stroke exists, or a brush
+ * is armed); pdf.js has already loaded the pages to draw them, so this costs
+ * no parsing.
  */
 export default function usePageSizesPt(
   pdfDocument: PDFDocumentProxy | null,

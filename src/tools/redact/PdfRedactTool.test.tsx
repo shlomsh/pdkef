@@ -1814,6 +1814,51 @@ describe('PdfRedactTool UI flow', () => {
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
   }
 
+  // RED-52: RED-43's keyboard move needs the page size in points, which the
+  // island only read when a blur box or brush was around. Never arm Blur or a
+  // brush here: that is the one condition under which the bug shows.
+  describe('RED-52: arrow keys move a whiteout or blackout box on a document with no blur', () => {
+    for (const label of ['Whiteout', 'Blackout']) {
+      it(`${label}: two ArrowDown presses move it two points and one undo puts it back`, async () => {
+        const drawArea = await loadFileAndGetDrawArea();
+        await armTool(label);
+        await drawBox(drawArea, 50, 200, 200, 500);
+
+        const findBox = () => required(
+          container.querySelector<HTMLElement>(`[role="group"][aria-label="${label} box"]`),
+          `${label} box`
+        );
+        // The island starts reading page sizes when the first box appears, and
+        // the mocked pdf.js answers with settled promises: one task later the
+        // read has landed, as it has long before a person reaches for a key.
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        // Reach it the way a keyboard user does: focus, then Enter selects.
+        await act(async () => {
+          findBox().focus();
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+        expect(findBox().className).toContain(redactStyles.selected);
+
+        const before = parseFloat(findBox().style.top);
+        const onePointPct = (1 / 792) * 100;
+        for (let press = 0; press < 2; press += 1) {
+          await act(async () => {
+            findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          });
+        }
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + 2 * onePointPct, 4);
+
+        // RED-43: consecutive moves coalesce into a single undo entry.
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+        });
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before, 4);
+      });
+    }
+  });
+
   // The mobile scroll fix itself (see the touchAction comment in
   // PdfRedactTool.tsx's page-wrapper style, and CLAUDE.md's "Sign editor
   // positioning" notes for the sibling Sign-tool pattern this mirrors). Before
