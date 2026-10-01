@@ -51,6 +51,15 @@ const PRECACHE_CONCURRENCY = 6;
 // and export session".
 const FONT_PACK_MARKER_PATH = '/__pdkef/offline-font-pack/';
 const SKIP_WAITING_MESSAGE = 'pdkef:skip-waiting';
+const UPDATE_STATUS_MESSAGE = 'pdkef:update-status';
+
+// Written into this build's cache once install precached every URL with none
+// missed. A waiting build may take over only when it is present: activation
+// deletes the old cache, so taking over with a gap would lose offline coverage
+// the old build had. See readyToTakeOver.
+const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
+// How long the silent takeover waits for the waiting worker's answer.
+const TAKEOVER_TIMEOUT_MS = 1000;
 const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
@@ -157,6 +166,18 @@ async function precacheAppShell() {
   if (missed.length > 0) {
     console.warn(`[pdkef] ${missed.length}/${urls.length} assets are not cached for offline use; they will load from the network.`);
   }
+  return missed.length;
+}
+
+// A build is ready to take over from the previous one only when it is fully
+// precached and the device is online. Offline, activation could not
+// re-provision anything (localized page packs are deliberately not migrated,
+// see LOCALE_PACK_MARKER_PATH), so the old build's offline coverage would be
+// lost for good.
+async function readyToTakeOver() {
+  const cache = await caches.open(CACHE_VERSION);
+  const complete = !!await cache.match(resolve(PRECACHE_COMPLETE_PATH));
+  return complete && self.navigator?.onLine !== false;
 }
 
 async function removeSelf() {
@@ -420,7 +441,11 @@ self.addEventListener('install', (event) => {
   // page that is still running the previous one just because it installed.
   // Activation is requested later by SKIP_WAITING_MESSAGE. See handleSkipWaiting.
   event.waitUntil(
-    precacheAppShell().catch(async (error) => {
+    precacheAppShell().then(async (missed) => {
+      if (missed !== 0) return;
+      const cache = await caches.open(CACHE_VERSION);
+      await cache.put(resolve(PRECACHE_COMPLETE_PATH), new Response('ok'));
+    }).catch(async (error) => {
       if (error instanceof OrphanedWorkerError) {
         // Uninstall rather than stay resident. A worker left over from a
         // `npm run preview` kept serving that build's assets cache-first to the
@@ -467,20 +492,72 @@ self.addEventListener('activate', (event) => {
 // example a tab still running a build from before MEM-10 that has no
 // controllerchange reload: that tab must keep its cache, so the worker keeps
 // waiting as before. Non-http(s) windows (blob: documents) are not counted.
+async function httpWindows() {
+  return (await self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+    .filter((client) => /^https?:$/.test(new URL(client.url).protocol));
+}
+
+async function countWindows() {
+  return (await httpWindows()).length;
+}
+
+// A waiting build also refuses unless readyToTakeOver(): fully precached and
+// online, so activation never costs the device offline coverage.
 async function handleSkipWaiting(event) {
   const reply = event.ports?.[0];
   const answered = event.data?.windows;
-  const windows = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
-    .filter((client) => /^https?:$/.test(new URL(client.url).protocol));
-  const ok = Number.isInteger(answered) && answered >= 1 && windows.length <= answered;
+  const windows = await countWindows();
+  const ready = await readyToTakeOver();
+  const ok = Number.isInteger(answered) && answered >= 1 && windows <= answered && ready;
   if (ok) await self.skipWaiting();
-  reply?.postMessage({ ok, windows: windows.length });
+  reply?.postMessage({ ok, windows, ready });
+}
+
+async function handleUpdateStatus(event) {
+  event.ports?.[0]?.postMessage({ ready: await readyToTakeOver(), windows: await countWindows() });
+}
+
+// Active worker, on a navigation: if a build is waiting and this is the only
+// open tab, take over silently and answer with a refresh so the browser asks
+// the new worker for the page. The tab is leaving its page anyway, so no live
+// page runs against the cache activation deletes. The worker cannot see which
+// client a navigation comes from, so "the one window is focused" is how it
+// tells the navigating tab (a reload, a link, opening a recent file) from a
+// second tab being opened. The waiting worker's own readiness check keeps
+// offline intact. This is the only path that updates a single tab, which
+// therefore never sees the update line. Returns a Response, or null to fall
+// through to the normal navigation handling.
+async function trySilentTakeover() {
+  try {
+    const waiting = self.registration?.waiting;
+    if (!waiting) return null;
+    const windows = await httpWindows();
+    if (windows.length !== 1 || !windows[0].focused) return null;
+    const channel = new MessageChannel();
+    const reply = new Promise((resolvePromise) => {
+      channel.port1.onmessage = (message) => resolvePromise(message.data);
+      setTimeout(() => resolvePromise(null), TAKEOVER_TIMEOUT_MS);
+    });
+    waiting.postMessage({ type: SKIP_WAITING_MESSAGE, windows: 1 }, [channel.port2]);
+    const answer = await reply;
+    channel.port1.close();
+    if (!answer?.ok) return null;
+    return new Response('<!doctype html><meta http-equiv="refresh" content="0">', {
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Refresh': '0', 'Cache-Control': 'no-store' },
+    });
+  } catch {
+    return null;
+  }
 }
 
 self.addEventListener('message', (event) => {
   const type = event.data?.type;
   if (type === SKIP_WAITING_MESSAGE) {
     event.waitUntil(handleSkipWaiting(event));
+    return;
+  }
+  if (type === UPDATE_STATUS_MESSAGE) {
+    event.waitUntil(handleUpdateStatus(event));
     return;
   }
   const isFontPack = [FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type);
@@ -515,8 +592,10 @@ self.addEventListener('fetch', (event) => {
   // /sign/?action=open receives cached /sign/ while location.search remains
   // available to the hydrated client code.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      caches.open(CACHE_VERSION).then(async (cache) => {
+    event.respondWith((async () => {
+      const takeover = await trySilentTakeover();
+      if (takeover) return takeover;
+      return caches.open(CACHE_VERSION).then(async (cache) => {
         const cacheKey = navigationCacheKey(request);
         const cached = await cache.match(cacheKey);
         if (cached) {
@@ -525,8 +604,8 @@ self.addEventListener('fetch', (event) => {
         }
         const response = await refreshNavigation(request, cache, cacheKey);
         return response ?? cache.match('/');
-      }),
-    );
+      });
+    })());
     return;
   }
 
