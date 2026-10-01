@@ -10,7 +10,7 @@ paths:
   - "scripts/check-css-duplication.js"
   - "scripts/check-editor-global-css.js"
   - "scripts/check-page-weight.js"
-  - "docs/E2.*"
+  - "docs/archive/E2.*"
 ---
 
 
@@ -81,6 +81,11 @@ are CSS. A color-only change needs only a dev-server check.
   `@theme` is `static` because the editor's CSS Modules read `--shadow-sm`, `--ease-out`,
   `--radius-md` and the `--font-weight-*` steps, which Tailwind cannot see; tree-shaking them would make
   their presence depend on an unrelated `.astro` file using the same utility (580 bytes a page).
+- **`transition-[...]` sets `transition-property` only, never the shorthand.** A comma list of
+  properties is fine (`transition-[width,opacity] duration-[180ms]`); one with a duration baked in
+  (`transition-[opacity_150ms]`) compiles to an invalid property list and the browser drops the whole
+  declaration, so the home tiles did not animate for two epics with no error. Check the compiled CSS,
+  not the class string.
 - **Utilities are compiled per page family (ARCH-13).** Five entry sheets in `src/styles/` (`homePage`,
   `toolPage`, `contentPage`, `licensesPage`, `notFoundPage`) each import `global.css`, then
   `tailwindcss/utilities.css` with `source(none)`, then an explicit `@source` list of the markup that
@@ -94,6 +99,11 @@ are CSS. A color-only change needs only a dev-server check.
   is that `:focus-visible { border-radius: 4px }` in `global.css` no longer beats module radii, so a
   focused editor card keeps its 16px shape; no element loses a focus ring. Kept on purpose: the old
   precedence was an accident of order.
+- **The E2.2 CSS-Modules branch was re-implemented on `main`, not merged (`a825e33`).** `main` had
+  restructured `PdfRedactTool` so far that a trial merge in a throwaway worktree kept both versions of
+  the success block and orphaned download UI. Only the `.module.css` files and `global.css` deletions
+  were reused; the class swaps were redone on top of `main`. A long-lived styling branch that touches
+  every island is rebuilt that way, not merged.
 
 ## `build.inlineStylesheets: 'always'` is a measured decision
 

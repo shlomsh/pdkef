@@ -3,7 +3,7 @@
 For the paid native Indonesian reviewer. This is the English skeleton of one page; the reviewer
 writes the Indonesian, picks the H1 and slug from the measured keyword family, checks every portal
 quote against the portal, and is named in the page's front matter. Ticket:
-[backlog/tasks/LOC-15.md](../backlog/tasks/LOC-15.md), which holds the sources, the measurements and
+[backlog/tasks/LOC-15.md](../../backlog/tasks/LOC-15.md), which holds the sources, the measurements and
 the reasoning behind every constraint below. Nothing here is final copy; it is the shape and the
 facts.
 
