@@ -34,7 +34,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Polish
 
-- [QUAL-12](backlog/tasks/QUAL-12.md) P3 · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback
 - [MERGE-18](backlog/tasks/MERGE-18.md) P2 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
 
 ## Waiting, by date
