@@ -1,11 +1,9 @@
 ---
 id: "DEBT-20"
 title: "Every tool page ships the whole of pdf-lib before anyone opens a file"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
-order: 3
 depends_on: []
 ---
 
@@ -254,3 +252,44 @@ performance; justify it with the 1,250 ms.
 ## 2026-10-01 board cleanup
 
 - Stays in_progress. Phase 1 shipped in 643fc21; left: the PageSpeed TBT re-run and the phase 2 trace.
+
+## 2026-10-01 Phase 2 trace: the CSS is not the cost (lab result, PageSpeed still to confirm)
+
+Headless Chromium (Playwright, CDP `Tracing`), production build of `main` + `npm run preview`,
+`/redact/` at 1350x940, trace started before navigation and held 4s after `load`. Hydration happened
+(449 DOM elements). Style and layout events summed from the trace:
+
+| CPU throttle | UpdateLayoutTree | Layout | Style recalcs / layouts |
+| --- | ---: | ---: | --- |
+| 1x | 8 ms | 7 ms | 6 / 2 (one full 411-element recalc of 7.3 ms, one full 495-object layout of 7.4 ms) |
+| 4x | 15 ms | 58 ms | all recalcs under 8 ms each |
+
+No long animation frames or long tasks at 1x. Even at 4x, style plus layout is under 75 ms against
+Lighthouse's 995 ms, so DOM size, the 104 KB of inline CSS and the 618 rules do not account for it, and
+there is no forced synchronous layout in the hydration path. The 995 ms is therefore most likely an
+artefact of how Lighthouse attributes time under its tracing and throttling, not a cost a visitor pays.
+Nothing in CSS or DOM should change on the strength of it.
+
+Not yet done: a trace from the PageSpeed machine itself. The Phase 1 TBT re-run on `/redact/` desktop
+settles whether the 1,250 ms was mostly pdf-lib (gone now) or something else. If TBT lands low, close
+Phase 2 as "not this". Scripts: the throwaway harness was kept in the session scratchpad only.
+
+## 2026-10-01 PageSpeed re-run on the live `/redact/`: closed
+
+Report of 2026-10-01 14:24, https://pdkef.com/redact/, after Phase 1 (643fc21) deployed:
+
+| | Mobile | Desktop |
+| --- | ---: | ---: |
+| Performance | 100 | 100 |
+| FCP / LCP | 0.9s / 0.9s | 0.3s / 0.3s |
+| **TBT** | **0 ms** (was 70 ms) | **0 ms** (was 1,250 ms) |
+| CLS | 0 | 0 |
+| Speed Index | 1.8s | 0.3s |
+
+The 1,250 ms was the pdf-lib parse and evaluation burst, and it is gone. That also settles Phase 2: with
+TBT at zero the 995 ms of Style & Layout was a measurement artefact, as the lab trace above showed, so
+the phase closes as "not this" and no CSS or DOM change was made. Both phases are done.
+
+Found in passing, not part of this ticket: desktop Accessibility is 96, one failure, "Background and
+foreground colors do not have a sufficient contrast ratio" on `p.privacy-line` ("Private. Files never
+leave your device.") inside the empty-state dropzone (`src/shell/Dropzone.module.css`).
