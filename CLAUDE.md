@@ -8,7 +8,7 @@ short: it holds what every agent needs in every session. Everything else is load
   rule covers what. If you are working from a prompt alone, open the relevant rule before editing.
 - **[docs/troubleshooting.md](./docs/troubleshooting.md)** - read *before* debugging when an island
   silently does nothing, a whole Playwright suite goes red at once, or hydration dies on `'__H'`.
-- **[TODO.md](./TODO.md)** - the single backlog (generated from `backlog/tasks/`). No task state here.
+- **[TODO.md](./TODO.md)** - what's next across the board, generated from `backlog/tasks/`; [BACKLOG.md](./BACKLOG.md) holds every lane. No task state here.
 - **[README.md](./README.md)** - for humans and the GitHub landing page, not agent guidance.
 - **`docs/`** - design records for individual pieces of work, linked from the rule that needs them.
   [docs/sign-tool-product-decisions.md](./docs/sign-tool-product-decisions.md) is the confirmed Sign
