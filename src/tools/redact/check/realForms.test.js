@@ -218,7 +218,10 @@ describe('RED-17 real forms: a covered word followed to its repeats', () => {
   it('IRS 1040 (2024): a covered term repeated across its two pages', async () => {
     const picked = await runFormCheck('real-world-irs-1040-2024.pdf');
     expect(picked.coveredPageIndex).not.toBe(picked.otherPageIndex);
-  });
+    // QUAL-17: ~1.4s alone (about 1.0s is the pick loop: pdf.js cold start plus
+    // 15 candidate words through findMatches), but over the 5s default when the
+    // whole suite runs in parallel. Nothing cheaper to trim without weakening it.
+  }, 30000);
 
   it('USCIS I-9 (2025): a covered term repeated across its four pages', async () => {
     const picked = await runFormCheck('real-world-uscis-i9-2025.pdf');
