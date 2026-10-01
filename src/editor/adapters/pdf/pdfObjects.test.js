@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFNumber, StandardFonts } from '@cantoo/pdf-lib';
 import { collectCheckboxGlyphs, extractPageObjects } from './pdfObjects.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 
 /** One page whose content stream is `stream`, with `fonts` as its /Font resources. */
 async function pageWith(stream, fonts) {
@@ -62,7 +63,7 @@ describe('collectCheckboxGlyphs', () => {
 });
 
 describe('extractPageObjects', () => {
-  it('reorders a text run whose glyphs decode to Hebrew in visual (drawing) order', async () => {
+  it('previews a text run whose glyphs decode to Hebrew in visual (drawing) order in reading order', async () => {
     // The content stream shows codes 41 42 43 44, which this ToUnicode CMap
     // maps to ף ג א ה in that order: the drawing order a PDF actually uses
     // for RTL text, not the reading order "האגף".
@@ -82,6 +83,8 @@ describe('extractPageObjects', () => {
       };
     });
     const { objects } = extractPageObjects(page, 0);
-    expect(objects.filter((o) => o.kind === 'text').map((o) => o.preview)).toEqual(['האגף']);
+    expect(objects.filter((o) => o.kind === 'text').map((o) => o.preview)).toEqual([undefined]);
+    const previewed = await withPreviews(await page.doc.save(), objects);
+    expect(previewed.filter((o) => o.kind === 'text').map((o) => o.preview)).toEqual(['האגף']);
   });
 });

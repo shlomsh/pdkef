@@ -5,7 +5,6 @@ import {
   applyMatrix,
   transformedUnitBox,
 } from './contentStream.js';
-import { visualToLogical } from './visualOrder.js';
 
 /**
  * Finds the discrete drawing operations on a page and where they live in its
@@ -102,11 +101,13 @@ export function getPageContentBytes(page) {
 }
 
 /**
- * Parses a `ToUnicode` CMap far enough to preview what a run says.
+ * Parses a `ToUnicode` CMap far enough to recognise a checkbox glyph
+ * (`isCheckboxGlyph`), the one thing this module still needs a code's Unicode
+ * value for. What a text object says is no longer decoded here: Delete's
+ * preview comes from the glyph read (RED-16, `deletePreviews.ts`).
  *
- * Only `bfchar` and `bfrange` are handled. A miss yields no preview rather than
- * a wrong one, which matters: the preview is what the user checks before
- * deleting, so a plausible-but-wrong string is worse than none.
+ * Only `bfchar` and `bfrange` are handled. A miss means the code is not taken
+ * for a checkbox.
  */
 function parseToUnicode(bytes) {
   const map = new Map();
@@ -664,7 +665,6 @@ export function extractPageObjects(page, pageIndex = 0) {
     let rise = 0;
     let runMin = null;
     let runMax = null;
-    let preview = '';
 
     const num = (index) => {
       const token = operands[index];
@@ -711,10 +711,6 @@ export function extractPageObjects(page, pageIndex = 0) {
           width: Math.max(...xs) - Math.min(...xs),
           height: Math.max(...ys) - Math.min(...ys),
         });
-
-        const mapped = font?.toUnicode.get(code);
-        if (mapped !== undefined) preview += mapped;
-        else if (!font?.twoByte) preview += String.fromCharCode(code);
 
         tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
       }
@@ -779,7 +775,6 @@ export function extractPageObjects(page, pageIndex = 0) {
           tlm = IDENTITY;
           runMin = null;
           runMax = null;
-          preview = '';
           break;
 
         case 'ET':
@@ -787,9 +782,6 @@ export function extractPageObjects(page, pageIndex = 0) {
             objects.push({
               kind: 'text',
               pageIndex,
-              // The content stream draws RTL glyphs in drawing (visual) order,
-              // not reading order, so the preview needs reordering for display.
-              preview: visualToLogical(preview),
               formPath,
               bbox: {
                 x: runMin[0],
