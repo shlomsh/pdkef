@@ -1,13 +1,12 @@
 ---
 id: "DEBT-17"
 title: "We cannot see what breaks in production, and a day proved it"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "now"
 order: 1
 depends_on: []
-needs: "The telemetry governance call"
 ---
 
 # DEBT-17 · We cannot see what breaks in production, and a day proved it
@@ -77,6 +76,20 @@ third-party origin appearing in `connect-src`?**
 - **The four-state shape is worth reusing**: never ran (and which precondition was unmet), modules
   could not load, ran and threw, ran and found nothing. Collapsing those into "failed" is what made
   this bug opaque.
+
+## Decision (2026-10-01)
+
+Shlomi's call: **extend the existing same-origin maintenance transport with one `client_error`
+event.** `connect-src 'self'` is untouched and the published sentence stays literally true.
+
+What the event carries, and nothing else: a feature `area` off a closed list, the error's name (an
+identifier, `formDetectionDetail.ts`'s rule), the top stack frame inside `/_astro/`, and the build's
+short commit id. **No message at all**, not even an engine one: the frame names the line, which is
+what the WebKit snippet was standing in for, and a message is the one field that has ever leaked.
+
+Rejected: a same-origin tunnel to a self-hosted collector (needs a request-time component we do not
+otherwise have, plus a server to run), and a self-hosted collector behind our origin (the same, with
+more to operate). Both carry more than this needs for a question that is "what threw, where".
 
 ## Scope and acceptance
 
