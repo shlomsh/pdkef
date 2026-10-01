@@ -1,15 +1,15 @@
 ---
 id: "DEBT-25"
 title: "A guard so the next swallowed error is a decision, not an accident"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 3
 depends_on: ["DEBT-17"]
 ---
 
 # DEBT-25 · A guard so the next swallowed error is a decision, not an accident
+
+*Retired 2026-10-01: folded back into DEBT-27, which owns the outcome. Split off, it let DEBT-27 close with a gap in "track, reproduce, fix". The work and its evidence are recorded there.*
 
 *Filed 2026-10-01, out of DEBT-17.* DEBT-17 sorted 152 catches into 106 expected and 46 defects
 (`docs/debt-17-catch-triage.md`) and wrote the rule in `.claude/rules/tools-and-shell.md`. A rule

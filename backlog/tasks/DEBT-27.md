@@ -32,13 +32,36 @@ own code, a closed list, a bucket or a flag.
 
 ## Acceptance
 
-- [ ] Schema, browser reporter and endpoint carry the fields above and nothing else, adversarially
+DEBT-27 owns the outcome, not a slice of it: an error like 2026-09-20's is tracked, reproduced and
+fixed in a close loop, in production. Three tickets split off from DEBT-17 (DEBT-24, -25, -26) were
+each a gap in that loop and are folded back in here.
+
+The reports themselves:
+
+- [x] Schema, browser reporter and endpoint carry the fields above and nothing else, adversarially
       tested as DEBT-17's were.
-- [ ] Every one of DEBT-17's 46 call sites passes a step.
-- [ ] `errors:read` shows a sample per fingerprint; `errors:resolve` maps a whole stack.
-- [ ] The endpoint stays silent on every failure (DEBT-17's test, kept green).
-- [ ] Disclosure updated wherever DEBT-17 disclosed, and still literally true.
-- [ ] Sabotage-checked in a production build and against the real store; reviewed fresh.
+- [x] Every one of DEBT-17's 46 call sites passes a step.
+- [x] `errors:read` shows a sample per fingerprint; `errors:resolve` maps a whole stack.
+- [x] The endpoint stays silent on every failure (DEBT-17's test, kept green).
+- [x] Disclosure updated wherever DEBT-17 disclosed, and still literally true.
+- [x] Sabotage-checked in a production build and against the real store; reviewed fresh
+      (`check:push` green on `9a0626ea`).
+
+The loop, end to end:
+
+- [ ] **Failures that throw nothing are visible too** (was DEBT-24). Two of the four ways Sign ends
+      with no fields (`not_started`, `modules_unavailable`) never throw, so only Sign's maintenance
+      events show them, and those went to Vercel custom events, which Hobby drops. They now go to
+      `/api/report` and `errors:read` prints them by browser family.
+- [ ] **The next swallowed error is a decision** (was DEBT-25): a CI ratchet on catches that neither
+      report, rethrow nor say `// expected:`.
+- [ ] **A flood cannot blind it** (was DEBT-26): a per-IP rate limit on `/api/report` at Vercel's
+      firewall if Hobby has one; if not, recorded here with what stands instead.
+- [ ] The drill passes again on the final code, not the code it first ran on.
+- [ ] Real iOS Safari (Simulator, the broken build) delivers a report whose frames resolve to the
+      cause, so the drill's one limit (Playwright WebKit keeps more async frames) is measured.
+- [ ] After the push, a report sent to production lands in the live store and `errors:read` shows
+      it; then it is deleted.
 
 ## The drill: would this have cracked the bug that started DEBT-17? (2026-10-01)
 
