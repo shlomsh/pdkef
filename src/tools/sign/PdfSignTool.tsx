@@ -60,6 +60,7 @@ import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -888,6 +889,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         console.error(err);
         return;
       }
+      reportError('sign_export', err);
       reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);

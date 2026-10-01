@@ -15,6 +15,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
 import { getPdfRenderContext } from '../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 let pdfjsLib: any;
 async function getPdfjs() {
@@ -184,6 +185,7 @@ export default function PdfSplitTool({
         setStatus('ready');
       } catch (err) {
         if (prepareSeq.current !== seq) return;
+        reportError('pdf_tool_run', err);
         console.error(err);
         setStatus('error');
         setAnnouncement('Could not prepare the split PDF.');
@@ -269,12 +271,14 @@ export default function PdfSplitTool({
             current.map((p) => (p.pageNumber === i ? { ...p, thumbnail: url } : p)),
           );
         } catch (err) {
+          reportError('pdf_render', err);
           console.error(`Error rendering thumbnail for page ${i}:`, err);
         }
       }
 
       run.settle();
     } catch (err) {
+      reportError('pdf_render', err);
       console.error('Error loading PDF document:', err);
       if (!run.isCurrent()) return;
       setStatus('error');

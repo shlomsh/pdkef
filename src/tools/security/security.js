@@ -1,4 +1,5 @@
 import { getPdfLib } from '../../lib/pdfLib.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 export class SecurityError extends Error {
   constructor(message) {
@@ -75,6 +76,7 @@ export async function protectPdf(file, password) {
     const protectedBytes = await pdfDoc.save();
     return new Blob([protectedBytes], { type: 'application/pdf' });
   } catch (err) {
+    reportError('pdf_tool_run', err);
     throw new SecurityError('Failed to protect the PDF.');
   }
 }
