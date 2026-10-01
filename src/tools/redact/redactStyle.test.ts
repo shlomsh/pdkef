@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { resolveRedactBlurStrength, resolveWhiteoutColor } from './redactStyle.ts';
 
 describe('resolveWhiteoutColor (RED-40)', () => {
@@ -13,10 +14,10 @@ describe('resolveWhiteoutColor (RED-40)', () => {
 
 describe('resolveRedactBlurStrength (RED-40)', () => {
   it('prefers the document, then the app style, then the legacy preference, then the default', () => {
-    expect(resolveRedactBlurStrength({ blurStrength: 0.2 }, { blurStrength: 0.5 }, 0.6)).toBe(0.2);
-    expect(resolveRedactBlurStrength({}, { blurStrength: 0.5 }, 0.6)).toBe(0.5);
-    expect(resolveRedactBlurStrength(undefined, {}, 0.6)).toBe(0.6);
-    expect(resolveRedactBlurStrength(undefined, {})).toBe(0.4);
+    expect(resolveRedactBlurStrength({ blurStrength: 0.2 }, { blurStrength: 0.45 }, 0.5)).toBe(0.2);
+    expect(resolveRedactBlurStrength({}, { blurStrength: 0.45 }, 0.5)).toBe(0.45);
+    expect(resolveRedactBlurStrength(undefined, {}, 0.5)).toBe(0.5);
+    expect(resolveRedactBlurStrength(undefined, {})).toBe(DEFAULT_BLUR_STRENGTH);
   });
 
   it('resolves a legacy string strength', () => {
@@ -26,6 +27,6 @@ describe('resolveRedactBlurStrength (RED-40)', () => {
   });
 
   it('clamps an out-of-range value', () => {
-    expect(resolveRedactBlurStrength({ blurStrength: 5 }, {})).toBe(0.7);
+    expect(resolveRedactBlurStrength({ blurStrength: 5 }, {})).toBe(0.55);
   });
 });

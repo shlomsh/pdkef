@@ -33,8 +33,8 @@ function mount(onChange: (s: number) => void, value?: unknown) {
 describe('BlurStrengthSlider', () => {
   it('shows the range, the ends and reads a legacy value', () => {
     const { input } = mount(() => {}, 'strong');
-    expect(input.min).toBe('0.1');
-    expect(input.max).toBe('0.7');
+    expect(input.min).toBe('0.05');
+    expect(input.max).toBe('0.55');
     expect(input.step).toBe('0.01');
     expect(input.value).toBe('0.5');
     expect(host!.textContent).toContain('Lighter');
@@ -45,19 +45,19 @@ describe('BlurStrengthSlider', () => {
   it('paints the box live during the drag and commits once on release, snapped', async () => {
     const onChange = vi.fn();
     const { input, surface } = mount(onChange);
-    for (const v of ['0.2', '0.3', '0.41']) {
+    for (const v of ['0.2', '0.25', '0.31']) {
       await act(async () => {
         input.value = v;
         input.dispatchEvent(new Event('input', { bubbles: true }));
       });
     }
     expect(onChange).not.toHaveBeenCalled();
-    // 0.41 snapped to 0.4: 0.4 x max(100, 24) / 100 = 0.4.
-    expect(surface.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
-    expect(input.value).toBe('0.4');
+    // 0.31 snapped to 0.3: 0.3 x max(100, 24) / 100 = 0.3.
+    expect(surface.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
+    expect(input.value).toBe('0.3');
     await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(onChange).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith(0.4);
+    expect(onChange).toHaveBeenCalledWith(0.3);
   });
 
   it('renderRedactionSurface records the box height so the live paint can apply the floor', () => {

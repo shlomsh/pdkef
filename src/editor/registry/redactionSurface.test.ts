@@ -41,11 +41,11 @@ describe('renderRedactionSurface blur', () => {
     expect(surface.props.style.WebkitBackdropFilter).toBe('none');
   });
 
-  it('defaults to the medium radius (0.4), RED-24\'s pre-levels blur, as a fraction of the box height, on the child blur layer', () => {
+  it('defaults to DEFAULT_BLUR_STRENGTH (0.3) as a fraction of the box height, on the child blur layer', () => {
     const child = blurChild(renderRedactionSurface('blur'));
     expect(child.props.class).toBe('redact-surface__blur');
-    expect(child.props.style.backdropFilter).toBe('blur(calc(0.4 * 100cqh))');
-    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.4 * 100cqh))');
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
+    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.3 * 100cqh))');
   });
 
   it('reads a lighter radius (0.3) for the light strength', () => {
