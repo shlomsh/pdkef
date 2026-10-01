@@ -1,7 +1,7 @@
 ---
 id: "SNG-21"
 title: "Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "sign-fill-mode"
 horizon: "now"
