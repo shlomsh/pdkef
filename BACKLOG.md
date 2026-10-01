@@ -2,17 +2,11 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 62 live: 13 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 61 live: 11 up next, 22 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-16 | P3 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes | In progress |
 
 ### Waiting
 
@@ -101,6 +95,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| QUAL-19 | P2 | [QUAL-19](backlog/tasks/QUAL-19.md) · Sign's corpus scoring test sets up inside its hook timeout under a full run |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 | DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |  |
 | MEM-10 | P1 | [MEM-10](backlog/tasks/MEM-10.md) · A shipped fix has no way to reach someone who keeps the app open | Needs Shlomi: A ruling on updates with several tabs open |
@@ -174,7 +169,6 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |  |
 | MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant | Needs Shlomi: Decide route A and the Merge bookmarks switch |
 
 ### Then, in order
@@ -189,12 +183,12 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 7 done, 0 retired
+- Redact: finish removal: 8 done, 0 retired
 - Sign: finish fill mode: 0 done, 0 retired
 - Form detector accuracy: 0 done, 0 retired
 - Robustness and debt: 1 done, 0 retired
 - Search and languages: 0 done, 0 retired
-- Polish: 0 done, 0 retired
+- Polish: 1 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
