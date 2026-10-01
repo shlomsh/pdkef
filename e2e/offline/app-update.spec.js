@@ -102,12 +102,13 @@ test('both tabs land on the new build with their work intact', async () => {
 
   // A second edit, still inside the 700ms draft debounce when the click lands.
   await addText(tabA, 'second edit', 0.3, 0.55);
-  const reloaded = Promise.all([
-    tabA.waitForSelector('meta[name=pdkef-e2e-build][content=new]', { state: 'attached', timeout: 30_000 }),
-    tabB.waitForSelector('meta[name=pdkef-e2e-build][content=new]', { state: 'attached', timeout: 30_000 }),
-  ]);
+  // Neither tab is navigated by the test: each must reload itself on
+  // controllerchange. Tab A matters most, because it was the context's first
+  // page and so only came under control when the old worker claimed it.
+  const reloaded = Promise.all([tabA, tabB].map((tab) => tab.waitForEvent('load', { timeout: 30_000 })));
   await tabB.locator('button[data-app-update-reload]').click();
   await reloaded;
+  for (const tab of [tabA, tabB]) await expect(build(tab)).toHaveAttribute('content', 'new');
 
   const cacheKeys = await tabB.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('pdkef-')));
   expect(cacheKeys).toHaveLength(1);
