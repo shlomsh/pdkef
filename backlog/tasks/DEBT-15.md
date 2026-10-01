@@ -1,11 +1,9 @@
 ---
 id: "DEBT-15"
 title: "Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 6
 depends_on: []
 ---
 
@@ -60,3 +58,20 @@ one afternoon left two rounds of such prose to rewrite).
 - The five files' comment-line share is at or under 35% each, or the exception is named in the
   commit message; `docs/sign-form-fields.md` exists and is linked from `.claude/rules/editor.md`.
 - `check:fast`, the full unit suite and `src/tools/sign/e2e/form-*.spec.js` unchanged and green.
+
+## Done (2026-10-01)
+
+- **Signature:** already done by SIGN-32 before this ticket started: `combFontSize`/`cellFontSize` became
+  `fieldFontSize(carried, { seedHeightPoints, widthCeilingPoints, heightCeilingPoints })`, points in, no
+  optional positional parameters. What remained, seven inline percent/points conversions in
+  `combPlacement.ts`, now go through `toPoints` / `toPercent`; grep finds one conversion, the helper.
+- **Comments:** comments-only pass, proven by comparing each file's TypeScript-printed code with comments
+  removed, before and after (identical), and every JSDoc type tag kept. Comment share, before -> after:
+  `combPlacement.ts` 54% -> 34%, `fieldOrder.ts` 54% -> 34%, `signHelpers.js` 45% -> 35%,
+  `fieldRegions.js` 72% -> 33%, `formCells.js` 56% -> 32%. Named exception: the last two count their JSDoc
+  type tags (types under `// @ts-check`) as code; counting every comment-shaped line they are 52% and 43%.
+- **Doc:** `docs/sign-form-fields.md` holds the detectors, reconciliation, placement per kind of field and
+  every measurement moved out of the comments; linked from `.claude/rules/editor.md`.
+- **Checks:** `check:push` green on the branch, full e2e suite including all 17 `src/tools/sign/e2e/form-*`
+  specs.
+- The code smells the pass found are DEBT-29.
