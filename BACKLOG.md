@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 0 up next, 18 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 0 up next, 17 then, 19 waiting, 7 parked.
 
 ## Redact: finish removal
 
@@ -38,17 +38,11 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
-
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| FORM-02 | P3 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |  |
+| FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
 
@@ -138,7 +132,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
-- Form detector accuracy: 10 done, 0 retired
+- Form detector accuracy: 10 done, 1 retired
 - Robustness and debt: 4 done, 0 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
