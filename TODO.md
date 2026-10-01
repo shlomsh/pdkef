@@ -10,10 +10,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
 
-### Robustness and debt
-
-- [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it (in progress)
-
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
