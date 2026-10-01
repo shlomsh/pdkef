@@ -1,7 +1,7 @@
 ---
 id: "RED-25"
 title: "Check the saved file: Remove it, for a secret in a place a box can't reach"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"

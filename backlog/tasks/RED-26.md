@@ -1,7 +1,7 @@
 ---
 id: "RED-26"
 title: "Delete: remove an image on every page it appears, for watermarks"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"

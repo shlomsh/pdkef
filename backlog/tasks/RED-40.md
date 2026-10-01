@@ -1,7 +1,7 @@
 ---
 id: "RED-40"
 title: "Redact remembers the whiteout colour and blur strength per document, like Sign"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -20,3 +20,7 @@ Today Redact keeps both in browser-wide preferences (`lastWhiteoutColor`, `lastB
 - Change the colour on document A, open document B (new): B starts with A's colour. Change B's colour, reopen A: A keeps its own.
 - Same for blur strength.
 - Unit tests for the resolve order: carried, then app-wide, then legacy preference, then default.
+
+## Result
+
+Whiteout colour and blur strength ride in the document's `carried` style with the brush; a choice also goes to the app-wide style through `rememberAppStyle`. Resolve order in `redactStyle.ts`: the document's own, app-wide, the pre-RED-40 browser-wide preference, the default. `blurStrength` is validated in `draftValidation.ts`, which the app-wide style shares. Sign reads the same app-wide `whiteoutColor`. (fb8652d4)
