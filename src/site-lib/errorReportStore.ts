@@ -6,10 +6,13 @@ import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenance
 import { usageEventField, type UsageEvent } from '../lib/usageEventSchema.js';
 
 /**
- * Reports and Sign events counted per UTC day; past it the day is full. Budget: a report costs 6
- * commands and a Sign event 4, so the worst case is about 6K a day; usage has its own cap, about 4K
- * a day. Together near 10K a day, about 300K a month, inside Upstash Free's 500K with room for
- * reads. Without a cap this low, a flood could spend the month and blind error reporting until it ends.
+ * Reports and Sign events counted per UTC day; past it the day is full. Budget: the cap step is one
+ * INCR, and the day's first count adds one EXPIRE on the total. A report then costs 5 commands, a
+ * Sign event 3, a usage event 3, and anything past the cap 1. Counted traffic tops out near
+ * 1000 x 5 + 1000 x 3 = 8K commands a day (about 240K a month), inside Upstash Free's 500K with room
+ * for reads. Past the cap each request still costs 1 command until an instance caches the cap; the
+ * firewall's per-IP limit of 10 per minute is what bounds that, so a flood from many IPs can still
+ * spend the month.
  */
 export const DAILY_CAP = 1000;
 /** Usage events counted per UTC day, apart from the cap above. */
@@ -46,12 +49,17 @@ export function dayKey(now: Date): string {
   return now.toISOString().slice(0, 10);
 }
 
+export const errorTotalKey = (day: string) => `errors:total:${day}`;
+export const usageTotalKey = (day: string) => `usage:total:${day}`;
+
 /** First step: count the report against the day's cap. The INCR result is the count. */
 export function capCommands(day: string): Command[] {
-  return [
-    ['INCR', `errors:total:${day}`],
-    ['EXPIRE', `errors:total:${day}`, TTL_SECONDS],
-  ];
+  return [['INCR', errorTotalKey(day)]];
+}
+
+/** The day's first count (INCR returned 1) also sets the total's expiry, once; later counts add nothing. */
+export function withDayExpiry(totalKey: string, total: number, commands: Command[]): Command[] {
+  return total === 1 ? [['EXPIRE', totalKey, TTL_SECONDS], ...commands] : commands;
 }
 
 /** The count field and the sample field are one string: the fingerprint, `stack[0]` last of the report's own parts. */
@@ -82,10 +90,7 @@ export function eventCommands(event: MaintenanceEvent, engine: string, day: stri
 
 /** First step for a usage event: its own day total, apart from errors. */
 export function usageCapCommands(day: string): Command[] {
-  return [
-    ['INCR', `usage:total:${day}`],
-    ['EXPIRE', `usage:total:${day}`, TTL_SECONDS],
-  ];
+  return [['INCR', usageTotalKey(day)]];
 }
 
 /** Second step for a usage event: a count per day and tool event, no sample. */

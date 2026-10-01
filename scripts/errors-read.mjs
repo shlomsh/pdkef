@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 // usage:<day> holds `<event>|<tool>` -> count. Sums the days into one row per tool,
 // sorted by accepted descending; ready/accepted is a whole percent, or '-' without accepted.
-export function sumUsage(results) {
+function sumUsage(results) {
   const byTool = new Map();
   for (const result of results) {
     for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
@@ -37,6 +37,10 @@ function envFromFile() {
   }
 }
 
+// Mirror DAILY_CAP and USAGE_DAILY_CAP in src/site-lib/errorReportStore.ts (a script cannot import TS).
+const DAILY_CAP = 1000;
+const USAGE_DAILY_CAP = 1000;
+
 const env = { ...envFromFile(), ...process.env };
 const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
 const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
@@ -58,6 +62,8 @@ const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
     ...keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
     ...keys.map((d) => ['HGETALL', `events:${d}`]),
     ...keys.map((d) => ['HGETALL', `usage:${d}`]),
+    ...keys.map((d) => ['GET', `errors:total:${d}`]),
+    ...keys.map((d) => ['GET', `usage:total:${d}`]),
   ]),
 });
 if (!res.ok) {
@@ -71,7 +77,9 @@ const rows = new Map();
 const samples = new Map();
 const replies = await res.json();
 const eventReplies = replies.slice(keys.length * 2, keys.length * 3);
-const usageReplies = replies.slice(keys.length * 3);
+const usageReplies = replies.slice(keys.length * 3, keys.length * 4);
+const errorTotals = replies.slice(keys.length * 4, keys.length * 5).map((r) => Number(r?.result) || 0);
+const usageTotals = replies.slice(keys.length * 5, keys.length * 6).map((r) => Number(r?.result) || 0);
 replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   const isSample = idx % 2 === 1;
   for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
@@ -126,3 +134,13 @@ if (usageRows.length) {
   console.log('tool | accepted | started | ready | failed | ready/accepted');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
+
+// The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
+keys.forEach((day, n) => {
+  if (errorTotals[n] > DAILY_CAP) {
+    console.log(`${day}: error reports and Sign events reached the daily cap of ${DAILY_CAP}; later ones that day were not counted`);
+  }
+  if (usageTotals[n] > USAGE_DAILY_CAP) {
+    console.log(`${day}: tool usage reached the daily cap of ${USAGE_DAILY_CAP}; later ones that day were not counted`);
+  }
+});

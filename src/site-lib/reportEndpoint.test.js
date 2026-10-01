@@ -19,6 +19,59 @@ const report = {
 };
 const body = JSON.stringify(report);
 const post = () => POST(new Request('https://pdkef.com/api/report', { method: 'POST', body }));
+// Answers every pipeline with `total` as the first reply (the INCR), then filler.
+const answerTotal = (total) => async () => new Response(JSON.stringify([{ result: total }, { result: 1 }]), { status: 200 });
+const sentPipelines = (spy) => spy.mock.calls.map(([, init]) => JSON.parse(init.body));
+// The caps are per warm instance; a fresh module is a fresh instance.
+const freshPoster = async (make) => {
+  vi.resetModules();
+  const { POST: fresh } = await import('../../api/report.ts');
+  return (value) => fresh(make(value));
+};
+const jsonRequest = (value) => new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(value) });
+
+// What each path sends: [INCR], then (first count of the day: EXPIRE on the total, then) the counting commands.
+function expiryContract(label, totalPrefix, value, countingFirst) {
+  describe(`${label}: the day total expires once`, () => {
+    beforeEach(() => {
+      process.env.KV_REST_API_URL = 'https://store.invalid';
+      process.env.KV_REST_API_TOKEN = 'test-token';
+    });
+    afterEach(() => {
+      delete process.env.KV_REST_API_URL;
+      delete process.env.KV_REST_API_TOKEN;
+      vi.restoreAllMocks();
+    });
+    const totalKey = expect.stringMatching(new RegExp(`^${totalPrefix}:total:\\d{4}-\\d{2}-\\d{2}$`));
+
+    it('first count of the day (INCR returns 1) sends the EXPIRE on the total with the counting pipeline', async () => {
+      const send = await freshPoster(jsonRequest);
+      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1));
+      await send(value);
+      const [cap, counting] = sentPipelines(spy);
+      expect(cap).toEqual([['INCR', totalKey]]);
+      expect(counting[0]).toEqual(['EXPIRE', totalKey, 7776000]);
+      expect(counting[1][0]).toBe(countingFirst);
+    });
+
+    it('a later count (INCR returns 7) sends no EXPIRE on the total', async () => {
+      const send = await freshPoster(jsonRequest);
+      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(7));
+      await send(value);
+      const [cap, counting] = sentPipelines(spy);
+      expect(cap).toEqual([['INCR', totalKey]]);
+      expect(counting[0][0]).toBe(countingFirst);
+      expect(JSON.stringify(counting)).not.toContain(':total:');
+    });
+
+    it('past the cap sends exactly one command', async () => {
+      const send = await freshPoster(jsonRequest);
+      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1001));
+      await send(value);
+      expect(sentPipelines(spy)).toEqual([[['INCR', totalKey]]]);
+    });
+  });
+}
 
 describe('/api/report stays silent', () => {
   beforeEach(() => {
@@ -102,7 +155,7 @@ describe('/api/report stays silent', () => {
       expect((await postJson(event)).status).toBe(204);
       const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
       expect(calls).toHaveLength(2);
-      expect(calls[0][0][0]).toBe('INCR');
+      expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^errors:total:/)]]);
       const commands = calls.flat();
       expect(commands.filter(([name]) => name === 'HSET')).toHaveLength(0);
       const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
@@ -137,7 +190,7 @@ describe('/api/report stays silent', () => {
       expect((await postUsage(usage)).status).toBe(204);
       const calls = fetchSpy.mock.calls.map(([, init]) => JSON.parse(init.body));
       expect(calls).toHaveLength(2);
-      expect(calls[0][0]).toEqual(['INCR', expect.stringMatching(/^usage:total:\d{4}-\d{2}-\d{2}$/)]);
+      expect(calls[0]).toEqual([['INCR', expect.stringMatching(/^usage:total:\d{4}-\d{2}-\d{2}$/)]]);
       const commands = calls.flat();
       const hincrbys = commands.filter(([name]) => name === 'HINCRBY');
       expect(hincrbys).toHaveLength(1);
@@ -195,3 +248,7 @@ describe('/api/report stays silent', () => {
     });
   });
 });
+
+expiryContract('error report', 'errors', report, 'HINCRBY');
+expiryContract('Sign event', 'errors', { name: 'sign_form_detection', properties: { outcome: 'failure', error_code: 'not_started' } }, 'HINCRBY');
+expiryContract('usage event', 'usage', { name: 'tool_result_ready', properties: { tool: 'merge' } }, 'HINCRBY');

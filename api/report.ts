@@ -23,10 +23,13 @@ import {
   countCommands,
   dayKey,
   engineBucket,
+  errorTotalKey,
   eventCommands,
   readEnv,
   usageCapCommands,
   usageCommands,
+  usageTotalKey,
+  withDayExpiry,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
 
@@ -71,7 +74,9 @@ export async function POST(request: Request): Promise<Response> {
       if (day === cappedUsageDay) return NO_CONTENT();
       const [total] = await pipeline(store, usageCapCommands(day));
       if (typeof total?.result === 'number' && total.result > USAGE_DAILY_CAP) cappedUsageDay = day;
-      else if (typeof total?.result === 'number') await pipeline(store, usageCommands(usage, day));
+      else if (typeof total?.result === 'number') {
+        await pipeline(store, withDayExpiry(usageTotalKey(day), total.result, usageCommands(usage, day)));
+      }
       return NO_CONTENT();
     }
     if (day === cappedDay) return NO_CONTENT();
@@ -79,7 +84,8 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
     else if (typeof total?.result === 'number') {
       const engine = engineBucket(request.headers.get('user-agent') ?? '');
-      await pipeline(store, report ? countCommands(report, engine, day) : eventCommands(event!, engine, day));
+      const counting = report ? countCommands(report, engine, day) : eventCommands(event!, engine, day);
+      await pipeline(store, withDayExpiry(errorTotalKey(day), total.result, counting));
     }
   } catch {
     console.error('error-report: dropped');

@@ -10,6 +10,7 @@ import {
   readEnv,
   reportCommands,
   usageCapCommands,
+  withDayExpiry,
   usageCommands,
 } from './errorReportStore.js';
 
@@ -48,7 +49,7 @@ describe('dayKey', () => {
 
 describe('commands', () => {
   it('splits the cap step from the count step and joins them', () => {
-    expect(capCommands('2026-10-01')[0]).toEqual(['INCR', 'errors:total:2026-10-01']);
+    expect(capCommands('2026-10-01')).toEqual([['INCR', 'errors:total:2026-10-01']]);
     expect(countCommands(report, 'ios-26', '2026-10-01')).toEqual([
       ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26', 1],
       ['EXPIRE', 'errors:2026-10-01', 7776000],
@@ -60,7 +61,7 @@ describe('commands', () => {
       ],
       ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
-    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(6);
+    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(5);
     expect(DAILY_CAP).toBe(1000);
   });
 });
@@ -87,14 +88,19 @@ describe('eventCommands', () => {
 describe('usage commands', () => {
   it('counts a day total apart from errors, then one field under the day', () => {
     expect(USAGE_DAILY_CAP).toBe(1000);
-    expect(usageCapCommands('2026-10-01')).toEqual([
-      ['INCR', 'usage:total:2026-10-01'],
-      ['EXPIRE', 'usage:total:2026-10-01', 90 * 24 * 60 * 60],
-    ]);
+    expect(usageCapCommands('2026-10-01')).toEqual([['INCR', 'usage:total:2026-10-01']]);
     const event = { name: 'tool_result_ready', properties: { tool: 'merge' } } as const;
     expect(usageCommands(event, '2026-10-01')).toEqual([
       ['HINCRBY', 'usage:2026-10-01', 'tool_result_ready|merge', 1],
       ['EXPIRE', 'usage:2026-10-01', 90 * 24 * 60 * 60],
     ]);
+  });
+});
+
+describe('withDayExpiry', () => {
+  const counting = [['HINCRBY', 'k', 'f', 1]] as const;
+  it('puts the total expiry first on the first count of the day only', () => {
+    expect(withDayExpiry('errors:total:d', 1, [...counting])).toEqual([['EXPIRE', 'errors:total:d', 7776000], ...counting]);
+    expect(withDayExpiry('errors:total:d', 7, [...counting])).toEqual(counting);
   });
 });
