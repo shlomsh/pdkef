@@ -17,3 +17,13 @@ test-results/
 # (postinstall) - see src/lib/pdfjsWasm.js.
 public/pdfjs-dist-wasm/
 .ci-narrowing-cache/
+# Impeccable (design skill) is a local, per-person install (user level:
+# `npx impeccable install`), never vendored. A project-level install writes
+# these paths; keep them out of git.
+.github/skills/impeccable/
+.github/agents/impeccable-*
+.github/hooks/impeccable.json
+.claude/skills/impeccable/
+.claude/agents/impeccable-*
+.agents/skills/impeccable/
+.codex/hooks.json
