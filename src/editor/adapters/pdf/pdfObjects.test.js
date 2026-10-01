@@ -62,6 +62,72 @@ describe('collectCheckboxGlyphs', () => {
   });
 });
 
+describe('collectCheckboxGlyphs in a symbol font (FORM-20)', () => {
+  /** A one-glyph-per-code TrueType font under `baseFont`, 700 wide, the way a Word export writes it. */
+  const symbolFont = (baseFont) => (document) => {
+    const descriptor = document.context.obj({ Type: 'FontDescriptor', Ascent: 800, Descent: -200 });
+    return {
+      S: document.context.obj({
+        Type: 'Font',
+        Subtype: 'TrueType',
+        BaseFont: baseFont,
+        FirstChar: 0x6c,
+        Widths: [PDFNumber.of(700), PDFNumber.of(700), PDFNumber.of(700), PDFNumber.of(700)],
+        FontDescriptor: document.context.register(descriptor),
+      }),
+    };
+  };
+
+  it('reads a Wingdings box code as a checkbox, by the advance-by-ascent box', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (o) Tj ET', symbolFont('Wingdings'));
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 100, y: 198, width: 7, height: 10 }]);
+  });
+
+  it('reads a Wingdings bullet as nothing', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (l) Tj ET', symbolFont('Wingdings'));
+    expect(collectCheckboxGlyphs(page)).toEqual([]);
+  });
+
+  it('reads the same code in an ordinary font as nothing: the character alone says nothing', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (o) Tj ET', symbolFont('Times New Roman'));
+    expect(collectCheckboxGlyphs(page)).toEqual([]);
+  });
+
+  it('names the family through a subset tag, an escaped space and a style', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (o) Tj ET', symbolFont('ABCDEE+Wingdings,Bold'));
+    expect(collectCheckboxGlyphs(page)).toHaveLength(1);
+  });
+
+  it('reads Wingdings 2\'s box through a two-byte font whose ToUnicode puts it at U+F02A', async () => {
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm [<000D>] TJ ET', (document) => {
+      const toUnicode = document.context.register(document.context.flateStream(
+        'begincmap 1 beginbfchar <000D> <F02A> endbfchar endcmap',
+      ));
+      const descriptor = document.context.obj({ Type: 'FontDescriptor', Ascent: 800, Descent: -200 });
+      const descendant = document.context.obj({
+        Type: 'Font', Subtype: 'CIDFontType2', DW: 700, FontDescriptor: document.context.register(descriptor),
+      });
+      return {
+        S: document.context.obj({
+          Type: 'Font',
+          Subtype: 'Type0',
+          BaseFont: 'ABCDEE+Wingdings 2',
+          Encoding: 'Identity-H',
+          DescendantFonts: [document.context.register(descendant)],
+          ToUnicode: toUnicode,
+        }),
+      };
+    });
+    expect(collectCheckboxGlyphs(page).map(rounded)).toEqual([{ x: 100, y: 198, width: 7, height: 10 }]);
+  });
+
+  it('does not read Wingdings 2\'s code as a box in plain Wingdings', async () => {
+    // 0x2A ('*') means a box only in Wingdings 2; the family is part of the evidence.
+    const page = await pageWith('BT /S 10 Tf 1 0 0 1 100 200 Tm (*) Tj ET', symbolFont('Wingdings'));
+    expect(collectCheckboxGlyphs(page)).toEqual([]);
+  });
+});
+
 describe('extractPageObjects', () => {
   it('previews a text run whose glyphs decode to Hebrew in visual (drawing) order in reading order', async () => {
     // The content stream shows codes 41 42 43 44, which this ToUnicode CMap
