@@ -1,7 +1,7 @@
 ---
 id: "FORM-07"
 title: "A scanned form's ruled geometry, from its raster"
-status: "in_progress"
+status: "open"
 priority: "P2"
 epic: "form-detection"
 horizon: "next"
@@ -65,7 +65,7 @@ Delivered (not wired into `detectFormFields.ts` or the product, `baselines.json`
 
 - `src/tools/sign/fields/rasterInk.js`: `inkFromRaster({data,width,height},{pageWidthPts,pageHeightPts})` -> `{verticals, horizontals, rects, skewDegrees}` in the `collectPageInk` shape and units (points, y up). Pure, no dependency, typed arrays. Gray, RGB or RGBA input, white-on-black handled. Otsu, projection-profile skew search (+-5 degrees), bilinear deskew, row-run scan with gap bridging and a density test, rows stacked into bands, transposed scan for verticals, collinear merge, checkbox squares from connected components (hollow, square, straight on all four sides). Every threshold is points or a share, never pixels. Output is carried back into the original page frame (it matters: about 1 point at the page edges for 0.25 degrees).
 - `src/tools/sign/fields/rasterInk.test.js`: 15 synthetic-raster tests (rules, a box, a 6-cell comb run through the real `findCombRuns`/`findCheckboxes`, a 1 degree rotated copy, RGBA, inverted, speckle, noise-only and blank pages that yield nothing, a filled bar and a round letter that must not become a rule or box).
-- `src/tmpspike/extractImage.mjs` + `scoreRaster.mjs`: spike harness (pdfjs legacy in Node, the product `inkSource` recipe over raster ink inside `detectFormFields` so `reconcile` applies, then `toCandidates` + `greedyMatch`). Not in the test suite. Flags: `--dump`, `--cands`, `--adequacy`, `--oracle-captions`, `--downscale=N`, `--noise=p`, `--rotate=deg`.
+- `scripts/spike/form-07/extractImage.mjs` + `scoreRaster.mjs`: spike harness (pdfjs legacy in Node, the product `inkSource` recipe over raster ink inside `detectFormFields` so `reconcile` applies, then `toCandidates` + `greedyMatch`). Not in the test suite. Flags: `--dump`, `--cands`, `--adequacy`, `--oracle-captions`, `--downscale=N`, `--noise=p`, `--rotate=deg`.
 
 ### Numbers on `irs-1040-1970` (64 targets, empty text runs, same matcher at IoU 0.5)
 
@@ -97,3 +97,11 @@ Not there, and not reachable by geometry alone on this form: recall 54.7% agains
 - Wire as a second ink source only when the page has no vector ink, behind `detectFormFields`, never replacing the vector path; re-record the `irs-1040-1970` row in `baselines.json` then.
 - Lazy loading: the module is small and dependency-free, so it can ship as an ordinary lazy chunk; no model and no precache entry.
 - Text for labels and open lines: FORM-06. Without it, signature and date recall on a scan stays at 0.
+
+## 2026-10-01 landed unwired
+
+`rasterInk.js` and its 15 synthetic-raster tests are on `main`, wired to nothing, so the geometry half of
+the raster path exists and costs nothing at runtime; the harness is `scripts/spike/form-07/`. The ticket
+stays open on a decision, not on work in progress: whether scans are common enough to serve (the
+allowlisted maintenance telemetry can say) and, if so, whether to productize the second ink source or run
+the FORM-06 OCR spike first, since labels and open-topped blanks are what limit recall on a scan.
