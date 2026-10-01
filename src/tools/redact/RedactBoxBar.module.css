@@ -1,24 +1,12 @@
-/* RED-35: on a coarse pointer the selected box's controls sit in one bar
-   fixed to the bottom of the viewport instead of floating over the page.
-   z-index 90: above the page and the box (50), below dialogs and the sticky
-   tool shell (100). */
+/* RED-35: on a coarse pointer the selected box's controls sit in one pill
+   fixed to the bottom of the viewport (the pill look is RedactBoxToolbar's
+   .pill). z-index 90: above the page and the box (50), below dialogs and the
+   sticky tool shell (100). */
 .bar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
   z-index: 90;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  box-sizing: border-box;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  /* The same dark ink as the floating toolbar (EditorElement's .actions): the
-     buttons, colour swatch and blur slider inside are all drawn in
-     --color-surface for it, so a light bar made them invisible. */
-  background: var(--color-text);
-  color: var(--color-surface);
-  box-shadow: var(--shadow-md);
+  inset-inline: var(--space-3);
+  bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  margin-inline: auto;
+  width: fit-content;
 }
