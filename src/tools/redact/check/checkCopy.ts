@@ -26,7 +26,7 @@ export const COVER_IT = 'Add a box over it';
 
 export const REMOVE_IT = 'Remove it';
 
-export const REMOVING = 'Removing...';
+export const REMOVING = 'Removing…';
 
 export const ALREADY_GONE = 'That was already gone.';
 
@@ -80,7 +80,7 @@ export function canRemove(finding: Finding): finding is InPlaceFinding {
 
 function truncated(text: string, max = 40): string {
   const one = text.replace(/\s+/g, ' ').trim();
-  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}...` : one;
+  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}…` : one;
 }
 
 /** What the panel says after a place was removed and the file saved again. */

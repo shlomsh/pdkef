@@ -44,7 +44,7 @@ describe('SavedFileCheck Remove it', () => {
 
   it('disables the button and says so while it works', () => {
     act(() => render(<SavedFileCheck state={stateWith([inPlace(0)])} onSearch={vi.fn()} onCover={vi.fn()} onRemove={vi.fn()} removing />, container));
-    const busy = buttons('Removing...')[0] as HTMLButtonElement;
+    const busy = buttons('Removing…')[0] as HTMLButtonElement;
     expect(busy.disabled).toBe(true);
   });
 });
