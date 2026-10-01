@@ -37,13 +37,7 @@ async function typeDigits(session, helpers) {
 }
 
 async function nextField(session, helpers, ctx) {
-  try {
-    await helpers.tapNativeNext(session);
-  } catch {
-    // Zoomed in, the keyboard's Next was gone in every run on 2026-09-26: the
-    // harness can't yet tell a dismissed keyboard from a missed lookup.
-    return { ...manual, reason: `${manual.reason}; pinched to ${scaleAfterPinch.toFixed(2)}x but found no keyboard Next` };
-  }
+  await helpers.tapNativeNext(session);
   await new Promise((r) => setTimeout(r, 900));
   const active = await helpers.activeElementInfo(session);
   const keyboardUp = await helpers.nativeKeyboardUp(session);
@@ -75,29 +69,34 @@ async function tapOutsideEndsSession(session, helpers) {
 }
 
 /** The regression Shlomi hit on 2026-09-26: zoomed in on a field, the keyboard's Next reset
- * the zoom. Focus a field at rest, pinch in, then Next; the scale must hold within 10%. */
+ * the zoom. Focus a field at rest, pinch in, then Next; the scale must hold within 10%.
+ * Starts from a freshly loaded page, like `tapField`: the scenarios before it leave the page
+ * scrolled with the keyboard just dismissed, and the next tap on a field then does not focus
+ * it (SNG-20), which has nothing to do with zoom. Every step passes or fails the scenario:
+ * the pinch is drivable, and the keyboard survives it. */
 async function pinchZoom(session, helpers, ctx) {
-  const manual = { status: 'manual', reason: 'pinch not drivable in the Simulator; check zoom kept between fields on a real iPhone (SNG-20)' };
+  await helpers.loadFillMode(session, ctx.baseUrl);
   const fields = await helpers.fillInputs(session);
-  const start = fields.find((f) => f.key !== ctx.field1Key && f.key !== ctx.field2Key) || fields[0];
+  const start = fields[0];
   if (!start) return { status: 'fail', reason: 'no field to start from' };
-  await helpers.tapSelector(session, `[data-fill-key="${start.key}"]`, 7);
-  await new Promise((r) => setTimeout(r, 800));
+  await helpers.tapAt(session, start.x, start.y, 7);
+  await new Promise((r) => setTimeout(r, 900));
   const before = await helpers.activeElementInfo(session);
+  if (before.fillKey !== start.key) return { status: 'fail', reason: `tapped ${start.key} but activeElement is ${before.tag} (fillKey ${before.fillKey}) before the pinch` };
+  if (!(await helpers.nativeKeyboardUp(session))) return { status: 'fail', reason: 'no keyboard before the pinch' };
   try {
     await helpers.pinch(session, { scale: 2.5, velocity: 1.5 });
-  } catch {
-    return manual;
+  } catch (e) {
+    return { status: 'fail', reason: `pinch could not be driven: ${e && e.message ? e.message : e}` };
   }
-  await new Promise((r) => setTimeout(r, 800));
+  await new Promise((r) => setTimeout(r, 1000));
   const scaleAfterPinch = await helpers.visualViewportScale(session);
-  if (!(scaleAfterPinch > 1.2)) return manual;
+  if (!(scaleAfterPinch > 1.2)) return { status: 'fail', reason: `pinch did not zoom: scale ${scaleAfterPinch}` };
+  if (!(await helpers.nativeKeyboardUp(session))) return { status: 'fail', reason: `the pinch to ${scaleAfterPinch.toFixed(2)}x dismissed the keyboard` };
   try {
     await helpers.tapNativeNext(session);
-  } catch {
-    // Zoomed in, the keyboard's Next was gone in every run on 2026-09-26: the
-    // harness can't yet tell a dismissed keyboard from a missed lookup.
-    return { ...manual, reason: `${manual.reason}; pinched to ${scaleAfterPinch.toFixed(2)}x but found no keyboard Next` };
+  } catch (e) {
+    return { status: 'fail', reason: `pinched to ${scaleAfterPinch.toFixed(2)}x, keyboard up, but Next failed: ${e && e.message ? e.message : e}` };
   }
   await new Promise((r) => setTimeout(r, 800));
   const after = await helpers.activeElementInfo(session);
