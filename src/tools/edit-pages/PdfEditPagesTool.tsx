@@ -164,10 +164,10 @@ export default function PdfEditPagesTool() {
       }
       const willRemove = next.has(pageNum);
       setAnnouncement(`Page ${pageNum} marked to be ${willRemove ? 'removed' : 'kept'}.`);
+      if (willRemove) recordAction('delete_page');
       return { ...current, removedPageNums: next };
     });
     resetOutput();
-    recordAction('delete_page');
   }, [commit]);
 
   const keepAll = useCallback(() => {
@@ -246,6 +246,7 @@ export default function PdfEditPagesTool() {
 
   const handleApplyChanges = async () => {
     if (!file || removedPageNums.size === pages.length) return;
+    recordAction('export');
     setStatus('processing');
     setProgress(0);
     try {
@@ -260,7 +261,6 @@ export default function PdfEditPagesTool() {
       setDownloadBlob(blob);
       prepare(blob, `${file.name.replace(/\.pdf$/i, '')}_modified.pdf`);
       setStatus('done');
-      recordAction('export');
       setAnnouncement('Your modified PDF is ready.');
     } catch (err) {
       reportError('pdf_tool_run', err, 'apply_page_edits');
