@@ -17,7 +17,7 @@ describe('RedactToolbar returning-work status', () => {
     brushMode?: boolean;
     restoredNote?: boolean;
     showWelcomeTip?: boolean;
-    undoAction?: { message: string } | null;
+    undoAction?: { message: string; extra?: { label: string; onSelect: () => void } } | null;
     statusMessage?: string;
   } = {}) {
     document.body.appendChild(container);
@@ -121,5 +121,14 @@ describe('RedactToolbar returning-work status', () => {
     mount({ undoAction: { message: 'Deleted text' }, statusMessage: 'Preparing your file' });
     expect(container.textContent).toContain('Deleted text');
     expect(container.textContent).not.toContain('Preparing your file');
+  });
+
+  it('puts the extra chip action before Undo', () => {
+    const onSelect = vi.fn();
+    mount({ undoAction: { message: 'Deleted an image, also on 4 other pages', extra: { label: 'Every page', onSelect } } });
+    const buttons = Array.from(container.querySelectorAll('button')).filter((b) => b.className.includes('undo-chip-btn'));
+    expect(buttons.map((b) => b.textContent)).toEqual(['Every page', 'Undo']);
+    buttons[0].click();
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
