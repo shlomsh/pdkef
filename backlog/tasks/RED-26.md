@@ -1,7 +1,7 @@
 ---
 id: "RED-26"
 title: "Delete: remove an image on every page it appears, for watermarks"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -24,3 +24,7 @@ file.
 - On `spikes/red-18/corpus/shared-header-image-full.pdf`, Delete on page 1's logo with "everywhere": no
   page draws it, the image object is gone from the saved file, and every page's text is unchanged.
 - Without "everywhere", only page 1 changes.
+
+## Result
+
+Image objects carry `imageRef`, the same on every page that draws them. Deleting one image that other pages also draw puts "Every page" beside Undo on the chip ("Deleted an image, also on 4 other pages"); it deletes the rest as one history entry. When no page draws an image any more, the export removes it, its masks and its resource entries from the file; page text is unchanged (tested on shared-header-image-full.pdf). (c036ca91, e7f269e8, adb17615)
