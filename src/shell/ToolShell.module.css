@@ -287,6 +287,35 @@
   }
 }
 
+/* `inlineStatus`: an editor's hint shares the filename's line on a wide
+   desktop (Shlomi, 2026-10-01: a long Hebrew name pushed Redact's hint onto a
+   second line). Opt-in, because it needs every hint the tool has to fit in
+   about 65% of the row: Redact's do; Sign's Whiteout hint is twice that and
+   would wrap to three lines inside its section. The
+   name keeps up to 35% of the row, ellipsised with its full text in the
+   tooltip; the hint takes the rest and wraps inside its own section only if
+   it must. Below 1200px the name would be cut to a few letters, so the row
+   wraps as described at `.status`. */
+@media (min-width: 1200px) {
+  .inline-status .identity {
+    flex-wrap: nowrap;
+  }
+
+  .inline-status .text {
+    flex: 0 1 auto;
+    min-width: 12rem;
+    max-width: 35%;
+  }
+
+  /* A hairline between what the file is and what to do next (Shlomi,
+     2026-10-01), so the hint reads as its own section, not more metadata. */
+  .inline-status .status {
+    flex: 1 1 0;
+    padding-inline-start: var(--space-3);
+    border-inline-start: 1px solid var(--color-border);
+  }
+}
+
 /* A wide desktop screen has room the row wasn't using (Shlomi, 2026-09-12,
    from the /compress/ pass: "make the file name and preview a bit taller so
    it takes more space which is available on the desktop screen" - on a
