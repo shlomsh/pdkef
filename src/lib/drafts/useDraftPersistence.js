@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
+import { reportError } from '../errorReport.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -169,7 +170,7 @@ export function useDraftPersistence({
     const write = Promise.resolve()
       .then(() => saveDraft(tool, record))
       .then((saved) => saved === true)
-      .catch(() => false)
+      .catch((e) => { reportError('drafts', e); return false; })
       .then((saved) => {
         // A prior file or edit may have completed after this write started.
         // It remains stored as a best-effort older revision, but must not make

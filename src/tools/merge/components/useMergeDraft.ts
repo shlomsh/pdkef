@@ -3,6 +3,7 @@ import {
   deleteDraft, hasDraftHint, loadDraft, saveDraft, subscribeToDraftChanges,
 } from '../../../lib/drafts/draftStore.js';
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
+import { reportError } from '../../../lib/errorReport.ts';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
@@ -257,7 +258,7 @@ export function useMergeDraft({
     const write = Promise.resolve()
       .then(() => saveDraft(TOOL, record))
       .then((saved) => saved === true)
-      .catch(() => false)
+      .catch((e) => { reportError('drafts', e); return false; })
       .then((saved) => {
         // A prior snapshot may finish writing after a newer one has already
         // started; it stays stored as a best-effort older revision, but must
