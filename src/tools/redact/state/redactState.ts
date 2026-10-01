@@ -335,7 +335,9 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
   switch (action.type) {
     case 'FILE_INITIALIZED': {
       // A new file starts clean (RED-39): no tool armed, locked or not,
-      // nothing selected, no export in flight or saved, its own style.
+      // nothing selected, no export in flight, its own style. The last file's
+      // saved export is cleared by the island's invalidation effect
+      // (SAVED_EXPORT_DISCARDED on a file change), not here.
       // Before SNG-08 `initialize` called `disarmTool`, which keeps a locked
       // tool, so a tool locked on the last file stayed armed on the next.
       const afterTool = disarmed(state);
