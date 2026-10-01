@@ -49,6 +49,18 @@ function mostlyInside(item, cand, ratio = 0.5) {
   return intersectionArea(item, cand) / a >= ratio;
 }
 
+/** True when `item` is a single symbol glyph wrapped around `cand`: a Zapf Dingbats or Wingdings
+ * checkbox is drawn by one character whose box is larger than the printed square, and since the
+ * square became the candidate's own bounds (SNG-09) the glyph is no longer mostly inside it. The
+ * other way round - the candidate mostly inside a one-character item - is what says it is the
+ * field's own symbol, and keeps its "o" or "q" out of the label. */
+function isOwnGlyph(item, cand, ratio = 0.5) {
+  if (item.str.trim().length !== 1) return false;
+  const a = areaOf(cand);
+  if (a <= 0) return false;
+  return intersectionArea(item, cand) / a >= ratio;
+}
+
 // A lone dash/dot/etc. (e.g. the printed separator between a phone number's area-code comb and
 // its main run) is never itself a label; it can still be pulled into a merged phrase around a
 // real anchor, but must never win the anchor search on its own (measured on health/comb-0001,
@@ -318,7 +330,7 @@ export function labelFieldCandidates(candidates, textItems) {
   const excludedIds = new Set();
   for (const item of items) {
     for (const cand of candidates) {
-      if (mostlyInside(item, cand)) { excludedIds.add(item.id); break; }
+      if (mostlyInside(item, cand) || isOwnGlyph(item, cand)) { excludedIds.add(item.id); break; }
     }
   }
 

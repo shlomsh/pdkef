@@ -12,7 +12,7 @@ import { verticalEdges, horizontalRules, ruledCoverage } from './inkEdges.js';
  * @typedef {Bounds & {width: number, height: number}} CellBox
  * @typedef {CellBox & {closure: number, narrow: boolean, lone: boolean, square: boolean,
  *   floorTicked: boolean, nextRuleY: number | null, rowLeft?: number, rowRight?: number,
- *   tickDivided?: boolean}} ClosedCell
+ *   tickDivided?: boolean, stackRise?: number}} ClosedCell
  * @typedef {{bounds: PercentBox, enclosureBounds: PercentBox | undefined,
  *   writableBounds: PercentBox | undefined, cell: ClosedCell,
  *   kind: import('./fieldTypes.ts').DetectorFieldKind, label: string | undefined,
@@ -556,7 +556,34 @@ function textInsideCell(cell, textItems) {
   });
 }
 
-/** Nearest text above the cell, in the same column - a column header/label. */
+/**
+ * How far the stack of row bands this cell stands in rises above it, in points: walks up the cells
+ * that abut in its own column, one band at a time, and returns the distance to the top of the last
+ * one (0 for a cell with nothing stacked above it). A table prints its column header once, over its
+ * first row, so the header a bottom row belongs to is `HEADER_SEARCH_HEIGHT` above the table's top,
+ * not above that row: form 101's children table is 13 rows of ~22pt, 286pt tall, and its last rows
+ * cannot see their own header from where they stand (FORM-03). The reach follows the table the
+ * detector already recovered rather than a longer fixed distance, so a page with no table pulls in
+ * no further text than it did.
+ *
+ * @param {ClosedCell} cell
+ * @param {ClosedCell[]} closedCells
+ * @returns {number}
+ */
+function stackRise(cell, closedCells) {
+  let top = cell.top;
+  for (;;) {
+    const above = closedCells.find((other) => Math.abs(other.left - cell.left) <= POS_TOLERANCE
+      && Math.abs(other.right - cell.right) <= POS_TOLERANCE
+      && Math.abs(other.bottom - top) <= POS_TOLERANCE
+      && other.top > top + POS_TOLERANCE);
+    if (!above) return top - cell.top;
+    top = above.top;
+  }
+}
+
+/** Nearest text above the cell, in the same column - a column header/label. `cell.stackRise`
+ * (set once in `detectCellCandidates`) lengthens the reach for a cell standing in a stack of rows. */
 /** @type {(cell: ClosedCell, textItems: TextPoints[]) => TextPoints | null} */
 function headerAbove(cell, textItems) {
   /** @type {TextPoints | null} */
@@ -566,7 +593,7 @@ function headerAbove(cell, textItems) {
     if (!item.str || !item.str.trim()) continue;
     if (item.y0 < cell.top - POS_TOLERANCE) continue; // not above
     const gap = item.y0 - cell.top;
-    if (gap > HEADER_SEARCH_HEIGHT) continue;
+    if (gap > HEADER_SEARCH_HEIGHT + (cell.stackRise || 0)) continue;
     const overlap = Math.min(item.x1, cell.right) - Math.max(item.x0, cell.left);
     const itemWidth = item.x1 - item.x0;
     if (itemWidth <= 0 || overlap / itemWidth < 0.5) continue; // must sit in this column
@@ -826,7 +853,8 @@ function confidenceOf(resolved, kind) {
  */
 export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   const textItemsPoints = textItems.map((item) => textItemToPoints(item, geometry));
-  const closedCells = buildClosedCells(ink);
+  const stacked = buildClosedCells(ink);
+  const closedCells = stacked.map((cell) => ({ ...cell, stackRise: stackRise(cell, stacked) }));
 
   // Counted over every closed cell rather than the survivors below, because a tick column is
   // admitted by the fact that it repeats and the filters it has to pass come after.

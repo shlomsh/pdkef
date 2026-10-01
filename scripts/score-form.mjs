@@ -133,6 +133,10 @@ async function one({ pdf, truth, page, expected }) {
   // with exact equality, so paste them as printed, not rounded further.
   console.log(`    "targets": ${result.targets}, "candidates": ${result.candidates}, "matched": ${result.matched},`);
   console.log(`    "recall": ${round1(result.recall) ?? 'null'}, "precision": ${round1(result.precision) ?? 'null'},`);
+  // Label association (FORM-03): `null` when the truth carries no labels to grade against.
+  console.log(`    "labels": ${result.labels.evaluated === 0 ? 'null' : JSON.stringify({
+    rate: round1(result.labels.rate), evaluated: result.labels.evaluated, correct: result.labels.correct,
+  })},`);
   const byKind = Object.fromEntries(Object.entries(result.byKind)
     .map(([kind, v]) => [kind, {
       recall: round1(v.recall), targets: v.targets, found: v.found,
@@ -216,6 +220,16 @@ function findings(result, spec) {
   checkCount('candidates', result.candidates, spec.candidates);
   checkCount('matched', result.matched, spec.matched);
 
+  // Label association (FORM-03), the same pairs scoring.test.js checks: a rate floor and ceiling, and
+  // the exact counts. `null` on the baseline pins zero graded pairs.
+  if (spec.labels === null) {
+    if (result.labels.evaluated !== 0) up.push(`labels now graded on ${result.labels.evaluated} pairs, recorded none`);
+  } else {
+    checkPct('labels', result.labels.rate, spec.labels.rate);
+    checkCount('labels evaluated', result.labels.evaluated, spec.labels.evaluated);
+    checkCount('labels correct', result.labels.correct, spec.labels.correct);
+  }
+
   const kinds = new Set([...Object.keys(spec.byKind ?? {}), ...Object.keys(result.byKind)]);
   for (const kind of kinds) {
     const floor = spec.byKind?.[kind];
@@ -266,6 +280,9 @@ if (args.all) {
     const { result } = outcome;
     const formDelta = `recall ${delta(result.recall, spec.recall).text}   precision ${delta(result.precision, spec.precision).text}`;
     console.log(`  Δ form : ${formDelta}`);
+    console.log(`  Δ labels: ${spec.labels === null
+      ? (result.labels.evaluated === 0 ? 'n/a' : `${fmtPct(result.labels.rate)} (!)`)
+      : `${fmtPct(result.labels.rate)} (${delta(result.labels.rate, spec.labels.rate).text})`}`);
     const countsDelta = `targets ${countDelta(result.targets, spec.targets).text}   `
       + `candidates ${countDelta(result.candidates, spec.candidates).text}   `
       + `matched ${countDelta(result.matched, spec.matched).text}`;

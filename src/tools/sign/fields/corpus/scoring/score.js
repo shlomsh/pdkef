@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { PDFDocument } from '@cantoo/pdf-lib';
-import { greedyMatch } from './match.js';
+import { greedyMatch, labelAssociationCorrect, labelable } from './match.js';
+import { labelFieldCandidates } from '../../../../../editor/adapters/pdf/fieldLabels.js';
 import { detectFormFields, pageGeometry, toPageTextRuns } from '../../detectFormFields.ts';
 import { toCandidates } from './candidates.js';
 
@@ -87,7 +88,11 @@ async function pageTextRuns(bytes, pageIndex, geometry) {
   try {
     const doc = await loading.promise;
     const { items } = await (await doc.getPage(pageIndex + 1)).getTextContent();
-    return toPageTextRuns(items, geometry);
+    // `runs` is the product's own shape. `labelRuns` is the same runs with the item's reading
+    // direction kept (`fieldLabels.js` assembles an RTL phrase from it), converted item by item
+    // so the direction cannot slip out of step when a blank item is dropped.
+    const labelRuns = items.flatMap((item) => toPageTextRuns([item], geometry).map((run) => ({ ...run, dir: item.dir })));
+    return { runs: toPageTextRuns(items, geometry), labelRuns };
   } finally {
     await loading.destroy();
   }
@@ -96,14 +101,15 @@ async function pageTextRuns(bytes, pageIndex, geometry) {
 /**
  * @param {{pdf: string, truth: string, pageIndex?: number}} form
  * @returns {Promise<{recall: number|null, precision: number|null, targets: number,
- *   candidates: number, matched: number, misses: Array, falsePositives: Array, byKind: object}>}
+ *   candidates: number, matched: number, misses: Array, falsePositives: Array, byKind: object,
+ *   labels: {evaluated: number, correct: number, rate: number|null}}>}
  */
 export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
   const truth = loadTruth(truthPath);
   const bytes = fs.readFileSync(pdf);
   const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const page = doc.getPage(pageIndex);
-  const runs = await pageTextRuns(bytes, pageIndex, pageGeometry(page));
+  const { runs, labelRuns } = await pageTextRuns(bytes, pageIndex, pageGeometry(page));
   // detectFormFields detects a whole document at once (ARCH-24), and this
   // harness only has real text for the one page it scores - every other page
   // gets `[]`, same as the element corpus does for a page a case has nothing
@@ -117,7 +123,15 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
     cells: found.cells.filter(onScoredPage),
     checkboxes: found.checkboxes.filter(onScoredPage),
   };
-  const candidates = toCandidates(detected, pageIndex);
+  // Cells carry the label `formCells.js` resolved. Combs and checkboxes are labelled the way the
+  // spike's chain labelled them (`fieldLabels.js`, same-line touch then column header), because the
+  // 85% label gate was defined on that union and a figure over cells alone would not be it.
+  const labelled = {
+    combs: labelFieldCandidates(detected.combs.map((region) => ({ ...region, id: 'comb' })), labelRuns),
+    cells: detected.cells,
+    checkboxes: labelFieldCandidates(detected.checkboxes.map((region) => ({ ...region, id: 'checkbox' })), labelRuns),
+  };
+  const candidates = toCandidates(labelled, pageIndex);
   const { matches, misses, falsePositives } = greedyMatch(truth.targets, candidates, IOU);
 
   // Recall reads from the target side, per kind: "of the N signature targets,
@@ -151,6 +165,14 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
     byKind[kind].precision = pct(byKind[kind].matchedCandidates, byKind[kind].candidates);
   }
 
+  // Label association (FORM-03): of the matched pairs whose target names a label, how many got a
+  // candidate label that contains, or is contained in, the target's. `rate` is null on a form whose
+  // truth carries no labels at all (there is nothing to grade), the same way `recall` is null for a
+  // kind with no targets.
+  const graded = matches.filter((match) => labelable(match.t));
+  const labelCorrect = graded.filter((match) => labelAssociationCorrect(match.t, match.c));
+  const labels = { evaluated: graded.length, correct: labelCorrect.length, rate: pct(labelCorrect.length, graded.length) };
+
   return {
     form: truth.form,
     targets: truth.targets.length,
@@ -159,6 +181,7 @@ export async function scoreForm({ pdf, truth: truthPath, pageIndex = 0 }) {
     recall: pct(matches.length, truth.targets.length),
     precision: pct(matches.length, candidates.length),
     byKind,
+    labels,
     misses: misses.map((t) => ({ id: t.id, kind: t.kind, label: t.label })),
     falsePositives: falsePositives.map((c) => ({ id: c.id, kind: c.kind })),
   };

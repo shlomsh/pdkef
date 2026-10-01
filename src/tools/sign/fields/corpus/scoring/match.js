@@ -81,3 +81,23 @@ export function greedyMatch(targets, candidates, iouThreshold) {
   const falsePositives = candidates.filter((c) => !usedCandidates.has(c.id));
   return { matches, misses, falsePositives };
 }
+
+const normalizeWhitespace = (text) => (text || '').trim().replace(/\s+/g, ' ');
+
+/**
+ * Label association (FORM-03): correct when the candidate's label and the
+ * target's label, whitespace-normalised, contain one another. Lifted from
+ * `scripts/spike/mobi-10/score.mjs` with the rest of this file, so the figure
+ * `baselines.json` records is the one the spike's gate (85%) was defined on.
+ * A candidate with no label is never correct; a target with no label is never
+ * asked (callers filter on `labelable` first).
+ */
+export function labelAssociationCorrect(target, candidate) {
+  const t = normalizeWhitespace(target.label);
+  const c = normalizeWhitespace(candidate.label);
+  if (!t || !c) return false;
+  return t.includes(c) || c.includes(t);
+}
+
+/** Whether a truth target carries a label to be graded against. */
+export const labelable = (target) => normalizeWhitespace(target.label).length > 0;
