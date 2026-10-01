@@ -18,6 +18,13 @@
  *   IndexedDB, but only once written. A draft hook registers a flush with
  *   `registerBeforeUpdateReload`; the tab awaits every flush before it reloads.
  *
+ * - **MEM-13, a forced update.** A build that fixes a major bug takes every tab
+ *   over without waiting for the holds above, except an export in flight and
+ *   the draft flush. So a hold says what it is for: `'export'` (the default,
+ *   and the safe reading of any caller that does not say) is work in flight
+ *   that a forced update still waits for, up to a cap; `'open'` is a file that
+ *   merely sits open in a tool without drafts, which a force overrides.
+ *
  * Framework-free and module-scoped on purpose: the layout's registration
  * script and the tool islands import this same module, so they share one
  * registry per page.
@@ -26,8 +33,13 @@
 type Listener = (held: boolean) => void;
 type Flush = () => unknown;
 
+/** 'export': work in flight a forced update still waits for. 'open': a file merely open. */
+export type HoldKind = 'export' | 'open';
+
 let holds = 0;
+let exportHolds = 0;
 const listeners = new Set<Listener>();
+const exportListeners = new Set<Listener>();
 const flushes = new Set<Flush>();
 
 function notify() {
@@ -35,17 +47,41 @@ function notify() {
   for (const listener of listeners) listener(held);
 }
 
+function notifyExport() {
+  const inFlight = exportHolds > 0;
+  for (const listener of exportListeners) listener(inFlight);
+}
+
 /** Marks work a reload would lose. The returned release is idempotent. */
-export function holdUpdate(): () => void {
+export function holdUpdate(kind: HoldKind = 'export'): () => void {
   holds += 1;
   if (holds === 1) notify();
+  if (kind === 'export') {
+    exportHolds += 1;
+    if (exportHolds === 1) notifyExport();
+  }
   let released = false;
   return () => {
     if (released) return;
     released = true;
     holds -= 1;
     if (holds === 0) notify();
+    if (kind === 'export') {
+      exportHolds -= 1;
+      if (exportHolds === 0) notifyExport();
+    }
   };
+}
+
+/** True while this tab has an export in flight (an 'export' hold), the only hold a force waits for. */
+export function isExportInFlight(): boolean {
+  return exportHolds > 0;
+}
+
+/** Called with the new value whenever this tab starts or stops having an export in flight. */
+export function onExportInFlightChange(listener: Listener): () => void {
+  exportListeners.add(listener);
+  return () => exportListeners.delete(listener);
 }
 
 export function isUpdateHeld(): boolean {

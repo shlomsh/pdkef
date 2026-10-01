@@ -17,13 +17,17 @@
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
 //   - An update never takes over a page from the previous build on its own:
-//     install never calls skipWaiting(). It runs only on SKIP_WAITING_MESSAGE,
-//     which the active worker sends on a navigation, and only once every open
-//     tab has answered that it holds no work a reload would lose (an export in
-//     flight, a file open in a tool without drafts); every tab running this
-//     code reloads itself on controllerchange. Deleting a build's cache under
-//     a live page breaks its lazy imports, which is why those conditions
-//     exist. See handleSkipWaiting and trySilentTakeover.
+//     install never calls skipWaiting() unconditionally. It runs on
+//     SKIP_WAITING_MESSAGE, which the active worker sends on a navigation, and
+//     only once every open tab has answered that it holds no work a reload
+//     would lose (an export in flight, a file open in a tool without drafts);
+//     every tab running this code reloads itself on controllerchange. Deleting
+//     a build's cache under a live page breaks its lazy imports, which is why
+//     those conditions exist. See handleSkipWaiting and trySilentTakeover.
+//     The one other caller is tryForcedTakeover, and only for a build that
+//     bumped CRITICAL_VERSION (a fix for a major bug): it tells every tab,
+//     waits for each to flush and finish its export (capped), then skips
+//     waiting, still only when this build is readyToTakeOver().
 //   - One narrow exception to "GET only": a POST to SHARE_TARGET_PATH, which
 //     is how Android's share sheet hands PDkef a file from another app (see
 //     manifest.webmanifest's share_target). There is no server to answer that
@@ -31,7 +35,13 @@
 //     file out of the multipart body and parks it in IndexedDB rather than
 //     touching the network with it. See handleShareTarget below.
 const CACHE_PREFIX = 'pdkef-';
-const CACHE_VERSION = `${CACHE_PREFIX}__BUILD_ID__`;
+// MEM-13: bumped by hand, by one, only for a build that fixes a major bug (data
+// loss, a broken export) and so must reach every open tab now rather than on
+// the next quiet navigation. It rides in the cache name so a waiting build can
+// read, from the cache keys alone, whether it is critical over the build the
+// tabs run. Keys from before this (`pdkef-<hash>`) read as 0.
+const CRITICAL_VERSION = 0;
+const CACHE_VERSION = `${CACHE_PREFIX}c${CRITICAL_VERSION}-__BUILD_ID__`;
 
 const PRECACHE_MANIFEST_URL = '/precache-manifest.json';
 
@@ -56,6 +66,17 @@ const UPDATE_STATUS_MESSAGE = 'pdkef:update-status';
 // Asked of every open tab (src/site-lib/appUpdate.ts answers it).
 const BUSY_QUERY_MESSAGE = 'pdkef:busy-query';
 const BUSY_TIMEOUT_MS = 750;
+// MEM-13: a critical build tells every tab (CRITICAL_UPDATE_MESSAGE) and waits
+// for each to reply { ready: true } before it skips waiting. The page holds its
+// reply for an export in flight, at most 60s (CRITICAL_PAGE_CAP_MS in
+// appUpdate), so this cap sits above it: a tab that never answers cannot
+// keep a fix from reaching everyone. The page sends CRITICAL_CHECK_MESSAGE to
+// the waiting worker after it looked for an update, so a tab nobody navigates
+// in still gets the fix.
+const CRITICAL_UPDATE_MESSAGE = 'pdkef:critical-update';
+const CRITICAL_CHECK_MESSAGE = 'pdkef:critical-check';
+// The page's own cap is 60s plus up to 3s of draft flush, so 75s leaves a 12s margin.
+const CRITICAL_TAKEOVER_CAP_MS = 75_000;
 
 // Written into this build's cache once install precached every URL with none
 // missed. A waiting build may take over only when it is present: activation
@@ -117,6 +138,24 @@ function resolve(path) {
 // port, so a dev server can share one with anything else that has run there.
 function isOwnCache(key) {
   return key.startsWith(CACHE_PREFIX);
+}
+
+// The critical version a cache key carries (`pdkef-c<N>-<build>`). Any other
+// key, including every `pdkef-<hash>` from before CRITICAL_VERSION existed, is 0.
+function criticalVersionOf(cacheKey) {
+  if (!isOwnCache(cacheKey)) return 0;
+  const match = /^c(\d+)-/.exec(cacheKey.slice(CACHE_PREFIX.length));
+  return match ? Number(match[1]) : 0;
+}
+
+// Whether a build at ownVersion is critical over the builds already cached
+// here. The comparison is against the lowest of them, because that is the
+// build the open tabs run: a waiting build that was never taken over leaves its
+// own (newer) cache behind until the next activation, and comparing against it
+// would stop a later build of the same critical version from forcing. With no
+// other build there is nothing to force over (a first install).
+function isCriticalOver(ownVersion, otherKeys) {
+  return otherKeys.length > 0 && ownVersion > Math.min(...otherKeys.map(criticalVersionOf));
 }
 
 function fetchFresh(url) {
@@ -481,22 +520,27 @@ async function handleShareTarget(request) {
 self.addEventListener('install', (event) => {
   // Deliberately no skipWaiting() here: a new build must not take control of a
   // page that is still running the previous one just because it installed.
-  // Activation is requested later by SKIP_WAITING_MESSAGE. See handleSkipWaiting.
-  event.waitUntil(
-    precacheAppShell().then((missed) => (missed === 0 ? markPrecacheComplete() : undefined)).catch(async (error) => {
-      if (error instanceof OrphanedWorkerError) {
-        // Uninstall rather than stay resident. A worker left over from a
-        // `npm run preview` kept serving that build's assets cache-first to the
-        // dev server on the same port, so the page received modules from two
-        // different Vite optimize passes and hydration died on an undefined
-        // internal — with nothing in the console naming the cache as the cause.
-        console.warn('[pdkef] No build on this origin; uninstalling the service worker.');
-        await removeSelf();
-        return;
-      }
-      throw error;
-    }),
-  );
+  // Activation is requested later by SKIP_WAITING_MESSAGE (see handleSkipWaiting),
+  // or by tryForcedTakeover for a build that bumped CRITICAL_VERSION.
+  const installed = precacheAppShell().then((missed) => (missed === 0 ? markPrecacheComplete() : undefined)).catch(async (error) => {
+    if (error instanceof OrphanedWorkerError) {
+      // Uninstall rather than stay resident. A worker left over from a
+      // `npm run preview` kept serving that build's assets cache-first to the
+      // dev server on the same port, so the page received modules from two
+      // different Vite optimize passes and hydration died on an undefined
+      // internal — with nothing in the console naming the cache as the cause.
+      console.warn('[pdkef] No build on this origin; uninstalling the service worker.');
+      await removeSelf();
+      return;
+    }
+    throw error;
+  });
+  event.waitUntil(installed);
+  // MEM-13: after install, not part of it, so a critical build's wait for the
+  // tabs never holds the install open. A failed install forces nothing.
+  installed.then(afterInstallSettles).then(tryForcedTakeover, () => {
+    // expected: a failed install is already reported by install itself; nothing to force.
+  });
 });
 
 self.addEventListener('activate', (event) => {
@@ -541,13 +585,17 @@ function askBusy(client) {
   });
 }
 
-// Every open page but `excludeId`, asked at once. Only page URLs count: every
-// canonical page URL ends in a slash, and other same-origin documents (a
-// sitemap, robots.txt, a blob: download) run no app code, so they can neither
-// answer nor lose anything to a reload.
-async function surveyWindows(excludeId) {
-  const windows = (await httpWindows())
+// Every open page but `excludeId`. Only page URLs count: every canonical page
+// URL ends in a slash, and other same-origin documents (a sitemap, robots.txt,
+// a blob: download) run no app code, so they can neither answer nor lose
+// anything to a reload. surveyWindows asks them all at once.
+async function pageWindows(excludeId) {
+  return (await httpWindows())
     .filter((client) => client.id !== excludeId && new URL(client.url).pathname.endsWith('/'));
+}
+
+async function surveyWindows(excludeId) {
+  const windows = await pageWindows(excludeId);
   const answers = await Promise.all(windows.map(askBusy));
   return {
     windows: windows.length,
@@ -556,7 +604,8 @@ async function surveyWindows(excludeId) {
   };
 }
 
-// The only skipWaiting() call in this file, and it never runs on install. The
+// One of two skipWaiting() calls in this file (the other is tryForcedTakeover's),
+// and neither runs unconditionally on install. The
 // active worker sends this on a navigation (trySilentTakeover). It is granted
 // only when this build is readyToTakeOver() (fully precached and online, so
 // activation never costs the device offline coverage) and every open tab
@@ -638,8 +687,95 @@ function takeoverResponse() {
   );
 }
 
+// MEM-13. Whether this worker is the registration's waiting one: the installing
+// worker is not yet, a replaced one never is again. Where the worker cannot name
+// itself (self.serviceWorker is missing), a waiting worker is taken to be this.
+function isWaitingWorker() {
+  const waiting = self.registration?.waiting;
+  return !!waiting && (!self.serviceWorker || waiting === self.serviceWorker);
+}
+
+// Other builds' caches. No filter by activity is possible from here, so the
+// caller leaves it to isCriticalOver.
+async function otherBuildKeys() {
+  return (await caches.keys()).filter((key) => isOwnCache(key) && key !== CACHE_VERSION);
+}
+
+// Ready to take over, finishing a missing precache first when only that stands
+// in the way (online), exactly as a navigation's question would.
+async function readyForForce() {
+  if (await readyToTakeOver()) return true;
+  if (self.navigator?.onLine === false) return false;
+  await completePrecache();
+  return readyToTakeOver();
+}
+
+// One tab's answer to CRITICAL_UPDATE_MESSAGE: resolves once it replies
+// { ready: true }, which the page sends after flushing its draft saves and
+// waiting out an export. A tab that cannot be messaged has nothing to wait for.
+function askCriticalReady(client) {
+  return new Promise((resolvePromise) => {
+    try {
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (message) => {
+        if (message.data?.ready !== true) return;
+        channel.port1.close();
+        resolvePromise();
+      };
+      client.postMessage({ type: CRITICAL_UPDATE_MESSAGE }, [channel.port2]);
+    } catch {
+      resolvePromise();
+    }
+  });
+}
+
+async function waitForCriticalReady(windows) {
+  let timer;
+  const cap = new Promise((resolvePromise) => { timer = setTimeout(resolvePromise, CRITICAL_TAKEOVER_CAP_MS); });
+  await Promise.race([Promise.all(windows.map(askCriticalReady)), cap]);
+  clearTimeout(timer);
+}
+
+async function forceTakeover() {
+  if (!isWaitingWorker()) return;
+  if (!isCriticalOver(CRITICAL_VERSION, await otherBuildKeys())) return;
+  if (!await readyForForce()) return;
+  await waitForCriticalReady(await pageWindows());
+  // Re-checked after the wait, which can be a minute: the device may have gone
+  // offline or a newer build replaced this one, and neither may be taken over.
+  if (isWaitingWorker() && await readyToTakeOver()) await self.skipWaiting();
+}
+
+// Waiting worker, for a build that bumped CRITICAL_VERSION: take over without
+// a navigation, after every tab said it is ready. It does nothing for any other
+// build, so MEM-10's behaviour is untouched. Single-flight: the install-time
+// call and a pdkef:critical-check share one run.
+let forcing = null;
+function tryForcedTakeover() {
+  if (!forcing) {
+    forcing = forceTakeover()
+      .catch(() => {
+        // expected: a failed force is retried by the next pdkef:critical-check.
+      })
+      .finally(() => { forcing = null; });
+  }
+  return forcing;
+}
+
+// Install's promise settles while this worker is still `installing`, and only a
+// waiting worker may force; resolves once it is no longer installing.
+function afterInstallSettles() {
+  const worker = self.serviceWorker;
+  if (!worker || worker.state !== 'installing') return Promise.resolve();
+  return new Promise((resolvePromise) => worker.addEventListener('statechange', resolvePromise, { once: true }));
+}
+
 self.addEventListener('message', (event) => {
   const type = event.data?.type;
+  if (type === CRITICAL_CHECK_MESSAGE) {
+    event.waitUntil(tryForcedTakeover());
+    return;
+  }
   if (type === SKIP_WAITING_MESSAGE) {
     event.waitUntil(handleSkipWaiting(event));
     return;

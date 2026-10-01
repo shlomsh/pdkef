@@ -32,7 +32,8 @@ function toEntry(file: File): ImageEntry {
 export default function PdfImageToPdfTool() {
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
-  useHoldUpdate(entries.length > 0 || status === 'converting');
+  useHoldUpdate(status === 'converting');
+  useHoldUpdate(entries.length > 0, 'open');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
