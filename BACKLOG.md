@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 58 live: 8 up next, 22 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 57 live: 7 up next, 22 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -162,12 +162,6 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 Small, independent, good for a spare hour.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant | Needs Shlomi: Decide route A and the Merge bookmarks switch |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -185,7 +179,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 1 done, 0 retired
 - Robustness and debt: 2 done, 0 retired
 - Search and languages: 0 done, 0 retired
-- Polish: 1 done, 0 retired
+- Polish: 2 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
