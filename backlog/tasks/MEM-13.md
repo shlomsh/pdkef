@@ -1,10 +1,9 @@
 ---
 id: "MEM-13"
 title: "A build that fixes a major bug can force every open tab onto it"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -91,3 +90,20 @@ From a fresh review of the first build of this contract:
   navigation. Offline: the same deploy does nothing and shows nothing until back online. A build that
   does not bump it behaves exactly as MEM-10's specs say (they stay green).
 - `.claude/rules/csp-scripts-pwa.md` says how and when to bump `CRITICAL_VERSION`.
+
+## Done (2026-10-01)
+
+- `public/sw.js`: `CRITICAL_VERSION` (ships at 0) in the cache name, pure `criticalVersionOf` /
+  `isCriticalOver` (compared against the lowest other build cache, so a leftover newer waiting cache
+  cannot hide an old tab), single-flight `tryForcedTakeover` gated on waiting + over + fully precached
+  and online, re-checked after its 75s wait.
+- Page (`src/site-lib/appUpdate.ts`): the critical line in every tab, draft flush, an export holds up to
+  60s, abandon after 90s with no takeover; discovery on visible (60s throttle), online and hourly; a
+  newly installed build is nudged at once. Tools without drafts hold as `open`, which only an
+  ordinary update waits for; a failed draft save is `open` too.
+- Fresh review: no change for non-critical builds, no way to force when it should not; its three
+  findings are fixed (see Review decisions).
+- e2e (`e2e/offline/app-update.spec.js`): a critical build reaches two tabs, one holding a file in
+  Compress, with no navigation; offline nothing happens until back online. 7/7 three runs in a row.
+  `check:push` green, 298 e2e passed.
+- Hebrew line awaits Shlomi's native read: "תיקון חשוב ל-PDkef מוכן. העמוד הזה ייטען מחדש בעוד רגע."
