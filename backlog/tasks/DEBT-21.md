@@ -1,11 +1,9 @@
 ---
 id: "DEBT-21"
 title: "Nothing checks that a navigating-away flag uses the hook that survives a Back"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 2
 depends_on: []
 ---
 
@@ -40,12 +38,12 @@ of them.
 
 ## Scope
 
-- [ ] Decide whether this is a `scripts/` guard (in `test:dependency-governance`, where the other
+- [x] Decide whether this is a `scripts/` guard (in `test:dependency-governance`, where the other
       source-shape checks live) or a lint rule, and write it so the current tree is green without an
       allowlist entry.
-- [ ] A sabotage control in the same commit: convert one site back to `useState(false)` and show the
+- [x] A sabotage control in the same commit: convert one site back to `useState(false)` and show the
       check fails.
-- [ ] Optional, cheap, and independent of the above: a site-level unit guard for Split's hand-off,
+- [x] Optional, cheap, and independent of the above: a site-level unit guard for Split's hand-off,
       the way `PdfMergeTool.test.tsx` has one. Split takes an injectable `navigate` prop exactly like
       Merge, so it is a near-copy of that test. Redact assigns `window.location.href` directly
       (`PdfRedactTool.tsx`, `requestCompressHandoff`), so it has no cheap unit guard; leave it to the
@@ -55,3 +53,15 @@ of them.
 
 - Reintroducing a plain `useState(false)` at any of the four sites fails a check by name, with no
   false positive anywhere in `src/`.
+
+## Done (2026-10-01)
+
+- `scripts/check-navigating-away.mjs` (`npm run test:navigating-away`), a source-shape guard parsed with
+  the TypeScript compiler API, in CI, `check:fast` and `check:push`. A navigation is an assignment to
+  `location.href` / `window.location`, `location.assign` / `replace`, or a call to an injected `navigate`;
+  a violation is a `useState` setter set to true in the function (or callback chain) that navigates.
+  Setters inside a `catch` are the failure path and do not count, which keeps Merge's and Split's
+  `handoffFailed` and Merge's `isRestoredWorkspace` green with no allowlist.
+- Sabotage: each of the four sites reverted to `useState(false)` fails by file:line and flag name;
+  re-checked by the lead on Redact, the one site with no unit guard. 21 unit tests.
+- Split's hand-off has its site-level unit guard (`PdfSplitTool.test.tsx`, fails with the hook reverted).
