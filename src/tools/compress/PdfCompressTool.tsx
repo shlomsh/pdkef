@@ -223,8 +223,8 @@ export default function PdfCompressTool({
       setComparePreviews({ before, after });
       setCompareStatus('idle');
     } catch (err) {
-      reportError('pdf_render', err);
       if (runToken !== runTokenRef.current) return;
+      reportError('pdf_render', err);
       console.error(err);
       setCompareStatus('error');
     }

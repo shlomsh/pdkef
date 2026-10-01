@@ -17,14 +17,14 @@ export function engineBucket(userAgent: string): string {
   const major = (re: RegExp) => re.exec(userAgent)?.[1];
   // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS.
   if (/iPhone|iPad|iPod/.test(userAgent)) {
-    const v = major(/OS (\d+)[_.]/);
+    const v = major(/OS (\d{1,3})[_.]/);
     return v ? `ios-${v}` : 'ios';
   }
-  const firefox = major(/Firefox\/(\d+)/);
+  const firefox = major(/Firefox\/(\d{1,4})/);
   if (firefox) return `firefox-${firefox}`;
-  const chromium = major(/(?:Chrome|Chromium|CriOS)\/(\d+)/);
+  const chromium = major(/(?:Chrome|Chromium|CriOS)\/(\d{1,4})/);
   if (chromium) return `chromium-${chromium}`;
-  const safari = /Safari\//.test(userAgent) ? major(/Version\/(\d+)/) : undefined;
+  const safari = /Safari\//.test(userAgent) ? major(/Version\/(\d{1,4})/) : undefined;
   if (safari) return `safari-${safari}`;
   return 'other';
 }

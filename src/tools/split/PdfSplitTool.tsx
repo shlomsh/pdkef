@@ -271,16 +271,17 @@ export default function PdfSplitTool({
             current.map((p) => (p.pageNumber === i ? { ...p, thumbnail: url } : p)),
           );
         } catch (err) {
-          reportError('pdf_render', err);
+          // A run that lost its file had its document destroyed under it.
+          if (run.isCurrent()) reportError('pdf_render', err);
           console.error(`Error rendering thumbnail for page ${i}:`, err);
         }
       }
 
       run.settle();
     } catch (err) {
-      reportError('pdf_render', err);
       console.error('Error loading PDF document:', err);
       if (!run.isCurrent()) return;
+      reportError('pdf_render', err);
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     } finally {

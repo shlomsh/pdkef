@@ -39,8 +39,14 @@ async function pipeline(
   return (await res.json()) as { result?: unknown }[];
 }
 
+// The day the cap was last reached, per warm instance: past it, a flood of
+// forged reports costs no store calls at all.
+let cappedDay = '';
+
 export async function POST(request: Request): Promise<Response> {
   try {
+    const declared = Number(request.headers.get('content-length') ?? 0);
+    if (declared > MAX_REPORT_BYTES) return NO_CONTENT();
     const body = await request.text();
     if (body.length > MAX_REPORT_BYTES) return NO_CONTENT();
     const report = parseErrorReport(JSON.parse(body));
@@ -48,8 +54,10 @@ export async function POST(request: Request): Promise<Response> {
     if (!report || !store) return NO_CONTENT();
 
     const day = dayKey(new Date());
+    if (day === cappedDay) return NO_CONTENT();
     const [total] = await pipeline(store, capCommands(day));
-    if (typeof total?.result === 'number' && total.result <= DAILY_CAP) {
+    if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
+    else if (typeof total?.result === 'number') {
       const engine = engineBucket(request.headers.get('user-agent') ?? '');
       await pipeline(store, countCommands(report, engine, day));
     }
