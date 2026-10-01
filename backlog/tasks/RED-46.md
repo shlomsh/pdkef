@@ -1,7 +1,7 @@
 ---
 id: "RED-46"
 title: "The Redact page speaks the tool's words, without losing what people search for"
-status: "in_progress"
+status: "blocked"
 priority: "P2"
 epic: "redact-tool"
 phase: "near-term"
@@ -84,3 +84,5 @@ JSON-LD means the FAQ rows change both the visible answer and the FAQPage entry;
 5. **Add nothing about metadata.** No evidence either way. If wanted, use "document details" and the two true sentences above (title, author, dates left out; the saved-file check), not the word.
 6. **Ask Shlomi for the 2026-10-08 Search Console export** and filter `/redact/` queries for `flatten`, `text layer`, `permanent`, `white out`, `remove text`, `metadata`, `erase`. If any carries real impressions, put that word back in plainly and explained; this decision should be revisited only on that data.
 7. **Order of work after he picks:** edit tools.js and contentPages.js only (page, JSON-LD and Markdown follow); `npm run test:seo` and `test:csp` after `build`; update the Hebrew card in the same change only with his read (LOC gate); ask for an indexing request on `/redact/`. File a follow-up ticket for the two guide pages (28 occurrences of flatten / text run / text layer, plus `flatten.svg` alt text) so this one stays on /redact/.
+
+Blocked 2026-10-01 on Shlomi's picks from the findings above, and the 2026-10-08 GSC export for `/redact/` queries.

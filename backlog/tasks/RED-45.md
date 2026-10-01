@@ -1,7 +1,7 @@
 ---
 id: "RED-45"
 title: "A restored document says its boxes are back"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "redact-tool"
 phase: "near-term"
@@ -14,3 +14,7 @@ Reopening a document with saved work restores its boxes silently. One quiet line
 
 ## Acceptance
 - Copy in voice, no "draft", no "successfully". Not shown for a fresh document.
+
+## Result
+
+The status line's idle slot says "Your changes from last time are back. Undo still works." for a reopened document with work, until the first edit. (f3f1cd3f)
