@@ -1,11 +1,9 @@
 ---
 id: "RED-51"
 title: "Whiteout works like correction fluid: matched to the page, no border, colour in one tap"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -50,3 +48,14 @@ Delete onto a row of its own.
 - The saved PDF shows the patch in the matched colour with no stroke.
 - A draft saved before this opens with its colours unchanged.
 - Unit tests for the median, the ring, the re-sample and the toolbar, and an e2e on a tinted page.
+
+## Result
+
+Shipped as decided above, plus a magnifier loupe on the eyedropper (box and brush alike): centred on the
+pointer with a mouse, 40px above the finger on touch, press, slide and lift to pick. Measured in WebKit at
+390px: a patch on a cream page is the page's own colour (`rgb(247, 241, 222)`, where it was white), it
+follows the page onto another tint and one Undo restores both its place and colour, the exported picture
+is that colour edge to edge, and the whiteout pill is one 54px row at 375, 390 and 402px. Rule 9 moved
+`ElementToolbar`, the font and thickness pickers and `useCoarsePointer` into Sign and `BlurStrengthSlider`
+into Redact. Arrow-key moves on whiteout-only pages were found broken (page sizes load only with a blur)
+and handed to their own task.
