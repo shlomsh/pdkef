@@ -21,6 +21,7 @@ export const ACK_TIMEOUT_MS = 3000;
 export const RETRY_DELAY_MS = 1500;
 export const MAX_ATTEMPTS = 3;
 export const RECHECK_WAITING_MS = 5000;
+export const TAB_CLOSED_RECHECK_MS = 1000;
 export const STATUS_TIMEOUT_MS = 2000;
 export const REFRESH_EVERY_MS = 60 * 1000;
 
@@ -238,7 +239,8 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     } else if (message.type === 'hold-changed') {
       void recheckWaiting();
     } else if (message.type === 'tab-closed') {
-      void refreshLine();
+      // The closing window is still a client while its pagehide runs.
+      deps.setTimeout(() => { void refreshLine(); }, TAB_CLOSED_RECHECK_MS);
     }
   });
 

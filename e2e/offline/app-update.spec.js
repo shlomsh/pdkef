@@ -136,3 +136,55 @@ test('no update line without a waiting worker', async () => {
   expect(await tab.evaluate(async () => (await navigator.serviceWorker.getRegistration()).waiting)).toBeNull();
   await expect(tab.locator('[data-app-update]')).toBeHidden();
 });
+
+const waitForWaitingWorker = (page) => page.waitForFunction(async () => {
+  const registration = await navigator.serviceWorker.getRegistration();
+  return !!registration?.waiting;
+}, null, { timeout: 20_000 });
+
+// The silent path: one tab can switch builds at its own next navigation
+// without pulling a cache out from under anyone, so it never sees the line.
+test('a single tab never sees the line and lands on the new build at its next reload, work intact', async () => {
+  const tab = await context.newPage();
+  await openSignWithFile(tab, await makePdfBuffer('silent update e2e'));
+  await addText(tab, 'first edit', 0.3, 0.3);
+  await expect(tab.locator('[data-tool-shell]').getByText('Draft saved')).toBeVisible({ timeout: 10_000 });
+  await waitControlled(tab);
+
+  server.setPhase('new');
+  await checkForUpdate(tab);
+  await waitForWaitingWorker(tab);
+  await tab.waitForTimeout(1500);
+  await expect(tab.locator('[data-app-update]')).toBeHidden();
+
+  await tab.bringToFront();
+  await tab.reload();
+  await expect(build(tab)).toHaveAttribute('content', 'new', { timeout: 15_000 });
+  const cacheKeys = await tab.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('pdkef-')));
+  expect(cacheKeys).toEqual([expect.stringMatching(/e2e$/)]);
+  await expect(tab.locator('[data-editor-text-input]')).toHaveValue('first edit', { timeout: 15_000 });
+});
+
+// Offline stays whole: activation deletes the old cache, so a build only takes
+// over online. Offline, the reload keeps the old build working; back online,
+// the next reload switches.
+test('offline, a single tab keeps the old build until it is back online', async () => {
+  const tab = await context.newPage();
+  await tab.goto('/merge/');
+  await waitControlled(tab);
+
+  server.setPhase('new');
+  await checkForUpdate(tab);
+  await waitForWaitingWorker(tab);
+
+  await context.setOffline(true);
+  await tab.bringToFront();
+  await tab.reload();
+  await expect(build(tab)).toHaveAttribute('content', 'old');
+  await expect(tab.locator('h1')).toBeVisible();
+  await expect(tab.locator('[data-app-update]')).toBeHidden();
+
+  await context.setOffline(false);
+  await tab.reload();
+  await expect(build(tab)).toHaveAttribute('content', 'new', { timeout: 15_000 });
+});
