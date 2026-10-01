@@ -2,17 +2,11 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" | In progress |
 
 ### Waiting
 
@@ -167,7 +161,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 8 done, 0 retired
+- Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
 - Form detector accuracy: 2 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
