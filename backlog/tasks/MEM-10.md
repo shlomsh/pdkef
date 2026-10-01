@@ -85,13 +85,35 @@ Two follow-up calls made while building it, the same day:
 - Not built: reloading a single tab while it is backgrounded. The draftless tools keep loaded work only
   in memory, so it would need each of them to report that work first.
 
+**Final shape, later the same day (supersedes the click and the Reload button above).** Shlomi:
+the line appears only when a new build is downloaded and ready but another tab is actively working
+and blocking it. With that rule the Reload button had nothing left to do (whenever the line shows, a
+click could not succeed), so it is gone:
+
+- **Every update is silent.** On any navigation in any tab (a reload, another tool, home, a recent
+  file), the active worker asks the waiting build to take over. The waiting build asks every open tab
+  whether it holds work a reload would lose, and takes over only when none does, the build is fully
+  precached and the device is online. The navigating tab answers idle (it is leaving its page); the
+  others reload themselves on `controllerchange` after flushing their draft saves. The navigating tab
+  gets a blank page that loads it again a second later, once the new build is active (Chromium
+  activates only after the old worker goes idle; an instant refresh kept it busy).
+- **What holds:** an export in flight in any tool, and a file open in a tool without drafts (Compress,
+  Split, To Image, Image to PDF, Edit Pages, Unlock/Protect keep their work only in memory until
+  Download). Sign, Redact and Merge hold only while exporting, because their work is in drafts. A tab
+  that does not answer within 750ms (frozen, or on a build from before this ticket) also holds.
+- **The line, only in the other tabs:** "A new version is ready. It loads once you're done in your
+  other PDkef tab." when a tab is working, or "...Close your other PDkef tabs to load it." when one does
+  not answer. It hides as soon as nothing holds; the next navigation then updates every tab. The quiet
+  × still hides it until the next page load.
+
 Acceptance adds a Playwright guard for two tabs: an old build open in both, a new build deployed, one
-click, both land on the new build with their work intact.
+navigation, both land on the new build with their work intact; and a file open in Compress holding
+the update while only the other tab says so.
 
 ## Acceptance
 
-- With an old build live in one tab and a newer one deployed, the update line appears and reloading
-  lands on the new build, with the tab's work intact across the reload.
+- With an old build live in one tab and a newer one deployed, the next navigation lands on the new
+  build, with the tab's work intact across the reload.
 - Nothing appears when there is no waiting worker.
 - The prompt never fires during an export or with an unsaved editor change in flight.
 - A Playwright guard covers the appear-and-reload path; the existing service-worker specs keep

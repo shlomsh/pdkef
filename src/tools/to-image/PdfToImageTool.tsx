@@ -36,7 +36,7 @@ export default function PdfToImageTool() {
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
-  useHoldUpdate(status === 'converting');
+  useHoldUpdate(file !== null || status === 'converting');
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   useRevokeOnUnmount(images.map((i) => i.url));

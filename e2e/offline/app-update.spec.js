@@ -4,16 +4,17 @@ import { existsSync } from 'node:fs';
 import { startTwoBuildServer } from './twoBuildServer.js';
 
 /*
- * MEM-10: two tabs on an old build, a new build deployed, one click, both land
- * on the new build with their work intact. Only one build exists, so
- * twoBuildServer.js serves its own origin and fakes the deploy by changing the
- * worker's build id and tagging every page with the build that rendered it.
- * What this proves that no unit test can: a real waiting worker, a real
- * SKIP_WAITING, a real controllerchange reload in every tab, the old cache
- * gone, and a draft that was still inside its debounce window surviving. It
- * does not single out the reload flush (the reload lands after the debounce,
- * and pagehide flushes too); the draft hooks' unit tests pin that it awaits.
- * Chromium only (a live service worker, and the line is not engine-specific).
+ * MEM-10: tabs on an old build, a new build deployed. The next navigation in
+ * any tab moves every tab onto the new build with its work intact, unless a
+ * tab holds work a reload would lose; then the other tabs say why, quietly.
+ * Only one build exists, so twoBuildServer.js serves its own origin and fakes
+ * the deploy by changing the worker's build id and tagging every page with the
+ * build that rendered it. What this proves that no unit test can: a real
+ * waiting worker asking real tabs, a real takeover, a real controllerchange
+ * reload in every tab, the old cache gone, and a draft that was still inside
+ * its debounce window surviving. It does not single out the reload flush (the
+ * reload lands after the debounce, and pagehide flushes too); the draft hooks'
+ * unit tests pin that it awaits. Chromium only (a live service worker).
  */
 
 test.skip(!existsSync('dist/precache-manifest.json'), 'needs a built dist/ (npm run build)');
@@ -66,12 +67,16 @@ async function addText(page, text, xRatio, yRatio) {
   await page.keyboard.press('Escape');
 }
 
-async function openSignWithFile(page, buffer) {
-  await page.goto('/sign/?next=0');
+async function openWithFile(page, path, buffer) {
+  await page.goto(path);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   const chooser = page.waitForEvent('filechooser');
   await page.getByText('Choose file', { exact: true }).click();
   await (await chooser).setFiles({ name: 'update-e2e.pdf', mimeType: 'application/pdf', buffer });
+}
+
+async function openSignWithFile(page, buffer) {
+  await openWithFile(page, '/sign/?next=0', buffer);
   await expect(page.locator('[class*="page-overlay"]')).toBeVisible();
 }
 
@@ -81,8 +86,22 @@ const checkForUpdate = (page) => page.evaluate(async () => {
 });
 
 const build = (page) => page.locator('meta[name="pdkef-e2e-build"]');
+// The build that rendered the page, or null mid-navigation.
+const buildOf = (page) => page.evaluate(() => document.querySelector('meta[name="pdkef-e2e-build"]')?.content ?? null)
+  .catch(() => null);
 
-test('both tabs land on the new build with their work intact', async () => {
+const line = (page) => page.locator('[data-app-update]');
+
+// Polled with evaluate: waitForFunction treats an async predicate's promise as
+// truthy and returns at once, mid-install.
+const waitForWaitingWorker = (page) => expect.poll(() => page.evaluate(async () => {
+  const registration = await navigator.serviceWorker.getRegistration();
+  return registration?.waiting?.state ?? null;
+}), { timeout: 20_000 }).toBe('installed');
+
+const ownCaches = (page) => page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('pdkef-')));
+
+test('one navigation moves two idle tabs onto the new build, work intact, with no line', async () => {
   const tabA = await context.newPage();
   await openSignWithFile(tabA, await makePdfBuffer('update e2e'));
   await addText(tabA, 'first edit', 0.3, 0.3);
@@ -96,26 +115,25 @@ test('both tabs land on the new build with their work intact', async () => {
 
   server.setPhase('new');
   await checkForUpdate(tabB);
+  await waitForWaitingWorker(tabB);
+  // Sign keeps its work in drafts, so neither tab holds: nothing to say.
+  await tabB.waitForTimeout(1500);
+  for (const tab of [tabA, tabB]) await expect(line(tab)).toBeHidden();
 
-  for (const tab of [tabA, tabB]) {
-    await expect(tab.locator('[data-app-update]')).toBeVisible({ timeout: 20_000 });
-    await expect(tab.locator('[data-app-update]')).toContainText('A new version is ready');
-  }
-
-  // A second edit, still inside the 700ms draft debounce when the click lands.
+  // A second edit, still inside the 700ms draft debounce when tab B navigates.
   await addText(tabA, 'second edit', 0.3, 0.55);
-  // Neither tab is navigated by the test: each must reload itself on
-  // controllerchange. Tab A matters most, because it was the context's first
-  // page and so only came under control when the old worker claimed it.
-  const reloaded = Promise.all([tabA, tabB].map((tab) => tab.waitForEvent('load', { timeout: 30_000 })));
-  // The click must land while that edit is still unsaved, or the flush is not
-  // what keeps it.
+  // The test navigates tab B only: tab A must reload itself on
+  // controllerchange. It was the context's first page, so it only came under
+  // control when the old worker claimed it.
+  const reloadedA = tabA.waitForEvent('load', { timeout: 30_000 });
   await expect(tabA.locator('[data-tool-shell]').getByText('Saving draft…')).toBeVisible();
-  await tabB.locator('button[data-app-update-reload]').click();
-  await reloaded;
-  for (const tab of [tabA, tabB]) await expect(build(tab)).toHaveAttribute('content', 'new');
+  // Tab B gets a blank page that loads it again a second later, once the new
+  // build is active (Playwright's locators stall on that refresh, so poll).
+  await tabB.reload();
+  await reloadedA;
+  for (const tab of [tabA, tabB]) await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
 
-  const cacheKeys = await tabB.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('pdkef-')));
+  const cacheKeys = await ownCaches(tabB);
   expect(cacheKeys).toHaveLength(1);
   expect(cacheKeys[0]).toMatch(/e2e$/);
 
@@ -127,6 +145,43 @@ test('both tabs land on the new build with their work intact', async () => {
   expect(values.sort()).toEqual(['first edit', 'second edit']);
 });
 
+test('a file open in a tool without drafts holds the update, and only the other tab says so', async () => {
+  const busy = await context.newPage();
+  await openWithFile(busy, '/compress/', await makePdfBuffer('held e2e'));
+  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+
+  const other = await context.newPage();
+  await other.goto('/merge/');
+  await waitControlled(busy);
+  await waitControlled(other);
+
+  server.setPhase('new');
+  await checkForUpdate(other);
+  await waitForWaitingWorker(other);
+
+  await expect(line(other)).toBeVisible({ timeout: 10_000 });
+  await expect(line(other)).toContainText("It loads once you're done in your other PDkef tab.");
+  await expect(line(busy)).toBeHidden();
+
+  // The idle tab's own navigation cannot take the busy tab's work with it.
+  await other.reload();
+  await expect(build(other)).toHaveAttribute('content', 'old');
+  await expect(build(busy)).toHaveAttribute('content', 'old');
+  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+  await expect(line(other)).toBeVisible({ timeout: 10_000 });
+
+  // Dismissed, it stays hidden for this page.
+  await other.locator('[data-app-update-dismiss]').click();
+  await expect(line(other)).toBeHidden();
+
+  // Leaving the file is the busy tab's own choice: that navigation updates both.
+  const reloadedOther = other.waitForEvent('load', { timeout: 30_000 });
+  await busy.goto('/merge/');
+  await reloadedOther;
+  for (const tab of [busy, other]) await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
+  expect(await ownCaches(other)).toEqual([expect.stringMatching(/e2e$/)]);
+});
+
 test('no update line without a waiting worker', async () => {
   const tab = await context.newPage();
   await tab.goto('/merge/');
@@ -136,11 +191,6 @@ test('no update line without a waiting worker', async () => {
   expect(await tab.evaluate(async () => (await navigator.serviceWorker.getRegistration()).waiting)).toBeNull();
   await expect(tab.locator('[data-app-update]')).toBeHidden();
 });
-
-const waitForWaitingWorker = (page) => page.waitForFunction(async () => {
-  const registration = await navigator.serviceWorker.getRegistration();
-  return !!registration?.waiting;
-}, null, { timeout: 20_000 });
 
 // The silent path: one tab can switch builds at its own next navigation
 // without pulling a cache out from under anyone, so it never sees the line.
@@ -155,11 +205,10 @@ test('a single tab never sees the line and lands on the new build at its next re
   await checkForUpdate(tab);
   await waitForWaitingWorker(tab);
   await tab.waitForTimeout(1500);
-  await expect(tab.locator('[data-app-update]')).toBeHidden();
+  await expect(line(tab)).toBeHidden();
 
-  await tab.bringToFront();
   await tab.reload();
-  await expect(build(tab)).toHaveAttribute('content', 'new', { timeout: 15_000 });
+  await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
   const cacheKeys = await tab.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('pdkef-')));
   expect(cacheKeys).toEqual([expect.stringMatching(/e2e$/)]);
   await expect(tab.locator('[data-editor-text-input]')).toHaveValue('first edit', { timeout: 15_000 });
@@ -178,7 +227,6 @@ test('offline, a single tab keeps the old build until it is back online', async 
   await waitForWaitingWorker(tab);
 
   await context.setOffline(true);
-  await tab.bringToFront();
   await tab.reload();
   await expect(build(tab)).toHaveAttribute('content', 'old');
   await expect(tab.locator('h1')).toBeVisible();
@@ -186,5 +234,5 @@ test('offline, a single tab keeps the old build until it is back online', async 
 
   await context.setOffline(false);
   await tab.reload();
-  await expect(build(tab)).toHaveAttribute('content', 'new', { timeout: 15_000 });
+  await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
 });
