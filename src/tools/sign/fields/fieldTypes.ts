@@ -95,17 +95,18 @@ export interface DetectionContext {
 export interface SourceRegions {
   combs: CombRegion[];
   checkboxes: FieldRegion[];
-  cells: FieldRegion[];
+  cells: DetectedCell[];
 }
 
 /**
  * A detected free-text/date/signature/table-cell field, tagged with the kind
  * `classifyKind` (`formCells.js`) or the widget passthrough (`formWidgets.js`)
- * actually assigns it. `SourceRegions.cells` stays plain `FieldRegion[]` -
- * the plan's own contract is deliberately kind-agnostic there - but every
- * real cell a source produces does carry one, so `detectFormFields`'s own
- * return type says so: this is what let `useFormFieldRegions.ts` drop its
- * local widening cast (FORM-23).
+ * actually assigns it. `SourceRegions.cells` is `DetectedCell[]` (FORM-25):
+ * it was plain `FieldRegion[]` while `detectFormFields`'s return type already
+ * promised a kind, a claim nothing checked one hop upstream. Every real cell
+ * a source produces carries one, and a source that omits it is now a type
+ * error rather than a `kind: undefined` reaching the UI. This is what let
+ * `useFormFieldRegions.ts` drop its local widening cast (FORM-23).
  */
 export interface DetectedCell extends FieldRegion {
   kind: DetectorFieldKind;

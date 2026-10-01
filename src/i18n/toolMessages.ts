@@ -1486,7 +1486,7 @@ const englishRecentFilesMessages: RecentFilesMessages = {
   pageCountOther: '{count} pages',
   expiresInDaysOne: 'Expires in 1 day',
   expiresInDaysOther: 'Expires in {count} days',
-  oldestKeptFile: 'Oldest of {count} saved files',
+  oldestKeptFile: 'Oldest of {count} files',
 };
 
 // LOC-09: an AI draft, not reviewed copy - see hebrewFileDropzoneMessages above.
@@ -1499,7 +1499,7 @@ const hebrewRecentFilesMessages: RecentFilesMessages = {
   pageCountOther: '{count} עמודים',
   expiresInDaysOne: 'פג תוקף מחר',
   expiresInDaysOther: 'פג תוקף בעוד {count} ימים',
-  oldestKeptFile: 'הישן מבין {count} הקבצים השמורים',
+  oldestKeptFile: 'הישן מבין {count} קבצים',
 };
 
 const recentFilesMessages: Partial<Record<DocumentationLocaleId, RecentFilesMessages>> = {

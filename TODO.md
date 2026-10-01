@@ -11,10 +11,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too
 - [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
 
-### Form detector accuracy
-
-- [FORM-25](backlog/tasks/FORM-25.md) P2 · Detection's contract is type-checked, not only documented
-
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
@@ -22,7 +18,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Search and languages
 
-- [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
+- [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is (in progress)
 
 ## Waiting, by date
 
