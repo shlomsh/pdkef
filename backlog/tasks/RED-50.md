@@ -1,10 +1,10 @@
 ---
 id: "RED-50"
 title: "A download that fails after the file is made says so, not \"Saved\""
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "redact"
-horizon: "later"
+horizon: "now"
 order: 1
 depends_on: []
 ---
