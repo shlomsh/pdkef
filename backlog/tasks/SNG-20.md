@@ -1,10 +1,9 @@
 ---
 id: "SNG-20"
 title: "iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "sign-fill-mode"
-horizon: "now"
 order: 2
 depends_on: ["SNG-07"]
 ---
@@ -18,4 +17,16 @@ Until then, Shlomi checks zoom kept between fields on his iPhone.
 
 ## Acceptance
 
-- [ ] The pinch scenario passes or fails on the app's behaviour, never MANUAL.
+- [x] The pinch scenario passes or fails on the app's behaviour, never MANUAL.
+
+## Resolution (2026-10-01)
+
+Neither guess. The pinch does not dismiss the keyboard, and the Next lookup works while zoomed: in an
+isolated run (iPhone 17, iOS 26.2) the keyboard stays up at 2.4x to 2.6x, `Next` is found and tapped,
+focus moves to the next field, and the scale holds. The gate's `Next` failed because the pinch scenario
+started from state the scenarios before it left behind: after "tap outside" the next tap on a field did
+not focus it (see SNG-23), so there was no keyboard to find a `Next` on. The scenario now reloads the
+page first, checks focus and the keyboard before and after the pinch, and fails with the actual reason
+at each step. Negative control: with the zoom lock broken (`maximum-scale=1` while zoomed, SNG-17's bug),
+it fails with `zoom not kept between fields: 2.41 -> 1.00`. `nextField` also lost a stray copy of the
+pinch scenario's catch (it named variables that don't exist there).

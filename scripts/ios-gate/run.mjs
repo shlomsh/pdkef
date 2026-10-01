@@ -82,7 +82,7 @@ async function main() {
     await session.timeouts({ script: 60000 });
     await helpers.loadFillMode(session, PREVIEW_URL);
 
-    const ctx = {};
+    const ctx = { baseUrl: PREVIEW_URL };
     for (const scenario of SCENARIOS) {
       let result;
       try {
