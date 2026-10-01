@@ -181,7 +181,7 @@ describe('startAppUpdates', () => {
     expect(tab.line.hidden).toBe(false);
     worker.status = { ready: true, windows: 1 };
     new FakeChannel(bus).postMessage({ type: 'tab-closed' });
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1100);
     expect(tab.line.hidden).toBe(true);
     expect(tab.line.dataset.appUpdateState).toBe('ready');
   });
@@ -196,7 +196,7 @@ describe('startAppUpdates', () => {
     expect(b.line.hidden).toBe(false);
     bWorker.status = { ready: true, windows: 1 };
     a.win.emit('pagehide');
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1100);
     expect(b.line.hidden).toBe(true);
   });
 
