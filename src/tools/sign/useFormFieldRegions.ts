@@ -6,6 +6,7 @@ import type { TextDirection } from '../../editor/model/editorModel.ts';
 import { dominantTextDirection } from '../../lib/signHelpers.js';
 import { readTextItems } from '../../lib/pdfTextItems.ts';
 import { describeFormDetectionFailure } from './formDetectionDetail.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 /** A page-percent `{left, top, width, height}` box - what `toPagePercentBox`
  * actually returns, which is `FieldRegion` minus `pageIndex` (the caller's to
@@ -296,6 +297,7 @@ export default function useFormFieldRegions(
         // Feedback report and what an engineer reads in the console are the
         // same string; the error object after it, because a console stays on
         // the device and a stack is worth having there.
+        if (detectorLoaded) reportError('sign_form_detection', error);
         const outcome = detectorLoaded ? FAILED : UNAVAILABLE;
         issueRef.current.issue = describeFormDetectionFailure(error);
         console.warn(
