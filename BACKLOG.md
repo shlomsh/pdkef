@@ -2,23 +2,23 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 12 up next, 21 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 60 live: 11 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Consolidate Redact's state before it grows further | In progress |
 
 ### Waiting
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
+
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" |  |
 
 ## Sign: finish fill mode
 
@@ -182,7 +182,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 7 done, 0 retired
+- Redact: finish removal: 8 done, 0 retired
 - Sign: finish fill mode: 0 done, 0 retired
 - Form detector accuracy: 0 done, 0 retired
 - Robustness and debt: 2 done, 0 retired

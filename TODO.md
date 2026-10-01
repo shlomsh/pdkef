@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [SNG-08](backlog/tasks/SNG-08.md) P2 · Consolidate Redact's state before it grows further (in progress)
-
 ### Sign: finish fill mode
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too

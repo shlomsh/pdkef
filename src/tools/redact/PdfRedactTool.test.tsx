@@ -1718,6 +1718,32 @@ describe('PdfRedactTool UI flow', () => {
     });
   });
 
+  // Opens a second file over the loaded one and confirms the replace dialog.
+  async function openSecondFile(name: string): Promise<void> {
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    await act(async () => { setInputFiles(input, [makePdfFile(name)]); });
+    const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
+      .find((button) => button.textContent.trim() === 'Replace file'), 'Replace file button');
+    await act(async () => { confirmReplace.click(); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+  }
+
+  describe('opening another file (SNG-08)', () => {
+    it('leaves no tool armed, even one that was locked', async () => {
+      const drawArea = await loadFileWithoutArming();
+      await armTool('Blackout', { lock: true });
+      expect(drawArea.style.touchAction).toBe('none');
+      expect(findToolButton('Blackout').className).toContain(toolbarStyles.locked);
+
+      await openSecondFile('second.pdf');
+
+      const next = query<HTMLElement>(container, '.redact-draw-area');
+      expect(next.style.touchAction).toBe('auto');
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.locked);
+      expect(findToolButton('Blackout').className).not.toContain(toolbarStyles.active);
+    });
+  });
+
   describe('Escape disarms the tool', () => {
     it('disarms a one-shot armed tool and restores scrolling', async () => {
       const drawArea = await loadFileAndGetDrawArea(); // arms Blackout
@@ -2303,6 +2329,26 @@ describe('PdfRedactTool UI flow', () => {
     }
 
     const boxes = () => Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+
+    it('forgets the Find terms of the previous file when another file is opened (SNG-08)', async () => {
+      const seen: string[][] = [];
+      checkOverride.current = (args: { findTerms: Array<{ label: string }> }) => {
+        seen.push(args.findTerms.map((t) => t.label));
+        return { state: { status: 'idle' }, search: vi.fn() };
+      };
+      try {
+        await loadFileAndGetDrawArea();
+        await openFindAndSearch('jane doe');
+        await clickRedactAll();
+        expect(seen.at(-1)).toContain('jane doe');
+
+        await openSecondFile('second.pdf');
+
+        expect(seen.at(-1)).not.toContain('jane doe');
+      } finally {
+        checkOverride.current = null;
+      }
+    });
 
     it('gives every box added by Redact all one findSetId, offered as "All N from this search"', async () => {
       await loadFileAndGetDrawArea();
