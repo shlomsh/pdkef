@@ -86,7 +86,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     location: { origin: 'https://pdkef.test' },
     addEventListener: (name, listener) => listeners.set(name, listener),
     skipWaiting: vi.fn(async () => undefined),
-    clients: { claim: vi.fn(async () => undefined) },
+    clients: { claim: vi.fn(async () => undefined), matchAll: vi.fn(async () => []) },
     registration: { unregister: vi.fn(async () => true) },
   };
 
@@ -485,7 +485,7 @@ describe('precache manifest delivery policy', () => {
 // generate-precache-manifest.mjs). It must stay a valid classic worker
 // script, keep the __BUILD_ID__ placeholder for that same script to
 // substitute, and never gain a skipWaiting() call the minifier didn't put
-// there (see the "No skipWaiting()" invariant above).
+// there (see the skipWaiting() invariant in csp-scripts-pwa.md).
 describe('minified service worker', () => {
   it('evaluates in the same harness and keeps the invariants that matter', async () => {
     const worker = createWorker(vi.fn(async () => new Response('font bytes')), ['pdkef-previous'], createFakeIndexedDB(), minifiedWorkerSource);
@@ -495,7 +495,57 @@ describe('minified service worker', () => {
 
     expect(await response.text()).toBe('font bytes');
     expect(minifiedWorkerSource).toContain('__BUILD_ID__');
-    expect(minifiedWorkerSource).not.toMatch(/skipWaiting\s*\(/);
+    expect(minifiedWorkerSource.match(/skipWaiting\s*\(/g)).toHaveLength(1);
     expect(minifiedWorkerSource.length).toBeLessThan(workerSource.length * 0.6);
+  });
+});
+
+// MEM-10: skipWaiting() runs only on the page's message, after every tab answered.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('skip-waiting message (%s)', (_label, source) => {
+  const SKIP = 'pdkef:skip-waiting';
+  const build = (urls) => {
+    const worker = createWorker(vi.fn(async () => new Response('x')), ['pdkef-previous'], createFakeIndexedDB(), source);
+    worker.self.clients.matchAll = vi.fn(async () => urls.map((url) => ({ url })));
+    return worker;
+  };
+  const http2 = ['https://pdkef.test/', 'https://pdkef.test/sign/'];
+
+  it('skips waiting and replies when every window answered', async () => {
+    const worker = build(http2);
+    expect(await dispatchMessage(worker, { type: SKIP, windows: 2 })).toEqual({ ok: true, windows: 2 });
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses when a window did not answer', async () => {
+    const worker = build(http2);
+    expect(await dispatchMessage(worker, { type: SKIP, windows: 1 })).toEqual({ ok: false, windows: 2 });
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does not count blob: windows', async () => {
+    const worker = build(['https://pdkef.test/', 'blob:https://pdkef.test/abc']);
+    expect(await dispatchMessage(worker, { type: SKIP, windows: 1 })).toEqual({ ok: true, windows: 1 });
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([[undefined], [0], [1.5], ['2']])('refuses a windows value of %s', async (windows) => {
+    const worker = build(http2);
+    const reply = await dispatchMessage(worker, { type: SKIP, windows });
+    expect(reply.ok).toBe(false);
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('never skips waiting for a font-pack message', async () => {
+    const worker = build(http2);
+    await dispatchMessage(worker, { type: 'pdkef:font-pack-status', windows: 2 });
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('runs the check without a reply port and does not throw', async () => {
+    const worker = build(http2);
+    const waits = [];
+    worker.listeners.get('message')({ data: { type: SKIP, windows: 2 }, waitUntil: (p) => waits.push(Promise.resolve(p)) });
+    await Promise.all(waits);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
   });
 });
