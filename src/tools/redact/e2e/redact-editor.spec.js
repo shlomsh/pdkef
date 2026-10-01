@@ -314,8 +314,9 @@ test.describe('Redact editor browser guardrails', () => {
       const toolbar = blur.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
       await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
-      // Blur has no colour, but it has a strength picker (SITE-41): trigger, duplicate, delete.
-      await expect(toolbar.locator('button'), 'blur carries its strength trigger, duplicate and delete').toHaveCount(3);
+      // Blur has no colour, but it has a strength slider (RED-30), then duplicate and delete.
+      await expect(toolbar.locator('input[type="range"]'), 'blur carries its strength slider').toHaveCount(1);
+      await expect(toolbar.locator('button'), 'blur carries duplicate and delete').toHaveCount(2);
       const boxRect = await getBox(blur, 'blur box');
       const toolbarRect = await getBox(toolbar, 'blur toolbar');
       offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
