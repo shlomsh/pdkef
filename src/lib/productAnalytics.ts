@@ -7,30 +7,17 @@
  * quietly become analytics properties.
  */
 
-export const ANALYTICS_TOOLS = [
-  'merge',
-  'split',
-  'edit-pdf',
-  'compress',
-  'compress-image',
-  'pdf-to-image',
-  'image-to-pdf',
-  'sign',
-  'redact',
-  'unlock',
-  'protect',
-] as const;
+import type { AnalyticsTool, ToolLifecycleEvent } from './usageEventSchema';
 
-export type AnalyticsTool = (typeof ANALYTICS_TOOLS)[number];
-
-export const TOOL_LIFECYCLE_EVENTS = [
-  'tool_file_accepted',
-  'tool_operation_started',
-  'tool_result_ready',
-  'tool_operation_failed',
-] as const;
-
-export type ToolLifecycleEvent = (typeof TOOL_LIFECYCLE_EVENTS)[number];
+// The event and tool lists live in the import-free schema the endpoint shares (DEBT-28).
+export {
+  ANALYTICS_TOOLS,
+  TOOL_LIFECYCLE_EVENTS,
+  parseUsageEvent,
+  type AnalyticsTool,
+  type ToolLifecycleEvent,
+  type UsageEvent,
+} from './usageEventSchema';
 
 /** Emits the complete, deliberately small event schema in production only. */
 export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: AnalyticsTool): void {

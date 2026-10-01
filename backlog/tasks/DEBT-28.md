@@ -1,12 +1,12 @@
 ---
 id: "DEBT-28"
 title: "The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
+horizon: "now"
 depends_on: ["DEBT-27"]
-needs: "Whether the usage funnel is wanted, and the privacy-page sentence for it"
+needs: "The privacy-page sentence for the funnel"
 ---
 
 # DEBT-28 · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops
@@ -50,7 +50,8 @@ error loop. Usage likely needs its own counter and cap.
 
 ## Acceptance
 
-- [ ] Shlomi decides: keep the funnel (build the above) or retire the four events and the code.
+- [x] Shlomi decides: keep the funnel (build the above) or retire the four events and the code.
+      Kept, 2026-10-01.
 - [ ] If kept: a Sign or Merge run in production shows accepted, started and ready per tool in the
       reader the next minute, and error reports keep their own cap.
 - [ ] If retired: `productAnalytics.ts`, its call sites and the disclosures lose them, and
