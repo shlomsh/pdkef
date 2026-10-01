@@ -5,6 +5,7 @@ import {
   applyMatrix,
   transformedUnitBox,
 } from './contentStream.js';
+import { reportError } from '../../../lib/errorReport.ts';
 
 /**
  * Finds the discrete drawing operations on a page and where they live in its
@@ -925,6 +926,7 @@ export function extractPageObjects(page, pageIndex = 0) {
         [...parentPath, ref.tag],
       );
     } catch (err) {
+      reportError('redact', err);
       objects.length = before;
       console.error(`Could not read Form XObject ${ref.tag} on page ${pageIndex + 1}`, err);
     }

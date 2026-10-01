@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { reportError } from '../../lib/errorReport.ts';
 
 export interface PageSizePt { width: number; height: number }
 
@@ -29,6 +30,7 @@ export default function usePageSizesPt(
           sizes.push({ width, height });
         }
       } catch (error) {
+        reportError('redact', error);
         // Without a size a blur box draws its plain fraction, as it did
         // before RED-24; the export is unaffected.
         console.error('Redact could not read a page size', error);

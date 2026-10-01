@@ -61,6 +61,7 @@ import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -757,6 +758,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
       }
     } catch (error) {
+      reportError('redact', error);
       console.error(error);
       dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
     } finally {
@@ -808,6 +810,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
       }
     } catch (err) {
+      reportError('redact', err);
       console.error(err);
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
+import { reportError } from '../../lib/errorReport.ts';
 
 const REBUILD_DEBOUNCE_MS = 120;
 
@@ -199,6 +200,7 @@ export default function useDeletePreviews(
         });
         keysRef.current = nextKeys;
       } catch (err) {
+        reportError('redact', err);
         // Same fallback as the rest of Delete: an unreadable preview just
         // means that page keeps showing the (still correct, if less exact)
         // original render, not a broken editor.

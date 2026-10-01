@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { PageGlyph } from '../../editor/adapters/pdf/pageGlyphs.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
+import * as errorReport from '../../lib/errorReport.ts';
 import useObjectPreviews from './useObjectPreviews.ts';
 
 const readGlyphsMock = vi.fn<(pdfjs: unknown, page: { pageNumber: number }) => Promise<PageGlyph[] | null>>();
@@ -73,5 +74,16 @@ describe('useObjectPreviews', () => {
     await settle();
     expect(readGlyphsMock).toHaveBeenCalledTimes(1);
     expect(seen.current.find((o) => o.id === 'second')?.preview).toBeUndefined();
+  });
+
+  it('reports a page that throws while it is read', async () => {
+    const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const boom = new Error('boom');
+    readGlyphsMock.mockRejectedValue(boom);
+    mount(pdfDocument, [run('a', 0)]);
+    await settle();
+    expect(report).toHaveBeenCalledWith('redact', boom);
+    vi.restoreAllMocks();
   });
 });
