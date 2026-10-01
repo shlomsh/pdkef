@@ -17,6 +17,9 @@ const messages = getAppUpdateMessages(lang);
   <span class="app-update-blocked">{messages.blocked}</span>
   <span class="app-update-waiting">{messages.waiting}</span>
   <span class="app-update-action"><span aria-hidden="true">·</span><button type="button" data-app-update-reload>{messages.reload}</button></span>
+  <button type="button" class="app-update-dismiss" data-app-update-dismiss aria-label={messages.dismiss}>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+  </button>
 </p>
 
 <style>
@@ -106,5 +109,22 @@ const messages = getAppUpdateMessages(lang);
   .app-update button:disabled {
     cursor: default;
     opacity: 0.6;
+  }
+  /* Hides the line in this tab until its next page load (MEM-10). */
+  .app-update .app-update-dismiss {
+    justify-content: center;
+    inline-size: 28px;
+    padding: 0;
+    color: var(--color-muted);
+    border-color: transparent;
+  }
+  .app-update .app-update-dismiss::before {
+    inset-inline: -8px;
+  }
+  .app-update .app-update-dismiss:hover,
+  .app-update .app-update-dismiss:focus-visible {
+    color: var(--color-text);
+    background: none;
+    border-color: var(--color-border-strong);
   }
 </style>

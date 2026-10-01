@@ -107,6 +107,9 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   let state: LineState | 'hidden' = 'hidden';
   let running = false;
   let rechecking = false;
+  // Dismissed lines stay hidden until this page's next load. The tab still
+  // answers hold queries and still reloads with the others on an update.
+  let dismissed = false;
   let reloading = false;
   let lastCheck = deps.now();
   let answers = new Map<string, boolean>();
@@ -119,10 +122,19 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     state = next;
     if (!line) return;
     line.dataset.appUpdateState = next;
-    line.removeAttribute('hidden');
+    if (!dismissed) line.removeAttribute('hidden');
   }
 
-  const reg = await serviceWorker.register('/sw.js');
+  // A browser that refuses or blocks workers (private modes, enterprise
+  // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
+  let registered: RegistrationLike | undefined;
+  try {
+    registered = await serviceWorker.register('/sw.js');
+  } catch {
+    return;
+  }
+  if (!registered) return;
+  const reg = registered;
 
   function showIfWaiting() {
     if (state === 'hidden' && isUpdateWaiting(reg, serviceWorker.controller)) setState('ready');
@@ -205,6 +217,10 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   });
 
   button?.addEventListener('click', () => { void requestUpdate(); });
+  line?.querySelector('[data-app-update-dismiss]')?.addEventListener('click', () => {
+    dismissed = true;
+    line.hidden = true;
+  });
 
   function waitForRelease(): Promise<void> {
     if (!isUpdateHeld()) return Promise.resolve();
