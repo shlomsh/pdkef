@@ -1,6 +1,6 @@
 # PDkef analytics approach
 
-Last updated: 2026-09-13
+Last updated: 2026-10-01
 
 ## Purpose
 
@@ -72,6 +72,20 @@ Sign performance/compatibility diagnostic, not a second product-event schema.
 The `tool` values are a closed list: `merge`, `split`, `edit-pdf`, `compress`,
 `pdf-to-image`, `image-to-pdf`, `sign`, `redact`, `unlock`, and `protect`.
 
+## Anonymous error reports (DEBT-17)
+
+Separate from the analytics provider: when something in our own code breaks in
+a tool, the browser may send one small anonymous report to PDkef's own
+`/api/report` address. It carries the failing area (a fixed list), the error's
+name, and the file name and line number in our own published JavaScript. Never
+the error message, anything from a document, a filename, text, an IP address,
+or an identifier. The server keeps only daily counts of identical reports plus
+a coarse browser family and major version (like `ios-26`), in an Upstash Redis
+database connected through Vercel, and deletes them after 90 days. Each
+distinct report is sent at most once per page load, at most 10 per page;
+nothing is sent offline, and failures are ignored. `connect-src 'self'` is
+unchanged. Details: `docs/maintenance-telemetry.md`.
+
 Do not infer an individual funnel from these events. Vercel’s privacy model is
 aggregate and visitors are only recognised for a day. Instead, compare aggregate
 counts in a shared time window: accepted → started → result ready. With current
@@ -115,3 +129,4 @@ additions if their question remains unanswered:
 | 2026-09-09 | Remove the 10% sampling rate for approved maintenance events. | Traffic is low enough that complete aggregate counts are more useful and remain within the privacy boundary. |
 | 2026-09-09 | Start with four lifecycle events and one closed `tool` property. | This supports tool usage, aggregate funnel stages, success, and failure while minimising collection and keeping Vercel breakdowns usable. |
 | 2026-09-13 | Merge (MERGE-12) counts `tool_operation_started` on the Download tap, `tool_result_ready` when that tapped download is delivered, and `tool_operation_failed` on each entry into its error state; pre-merges on idle are not counted. | The explicit Merge step was removed, so the person's intent now lives in the Download tap, which is what `tool_operation_started` measured before. Counting every idle pre-merge would inflate "started" with work nobody asked for (each list change restarts one) and make the accepted to started to ready funnel in MERGE-16 incomparable with the pre-change baseline. Flagged for Shlomi. |
+| 2026-10-01 | Add anonymous error reports to PDkef's own `/api/report` (DEBT-17), outside the analytics provider. | Defects on a person's device were invisible to us. A report names only the area, the error name and the position in our own code, so it can point at a line without touching a document. |

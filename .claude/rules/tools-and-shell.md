@@ -61,6 +61,10 @@ redact and home pages, with one FAQ entry each mirrored into `<SeoSchema>`.
 - `src/lib/thumbnails.js`: lazy `pdfjs-dist` page-1 render. The worker is
   `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url)`, bundled same-origin, never a CDN.
 
+## Catching errors
+
+Ask what threw. If it is the environment or the person's file (blocked or full storage, a missing optional API, a cancelled picker, a stored value that will not parse, an encrypted or damaged PDF), fall back quietly and say why in a comment. If it is our code or a library we ship (a detector, a renderer, a parser, an export step, a draft write after the database opened), call `reportError(area, err)` (`src/lib/errorReport.ts`) before the fallback, even when the UI or console already shows it. Keep the `try` narrow so one block never mixes both, and never report from best-effort cleanup or from telemetry itself. `docs/debt-17-catch-triage.md` is the worked classification.
+
 ## Cross-tool hand-offs, and the reverse
 
 Merge's done state is the model: quiet secondary verbs next to the result, each with the target
