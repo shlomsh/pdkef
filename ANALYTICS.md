@@ -41,7 +41,7 @@ blocked, offline, or unavailable.
 The four tool lifecycle events (`tool_file_accepted`, `tool_operation_started`,
 `tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) go to
 PDkef's own `/api/report` address as daily counts per event and tool (no browser
-family), kept for 90 days under their own daily cap of 1,000 (`USAGE_DAILY_CAP`), and
+family), kept for 90 days under their own daily cap of 3,000 (`USAGE_DAILY_CAP`), and
 read with `npm run errors:read` under "Tool usage". Vercel Web Analytics is the
 transport for page views only. Sign's
 two maintenance events (`sign_form_detection`, `sign_export`) are separate events.

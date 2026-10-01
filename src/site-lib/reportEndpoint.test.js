@@ -66,7 +66,7 @@ function expiryContract(label, totalPrefix, value, countingFirst) {
 
     it('past the cap sends exactly one command', async () => {
       const send = await freshPoster(jsonRequest);
-      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(1001));
+      const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(answerTotal(3001));
       await send(value);
       expect(sentPipelines(spy)).toEqual([[['INCR', totalKey]]]);
     });
@@ -208,7 +208,7 @@ describe('/api/report stays silent', () => {
 
     it('does not count past the usage cap, and the next event makes no store call', async () => {
       const send = await freshPost();
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(1001));
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(answer(3001));
       expect((await send(usage)).status).toBe(204);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       expect(fetchSpy.mock.calls[0][1].body).not.toContain('HINCRBY');

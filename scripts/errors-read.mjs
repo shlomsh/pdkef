@@ -39,7 +39,7 @@ function envFromFile() {
 
 // Mirror DAILY_CAP and USAGE_DAILY_CAP in src/site-lib/errorReportStore.ts (a script cannot import TS).
 const DAILY_CAP = 1000;
-const USAGE_DAILY_CAP = 1000;
+const USAGE_DAILY_CAP = 3000;
 
 const env = { ...envFromFile(), ...process.env };
 const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
