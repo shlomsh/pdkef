@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Redact: finish removal
 
 - [RED-16](backlog/tasks/RED-16.md) P3 · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes (in progress)
-- [SNG-08](backlog/tasks/SNG-08.md) P2 · Consolidate Redact's state before it grows further (in progress)
 
 ### Sign: finish fill mode
 
