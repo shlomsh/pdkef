@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
+import { readGlyphs } from '../../editor/adapters/pdf/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.ts';
 import { readTextItems } from '../../lib/pdfTextItems.ts';
+import { GLYPH_BUDGET } from './find/itemGlyphs.ts';
 import { buildPageText } from './find/pageText.ts';
 import type { SearchablePage } from './find/findMatches.ts';
 import type { TextItemLike } from './find/types.ts';
@@ -37,12 +40,17 @@ export default function usePageTexts(
     setState({ status: 'reading', pages: [] });
     (async () => {
       const pages: SearchablePage[] = [];
+      let glyphsKept = 0;
       try {
+        const pdfjs: any = await getPdfjs();
         for (let pageIndex = 0; pageIndex < numPages; pageIndex += 1) {
           const page = await pdfDocument.getPage(pageIndex + 1);
           const items = (await readTextItems(page)).filter(isTextItem);
+          // Null where the page's glyphs can't be read: its boxes are estimated.
+          const glyphs = glyphsKept < GLYPH_BUDGET ? await readGlyphs(pdfjs, page) : null;
           if (!current) return;
-          pages.push({ text: buildPageText(pageIndex, items), geometry: pageGeometryFromPdfJsPage(page) });
+          glyphsKept += glyphs?.length ?? 0;
+          pages.push({ text: buildPageText(pageIndex, items), geometry: pageGeometryFromPdfJsPage(page), glyphs });
           setState({ status: 'reading', pages: [...pages] });
         }
         finished = true;
