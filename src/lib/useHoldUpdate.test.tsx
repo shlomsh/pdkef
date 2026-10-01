@@ -2,23 +2,23 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
-import { isUpdateHeld } from './appUpdate/updateHolds.ts';
+import { isExportInFlight, isUpdateHeld } from './appUpdate/updateHolds.ts';
 import { useHoldUpdate } from './useHoldUpdate.ts';
 
-function Probe({ active }) {
-  useHoldUpdate(active);
+function Probe({ active, kind }) {
+  useHoldUpdate(active, kind);
   return null;
 }
 
 describe('useHoldUpdate', () => {
   let container = null;
 
-  function show(active) {
+  function show(active, kind) {
     if (!container) {
       container = document.createElement('div');
       document.body.appendChild(container);
     }
-    act(() => render(<Probe active={active} />, container));
+    act(() => render(<Probe active={active} kind={kind} />, container));
   }
 
   afterEach(() => {
@@ -32,6 +32,12 @@ describe('useHoldUpdate', () => {
   it('holds while active is true', () => {
     show(true);
     expect(isUpdateHeld()).toBe(true);
+  });
+
+  it("an 'open' hold holds the update but is not an export in flight", () => {
+    show(true, 'open');
+    expect(isUpdateHeld()).toBe(true);
+    expect(isExportInFlight()).toBe(false);
   });
 
   it('does not hold while active is false', () => {
