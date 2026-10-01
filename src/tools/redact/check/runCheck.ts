@@ -88,7 +88,7 @@ export async function runSavedFileCheck({
   const loadingTask = pdfjs.getDocument({ data: savedBytes.slice(), wasmUrl: PDFJS_WASM_URL });
   try {
     const savedDoc = await loadingTask.promise;
-    const saved = await readSavedFile(pdfjs, savedDoc, { picturePages });
+    const saved = await readSavedFile(pdfjs, savedDoc, { picturePages, bytes: savedBytes });
 
     const unsolidPages: number[] = [];
     const solidBoxPages = [...new Set(boxes.filter((box) => box.type !== 'blur').map((box) => box.pageIndex))];

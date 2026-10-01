@@ -21,6 +21,8 @@ import {
   type PDFObject,
 } from '@cantoo/pdf-lib';
 import { attachmentName, fieldValueTexts, isNonBlank, sameText } from './placeText.ts';
+import { unusedPartsText } from './unusedParts.ts';
+import { dropUnreachable } from '../../../editor/adapters/pdf/reachability.js';
 import type { PlaceKind, SavedPlace } from './types.ts';
 
 export interface LocatedPlace {
@@ -393,6 +395,17 @@ function attachmentPlaces(ctx: PDFContext, catalog: PDFDict): LocatedPlace[] {
   return places;
 }
 
+// ---- parts no page shows -------------------------------------------------
+
+/** RED-49: every object nothing reaches is one place, whose text is all that
+ * can be read in them. Removing it drops them all, and it matches whatever
+ * text was asked for, like XMP, because the text is the whole lot. */
+function unusedPlaces(doc: PDFDocument): LocatedPlace[] {
+  const text = unusedPartsText(doc);
+  if (!isNonBlank(text)) return [];
+  return [{ place: { kind: 'unused', text, removable: true }, matchesAnyText: true, remove: () => void dropUnreachable(doc) }];
+}
+
 // ---- the whole file ------------------------------------------------------
 
 /** Every place `readSavedFile` reports, each with its removal. Form fields come
@@ -408,6 +421,7 @@ export function locatePlaces(doc: PDFDocument): LocatedPlace[] {
   places.push(...bookmarkPlaces(ctx, doc.catalog));
   places.push(...metadataPlaces(ctx, doc.catalog));
   places.push(...attachmentPlaces(ctx, doc.catalog));
+  places.push(...unusedPlaces(doc));
   return places;
 }
 

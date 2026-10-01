@@ -44,7 +44,10 @@ export type PlaceKind =
   | 'subject'
   | 'keywords'
   | 'metadata'
-  | 'attachment';
+  | 'attachment'
+  /** A part of the file no page shows (RED-49): an old revision's leftovers,
+   * an orphaned stream. One place for all of them, since Remove it drops them together. */
+  | 'unused';
 
 export interface SavedPlace {
   kind: PlaceKind;
