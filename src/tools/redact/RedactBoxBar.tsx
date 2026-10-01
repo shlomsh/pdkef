@@ -25,14 +25,19 @@ export function useCoarsePointer(): boolean {
 }
 
 /** The element to portal into: the fullscreen one when there is one, else body. */
-function useHost(): HTMLElement {
+function useHost(boxRef: RefObject<HTMLElement>): HTMLElement {
   const [, bump] = useState(0);
   useEffect(() => {
     const onChange = () => bump((n) => n + 1);
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
-  return (document.fullscreenElement as HTMLElement | null) ?? document.body;
+  // iPhone Safari has no element full screen: the workspace goes position: fixed at z-index 9999 instead, so the pill must live inside it to stay on top.
+  return (
+    (document.fullscreenElement as HTMLElement | null) ??
+    (boxRef.current?.closest('[data-pseudo-fullscreen]') as HTMLElement | null) ??
+    document.body
+  );
 }
 
 /**
@@ -46,7 +51,7 @@ export default function RedactBoxBar({ boxRef, children }: {
   children: ComponentChildren;
 }) {
   const barRef = useRef<HTMLDivElement | null>(null);
-  const host = useHost();
+  const host = useHost(boxRef);
   useEffect(() => {
     const bar = barRef.current;
     const box = boxRef.current;
