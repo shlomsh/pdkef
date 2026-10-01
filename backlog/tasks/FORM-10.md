@@ -1,11 +1,9 @@
 ---
 id: "FORM-10"
 title: "The undivided-panel test reads the whole page, and a lone tick square survives only by accident"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "form-detection"
-horizon: "next"
-order: 4
 depends_on: []
 ---
 
@@ -67,3 +65,18 @@ error.
 Note for whoever picks this up: the fixture corpus carries no text layer, so the numbers it prints
 are not the numbers the real form produces. FORM-11 is about that blind spot; read it before
 trusting a fixture-only delta.
+
+## 2026-10-01 done
+
+`buildClosedCells` (`formCells.js`) now judges a box as lone from the walls inside its own band span
+(`bandSpan`: the stretch its top and bottom rules share with its column, chained while they touch), not
+from every wall at the same heights anywhere on the page. That alone is the known regression, so a closed
+square of up to 20pt with no text of its own is admitted as a checkbox on its own merits, with no caption
+and no neighbouring column to lean on (`isSquare`). Squares under 15pt keep the existing tick-column
+rule: admitting them dropped health precision from 100 to 91.5. A second clause was needed that the
+ticket did not predict: a lone box that abuts a cell of similar height in its own column (`isStackedRow`)
+is one row of a divided box and skips the lone-box caption test, because with span scoping alone the SA100's
+two-line answer box lost its target (recall 100 -> 93.3). Scored forms: 0 changed, 9 unchanged (health
+86.7 recall, 100 precision). Two element-corpus rows pin it: an undivided panel holding its own paragraph
+stays dropped beside unrelated ink, and a lone 18pt square with nothing else on the page is kept; three
+unit tests in `formCells.test.js`.

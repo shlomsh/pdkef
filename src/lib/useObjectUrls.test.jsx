@@ -1,7 +1,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { useObjectUrls } from './useObjectUrls.js';
+import { useObjectUrls, useRevokeOnUnmount } from './useObjectUrls.js';
 
 // No @testing-library/preact-hooks in this repo, so a tiny harness component
 // exposes the hook's return value onto a ref every render - the same pattern
@@ -79,5 +79,21 @@ describe('useObjectUrls', () => {
   it('does not revoke on unmount if nothing was ever created', () => {
     act(() => render(null, container));
     expect(revokeSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('useRevokeOnUnmount', () => {
+  it('revokes the latest list after rerenders, not the first one', () => {
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const container = document.createElement('div');
+    function H({ urls }) {
+      useRevokeOnUnmount(urls);
+      return null;
+    }
+    act(() => render(<H urls={['blob:a']} />, container));
+    act(() => render(<H urls={['blob:a', 'blob:b']} />, container));
+    act(() => render(null, container));
+    expect(revokeSpy.mock.calls.map((c) => c[0])).toEqual(['blob:a', 'blob:b']);
+    revokeSpy.mockRestore();
   });
 });

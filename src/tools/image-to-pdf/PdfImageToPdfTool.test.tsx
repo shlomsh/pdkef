@@ -84,6 +84,26 @@ describe('PdfImageToPdfTool UI flow', () => {
     expect(convertBtn.textContent).toContain('Convert 1 image to PDF');
   });
 
+  it('revokes every thumbnail URL on unmount, including ones added after the first render', async () => {
+    let n = 0;
+    const created = [];
+    window.URL.createObjectURL = vi.fn(() => {
+      const url = `blob:thumb-${++n}`;
+      created.push(url);
+      return url;
+    });
+    mount();
+    await loadFiles(['a.png']);
+    await loadFiles(['b.jpg', 'c.png']);
+    expect(created.length).toBeGreaterThanOrEqual(3);
+    window.URL.revokeObjectURL.mockClear();
+
+    act(() => render(null, container));
+
+    const revoked = window.URL.revokeObjectURL.mock.calls.map((c) => c[0]);
+    for (const url of created) expect(revoked).toContain(url);
+  });
+
   it('skips non-image files and shows a hint', async () => {
     mount();
     const input = container.querySelector('input[type="file"]');

@@ -285,7 +285,7 @@ export default function RedactToolbar({
         {onPeekChange && (
           <button
             type="button"
-            className={`${styles.button}${peeking ? ` ${styles.active}` : ''}`}
+            className={`${styles.button} ${redactStyles['peek-button']}${peeking ? ` ${styles.active}` : ''}`}
             onPointerDown={(e) => { e.preventDefault(); onPeekChange(true); }}
             onPointerUp={() => onPeekChange(false)}
             onPointerCancel={() => onPeekChange(false)}

@@ -8,6 +8,7 @@ import pdfToolStyles from '../../shell/PdfTool.module.css';
 import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
@@ -36,6 +37,7 @@ export default function PdfToImageTool() {
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState<any[]>([]);
+  useRevokeOnUnmount(images.map((i) => i.url));
   const [announcement, setAnnouncement] = useState('');
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
   const downloadRef = useRef<any>(null);

@@ -165,6 +165,7 @@ const hebrewMessages = {
   inEnglish: 'באנגלית',
   lastUpdated: 'עודכן לאחרונה',
   airplaneModeNotice: 'הפעילו מצב טיסה ונסו. זה עדיין עובד.',
+  heroAccent: 'אצלכם במכשיר',
   homepageAriaLabel: 'דף הבית של PDkef',
   toolDockAriaLabel: 'כלי PDF',
   installGuidesAriaLabel: 'מדריכי התקנה לפי מכשיר',
