@@ -44,6 +44,5 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
-- [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

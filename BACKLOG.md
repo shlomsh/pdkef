@@ -126,7 +126,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page | Needs Shlomi: Your call on beat 4 |
+| DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 
 ## Polish
