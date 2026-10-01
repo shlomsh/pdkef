@@ -288,21 +288,24 @@ test('keeps the tool card close to the section below it, not padded to the viewp
 // The same wrapper's `items-center` (below 1024px) centred a short card
 // vertically on phones, so /compress-image/'s pre-result state jumped ~108px
 // the instant a result made the page tall enough to stop being centred
-// (backlog/tasks/SEO-25.md). The card sits directly under the hero now.
+// (backlog/tasks/SEO-25.md). The card sits directly under the hero now, or
+// under the airplane-mode line that sits between them on every tool (SEO-37).
 test('does not vertically centre a short tool card below the hero on mobile', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/compress-image/');
 
   const hero = page.locator('header');
+  const notice = page.locator('[data-tool-restore-followup]');
   const card = page.locator('[class*="tool-card"]').first();
   await expect(card).toBeVisible();
 
-  const [heroBox, cardBox] = await Promise.all([hero.boundingBox(), card.boundingBox()]);
-  if (!heroBox || !cardBox) {
-    throw new Error('/compress-image/: hero or tool card layout box is unavailable');
+  const [heroBox, noticeBox, cardBox] = await Promise.all([hero.boundingBox(), notice.boundingBox(), card.boundingBox()]);
+  if (!heroBox || !noticeBox || !cardBox) {
+    throw new Error('/compress-image/: hero, airplane-mode line or tool card layout box is unavailable');
   }
 
-  expect(Math.abs(cardBox.y - (heroBox.y + heroBox.height))).toBeLessThanOrEqual(40);
+  expect(Math.abs(cardBox.y - (noticeBox.y + noticeBox.height))).toBeLessThanOrEqual(40);
+  expect(noticeBox.y - (heroBox.y + heroBox.height)).toBeLessThanOrEqual(40);
 });
 
 test('redaction guide images load without page overflow on desktop and mobile', async ({ page }) => {

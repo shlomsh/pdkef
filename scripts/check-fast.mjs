@@ -36,6 +36,7 @@ const ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '..');
 export const GUARD_STEPS = [
   'check:backlog',
   'check:guidance',
+  'check:never-say',
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:gesture-golden-rule',
