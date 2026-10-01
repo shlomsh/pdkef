@@ -704,9 +704,7 @@ _None._
 
 ### In progress
 
-| ID | Priority | Task |
-| --- | --- | --- |
-| RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
+_None._
 
 ### Blocked
 
@@ -726,6 +724,7 @@ _None._
 | RED-11 | P2 | [RED-11](backlog/tasks/RED-11.md) · Boxes from one search stay a set: remove them together, blur strength shared |
 | RED-13 | P1 | [RED-13](backlog/tasks/RED-13.md) · Delete shows the page as it will be saved, and Hebrew previews read in order |
 | RED-14 | P2 | [RED-14](backlog/tasks/RED-14.md) · Redact island refactor: one commit path, linked-box and Delete hooks, typed elements, shared tool icons |
+| RED-15 | P1 | [RED-15](backlog/tasks/RED-15.md) · Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses |
 | RED-17 | P1 | [RED-17](backlog/tasks/RED-17.md) · Check the saved file: search it for what you covered, everywhere a secret can hide |
 | RED-18 | P1 | [RED-18](backlog/tasks/RED-18.md) · Spike: true redaction, removing only what is under each box and keeping the rest as the original |
 | RED-24 | P2 | [RED-24](backlog/tasks/RED-24.md) · Blur defaults to medium, and medium is the blur PDkef had before the levels |
