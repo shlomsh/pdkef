@@ -16,10 +16,14 @@ export type Command = readonly (string | number)[];
  */
 export function engineBucket(userAgent: string): string {
   const major = (re: RegExp) => re.exec(userAgent)?.[1];
-  // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS.
+  // Every iOS browser is WebKit, so any iPhone/iPad UA is bucketed as iOS. From iOS 26 the OS token is frozen
+  // at 18_x (measured: iOS 26.2 Safari says "iPhone OS 18_7"), so Version/ names the real major and a bare 18 means 18+.
   if (/iPhone|iPad|iPod/.test(userAgent)) {
+    const safari = major(/Version\/(\d{1,3})/);
+    if (safari) return `ios-${safari}`;
     const v = major(/OS (\d{1,3})[_.]/);
-    return v ? `ios-${v}` : 'ios';
+    if (!v) return 'ios';
+    return Number(v) >= 18 ? 'ios-18+' : `ios-${v}`;
   }
   const firefox = major(/Firefox\/(\d{1,4})/);
   if (firefox) return `firefox-${firefox}`;
