@@ -21,7 +21,8 @@ export function boxKeyIntent(
   opts: { isSelected: boolean; isStroke: boolean },
 ): BoxKeyIntent | null {
   if (mods.ctrl || mods.meta || mods.alt) return null;
-  if (key === 'Enter' || key === ' ') return { kind: 'select' };
+  // Space is the page-wide peek (usePeekAll), so only Enter selects.
+  if (key === 'Enter') return { kind: 'select' };
   if (key === 'Escape') return opts.isSelected ? { kind: 'deselect' } : null;
   if (key === 'Delete' || key === 'Backspace') return { kind: 'delete' };
   const arrow = ARROWS[key];
@@ -54,4 +55,4 @@ const LABELS: Record<string, string> = {
   whiteoutStroke: 'Whiteout stroke',
 };
 
-export const boxAriaLabel = (type: string): string => LABELS[type] ?? 'Redaction box';
+export const boxAriaLabel = (type: string): string => LABELS[type] ?? 'Box';
