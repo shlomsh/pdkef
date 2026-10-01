@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [ARCH-32](backlog/tasks/ARCH-32.md) P2 · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it (in progress)
-- [DEBT-15](backlog/tasks/DEBT-15.md) P3 · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log (in progress)
 
 ## Waiting, by date
 
