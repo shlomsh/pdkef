@@ -232,14 +232,14 @@ test.describe('Whiteout matches the page (RED-51)', () => {
     const topBefore = await topWithinPage(page, whiteout);
 
     // Drag it down so its centre lands at ratio y 0.6, onto the blue band. The
-    // gesture starts near the left edge, clear of any floating controls.
+    // gesture starts near the left edge, clear of any floating controls, with
+    // the box parked just below the sticky toolbar: a press under that
+    // toolbar lands on the toolbar, not the box.
     const overlay = page.locator('.redact-draw-area').first();
-    await overlay.evaluate((element, args) => {
-      const rect = element.getBoundingClientRect();
-      const from = rect.top + rect.height * args.fromY;
-      const to = rect.top + rect.height * 0.6;
-      window.scrollBy(0, (from + to) / 2 - window.innerHeight / 2);
-    }, { fromY: (BOX_START.y + BOX_END.y) / 2 });
+    const toolbarBox = await getBox(page.getByRole('toolbar', { name: 'PDF redaction' }), 'Redact toolbar');
+    await whiteout.evaluate((element, below) => {
+      window.scrollBy(0, element.getBoundingClientRect().top - below);
+    }, toolbarBox.y + toolbarBox.height + 40);
     const overlayBox = await getBox(overlay, 'PDF overlay');
     const boxBefore = await getBox(whiteout, 'Whiteout box before drag');
     const grabX = boxBefore.x + 12;
