@@ -12,6 +12,7 @@ import { widthPercentToHeightPercent, pxToPercent, pxDeltaToPercent } from '../.
 import dropzoneStyles from '../../shell/Dropzone.module.css';
 import toolShellStyles from '../../shell/ToolShell.module.css';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 declare const __dirname: string;
 
@@ -78,6 +79,7 @@ describe('PdfSignTool UI flow', () => {
 
   beforeEach(() => {
     restoreFetch = mockFontFetch();
+    resetActionTrailForTests();
     // This file exercises the old editor by default (SNG-19: fill mode is
     // the default, so the old editor needs ?next=0 to stay reachable).
     window.history.pushState({}, '', '?next=0');
@@ -632,6 +634,42 @@ describe('PdfSignTool UI flow', () => {
     // Verify element is deleted
     elements = container.querySelectorAll('[data-editor-element]');
     expect(elements.length).toBe(0);
+  });
+
+  // DEBT-31: an error report carries what the person just did, as names only.
+  it('records open, arm, place, undo and delete in the order the person did them', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfSignTool />, container);
+    });
+    const input = query<HTMLInputElement>(container, 'input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(recentActions()).toContain('add_files');
+
+    await act(async () => {
+      findButton(container, 'Text').click();
+    });
+    const overlay = query<HTMLElement>(container, `.${workspaceStyles['page-overlay']}`);
+    await act(async () => {
+      overlay.dispatchEvent(new MouseEvent('click', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector<HTMLTextAreaElement>('[data-editor-text-input]')?.blur();
+    });
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+    });
+
+    const trail = recentActions();
+    expect(trail.indexOf('add_files')).toBeLessThan(trail.indexOf('arm_tool'));
+    expect(trail.indexOf('arm_tool')).toBeLessThan(trail.indexOf('place_mark'));
+    expect(trail.indexOf('place_mark')).toBeLessThan(trail.indexOf('delete_mark'));
   });
 
   // This one keeps the real pdf.js because it reads the exported text back, and

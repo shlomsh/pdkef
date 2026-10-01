@@ -1,4 +1,5 @@
 import { createElementId } from '../../editor/model/ids.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import { captureAddedElement, type HistoryLogger } from '../../editor/model/actionHistory.ts';
 import type { EditorElement, TextDirection, TextElement } from '../../editor/model/editorModel.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
@@ -439,10 +440,12 @@ export default function useFieldNavigation({
     goToNext: () => {
       if (position.next === null) return;
       goTo(order[position.next], t.movedToNextFieldAnnouncement);
+      recordAction('detect_fields');
     },
     goToPrevious: () => {
       if (position.previous === null) return;
       goTo(order[position.previous], t.movedToPreviousFieldAnnouncement);
+      recordAction('detect_fields');
     },
   };
 }

@@ -1,5 +1,6 @@
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import type { GestureEvent } from '../../lib/gestures/controller.ts';
 import { createElementId } from '../../editor/model/ids.ts';
 import {
@@ -376,6 +377,7 @@ export default function useWorkspaceGestures({
         t.removedSymbolFromBoxDescription,
         snapshots,
       );
+      recordAction('delete_mark');
       setAnnouncement(t.removedSymbolFromBoxAnnouncement);
       return;
     }
@@ -444,6 +446,7 @@ export default function useWorkspaceGestures({
       logAction('add', 'ADD_SYMBOL', pageIndex, t.addedSymbolDescription, [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement(checkboxRegion ? t.addedSymbolInBoxAnnouncement : t.addedSymbolAnnouncement);
     }
+    recordAction('place_mark');
   };
 
   /**
@@ -574,6 +577,7 @@ export default function useWorkspaceGestures({
         logAction('add', 'ADD_SHAPE', pageIndex, formatMessage(t.addedShapeDescriptionTemplate, { label }), [captureAddedElement(finalElement, nextElementIndex)]);
         setAnnouncement(formatMessage(t.addedShapeAnnouncementTemplate, { label }));
       }
+      recordAction('place_mark');
       },
       cancel: () => {
       gestureCancelRef.current = null;
