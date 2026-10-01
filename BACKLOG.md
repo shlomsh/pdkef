@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 1 up next, 14 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 2 up next, 11 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -54,17 +54,15 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it | In progress |
 | MEM-13 | P1 | [MEM-13](backlog/tasks/MEM-13.md) · A build that fixes a major bug can force every open tab onto it | In progress |
 
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-19 | P2 | [QUAL-19](backlog/tasks/QUAL-19.md) · Sign's corpus scoring test sets up inside its hook timeout under a full run |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
-| DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back |  |
-| ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it |  |
-| DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log |  |
+| QUAL-20 | P2 | [QUAL-20](backlog/tasks/QUAL-20.md) · The home demo's scroll-progress e2e fails under a full 4-worker run |  |
 | DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | Needs Shlomi: Whether the usage funnel is wanted, and the privacy-page sentence for it |
 
 ### Waiting
@@ -77,6 +75,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-29 | P3 | [DEBT-29](backlog/tasks/DEBT-29.md) · formCells.js: one cell-box helper, and detectCellCandidates split into one resolver per branch |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
@@ -137,7 +136,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 6 done, 3 retired
+- Robustness and debt: 9 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

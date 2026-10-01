@@ -8,6 +8,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [ARCH-32](backlog/tasks/ARCH-32.md) P2 · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it (in progress)
 - [MEM-13](backlog/tasks/MEM-13.md) P1 · A build that fixes a major bug can force every open tab onto it (in progress)
 
 ## Waiting, by date
