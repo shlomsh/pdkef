@@ -39,3 +39,30 @@ own code, a closed list, a bucket or a flag.
 - [ ] The endpoint stays silent on every failure (DEBT-17's test, kept green).
 - [ ] Disclosure updated wherever DEBT-17 disclosed, and still literally true.
 - [ ] Sabotage-checked in a production build and against the real store; reviewed fresh.
+
+## The drill: would this have cracked the bug that started DEBT-17? (2026-10-01)
+
+Shlomi's bar: the ticket is met only if an error like 2026-09-20's iOS detection failure can be
+tracked, reproduced and fixed in a close loop. Replayed end to end:
+
+1. **Break it as it broke.** A local branch put back the pre-`3840457a` text read
+   (`getTextContent()`, which ends in pdf.js's `for await` over a `ReadableStream`). A production
+   build ran in Playwright WebKit as an iPhone 15, with `ReadableStream`'s async iteration deleted
+   in an init script - what iOS Safari lacks (WebKit bug 194379), and why no local run ever failed.
+   Sign found **0 fields**, as on the iPhone.
+2. **Track.** Within 7 s of opening the file one report left the page, went through the real
+   endpoint code into the real store, and `errors:read` (0.5 s) showed it:
+   `sign_form_detection · TypeError · ios-17`, step `detect_fields`, tool `/sign/`, four frames.
+3. **Locate.** `errors:resolve -- <frames> --from <branch>` found the build and mapped the stack in
+   7.7 s: `pdf.mjs:16040 for await (const value of readableStream)` ← `pdfTextItems.ts:34`
+   `getTextContent()` ← `useFormFieldRegions.ts:173 readTextItems` ← `:267 pageTextRuns`.
+   With the engine bucket, that is the whole diagnosis: this engine cannot async-iterate a stream.
+4. **Reproduce.** The report names the missing capability, so deleting it in WebKit reproduces the
+   failure on demand. `src/tools/sign/e2e/ios-text-stream.spec.js` now does that permanently.
+5. **Fix and confirm.** The same drill against the fixed build: **10 fields, no report**.
+
+On 2026-09-20 this took most of a day and five wrong theories; replayed, report to root cause is
+about a minute. One honest limit: WebKit on a real device may keep fewer async frames than
+Playwright's, but frame #1 alone already names the `for await` line. The drill entry was deleted
+from the store afterwards.
+

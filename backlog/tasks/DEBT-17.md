@@ -129,7 +129,7 @@ somebody's form.
 
 The investigation is in this session's history; the mechanics and the sanitiser's two wrong turns
 are in `src/tools/sign/formDetectionDetail.ts`'s docstring and `backlog/tasks/FORM-11.md`. The bug
-that started it was still unfixed when this was written: the detector throws
+that started it (fixed in `3840457a`, replayed end to end in DEBT-27's drill) was still unfixed when this was written: the detector throws
 `TypeError: undefined is not a function` on iOS 26.6.2 and on no engine we can reproduce.
 
 ## Outcome (2026-10-01)
