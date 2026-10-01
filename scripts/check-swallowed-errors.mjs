@@ -3,28 +3,29 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-// DEBT-27: a ratchet for "every catch that discards its error must report it or
-// say why" (.claude/rules/tools-and-shell.md, docs/debt-17-catch-triage.md).
-// A finding is a `catch` clause, or a function passed to `.catch(...)`, that
-//   (a) has no `throw` in its body,
-//   (b) calls no `reportError` / `report*Error` function, and
+// DEBT-27: zero tolerance for "every catch that discards its error must report
+// it or say why" (.claude/rules/tools-and-shell.md, docs/debt-17-catch-triage.md).
+// A finding is a `catch` clause, a function passed to `.catch(...)` or as the
+// second argument of `.then(...)`, or a named handler passed in those positions, that
+//   (a) has no top-level `throw` statement in its body (a conditional rethrow
+//       still swallows in the other branch),
+//   (b) calls no `reportError` / `report*Error` function outside a nested
+//       function definition, and
 //   (c) carries no `// expected: <why>` comment inside it or on the line
-//       directly above the `catch` keyword / `.catch(` call.
-// Per-file counts are held in scripts/swallowed-errors-baseline.json and may
-// only go down. `--write-baseline` regenerates it from the current tree.
-//
-// Simplification: `throw` is looked for in the body but not inside nested
-// functions (a throw in a callback is not a rethrow); report calls count
-// anywhere in the body, nested or not.
+//       directly above the `catch` keyword / `.catch(` / `.then(` call.
+// A named handler (identifier or member expression, not an inline function) is
+// fine only if its name starts with `report` and ends with `Error`, or the line
+// above carries `// expected:`.
+// Any finding fails, printed as path:line. `--list` prints them and exits 0.
 
 const __filename = fileURLToPath(import.meta.url);
 const root = path.join(path.dirname(__filename), '..');
 const srcDir = path.join(root, 'src');
-const baselinePath = path.join(path.dirname(__filename), 'swallowed-errors-baseline.json');
 
 const EXPECTED = /\/\/\s*expected:/;
 const isFn = (n) => ts.isFunctionLike(n);
 const isReporter = (name) => name === 'reportError' || /^report.*Error$/.test(name);
+const isInlineFn = (n) => ts.isArrowFunction(n) || ts.isFunctionExpression(n);
 
 function calleeName(call) {
   const e = call.expression;
@@ -34,14 +35,17 @@ function calleeName(call) {
 }
 
 function inspectBody(body) {
-  let throws = false;
+  // A throw counts only as a direct statement of the block; a report call only
+  // outside nested function definitions.
+  const throws = ts.isBlock(body) && body.statements.some((s) => ts.isThrowStatement(s));
   let reports = false;
-  const visit = (n, nested) => {
-    if (ts.isThrowStatement(n) && !nested) throws = true;
+  const visit = (n) => {
     if (ts.isCallExpression(n) && isReporter(calleeName(n))) reports = true;
-    ts.forEachChild(n, (c) => visit(c, nested || isFn(c)));
+    ts.forEachChild(n, (c) => {
+      if (!isFn(c)) visit(c);
+    });
   };
-  visit(body, false);
+  visit(body);
   return { throws, reports };
 }
 
@@ -50,32 +54,41 @@ export function findSwallowed(text, fileName = 'x.ts') {
   const sf = ts.createSourceFile(fileName, text, ts.ScriptTarget.Latest, true);
   const lines = text.split('\n');
   const found = [];
+  const lineOf = (pos) => sf.getLineAndCharacterOfPosition(pos).line;
+  const annotatedAbove = (line) => line > 0 && EXPECTED.test(lines[line - 1]);
+  const flag = (line) => found.push(line + 1);
   const check = (node, keywordPos, body) => {
     const { throws, reports } = inspectBody(body);
     if (throws || reports) return;
-    const line = sf.getLineAndCharacterOfPosition(keywordPos).line;
+    const line = lineOf(keywordPos);
     if (EXPECTED.test(text.slice(node.getStart(sf), node.end))) return;
-    if (line > 0 && EXPECTED.test(lines[line - 1])) return;
-    found.push(line + 1);
+    if (annotatedAbove(line)) return;
+    flag(line);
+  };
+  const checkNamed = (arg, namePos, callPos) => {
+    const name = ts.isIdentifier(arg) ? arg.text : ts.isPropertyAccessExpression(arg) ? arg.name.text : null;
+    if (name === null) return;
+    if (name.startsWith('report') && name.endsWith('Error')) return;
+    const line = lineOf(namePos);
+    if (annotatedAbove(line) || annotatedAbove(lineOf(callPos))) return;
+    flag(line);
   };
   const visit = (n) => {
     if (ts.isCatchClause(n)) {
       check(n, n.getStart(sf), n.block);
-    } else if (
-      ts.isCallExpression(n) &&
-      ts.isPropertyAccessExpression(n.expression) &&
-      n.expression.name.text === 'catch'
-    ) {
-      for (const arg of n.arguments) {
-        if (ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) {
-          check(arg, n.expression.name.getStart(sf), arg.body);
-        }
+    } else if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
+      const method = n.expression.name.text;
+      const handler = method === 'catch' ? n.arguments[0] : method === 'then' ? n.arguments[1] : undefined;
+      if (handler) {
+        const namePos = n.expression.name.getStart(sf);
+        if (isInlineFn(handler)) check(handler, namePos, handler.body);
+        else checkNamed(handler, namePos, n.getStart(sf));
       }
     }
     ts.forEachChild(n, visit);
   };
   visit(sf);
-  return found.sort((a, b) => a - b);
+  return [...new Set(found)].sort((a, b) => a - b);
 }
 
 const SKIP_FILE = /\.(test|spec)\.[^/]*$/;
@@ -104,35 +117,21 @@ function scan() {
 
 function main() {
   const found = scan();
-  const counts = Object.fromEntries(Object.keys(found).sort().map((f) => [f, found[f].length]));
-  if (process.argv.includes('--write-baseline')) {
-    fs.writeFileSync(baselinePath, JSON.stringify(counts, null, 2) + '\n');
-    const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    console.log(`swallowed-errors: baseline written, ${total} in ${Object.keys(counts).length} files`);
+  const files = Object.keys(found).sort();
+  const total = files.reduce((n, f) => n + found[f].length, 0);
+  const list = process.argv.includes('--list');
+  if (total === 0) {
+    console.log('swallowed-errors: PASS (0 findings)');
     return;
   }
-  const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'));
-  const worse = [];
-  const better = [];
-  for (const f of new Set([...Object.keys(counts), ...Object.keys(baseline)])) {
-    const now = counts[f] ?? 0;
-    const was = baseline[f] ?? 0;
-    if (now > was) worse.push(f);
-    else if (now < was) better.push(`${f} (${was} -> ${now})`);
-  }
-  for (const f of worse) {
-    console.error(`${f}: ${counts[f]} swallowed catches, baseline ${baseline[f] ?? 0}. Report with reportError(area, err, step), rethrow, or add "// expected: <why>". Findings:`);
-    for (const l of found[f]) console.error(`  ${f}:${l}`);
-  }
-  if (better.length) {
-    console.error(`swallowed-errors: fewer than the baseline, lower it with: npm run test:swallowed-errors -- --write-baseline\n  ${better.join('\n  ')}`);
-  }
-  if (worse.length || better.length) {
+  const out = list ? console.log : console.error;
+  if (!list) out('swallowed-errors: each catch must report with reportError(area, err, step), rethrow, or carry "// expected: <why>". Findings:');
+  for (const f of files) for (const l of found[f]) out(`${f}:${l}`);
+  out(`swallowed-errors: ${total} findings in ${files.length} files`);
+  if (!list) {
     console.error('swallowed-errors: FAIL');
     process.exit(1);
   }
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  console.log(`swallowed-errors: PASS (${total} baselined in ${Object.keys(counts).length} files)`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) main();
