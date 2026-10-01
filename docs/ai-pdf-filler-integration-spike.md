@@ -513,3 +513,6 @@ Focused verification: nine mocked runner/diagnostics tests, ten AI panel/render 
 2026-09-30 hosted path: see [hosted beta findings](./ai-pdf-filler-hosted-beta.md) for what the
 official documentation allows for a hosted website, the open questions for OpenAI, and the proposed
 AI-05 plan.
+
+2026-10-01: the spike is closed. The maintainer submitted OpenAI's Sign in with ChatGPT interest form
+for a browser-only client on pdkef.com. Awaiting a reply; no further implementation until then.
