@@ -1,10 +1,9 @@
 ---
 id: "DEBT-28"
 title: "The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
 depends_on: ["DEBT-27"]
 ---
 
@@ -51,8 +50,10 @@ error loop. Usage likely needs its own counter and cap.
 
 - [x] Shlomi decides: keep the funnel (build the above) or retire the four events and the code.
       Kept, 2026-10-01.
-- [ ] If kept: a Sign or Merge run in production shows accepted, started and ready per tool in the
-      reader the next minute, and error reports keep their own cap.
+- [x] If kept: a Sign or Merge run in production shows accepted, started and ready per tool in the
+      reader the next minute, and error reports keep their own cap. Pushed as `5b9eeb92`; a real
+      Merge on pdkef.com added exactly one accepted, started and ready in the store within seconds,
+      then was subtracted again. Real visitors' runs were already arriving (3 Merge runs that day).
 - [x] Either way, every disclosure is literally true afterwards. The privacy sentence is Shlomi's
       pick: "we keep it only as daily totals per tool for 90 days (Sign's also by browser family and
       version)".

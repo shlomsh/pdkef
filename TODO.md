@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [DEBT-28](backlog/tasks/DEBT-28.md) P3 · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
