@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clipLine, mapFrame, parseArgs, parseFrame, parseFrames, wrapperConfigText } from './errors-resolve.mjs';
+import { clipLine, mapFrame, matchChunks, parseArgs, parseFrame, parseFrames, wrapperConfigText } from './errors-resolve.mjs';
 
 describe('parseFrame', () => {
   it('parses chunk:line:col', () => {
@@ -58,6 +58,24 @@ describe('parseFrames', () => {
   });
   it('rejects no frames', () => {
     expect(parseFrames([]).error).toBeTruthy();
+  });
+});
+
+describe('matchChunks', () => {
+  const frames = [
+    { chunk: 'sortable.esm.BqtE8hmV.js', line: 1, col: 1 },
+    { chunk: 'PdfMergeTool.C4ILDZF-.js', line: 2, col: 2 },
+    { chunk: 'sortable.esm.BqtE8hmV.js', line: 3, col: 3 },
+  ];
+  it('matches only when every chunk of the report was emitted', () => {
+    expect(matchChunks(frames, ['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.C4ILDZF-.js', 'other.js'])).toEqual({ all: true, missing: [] });
+  });
+  it('a shared vendor chunk alone does not make the build the report\'s own', () => {
+    // The 2026-10-01 case: Sortable keeps its hash across builds, Merge's chunk changed.
+    expect(matchChunks(frames, ['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.NEWHASH.js'])).toEqual({ all: false, missing: ['PdfMergeTool.C4ILDZF-.js'] });
+  });
+  it('names each missing chunk once', () => {
+    expect(matchChunks(frames, []).missing).toEqual(['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.C4ILDZF-.js']);
   });
 });
 

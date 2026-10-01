@@ -6,7 +6,8 @@
 // chunk, and decode the position. Decoder: @jridgewell/trace-mapping.
 //
 //   npm run errors:resolve -- PdfSignTool.Ab12Cd.js:12:345 [more frames, top first] [--max 40]
-// The first frame picks the build; every frame is mapped in that build.
+// A build is the one only if it emitted EVERY frame's chunk. A shared vendor chunk (Sortable, Preact)
+// keeps its hash across builds, so matching on one frame names a newer build than the report's own.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -37,6 +38,13 @@ export function wrapperConfigText() {
     '};',
     '',
   ].join('\n');
+}
+
+// Which of a report's chunks a build emitted. `all` is the only thing that makes it the report's build.
+export function matchChunks(frames, emitted) {
+  const have = new Set(emitted);
+  const missing = [...new Set(frames.map((f) => f.chunk))].filter((chunk) => !have.has(chunk));
+  return { all: missing.length === 0, missing };
 }
 
 // Browser columns are 1-based; trace-mapping's are 0-based. Lines are 1-based in both.
@@ -92,7 +100,7 @@ function main() {
     process.exit(2);
   }
   const frames = parsed.frames;
-  const frame = frames[0];
+  let nearest = null; // the first build that emitted any chunk, for the failure message
   const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), from).split('\n').filter(Boolean);
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'errors-resolve-')), 'wt');
   let added = false;
@@ -119,8 +127,12 @@ function main() {
       writeFileSync(path.join(tmp, 'astro.sourcemap.config.mjs'), wrapperConfigText());
       const b = spawnSync('node', ['node_modules/astro/bin/astro.mjs', 'build', '--config', 'astro.sourcemap.config.mjs'], { cwd: tmp, encoding: 'utf8' });
       const astroDir = path.join(tmp, 'dist', '_astro');
-      const hit = b.status === 0 && existsSync(astroDir) && readdirSync(astroDir).includes(frame.chunk);
-      console.error(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : b.status === 0 ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
+      const built = b.status === 0 && existsSync(astroDir);
+      const match = built ? matchChunks(frames, readdirSync(astroDir)) : null;
+      const hit = match?.all === true;
+      const partial = match && !hit && match.missing.length < new Set(frames.map((f) => f.chunk)).size;
+      if (partial && !nearest) nearest = { sha, missing: match.missing };
+      console.error(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : partial ? `partial (missing ${match.missing.length})` : b.status === 0 ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
       if (!hit) continue;
       console.log(`${sha.slice(0, 8)} ${git(root, 'log', '-1', '--format=%s', sha)}`);
       frames.forEach((fr, k) => {
@@ -144,7 +156,8 @@ function main() {
     cleanup();
   }
   if (!found) {
-    console.error(`no build in the last ${shas.length} first-parent commits of ${from} emitted ${frame.chunk}`);
+    console.error(`no build in the last ${shas.length} first-parent commits of ${from} emitted every chunk of this report`);
+    if (nearest) console.error(`nearest: ${nearest.sha.slice(0, 8)} had some of them but not ${nearest.missing.join(', ')}. The report likely came from a build older than the window; try --max higher.`);
     process.exit(1);
   }
 }
