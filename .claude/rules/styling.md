@@ -148,8 +148,8 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
   follows dynamic imports too, so a conditional import changes nothing. `CompareFigure.astro` (LOC-15,
   2026-09-13) keeps its CSS as a string (`compareFigure.css?inline`, which the build minifies; `?raw` would ship
   the source comments), emits it as `<style is:inline>`
-  where it renders, and registers the hash with `Astro.csp.insertStyleHash(cspSha256(css))` so
-  `test:csp` passes; that took the factor 9.94x to 9.76x at 40 pages. `CompareTable.astro` is the
+  where it renders, and the route that owns the `<head>` registers the hash (`site-lib/inlineStyles.ts`;
+  a component cannot, see [csp-scripts-pwa]) so `test:csp` passes; that took the factor 9.94x to 9.76x at 40 pages. `CompareTable.astro` is the
   same shape and the next candidate.
 - **Page weight** (`check-page-weight.js`): two budgets per page, not ratchets: document plus
   eagerly-referenced JS (brotli), and eagerly-referenced images (raw). Runtime `import()` chunks are

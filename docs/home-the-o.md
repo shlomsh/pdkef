@@ -99,7 +99,7 @@ complete.
   The still version (reduced motion, or no scroll timelines) stacks the six cards as posters with the
   paper plane already landed, and every word shown.
 - The CSS ships inline on the one page that renders it (`theO.css?inline`, minified by the build, plus
-  `Astro.csp.insertStyleHash`), so the Hebrew page, which shares `HomePageLayout`, carries none of it.
+  its CSP hash, registered by `HomePageLayout.astro` through `site-lib/inlineStyles.ts`), so the Hebrew page, which shares `HomePageLayout`, carries none of it.
 - The story is its own section after `.home-tour`, never inside a card: `position: sticky` dies under
   an ancestor with `overflow`, `transform`, `filter` or `contain` (DEMO-05).
 - The layout switches between side by side and stacked at aspect ratio 1:1, a geometry decision
