@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
+import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -344,7 +345,14 @@ export function useDraftPersistence({
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', flush);
+    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
+    // outrun the write: flush first, then await every in-flight save.
+    const unregister = registerBeforeUpdateReload(async () => {
+      flush();
+      await Promise.allSettled([...writePromisesRef.current.values()]);
+    });
     return () => {
+      unregister();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
     };

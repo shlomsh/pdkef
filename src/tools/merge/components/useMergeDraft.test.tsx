@@ -31,6 +31,7 @@ import {
   setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.js';
 import { planForFile } from '../mergePlan.ts';
+import { flushBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
 
 function Harness({ apiRef, options }) {
   apiRef.current = useMergeDraft(options);
@@ -484,5 +485,39 @@ describe('useMergeDraft', () => {
     expect(spy).toHaveBeenCalledTimes(2);
 
     spy.mockRestore();
+  });
+  // MEM-10: an update reload must verify the pending save is written first.
+  it('flushBeforeUpdateReload writes the pending edit before the debounce and waits for the write', async () => {
+    const entry = baseEntry(1, 'a.pdf', 1);
+    let releaseRead;
+    const realRead = entry.file.arrayBuffer.bind(entry.file);
+    vi.spyOn(entry.file, 'arrayBuffer').mockImplementation(
+      () => new Promise((resolve) => { releaseRead = () => resolve(realRead()); }),
+    );
+    const apiRef = { current: null };
+    // A debounce far longer than the test: only the reload flush can write.
+    await mount(apiRef, baseOptions({
+      entries: [entry], plan: planForFile(1, 1), title: 'latest-title', autosaveDebounceMs: 60000,
+    }));
+    expect(await loadDraft('merge')).toBeNull();
+
+    let done = false;
+    const reload = flushBeforeUpdateReload().then(() => { done = true; });
+    await act(async () => { await wait(50); });
+    expect(done).toBe(false);
+
+    await act(async () => { releaseRead(); await reload; });
+    expect(done).toBe(true);
+    expect((await loadDraft('merge')).fileName).toBe('latest-title');
+  });
+
+  it('flushBeforeUpdateReload writes nothing after unmount', async () => {
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({
+      entries: [baseEntry(1, 'a.pdf', 1)], plan: planForFile(1, 1), autosaveDebounceMs: 60000,
+    }));
+    act(() => render(null, container));
+    await flushBeforeUpdateReload();
+    expect(await loadDraft('merge')).toBeNull();
   });
 });

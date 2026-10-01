@@ -10,6 +10,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { useDraftPersistence } from './useDraftPersistence.js';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
+import { flushBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
@@ -253,6 +254,40 @@ describe('useDraftPersistence - save outcome reporting', () => {
 
     expect(saveDraft).toHaveBeenCalledTimes(1);
     expect(apiRef.current.result.draftSaveState).toBe('saved');
+  });
+
+  // MEM-10: an update reload must verify the pending save is written first.
+  it('flushBeforeUpdateReload writes the pending edit and waits for the save to settle', async () => {
+    let resolveSave;
+    saveDraft.mockImplementation(() => new Promise((resolve) => { resolveSave = resolve; }));
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    let done = false;
+    const reload = flushBeforeUpdateReload().then(() => { done = true; });
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    expect(saveDraft).toHaveBeenCalledTimes(1);
+    expect(saveDraft.mock.calls[0][1].elements).toEqual([{ id: 'first-edit' }]);
+    expect(done).toBe(false);
+
+    await act(async () => { resolveSave(true); await reload; });
+    expect(done).toBe(true);
+  });
+
+  it('flushBeforeUpdateReload does nothing after unmount', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    renderFirstEdit(apiRef, props, container);
+    act(() => render(null, container));
+    await flushBeforeUpdateReload();
+    expect(saveDraft).not.toHaveBeenCalled();
   });
 });
 
