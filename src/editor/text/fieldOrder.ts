@@ -4,39 +4,21 @@ import type { CombRegion, FieldRegion, PercentBox, TypableField } from './combPl
 export type { TypableField };
 
 /**
- * The order a person fills a form's detected fields in, so the editor can
- * offer "next field" instead of making them find every box by hand.
+ * The order a person fills a form's detected fields in, for "next field" on a
+ * phone, where the keyboard hides most of the page. Only fields a text box can
+ * go in take part (comb runs and free-text cells); a checkbox is a toggle and
+ * a signature cell is a dialog.
  *
- * MOBI-03/11 find the fields; MOBI-04/11 make one field a single tap. What is
- * left on a phone is travel: with the keyboard covering half the screen, the
- * field being typed into and the one after it are rarely both visible, and
- * form 101 has 38 comb runs on page 1 alone. Given an order, a whole page is
- * "tap the first field, type, Next, type, Next".
- *
- * Only the fields a text box can go in take part - comb runs and free-text
- * cells. A checkbox is a different tool and a different gesture (a toggle,
- * not typing), and a signature cell is a dialog; neither belongs in a
- * type-Next-type sequence.
- *
- * **Reading order is the document's, not the UI's.** Both evidence forms are
- * Hebrew: a naive left-to-right, top-to-bottom walk visits every row
- * backwards. Rows run top to bottom on any form, but *within* a row the first
- * field is the rightmost one on a right-to-left page and the leftmost on a
- * left-to-right one. Which the page is comes from the page's own printed
- * text (`dominantTextDirection` over the text runs pdf.js reports - see
- * `useFormFieldRegions`), never from the site locale: a Hebrew form opened on
- * the English edition still reads right to left, and an English e-ticket on
- * the Hebrew edition still reads left to right.
+ * Reading order is the document's, not the UI's: rows run top to bottom, and
+ * within a row the first field is the rightmost on a right-to-left page. The
+ * direction comes from the page's own printed text (`dominantTextDirection`,
+ * see `useFormFieldRegions`), never from the site locale.
  */
 
 /**
- * How far below a row's lowest ink a field's vertical centre may still fall
- * and share the row, in page percent (~2.5pt on A4). Fields on one printed
- * line overlap vertically: a comb's teeth hang from the writing line inside
- * the band a closed cell on the same line spans, so a centre-inside-the-row
- * test puts them together with no tolerance at all; this is slack for the
- * detector's own edge rounding. The next line of a form is never closer than
- * a line of text (~1.4%), so it stays a row of its own.
+ * How far below a row's lowest ink a field's centre may fall and still share
+ * the row, in page percent (~2.5pt on A4): slack for the detector's edge
+ * rounding. The next printed line is never closer than a line of text (~1.4%).
  */
 const ROW_TOLERANCE_PERCENT = 0.3;
 
@@ -55,19 +37,14 @@ function centreY(field: TypableField): number {
 }
 
 /**
- * Page, then row, then the start edge, right to left on an RTL page: the
- * reading-order core both `orderTypableFields` (detected fields) and fill
- * mode's `fillOrder` (SNG-15, `src/tools/sign/fill/fillOrder.ts`) sort by, so
- * a form's slots and its fields can never silently read two different ways.
- * `boxOf` is what makes it generic - a `TypableField` keeps its box at
- * `.region`, a fill item keeps its somewhere else entirely, and this core has
- * no business knowing which.
+ * Page, then row, then the start edge (right to left on an RTL page). Fill
+ * mode's `fillOrder` (SNG-15) sorts through this too, so a form's slots and
+ * its fields can never read two ways. `boxOf` keeps it ignorant of where an
+ * item keeps its box.
  *
- * Row clustering is a single pass over the items sorted by top edge: an item
- * joins the row being built while its vertical centre lies inside the band
- * the row's members cover so far (plus `ROW_TOLERANCE_PERCENT`), so a comb
- * and a taller cell on the same printed line land together and the next
- * printed line, whose items start below the band, opens a new row.
+ * Rows are clustered in one pass by top edge: an item joins the current row
+ * while its centre lies inside the band the row covers so far, so a comb and a
+ * taller cell on one printed line land together.
  */
 export function inReadingOrder<T>(
   items: T[],
@@ -103,13 +80,7 @@ export function inReadingOrder<T>(
   return ordered;
 }
 
-/**
- * Every typable field on the document in fill order: page by page, rows top
- * to bottom, and within a row in the page's own reading direction. A thin
- * wrapper over `inReadingOrder` - a comb or cell region already is the box a
- * field sorts by (`field.region`), so there is nothing left for this to do
- * but tag the two detectors' output into one list first.
- */
+/** Every typable field in fill order: page, then row, then the page's reading direction. */
 export function orderTypableFields(
   combs: CombRegion[],
   cells: FieldRegion[],
@@ -123,29 +94,17 @@ export function orderTypableFields(
 }
 
 /**
- * The element a placed text box has to be to count as "on" a field, in page
- * percent. Both placement paths (`placeCombOnRegion`, `placeTextOnCell`)
- * always leave the box's LEFT edge on the field's own left edge - a comb
- * takes the run's span, a cell takes its span as `minWidth`, and combPlacement.ts's
- * own docstring is explicit that neither kind has "a growing edge to anchor"
- * any more, regardless of RTL/LTR - so horizontally this is a tight match
- * against one edge only. Matching the field's *right* edge too would double
- * as a false hit on whichever field sits immediately to its left: cells in
- * the same row commonly butt up edge to edge, so one field's right edge is
- * often another one's left edge, and a naive first-match would then silently
- * report a box as sitting on its own left neighbour instead - see `closest`.
+ * What a placed text box has to be to count as "on" a field, in page percent.
  *
- * Vertically, `ON_FIELD_ABOVE` gives every kind of field the same slack, even
- * though only an open comb's own docstring reasoning (baseline measured up
- * from the region's bottom edge) predicts it: a closed cell or a boxed comb
- * centres instead, which *usually* keeps it within `[top, top + height]`, but
- * not always - `placeCombOnRegion`'s boxed branch centres the *baseline*, not
- * the box, and a font whose baseline sits well below its em-box centre (the
- * common case) still pulls a placed box's top above `region.top` by a real,
- * per-font-and-size amount. There is no fixed constant that is exactly right
- * for every family and fit; being generous here and resolving the resulting
- * overlap by closeness (below) is far more robust than trying to derive that
- * amount from a field alone, which has no idea what font it was placed with.
+ * Both placement paths leave the box's LEFT edge on the field's left edge, so
+ * horizontally this matches that one edge. Matching the right edge too would
+ * hit the neighbour on the left, since cells in a row butt up edge to edge.
+ *
+ * Vertically every kind of field gets the same generous slack. A boxed comb
+ * centres the *baseline*, and a font whose baseline sits well below its em-box
+ * centre pulls the box's top above `region.top` by an amount that depends on
+ * font and size, which a field cannot know. The overlap this allows is
+ * resolved by closeness (`closest`).
  */
 const ON_FIELD_X_TOLERANCE = 0.6;
 const ON_FIELD_ABOVE = 2.5;
@@ -163,8 +122,7 @@ export function elementIsOnField(element: PlacedText, field: TypableField): bool
   if (element.type !== 'text' || element.pageIndex !== field.region.pageIndex) return false;
   const { region } = field;
   const onLeft = Math.abs(element.left - region.left) <= ON_FIELD_X_TOLERANCE;
-  // A comb's `writable` is the printed cell around its teeth, and a box on it
-  // is centred in that cell (placeCombOnRegion), well above the teeth.
+  // A box on a comb's `writable` cell is centred in it, well above the teeth.
   const top = Math.min(region.top, region.writable?.top ?? region.top);
   const bottom = Math.max(region.top + region.height, region.writable ? region.writable.top + region.writable.height : 0);
   const inBand = element.top >= top - ON_FIELD_ABOVE && element.top <= bottom;
@@ -172,19 +130,10 @@ export function elementIsOnField(element: PlacedText, field: TypableField): bool
 }
 
 /**
- * The single closest of several equally-valid matches, by vertical distance.
- *
- * Two boxed fields that tile with no gap share one edge - a top-to-bottom
- * column is the common case, but a two-column form like this one shares an
- * edge in BOTH directions at once (`combined-heuristic-0000`'s right edge is
- * `-0001`'s left, and `-0000`'s bottom is `-0004`'s top; the live-QA fixture,
- * health-declaration-page1-geometry.pdf, has both). A box placed exactly on
- * that shared point satisfies both fields' bands at once, by construction -
- * no tolerance tweak removes the ambiguity, only which field wins it. The
- * field whose own top is closer to the point is the one it was actually
- * placed on: a box centred in field F (every current placement path centres
- * or nearly centres, per `ON_FIELD_ABOVE`'s doc) lands close to F.top and far
- * from any neighbour's.
+ * The closest of several equally valid matches, by vertical distance. Boxed
+ * fields that tile share an edge (a two-column form in both directions), so a
+ * box placed on it satisfies both bands and no tolerance removes that. A placed
+ * box lands near the top of the field it was centred in, not a neighbour's.
  */
 function closest<T>(candidates: T[], distance: (candidate: T) => number): T {
   return candidates.reduce((nearest, candidate) => (
@@ -192,12 +141,7 @@ function closest<T>(candidates: T[], distance: (candidate: T) => number): T {
   ));
 }
 
-/**
- * The index of the field `element` truly belongs to among every field in
- * `order`, or null if it belongs to none - the single source both
- * `fieldPosition` and `elementOnField` resolve an element's field from, so
- * the two can never disagree about which one it is.
- */
+/** The field `element` belongs to, or null; the one resolution `fieldPosition` and `elementOnField` share. */
 function fieldIndexOf(order: TypableField[], element: PlacedText): number | null {
   const matches = order
     .map((_field, i) => i)
@@ -208,21 +152,10 @@ function fieldIndexOf(order: TypableField[], element: PlacedText): number | null
 }
 
 /**
- * The text element sitting on `field`, if any.
- *
- * Resolved against the WHOLE order (`fieldIndexOf`), not `field` in
- * isolation: `ON_FIELD_ABOVE`'s generous, kind-agnostic slack means an
- * existing box can technically satisfy a neighbouring field's band too, and
- * checking `field` alone had no way to tell "this box is on some other field,
- * merely close enough to graze this one's tolerance" from "this box really is
- * on this field" - so a box one field away could be mistaken for "already
- * placed here" and reopened instead of a new one being created where Next
- * actually meant to go (live QA, MOBI-06: Next from the last cell in a row
- * re-selected the first cell's own box instead of creating one on the row
- * below). Going through `fieldIndexOf` first settles which field an element
- * *actually* belongs to using every field as context, the same resolution
- * `fieldPosition` already needs for its own `index`, before asking whether
- * that happens to be this one.
+ * The text element sitting on `field`, if any. Resolved against the whole
+ * order: `ON_FIELD_ABOVE`'s slack lets a box on one field graze its
+ * neighbour's band, and checking `field` alone would reopen that box instead
+ * of creating a new one where Next meant to go.
  */
 export function elementOnField<T extends PlacedText>(elements: T[], order: TypableField[], field: TypableField): T | null {
   const targetIndex = order.indexOf(field);
@@ -233,16 +166,11 @@ export function elementOnField<T extends PlacedText>(elements: T[], order: Typab
 }
 
 /**
- * Where an element stands in the fill order.
- *
- * `index` is the field the element sits on, or null when it sits on none.
- * `next`/`previous` are the fields Next and Previous should go to from here:
- * for an element on a field, its neighbours; for one that is not (a box
- * placed by hand between two rows, a signature), the first field that comes
- * after it in reading order and the last that comes before, so Next from a
- * free-placed box still walks forward down the page rather than jumping to
- * field 1. With no element at all, Next starts at the first field and
- * Previous at the last.
+ * Where an element stands in the fill order. `index` is the field it sits on,
+ * or null. `next`/`previous` are its neighbours; for an element on no field
+ * (a hand-placed box, a signature) they are the first field after it and the
+ * last before it, so Next still walks forward down the page. With no element,
+ * Next starts at the first field and Previous at the last.
  */
 export function fieldPosition(
   order: TypableField[],
@@ -259,10 +187,7 @@ export function fieldPosition(
       previous: index > 0 ? index - 1 : null,
     };
   }
-  // Reading position of a box that is on no field: after every field whose
-  // row is above it (or on its row and before it, which for this purpose
-  // "top" alone decides well enough - a hand-placed box is rarely on a row of
-  // fields at all).
+  // On no field: after every field whose centre is above it.
   const after = order.filter((field) => field.region.pageIndex < element.pageIndex
     || (field.region.pageIndex === element.pageIndex && centreY(field) < element.top)).length;
   return {

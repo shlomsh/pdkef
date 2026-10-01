@@ -7,7 +7,10 @@ import { join, normalize, extname, resolve } from 'node:path';
  * is only one build on disk, so "deploying" flips a phase: in 'new', /sw.js is
  * served with a different build id (the browser sees new worker bytes and
  * installs a waiting update) and every HTML response carries a marker meta tag
- * saying which build rendered it. Port 0 keeps it off every other spec's
+ * saying which build rendered it. MEM-13: phase 'critical' is the same deploy
+ * plus a bumped CRITICAL_VERSION (the cache key's `c<N>-` segment and the
+ * version the worker compares with), the build that forces every open tab.
+ * Port 0 keeps it off every other spec's
  * origin, so its service worker registration is isolated too.
  */
 
@@ -41,6 +44,25 @@ async function isFile(path) {
   try { return (await stat(path)).isFile(); } catch { return false; }
 }
 
+// The built worker names its cache `${CACHE_PREFIX}c<N>-<hash>`, and the
+// minifier folds CRITICAL_VERSION into that name and into the one
+// isCriticalOver(<N>, ...) call, leaving the const only as a dead literal. A
+// deploy changes the hash; a critical deploy also raises N in the cache name
+// and in that call, so the worker behaves as if its source constant were
+// bumped. Throws when the built worker no longer has these shapes, so a
+// refactor cannot turn every phase into the old build without a word.
+function deployed(source, critical) {
+  const cacheName = /((?:\$\{CACHE_PREFIX\}|pdkef-)c)(\d+)(-[0-9a-f]{6,})/;
+  if (!cacheName.test(source)) throw new Error('twoBuildServer: no cache name in dist/sw.js');
+  let out = source.replace(cacheName, (_m, lead, n, id) => `${lead}${critical ? Number(n) + 1 : n}${id}e2e`);
+  if (critical) {
+    const compared = /(isCriticalOver\()(\d+)(,)/;
+    if (!compared.test(out)) throw new Error('twoBuildServer: no isCriticalOver(<version>, ...) call in dist/sw.js');
+    out = out.replace(compared, (_m, lead, n, tail) => `${lead}${Number(n) + 1}${tail}`);
+  }
+  return out;
+}
+
 export async function startTwoBuildServer() {
   let phase = 'old';
 
@@ -66,7 +88,7 @@ export async function startTwoBuildServer() {
 
       if (pathname === '/sw.js' && (await isFile(target))) {
         let source = await readFile(target, 'utf8');
-        if (phase === 'new') source = source.replace(/(\$\{CACHE_PREFIX\}|pdkef-)([0-9a-f]{6,})/, (_m, lead, id) => `${lead}${id}e2e`);
+        if (phase !== 'old') source = deployed(source, phase === 'critical');
         return send(res, 200, source, TYPES['.js'], { 'Service-Worker-Allowed': '/' });
       }
       if (await isDirectory(target)) {

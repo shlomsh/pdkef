@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   flushBeforeUpdateReload,
   holdUpdate,
+  isExportInFlight,
   isUpdateHeld,
+  onExportInFlightChange,
   onUpdateHoldChange,
   registerBeforeUpdateReload,
 } from './updateHolds.ts';
@@ -57,6 +59,68 @@ describe('holdUpdate', () => {
     const listener = vi.fn();
     const off = onUpdateHoldChange(listener);
     off();
+    holdUpdate()();
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('hold kinds (MEM-13)', () => {
+  it('a hold with no kind is an export in flight, the safe reading', () => {
+    const a = track(holdUpdate());
+    expect(isExportInFlight()).toBe(true);
+    a();
+    expect(isExportInFlight()).toBe(false);
+  });
+
+  it("an 'open' hold holds the update but is not an export", () => {
+    const a = track(holdUpdate('open'));
+    expect(isUpdateHeld()).toBe(true);
+    expect(isExportInFlight()).toBe(false);
+    a();
+    expect(isUpdateHeld()).toBe(false);
+  });
+
+  it('export state follows nested exports while open holds come and go', () => {
+    const open = track(holdUpdate('open'));
+    const a = track(holdUpdate('export'));
+    const b = track(holdUpdate('export'));
+    a();
+    expect(isExportInFlight()).toBe(true);
+    b();
+    expect(isExportInFlight()).toBe(false);
+    expect(isUpdateHeld()).toBe(true);
+    open();
+    expect(isUpdateHeld()).toBe(false);
+  });
+
+  it('export listeners fire only on the 0 to 1 and 1 to 0 export transitions', () => {
+    const listener = vi.fn();
+    track(onExportInFlightChange(listener));
+    const open = holdUpdate('open');
+    expect(listener).not.toHaveBeenCalled();
+    const a = holdUpdate('export');
+    const b = holdUpdate('export');
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenLastCalledWith(true);
+    a();
+    expect(listener).toHaveBeenCalledTimes(1);
+    b();
+    expect(listener).toHaveBeenCalledTimes(2);
+    expect(listener).toHaveBeenLastCalledWith(false);
+    open();
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('the combined listener ignores the kind', () => {
+    const listener = vi.fn();
+    track(onUpdateHoldChange(listener));
+    holdUpdate('open')();
+    expect(listener.mock.calls).toEqual([[true], [false]]);
+  });
+
+  it('unsubscribe stops export notifications', () => {
+    const listener = vi.fn();
+    onExportInFlightChange(listener)();
     holdUpdate()();
     expect(listener).not.toHaveBeenCalled();
   });

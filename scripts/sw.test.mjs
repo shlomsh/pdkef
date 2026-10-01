@@ -51,9 +51,9 @@ function createFakeIndexedDB() {
   return indexedDB;
 }
 
-function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource) {
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource, criticalVersion = 0) {
   const listeners = new Map();
-  const currentCacheKey = 'pdkef-__BUILD_ID__';
+  const currentCacheKey = `pdkef-c${criticalVersion}-__BUILD_ID__`;
   const cacheNames = new Set(cacheKeys);
   const entriesByCache = new Map(cacheKeys.map((key) => [key, new Map()]));
   const cacheObjects = new Map();
@@ -91,7 +91,7 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     navigator: { onLine: true },
   };
 
-  vm.runInNewContext(source, {
+  const context = {
     self,
     caches,
     fetch: fetchImpl,
@@ -106,9 +106,10 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     MessageChannel,
     setTimeout: (...args) => setTimeout(...args),
     clearTimeout: (...args) => clearTimeout(...args),
-  });
+  };
+  vm.runInNewContext(source, context);
 
-  return { cache, caches, entries, entriesByCache, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
+  return { cache, caches, context, entries, entriesByCache, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
 }
 
 async function dispatchInstall(worker) {
@@ -499,7 +500,8 @@ describe('precache manifest delivery policy', () => {
 // generate-precache-manifest.mjs). It must stay a valid classic worker
 // script, keep the __BUILD_ID__ placeholder for that same script to
 // substitute, and never gain a skipWaiting() call the minifier didn't put
-// there (see the skipWaiting() invariant in csp-scripts-pwa.md).
+// there (see the skipWaiting() invariant in csp-scripts-pwa.md): the MEM-10
+// grant and MEM-13's gated force are the only two.
 describe('minified service worker', () => {
   it('evaluates in the same harness and keeps the invariants that matter', async () => {
     const worker = createWorker(vi.fn(async () => new Response('font bytes')), ['pdkef-previous'], createFakeIndexedDB(), minifiedWorkerSource);
@@ -509,7 +511,7 @@ describe('minified service worker', () => {
 
     expect(await response.text()).toBe('font bytes');
     expect(minifiedWorkerSource).toContain('__BUILD_ID__');
-    expect(minifiedWorkerSource.match(/skipWaiting\s*\(/g)).toHaveLength(1);
+    expect(minifiedWorkerSource.match(/skipWaiting\s*\(/g)).toHaveLength(2);
     expect(minifiedWorkerSource.length).toBeLessThan(workerSource.length * 0.6);
   });
 });
@@ -847,4 +849,237 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(postMessage).toHaveBeenCalledTimes(2);
   });
 
+});
+
+// MEM-13: a build that bumped CRITICAL_VERSION takes over on its own, once every tab is ready.
+// The critical sources are the same code with the constant raised, as a deploy that bumped it.
+const criticalSources = [
+  ['source', workerSource.replace('const CRITICAL_VERSION = 0;', 'const CRITICAL_VERSION = 1;'), workerSource],
+  ['minified source', minifyServiceWorker(workerSource.replace('const CRITICAL_VERSION = 0;', 'const CRITICAL_VERSION = 1;')), minifiedWorkerSource],
+];
+
+describe.each(criticalSources)('critical version (%s)', (_label, criticalSource, plainSource) => {
+  const { context } = createWorker(vi.fn(), ['pdkef-previous'], createFakeIndexedDB(), plainSource);
+
+  it('reads the critical version out of a cache key, and an old key as 0', () => {
+    expect(context.criticalVersionOf('pdkef-c0-abc123def456')).toBe(0);
+    expect(context.criticalVersionOf('pdkef-c3-abc123def456')).toBe(3);
+    expect(context.criticalVersionOf('pdkef-c12-abc123def456')).toBe(12);
+    expect(context.criticalVersionOf('pdkef-abc123def456')).toBe(0);
+    expect(context.criticalVersionOf('pdkef-previous')).toBe(0);
+    expect(context.criticalVersionOf('some-other-app-c9-x')).toBe(0);
+  });
+
+  it('is critical only when strictly above the builds already cached', () => {
+    expect(context.isCriticalOver(2, ['pdkef-c1-aaa'])).toBe(true);
+    expect(context.isCriticalOver(1, ['pdkef-c1-aaa'])).toBe(false);
+    expect(context.isCriticalOver(1, ['pdkef-c2-aaa'])).toBe(false);
+    expect(context.isCriticalOver(1, ['pdkef-aaa', 'pdkef-bbb'])).toBe(true);
+    expect(context.isCriticalOver(0, ['pdkef-aaa'])).toBe(false);
+  });
+
+  it('forces nothing when it is the only build, and compares against the build the tabs run', () => {
+    expect(context.isCriticalOver(1, [])).toBe(false);
+    // A waiting build that was never taken over leaves its newer cache behind.
+    expect(context.isCriticalOver(1, ['pdkef-c0-active', 'pdkef-c1-stale-waiting'])).toBe(true);
+  });
+
+  const CHECK = { type: 'pdkef:critical-check' };
+  const UPDATE = { type: 'pdkef:critical-update' };
+  // A tab's answer to the critical-update message: at once, never, or when told.
+  const criticalWindow = (id, behavior = 'ready', url = `https://pdkef.test/${id}/`) => {
+    const window = {
+      id,
+      url,
+      reply: null,
+      postMessage: vi.fn((_message, ports) => {
+        window.reply = () => ports[0].postMessage({ ready: true });
+        if (behavior === 'ready') window.reply();
+      }),
+    };
+    return window;
+  };
+  const build = ({ windows = [], waiting = true, marker = true, source = criticalSource, version = 1, keys = ['pdkef-previous'] } = {}) => {
+    const worker = createWorker(vi.fn(async () => new Response('x')), keys, createFakeIndexedDB(), source, version);
+    worker.self.clients.matchAll = vi.fn(async () => windows);
+    if (marker) worker.entries.set('https://pdkef.test/__pdkef/precache-complete/', new Response('ok'));
+    if (waiting) worker.self.registration.waiting = {};
+    return worker;
+  };
+  const runCheck = async (worker) => {
+    await dispatchMessage(worker, CHECK);
+  };
+
+  it('tells every page window, then skips waiting once each said ready', async () => {
+    const a = criticalWindow('a');
+    const b = criticalWindow('b', 'late');
+    const sitemap = criticalWindow('s', 'ready', 'https://pdkef.test/sitemap.xml');
+    const worker = build({ windows: [a, b, sitemap] });
+    const done = runCheck(worker);
+    await settle();
+    expect(a.postMessage).toHaveBeenCalledWith(UPDATE, [expect.anything()]);
+    expect(b.postMessage).toHaveBeenCalledWith(UPDATE, [expect.anything()]);
+    expect(sitemap.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+    b.reply();
+    await done;
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips waiting when no page is open', async () => {
+    const worker = build();
+    await runCheck(worker);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips waiting at the cap when a tab never answers, and not before', async () => {
+    vi.useFakeTimers();
+    try {
+      const worker = build({ windows: [criticalWindow('a'), criticalWindow('frozen', 'never')] });
+      const done = runCheck(worker);
+      await settle();
+      await vi.advanceTimersByTimeAsync(74_999);
+      expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      await done;
+      expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is single-flight: a second check while one runs asks nobody again', async () => {
+    const a = criticalWindow('a', 'late');
+    const worker = build({ windows: [a] });
+    const first = runCheck(worker);
+    await settle();
+    const second = runCheck(worker);
+    await settle();
+    expect(a.postMessage).toHaveBeenCalledTimes(1);
+    a.reply();
+    await Promise.all([first, second]);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing when this worker is not the waiting one', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a], waiting: false });
+    await runCheck(worker);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does nothing when another worker is the waiting one', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a] });
+    worker.self.serviceWorker = {};
+    await runCheck(worker);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does nothing offline, asks nobody and fetches nothing', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a], marker: false });
+    worker.self.navigator.onLine = false;
+    await runCheck(worker);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+    expect(worker.fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('does nothing while the build is not fully precached and a URL still fails', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a], marker: false });
+    worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
+      ? new Response(JSON.stringify({ urls: ['/', '/sign/'] }))
+      : new Response('no', { status: 503 })));
+    await runCheck(worker);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('finishes a missing precache online and then forces', async () => {
+    const worker = build({ marker: false });
+    worker.fetchImpl.mockImplementation(async (request) => (requestUrl(request).endsWith('/precache-manifest.json')
+      ? new Response(JSON.stringify({ urls: ['/', '/sign/'] }))
+      : new Response('asset')));
+    await runCheck(worker);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('does nothing for a build that is not critical over the one cached', async () => {
+    const a = criticalWindow('a');
+    const equal = build({ windows: [a], keys: ['pdkef-c1-previous'] });
+    await runCheck(equal);
+    const same = build({ windows: [a], source: plainSource, version: 0 });
+    await runCheck(same);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(equal.self.skipWaiting).not.toHaveBeenCalled();
+    expect(same.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does not skip waiting when it stopped being the waiting worker, or went offline, during the wait', async () => {
+    const replaced = criticalWindow('a', 'late');
+    const first = build({ windows: [replaced] });
+    const replacedDone = runCheck(first);
+    await settle();
+    first.self.registration.waiting = null;
+    replaced.reply();
+    await replacedDone;
+    expect(first.self.skipWaiting).not.toHaveBeenCalled();
+
+    const dropped = criticalWindow('b', 'late');
+    const second = build({ windows: [dropped] });
+    const droppedDone = runCheck(second);
+    await settle();
+    second.self.navigator.onLine = false;
+    dropped.reply();
+    await droppedDone;
+    expect(second.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('runs at the end of install without holding the install open', async () => {
+    vi.useFakeTimers();
+    try {
+      const frozen = criticalWindow('frozen', 'never');
+      const worker = build({ windows: [frozen], marker: false });
+      worker.fetchImpl.mockImplementation(manifestResponder(['/', '/sign/']));
+      await dispatchInstall(worker);
+      await settle();
+      expect(frozen.postMessage).toHaveBeenCalledWith(UPDATE, [expect.anything()]);
+      expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(75_000);
+      expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('waits for the install to settle into waiting before it forces', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a], waiting: false, marker: false });
+    worker.fetchImpl.mockImplementation(manifestResponder(['/', '/sign/']));
+    let statechange;
+    worker.self.serviceWorker = { state: 'installing', addEventListener: (_name, listener) => { statechange = listener; } };
+    await dispatchInstall(worker);
+    await settle();
+    expect(a.postMessage).not.toHaveBeenCalled();
+    worker.self.serviceWorker.state = 'installed';
+    worker.self.registration.waiting = worker.self.serviceWorker;
+    statechange();
+    await settle();
+    expect(a.postMessage).toHaveBeenCalledTimes(1);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('never runs for a build at the shipped critical version, on install or on a check', async () => {
+    const a = criticalWindow('a');
+    const worker = build({ windows: [a], source: plainSource, version: 0 });
+    worker.fetchImpl.mockImplementation(manifestResponder(['/', '/sign/']));
+    await dispatchInstall(worker);
+    await runCheck(worker);
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
 });
