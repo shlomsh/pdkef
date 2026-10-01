@@ -144,7 +144,7 @@ export function topKeepingInkCentre(
   const from = resolveFontFamily(fromFamily, text);
   const to = resolveFontFamily(toFamily, text);
   if (from === to) return top;
-  const em = pageHeightPoints > 0 ? (fontSize / pageHeightPoints) * 100 : 0;
+  const em = toPercent(fontSize, pageHeightPoints);
   return top + em * (inkCentreOffsetEm(from) - inkCentreOffsetEm(to));
 }
 
@@ -262,6 +262,16 @@ export function cellRegionAt(
     bottom: CELL_HIT_MARGIN_PERCENT,
     sides: CELL_HIT_MARGIN_PERCENT,
   });
+}
+
+/** A page-relative percent as points; 0 for a page with no size. */
+export function toPoints(percent: number, pagePoints: number): number {
+  return pagePoints > 0 ? (percent / 100) * pagePoints : 0;
+}
+
+/** Points as a page-relative percent; 0 for a page with no size. */
+export function toPercent(points: number, pagePoints: number): number {
+  return pagePoints > 0 ? (points / pagePoints) * 100 : 0;
 }
 
 /**
@@ -396,10 +406,10 @@ export function placeTextOnCell(
   // the top of the typed text against the label's baseline (live report,
   // form 101's employer row). See FieldRegion.writable.
   const area = region.writable ?? region;
-  const areaHeightPoints = pageHeightPoints > 0 ? (area.height / 100) * pageHeightPoints : 0;
+  const areaHeightPoints = toPoints(area.height, pageHeightPoints);
   const heightCeilingPoints = areaHeightPoints > 0 ? areaHeightPoints / TEXT_BOX_LINE_HEIGHT_EM : undefined;
   const size = fieldFontSize(carriedFontSize, { seedHeightPoints: areaHeightPoints, heightCeilingPoints });
-  const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
+  const em = toPercent(size, pageHeightPoints);
   return {
     left: area.left,
     top: Math.max(0, cellTextTop(area, em, fontFamily)),
@@ -436,12 +446,12 @@ export function placeCombOnRegion(
   },
 ): CombPlacement {
   const cells = Math.max(1, Math.min(MAX_COMB_CELLS, Math.round(region.cells)));
-  const cellWidthPoints = pageWidthPoints > 0 ? ((region.width / cells) / 100) * pageWidthPoints : 0;
+  const cellWidthPoints = toPoints(region.width / cells, pageWidthPoints);
   const widthCeilingPoints = cellWidthPoints > 0 ? cellWidthPoints / COMB_MIN_CELL_EM : undefined;
   // Only a closed box has a height to fit; open teeth are dividers, and the
   // digits on them keep the size every other field on the form gets.
   const digitHeightPercent = region.boxed ? region.height * COMB_BOX_FILL : 0;
-  const digitHeightPoints = pageHeightPoints > 0 ? (digitHeightPercent / 100) * pageHeightPoints : 0;
+  const digitHeightPoints = toPoints(digitHeightPercent, pageHeightPoints);
   const heightCeilingPoints = digitHeightPoints > 0 ? digitHeightPoints / COMB_CAP_HEIGHT_EM : undefined;
   // Seeding a fresh carried size reads the strip a person writes in, not the
   // digit-height fraction above: an open comb's teeth are only a few points
@@ -452,9 +462,9 @@ export function placeCombOnRegion(
   // already the box. Either way this is the whole strip, never this comb's
   // own box-fill margin (see fieldFontSize's own doc).
   const seedArea = region.writable ?? region;
-  const seedHeightPoints = pageHeightPoints > 0 ? (seedArea.height / 100) * pageHeightPoints : 0;
+  const seedHeightPoints = toPoints(seedArea.height, pageHeightPoints);
   const size = fieldFontSize(carriedFontSize, { seedHeightPoints, widthCeilingPoints, heightCeilingPoints });
-  const em = pageHeightPoints > 0 ? (size / pageHeightPoints) * 100 : 0;
+  const em = toPercent(size, pageHeightPoints);
   // A closed cell is a box and text belongs in the middle of it; an open one is
   // a row of teeth hanging from the line you write on, and text belongs on that
   // line. Centring in the first case means putting the digits' own ink middle
