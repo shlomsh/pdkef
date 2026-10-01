@@ -386,10 +386,13 @@ test.describe('short desktop window', () => {
     // A constructable stylesheet, not addStyleTag: style-src carries no
     // 'unsafe-inline' (.claude/rules/csp-scripts-pwa.md), so an injected
     // <style> is refused. adoptedStyleSheets is not governed by style-src.
+    // The tall tiles make the overflow certain: how much the real tiles overflow
+    // at 1440x400 moves with their copy, and this control must not.
     await page.evaluate(() => {
       const sheet = new CSSStyleSheet();
       sheet.replaceSync(`@media (min-width: 1024px) and (max-height: 560px) {
         .workspace-launcher { align-self: center !important; overflow-y: visible !important; }
+        [data-home-recents] li { min-height: 140px !important; }
       }`);
       document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
     });
