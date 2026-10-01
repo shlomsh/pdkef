@@ -1074,7 +1074,6 @@ export default function PdfRedactTool() {
                         key={el.id}
                         el={el}
                         isSelected={el.id === selectedBoxId}
-                        isActiveHover={el.id === activeBoxId}
                         onSelect={(id: string) => dispatch({ type: 'BOX_SELECTED', id })}
                         onChange={updateElement}
                         getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
