@@ -125,6 +125,8 @@ export default function PdfRedactTool() {
   // restores; tool-specific instructions remain available whenever a tool is
   // armed. Manual picks deliberately reset this to the welcoming default.
   const [showWelcomeTip, setShowWelcomeTip] = useState(true);
+  // RED-45: a document reopened with its work says so, quietly, until the first edit.
+  const [restoredWithWork, setRestoredWithWork] = useState(false);
   // Draft persistence needs an editor-owned baseline, not a guess based on
   // when a File object first appeared. A load/restoration captures the current
   // revision; every real document operation advances it.
@@ -496,6 +498,7 @@ export default function PdfRedactTool() {
         find.setPreset(null);
         setExportCancelled(false);
         setShowWelcomeTip(!restored);
+        setRestoredWithWork(restored && presetElements.length > 0);
         setFile(selected);
         setPdfDocument(null);
         setNumPages(0);
@@ -1081,6 +1084,7 @@ export default function PdfRedactTool() {
             peeking={peekAll}
             onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}
+            restoredNote={restoredWithWork && documentRevision === draftBaselineRevision}
             brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
               <BrushControls
                 tool={activeStyle}
