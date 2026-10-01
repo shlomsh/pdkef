@@ -1,12 +1,12 @@
 ---
 id: "SNG-08"
 title: "Consolidate Redact's state before it grows further"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "redact"
-horizon: "next"
+horizon: "now"
 order: 3
-depends_on: ["SNG-06"]
+depends_on: []
 ---
 
 # SNG-08 · Consolidate Redact's state before it grows further
@@ -32,3 +32,5 @@ Redact has about 13 independent `useState`s and no reducer (`PdfRedactTool.tsx`)
 ## 2026-10-01 board cleanup
 
 - Retitled and rescoped (see above): consolidate Redact's roughly 33 `useState` calls. The machine, router and viewport half is dropped with SNG-05. Stays open.
+
+- 2026-10-01: dropped SNG-06 from depends_on. The rescope removed the shared-machine half, and consolidating Redact's own state does not need Sign's fill mode.

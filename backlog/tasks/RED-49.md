@@ -1,11 +1,9 @@
 ---
 id: "RED-49"
 title: "Check the saved file also reads what no page shows"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: ["RED-48"]
 ---
 
@@ -31,3 +29,9 @@ So two parts, sharing `src/editor/adapters/pdf/reachability.js` (`unreachableRef
 ## Acceptance
 - On a file built like RED-48's repro before the fix, the check reports the deleted term; after the fix, it does not.
 - The pass adds no more than a few hundred ms on the 77-page corpus file.
+
+## Result
+
+- `reachability.js`: one walk from the trailer (Root, Info, Encrypt); `unreachableRefs` leaves out object-stream and xref packaging, which pdf-lib rebuilds on save (verified: a cleared title packed in an object stream is gone from the next save). (aad0c94d)
+- Export: `dropUnreachable` replaced RED-48's `removeOrphans`, before and after `removeUndrawnImages`, in the Delete export and the Delete preview, so a Delete save carries no leftover from the source file either. (b1bf942d)
+- Check: a new place, "In a part of the file no page shows", read from text operators (literal, hex, TJ, split phrases joined and spaced) and string values in unreachable objects; Identity-H glyph ids don't read. Remove it drops them all, and every Remove it drops them before saving. `ParseSpeeds.Fastest` keeps the cost to +5 ms on the 77-page file and about +110 ms on the worst real form (thai-pnd90, which carries 19 KB of readable unused text). (b1a1f63a)
