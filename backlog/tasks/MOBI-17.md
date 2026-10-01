@@ -104,7 +104,7 @@ Three moves, and they are not alternatives:
 1. **Render the page large enough on a phone that its text is not sub-16px**, and let the document
    pan horizontally. Then iOS never auto-zooms, the chrome stays proportionate and the form is
    legible without pinching. Note before reviving this: "changing the PDF page render width" is
-   explicitly declined in `docs/view-density-control-spec.md` section 7 - but that was a desktop
+   explicitly declined in `docs/archive/view-density-control-spec.md` section 7 - but that was a desktop
    argument (it leaves gutters on a 1512px screen). On a phone it runs the other way, so this is a
    new decision, not a reversal.
 2. **Decouple the chrome from page zoom.** Read `visualViewport.scale`, publish it as a custom

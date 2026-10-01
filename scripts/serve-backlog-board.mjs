@@ -104,6 +104,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .tl-month { position: absolute; top: 70px; font: 500 11px var(--font-id); color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
 .tl-ev { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; }
 .tl-ev .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); margin-top: 6px; }
+.tl-ev.today { transform: translateX(-6px); justify-items: start; }
 .tl-ev.today .dot { background: var(--surface); }
 .tl-ev .lbl { font: 600 12px var(--font-id); white-space: nowrap; }
 .tl-ev .n { position: absolute; top: 84px; font-size: 12px; color: var(--muted); white-space: nowrap; }
@@ -222,9 +223,17 @@ function client(columns) {
       html += '<div class="tl-tick" style="left:' + pct(iso) + '"></div><div class="tl-month" style="left:' + pct(iso) + '">' + cursor.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }) + '</div>';
     }
     html += '<div class="tl-ev today" style="left:' + pct(today) + '"><span class="lbl">Today</span><span class="dot"></span></div>';
+    // Dates within a week of each other share one marker, so their labels never overlap.
+    const groups = [];
     Object.keys(byDate).sort().forEach((d) => {
-      const ids = byDate[d];
-      html += '<div class="tl-ev" style="left:' + pct(d) + '" title="' + esc(ids.join(', ')) + '"><span class="lbl">' + esc(fmtDate(d)) + '</span><span class="dot"></span><span class="n">' + ids.length + (ids.length === 1 ? ' card' : ' cards') + '</span></div>';
+      const last = groups[groups.length - 1];
+      if (last && Date.parse(d) - Date.parse(last.from) <= 7 * 86400000) { last.to = d; last.ids.push(...byDate[d]); }
+      else groups.push({ from: d, to: d, ids: [...byDate[d]] });
+    });
+    groups.forEach(({ from, to, ids }) => {
+      const label = from === to ? fmtDate(from)
+        : from.slice(0, 7) === to.slice(0, 7) ? Number(from.slice(8)) + '-' + fmtDate(to) : fmtDate(from) + ' - ' + fmtDate(to);
+      html += '<div class="tl-ev" style="left:' + pct(from) + '" title="' + esc(ids.join(', ')) + '"><span class="lbl">' + esc(label) + '</span><span class="dot"></span><span class="n">' + ids.length + (ids.length === 1 ? ' card' : ' cards') + '</span></div>';
     });
     root.innerHTML = html;
   }
