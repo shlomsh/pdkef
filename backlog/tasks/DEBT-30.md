@@ -38,8 +38,10 @@ it can take the Merge island down, not just log.
 
 ## Acceptance
 
-- [ ] A test drives the sequence that re-runs the effect after its cleanup and fails on the old code
-      for this reason.
-- [ ] Both cleanups clear their ref; the test passes.
-- [ ] `errors:resolve` clips minified dependency lines (this report printed whole minified files).
+- [x] A test drives the sequence that re-runs the effect after its cleanup and fails on the old code
+      for this reason: add files, Clear all, add files again leaves the list with no live Sortable,
+      so drag-to-reorder silently stopped working (Preact swallowed the throw in jsdom; a wrapper
+      on `destroy()` showed `Cannot set properties of null` from `el[expando]`).
+- [x] Both cleanups clear their ref; the test passes (`3173680e`, 39/39 in the file).
+- [x] `errors:resolve` clips minified dependency lines to 160 characters around the column (`0ee6468e`).
 - [ ] After the push, no new `sortable.esm` destroy report arrives from the fixed build.
