@@ -1,7 +1,7 @@
 ---
 id: "SEO-41"
 title: "Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "next"
@@ -19,3 +19,9 @@ Split from SEO-21 when its Part A closed (2026-10-01). See SEO-21's "2026-10-01 
 - **FAQ clause, no new URL.** Add a clause to Redact's FAQ entry "Do I need to flatten the PDF separately?" and to `/blur-vs-blackout-vs-delete-pdf/` naming the two meanings of "flatten": the page becomes an image (Redact), or fields are baked in with the text kept (Sign). Checked against the code, in voice, no em dashes. Run `npm run build && npm run preview` for the CSP pass and the SEO and redirect checks.
 - **Test gap.** A widget with no `/AP` that `updateFieldAppearances` cannot repair is untested in `flatten.test.js`.
 - **Parked: the `/flatten/` page.** Only after a Keyword Planner absolute-volume read (LOC-14 access) and the SEO-06 gate outcome are recorded. SEO-21's Part B scope is the spec if it is ever built.
+
+## 2026-10-01 progress
+
+- FAQ clause done: Redact's "Do I need to flatten the PDF separately?" (`src/data/tools.js`) and "What does flattening a PDF page do?" on `/blur-vs-blackout-vs-delete-pdf/` now name Sign's gentler meaning. `build`, `test:seo`, `test:csp`, `test:redirects`, `test:css` and `test:weight` pass.
+- Test gap done: an unknown-`/FT` widget with no `/AP` rejects with `FormFlattenError` naming "1 of 1"; a widget with no `/FT` at all makes pdf-lib throw inside `updateFieldAppearances`, which is wrapped as a `FormFlattenError` (message is the pdf-lib error, not the count).
+- Still open: the viewer check, which needs Shlomi.
