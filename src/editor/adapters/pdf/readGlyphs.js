@@ -18,7 +18,7 @@ export async function readGlyphs(pdfjs, pdfjsPage, options) {
       }
     }, options);
   } catch (error) {
-    reportError('redact', error);
+    reportError('redact', error, 'read_glyphs');
     console.error('Redact could not read a page\'s text', error);
     return null;
   }

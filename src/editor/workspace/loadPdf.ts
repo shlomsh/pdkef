@@ -143,7 +143,7 @@ export async function loadPdf({
     );
   } catch (error) {
     if (!isCurrent()) return;
-    reportError('pdf_render', error);
+    reportError('pdf_render', error, 'load_document');
     console.error(error);
     fail(t.loadFailed);
   } finally {

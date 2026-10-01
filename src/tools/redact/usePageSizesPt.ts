@@ -30,7 +30,7 @@ export default function usePageSizesPt(
           sizes.push({ width, height });
         }
       } catch (error) {
-        reportError('redact', error);
+        reportError('redact', error, 'read_page_sizes');
         // Without a size a blur box draws its plain fraction, as it did
         // before RED-24; the export is unaffected.
         console.error('Redact could not read a page size', error);

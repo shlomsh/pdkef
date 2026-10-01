@@ -137,11 +137,11 @@ export default function PdfEditPagesTool() {
           ),
         }));
       }).catch((err) => {
-        reportError('pdf_render', err);
+        reportError('pdf_render', err, 'render_thumbnail');
         console.error('Thumbnail generation failed:', err);
       });
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'load_document');
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
@@ -249,7 +249,7 @@ export default function PdfEditPagesTool() {
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'apply_page_edits');
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to edit PDF.');

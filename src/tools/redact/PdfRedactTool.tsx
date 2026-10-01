@@ -758,7 +758,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
       }
     } catch (error) {
-      reportError('redact', error);
+      reportError('redact', error, 'remove_place');
       console.error(error);
       dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
     } finally {
@@ -810,7 +810,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
       }
     } catch (err) {
-      reportError('redact', err);
+      reportError('redact', err, 'export');
       console.error(err);
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's
