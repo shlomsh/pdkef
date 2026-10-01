@@ -48,6 +48,5 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
 - [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
-- [SEO-41](backlog/tasks/SEO-41.md) · Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

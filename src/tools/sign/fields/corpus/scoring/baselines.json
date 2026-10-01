@@ -273,20 +273,20 @@
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/thai-pnd90-2565-page3.json",
       "pageIndex": 2,
-      "note": "Revenue Department form ภ.ง.ด.90 (personal income tax return), tax year 2565 BE (2022), page 3 of 5 (0-based pageIndex 2). The first Thai forms in the corpus (FORM-16): Thai runs left to right like the 1040 but stacks vowel and tone marks the way Hebrew stacks niqqud, and this form draws its comb boxes with dotted leaders rather than the ruled boxes the Hebrew forms use. A live AcroForm with 353 fields across the whole document, so the widgets are the truth; page 3 was picked over the other four because it carries the most widgets (105 of 398 total) and the widest mix on one page. Recall on the mutually-exclusive-choice fields is partly structural in the same way the 1040's is: all 18 radio targets match (100%), because those squares are drawn as one clean box each with nothing to split. Text also holds 100% (13/13). Comb is the one that suffers: 24 of 74 (32.4%), because this form's answer combs use a bold internal divider between the whole-number group and its two-digit satang (cents) group - and, on the repeating right-hand sub-tables, sometimes a second divider further left - which the ink-based comb reader (pageInk/formGrid) reads as a full comb boundary rather than as texture inside one field. One AcroForm widget therefore surfaces as two or three ink-based candidates: a wide left/middle fragment still labelled comb (most of the 100 comb false positives) and a narrow trailing fragment close to one cell wide, square enough that the detector calls it checkbox instead (79 of the 97 checkbox-kind candidates it emits, since only 18 are real - checked directly: the detector never emits a literal 'radio' kind here, only 'checkbox', which the matcher treats as compatible). Every one of the 50 missed comb targets and effectively all 179 false positives trace back to this one splitting behaviour, verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs), not to 50 independent misses. The 24 matched combs are the ones drawn with no internal divider (the plain 13-digit tax-ID combs and the short percentage-deduction boxes). Source: https://www.rd.go.th/fileadmin/tax_pdf/pit/2565/271265PIT90.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `checkbox` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "note": "Revenue Department form ภ.ง.ด.90 (personal income tax return), tax year 2565 BE (2022), page 3 of 5 (0-based pageIndex 2). The first Thai forms in the corpus (FORM-16): Thai runs left to right like the 1040 but stacks vowel and tone marks the way Hebrew stacks niqqud, and this form draws its comb boxes with dotted leaders rather than the ruled boxes the Hebrew forms use. A live AcroForm with 353 fields across the whole document, so the widgets are the truth; page 3 was picked over the other four because it carries the most widgets (105 of 398 total) and the widest mix on one page. Recall on the mutually-exclusive-choice fields is partly structural in the same way the 1040's is: all 18 radio targets match (100%), because those squares are drawn as one clean box each with nothing to split. Text also holds 100% (13/13). Comb is the one that suffers: 24 of 74 (32.4%), because this form's answer combs use a bold internal divider between the whole-number group and its two-digit satang (cents) group - and, on the repeating right-hand sub-tables, sometimes a second divider further left - which the ink-based comb reader (pageInk/formGrid) reads as a full comb boundary rather than as texture inside one field. One AcroForm widget therefore surfaces as two or three ink-based candidates: a wide left/middle fragment still labelled comb (most of the 100 comb false positives) and a narrow trailing fragment close to one cell wide, square enough that the detector calls it checkbox instead (79 of the 97 checkbox-kind candidates it emits, since only 18 are real - checked directly: the detector never emits a literal 'radio' kind here, only 'checkbox', which the matcher treats as compatible). Every one of the 50 missed comb targets and effectively all 179 false positives trace back to this one splitting behaviour, verified on a rendered overlay (scripts/spike/mobi-10/overlay.mjs), not to 50 independent misses. The 24 matched combs are the ones drawn with no internal divider (the plain 13-digit tax-ID combs and the short percentage-deduction boxes). Source: https://www.rd.go.th/fileadmin/tax_pdf/pit/2565/271265PIT90.pdf. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `checkbox` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-17 (2026-10-01): re-recorded after adjacent runs on one row are merged when the gap between them is under 1.2 pitches and their pitches are within 0.7-1.4x (mergeAdjacentRuns, formGrid.js). Measured on this page, the cause was not a bold divider: the digits are not drawn at one exact pitch (7.7 to 10.1pt cell to cell, past the 1pt tolerance) and a ~4.8pt gap for the decimal point sits before the two satang digits, so exact-pitch chaining cut one field into a lead piece, a body and a 2-cell tail that was too short to be a comb. Every one of the 74 combs is now found (24 -> 74) and the 100 comb and ~79 narrow-piece checkbox false positives are gone (precision 23.5 -> 86.8, recall 52.4 -> 100); the remaining 16 false positives are all checkbox-kind. No other scored form moved.",
       "targets": 105,
-      "candidates": 234,
-      "matched": 55,
-      "recall": 52.4,
-      "precision": 23.5,
+      "candidates": 121,
+      "matched": 105,
+      "recall": 100,
+      "precision": 86.8,
       "byKind": {
         "comb": {
-          "recall": 32.4,
+          "recall": 100,
           "targets": 74,
-          "found": 24,
-          "precision": 19.4,
-          "candidates": 124,
-          "matchedCandidates": 24
+          "found": 74,
+          "precision": 100,
+          "candidates": 74,
+          "matchedCandidates": 74
         },
         "radio": {
           "recall": 100,
@@ -308,8 +308,8 @@
           "recall": null,
           "targets": 0,
           "found": 0,
-          "precision": 18.6,
-          "candidates": 97,
+          "precision": 52.9,
+          "candidates": 34,
           "matchedCandidates": 18
         }
       },

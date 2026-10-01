@@ -252,6 +252,39 @@ const PRINTED = [
     expect: { ...none, checkboxes: 8 },
   },
   {
+    name: 'a comb whose digits are not at one exact pitch, with a narrow decimal gap before the last two',
+    why: 'FORM-17: ภ.ง.ด.90\'s amount combs. Cell to cell the teeth vary by 1-2pt (7.7 to 10.1) and a '
+      + '4.8pt gap for the decimal point precedes the two satang digits, so exact-pitch chaining cut '
+      + 'one field into a lead piece, a body and a 2-cell tail too short to be a comb. The pieces end '
+      + 'to end at compatible pitch are one field; the 4.8pt gap counts as a cell, as the form\'s own '
+      + 'AcroForm widget does (12 cells)',
+    doc: {
+      ink: [
+        { ink: 'line', x: 40, y: 200, x2: 143.5 },
+        ...[0, 7.7, 17.2, 26.4, 36.2, 45.7, 55.2, 65.3, 74.8, 83.3, 88.1, 95.6, 103.5].map((dx) => (
+          { ink: 'line', x: 40 + dx, y: 200, y2: 212 }
+        )),
+      ],
+    },
+    expect: { ...none, combs: 1 },
+    comb: { cells: 12 },
+  },
+  {
+    name: 'two combs at one pitch with a doubled gap between them',
+    why: 'FORM-17 guard: a doubled gap is a field boundary, not a decimal point. It reads as a one-cell '
+      + 'run at twice the pitch, which the 0.7-1.4x pitch test in mergeAdjacentRuns refuses to join, '
+      + 'so form 101\'s side-by-side dates stay two fields',
+    doc: {
+      ink: [
+        { ink: 'line', x: 40, y: 200, x2: 194 },
+        ...[0, 11, 22, 33, 44, 55, 66, 88, 99, 110, 121, 132, 143, 154].map((dx) => (
+          { ink: 'line', x: 40 + dx, y: 200, y2: 206 }
+        )),
+      ],
+    },
+    expect: { ...none, combs: 2 },
+  },
+  {
     name: 'a ruled row of three cells',
     why: 'a form row: two rules and four walls, so three closed cells',
     doc: { ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }] },
