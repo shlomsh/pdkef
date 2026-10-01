@@ -5,13 +5,13 @@ import {
 } from './blurStrength.ts';
 
 describe('blurStrength', () => {
-  it('a missing or unknown strength reads as the default 0.4', () => {
-    expect(DEFAULT_BLUR_STRENGTH).toBe(0.4);
-    expect(resolveBlurStrength(undefined)).toBe(0.4);
-    expect(resolveBlurStrength('bogus')).toBe(0.4);
-    expect(resolveBlurStrength('toString')).toBe(0.4);
-    expect(resolveBlurStrength(NaN)).toBe(0.4);
-    expect(blurFactor(undefined)).toBe(0.4);
+  it('a missing or unknown strength reads as the default 0.3', () => {
+    expect(DEFAULT_BLUR_STRENGTH).toBe(0.3);
+    expect(resolveBlurStrength(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength('bogus')).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength('toString')).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(blurFactor(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
   });
 
   it('legacy names migrate: light 0.3, medium 0.4, strong 0.5', () => {
@@ -23,20 +23,22 @@ describe('blurStrength', () => {
     expect(isBlurStrengthValue(Infinity)).toBe(false);
   });
 
-  it('a number is clamped to [0.1, 0.7]', () => {
+  it('a number is clamped to [0.05, 0.55]', () => {
     expect(resolveBlurStrength(0.55)).toBe(0.55);
+    expect(resolveBlurStrength(0.6)).toBe(BLUR_MAX);
     expect(resolveBlurStrength(0)).toBe(BLUR_MIN);
     expect(resolveBlurStrength(9)).toBe(BLUR_MAX);
   });
 
-  it('snapBlurStrength: within 0.02 of 0.4 snaps to it, else hundredths, clamped', () => {
-    expect(snapBlurStrength(0.41)).toBe(0.4);
-    expect(snapBlurStrength(0.38)).toBe(0.4);
+  it('snapBlurStrength: within 0.02 of 0.3 snaps to it, else hundredths, clamped', () => {
+    expect(snapBlurStrength(0.31)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(snapBlurStrength(0.28)).toBe(DEFAULT_BLUR_STRENGTH);
     expect(snapBlurStrength(0.43)).toBe(0.43);
+    expect(snapBlurStrength(0.4)).toBe(0.4);
     expect(snapBlurStrength(0.2549)).toBe(0.25);
     expect(snapBlurStrength(0.01)).toBe(BLUR_MIN);
     expect(snapBlurStrength(3)).toBe(BLUR_MAX);
-    expect(snapBlurStrength(NaN)).toBe(0.4);
+    expect(snapBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
   });
 
   describe('blurFraction: radius = factor x max(box height, 24pt)', () => {
@@ -95,12 +97,12 @@ describe('blurStrength', () => {
 });
 
 describe('blurRadiusPx at the slider ends (RED-30)', () => {
-  it('0.1 gives 0.1 x max(h, 24pt) and 0.7 gives 0.7 x max(h, 24pt)', () => {
-    expect(blurRadiusPx(0.1, 200, 1)).toBeCloseTo(20);
-    expect(blurRadiusPx(0.7, 200, 1)).toBeCloseTo(140);
+  it('0.05 gives 0.05 x max(h, 24pt) and 0.55 gives 0.55 x max(h, 24pt)', () => {
+    expect(blurRadiusPx(0.05, 200, 1)).toBeCloseTo(10);
+    expect(blurRadiusPx(0.55, 200, 1)).toBeCloseTo(110);
     // Under the 24pt floor: absolute radius from the floor.
-    expect(blurRadiusPx(0.1, 10, 1)).toBeCloseTo(2.4);
-    expect(blurRadiusPx(0.7, 10, 1)).toBeCloseTo(16.8);
+    expect(blurRadiusPx(0.05, 10, 1)).toBeCloseTo(1.2);
+    expect(blurRadiusPx(0.55, 10, 1)).toBeCloseTo(13.2);
   });
 
   it('a legacy name and its number give the same radius', () => {

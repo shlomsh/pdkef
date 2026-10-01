@@ -20,20 +20,24 @@
 // fraction, so the box looks the same at any zoom as in the saved file.
 //
 // RED-30: strength is now a continuous factor from BLUR_MIN to BLUR_MAX.
-// 0.4 is the default and exactly the old "medium". Going below the old
+// 0.4 was the default and exactly the old "medium". Going below the old
 // lightest level (0.3) is a deliberate choice the person makes with the
 // slider: a vaguely readable blur is allowed, and nothing warns about it.
 // The floor rule above is unchanged. The three legacy names still resolve
 // (light 0.3, medium 0.4, strong 0.5) so drafts and undo history saved
 // before the slider keep rendering and exporting the same.
+//
+// RED-47: Shlomi's desktop review (2026-10-01) found the lightest still strong
+// on a tall box, so the range moved down to 0.05-0.55 and the default to 0.3,
+// the old light, which already read as a smear on a real export.
 
 export type BlurStrength = number;
 
-export const BLUR_MIN = 0.1;
-export const BLUR_MAX = 0.7;
+export const BLUR_MIN = 0.05;
+export const BLUR_MAX = 0.55;
 
 /** What a blur box saved before strength existed restores as, and what a new box starts at. */
-export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.4;
+export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.3;
 
 /** The slider snaps to the default within this distance. */
 const SNAP_RADIUS = 0.02;
