@@ -52,12 +52,13 @@ function makeWorker(status: Status = { ready: true, busy: 1 }) {
   return worker;
 }
 
-function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
+function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any; active?: any } = {}) {
   const line = document.createElement('p');
   line.hidden = true;
   line.innerHTML = '<button type="button" data-app-update-dismiss></button>';
   const reg: any = new Emitter();
   reg.waiting = opts.waiting ?? null;
+  reg.active = opts.active ?? null;
   reg.installing = null;
   reg.update = vi.fn(() => Promise.resolve());
   const sw: any = new Emitter();
@@ -435,6 +436,24 @@ describe('registration', () => {
 describe('controllerchange', () => {
   it('the first claim of an uncontrolled tab does not reload', async () => {
     const tab = makeTab(new Bus(), { controller: false });
+    await tab.start();
+    tab.sw.controller = {};
+    tab.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(tab.reload).not.toHaveBeenCalled();
+  });
+
+  it('an uncontrolled tab beside an active worker (a hard reload) reloads on the first claim', async () => {
+    const tab = makeTab(new Bus(), { controller: false, active: {} });
+    await tab.start();
+    tab.sw.controller = {};
+    tab.sw.emit('controllerchange');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(tab.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('an uncontrolled tab with no active worker ignores the first claim', async () => {
+    const tab = makeTab(new Bus(), { controller: false, active: null });
     await tab.start();
     tab.sw.controller = {};
     tab.sw.emit('controllerchange');

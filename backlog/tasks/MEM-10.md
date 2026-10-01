@@ -100,7 +100,10 @@ click could not succeed), so it is gone:
 - **What holds:** an export in flight in any tool, and a file open in a tool without drafts (Compress,
   Split, To Image, Image to PDF, Edit Pages, Unlock/Protect keep their work only in memory until
   Download). Sign, Redact and Merge hold only while exporting, because their work is in drafts. A tab
-  that does not answer within 750ms (frozen, or on a build from before this ticket) also holds.
+  that does not answer within 750ms (frozen, or on a build from before this ticket) also holds. So
+  does a Sign, Redact or Merge tab whose draft failed to save (no IndexedDB, quota, Merge's size cap).
+- **Never stranded:** a build whose install missed a file fetches what is missing the next time it
+  is asked online, and a hard-reloaded tab still reloads with the others.
 - **The line, only in the other tabs:** "A new version is ready. It loads once you're done in your
   other PDkef tab." when a tab is working, or "...Close your other PDkef tabs to load it." when one does
   not answer. It hides as soon as nothing holds; the next navigation then updates every tab. The quiet

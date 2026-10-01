@@ -4,6 +4,7 @@ import {
 } from '../../../lib/drafts/draftStore.js';
 import { clearDraftHintAttribute, RESTORE_TIMEOUT_MS } from '../../../lib/drafts/useDraftPersistence.js';
 import { registerBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '../../../lib/useHoldUpdate.ts';
 import { outputPageCount, type PlanEntry } from '../mergePlan.ts';
 
 // MERGE-13: draft persistence for the Merge tool, on the same shared store
@@ -416,6 +417,10 @@ export function useMergeDraft({
     : saveState.revision === currentRevision
     ? saveState.state
     : (canPersist ? 'pending' : 'idle');
+
+  // A plan whose save failed (over MERGE_DRAFT_MAX_BYTES, no IndexedDB,
+  // quota) lives only in memory, so it holds an update back (MEM-10).
+  useHoldUpdate(draftSaveState === 'error');
 
   return { isRestoring, draftSaveState, clearDraft };
 }

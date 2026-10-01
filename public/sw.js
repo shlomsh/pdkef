@@ -68,6 +68,10 @@ const TAKEOVER_TIMEOUT_MS = 3000;
 // Activation waits for the old worker to go idle; were every navigation in
 // that window answered with another takeover page, it would never go idle.
 const TAKEOVER_COOLDOWN_MS = 10_000;
+// After a refusal because a tab did not answer (frozen, or on a build from
+// before MEM-10), navigations skip the question for this long rather than
+// each waiting out BUSY_TIMEOUT_MS again.
+const UNANSWERED_COOLDOWN_MS = 30_000;
 const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
@@ -146,7 +150,7 @@ async function forEachLimited(items, limit, task) {
   await Promise.all(lanes);
 }
 
-async function precacheAppShell() {
+async function precacheAppShell({ skipCached = false } = {}) {
   const urls = await loadPrecacheManifest();
   const cache = await caches.open(CACHE_VERSION);
 
@@ -161,6 +165,7 @@ async function precacheAppShell() {
   // is load-bearing enough to fail the install over.
   const missed = [];
   await forEachLimited(urls, PRECACHE_CONCURRENCY, async (url) => {
+    if (skipCached && await cache.match(url)) return;
     try {
       const response = await fetchFresh(url);
       if (!response.ok) throw new Error(`Failed to precache ${url}: ${response.status}`);
@@ -186,6 +191,35 @@ async function readyToTakeOver() {
   const cache = await caches.open(CACHE_VERSION);
   const complete = !!await cache.match(resolve(PRECACHE_COMPLETE_PATH));
   return complete && self.navigator?.onLine !== false;
+}
+
+async function markPrecacheComplete() {
+  const cache = await caches.open(CACHE_VERSION);
+  await cache.put(resolve(PRECACHE_COMPLETE_PATH), new Response('ok'));
+}
+
+// Install misses a URL now and then on a weak connection, and then this build
+// would never be ready: the same sw.js bytes never install again, so the
+// update would wait for every tab to close. Asked about readiness while
+// online, a waiting build fetches only what is still missing, one pass at a
+// time, and marks itself complete once nothing is.
+let completingPrecache = null;
+function completePrecache() {
+  if (!completingPrecache) {
+    completingPrecache = precacheAppShell({ skipCached: true })
+      .then((missed) => (missed === 0 ? markPrecacheComplete() : undefined))
+      .catch(() => {})
+      .finally(() => { completingPrecache = null; });
+  }
+  return completingPrecache;
+}
+
+// readyToTakeOver(), starting completePrecache() in the background when only
+// the precache stands in the way.
+async function readyOrCompleting(event) {
+  const ready = await readyToTakeOver();
+  if (!ready && self.navigator?.onLine !== false) event.waitUntil(completePrecache());
+  return ready;
 }
 
 async function removeSelf() {
@@ -449,11 +483,7 @@ self.addEventListener('install', (event) => {
   // page that is still running the previous one just because it installed.
   // Activation is requested later by SKIP_WAITING_MESSAGE. See handleSkipWaiting.
   event.waitUntil(
-    precacheAppShell().then(async (missed) => {
-      if (missed !== 0) return;
-      const cache = await caches.open(CACHE_VERSION);
-      await cache.put(resolve(PRECACHE_COMPLETE_PATH), new Response('ok'));
-    }).catch(async (error) => {
+    precacheAppShell().then((missed) => (missed === 0 ? markPrecacheComplete() : undefined)).catch(async (error) => {
       if (error instanceof OrphanedWorkerError) {
         // Uninstall rather than stay resident. A worker left over from a
         // `npm run preview` kept serving that build's assets cache-first to the
@@ -511,10 +541,13 @@ function askBusy(client) {
   });
 }
 
-// Every open http(s) tab but `excludeId`, asked at once. Non-http(s) windows
-// (blob: documents) are not counted.
+// Every open page but `excludeId`, asked at once. Only page URLs count: every
+// canonical page URL ends in a slash, and other same-origin documents (a
+// sitemap, robots.txt, a blob: download) run no app code, so they can neither
+// answer nor lose anything to a reload.
 async function surveyWindows(excludeId) {
-  const windows = (await httpWindows()).filter((client) => client.id !== excludeId);
+  const windows = (await httpWindows())
+    .filter((client) => client.id !== excludeId && new URL(client.url).pathname.endsWith('/'));
   const answers = await Promise.all(windows.map(askBusy));
   return {
     windows: windows.length,
@@ -533,7 +566,7 @@ async function surveyWindows(excludeId) {
 // skipWaiting used to be banned.
 async function handleSkipWaiting(event) {
   const reply = event.ports?.[0];
-  const ready = await readyToTakeOver();
+  const ready = await readyOrCompleting(event);
   const survey = ready ? await surveyWindows() : { windows: 0, busy: 0, silent: 0 };
   const ok = ready && survey.busy === 0 && survey.silent === 0;
   // Reply first: the silent takeover's active worker is holding a navigation
@@ -545,7 +578,7 @@ async function handleSkipWaiting(event) {
 // For the update line in one tab: is this build ready, and what do the other
 // tabs say? A tab shows the line only when another one holds the update.
 async function handleUpdateStatus(event) {
-  const ready = await readyToTakeOver();
+  const ready = await readyOrCompleting(event);
   const survey = ready ? await surveyWindows(event.source?.id) : { windows: 0, busy: 0, silent: 0 };
   event.ports?.[0]?.postMessage({ ready, ...survey });
 }
@@ -558,11 +591,16 @@ async function handleUpdateStatus(event) {
 // reaches anyone without a line or a click. Returns a Response, or null to
 // fall through to the normal navigation handling.
 let lastTakeoverAt = -Infinity;
+let lastUnansweredAt = -Infinity;
 async function trySilentTakeover() {
   try {
     const waiting = self.registration?.waiting;
     if (!waiting) return null;
-    if (Date.now() - lastTakeoverAt < TAKEOVER_COOLDOWN_MS) return null;
+    // Offline the answer is no, so the waiting worker is not even woken.
+    if (self.navigator?.onLine === false) return null;
+    const now = Date.now();
+    if (now - lastTakeoverAt < TAKEOVER_COOLDOWN_MS) return null;
+    if (now - lastUnansweredAt < UNANSWERED_COOLDOWN_MS) return null;
     const channel = new MessageChannel();
     const reply = new Promise((resolvePromise) => {
       channel.port1.onmessage = (message) => resolvePromise(message.data);
@@ -571,6 +609,7 @@ async function trySilentTakeover() {
     waiting.postMessage({ type: SKIP_WAITING_MESSAGE }, [channel.port2]);
     const answer = await reply;
     channel.port1.close();
+    if (answer?.silent > 0) lastUnansweredAt = Date.now();
     if (!answer?.ok) return null;
     lastTakeoverAt = Date.now();
     return takeoverResponse();

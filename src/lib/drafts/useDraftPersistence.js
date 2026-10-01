@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -393,6 +394,10 @@ export function useDraftPersistence({
     : saveState.revision === currentRevision
     ? (saveState.state === 'saved' && notPersisted ? 'unpersisted' : saveState.state)
     : (canPersist ? 'pending' : 'idle');
+
+  // Work whose save failed (no IndexedDB, quota) lives only in memory, so
+  // like a tool without drafts it holds an update back (MEM-10).
+  useHoldUpdate(draftSaveState === 'error');
 
   return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }
