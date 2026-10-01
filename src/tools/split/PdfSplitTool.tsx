@@ -92,6 +92,8 @@ export default function PdfSplitTool({
    * the invalidation this needs - no counter of its own beside prepareSeq.
    */
   const loadRun = useLatestRun();
+  /** The Compress hand-off awaits too (DEBT-19): a new file must abandon it. */
+  const handoffRun = useLatestRun();
   /** A tap on the element while it was still preparing: deliver on ready. */
   const pendingTap = useRef(false);
   const outputsRef = useRef<OutputFile[]>([]);
@@ -138,6 +140,10 @@ export default function PdfSplitTool({
     pendingTap.current = false;
     clearPrepared();
     setSaved(false);
+    // A hand-off still reading the old bytes must not park them or navigate,
+    // and its button comes back for the newly chosen file.
+    handoffRun.invalidate();
+    setHandoffBusy(false);
     setHandoffFailed(false);
     setOutputs((prev) => {
       revokeAll(prev);
@@ -438,18 +444,26 @@ export default function PdfSplitTool({
   const handoffToCompress = async () => {
     const output = outputs[0];
     if (handoffBusy || mode !== 'combined' || !output) return;
+    const run = handoffRun.begin();
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
+      if (!run.isCurrent()) return;
+      const fileBytes = await output.blob.arrayBuffer();
+      if (!run.isCurrent()) return;
       const ok = await saveHandoff('compress', {
         fileName: output.filename,
         fileType: 'application/pdf',
-        fileBytes: await output.blob.arrayBuffer(),
+        fileBytes,
       });
+      if (!run.isCurrent()) return;
       if (!ok) throw new Error('handoff');
+      run.settle();
       navigate('/compress/');
     } catch {
+      // A stale failure must not touch the new file's UI.
+      if (!run.isCurrent()) return;
       setHandoffFailed(true);
       setHandoffBusy(false);
     }

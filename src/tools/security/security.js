@@ -14,18 +14,27 @@ export class WrongPasswordError extends SecurityError {
   }
 }
 
-// Checks if a PDF is encrypted
+// The file could not be read at all: the bytes were unreachable or are not a PDF.
+export class UnreadablePdfError extends SecurityError {
+  constructor() {
+    super('This PDF could not be read. It may be damaged.');
+    this.name = 'UnreadablePdfError';
+  }
+}
+
+// Checks if a PDF is encrypted. Throws UnreadablePdfError when the file cannot
+// be read or parsed (even with ignoreEncryption), so the caller can say so
+// instead of offering a form that can only fail.
 export async function isPdfEncrypted(file) {
-  const bytes = await file.arrayBuffer();
+  // Outside the try below, whose catch means "this file is unreadable": a
+  // failure to load pdf-lib itself is not the file's fault and propagates.
+  const { PDFDocument } = await getPdfLib();
   try {
-    // The load sits inside the try as well: this runs the moment a file is
-    // picked, and its caller has no catch, so a rejection here would leave
-    // the tool stuck on "Checking file" with no way forward.
-    const { PDFDocument } = await getPdfLib();
+    const bytes = await file.arrayBuffer();
     const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     return pdfDoc.isEncrypted;
   } catch (err) {
-    return false; // If we can't load it even with ignoreEncryption, it's malformed, but we treat it as unencrypted for our flow
+    throw new UnreadablePdfError();
   }
 }
 
