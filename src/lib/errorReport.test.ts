@@ -52,6 +52,16 @@ describe('reportError', () => {
     expect(path).toBe('/api/report');
     expect(parseErrorReport(JSON.parse(await blob.text()))).toEqual({ area: 'drafts', name: 'TypeError', frame: 'A.js:1:2' });
   });
+  it('sends one defect once, even when it also escapes as uncaught', () => {
+    const e = errorAt('B.js:1:2');
+    reportError('drafts', e);
+    reportError('uncaught', e);
+    expect(beacon).toHaveBeenCalledTimes(1);
+  });
+  it('drops pdf.js cancellation', () => {
+    reportError('pdf_render', errorAt('C.js:1:2', 'x', 'RenderingCancelledException'));
+    expect(beacon).not.toHaveBeenCalled();
+  });
   it('caps the total per page', () => {
     for (let i = 0; i < MAX_REPORTS_PER_PAGE + 5; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`));
     expect(beacon).toHaveBeenCalledTimes(MAX_REPORTS_PER_PAGE);

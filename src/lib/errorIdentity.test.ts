@@ -18,6 +18,13 @@ describe('topFrame', () => {
     e.stack = 'Error: x\n at a (https://pdkef.com/other.js:1:1)\n at b (https://pdkef.com/_astro/A.1b.js:3:4)';
     expect(topFrame(e)).toBe('A.1b.js:3:4');
   });
+  it('never reads a frame out of a V8 message, even one spanning lines', () => {
+    const e = new TypeError("Cannot read 'x\n /_astro/Patient diagnosis.js:1:1'");
+    e.stack = `${String(e)}\n    at f (https://pdkef.com/_astro/Real.9z.js:5:6)`;
+    expect(topFrame(e)).toBe('Real.9z.js:5:6');
+    e.stack = String(e);
+    expect(topFrame(e)).toBe('');
+  });
   it('is empty with no stack or no matching frame', () => {
     const e = new Error('x');
     e.stack = undefined;

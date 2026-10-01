@@ -22,6 +22,12 @@ export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
   'PasswordException',
   'InvalidPDFException',
   'MissingPDFException',
+  // pdf.js: a damaged file, a failed range request, and a render or load
+  // cancelled because the person moved on.
+  'FormatError',
+  'UnexpectedResponseException',
+  'RenderingCancelledException',
+  'AbortException',
 ]);
 
 /**
@@ -52,7 +58,9 @@ export function reportError(area: ErrorArea, error: unknown): void {
     if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     const report = toErrorReport(area, error);
     if (!report) return;
-    const key = `${report.area}|${report.name}|${report.frame}`;
+    // Not keyed on area: a defect reported at its catch site that also escapes
+    // as an unhandled rejection is one defect, not two.
+    const key = `${report.name}|${report.frame}`;
     if (sent.has(key)) return;
     sent.add(key);
     navigator.sendBeacon(

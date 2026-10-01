@@ -130,8 +130,11 @@ export async function signPdf(file, elements, onProgress) {
     try {
       return await fetchFont(fileName);
     } catch (error) {
-      // A TypeError from fetch is the network (offline, not yet provisioned): expected.
-      if (!(error instanceof TypeError)) reportError('fonts', error);
+      // A failed fetch is the network (offline, not yet provisioned), which is
+      // expected. Classified by its message, read here and never sent; any other
+      // TypeError, like WebKit's `undefined is not a function`, is ours.
+      const network = error instanceof TypeError && /fetch|load failed|network/i.test(error.message);
+      if (!network) reportError('fonts', error);
       console.warn(`Could not load custom font ${fileName}`, error);
       return null;
     }
