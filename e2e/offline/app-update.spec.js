@@ -106,6 +106,9 @@ test('both tabs land on the new build with their work intact', async () => {
   // controllerchange. Tab A matters most, because it was the context's first
   // page and so only came under control when the old worker claimed it.
   const reloaded = Promise.all([tabA, tabB].map((tab) => tab.waitForEvent('load', { timeout: 30_000 })));
+  // The click must land while that edit is still unsaved, or the flush is not
+  // what keeps it.
+  await expect(tabA.locator('[data-tool-shell]').getByText('Saving draft…')).toBeVisible();
   await tabB.locator('button[data-app-update-reload]').click();
   await reloaded;
   for (const tab of [tabA, tabB]) await expect(build(tab)).toHaveAttribute('content', 'new');
