@@ -164,7 +164,7 @@ jobs:
       run: npm run test:gesture-golden-rule
 
     # DEBT-27: a catch that drops its error must report it, rethrow, or say
-    # why (// expected:). Shrink-only baseline in scripts/swallowed-errors-baseline.json.
+    # why (// expected:). Zero tolerance; `npm run test:swallowed-errors -- --list` shows findings.
     - name: Verify no new swallowed errors
       run: npm run test:swallowed-errors
 
