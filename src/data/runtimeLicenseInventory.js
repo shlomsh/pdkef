@@ -8,7 +8,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@cantoo/pdf-lib",
-    "version": "2.9.1",
+    "version": "2.11.1",
     "license": "MIT",
     "url": "https://pdf-lib.js.org"
   },
@@ -47,18 +47,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "1.1.1",
     "license": "MIT",
     "url": "https://github.com/Hopding/fontkit"
-  },
-  {
-    "name": "@pdf-lib/standard-fonts",
-    "version": "1.0.0",
-    "license": "MIT",
-    "url": "https://github.com/Hopding/standard-fonts"
-  },
-  {
-    "name": "@pdf-lib/upng",
-    "version": "1.0.1",
-    "license": "MIT",
-    "url": "https://github.com/Hopding/upng"
   },
   {
     "name": "@preact/signals",
@@ -103,40 +91,22 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/lojjic/bidi-js"
   },
   {
-    "name": "color",
-    "version": "4.2.3",
+    "name": "culori",
+    "version": "4.0.2",
     "license": "MIT",
-    "url": "https://github.com/Qix-/color"
+    "url": "git@github.com:Evercoder/culori"
   },
   {
-    "name": "color-convert",
-    "version": "2.0.1",
+    "name": "fflate",
+    "version": "0.8.3",
     "license": "MIT",
-    "url": "https://github.com/Qix-/color-convert"
-  },
-  {
-    "name": "color-name",
-    "version": "1.1.4",
-    "license": "MIT",
-    "url": "https://github.com/colorjs/color-name"
-  },
-  {
-    "name": "color-string",
-    "version": "1.9.1",
-    "license": "MIT",
-    "url": "https://github.com/Qix-/color-string"
+    "url": "https://101arrowz.github.io/fflate"
   },
   {
     "name": "html-entities",
     "version": "2.6.0",
     "license": "MIT",
     "url": "https://github.com/mdevils/html-entities"
-  },
-  {
-    "name": "is-arrayish",
-    "version": "0.3.4",
-    "license": "MIT",
-    "url": "https://github.com/qix-/node-is-arrayish"
   },
   {
     "name": "lucide-preact",
@@ -185,12 +155,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "5.1.4",
     "license": "MIT",
     "url": "https://github.com/szimek/signature_pad"
-  },
-  {
-    "name": "simple-swizzle",
-    "version": "0.2.4",
-    "license": "MIT",
-    "url": "https://github.com/qix-/node-simple-swizzle"
   },
   {
     "name": "sortablejs",
