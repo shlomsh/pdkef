@@ -62,6 +62,7 @@ import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -331,6 +332,7 @@ export default function PdfRedactTool() {
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
+        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
         promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
       }
     } else {
@@ -753,12 +755,14 @@ export default function PdfRedactTool() {
         download(next, name);
         dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
+        // expected: only PlaceNotFoundError stops here (the place is already gone); anything else is rethrown to the outer catch, which reports it
         if (!(error instanceof PlaceNotFoundError)) throw error;
         // Nothing changed; a fresh blob object makes the check read it again.
         dispatch({ type: 'EXPORT_SAVED', saved: { blob: new Blob([blob], { type: blob.type }), name } });
         dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
       }
     } catch (error) {
+      reportError('redact', error, 'remove_place');
       console.error(error);
       dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
     } finally {
@@ -810,6 +814,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
       }
     } catch (err) {
+      reportError('redact', err, 'export');
       console.error(err);
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's
@@ -872,6 +877,7 @@ export default function PdfRedactTool() {
       if (!saved) throw new Error('handoff');
       window.location.href = `/${tool}/`;
     } catch (err) {
+      // expected: saveHandoff reports its own failure, this shows the handoff-failed state
       console.error(err);
       dispatch({ type: 'HANDOFF_FAILED' });
       setHandoffBusy(false);

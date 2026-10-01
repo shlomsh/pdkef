@@ -1,4 +1,5 @@
 import fontkit from '@pdf-lib/fontkit';
+import { reportError } from '../../lib/errorReport.ts';
 import { resolveFontFamily } from './fonts.js';
 import { unrepresentableCharacters } from './textMetrics.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
@@ -81,6 +82,7 @@ export async function unsupportedCharacters(text, { fontFamily, fontWeight, font
     try {
       font = await loadInstance(fileNameFor(family, fontWeight, fontStyle));
     } catch {
+      // expected: no weight-specific instance, falls back to the default face
       font = await loadInstance(fileNameFor(family, undefined, undefined));
     }
     // unrepresentableCharacters takes a pdf-lib font and reaches its fontkit
@@ -88,6 +90,7 @@ export async function unsupportedCharacters(text, { fontFamily, fontWeight, font
     // editor and the export run literally the same code.
     return unrepresentableCharacters({ embedder: { font } }, value);
   } catch {
+    // expected: an offline font fetch gives no warning rather than an invented one, returns []
     return [];
   }
 }
@@ -117,15 +120,18 @@ export async function unsupportedCharactersInDocument(elements) {
         const font = await loadInstance(fileNameFor(family, fontWeight, fontStyle));
         return { embedder: { font } };
       } catch {
+        // expected: no weighted instance, the default face is tried next
         try {
           const font = await loadInstance(fileNameFor(family, undefined, undefined));
           return { embedder: { font } };
         } catch {
+          // expected: an offline or missing font returns null, never an invented warning
           return null;
         }
       }
     });
-  } catch {
+  } catch (error) {
+    reportError('fonts', error, 'check_font_coverage');
     return { characters: [], pageNumbers: [] };
   }
 }

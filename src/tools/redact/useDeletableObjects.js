@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { reportError } from '../../lib/errorReport.ts';
 
 /**
  * Finds the images and text runs the Delete tool can offer to remove, for the
@@ -36,6 +37,7 @@ export default function useDeletableObjects(file, fileBytes) {
         if (!cancelled) setObjects(found);
       })
       .catch((err) => {
+        reportError('redact', err, 'list_objects');
         console.error('Could not read deletable objects from this PDF', err);
         if (!cancelled) setObjects([]);
       });

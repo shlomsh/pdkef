@@ -46,7 +46,9 @@ function fromIsoDateString(isoDate: string): Date {
 export function detectLocale(): string {
   try {
     if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
-  } catch { /* not available (SSR, locked-down environment) */ }
+  } catch {
+    // expected: navigator.language is optional (SSR, locked-down environment), falls back to en-US
+  }
   return 'en-US';
 }
 

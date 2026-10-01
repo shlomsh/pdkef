@@ -9,6 +9,8 @@
   "scripts": {
     "postinstall": "patch-package && node scripts/sync-pdfjs-wasm.mjs",
     "dev": "astro dev",
+    "errors:resolve": "node scripts/errors-resolve.mjs",
+    "errors:read": "node scripts/errors-read.mjs",
     "build": "node scripts/generate-font-manifest.mjs --check && node scripts/generate-language-acceptance.mjs --check && astro build && node scripts/generate-precache-manifest.mjs",
     "preview": "astro preview",
     "typecheck": "astro check",
@@ -21,6 +23,7 @@
     "test:e2e:export-guards": "playwright test --project=export-guards",
     "test:csp": "node scripts/verify-csp.js",
     "test:gesture-golden-rule": "node scripts/check-gesture-golden-rule.js",
+    "test:swallowed-errors": "node scripts/check-swallowed-errors.mjs",
     "test:detection-purity": "node scripts/check-detection-purity.mjs",
     "test:editor-dependency-directions": "node scripts/check-editor-dependency-directions.mjs",
     "test:module-boundaries": "node scripts/check-module-boundaries.mjs",

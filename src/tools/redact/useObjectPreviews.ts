@@ -6,6 +6,7 @@ import { readGlyphs } from '../../editor/adapters/pdf/readGlyphs.js';
 import { pageGeometryFromPdfJsPage } from '../../editor/geometry/coords.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { GLYPH_BUDGET } from './find/itemGlyphs.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 /**
  * RED-16: gives each text object Delete offers the words it holds, read from
@@ -63,6 +64,7 @@ export default function useObjectPreviews(
         }
         if (current) finishedFor.current = objects;
       } catch (error) {
+        reportError('redact', error, 'read_object_previews');
         // Without previews Delete still works: the label is the generic one.
         console.error('Delete could not read the text of this PDF', error);
       }

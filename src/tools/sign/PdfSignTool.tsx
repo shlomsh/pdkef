@@ -55,12 +55,13 @@ import {
   signFormDetectionFailed,
   signFormDetectionNotStarted,
   signFormDetectionUnavailable,
-  vercelMaintenanceTransport,
+  beaconMaintenanceTransport,
 } from '../../lib/maintenanceTelemetry.ts';
 import ConfirmDialog from '../../shell/ConfirmDialog.tsx';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { PendingSignaturePlacement } from './useWorkspaceGestures.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 // Recoverable export failures keep the editor open. Name unsupported text
 // precisely; other failures explain that the user can retry without losing
@@ -339,6 +340,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
+        // expected: requestFullscreen is optional, falls back to pseudo-fullscreen
         promise.catch(() => setIsPseudoFullscreen(true));
       }
     } else {
@@ -553,7 +555,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // starts over for a different file.
   useEffect(() => {
     if (formRegions.detection === 'pending') return;
-    const transport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    const transport = beaconMaintenanceTransport;
     const detectionEvent = () => {
       // Four outcomes, four signals. A run that never started, a detector
       // that never loaded (a stale cached shell after a deploy) and a
@@ -618,6 +620,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         const selected: File = await launchParams.files[0].getFile();
         await loadFreshFile(selected);
       } catch (error) {
+        // expected: loadFreshFile has its own failure UI, the launch-queue file is external
         console.error(error);
       }
     });
@@ -865,9 +868,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportToolLifecycleEvent('tool_operation_started', 'sign');
     }
     const exportStartedAt = performance.now();
-    // Development/test exports never contact the production analytics adapter.
-    // In production it remains optional: no injected Vercel queue means no send.
-    const telemetryTransport = import.meta.env.PROD ? vercelMaintenanceTransport : undefined;
+    // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
+    const telemetryTransport = beaconMaintenanceTransport;
 
     try {
       const { signPdf } = await import('../../editor/adapters/pdf/sign.js');
@@ -890,6 +892,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         console.error(err);
         return;
       }
+      reportError('sign_export', err, 'export');
       reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);

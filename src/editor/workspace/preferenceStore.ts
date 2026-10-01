@@ -88,6 +88,7 @@ function isSavedSignature(value: unknown): value is SavedSignature {
 }
 function readSavedSignatures(value: unknown): SavedSignature[] | null {
   let parsed = value;
+  // expected: stored value will not parse, returns null
   if (typeof value === 'string') { try { parsed = JSON.parse(value); } catch { return null; } }
   if (!Array.isArray(parsed) || parsed.length > 10 || !parsed.every(isSavedSignature)) return null;
   return new Set(parsed.map((signature) => signature.id)).size === parsed.length ? parsed : null;
@@ -163,10 +164,12 @@ function oldRecordSignatures(raw: string | null): { signatures: SavedSignature[]
     const contents = parsed.values ?? parsed.preferences;
     const signatures = isObject(contents) ? readSavedSignatures(contents.savedSignatures) : null;
     return signatures === null ? null : { signatures, metadata: legacyMetadata(parsed) };
+  // expected: stored value will not parse, returns null
   } catch { return null; }
 }
 
 function makeId(prefix: string): string {
+  // expected: optional API, falls through to a Date/Math id
   try { if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return `${prefix}${crypto.randomUUID()}`; } catch { /* fall through */ }
   return `${prefix}${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
@@ -183,12 +186,15 @@ function getTabId(): string {
   try {
     const existing = sessionStorage.getItem(TAB_ID_KEY); if (existing) return existing;
     const created = makeId('tab-'); sessionStorage.setItem(TAB_ID_KEY, created); return created;
+  // expected: blocked storage, makes an id
   } catch { return makeId('tab-'); }
 }
 function readPreferenceRecord(raw: string | null): PreferenceRecord | null {
+  // expected: stored value will not parse, returns null
   try { return raw === null ? null : migratePreferenceRecord(JSON.parse(raw)); } catch { return null; }
 }
 function readSignatureLibrary(raw: string | null): SignatureLibraryRecord | null {
+  // expected: stored value will not parse, returns null
   try { return raw === null ? null : migrateSignatureLibrary(JSON.parse(raw)); } catch { return null; }
 }
 function compareRecords(left: RevisionMetadata, right: RevisionMetadata): number {
@@ -212,6 +218,7 @@ function noteLocalWrite<T>(listeners: Map<string, Set<RecordListener<T>>>, key: 
   listeners.get(key)?.forEach((listener) => listener(record));
 }
 function restoreWinningRecord<T extends RevisionMetadata>(key: string, winner: T, read: (raw: string | null) => T | null): void {
+  // expected: best-effort convergence write
   try { const current = read(localStorage.getItem(key)); if (!current || compareRecords(current, winner) < 0) localStorage.setItem(key, JSON.stringify(winner)); } catch { /* best effort */ }
 }
 
@@ -227,6 +234,7 @@ function migrateSignatureLibraryIfNeeded(scope: string, options: EditorPreferenc
   try {
     localStorage.setItem(assetKey, JSON.stringify({ schemaVersion: SAVED_SIGNATURE_LIBRARY_VERSION, ...source.metadata, signatures: source.signatures }));
     return 'done';
+  // expected: quota or blocked storage, returns 'failed'
   } catch { return 'failed'; }
 }
 
@@ -240,6 +248,7 @@ export function getEditorPreference<K extends EditorPreferenceKey>(key: K, optio
     const values = readLegacyValues(); if (!Object.keys(values).length) return null;
     localStorage.setItem(recordKey(scope), JSON.stringify({ schemaVersion: EDITOR_PREFERENCE_RECORD_VERSION, revision: 0, updatedAt: 0, writerId: 'legacy', values }));
     return values[key] ?? null;
+  // expected: storage or parse failure returns null
   } catch { return null; }
 }
 
@@ -253,6 +262,7 @@ export function setEditorPreference<K extends EditorPreferenceKey>(key: K, value
     localStorage.setItem(keyForScope, JSON.stringify(record)); noteLocalWrite(localPreferenceListeners, keyForScope, record);
     if (options.userScope === undefined) localStorage.setItem(LEGACY_STORAGE_KEYS[key], LEGACY_WRITERS[key](value));
     return true;
+  // expected: quota or blocked storage, returns false
   } catch { return false; }
 }
 
@@ -261,6 +271,7 @@ export function getSavedSignatures(options: EditorPreferenceOptions = {}): Saved
   try {
     const scope = getEditorUserScope(options); if (!scope || migrateSignatureLibraryIfNeeded(scope, options) === 'failed') return null;
     return readSignatureLibrary(localStorage.getItem(signatureLibraryKey(scope)))?.signatures ?? null;
+  // expected: storage failure returns null
   } catch { return null; }
 }
 
@@ -272,8 +283,10 @@ export function setSavedSignatures(signatures: SavedSignature[], options: Editor
     const keyForScope = signatureLibraryKey(scope); const latest = readSignatureLibrary(localStorage.getItem(keyForScope)); const now = Date.now();
     const record: SignatureLibraryRecord = { schemaVersion: SAVED_SIGNATURE_LIBRARY_VERSION, revision: (latest?.revision ?? 0) + 1, updatedAt: Math.max(now, (latest?.updatedAt ?? 0) + 1), writerId: getTabId(), signatures };
     localStorage.setItem(keyForScope, JSON.stringify(record)); noteLocalWrite(localSignatureListeners, keyForScope, record);
+    // expected: the asset record already succeeded, legacy mirror is best-effort
     if (options.userScope === undefined) { try { localStorage.setItem(LEGACY_SIGNATURES_KEY, JSON.stringify(signatures)); } catch { /* asset record already succeeded */ } }
     return true;
+  // expected: quota (large image data URLs) returns false, kept in memory
   } catch { return false; }
 }
 
@@ -281,6 +294,7 @@ export function setSavedSignatures(signatures: SavedSignature[], options: Editor
 export function subscribeToEditorPreference<K extends EditorPreferenceKey>(key: K, listener: (change: EditorPreferenceChange<K>) => void, options: EditorPreferenceOptions = {}): () => void {
   const scope = getEditorUserScope(options); if (!scope || typeof window === 'undefined') return () => {};
   const keyForScope = recordKey(scope); let newest: PreferenceRecord | null;
+  // expected: blocked storage, no-op unsubscribe
   try { newest = readPreferenceRecord(localStorage.getItem(keyForScope)); } catch { return () => {}; }
   const accept = (incoming: PreferenceRecord, notify: boolean) => {
     if (newest && compareRecords(incoming, newest) <= 0) { if (compareRecords(incoming, newest) < 0) restoreWinningRecord(keyForScope, newest, readPreferenceRecord); return; }
@@ -297,6 +311,7 @@ export function subscribeToEditorPreference<K extends EditorPreferenceKey>(key: 
 export function subscribeToSavedSignatures(listener: (change: SavedSignatureChange) => void, options: EditorPreferenceOptions = {}): () => void {
   const scope = getEditorUserScope(options); if (!scope || typeof window === 'undefined') return () => {};
   const keyForScope = signatureLibraryKey(scope); let newest: SignatureLibraryRecord | null;
+  // expected: blocked storage, no-op unsubscribe
   try { newest = readSignatureLibrary(localStorage.getItem(keyForScope)); } catch { return () => {}; }
   const accept = (incoming: SignatureLibraryRecord, notify: boolean) => {
     if (newest && compareRecords(incoming, newest) <= 0) { if (compareRecords(incoming, newest) < 0) restoreWinningRecord(keyForScope, newest, readSignatureLibrary); return; }
@@ -320,6 +335,7 @@ function readAppStyle(raw: string | null): Partial<DocumentStyle> {
     const parsed: unknown = JSON.parse(raw);
     if (!isObject(parsed) || parsed.schemaVersion !== APP_STYLE_RECORD_VERSION) return {};
     return appWideStyleOf(validateDocumentStyle(parsed.style));
+  // expected: bad stored value returns {}
   } catch { return {}; }
 }
 
@@ -328,6 +344,7 @@ export function getAppStyle(options: EditorPreferenceOptions = {}): Partial<Docu
   try {
     const scope = getEditorUserScope(options); if (!scope) return {};
     return readAppStyle(localStorage.getItem(appStyleKey(scope)));
+  // expected: storage failure returns {}
   } catch { return {}; }
 }
 
@@ -341,5 +358,6 @@ export function rememberAppStyle(patch: Partial<DocumentStyle>, options: EditorP
     const style = { ...readAppStyle(localStorage.getItem(key)), ...valid };
     localStorage.setItem(key, JSON.stringify({ schemaVersion: APP_STYLE_RECORD_VERSION, style }));
     return true;
+  // expected: quota or blocked storage returns false
   } catch { return false; }
 }

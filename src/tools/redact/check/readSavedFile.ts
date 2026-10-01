@@ -17,6 +17,7 @@ import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { fieldValueTexts, isNonBlank } from './placeText.ts';
 import { unusedPartsText } from './unusedParts.ts';
 import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
+import { reportError } from '../../../lib/errorReport.ts';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */
@@ -131,7 +132,8 @@ async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<Sa
     const lib = await PDFDocument.load(data, { updateMetadata: false, ignoreEncryption: true, parseSpeed: ParseSpeeds.Fastest });
     const text = unusedPartsText(lib);
     return isNonBlank(text) ? [{ kind: 'unused', text, removable: true }] : [];
-  } catch {
+  } catch (err) {
+    reportError('redact', err, 'read_unused_parts');
     return [];
   }
 }

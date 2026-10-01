@@ -136,6 +136,20 @@ describe('useFormFieldRegions detection state', () => {
     expect(String(warn.mock.calls[0][0])).toContain('did not complete');
   });
 
+  it('reports a detector that loaded and then threw, and not one that never loaded', async () => {
+    const reportError = vi.fn();
+    const theError = new TypeError('p.findLast is not a function');
+    vi.resetModules();
+    vi.doMock('../../lib/errorReport.ts', () => ({ reportError }));
+    vi.doMock('@cantoo/pdf-lib', () => ({
+      PDFDocument: { load: async () => { throw theError; } },
+    }));
+
+    await detect();
+    expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
+    vi.doUnmock('../../lib/errorReport.ts');
+  });
+
   // An honest zero: the run finished, and this document has nothing in it the
   // detector recognises. No error is carried, because there was none.
   it('says the walk finished when it ran and found nothing', async () => {

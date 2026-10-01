@@ -1,6 +1,6 @@
 # PDkef analytics approach
 
-Last updated: 2026-09-13
+Last updated: 2026-10-01
 
 ## Purpose
 
@@ -38,9 +38,14 @@ blocked, offline, or unavailable.
   sampling at current traffic. Revisit sampling only after volume makes the
   dashboard materially noisier or creates cost pressure.
 
-Custom events require Vercel Pro. Until the deployed project is on a plan that
-accepts them, page and Speed Insights data still work, and the product does not
-depend on event delivery.
+The four tool lifecycle events (`tool_file_accepted`, `tool_operation_started`,
+`tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) are sent to
+Vercel Web Analytics, but the project is on the Hobby plan, which does not record
+custom events, so they are sent and not recorded today. Sign's
+two maintenance events (`sign_form_detection`, `sign_export`) do not use them.
+They go to PDkef's own `/api/report` address, like error reports, and are kept
+as daily counts by browser family and version for 90 days. The product does not depend on
+event delivery.
 
 ## Event vocabulary, version 1
 
@@ -71,6 +76,26 @@ Sign performance/compatibility diagnostic, not a second product-event schema.
 
 The `tool` values are a closed list: `merge`, `split`, `edit-pdf`, `compress`,
 `pdf-to-image`, `image-to-pdf`, `sign`, `redact`, `unlock`, and `protect`.
+
+## Anonymous error reports (DEBT-17, DEBT-27)
+
+Separate from the analytics provider: when something in our own code breaks in
+a tool, the browser may send one small anonymous report to PDkef's own
+`/api/report` address. It carries the failing area (a fixed list), the error's
+name, the chain of positions in our own published JavaScript that led there (up
+to 8, file name and line number each), a short label our code gives the step it
+was doing (like `export`), the page's path (like `/sign/`, never a query or
+anything after it), whether PDkef is installed as an app, whether a service
+worker served the page, and roughly how long the page had been open (under 10
+seconds, under a minute, under 10 minutes, or longer). Never the error message,
+anything from a document, a filename, text, an IP address, or an identifier.
+The server keeps daily counts of identical reports, plus the latest full
+example of each distinct error per day with a coarse browser family and
+version (like `ios-26`), in an Upstash Redis database connected through Vercel,
+and deletes them after 90 days. Each distinct report is sent at most once per
+page load, at most 10 per page; nothing is sent offline, and failures are
+ignored. `connect-src 'self'` is unchanged. Details:
+`docs/maintenance-telemetry.md`.
 
 Do not infer an individual funnel from these events. Vercel’s privacy model is
 aggregate and visitors are only recognised for a day. Instead, compare aggregate
@@ -115,3 +140,5 @@ additions if their question remains unanswered:
 | 2026-09-09 | Remove the 10% sampling rate for approved maintenance events. | Traffic is low enough that complete aggregate counts are more useful and remain within the privacy boundary. |
 | 2026-09-09 | Start with four lifecycle events and one closed `tool` property. | This supports tool usage, aggregate funnel stages, success, and failure while minimising collection and keeping Vercel breakdowns usable. |
 | 2026-09-13 | Merge (MERGE-12) counts `tool_operation_started` on the Download tap, `tool_result_ready` when that tapped download is delivered, and `tool_operation_failed` on each entry into its error state; pre-merges on idle are not counted. | The explicit Merge step was removed, so the person's intent now lives in the Download tap, which is what `tool_operation_started` measured before. Counting every idle pre-merge would inflate "started" with work nobody asked for (each list change restarts one) and make the accepted to started to ready funnel in MERGE-16 incomparable with the pre-change baseline. Flagged for Shlomi. |
+| 2026-10-01 | Add anonymous error reports to PDkef's own `/api/report` (DEBT-17), outside the analytics provider. | Defects on a person's device were invisible to us. A report names only the area, the error name and the position in our own code, so it can point at a line without touching a document. |
+| 2026-10-01 | Widen anonymous error reports (DEBT-27): the chain of positions in our code, a step label, the page path, installed, service worker and page age, and the latest full example of each distinct error per day. | A single position was too little to troubleshoot from. Every added field is a position in our own code, a closed list, a bucket or a flag; still never a message, a document, a filename, text, an IP address or an identifier. |

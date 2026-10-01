@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
 import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
 import { useHoldUpdate } from '../useHoldUpdate.ts';
+import { reportError } from '../errorReport.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
 // The unpersisted-warning line is scoped to an installed/home-screen app, not
@@ -24,6 +25,7 @@ function isInstalledStandalone() {
     // exposes this legacy boolean on `navigator` instead.
     return typeof navigator !== 'undefined' && navigator.standalone === true;
   } catch {
+    // expected: feature detect, no standalone mode available
     return false;
   }
 }
@@ -171,7 +173,7 @@ export function useDraftPersistence({
     const write = Promise.resolve()
       .then(() => saveDraft(tool, record))
       .then((saved) => saved === true)
-      .catch(() => false)
+      .catch((e) => { reportError('drafts', e, 'autosave_draft'); return false; })
       .then((saved) => {
         // A prior file or edit may have completed after this write started.
         // It remains stored as a best-effort older revision, but must not make
@@ -298,7 +300,7 @@ export function useDraftPersistence({
         attachDraftPreview(tool, dataUrl);
       })
       .catch(() => {
-        // A preview is decoration. An encrypted or malformed PDF that pdf.js
+        // expected: A preview is decoration. An encrypted or malformed PDF that pdf.js
         // refuses must not take the draft down with it.
       });
     return () => {
