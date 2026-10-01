@@ -1,7 +1,7 @@
 ---
 id: "RED-15"
 title: "Find's boxes cover the matched glyphs exactly, from the same glyph read the export uses"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact-tool"
 phase: "near-term"
