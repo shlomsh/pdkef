@@ -90,6 +90,35 @@ describe('detectCellCandidates', () => {
     expect(detectCellCandidates(ink, geometry, 0, [header, paragraph])).toEqual([]);
   });
 
+  it('keeps a lone closed square on its own merits, with no other ink on the page', () => {
+    // FORM-10: a 16pt tick square is its own evidence. Its top rule spans only the square, so its
+    // band has exactly two walls; it is admitted as a square, not as a lone box needing a caption.
+    const ink = rowBand({ top: 76, bottom: 60, columns: [40, 56] });
+    const cells = detectCellCandidates(ink, geometry, 0, []);
+    expect(cells).toHaveLength(1);
+    expect(cells[0].width).toBeCloseTo(16, 5);
+  });
+
+  it('keeps the same square for the same reason when unrelated ink sits elsewhere on the page', () => {
+    // A wall far off in the same height range used to be what lifted the band to three walls.
+    const square = rowBand({ top: 76, bottom: 60, columns: [40, 56] });
+    const elsewhere = { horizontals: [], verticals: [{ x: 90, y0: 60, y1: 76 }], rects: [] };
+    expect(detectCellCandidates(mergeInk(square, elsewhere), geometry, 0, [])).toHaveLength(1);
+  });
+
+  it('still drops an undivided panel holding prose, whatever other ink shares its heights', () => {
+    // The panel's verdict reads its own span: a box beside it, with walls at the same heights but
+    // its own rules, does not make the panel "divided".
+    const panel = rowBand({ top: 80, bottom: 60, columns: [0, 60] });
+    const beside = rowBand({ top: 80, bottom: 60, columns: [70, 80, 100] });
+    const paragraph = text(
+      'I declare that the details on this form are true and complete',
+      { left: 5, top: 25, width: 50, height: 10 },
+    );
+    const found = detectCellCandidates(mergeInk(panel, beside), geometry, 0, [paragraph]);
+    expect(found.filter((c) => c.left < 60)).toEqual([]);
+  });
+
   it('ignores a row band outside the writable height range', () => {
     const tooShort = rowBand({ top: 80, bottom: 78, columns: [0, 50, 100] }); // 2pt < MIN_ROW_HEIGHT
     const tooTall = rowBand({ top: 80, bottom: 20, columns: [0, 50, 100] }); // 60pt > MAX_ROW_HEIGHT
