@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 22 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -104,17 +104,12 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 Mostly waiting on dated Search Console reads. Two small things can ship now.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
+| SEO-41 | P3 | [SEO-41](backlog/tasks/SEO-41.md) · Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten | Needs Shlomi: Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed |
 
 ### Waiting
 
@@ -165,7 +160,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 0 done, 1 retired
 - Form detector accuracy: 2 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
-- Search and languages: 1 done, 0 retired
+- Search and languages: 2 done, 0 retired
 - Polish: 2 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired

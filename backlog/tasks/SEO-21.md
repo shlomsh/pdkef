@@ -1,11 +1,9 @@
 ---
 id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "search-and-languages"
-horizon: "now"
-order: 2
 depends_on: ["MOBI-02"]
 ---
 
@@ -148,3 +146,11 @@ What changes:
 - **Part A ships as written.** The shared flattener's `'image'` mode reuses Redact's rasteriser (so they cannot drift); `'keep-text'` is used by Sign's export.
 - **Part B becomes a copy change, no new URL.** Add a clause to Redact's FAQ entry "Do I need to flatten the PDF separately?" and to `/blur-vs-blackout-vs-delete-pdf/` naming the two meanings of "flatten": the page becomes an image (Redact), or fields are baked in with the text kept (Sign). Checked against the code, in voice, no em dashes.
 - **The `/flatten/` page is parked.** Revisit only after a Keyword Planner absolute-volume read (LOC-14 access) and the SEO-06 gate outcome are recorded here. The page scope above stays as the spec if it is ever built.
+
+## 2026-10-01 Part A done
+
+Part A shipped to `main` in `bf747812`: `src/editor/adapters/pdf/flatten.js` (`flattenPdf`, `flattenDoc`, both modes), Sign calls it in place of `form.flatten()`, and Redact's 2.5x / JPEG 0.95 rasteriser is shared through `rasterPage.js`. AP-less text fields get their appearances regenerated first, and blank signature fields are removed, not failures. Tests cover the comment and stamp, rotated page, undrawable widget, no-form and image-mode cases.
+
+Not covered by a test: a widget with no `/AP` that pdf-lib's `updateFieldAppearances` cannot repair. Redact's output was not byte-compared before and after the extraction.
+
+Closed here; what remains moved to SEO-41 (the viewer check, the FAQ clause, the parked `/flatten/` page).
