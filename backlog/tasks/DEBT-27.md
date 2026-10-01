@@ -1,11 +1,9 @@
 ---
 id: "DEBT-27"
 title: "Error reports carry the call chain and the page's situation, not just one frame"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: ["DEBT-17"]
 ---
 
@@ -66,8 +64,10 @@ The loop, end to end:
 - [x] The drill passes again on the final code, not the code it first ran on.
 - [x] Real iOS Safari (Simulator, the broken build) delivers a report whose frames resolve to the
       cause, so the drill's one limit (Playwright WebKit keeps more async frames) is measured.
-- [ ] After the push, a report sent to production lands in the live store and `errors:read` shows
-      it; then it is deleted.
+- [x] After the push, a report sent to production lands in the live store and `errors:read` shows
+      it; then it is deleted. Pushed as `24e61eaf`; the new endpoint was live on the third probe, a
+      test report and a test event both showed in `errors:read` from production, and both were
+      removed (the day held nothing else).
 
 ## The drill: would this have cracked the bug that started DEBT-17? (2026-10-01)
 
