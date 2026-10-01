@@ -184,6 +184,8 @@ export function validateDocumentStyle(value: unknown): Partial<DocumentStyle> {
   if (hasNumber(value, 'brushSize') && (value.brushSize as number) >= 2 && (value.brushSize as number) <= 40) {
     carried.brushSize = value.brushSize as number;
   }
+  // RED-40: a legacy name resolves to its number, so only numbers are kept.
+  if (isBlurStrengthValue(value.blurStrength)) carried.blurStrength = resolveBlurStrength(value.blurStrength);
   return carried;
 }
 

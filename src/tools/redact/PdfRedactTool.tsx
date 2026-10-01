@@ -10,7 +10,7 @@ import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
-import { getAppStyle, rememberAppStyle, getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
@@ -18,6 +18,7 @@ import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import usePeekAll from './usePeekAll.ts';
 import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
+import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
 import BrushControls, { brushStyleOf, resolveBrush, useEyedropper, type BrushSettings } from './BrushControls.tsx';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
@@ -67,7 +68,7 @@ import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
-import { DEFAULT_BLUR_STRENGTH, resolveBlurStrength, type BlurStrength } from '../../editor/model/blurStrength.ts';
+import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
@@ -165,20 +166,24 @@ export default function PdfRedactTool() {
   // "draw a box" - which on a phone meant the page could not be scrolled.
   const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
   const [toolLocked, setToolLocked] = useState(false);
-  const [activeColor, setActiveColor] = useState('#ffffff');
-  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(DEFAULT_BLUR_STRENGTH);
+  // RED-40: the browser-wide preferences are only the last fallback now.
+  const [activeColor, setActiveColor] = useState(() =>
+    resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
+  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(() =>
+    resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')));
   // RED-32: Box or Brush inside Blur and Whiteout, and the brush's size. Both
   // are remembered like the whiteout colour and become the default for the
   // next document. A brush is not a tool of its own: it is one of these two
   // tools armed in brush mode.
-  // RED-32: the brush is a document setting. `brushCarried` holds only what
-  // this document's owner explicitly chose (it rides in the draft); a document
-  // that never chose follows the person's latest choice in any document.
-  const [brushCarried, setBrushCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
+  // RED-32 / RED-40: the brush, whiteout colour and blur strength are document
+  // settings. `carried` holds only what this document's owner explicitly chose
+  // (it rides in the draft); a document that never chose follows the person's
+  // latest choice in any document.
+  const [carried, setCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
   const [brush, setBrush] = useState<BrushSettings>(() => resolveBrush(undefined, getAppStyle()));
   const changeBrush = (next: BrushSettings) => {
     setBrush(next);
-    setBrushCarried(brushStyleOf(next));
+    setCarried((c) => ({ ...c, ...brushStyleOf(next) }));
     rememberAppStyle(brushStyleOf(next));
   };
   const [eyedropping, setEyedropping] = useState(false);
@@ -207,17 +212,11 @@ export default function PdfRedactTool() {
 
   useEffect(() => () => cancelDrawingRef.current?.(), []);
 
-  useEffect(() => {
-    const stored = getEditorPreference('lastWhiteoutColor');
-    if (stored) setActiveColor(stored);
-    return subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => {
-      if (value) setActiveColor(value);
-    });
-  }, []);
-
+  // RED-40: colour and strength are per-document style, like the brush.
   const rememberColor = (color: string) => {
     setActiveColor(color);
-    setEditorPreference('lastWhiteoutColor', color);
+    setCarried((c) => ({ ...c, whiteoutColor: color }));
+    rememberAppStyle({ whiteoutColor: color });
   };
 
   useEyedropper(
@@ -229,17 +228,10 @@ export default function PdfRedactTool() {
     if (brushKind !== 'whiteout') setEyedropping(false);
   }, [brushKind]);
 
-  useEffect(() => {
-    const stored = getEditorPreference('lastBlurStrength');
-    if (stored) setActiveBlurStrength(resolveBlurStrength(stored));
-    return subscribeToEditorPreference('lastBlurStrength', ({ value }) => {
-      if (value) setActiveBlurStrength(resolveBlurStrength(value));
-    });
-  }, []);
-
   const rememberBlurStrength = (strength: BlurStrength) => {
     setActiveBlurStrength(strength);
-    setEditorPreference('lastBlurStrength', strength);
+    setCarried((c) => ({ ...c, blurStrength: strength }));
+    rememberAppStyle({ blurStrength: strength });
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
@@ -509,8 +501,11 @@ export default function PdfRedactTool() {
         setNumPages(0);
         setErrorDetail(null);
         setProgress(0);
-        setBrushCarried(preset.carried);
+        setCarried(preset.carried);
         setBrush(resolveBrush(preset.carried, getAppStyle()));
+        // RED-40: a restored document keeps its own colour and strength.
+        setActiveColor(resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
+        setActiveBlurStrength(resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength')));
         setElements(presetElements);
         setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
         setDraftBaselineRevision(documentRevisionRef.current);
@@ -556,7 +551,7 @@ export default function PdfRedactTool() {
     fileBytes: fileBytesRef.current,
     elements,
     actionHistory,
-    carried: brushCarried,
+    carried,
     status,
     isDirty: documentRevision !== draftBaselineRevision,
     loadStartedRef,

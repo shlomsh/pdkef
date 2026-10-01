@@ -4,6 +4,7 @@ import {
   dropUnsafeUpdates,
   isDraftElement,
   migrateDraftRecord,
+  validateDocumentStyle,
   validateDraftElements,
   validateDraftRecord,
   type DraftElement,
@@ -520,5 +521,13 @@ describe('brush strokes (RED-32)', () => {
     });
     expect(record?.elements).toEqual([whiteoutStroke]);
     expect(record?.extra?.actionHistory).toHaveLength(1);
+  });
+});
+
+describe('carried blur strength (RED-40)', () => {
+  it('round-trips a numeric strength and resolves a legacy name', () => {
+    expect(validateDocumentStyle({ blurStrength: 0.25 })).toEqual({ blurStrength: 0.25 });
+    expect(validateDocumentStyle({ blurStrength: 'light' })).toEqual({ blurStrength: 0.3 });
+    expect(validateDocumentStyle({ blurStrength: 'loud' })).toEqual({});
   });
 });
