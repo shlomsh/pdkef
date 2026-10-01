@@ -27,3 +27,6 @@ public/pdfjs-dist-wasm/
 .claude/agents/impeccable-*
 .agents/skills/impeccable/
 .codex/hooks.json
+
+# Local env files: `vercel env pull` writes secrets here (the error-report store token).
+.env*.local
