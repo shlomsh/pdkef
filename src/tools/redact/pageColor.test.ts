@@ -91,6 +91,13 @@ describe('autoColorChanges', () => {
     expect(autoColorChanges({ ...base, type: 'blackout' }, { left: 1 }, sample)).toEqual({});
     expect(sample).not.toHaveBeenCalled();
   });
+  it('ignores geometry keys whose value did not change', () => {
+    const sample = vi.fn(() => '#eeeeee');
+    expect(autoColorChanges(base, { left: 10, top: 10 }, sample)).toEqual({});
+    expect(sample).not.toHaveBeenCalled();
+    expect(autoColorChanges(base, { left: 10, top: 11 }, sample)).toEqual({ color: '#eeeeee' });
+    expect(sample).toHaveBeenCalledTimes(1);
+  });
   it('samples when a custom box switches to auto', () => {
     const sample = vi.fn(() => '#abcdef');
     expect(autoColorChanges({ ...base, colorMode: 'custom' as ColorMode }, { colorMode: 'auto' }, sample)).toEqual({ color: '#abcdef' });
