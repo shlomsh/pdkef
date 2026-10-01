@@ -1,4 +1,5 @@
 import fontkit from '@pdf-lib/fontkit';
+import { reportError } from '../../lib/errorReport.ts';
 import { resolveFontFamily } from './fonts.js';
 import { unrepresentableCharacters } from './textMetrics.ts';
 import { findUnrepresentableCharacters } from './textCoverage.js';
@@ -125,7 +126,8 @@ export async function unsupportedCharactersInDocument(elements) {
         }
       }
     });
-  } catch {
+  } catch (error) {
+    reportError('fonts', error);
     return { characters: [], pageNumbers: [] };
   }
 }
