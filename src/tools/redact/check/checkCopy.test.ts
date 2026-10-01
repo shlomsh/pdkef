@@ -55,7 +55,7 @@ describe('findingText', () => {
 
   for (const { place, pageIndex, expected } of placeCases) {
     it(`describes in-place for ${place}${pageIndex === undefined ? '' : ' with a page'}`, () => {
-      const finding: Finding = { kind: 'in-place', place, pageIndex };
+      const finding: Finding = { kind: 'in-place', place, pageIndex, text: 'x', placeIndex: 0 };
       expect(findingText(finding)).toBe(expected);
     });
   }
@@ -113,7 +113,7 @@ describe('canCover', () => {
   });
 
   it('is false for in-place', () => {
-    expect(canCover({ kind: 'in-place', place: 'title' })).toBe(false);
+    expect(canCover({ kind: 'in-place', place: 'title', text: 'x', placeIndex: 0 })).toBe(false);
   });
 });
 
@@ -178,8 +178,8 @@ describe('no string claims absence or safety', () => {
       { kind: 'visible-in-picture', pageIndex: 5 },
       { kind: 'in-text', pageIndex: 0 },
       { kind: 'in-text', pageIndex: 5 },
-      ...places.map((place): Finding => ({ kind: 'in-place', place })),
-      ...places.map((place): Finding => ({ kind: 'in-place', place, pageIndex: 2 })),
+      ...places.map((place): Finding => ({ kind: 'in-place', place, text: 'x', placeIndex: 0 })),
+      ...places.map((place): Finding => ({ kind: 'in-place', place, pageIndex: 2, text: 'x', placeIndex: 0 })),
     ];
     for (const finding of findings) assertSafe(`findingText(${JSON.stringify(finding)})`, findingText(finding));
   });

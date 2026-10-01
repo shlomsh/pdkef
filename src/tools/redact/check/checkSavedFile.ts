@@ -64,13 +64,17 @@ export function checkSavedFile(input: CheckSavedFileInput): TermResult[] {
     const findings: Finding[] = [...pageFindings];
 
     // 3. In a place outside page text (a field, a comment, metadata, ...).
-    for (const place of saved.places) {
-      if (term.finder(place.text).length === 0) continue;
-      const key = `in-place:${place.kind}:${place.pageIndex ?? ''}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      findings.push({ kind: 'in-place', place: place.kind, pageIndex: place.pageIndex });
-    }
+    // One finding per place, never merged: each is a separate thing to remove.
+    saved.places.forEach((place, placeIndex) => {
+      if (term.finder(place.text).length === 0) return;
+      findings.push({
+        kind: 'in-place',
+        place: place.kind,
+        pageIndex: place.pageIndex,
+        text: place.text,
+        placeIndex,
+      });
+    });
 
     return { term, findings };
   });
