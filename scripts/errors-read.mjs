@@ -2,6 +2,28 @@
 // Env comes from process.env, else .env.local (written by `vercel env pull`).
 import { readFileSync } from 'node:fs';
 
+// usage:<day> holds `<event>|<tool>` -> count. Sums the days into one row per tool,
+// sorted by accepted descending; ready/accepted is a whole percent, or '-' without accepted.
+export function sumUsage(results) {
+  const byTool = new Map();
+  for (const result of results) {
+    for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
+      const [event, tool] = String(result[n]).split('|');
+      const col = { tool_file_accepted: 0, tool_operation_started: 1, tool_result_ready: 2, tool_operation_failed: 3 }[event];
+      if (col === undefined || !tool) continue;
+      const row = byTool.get(tool) ?? [0, 0, 0, 0];
+      row[col] += Number(result[n + 1]) || 0;
+      byTool.set(tool, row);
+    }
+  }
+  return [...byTool]
+    .filter(([, c]) => c.some(Boolean))
+    .sort((a, b) => b[1][0] - a[1][0] || a[0].localeCompare(b[0]))
+    .map(([tool, [accepted, started, ready, failed]]) => [
+      tool, accepted, started, ready, failed, accepted ? `${Math.round((ready / accepted) * 100)}%` : '-',
+    ]);
+}
+
 function envFromFile() {
   try {
     const out = {};
@@ -35,6 +57,7 @@ const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
   body: JSON.stringify([
     ...keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
     ...keys.map((d) => ['HGETALL', `events:${d}`]),
+    ...keys.map((d) => ['HGETALL', `usage:${d}`]),
   ]),
 });
 if (!res.ok) {
@@ -47,7 +70,8 @@ if (!res.ok) {
 const rows = new Map();
 const samples = new Map();
 const replies = await res.json();
-const eventReplies = replies.slice(keys.length * 2);
+const eventReplies = replies.slice(keys.length * 2, keys.length * 3);
+const usageReplies = replies.slice(keys.length * 3);
 replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   const isSample = idx % 2 === 1;
   for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
@@ -94,4 +118,11 @@ const eventRows = sumEvents(eventReplies.map((r) => r.result));
 if (eventRows.length) {
   console.log('count | event | outcome | detail | engine');
   for (const row of eventRows) console.log(row.join(' | '));
+} else console.log('(none)');
+
+console.log('\nTool usage');
+const usageRows = sumUsage(usageReplies.map((r) => r.result));
+if (usageRows.length) {
+  console.log('tool | accepted | started | ready | failed | ready/accepted');
+  for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
