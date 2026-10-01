@@ -64,32 +64,68 @@ export async function scrollStory(page, key, fraction) {
   // scroll-driven test scrolling to a position the driver no longer mapped to
   // the beat being asserted.
   const progress = trackProgress(key, fraction);
-  await page.evaluate(({progress, fraction}) => {
+  // The observation happens inside the page, in the frames right after the
+  // scroll, and the poll round-trips to Playwright are gone (QUAL-20). The
+  // driver only holds the demo to the scroll position for SCRUB_HOLD_MS
+  // (1.8s) after a scroll event; after that autoplay walks --p-track away from
+  // it (sign .81 reads 1 about five seconds later and stays there). Polling
+  // from the test process raced that hold: a worker stalled for a few seconds
+  // between scrollTo and the first sample saw autoplay's value, 1 for 10s,
+  // and no tolerance or timeout could have caught it back up. Two more
+  // ways the driver can end up not showing the scrolled-to position, both
+  // handled by the loop below: it listens only to scroll events, so a scrollTo
+  // to the spot the page already sits at (scroll restoration after a reload)
+  // fires none; and a scroll that lands before it hydrates is never seen.
+  const observed = await page.evaluate(async ({ key, progress, fraction }) => {
     // Mirrors ScrollDriver.tsx's resolvePin(): the pinned element (and the
     // track it travels through) differs by breakpoint - desktop pins the
     // whole hero through #home-tour, mobile pins only the demo frame through
     // its own shorter .demo-track - so it has to be resolved from markup
     // instead of hardcoded, or this scrolls the wrong element's sticky range
     // on whichever viewport a given test runs at.
-    const pin = [...document.querySelectorAll('[data-demo-pin]')]
-      .find(el => getComputedStyle(el).position === 'sticky');
-    const track = pin && document.querySelector(`[data-demo-track="${pin.dataset.demoPin}"]`);
-    // `travel` is exactly the pin's sticky range, so the nudge that makes
-    // the final beat land on a clean 1 must not be allowed past it: two pixels
-    // beyond the end unpins the frame by two pixels, and sticky-pin.spec.js
-    // then reads that as the stage having moved during the story.
-    //
-    // This only became reachable when the track mapping was corrected. The old
-    // literals put the second story's end at 0.62 + 0.37 = 0.99, an accidental
-    // 1% short of the end of travel, so the nudge had somewhere to go. It now
-    // ends at 1.0, where there is nothing left.
-    const travel = track.offsetHeight - pin.offsetHeight;
-    const start = track.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(pin).top);
-    window.scrollTo(0, start + Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel));
-  }, {progress, fraction});
-  await expectProgress(page, key, fraction);
-}
-async function expectProgress(page, key, fraction) {
+    const resolveTarget = () => {
+      const pin = [...document.querySelectorAll('[data-demo-pin]')]
+        .find(el => getComputedStyle(el).position === 'sticky');
+      const track = pin && document.querySelector(`[data-demo-track="${pin.dataset.demoPin}"]`);
+      // `travel` is exactly the pin's sticky range, so the nudge that makes
+      // the final beat land on a clean 1 must not be allowed past it: two pixels
+      // beyond the end unpins the frame by two pixels, and sticky-pin.spec.js
+      // then reads that as the stage having moved during the story.
+      //
+      // This only became reachable when the track mapping was corrected. The old
+      // literals put the second story's end at 0.62 + 0.37 = 0.99, an accidental
+      // 1% short of the end of travel, so the nudge had somewhere to go. It now
+      // ends at 1.0, where there is nothing left.
+      const travel = track.offsetHeight - pin.offsetHeight;
+      // Recomputed on every pass, not once: lazy content above the track can
+      // move `start` between one pass and the next.
+      const start = track.getBoundingClientRect().top + scrollY - parseFloat(getComputedStyle(pin).top);
+      return start + Math.min(travel * progress + (fraction === 1 ? 2 : 0), travel);
+    };
+    const stage = document.querySelector(`[data-hero-track="${key}"] [data-hero-stage]`);
+    const read = () => Number(stage.style.getPropertyValue('--p-track'));
+    const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+    // Two frames: the driver's own scroll handler defers to a requestAnimationFrame
+    // (ScrollDriver.tsx onScroll), so the first frame only schedules the write.
+    const frames = async () => { await frame(); await frame(); };
+    const deadline = performance.now() + 8000;
+    let target = resolveTarget();
+    for (;;) {
+      window.scrollTo(0, target);
+      await frames();
+      target = resolveTarget();
+      const settled = Math.abs(scrollY - target) < 1;
+      const value = read();
+      // Same tolerance the poll used: toBeCloseTo(fraction, 2).
+      if (settled && Math.abs(value - fraction) < 0.005) return { scrollY, target, value };
+      if (performance.now() > deadline) return { scrollY, target, value };
+      // Off the target, or on it with the demo not following: step one pixel
+      // away and back so the driver gets a scroll event to scrub from.
+      window.scrollTo(0, target - 1);
+      await frames();
+    }
+  }, { key, progress, fraction });
   const { expect } = await import('@playwright/test');
-  await expect.poll(() => stageLocator(page, key).evaluate(el => Number(el.style.getPropertyValue('--p-track')))).toBeCloseTo(fraction, 2);
+  expect(Math.abs(observed.scrollY - observed.target), 'the page settles on the scroll position asked for').toBeLessThan(1);
+  expect(observed.value, `${key} --p-track at that scroll position`).toBeCloseTo(fraction, 2);
 }
