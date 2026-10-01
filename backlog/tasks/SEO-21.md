@@ -1,7 +1,7 @@
 ---
 id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "now"

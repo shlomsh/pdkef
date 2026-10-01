@@ -464,17 +464,14 @@ describe('sign.js signPdf', () => {
       expect(hasFillableAcroForm(formDoc)).toBe(true);
     });
 
-    it('fails loudly with FormFlattenError, rather than silently exporting the unflattened form, when flatten() throws', async () => {
-      const originalGetForm = PDFDocument.prototype.getForm;
-      const getFormSpy = vi.spyOn(PDFDocument.prototype, 'getForm').mockImplementation(function stubbedGetForm() {
-        const form = originalGetForm.call(this);
-        form.flatten = () => {
-          throw new Error('stubbed flatten failure');
-        };
-        return form;
-      });
-
-      const file = await buildAcroFormFixture();
+    it('fails loudly with FormFlattenError, rather than silently exporting the unflattened form, when a widget appearance cannot be drawn', async () => {
+      const doc = await PDFDocument.load(await (await buildAcroFormFixture()).arrayBuffer());
+      const annots = doc.getPage(0).node.Annots();
+      // Undrawable: the /AP /N stream exists (so nothing regenerates it) but has no /BBox.
+      const widget = doc.context.lookup(annots.get(0));
+      const normal = doc.context.lookup(doc.context.lookup(widget.get(PDFName.of('AP'))).get(PDFName.of('N')));
+      normal.dict.delete(PDFName.of('BBox'));
+      const file = new File([await doc.save()], 'no-ap.pdf', { type: 'application/pdf' });
       const element = {
         id: 'el-answer', type: 'text', pageIndex: 0, left: 10, top: 10,
         text: 'Jane Doe', fontFamily: 'Arimo', fontSize: 14, color: '#000000',
@@ -483,9 +480,7 @@ describe('sign.js signPdf', () => {
       const error = await signPdf(file, [element]).catch((e) => e);
       expect(error).toBeInstanceOf(FormFlattenError);
       expect(error.name).toBe('FormFlattenError');
-      expect(error.cause).toBeInstanceOf(Error);
-      expect(error.cause.message).toBe('stubbed flatten failure');
-      expect(getFormSpy).toHaveBeenCalled();
+      expect(error.message).toContain('1 of 1');
     });
   });
 });
