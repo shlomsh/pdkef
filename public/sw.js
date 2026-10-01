@@ -17,12 +17,13 @@
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
 //   - An update never takes over a page from the previous build on its own:
-//     install never calls skipWaiting(). It runs only on the
-//     SKIP_WAITING_MESSAGE a page sends once every open tab has confirmed
-//     over a BroadcastChannel (src/site-lib/appUpdate.ts) that it has no
-//     export in flight, and every tab running this code reloads itself on
-//     controllerchange. Deleting a build's cache under a live page breaks its
-//     lazy imports, which is why those conditions exist. See handleSkipWaiting.
+//     install never calls skipWaiting(). It runs only on SKIP_WAITING_MESSAGE,
+//     which the active worker sends on a navigation, and only once every open
+//     tab has answered that it holds no work a reload would lose (an export in
+//     flight, a file open in a tool without drafts); every tab running this
+//     code reloads itself on controllerchange. Deleting a build's cache under
+//     a live page breaks its lazy imports, which is why those conditions
+//     exist. See handleSkipWaiting and trySilentTakeover.
 //   - One narrow exception to "GET only": a POST to SHARE_TARGET_PATH, which
 //     is how Android's share sheet hands PDkef a file from another app (see
 //     manifest.webmanifest's share_target). There is no server to answer that
@@ -52,6 +53,9 @@ const PRECACHE_CONCURRENCY = 6;
 const FONT_PACK_MARKER_PATH = '/__pdkef/offline-font-pack/';
 const SKIP_WAITING_MESSAGE = 'pdkef:skip-waiting';
 const UPDATE_STATUS_MESSAGE = 'pdkef:update-status';
+// Asked of every open tab (src/site-lib/appUpdate.ts answers it).
+const BUSY_QUERY_MESSAGE = 'pdkef:busy-query';
+const BUSY_TIMEOUT_MS = 750;
 
 // Written into this build's cache once install precached every URL with none
 // missed. A waiting build may take over only when it is present: activation
@@ -59,7 +63,11 @@ const UPDATE_STATUS_MESSAGE = 'pdkef:update-status';
 // the old build had. See readyToTakeOver.
 const PRECACHE_COMPLETE_PATH = '/__pdkef/precache-complete/';
 // How long the silent takeover waits for the waiting worker's answer.
-const TAKEOVER_TIMEOUT_MS = 1000;
+const TAKEOVER_TIMEOUT_MS = 3000;
+// After one granted takeover, navigations are served normally for this long.
+// Activation waits for the old worker to go idle; were every navigation in
+// that window answered with another takeover page, it would never go idle.
+const TAKEOVER_COOLDOWN_MS = 10_000;
 const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
@@ -464,7 +472,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   // Because install does not call skipWaiting(), this runs either once every
   // page from the previous build has closed, or after a SKIP_WAITING_MESSAGE
-  // that handleSkipWaiting accepted (every open tab confirmed it is idle and
+  // that handleSkipWaiting accepted (every open tab answered it is idle and
   // reloads on controllerchange). That ordering is load-bearing: those
   // pages lazy-import content-hashed chunks long after first paint (pdfjs, its
   // worker, the font files), and an earlier version of this file activated
@@ -482,72 +490,113 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
-// The only skipWaiting() call in this file, and it never runs on install. A page
-// sends this message after every open tab of the site has answered over a
-// BroadcastChannel (src/site-lib/appUpdate.ts) that it has no export in
-// flight; `windows` is how many tabs answered. Every tab running this code
-// reloads itself on `controllerchange`, so no page keeps running an old build
-// against a deleted cache, which is the reason skipWaiting used to be banned.
-// The count check refuses when a window exists that did not answer, for
-// example a tab still running a build from before MEM-10 that has no
-// controllerchange reload: that tab must keep its cache, so the worker keeps
-// waiting as before. Non-http(s) windows (blob: documents) are not counted.
 async function httpWindows() {
   return (await self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
     .filter((client) => /^https?:$/.test(new URL(client.url).protocol));
 }
 
-async function countWindows() {
-  return (await httpWindows()).length;
+// Whether one open tab holds work a reload would lose: true, false, or null
+// when it does not answer in time (a frozen tab, or a page from a build before
+// MEM-10, which has no answer and no controllerchange reload either).
+function askBusy(client) {
+  return new Promise((resolvePromise) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolvePromise(null), BUSY_TIMEOUT_MS);
+    channel.port1.onmessage = (message) => {
+      clearTimeout(timer);
+      channel.port1.close();
+      resolvePromise(message.data?.busy === true);
+    };
+    client.postMessage({ type: BUSY_QUERY_MESSAGE }, [channel.port2]);
+  });
 }
 
-// A waiting build also refuses unless readyToTakeOver(): fully precached and
-// online, so activation never costs the device offline coverage.
+// Every open http(s) tab but `excludeId`, asked at once. Non-http(s) windows
+// (blob: documents) are not counted.
+async function surveyWindows(excludeId) {
+  const windows = (await httpWindows()).filter((client) => client.id !== excludeId);
+  const answers = await Promise.all(windows.map(askBusy));
+  return {
+    windows: windows.length,
+    busy: answers.filter((answer) => answer === true).length,
+    silent: answers.filter((answer) => answer === null).length,
+  };
+}
+
+// The only skipWaiting() call in this file, and it never runs on install. The
+// active worker sends this on a navigation (trySilentTakeover). It is granted
+// only when this build is readyToTakeOver() (fully precached and online, so
+// activation never costs the device offline coverage) and every open tab
+// answered that it is idle. The navigating tab answers idle: it is leaving its
+// page. Every tab running this code reloads itself on controllerchange, so no
+// page keeps running an old build against a deleted cache, which is the reason
+// skipWaiting used to be banned.
 async function handleSkipWaiting(event) {
   const reply = event.ports?.[0];
-  const answered = event.data?.windows;
-  const windows = await countWindows();
   const ready = await readyToTakeOver();
-  const ok = Number.isInteger(answered) && answered >= 1 && windows <= answered && ready;
+  const survey = ready ? await surveyWindows() : { windows: 0, busy: 0, silent: 0 };
+  const ok = ready && survey.busy === 0 && survey.silent === 0;
+  // Reply first: the silent takeover's active worker is holding a navigation
+  // open on this answer, and activation waits for that navigation to finish.
+  reply?.postMessage({ ok, ready, ...survey });
   if (ok) await self.skipWaiting();
-  reply?.postMessage({ ok, windows, ready });
 }
 
+// For the update line in one tab: is this build ready, and what do the other
+// tabs say? A tab shows the line only when another one holds the update.
 async function handleUpdateStatus(event) {
-  event.ports?.[0]?.postMessage({ ready: await readyToTakeOver(), windows: await countWindows() });
+  const ready = await readyToTakeOver();
+  const survey = ready ? await surveyWindows(event.source?.id) : { windows: 0, busy: 0, silent: 0 };
+  event.ports?.[0]?.postMessage({ ready, ...survey });
 }
 
-// Active worker, on a navigation: if a build is waiting and this is the only
-// open tab, take over silently and answer with a refresh so the browser asks
-// the new worker for the page. The tab is leaving its page anyway, so no live
-// page runs against the cache activation deletes. The worker cannot see which
-// client a navigation comes from, so "the one window is focused" is how it
-// tells the navigating tab (a reload, a link, opening a recent file) from a
-// second tab being opened. The waiting worker's own readiness check keeps
-// offline intact. This is the only path that updates a single tab, which
-// therefore never sees the update line. Returns a Response, or null to fall
-// through to the normal navigation handling.
+// Active worker, on a navigation: if a build is waiting, ask it to take over
+// (handleSkipWaiting decides) and answer with a takeover page so the browser
+// asks the new worker for the page once it is active. The tab is leaving its
+// page anyway, and every other tab answered idle and reloads itself, so no
+// live page runs against the cache activation deletes. This is how an update
+// reaches anyone without a line or a click. Returns a Response, or null to
+// fall through to the normal navigation handling.
+let lastTakeoverAt = -Infinity;
 async function trySilentTakeover() {
   try {
     const waiting = self.registration?.waiting;
     if (!waiting) return null;
-    const windows = await httpWindows();
-    if (windows.length !== 1 || !windows[0].focused) return null;
+    if (Date.now() - lastTakeoverAt < TAKEOVER_COOLDOWN_MS) return null;
     const channel = new MessageChannel();
     const reply = new Promise((resolvePromise) => {
       channel.port1.onmessage = (message) => resolvePromise(message.data);
       setTimeout(() => resolvePromise(null), TAKEOVER_TIMEOUT_MS);
     });
-    waiting.postMessage({ type: SKIP_WAITING_MESSAGE, windows: 1 }, [channel.port2]);
+    waiting.postMessage({ type: SKIP_WAITING_MESSAGE }, [channel.port2]);
     const answer = await reply;
     channel.port1.close();
     if (!answer?.ok) return null;
-    return new Response('<!doctype html><meta http-equiv="refresh" content="0">', {
-      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Refresh': '0', 'Cache-Control': 'no-store' },
-    });
+    lastTakeoverAt = Date.now();
+    return takeoverResponse();
   } catch {
     return null;
   }
+}
+
+// A blank page that loads the page again after a second. It asks nothing of
+// this worker, so the old worker goes idle and the new one can activate
+// (Chromium activates after about a second, measured in the MEM-10 e2e); the
+// refresh then reaches the new build. Answering with an instant refresh kept
+// the old worker busy with navigation after navigation, and activation waited
+// behind them. A refresh that still beats activation gets the old page (the
+// cooldown), and that page reloads itself on controllerchange.
+function takeoverResponse() {
+  return new Response(
+    '<!doctype html><meta name="color-scheme" content="light dark"><meta http-equiv="refresh" content="1">',
+    {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': "default-src 'none'",
+      },
+    },
+  );
 }
 
 self.addEventListener('message', (event) => {

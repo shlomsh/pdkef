@@ -116,9 +116,14 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
       import { startAppUpdates } from '../site-lib/appUpdate.ts';
       if ('serviceWorker' in navigator) {
         if (import.meta.env.PROD) {
-          // MEM-10: registration plus the update line. The line only shows
-          // when the worker cannot update silently (several open tabs).
-          window.addEventListener('load', () => startAppUpdates({
+          // MEM-10: registration (after load), the answer to the worker's
+          // busy query (from the start), and the update line, which shows only
+          // when another tab holds an update back.
+          startAppUpdates({
+            loaded: new Promise((resolve) => {
+              if (document.readyState === 'complete') resolve();
+              else window.addEventListener('load', () => resolve(), { once: true });
+            }),
             serviceWorker: navigator.serviceWorker,
             line: document.querySelector('[data-app-update]'),
             createChannel: (name) => ('BroadcastChannel' in window ? new BroadcastChannel(name) : null),
@@ -129,8 +134,7 @@ const ogImageURL = new URL(ogImage.src, Astro.site);
             clearTimeout: (id) => window.clearTimeout(id as number),
             setInterval: (fn, ms) => window.setInterval(fn, ms),
             now: () => Date.now(),
-            randomId: () => crypto.randomUUID(),
-          }));
+          });
         } else {
           navigator.serviceWorker.getRegistrations()
             .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))

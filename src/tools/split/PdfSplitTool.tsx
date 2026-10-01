@@ -99,7 +99,7 @@ export default function PdfSplitTool({
   const pendingTap = useRef(false);
   // A Download tap during 'preparing' waits on this build, so hold through all of
   // it; an untapped prepare only delays an update by a moment.
-  useHoldUpdate(status === 'preparing');
+  useHoldUpdate(file !== null || status === 'preparing');
   const outputsRef = useRef<OutputFile[]>([]);
   outputsRef.current = outputs;
 

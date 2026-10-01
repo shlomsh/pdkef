@@ -1,18 +1,19 @@
 /**
  * What a tab must finish before a new build may take it over (MEM-10).
  *
- * The update line (`src/site-lib/appUpdate.ts`) lets a person move every open
- * tab onto a newly deployed build with one click: the waiting service worker
- * is told to skip waiting, it activates, deletes the old build's cache, and
- * every tab reloads itself on `controllerchange`. Two things in a tab must not
- * be cut off by that:
+ * A new build takes over silently on a navigation, once every open tab has
+ * answered the service worker that it is idle (`src/site-lib/appUpdate.ts`):
+ * the waiting worker activates, deletes the old build's cache, and every tab
+ * reloads itself on `controllerchange`. Two things in a tab must not be cut
+ * off by that:
  *
- * - **An export in flight.** It lazy-imports content-hashed chunks (pdf-lib,
- *   pdfjs, fonts) from the build it started on; deleting that cache under it is
- *   the "PDF silently never appears" failure that kept `skipWaiting` banned.
- *   A tool calls `holdUpdate()` when a person-initiated export starts and the
- *   returned release when it ends (or `useHoldUpdate(active)`). While any tab
- *   holds, the update waits; the line stays.
+ * - **Work a reload would lose.** An export in flight lazy-imports
+ *   content-hashed chunks (pdf-lib, pdfjs, fonts) from the build it started on;
+ *   deleting that cache under it is the "PDF silently never appears" failure
+ *   that kept `skipWaiting` banned. And a tool without drafts keeps its loaded
+ *   file, settings and result only in memory. A tool calls `holdUpdate()` and
+ *   the returned release around either (or `useHoldUpdate(active)`). While any
+ *   tab holds, nothing updates, and the other tabs' line says why.
  * - **A debounced draft save.** Drafts survive the reload because they live in
  *   IndexedDB, but only once written. A draft hook registers a flush with
  *   `registerBeforeUpdateReload`; the tab awaits every flush before it reloads.
@@ -34,7 +35,7 @@ function notify() {
   for (const listener of listeners) listener(held);
 }
 
-/** Marks an export in flight. The returned release is idempotent. */
+/** Marks work a reload would lose. The returned release is idempotent. */
 export function holdUpdate(): () => void {
   holds += 1;
   if (holds === 1) notify();

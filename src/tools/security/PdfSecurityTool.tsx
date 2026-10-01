@@ -16,7 +16,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
-  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null || status === 'processing');
   const [mode, setMode] = useState<string | null>(null); // 'unlock' | 'protect' | null
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');

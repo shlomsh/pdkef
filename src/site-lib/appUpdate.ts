@@ -1,11 +1,17 @@
 /**
- * MEM-10: the update line's coordinator. Registers the service worker and
- * shows the quiet "a new version is ready" line only when the worker cannot
- * update silently: a waiting build, fully precached and online, beside several
- * open tabs (one tab's navigation cannot switch builds under the others). A
- * single tab never sees it; the worker switches builds on its next navigation.
- * On one click every open tab moves onto the new build together, unless a tab
- * has an export in flight (see `src/lib/appUpdate/updateHolds.ts`).
+ * MEM-10: the update coordinator in every page. A new build reaches open tabs
+ * silently: on any navigation the service worker asks every open tab whether
+ * it holds work a reload would lose (`src/lib/appUpdate/updateHolds.ts`), and
+ * when none does, the new build takes over and every tab reloads itself on
+ * `controllerchange`. This module is the tab's side of that:
+ *
+ * - it answers the worker's busy query (idle while this tab is navigating
+ *   away, since the reload is the person's own);
+ * - it reloads on `controllerchange`, after its holds release and its draft
+ *   saves flush;
+ * - it shows the quiet line only when an update is waiting, ready, and held
+ *   up by another tab: 'waiting' when that tab is working, 'blocked' when it
+ *   does not answer. A single tab, or several idle ones, never see it.
  *
  * Decisions are small pure functions; `startAppUpdates` is thin wiring over
  * injected dependencies so it runs against fakes in tests. No string lives
@@ -14,54 +20,38 @@
 import { flushBeforeUpdateReload, isUpdateHeld, onUpdateHoldChange } from '../lib/appUpdate/updateHolds.ts';
 
 export const CHANNEL_NAME = 'pdkef:app-update';
+export const BUSY_QUERY = 'pdkef:busy-query';
 export const CHECK_AFTER_MS = 30 * 60 * 1000;
 export const CHECK_EVERY_MS = 60 * 60 * 1000;
-export const ANSWER_WINDOW_MS = 400;
-export const ACK_TIMEOUT_MS = 3000;
-export const RETRY_DELAY_MS = 1500;
-export const MAX_ATTEMPTS = 3;
-export const RECHECK_WAITING_MS = 5000;
-export const TAB_CLOSED_RECHECK_MS = 1000;
 export const STATUS_TIMEOUT_MS = 2000;
+export const TAB_CLOSED_RECHECK_MS = 1000;
+export const LEAVING_RESET_MS = 3000;
+export const RECHECK_SHOWN_MS = 5000;
 export const REFRESH_EVERY_MS = 60 * 1000;
 
-/**
- * 'ready': the Reload button. 'waiting': a tab has an export in flight; the
- * button comes back once none does, and the person clicks again (an export's
- * result may still be waiting for its Download, so finishing never reloads on
- * its own). 'blocked': the worker refused because a window did not answer
- * (a frozen tab, or one on a build from before MEM-10); the line says to close
- * other tabs and keeps the button.
- */
-export type LineState = 'ready' | 'waiting' | 'blocked';
+/** 'waiting': another tab is working. 'blocked': another tab does not answer. */
+export type LineState = 'waiting' | 'blocked';
 
-export type UpdateMessage =
-  | { type: 'hold-query'; from: string; query: string }
-  | { type: 'hold-answer'; to: string; from: string; query: string; held: boolean }
-  | { type: 'hold-changed' }
-  | { type: 'update-waiting' }
-  | { type: 'tab-closed' };
+export type UpdateMessage = { type: 'busy-changed' } | { type: 'tab-closed' };
+
+/** The waiting worker's answer to `pdkef:update-status`, about the other tabs. */
+export interface StatusReply { ready?: boolean; windows?: number; busy?: number; silent?: number }
 
 /** An update, never a first install: a waiting worker beside a controller. */
 export function isUpdateWaiting(reg: { waiting?: unknown } | null | undefined, controller: unknown): boolean {
   return !!reg?.waiting && !!controller;
 }
 
-/** The line is for several tabs on a build that is fully precached and reachable offline. */
-export function shouldShowLine({ ready, windows }: { ready: boolean; windows: number }): boolean {
-  return ready && windows > 1;
-}
-
-export interface Answer { from: string; held: boolean }
-
-export type RequestDecision =
-  | { action: 'wait' }
-  | { action: 'skip-waiting'; windows: number };
-
-/** Held anywhere: wait. Otherwise the worker needs every window (this one included). */
-export function decideRequest({ selfHeld, answers }: { selfHeld: boolean; answers: Answer[] }): RequestDecision {
-  if (selfHeld || answers.some((answer) => answer.held)) return { action: 'wait' };
-  return { action: 'skip-waiting', windows: new Set(answers.map((answer) => answer.from)).size + 1 };
+/**
+ * The line only for a ready build that another tab holds up. Nothing when the
+ * build is not ready (it would cost offline coverage) or nothing holds it: the
+ * next navigation in any tab updates every tab silently.
+ */
+export function lineStateFor(reply: StatusReply | null): LineState | null {
+  if (!reply?.ready) return null;
+  if ((reply.busy ?? 0) > 0) return 'waiting';
+  if ((reply.silent ?? 0) > 0) return 'blocked';
+  return null;
 }
 
 export function shouldCheckForUpdate(lastCheck: number, now: number, afterMs = CHECK_AFTER_MS): boolean {
@@ -79,17 +69,22 @@ interface RegistrationLike {
   update(): Promise<unknown>;
   addEventListener(type: string, listener: () => void): void;
 }
+interface PortLike {
+  onmessage?: ((event: { data: StatusReply }) => void) | null;
+  postMessage?(message: unknown): void;
+}
+export interface WorkerMessageEvent { data?: { type?: string }; ports?: readonly PortLike[] }
 interface ContainerLike {
   controller: unknown;
   register(url: string): Promise<RegistrationLike>;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: 'controllerchange', listener: () => void): void;
+  addEventListener(type: 'message', listener: (event: WorkerMessageEvent) => void): void;
+  startMessages?(): void;
 }
 interface ChannelLike {
   postMessage(message: unknown): void;
   addEventListener(type: 'message', listener: (event: { data: UpdateMessage }) => void): void;
 }
-interface WorkerReply { ok?: boolean; ready?: boolean; windows?: number }
-interface PortLike { onmessage: ((event: { data: WorkerReply }) => void) | null }
 interface MessageChannelLike { port1: PortLike; port2: unknown }
 
 export interface AppUpdateDeps {
@@ -98,12 +93,16 @@ export interface AppUpdateDeps {
   createChannel: (name: string) => ChannelLike | null;
   reload: () => void;
   document: Pick<Document, 'visibilityState' | 'addEventListener'>;
-  window: { addEventListener(type: string, listener: () => void): void };
+  window: {
+    addEventListener(type: string, listener: () => void): void;
+    removeEventListener(type: string, listener: () => void): void;
+  };
   setTimeout: (fn: () => void, ms: number) => unknown;
   clearTimeout: (id: unknown) => void;
   setInterval: (fn: () => void, ms: number) => unknown;
   now: () => number;
-  randomId: () => string;
+  /** Resolves once the page has loaded; registration waits for it. Default: now. */
+  loaded?: Promise<void>;
   createMessageChannel?: () => MessageChannelLike;
 }
 
@@ -113,160 +112,46 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // Not a snapshot at load: a first visit is uncontrolled until the worker
   // claims it, and that tab must still reload on the update after that.
   let controlled = !!serviceWorker.controller;
-  const id = deps.randomId();
   const channel = deps.createChannel(CHANNEL_NAME);
-  const button = line?.querySelector<HTMLButtonElement>('[data-app-update-reload]') ?? null;
 
   let state: LineState | 'hidden' = 'hidden';
-  let running = false;
-  let rechecking = false;
   // Dismissed lines stay hidden until this page's next load. The tab still
-  // answers hold queries and still reloads with the others on an update.
+  // answers busy queries and still reloads with the others on an update.
   let dismissed = false;
   let reloading = false;
   let lastCheck = deps.now();
-  let answers = new Map<string, boolean>();
-  let currentQuery = '';
 
   const post = (message: UpdateMessage) => channel?.postMessage(message);
-  const sleep = (ms: number) => new Promise<void>((resolve) => { deps.setTimeout(resolve, ms); });
-
-  function setState(next: LineState) {
-    state = next;
-    if (!line) return;
-    line.dataset.appUpdateState = next;
-    if (!dismissed) line.removeAttribute('hidden');
-  }
-
-  // A browser that refuses or blocks workers (private modes, enterprise
-  // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
-  let registered: RegistrationLike | undefined;
-  try {
-    registered = await serviceWorker.register('/sw.js');
-  } catch {
-    return;
-  }
-  if (!registered) return;
-  const reg = registered;
-
-  // One question to the waiting worker; null when it does not answer in time.
-  function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<WorkerReply | null> {
-    const mc = deps.createMessageChannel ? deps.createMessageChannel() : (new MessageChannel() as unknown as MessageChannelLike);
-    return new Promise<WorkerReply | null>((resolve) => {
-      const timer = deps.setTimeout(() => resolve(null), timeoutMs);
-      mc.port1.onmessage = (event) => {
-        deps.clearTimeout(timer);
-        resolve(event.data ?? {});
-      };
-      worker.postMessage(message, [mc.port2]);
-    });
-  }
 
   function hideLine() {
     state = 'hidden';
     if (line) line.hidden = true;
   }
 
-  // Show only when the worker cannot update silently (several tabs) and the
-  // waiting build is ready. Anything else hides: a single tab is updated at its
-  // next navigation, and a not-ready build leaves the old one working offline.
-  let refreshSeq = 0;
-  async function refreshLine(): Promise<void> {
-    if (reloading) return;
-    const seq = ++refreshSeq;
-    const worker = reg.waiting;
-    if (!worker || !serviceWorker.controller) {
-      hideLine();
-      return;
-    }
-    const reply = await ask(worker, { type: 'pdkef:update-status' }, STATUS_TIMEOUT_MS);
-    if (seq !== refreshSeq || reloading) return;
-    const show = shouldShowLine({ ready: !!reply?.ready, windows: reply?.windows ?? 0 });
-    if (!show) hideLine();
-    else if (state === 'hidden') setState('ready');
-  }
+  // Set from beforeunload, while this tab holds: a navigation away is the
+  // person's own choice, so it must not hold the update back on its way out.
+  // Reset after a moment in case the navigation was cancelled.
+  let leaving = false;
+  const onBeforeUnload = () => {
+    leaving = true;
+    deps.setTimeout(() => { leaving = false; }, LEAVING_RESET_MS);
+  };
+  if (isUpdateHeld()) deps.window.addEventListener('beforeunload', onBeforeUnload);
 
-  function collectAnswers(): Promise<Answer[]> {
-    currentQuery = deps.randomId();
-    answers = new Map();
-    post({ type: 'hold-query', from: id, query: currentQuery });
-    return sleep(ANSWER_WINDOW_MS).then(() => [...answers].map(([from, held]) => ({ from, held })));
-  }
-
-  function postSkipWaiting(windows: number): Promise<WorkerReply | null> {
-    const worker = reg.waiting;
-    if (!worker) return Promise.resolve(null);
-    return ask(worker, { type: 'pdkef:skip-waiting', windows }, ACK_TIMEOUT_MS);
-  }
-
-  async function requestUpdate(): Promise<void> {
-    if (running || reloading) return;
-    running = true;
-    if (button) button.disabled = true;
-    try {
-      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        const decision = decideRequest({ selfHeld: isUpdateHeld(), answers: await collectAnswers() });
-        if (decision.action === 'wait') {
-          setState('waiting');
-          post({ type: 'update-waiting' });
-          return;
-        }
-        const reply = await postSkipWaiting(decision.windows);
-        if (reply?.ok) return;
-        if (reply?.ready === false) {
-          // The build is not ready (or the device is offline): nothing to offer.
-          await refreshLine();
-          return;
-        }
-        if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS);
-      }
-      if (!reloading) setState('blocked');
-    } finally {
-      running = false;
-      if (button) button.disabled = false;
-    }
-  }
-
-  channel?.addEventListener('message', (event) => {
-    const message = event.data;
-    if (!message) return;
-    if (message.type === 'hold-query' && message.from !== id) {
-      post({ type: 'hold-answer', to: message.from, from: id, query: message.query, held: isUpdateHeld() });
-    } else if (message.type === 'hold-answer' && message.to === id && message.query === currentQuery) {
-      answers.set(message.from, message.held);
-    } else if (message.type === 'update-waiting') {
-      setState('waiting');
-    } else if (message.type === 'hold-changed') {
-      void recheckWaiting();
-    } else if (message.type === 'tab-closed') {
-      // The closing window is still a client while its pagehide runs.
-      deps.setTimeout(() => { void refreshLine(); }, TAB_CLOSED_RECHECK_MS);
-    }
+  // Answered before the page finishes loading: the worker asks every tab on
+  // every navigation, and a tab that does not answer counts as holding.
+  serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type !== BUSY_QUERY) return;
+    event.ports?.[0]?.postMessage?.({ busy: isUpdateHeld() && !leaving });
   });
+  serviceWorker.startMessages?.();
 
-  // Back to the button once no tab holds. Asked again on every hold change and
-  // on a timer, so a holder that closed or crashed cannot strand the line.
-  async function recheckWaiting(): Promise<void> {
-    if (state !== 'waiting' || rechecking || running || reloading) return;
-    rechecking = true;
-    try {
-      const decision = decideRequest({ selfHeld: isUpdateHeld(), answers: await collectAnswers() });
-      if (decision.action !== 'wait' && state === 'waiting') setState('ready');
-    } finally {
-      rechecking = false;
-    }
-  }
-  deps.setInterval(() => { void recheckWaiting(); }, RECHECK_WAITING_MS);
-
-  onUpdateHoldChange(() => {
-    post({ type: 'hold-changed' });
-    void recheckWaiting();
-  });
-
-  button?.addEventListener('click', () => { void requestUpdate(); });
-  line?.querySelector('[data-app-update-dismiss]')?.addEventListener('click', () => {
-    dismissed = true;
-    line.hidden = true;
+  onUpdateHoldChange((held) => {
+    // Only a holding tab listens for beforeunload; the listener keeps a page
+    // out of the back/forward cache in some engines.
+    if (held) deps.window.addEventListener('beforeunload', onBeforeUnload);
+    else deps.window.removeEventListener('beforeunload', onBeforeUnload);
+    post({ type: 'busy-changed' });
   });
 
   function waitForRelease(): Promise<void> {
@@ -289,9 +174,70 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     }
     if (reloading) return;
     reloading = true;
+    hideLine();
     await waitForRelease();
     await flushBeforeUpdateReload();
     deps.reload();
+  });
+
+  await deps.loaded;
+
+  // A browser that refuses or blocks workers (private modes, enterprise
+  // policy, Playwright's serviceWorkers: 'block') gets no worker and no line.
+  let registered: RegistrationLike | undefined;
+  try {
+    registered = await serviceWorker.register('/sw.js');
+  } catch {
+    return;
+  }
+  if (!registered) return;
+  const reg = registered;
+
+  // One question to the waiting worker; null when it does not answer in time.
+  function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<StatusReply | null> {
+    const mc = deps.createMessageChannel ? deps.createMessageChannel() : (new MessageChannel() as unknown as MessageChannelLike);
+    return new Promise<StatusReply | null>((resolve) => {
+      const timer = deps.setTimeout(() => resolve(null), timeoutMs);
+      mc.port1.onmessage = (event) => {
+        deps.clearTimeout(timer);
+        resolve(event.data ?? {});
+      };
+      worker.postMessage(message, [mc.port2]);
+    });
+  }
+
+  let refreshSeq = 0;
+  async function refreshLine(): Promise<void> {
+    if (reloading) return;
+    const seq = ++refreshSeq;
+    const worker = reg.waiting;
+    if (!worker || !serviceWorker.controller) {
+      hideLine();
+      return;
+    }
+    const reply = await ask(worker, { type: 'pdkef:update-status' }, STATUS_TIMEOUT_MS);
+    if (seq !== refreshSeq || reloading) return;
+    const next = lineStateFor(reply);
+    if (!next) {
+      hideLine();
+      return;
+    }
+    state = next;
+    if (!line) return;
+    line.dataset.appUpdateState = next;
+    if (!dismissed) line.hidden = false;
+  }
+
+  channel?.addEventListener('message', (event) => {
+    const type = event.data?.type;
+    if (type === 'busy-changed') void refreshLine();
+    // The closing window is still a client while its pagehide runs.
+    else if (type === 'tab-closed') deps.setTimeout(() => { void refreshLine(); }, TAB_CLOSED_RECHECK_MS);
+  });
+
+  line?.querySelector('[data-app-update-dismiss]')?.addEventListener('click', () => {
+    dismissed = true;
+    line.hidden = true;
   });
 
   function watchInstalling(worker: WorkerLike | null) {
@@ -319,7 +265,10 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   deps.window.addEventListener('online', () => { void refreshLine(); });
   deps.window.addEventListener('offline', () => { void refreshLine(); });
   deps.window.addEventListener('pagehide', () => post({ type: 'tab-closed' }));
-  deps.setInterval(() => { if (reg.waiting) void refreshLine(); }, REFRESH_EVERY_MS);
+  // A shown line follows the other tabs closely (a holder that crashed sends
+  // nothing); a hidden one only needs the occasional look.
+  deps.setInterval(() => { if (state !== 'hidden') void refreshLine(); }, RECHECK_SHOWN_MS);
+  deps.setInterval(() => { if (state === 'hidden' && reg.waiting) void refreshLine(); }, REFRESH_EVERY_MS);
 
   await refreshLine();
 }
