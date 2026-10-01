@@ -16,9 +16,13 @@
 //   - Other same-origin assets are cache-first after precache or first use.
 //   - Cross-origin requests are never intercepted — this app makes none
 //     in normal operation; not touching them is a deliberate safeguard.
-//   - An update never takes over a page from the previous build (no
-//     skipWaiting), because deleting that build's cache under a live page
-//     breaks its lazy imports. See the activate handler.
+//   - An update never takes over a page from the previous build on its own:
+//     install never calls skipWaiting(). It runs only on the
+//     SKIP_WAITING_MESSAGE a page sends once every open tab has confirmed
+//     over a BroadcastChannel (src/site-lib/appUpdate.ts) that it has no
+//     export in flight, and every tab running this code reloads itself on
+//     controllerchange. Deleting a build's cache under a live page breaks its
+//     lazy imports, which is why those conditions exist. See handleSkipWaiting.
 //   - One narrow exception to "GET only": a POST to SHARE_TARGET_PATH, which
 //     is how Android's share sheet hands PDkef a file from another app (see
 //     manifest.webmanifest's share_target). There is no server to answer that
@@ -46,6 +50,7 @@ const PRECACHE_CONCURRENCY = 6;
 // "every advertised style in this family is ready for a disconnected edit
 // and export session".
 const FONT_PACK_MARKER_PATH = '/__pdkef/offline-font-pack/';
+const SKIP_WAITING_MESSAGE = 'pdkef:skip-waiting';
 const FONT_PACK_MESSAGE = {
   status: 'pdkef:font-pack-status',
   provision: 'pdkef:font-pack-provision',
@@ -411,8 +416,9 @@ async function handleShareTarget(request) {
 }
 
 self.addEventListener('install', (event) => {
-  // Deliberately no skipWaiting(): a new build must not take control of a page
-  // that is still running the previous one. See the activate handler.
+  // Deliberately no skipWaiting() here: a new build must not take control of a
+  // page that is still running the previous one just because it installed.
+  // Activation is requested later by SKIP_WAITING_MESSAGE. See handleSkipWaiting.
   event.waitUntil(
     precacheAppShell().catch(async (error) => {
       if (error instanceof OrphanedWorkerError) {
@@ -431,8 +437,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Because install does not call skipWaiting(), this runs only once every page
-  // from the previous build has closed. That ordering is load-bearing: those
+  // Because install does not call skipWaiting(), this runs either once every
+  // page from the previous build has closed, or after a SKIP_WAITING_MESSAGE
+  // that handleSkipWaiting accepted (every open tab confirmed it is idle and
+  // reloads on controllerchange). That ordering is load-bearing: those
   // pages lazy-import content-hashed chunks long after first paint (pdfjs, its
   // worker, the font files), and an earlier version of this file activated
   // immediately and deleted the very cache they were still resolving against.
@@ -449,8 +457,32 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+// The only skipWaiting() call in this file, and it never runs on install. A page
+// sends this message after every open tab of the site has answered over a
+// BroadcastChannel (src/site-lib/appUpdate.ts) that it has no export in
+// flight; `windows` is how many tabs answered. Every tab running this code
+// reloads itself on `controllerchange`, so no page keeps running an old build
+// against a deleted cache, which is the reason skipWaiting used to be banned.
+// The count check refuses when a window exists that did not answer, for
+// example a tab still running a build from before MEM-10 that has no
+// controllerchange reload: that tab must keep its cache, so the worker keeps
+// waiting as before. Non-http(s) windows (blob: documents) are not counted.
+async function handleSkipWaiting(event) {
+  const reply = event.ports?.[0];
+  const answered = event.data?.windows;
+  const windows = (await self.clients.matchAll({ type: 'window', includeUncontrolled: true }))
+    .filter((client) => /^https?:$/.test(new URL(client.url).protocol));
+  const ok = Number.isInteger(answered) && answered >= 1 && windows.length <= answered;
+  if (ok) await self.skipWaiting();
+  reply?.postMessage({ ok, windows: windows.length });
+}
+
 self.addEventListener('message', (event) => {
   const type = event.data?.type;
+  if (type === SKIP_WAITING_MESSAGE) {
+    event.waitUntil(handleSkipWaiting(event));
+    return;
+  }
   const isFontPack = [FONT_PACK_MESSAGE.status, FONT_PACK_MESSAGE.provision].includes(type);
   const isLocalePack = [LOCALE_PACK_MESSAGE.status, LOCALE_PACK_MESSAGE.provision].includes(type);
   if (!isFontPack && !isLocalePack) return;
