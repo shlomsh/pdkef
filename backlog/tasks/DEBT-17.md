@@ -1,13 +1,10 @@
 ---
 id: "DEBT-17"
 title: "We cannot see what breaks in production, and a day proved it"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
-needs: "The telemetry governance call"
 ---
 
 # DEBT-17 · We cannot see what breaks in production, and a day proved it
@@ -78,30 +75,48 @@ third-party origin appearing in `connect-src`?**
   could not load, ran and threw, ran and found nothing. Collapsing those into "failed" is what made
   this bug opaque.
 
+## Decision (2026-10-01)
+
+Shlomi's first call was to extend the Vercel Analytics transport with a `client_error` event. Research
+then showed the team is on **Hobby, which has no custom events** (DEBT-24), so the second call, also
+his, was **a same-origin endpoint**: `/api/report`, a Vercel Function that counts reports in an
+Upstash Redis store (free plan, auto-upgrade off, connected to pdkef via the Marketplace).
+`connect-src 'self'` is untouched and the published sentence stays literally true: the browser only
+ever talks to its own origin.
+
+A report is three fields: `area` off a closed list, the error's `name`, and the top `/_astro/` frame.
+**No message at all**, not even an engine one; the frame names the line. No build id either: builds
+are deterministic and `sourcemap: 'hidden'` leaves every chunk byte-identical (measured), so the
+chunk's content hash identifies the build and `npm run errors:resolve` rebuilds it to map the frame.
+
+Rejected: Sentry-style vendors (a third-party `connect-src`), a self-hosted collector (more to run
+for a question that is "what threw, where"), and encoding errors as fake page views (works on Hobby,
+but abuses the page stats).
+
 ## Scope and acceptance
 
-- [ ] Decide the egress design, with `connect-src 'self'` held intact. Candidates, roughly in order
+- [x] Decide the egress design, with `connect-src 'self'` held intact. Candidates, roughly in order
       of how well they fit: extend the existing same-origin maintenance transport with an error
       event; a same-origin tunnel endpoint that forwards to a self-hosted collector (note this
       needs a request-time component, and `middleware.ts` is the only precedent for one); a
       self-hosted open-source collector behind our own origin. Record the decision and the rejected
       options.
-- [ ] Whatever lands, the published promise must still be literally true afterwards. If it cannot
+- [x] Whatever lands, the published promise must still be literally true afterwards. If it cannot
       be, stop and bring the trade to the owner rather than editing the sentence.
-- [ ] A shared, sanitised error reporter with `formDetectionDetail.ts`'s boundary as its floor:
+- [x] A shared, sanitised error reporter with `formDetectionDetail.ts`'s boundary as its floor:
       error name, engine-generated messages only, built-asset stack frames only, no document
       content, no filenames, no labels, no bytes. Adversarially tested, including the leak cases
       already recorded there.
-- [ ] Source maps, or the build ids to resolve a minified frame after the fact. A frame nobody can
+- [x] Source maps, or the build ids to resolve a minified frame after the fact. A frame nobody can
       map is a frame nobody can act on.
-- [ ] Triage the 71 `} catch {` blocks. Not "add reporting to all" - decide per block whether its
+- [x] Triage the 71 `} catch {` blocks. Not "add reporting to all" - decide per block whether its
       failure is expected (a preference that will not parse) or a defect (a detector that threw),
       and report only the second kind. Write the rule down so the next `catch` knows which it is.
-- [ ] It must never block, slow or break a tool, on any failure of its own, offline included.
+- [x] It must never block, slow or break a tool, on any failure of its own, offline included.
       Everything here is best-effort by construction.
-- [ ] Disclose it before it ships, in `ANALYTICS.md` and `docs/maintenance-telemetry.md`, in the
+- [x] Disclose it before it ships, in `ANALYTICS.md` and `docs/maintenance-telemetry.md`, in the
       voice the rest of the privacy copy uses.
-- [ ] Sabotage-check it: break something on purpose, confirm the report arrives and says enough to
+- [x] Sabotage-check it: break something on purpose, confirm the report arrives and says enough to
       act on. A reporter that cannot demonstrate a catch is the thing this ticket exists to prevent.
 
 ## Not in scope
@@ -116,3 +131,30 @@ The investigation is in this session's history; the mechanics and the sanitiser'
 are in `src/tools/sign/formDetectionDetail.ts`'s docstring and `backlog/tasks/FORM-11.md`. The bug
 that started it was still unfixed when this was written: the detector throws
 `TypeError: undefined is not a function` on iOS 26.6.2 and on no engine we can reproduce.
+
+## Outcome (2026-10-01)
+
+- **Reporter**: `src/lib/errorReport.ts` over the import-free `errorReportSchema.ts`, with
+  `errorIdentity.ts` now shared with `formDetectionDetail.ts`. Production only, once per distinct
+  report, ten per page, `sendBeacon`, never throws; uncaught errors from our own chunks are reported
+  from every tool's shell.
+- **Triage**: 152 catches, 106 expected, 46 defects, all 46 wired (`docs/debt-17-catch-triage.md`);
+  the rule is "Catching errors" in `.claude/rules/tools-and-shell.md`. DEBT-25 makes it a guard.
+- **Endpoint**: `api/report.ts` + `src/site-lib/errorReportStore.ts`: daily counts per area, name,
+  frame and coarse browser family (`ios-26`), 90-day expiry, 5,000 a day cap, always 204.
+  `npm run errors:read` prints them; `npm run errors:resolve -- <frame>` maps one to source.
+- **Caught before shipping**: `vercel build` showed the function importing `errorIdentity.ts` at
+  runtime, which would have failed every request; `functionImports.test.js` now guards it.
+  `check:push` showed `import.meta.env` throwing at import under Node; read optionally now.
+- **Sabotage-checked**, both ends. Server: the built function against the real store counted a valid
+  report as `ios-26`, dropped one with an extra `message` field, refused GET (probe deleted after).
+  Browser: a production build with its CSP, an uncaught TypeError from an `/_astro/` script on
+  /sign/ and /merge/ sent exactly `{"area":"uncaught","name":"TypeError","frame":"sabotage.Zz9.js:1:42"}`
+  once per page; a repeat, an error whose message held a form label but no `/_astro/` frame, and a
+  marketing page sent nothing; no CSP violations.
+- **Reviewed** by a fresh agent; its findings (a frame read from a V8 message line, cancellation and
+  damaged-file noise, cross-area duplicates, a TypeError filter that hid the iOS bug class, endpoint
+  hardening) are fixed. A forged flood can still use up the day's cap; DEBT-26 rate-limits it.
+- **Disclosed** in `ANALYTICS.md`, `docs/maintenance-telemetry.md` (whose "10% random sample" claim
+  was false and is corrected) and one sentence on the privacy page.
+

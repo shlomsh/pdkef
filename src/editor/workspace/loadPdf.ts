@@ -1,6 +1,7 @@
 import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
+import { reportError } from '../../lib/errorReport.ts';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
 
@@ -142,6 +143,7 @@ export async function loadPdf({
     );
   } catch (error) {
     if (!isCurrent()) return;
+    reportError('pdf_render', error);
     console.error(error);
     fail(t.loadFailed);
   } finally {

@@ -10,10 +10,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SNG-09](backlog/tasks/SNG-09.md) P1 · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document (in progress)
 
-### Robustness and debt
-
-- [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
-
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
@@ -38,13 +34,11 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
-- [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

@@ -6,6 +6,7 @@ import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
+import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
 import { englishShellMessages, formatMessage, type ShellMessages } from '../i18n/toolMessages';
@@ -158,6 +159,10 @@ export default function BasePdfTool({
   const agreedRef = useRef(false);
   const previouslyHadFilesRef = useRef(false);
   const previousAnalyticsStatusRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    installUncaughtErrorReporting();
+  }, []);
 
   // This is intentionally based on a tool's coarse public state, never its
   // file, options, error object, or local draft. See ANALYTICS.md.

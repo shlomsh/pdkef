@@ -48,3 +48,27 @@ This is an evaluation with a high bar to clear, not an adoption.
 
 **The narrower, cheaper half of this ticket is FORM-05**, which takes one specific idea from that
 codebase (harvesting clip-path rectangles) without taking the dependency. Do FORM-05 first.
+
+## 2026-10-01 research
+
+Read-only research, nothing downloaded; full evidence in `docs/form-08-pdf-inspector-evaluation.md`.
+**Recommendation: NO-GO**, pending the owner's read, so the ticket is back to open and not done.
+
+- `@firecrawl/anydoc-wasm` is still 0.2.4 on `pdf-inspector` 1.14.2; firecrawl/anydoc#175 (our bump)
+  and #170 are both still open. The crate is at 1.25.2 (MIT). A separate
+  `@firecrawl/pdf-inspector-wasm` 1.25.2 exists and carries the RTL fixes, but its export surface
+  (`processPdf`, `detectPdf`, `classifyPdf`, `extractText`, `version`) returns Markdown and
+  metadata with no position, rect or page-indexed item, same as anydoc.
+- The crate's `FormField` is an AcroForm reader (`/V`, widget `/Rect`), which `formWidgets.js`
+  already does and flat forms do not have. `PdfRect`/`PdfLine` look internal; pdf.js text runs and
+  `pageInk.js` already cover positions and ink. FORM-05 measured the clip-rect idea as not worth it.
+- Wasm is about 6.0 MB raw (no compressed figure), would need `'wasm-unsafe-eval'` in our CSP, a
+  precache exclusion and hand-kept third-party notices (Adobe CMaps); the 400 KB first-load budget
+  would not be touched if lazy.
+- Remaining corpus misses are cell-closing and classification heuristics and one scan; none is a
+  text-extraction gap.
+- Not verified: npm pages (403), per-crate licences, compressed size, whether the crate walks Form
+  XObjects, any detection score (no experiment was run).
+- Revisit trigger: upstream wasm ships rects or lines AND a zero-download probe shows a scored form
+  whose cells live in Form XObjects `pageInk.js` skips. That probe is the only cheap next step and
+  the fix would be in our own code.

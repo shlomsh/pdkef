@@ -1,4 +1,5 @@
 import { readPageGlyphs } from './pageGlyphs.ts';
+import { reportError } from '../../../lib/errorReport.ts';
 
 /**
  * Reads a pdf.js page's glyphs, or null when the page can't be read (a broken
@@ -17,6 +18,7 @@ export async function readGlyphs(pdfjs, pdfjsPage, options) {
       }
     }, options);
   } catch (error) {
+    reportError('redact', error);
     console.error('Redact could not read a page\'s text', error);
     return null;
   }

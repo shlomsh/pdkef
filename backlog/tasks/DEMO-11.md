@@ -5,11 +5,14 @@ status: "open"
 priority: "P3"
 epic: "search-and-languages"
 horizon: "later"
-depends_on: ["DEMO-10"]
-needs: "Your call on beat 4"
+depends_on: ["DEMO-10", "LOC-03"]
 ---
 
 # DEMO-11 · The O on the Hebrew home page
+
+*Deferred 2026-10-01 by Shlomi:* Hebrew traffic is too thin today to justify a Hebrew-only beat 4.
+This waits on LOC-03's 2026-11-06 read deciding whether Hebrew is worth investing in; only then does
+beat 4 come back to him as a call.
 
 ## Scope
 

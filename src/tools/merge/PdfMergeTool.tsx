@@ -45,6 +45,7 @@ import {
   type MergeMessages,
   type ShellMessages,
 } from '../../i18n/toolMessages';
+import { reportError } from '../../lib/errorReport.ts';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
 // output name is a WYSIWYG span, not a button-plus-input pair. Firefox does
@@ -553,7 +554,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/MergeDraftPersistence.tsx')
       .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
-      .catch(() => { if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
+      .catch((err) => { reportError('chunk_load', err); if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
     return () => { cancelled = true; };
   }, []);
 
@@ -582,7 +583,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/PageStrip.tsx')
       .then((module) => { if (!cancelled) setPageStrip(() => module.default); })
-      .catch(() => {});
+      .catch((err) => { reportError('chunk_load', err); });
     return () => { cancelled = true; };
   }, [entries.length > 0, PageStrip]);
 
