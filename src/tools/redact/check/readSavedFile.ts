@@ -14,6 +14,7 @@ import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
+import { fieldValueTexts, isNonBlank } from './placeText.ts';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */
@@ -30,18 +31,10 @@ const IMAGE_OPS_NAMES = [
   'paintSolidColorImageMask',
 ] as const;
 
-function fieldValuesToText(fieldValue: unknown): string[] {
-  if (typeof fieldValue === 'string' && fieldValue.trim() !== '') return [fieldValue];
-  if (Array.isArray(fieldValue)) {
-    return fieldValue.filter((v): v is string => typeof v === 'string' && v.trim() !== '');
-  }
-  return [];
-}
-
 function outlineTitles(items: Array<{ title?: string; items?: unknown[] }>): SavedPlace[] {
   const places: SavedPlace[] = [];
   for (const item of items) {
-    if (typeof item.title === 'string' && item.title.trim() !== '') {
+    if (isNonBlank(item.title)) {
       places.push({ kind: 'bookmark', text: item.title });
     }
     if (Array.isArray(item.items) && item.items.length > 0) {
@@ -56,20 +49,21 @@ async function readPlacesForPage(pdfjs: any, pdfDoc: any, pageIndex: number): Pr
   const annotations = await page.getAnnotations();
   const places: SavedPlace[] = [];
   for (const annotation of annotations) {
-    for (const text of fieldValuesToText(annotation.fieldValue)) {
+    for (const text of fieldValueTexts(annotation.fieldValue)) {
       places.push({ kind: 'field', text, pageIndex });
     }
     const commentText = annotation.contentsObj?.str;
-    if (typeof commentText === 'string' && commentText.trim() !== '') {
+    if (isNonBlank(commentText)) {
       places.push({ kind: 'comment', text: commentText, pageIndex });
     }
-    const titleText = annotation.titleObj?.str;
-    if (typeof titleText === 'string' && titleText.trim() !== '') {
+    // A form field's /T is its name, not a note someone left: not a place.
+    const titleText = annotation.subtype === 'Widget' ? undefined : annotation.titleObj?.str;
+    if (isNonBlank(titleText)) {
       places.push({ kind: 'comment', text: titleText, pageIndex });
     }
     if (annotation.annotationType === pdfjs.AnnotationType?.LINK || annotation.subtype === 'Link') {
       const url = annotation.url ?? annotation.unsafeUrl;
-      if (typeof url === 'string' && url.trim() !== '') {
+      if (isNonBlank(url)) {
         places.push({ kind: 'link', text: url, pageIndex });
       }
     }
@@ -87,14 +81,14 @@ function metadataPlaces(info: Record<string, unknown> | undefined, metadata: unk
   ];
   for (const [field, kind] of infoFields) {
     const value = info?.[field];
-    if (typeof value === 'string' && value.trim() !== '') places.push({ kind, text: value });
+    if (isNonBlank(value)) places.push({ kind, text: value });
   }
 
   // pdf.js's Metadata class has no getAll(); it exposes entries only through
   // its Symbol.iterator (get(name) for one key). Iterate it directly.
   if (metadata && typeof (metadata as any)[Symbol.iterator] === 'function') {
     for (const [, value] of metadata as Iterable<[string, unknown]>) {
-      if (typeof value === 'string' && value.trim() !== '') {
+      if (isNonBlank(value)) {
         places.push({ kind: 'metadata', text: value });
       }
     }
@@ -108,7 +102,7 @@ async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; at
   const places: SavedPlace[] = [];
   for (const attachment of attachments.values()) {
     const filename = attachment?.filename;
-    if (typeof filename === 'string' && filename.trim() !== '') {
+    if (isNonBlank(filename)) {
       places.push({ kind: 'attachment', text: filename });
     }
   }
