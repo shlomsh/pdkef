@@ -68,7 +68,10 @@ export const MAX_REPORTS_PER_PAGE = 10;
 
 // Module state, so a page load is the unit of "once" and of the cap.
 const sent = new Set<string>();
-let enabled = import.meta.env.PROD;
+// `import.meta.env` exists only under Vite; Playwright specs and scripts import
+// modules that reach this one under plain Node, where reading it would throw at
+// import time.
+let enabled = import.meta.env?.PROD === true;
 
 export function setReportingEnabledForTests(value: boolean): void {
   enabled = value;
