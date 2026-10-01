@@ -105,7 +105,7 @@ export default function RedactToolbar({
   /** Finding #3: a pending short-lived undo (a box removed, or a page
    * cleared). Present, this wins the status line's slot over the armed-tool
    * hint, the same way Merge's own undo chip wins its header slot. */
-  undoAction?: { message: string } | null;
+  undoAction?: { message: string; extra?: { label: string; onSelect: () => void } } | null;
   onUndoAction?: () => void;
   /** A restored document is already in progress, so omit the newcomer-only
    * idle tip until the person selects a tool. */
@@ -206,6 +206,9 @@ export default function RedactToolbar({
           override={undoAction ? (
             <span className={redactStyles['undo-chip']}>
               <span className={redactStyles['undo-chip-text']}>{undoAction.message}</span>
+              {undoAction.extra && (
+                <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={undoAction.extra.onSelect}>{undoAction.extra.label}</button>
+              )}
               <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>Undo</button>
             </span>
           ) : (statusMessage ?? undefined)}

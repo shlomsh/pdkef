@@ -5,6 +5,8 @@ export interface DeletablePdfObject {
   pageIndex: number;
   kind: 'image' | 'text';
   preview?: string;
+  /** Images only: the XObject the PDF draws, e.g. "5 0 R" (RED-26). */
+  imageRef?: string;
   rect: { left: number; top: number; width: number; height: number };
   start: number;
   end: number;
