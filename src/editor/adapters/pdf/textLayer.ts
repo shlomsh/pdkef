@@ -175,6 +175,49 @@ function isMostlyRTL(glyphs: PageGlyph[]): boolean {
   return letters > 0 && rtl / letters > 0.5;
 }
 
+/** One line of a page's glyphs: its words (each left to right) and where its
+ * top edge sits in the viewport, which is how lines are put top to bottom. */
+interface ReadingLine {
+  top: number;
+  words: PageGlyph[][];
+}
+
+function readingLines(glyphs: PageGlyph[], geometry: PageGeometry): ReadingLine[] {
+  const lines: ReadingLine[] = [];
+  for (const line of positionalLines(glyphs)) {
+    const words = positionalWords(line);
+    if (words.length === 0) continue;
+    lines.push({ top: Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0)), words });
+  }
+  return lines;
+}
+
+/** A word as text in logical order: a right-to-left word is stored left to
+ * right by position, so it is reversed. */
+const wordText = (word: PageGlyph[]) =>
+  (isMostlyRTL(word) ? [...word].reverse() : word).map((glyph) => glyph.unicode).join('');
+
+/** One line's words as text in reading order: the line's own direction (the
+ * majority of its letters) decides whether it starts from the right. */
+function lineTexts(words: PageGlyph[][]): string[] {
+  const ordered = isMostlyRTL(words.flat()) ? [...words].reverse() : words;
+  return ordered.map(wordText).filter(Boolean);
+}
+
+/**
+ * RED-16: the text of `glyphs` as a person reads it, one string: lines top to
+ * bottom, each line's words in its own direction, joined with single spaces.
+ * The same positional reading `wordsUnderBoxes` does for the saved-file check,
+ * so Delete's preview and the check never disagree about a Hebrew line.
+ * `geometry` is the page's, to tell which line is higher. Pure.
+ */
+export function textInReadingOrder(glyphs: PageGlyph[], geometry: PageGeometry): string {
+  return readingLines(glyphs, geometry)
+    .sort((a, b) => a.top - b.top)
+    .flatMap((line) => lineTexts(line.words))
+    .join(' ');
+}
+
 /**
  * RED-17: for each of `boxes` (same index), the words a box reaches (any
  * glyph core touching it), as text in logical reading order. Words are built
@@ -186,17 +229,12 @@ function isMostlyRTL(glyphs: PageGlyph[]): boolean {
 export function wordsUnderBoxes(glyphs: PageGlyph[], geometry: PageGeometry, boxes: PercentBox[]): string[][] {
   const covers = boxes.map((box) => percentToViewport(geometry, box));
   const perBox: { top: number; texts: string[] }[][] = boxes.map(() => []);
-  const text = (word: PageGlyph[]) => (isMostlyRTL(word) ? [...word].reverse() : word).map((glyph) => glyph.unicode).join('');
 
-  for (const line of positionalLines(glyphs)) {
-    const words = positionalWords(line);
-    if (words.length === 0) continue;
-    const top = Math.min(...words.flat().map((glyph) => glyphCore(geometry, glyph).y0));
+  for (const { top, words } of readingLines(glyphs, geometry)) {
     covers.forEach((cover, i) => {
       const reached = words.filter((word) => wordTouchesCover(geometry, word, cover));
       if (reached.length === 0) return;
-      const ordered = isMostlyRTL(reached.flat()) ? [...reached].reverse() : reached;
-      perBox[i].push({ top, texts: ordered.map(text).filter(Boolean) });
+      perBox[i].push({ top, texts: lineTexts(reached) });
     });
   }
 

@@ -4,7 +4,10 @@ export interface DeletablePdfObject {
   id: string;
   pageIndex: number;
   kind: 'image' | 'text';
+  /** Text only: the words in the box, read from the page's glyphs (RED-16); absent until read. */
   preview?: string;
+  /** The box in PDF user space, as the parser found it. */
+  bbox?: { x: number; y: number; width: number; height: number };
   /** Images only: the XObject the PDF draws, e.g. "5 0 R" (RED-26). */
   imageRef?: string;
   rect: { left: number; top: number; width: number; height: number };

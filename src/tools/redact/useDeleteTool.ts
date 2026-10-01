@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { uniqueId } from '../../editor/model/ids.ts';
 import useDeletableObjects from './useDeletableObjects.js';
 import useDeletePreviews from './useDeletePreviews.ts';
+import useObjectPreviews from './useObjectPreviews.ts';
 import type { DeletablePdfObject } from './DeletableObjectOverlay.tsx';
 import { snapshotRect, type Lift } from './DeleteLift.tsx';
 import type { RedactCommands } from './useRedactCommands.ts';
@@ -23,6 +24,8 @@ export interface UseDeleteToolDeps {
   add: RedactCommands<RedactElementLike>['add'];
   announce: (message: string) => void;
   disarmTool: () => void;
+  /** False until Delete is in use, to skip reading the pages' text (default true). */
+  readPreviews?: boolean;
 }
 
 export interface UseDeleteToolResult {
@@ -44,13 +47,16 @@ export interface UseDeleteToolResult {
  * reading everything else from here.
  */
 export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolResult {
-  const { elements, file, fileBytes, pdfDocument, pageWrapperRefs, add, announce, disarmTool } = deps;
+  const { elements, file, fileBytes, pdfDocument, pageWrapperRefs, add, announce, disarmTool, readPreviews = true } = deps;
 
   // What the Delete tool can offer to click on: images and text runs the PDF
   // itself stores as a single object, found by parsing the source file's own
   // content streams (not what's on the page after any edits this session has
   // queued - the source never changes until export, only `elements` does).
-  const deletableObjects: DeletablePdfObject[] = useDeletableObjects(file, fileBytes);
+  // RED-16: each text object carries the words pdf.js reads in its box, so the
+  // hover label, the mark's preview and the saved-file check's deleted term all
+  // say what the page shows, Hebrew in reading order.
+  const deletableObjects: DeletablePdfObject[] = useObjectPreviews(pdfDocument, useDeletableObjects(file, fileBytes), readPreviews);
   // RED-13: a page with Delete marks renders from the same rewritten content
   // the download writes, so the deleted text/image disappears on screen
   // rather than only being outlined.

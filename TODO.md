@@ -6,36 +6,23 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-16](backlog/tasks/RED-16.md) P3 · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes (in progress)
-- [SNG-08](backlog/tasks/SNG-08.md) P2 · Consolidate Redact's state before it grows further (in progress)
-
 ### Sign: finish fill mode
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too
 - [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
-- [SNG-17](backlog/tasks/SNG-17.md) P1 · Fill mode keeps the toolbar in reach under iOS's native zoom (in progress)
 
 ### Form detector accuracy
 
-- [FORM-18](backlog/tasks/FORM-18.md) P1 · A comb drawn as separate squares is a comb, not a row of checkboxes
 - [FORM-25](backlog/tasks/FORM-25.md) P2 · Detection's contract is type-checked, not only documented
 
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
 - [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
-- [DEBT-20](backlog/tasks/DEBT-20.md) P2 · Every tool page ships the whole of pdf-lib before anyone opens a file (in progress)
 
 ### Search and languages
 
-- [SEO-37](backlog/tasks/SEO-37.md) P2 · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI
 - [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is (in progress)
-
-### Polish
-
-- [MERGE-18](backlog/tasks/MERGE-18.md) P2 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
 
 ## Waiting, by date
 
@@ -62,9 +49,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
-- [MERGE-18](backlog/tasks/MERGE-18.md) · Decide route A and the Merge bookmarks switch
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
-- [SNG-17](backlog/tasks/SNG-17.md) · A check on your iPhone
 - [QUAL-14](backlog/tasks/QUAL-14.md) · The Hebrew wording
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports

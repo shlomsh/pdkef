@@ -150,6 +150,7 @@ export function portOwnerVerdict({ ownerCwd, root }) {
 export const ALWAYS_GUARD_STEPS = [
   'check:backlog',
   'check:guidance',
+  'check:never-say',
   'test:editor-dependency-directions',
   'test:module-boundaries',
   'test:gesture-golden-rule',
