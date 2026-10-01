@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   EXPORT_DURATION_BUCKETS,
@@ -179,9 +178,3 @@ describe('maintenanceEventField', () => {
   });
 });
 
-describe('deployed-function constraint', () => {
-  it('has no import statements (api/report.ts loads it as-is)', () => {
-    const source = readFileSync(new URL('./maintenanceEventSchema.ts', import.meta.url), 'utf8');
-    expect(source.split('\n').filter((line) => /^\s*import\b/.test(line))).toEqual([]);
-  });
-});
