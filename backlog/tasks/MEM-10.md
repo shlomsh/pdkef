@@ -72,6 +72,19 @@ Two follow-up calls made while building it, the same day:
   cannot strand it. If the worker refuses (a window that did not answer, such as a frozen tab or one
   from a build before this ticket), the line says to close the other tabs and keeps the button.
 
+- **The line shows only when the update cannot happen silently, and offline stays 100%.** A single
+  tab never sees it: the active worker switches builds on that tab's next navigation (a reload, another
+  tool, home, a recent file) and answers it with an instant refresh, so the page that loads is already
+  the new build. That is also what the 2026-09-20 report needed, since a plain reload never picked up a
+  waiting build. The line is for several open tabs, where one tab's navigation cannot switch builds
+  under the others; it goes away when the others close. Either path takes over only when the waiting
+  build is fully precached and the device is online, because activation deletes the old cache and with
+  it any offline coverage the new build lacks (a missed asset, the localized page packs).
+- **Dismiss:** a quiet × hides the line in that tab until its next page load. The tab still answers
+  and still reloads with the others.
+- Not built: reloading a single tab while it is backgrounded. The draftless tools keep loaded work only
+  in memory, so it would need each of them to report that work first.
+
 Acceptance adds a Playwright guard for two tabs: an old build open in both, a new build deployed, one
 click, both land on the new build with their work intact.
 
