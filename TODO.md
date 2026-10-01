@@ -8,7 +8,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Sign: finish fill mode
 
-- [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too (in progress)
 - [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
 
 ### Robustness and debt

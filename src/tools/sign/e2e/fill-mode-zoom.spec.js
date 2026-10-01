@@ -31,6 +31,10 @@ import { test, expect, devices } from '@playwright/test';
  * no CDP call reproduces "iOS lets the person pinch past a resting clamp". The
  * stand-in, `pinchInPastRestingClamp`, loosens the resting clamp to
  * `maximum-scale=5` (the part iOS does for free) and then pinches for real.
+ * The pinch itself uses `synthesizePinchGesture`'s default source, not
+ * `gestureSourceType: 'touch'`: on CI's Linux Chromium the touch source never
+ * zooms, in any config, with or without the clamp (SNG-21, measured by
+ * probing CI), while the default source zooms on both platforms.
  * Everything after that is the app's own doing and is what these tests
  * assert: its `visualViewport` 'resize' handler holds the meta's limits at
  * the settled pinch scale while zoomed, puts `maximum-scale=1` back once the
