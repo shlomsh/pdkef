@@ -2,7 +2,7 @@
 id: "FORM-02"
 title: "Canonical field types, so a detected box can become a question"
 status: "open"
-priority: "P1"
+priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
 depends_on: []
@@ -50,3 +50,7 @@ Explicitly **not** in scope: any on-device language model. MOBI-10 measured a vi
 fields well and placing them badly, and a WebLLM-class model is hundreds of megabytes against page
 budgets that only ratchet down. If the lexicon is not enough, that is a finding to record here,
 not a licence to ship weights.
+
+## 2026-10-01 board cleanup
+
+- Priority P1 -> P3.

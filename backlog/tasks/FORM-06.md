@@ -2,7 +2,7 @@
 id: "FORM-06"
 title: "Spike: measure Tesseract heb on the two evidence forms before building any scanned path"
 status: "open"
-priority: "P1"
+priority: "P3"
 epic: "form-understanding"
 phase: "near-term"
 depends_on: []
@@ -59,3 +59,7 @@ So this is a spike, not a build. One number decides whether FORM-07 is worth ope
 nothing reaches the tools. Note also that `docs/seo-competitive-findings.md` currently lists OCR
 under "rejected as architecturally impossible" and SEO-26 plans to say so publicly; a GO here
 means that row and that ticket are revised before any user-facing claim changes.
+
+## 2026-10-01 board cleanup
+
+- Priority P1 -> P3: OCR is not approved in `docs/sign-tool-product-decisions.md`.

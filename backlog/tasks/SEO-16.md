@@ -5,7 +5,7 @@ status: "open"
 priority: "P3"
 epic: "english-base"
 phase: "later"
-depends_on: ["SEO-11", "SEO-09", "SEO-10"]
+depends_on: ["SEO-11", "SEO-39"]
 legacy_state: "Open"
 ---
 
@@ -47,3 +47,7 @@ more credibility than it buys clicks.
 - No overlap with SEO-09 or SEO-10; where this review disagrees with what they shipped, it says so
   rather than silently re-editing.
 - Concrete copy as a diff; `npm run test:seo` passes.
+
+## 2026-10-01 board cleanup
+
+- depends_on: SEO-09 and SEO-10 replaced by SEO-39 (the merged 2026-10-08 read). Merge was settled by SEO-35.
