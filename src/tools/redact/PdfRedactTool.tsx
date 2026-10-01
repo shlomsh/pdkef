@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'preact/hooks';
+import { useState, useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
@@ -43,16 +43,8 @@ import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
 import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
-import {
-  applyHistoryEntries,
-  revertHistoryEntries,
-  type ActionHistoryEntry,
-} from '../../editor/model/actionHistory.ts';
-import {
-  redoStep,
-  revertCommands,
-  type HistoryStack,
-} from '../../editor/model/historyStack.ts';
+import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
+import { initialRedactState, redactReducer, isDirty, canRedo as canRedoOf, restoredNoteVisible } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
@@ -111,32 +103,34 @@ type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLEleme
 // stacking a second one.
 const UNDO_WINDOW_MS = 5000;
 
-interface RedactUndoAction {
-  message: string;
-  entryId: string;
-  extra?: { label: string; onSelect: () => void };
-}
-
 export default function PdfRedactTool() {
+  // SNG-08: the island's state lives in redactState.ts; the preferences it
+  // starts from are read once, here.
+  const [state, dispatch] = useReducer(redactReducer, undefined, () => initialRedactState({
+    activeColor: resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')),
+    activeBlurStrength: resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')),
+    brush: resolveBrush(undefined, getAppStyle()),
+  }));
+  const { elements, documentRevision } = state.edits;
+  const { activeBoxId, selectedBoxId } = state.selection;
+  const { announcement } = state.view;
+  const undoAction = state.edits.undoAction;
+  const actionHistory = state.edits.history.past;
+  const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
+
   const [file, setFile] = useState<File | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
-  const [elements, setElements] = useState<RedactElement[]>([]);
   // A returning person already knows this editor contains saved work. Do not
   // spend the identity row repeating the neutral newcomer tip after that work
   // restores; tool-specific instructions remain available whenever a tool is
   // armed. Manual picks deliberately reset this to the welcoming default.
   const [showWelcomeTip, setShowWelcomeTip] = useState(true);
-  // RED-45: a document reopened with its work says so, quietly, until the first edit.
-  const [restoredWithWork, setRestoredWithWork] = useState(false);
   // Draft persistence needs an editor-owned baseline, not a guess based on
   // when a File object first appeared. A load/restoration captures the current
   // revision; every real document operation advances it.
-  const [documentRevision, setDocumentRevision] = useState(0);
-  const [draftBaselineRevision, setDraftBaselineRevision] = useState(0);
   const documentRevisionRef = useRef(documentRevision);
   documentRevisionRef.current = documentRevision;
-  const markDocumentEdited = () => setDocumentRevision((revision) => revision + 1);
   // DEBT-18: an export is only wanted while the document it was started from
   // is still the document on screen. Both keys are read fresh on every check,
   // so a file swap or any edit that bumps the revision - including an undo or
@@ -158,7 +152,6 @@ export default function PdfRedactTool() {
   // the next export or the next file.
   const [exportCancelled, setExportCancelled] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
@@ -240,7 +233,6 @@ export default function PdfRedactTool() {
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
   // otherwise and don't clutter pages full of redaction boxes.
-  const [activeBoxId, setActiveBoxId] = useState<string | null>(null);
   // Which box shows its whiteout color-picker toolbar. Deliberately a separate,
   // click-driven *sticky* selection (cleared only by clicking elsewhere), not tied to
   // hover like activeBoxId above. ColorPickerMenu's Popover portals its open dropdown
@@ -249,7 +241,6 @@ export default function PdfRedactTool() {
   // box's mouseleave and unmount the toolbar (and the open popover with it) before a
   // color could be picked. Mirrors the Sign tool's activeElementId, which is click-set
   // and never cleared on mouseleave for the same reason.
-  const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   // RED-31: hold Peek (or Space) to see under every box. View state only.
   const { peekAll, setPeekAll } = usePeekAll();
 
@@ -277,9 +268,6 @@ export default function PdfRedactTool() {
   // (ordinary key auto-repeat, no re-render between them) act on the actual
   // result of each other rather than both reverting the same render-scoped
   // "newest" entry - see applyRevert, undoLast and redoLast below.
-  const [history, setHistory] = useState<HistoryStack<RedactElement>>({ past: [], future: [] });
-  const actionHistory = history.past;
-  const redoHistory = history.future;
 
   // Redact design-review finding #3: deleteElement and clearPage used to
   // change elements with no announcement and no way back short of the full
@@ -288,7 +276,6 @@ export default function PdfRedactTool() {
   // toolbar's status slot, naming the entry it can revert by id rather than
   // "whatever is newest" - correct even if another action lands before it is
   // clicked (see runUndoChip below).
-  const [undoAction, setUndoAction] = useState<RedactUndoAction | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Redact design-review finding #4: the exported (redacted) bytes an
@@ -328,8 +315,7 @@ export default function PdfRedactTool() {
       if (e.key !== 'Escape') return;
       if (!activeStyle && !activeBoxId && !selectedBoxId) return;
       setTool(null);
-      setActiveBoxId(null);
-      setSelectedBoxId(null);
+      dispatch({ type: 'SELECTION_CLEARED' });
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -339,10 +325,7 @@ export default function PdfRedactTool() {
   // selection (the tool disarms after one placement, so this is the usual state
   // right after drawing a box). An armed tool's own page handler deselects.
   const tapOutside = useTapOutsideDeselect({
-    onDeselect: () => {
-      setActiveBoxId(null);
-      setSelectedBoxId(null);
-    },
+    onDeselect: () => dispatch({ type: 'SELECTION_CLEARED' }),
     isArmed: () => !!activeStyle,
     excludedSelector: [
       `.${styles['redact-box']}`,
@@ -493,27 +476,29 @@ export default function PdfRedactTool() {
         // RED-39: a new file starts clean - no tool armed, nothing selected, Find
         // closed with its term. None of that belongs to the file just left.
         disarmTool();
-        setActiveBoxId(null);
-        setSelectedBoxId(null);
         find.setOpen(false);
         find.setTerm('');
         find.setPreset(null);
         setExportCancelled(false);
         setShowWelcomeTip(!restored);
-        setRestoredWithWork(restored && presetElements.length > 0);
         setFile(selected);
         setPdfDocument(null);
         setNumPages(0);
         setErrorDetail(null);
         setProgress(0);
-        setCarried(preset.carried);
-        setBrush(resolveBrush(preset.carried, getAppStyle()));
         // RED-40: a restored document keeps its own colour and strength.
-        setActiveColor(resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
-        setActiveBlurStrength(resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength')));
-        setElements(presetElements);
-        setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
-        setDraftBaselineRevision(documentRevisionRef.current);
+        const brush = resolveBrush(preset.carried, getAppStyle());
+        const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
+        const strength = resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength'));
+        setCarried(preset.carried);
+        setBrush(brush);
+        setActiveColor(color);
+        setActiveBlurStrength(strength);
+        // A restored draft has no redoable future - future is never persisted.
+        dispatch({
+          type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
+          carried: preset.carried, brush, activeColor: color, activeBlurStrength: strength,
+        });
         seedUniqueId(presetElements);
         fileBytesRef.current = bytes;
       },
@@ -558,7 +543,7 @@ export default function PdfRedactTool() {
     actionHistory,
     carried,
     status,
-    isDirty: documentRevision !== draftBaselineRevision,
+    isDirty: isDirty(state),
     loadStartedRef,
     loadPdf,
     isElement: isRedactElement,
@@ -578,8 +563,7 @@ export default function PdfRedactTool() {
       return; // Ignore clicks on an existing box or its floating toolbar
     }
 
-    setActiveBoxId(null); // clicking blank page area deselects/hides any box's controls
-    setSelectedBoxId(null);
+    dispatch({ type: 'SELECTION_CLEARED' }); // clicking blank page area deselects/hides any box's controls
     e.preventDefault();
     const container = e.currentTarget;
     const origin = getPointerPercent(e, container);
@@ -641,35 +625,23 @@ export default function PdfRedactTool() {
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
   const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
-    setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, entryId: entry.id, extra });
-    undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
+    dispatch({ type: 'UNDO_CHIP_SHOWN', message, entryId: entry.id, extra });
+    undoTimerRef.current = setTimeout(() => dispatch({ type: 'UNDO_CHIP_DISMISSED' }), UNDO_WINDOW_MS);
   };
 
   const clearUndoChip = () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     undoTimerRef.current = null;
-    setUndoAction(null);
+    dispatch({ type: 'UNDO_CHIP_DISMISSED' });
   };
 
-  // Clears a removed box from both selection states - passed to
-  // useRedactCommands as forgetSelection, and shared by every handler that
-  // removes elements so a stale id can never linger in activeBoxId/selectedBoxId.
-  const forgetSelection = (ids: ReadonlySet<string>) => {
-    setActiveBoxId(prev => (prev && ids.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && ids.has(prev) ? null : prev));
-  };
-
-  // RED-14: the one commit path every edit below goes through - change
-  // `elements`, mark the document edited, forget any removed selection, push
-  // one history entry and, for a removal, show the undo chip.
+  // RED-14: the one commit path every edit below goes through - one
+  // EDIT_COMMITTED (elements, selection, history entry and revision change
+  // together) and, for a removal, the undo chip.
   const commands = useRedactCommands<RedactElement>({
     elements,
-    setElements,
-    setHistory,
-    markDocumentEdited,
-    forgetSelection,
+    commit: (commit) => dispatch({ type: 'EDIT_COMMITTED', ...commit }),
     registerUndo,
     describeUpdate: (kind, element) => describeRedactUpdate(kind, element.type),
   });
@@ -687,48 +659,6 @@ export default function PdfRedactTool() {
     announce: setAnnouncement,
     disarmTool,
   });
-
-  // Reverts a set of history entries and keeps every dependent piece in sync
-  // - selection and the action history list. Shared by Cmd/Ctrl+Z and the
-  // toolbar's Undo (undoLast) and by the short-lived undo chip (runUndoChip),
-  // so the two triggers cannot drift on what reverting actually does.
-  //
-  // Neither declares whether its revert is redoable. They used to, and they
-  // were guessing about something only knowable at the moment of the revert:
-  // `revertCommands` looks at the stack and keeps a redo whenever what was
-  // reverted is the newest command, or the newest few together. The chip is
-  // why that still matters - it reverts one named entry by id, which is a
-  // plain undo while nothing has landed above it and a middle-of-the-stack
-  // revert once something has.
-  //
-  // `select` runs inside `setHistory`'s updater, reading the actual current
-  // `past` rather than a value this render closed over - what makes two undo
-  // keydowns landing in the same task two distinct reverts instead of the
-  // same render-scoped "newest" entry reverted twice. An empty result reverts
-  // nothing, which is also how a stale chip id becomes a silent no-op.
-  const applyRevert = (
-    describeReverted: (entries: ActionHistoryEntry<RedactElement>[]) => string,
-    select: (past: ActionHistoryEntry<RedactElement>[]) => ActionHistoryEntry<RedactElement>[],
-  ) => {
-    let reverted: ActionHistoryEntry<RedactElement>[] = [];
-    setHistory((current) => {
-      reverted = select(current.past);
-      if (reverted.length === 0) return current;
-      return revertCommands(current.past, current.future, new Set(reverted.map((entry) => entry.id)));
-    });
-    if (reverted.length === 0) return;
-
-    let survivingIds = new Set<string>();
-    setElements((prevElements) => {
-      const nextElements = revertHistoryEntries(prevElements, reverted);
-      survivingIds = new Set(nextElements.map((element) => element.id));
-      return nextElements;
-    });
-    markDocumentEdited();
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setAnnouncement(describeReverted(reverted));
-  };
 
   const deleteElement = (id: string) => {
     const el = elements.find(e => e.id === id);
@@ -749,68 +679,31 @@ export default function PdfRedactTool() {
     numPages,
     uniqueId,
     commands,
-    select: (id) => { setSelectedBoxId(id); setActiveBoxId(id); },
+    select: (id) => dispatch({ type: 'BOX_SELECTED', id }),
   });
   const { updateElement, unlinkFromGroup, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions } = linkedBoxes;
 
-  // Cmd/Ctrl+Z: revert the single newest command. `past.slice(0, 1)` is read
-  // inside applyRevert's own updater, not from this render's closure, which
-  // is exactly the staleness two undo keydowns in the same task (ordinary key
-  // auto-repeat) would otherwise exploit. Nothing to undo reverts nothing.
-  const undoLast = () => {
-    applyRevert((entries) => `Undid: ${entries[0].description}`, (past) => past.slice(0, 1));
-  };
+  // Cmd/Ctrl+Z reverts the single newest command; the reducer reads the
+  // current `past`, so two undo keydowns landing in the same task (key
+  // auto-repeat) are two distinct reverts. Nothing to undo reverts nothing.
+  const undoLast = () => dispatch({ type: 'UNDO' });
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
   // it named, by id, rather than "whatever is newest" - if another action
   // landed after this one and before the chip was clicked, reverting the
   // newest would silently revert the wrong thing. A stale id is a silent
-  // no-op, handled by applyRevert itself.
-  //
-  // Whether that revert leaves a redo behind is no longer this caller's
-  // guess. While the chip's entry is still the newest, reverting it is a
-  // plain undo and the redo survives; once something has landed above it
-  // inside the five-second window, it is a middle-of-the-stack revert and the
-  // future is dropped.
+  // no-op. Whether that revert leaves a redo behind is historyStack.ts's
+  // `revertCommands` call, made from the stack itself.
   const runUndoChip = () => {
     if (!undoAction) return;
     const entryId = undoAction.entryId;
     clearUndoChip();
-    applyRevert(
-      (entries) => `Undid: ${entries[0].description}`,
-      (past) => past.filter((action) => action.id === entryId),
-    );
+    dispatch({ type: 'UNDO', entryId });
   };
 
   // Shift+Cmd/Ctrl+Z or Ctrl+Y: reapplies the single most recently undone
-  // command, historyStack.ts's own `redoStep`, the exact mirror of undoLast -
-  // same reasoning for reading `future` inside the functional update rather
-  // than this render's closed-over `redoHistory`. applyHistoryEntries is
-  // revertHistoryEntries' mirror (an 'add' entry is restored, a 'delete'
-  // entry is re-removed), so the same surviving-id reconciliation applies:
-  // an id the redo just removed again is cleared from selection.
-  const redoLast = () => {
-    let redone: ActionHistoryEntry<RedactElement>[] = [];
-    setHistory((current) => {
-      const step = redoStep(current.past, current.future);
-      if (!step) return current;
-      redone = [step.entry];
-      return { past: step.past, future: step.future };
-    });
-    if (redone.length === 0) return;
-    const nextAction = redone[0];
-
-    let survivingIds = new Set<string>();
-    setElements((prevElements) => {
-      const nextElements = applyHistoryEntries(prevElements, [nextAction]);
-      survivingIds = new Set(nextElements.map((element) => element.id));
-      return nextElements;
-    });
-    markDocumentEdited();
-    setActiveBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setSelectedBoxId(prev => (prev && !survivingIds.has(prev) ? null : prev));
-    setAnnouncement(`Redid: ${nextAction.description}`);
-  };
+  // command, the exact mirror of undoLast.
+  const redoLast = () => dispatch({ type: 'REDO' });
 
   useHistoryShortcuts(undoLast, redoLast);
 
@@ -1116,7 +1009,7 @@ export default function PdfRedactTool() {
             actionHistory={actionHistory}
             onUndo={undoLast}
             onRedo={redoLast}
-            canRedo={redoHistory.length > 0}
+            canRedo={canRedoOf(state)}
             exporting={status === 'redacting'}
             undoAction={undoAction && {
               message: undoAction.message,
@@ -1131,7 +1024,7 @@ export default function PdfRedactTool() {
             peeking={peekAll}
             onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}
-            restoredNote={restoredWithWork && documentRevision === draftBaselineRevision}
+            restoredNote={restoredNoteVisible(state)}
             brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
               <BrushControls
                 tool={activeStyle}
@@ -1219,11 +1112,11 @@ export default function PdfRedactTool() {
                         el={el}
                         isSelected={el.id === selectedBoxId}
                         isActiveHover={el.id === activeBoxId}
-                        onSelect={(id: string) => { setActiveBoxId(id); setSelectedBoxId(id); }}
+                        onSelect={(id: string) => dispatch({ type: 'BOX_SELECTED', id })}
                         onChange={updateElement}
                         getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
-                        onHoverEnter={() => setActiveBoxId(el.id)}
-                        onHoverLeave={() => setActiveBoxId((prev) => (prev === el.id ? null : prev))}
+                        onHoverEnter={() => dispatch({ type: 'BOX_HOVERED', id: el.id })}
+                        onHoverLeave={() => dispatch({ type: 'BOX_UNHOVERED', id: el.id })}
                         onDelete={deleteElement}
                         onChangeColor={changeElementColor}
                         onChangeStrength={changeBlurStrength}
