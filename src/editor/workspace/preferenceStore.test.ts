@@ -278,6 +278,11 @@ describe('editor workspace preferences', () => {
       expect(getAppStyle({ userScope: scope })).toEqual({});
     });
 
+    it('keeps a blur strength and a whiteout colour (RED-40)', () => {
+      expect(rememberAppStyle({ blurStrength: 0.55, whiteoutColor: '#eeeeee' }, { userScope: scope })).toBe(true);
+      expect(getAppStyle({ userScope: scope })).toEqual({ blurStrength: 0.55, whiteoutColor: '#eeeeee' });
+    });
+
     it('merges an explicit choice key by key across calls', () => {
       expect(rememberAppStyle({ color: '#111111' }, { userScope: scope })).toBe(true);
       expect(rememberAppStyle({ bold: true }, { userScope: scope })).toBe(true);

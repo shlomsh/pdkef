@@ -17,7 +17,7 @@ import type { GestureControllerOptions } from '../../lib/gestures/controller.ts'
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
-import { getAppStyle } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -184,8 +184,9 @@ describe('PdfRedactTool UI flow', () => {
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
-  it('uses the shared remembered whiteout color for a newly drawn redaction', async () => {
-    localStorage.setItem('pdf-toolkit:lastWhiteoutColor', '#123456');
+  it('uses the remembered app-wide whiteout color for a newly drawn redaction', async () => {
+    // RED-40: the colour is per-document style; the app-wide style seeds a new document.
+    rememberAppStyle({ whiteoutColor: '#123456' });
 
     try {
       const drawArea = await loadFileAndGetDrawArea();
@@ -196,7 +197,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(surface).not.toBeNull();
       expect(surface.style.backgroundColor).toBe('rgb(18, 52, 86)');
     } finally {
-      localStorage.removeItem('pdf-toolkit:lastWhiteoutColor');
+      localStorage.clear();
     }
   });
 
@@ -815,7 +816,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const deleteBtn = query<HTMLButtonElement>(box, '[data-editor-actions] button[title="Delete element"]');
+    const deleteBtn = query<HTMLButtonElement>(box, '[data-editor-actions] button[title="Delete"]');
 
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
@@ -1026,7 +1027,7 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
     });
 
     it('a click anywhere outside the selected box drops the selection, a click on the box keeps it', async () => {
@@ -1082,7 +1083,7 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
       // No per-element colour control for blackout/blur - only whiteout gets
       // one, so the toolbar holds exactly its three shared buttons (duplicate,
       // repeat-on-every-page since this mock document has more than one page,
@@ -1115,7 +1116,7 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
       // Blur additionally gets its strength slider (RED-30), which is a range
       // input, not a button: its buttons are blackout's duplicate/repeat/delete trio.
       expect(box.querySelector('[data-editor-actions] [data-editor-blur-strength-input]')).not.toBeNull();
@@ -1645,7 +1646,7 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -1718,7 +1719,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           window.dispatchEvent(new MouseEvent('mouseup'));
         });
-        const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+        const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
         await act(async () => {
           deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
@@ -2055,7 +2056,7 @@ describe('PdfRedactTool UI flow', () => {
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       const firstBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
       await selectBox(firstBox);
-      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => {
         duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -2244,7 +2245,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(2);
 
       await selectBox(boxes()[0]);
-      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => { duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(boxes()).toHaveLength(3);
 
@@ -2457,7 +2458,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -2505,7 +2506,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
