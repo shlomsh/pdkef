@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapFrame, parseArgs, parseFrame, parseFrames, wrapperConfigText } from './errors-resolve.mjs';
+import { clipLine, mapFrame, parseArgs, parseFrame, parseFrames, wrapperConfigText } from './errors-resolve.mjs';
 
 describe('parseFrame', () => {
   it('parses chunk:line:col', () => {
@@ -58,5 +58,26 @@ describe('parseFrames', () => {
   });
   it('rejects no frames', () => {
     expect(parseFrames([]).error).toBeTruthy();
+  });
+});
+
+describe('clipLine', () => {
+  it('leaves a short line unchanged', () => {
+    expect(clipLine('const a = 1;', 5)).toBe('const a = 1;');
+    expect(clipLine('x'.repeat(160), 80)).toBe('x'.repeat(160));
+  });
+  it('clips a minified line to a window around the column with both ellipses', () => {
+    const line = 'a'.repeat(3251) + 'B' + 'c'.repeat(1748);
+    const out = clipLine(line, 3252);
+    expect(out.length).toBeLessThanOrEqual(162);
+    expect(out.startsWith('…')).toBe(true);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out).toContain('B');
+  });
+  it('clips near the start with only a trailing ellipsis', () => {
+    const out = clipLine('y'.repeat(5000), 3);
+    expect(out.startsWith('…')).toBe(false);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(161);
   });
 });

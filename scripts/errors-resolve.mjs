@@ -47,6 +47,14 @@ export function mapFrame(mapJson, line, col) {
   return { source: pos.source, line: pos.line, column: pos.column + 1, name: pos.name };
 }
 
+// A minified dependency's "line" is the whole file. Show ~width chars centred on the 1-based column.
+export function clipLine(text, col, width = 160) {
+  if (text.length <= width) return text;
+  const start = Math.max(0, Math.min(col - 1 - Math.floor(width / 2), text.length - width));
+  const end = Math.min(text.length, start + width);
+  return `${start > 0 ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
+}
+
 export function parseArgs(argv) {
   let max = 40;
   // Deployed builds come from main; --from walks another ref, like a local
@@ -125,7 +133,7 @@ function main() {
         if (existsSync(file)) {
           const lines = readFileSync(file, 'utf8').split('\n');
           for (let n = Math.max(1, pos.line - 1); n <= Math.min(lines.length, pos.line + 1); n++) {
-            console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${lines[n - 1]}`);
+            console.log(`${n === pos.line ? '>' : ' '} ${String(n).padStart(5)}  ${clipLine(lines[n - 1], pos.column)}`);
           }
         }
       });
