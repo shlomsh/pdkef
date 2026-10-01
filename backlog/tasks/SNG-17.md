@@ -1,13 +1,10 @@
 ---
 id: "SNG-17"
 title: "Fill mode keeps the toolbar in reach under iOS's native zoom"
-status: "in_progress"
+status: "retired"
 priority: "P1"
 epic: "sign-fill-mode"
-horizon: "now"
-order: 3
 depends_on: ["SNG-15"]
-needs: "A check on your iPhone"
 ---
 
 # SNG-17 · Fill mode keeps the toolbar in reach under iOS's native zoom
@@ -36,3 +33,11 @@ zoomed in with the keyboard up, the page shifts sideways and the font list opens
 ## 2026-10-01 board cleanup
 
 - Stays in_progress. FontSheet (3f32b9a) and `visualViewportClamp` (0ae99dc) shipped; the toolbar under zoom (AC1) and pinch (AC3) need Shlomi's iPhone.
+
+## 2026-10-01, retired (Shlomi): won't do
+
+Its cause is gone on main: `maximum-scale=1` at rest stops iOS zooming in on a focused field, and a
+person's own pinch is held between fields (`viewportZoomLock.ts`, 9666ebc8, c358e330). The font list is
+a bottom sheet on phones (3f32b9a) and clamps into the visible viewport (0ae99dc). What it never did:
+the main `SignToolbar` does not follow the visual viewport, so it can sit off screen while the person
+has pinched in themselves. Not pursued.
