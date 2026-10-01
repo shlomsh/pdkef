@@ -1,11 +1,9 @@
 ---
 id: "RED-48"
 title: "A Delete-only save carries no copy of what was deleted"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 

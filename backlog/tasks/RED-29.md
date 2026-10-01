@@ -1,11 +1,9 @@
 ---
 id: "RED-29"
 title: "Delete finds what a page draws inside a Form XObject"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "next"
-order: 1
 depends_on: []
 ---
 
@@ -30,3 +28,7 @@ tokenizes only the page's own `/Contents` and records a `Do` only when it paints
 - The on-screen preview (`buildDeletePreviewPage`) and the saved-file check follow the same path.
 - A fixture shaped like this file (one Form XObject per page holding all text and an image) in the unit
   tests, plus an export test that the deleted run is gone and the other pages are untouched.
+
+## Result
+
+`extractPageObjects` walks Form XObjects (form `/Resources` falling back to the parent's, `/Matrix`, depth 8, cycle guard, first `Do` only) and every object carries `formPath`. Deletion never edits a Form in place: it copies each Form on the path for that page, repoints the parent, splices the copy, and drops originals nothing references any more. The delete box carries `formPath` through drafts, the export and the preview. Tested on a fixture shaped like the insurance policy (per-page, shared and nested Forms), end to end through `applyPageEdits`, with and without a cover box. (998b8f1c, e7618ad2, a4f7c59c)
