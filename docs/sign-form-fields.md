@@ -128,7 +128,7 @@ strip, landed near 12pt. A boxed comb has no `writable` and seeds from its own b
 the box. In both cases the seed is the whole strip, never the comb's own box-fill margin, so a document
 that starts on a comb carries the size a same-height cell in its row would.
 
-**Open-teeth height cap, tried and dropped.** A cap on an open comb's font size from its teeth height was
+**Open-teeth height cap, tried and dropped** (removed in `c2e417eb`). A cap on an open comb's font size from its teeth height was
 added and removed within one afternoon. Open teeth are dividers, not a height to fit, so they pass no
 height ceiling and the digits keep the size every other field on the form gets.
 
