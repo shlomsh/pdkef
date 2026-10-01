@@ -3,6 +3,8 @@ import {
   CHECK_LEAD,
   attachmentsNote,
   canCover,
+  canRemove,
+  removedMessage,
   COVER_IT,
   COVER_IT_NOTE,
   findingText,
@@ -194,6 +196,34 @@ describe('no string claims absence or safety', () => {
     for (const count of [0, 1, 2, 5]) {
       const note = attachmentsNote(count);
       if (note !== null) assertSafe(`attachmentsNote(${count})`, note);
+    }
+  });
+});
+
+describe('Remove it copy', () => {
+  it('names a field name as a name, and only that', () => {
+    const name: Finding = { kind: 'in-place', place: 'field', pageIndex: 0, text: 'x', placeIndex: 0, removable: false };
+    expect(findingText(name)).toBe("In a form field's name on page 1.");
+  });
+
+  it('offers Remove it for in-place findings that are removable, and for nothing else', () => {
+    expect(canRemove({ kind: 'in-place', place: 'title', text: 'x', placeIndex: 0 })).toBe(true);
+    expect(canRemove({ kind: 'in-place', place: 'field', text: 'x', placeIndex: 0, removable: false })).toBe(false);
+    expect(canRemove({ kind: 'in-text', pageIndex: 0 })).toBe(false);
+    expect(canRemove({ kind: 'visible-in-picture', pageIndex: 0 })).toBe(false);
+  });
+
+  it('says plainly what was removed', () => {
+    expect(removedMessage({ kind: 'title', text: 'x' })).toBe('Removed the title. Saved again and downloaded.');
+    expect(removedMessage({ kind: 'attachment', text: 'a.png' })).toBe('Removed the attachment "a.png". Saved again and downloaded.');
+    expect(removedMessage({ kind: 'field', text: 'x' })).toBe('Cleared the field. Saved again and downloaded.');
+    expect(removedMessage({ kind: 'metadata', text: 'x' })).toBe('Removed the document details. Saved again and downloaded.');
+    expect(removedMessage({ kind: 'bookmark', text: 'Short' })).toBe('Removed the bookmark "Short". Saved again and downloaded.');
+    const long = removedMessage({ kind: 'bookmark', text: 'b'.repeat(80) });
+    expect(long).toBe(`Removed the bookmark "${'b'.repeat(39)}...". Saved again and downloaded.`);
+    for (const kind of ['comment', 'link', 'author', 'subject', 'keywords'] as const) {
+      const text = removedMessage({ kind, text: 'x' });
+      expect(text).not.toMatch(/successfully|\u2014/);
     }
   });
 });

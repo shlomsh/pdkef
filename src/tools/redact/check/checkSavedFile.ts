@@ -73,6 +73,7 @@ export function checkSavedFile(input: CheckSavedFileInput): TermResult[] {
         pageIndex: place.pageIndex,
         text: place.text,
         placeIndex,
+        ...(place.removable === false ? { removable: false } : {}),
       });
     });
 

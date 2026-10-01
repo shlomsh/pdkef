@@ -178,7 +178,7 @@ function annotationPlaces(ctx: PDFContext, annots: PDFArray, pageIndex: number):
     if (isNonBlank(contents)) {
       places.push({ place: { kind: 'comment', text: contents, pageIndex }, remove: removeNote });
     }
-    // A widget's /T is the field's name, which readSavedFile does not report either.
+    // A widget's /T is the field's name: readSavedFile reports it as not removable.
     const title = isWidget ? undefined : textOf(ctx.lookup(dict.get(N('T'))));
     if (isNonBlank(title)) {
       places.push({ place: { kind: 'comment', text: title, pageIndex }, remove: removeNote });

@@ -140,7 +140,8 @@ describe('removePlace', () => {
     const located = locatePlaces(await PDFDocument.load(bytes, { updateMetadata: false }));
     // pdf.js lists form fields after the other annotations; the order is not part of the contract.
     const withoutXmp = (places) => places.filter((p) => p.kind !== 'metadata').map(label).sort();
-    expect(withoutXmp(located.map((l) => l.place))).toEqual(withoutXmp(saved.places));
+    // A field's name is reported but not removable, so the locator has no entry for it.
+    expect(withoutXmp(located.map((l) => l.place))).toEqual(withoutXmp(saved.places.filter((p) => p.removable !== false)));
     expect(located.some((l) => l.place.kind === 'metadata')).toBe(true);
     expect(saved.places.some((p) => p.kind === 'metadata')).toBe(true);
     // The fixture really covers every kind.
@@ -156,7 +157,7 @@ describe('removePlace', () => {
     // XMP and a bookmark with children are their own tests below.
     const skip = (p) => p.kind === 'metadata' || ['Alpha', 'Alpha-1'].includes(p.text);
     for (const [index, place] of before.places.entries()) {
-      if (skip(place)) continue;
+      if (skip(place) || place.removable === false) continue;
       const after = await read(await removePlace(bytes, place));
       const expected = before.places.filter((_, i) => i !== index).map(label);
       expect(after.places.map(label), `after removing ${label(place)}`).toEqual(expected);
@@ -251,7 +252,7 @@ describe('removePlace', () => {
     const out = await removePlace(bytes, { kind: 'field', text: 'field-secret-value', pageIndex: 0 });
     expect(await contains(out, 'field-secret-value')).toBe(false);
     const after = await read(out);
-    expect(after.places.some((p) => p.kind === 'field')).toBe(false);
+    expect(after.places.some((p) => p.kind === 'field' && p.removable !== false)).toBe(false);
     // The field itself is still there, just empty.
     const doc = await PDFDocument.load(out, { updateMetadata: false });
     expect(doc.getForm().getFields().map((f) => f.getName())).toEqual(['the.field']);
