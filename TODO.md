@@ -6,7 +6,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-_Nothing is up next._
+### Robustness and debt
+
+- [DEBT-27](backlog/tasks/DEBT-27.md) P1 · Error reports carry the call chain and the page's situation, not just one frame (in progress)
 
 ## Waiting, by date
 

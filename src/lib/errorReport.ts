@@ -4,7 +4,15 @@
  */
 
 import { errorName, topFrame } from './errorIdentity.ts';
-import { ERROR_REPORT_PATH, parseErrorReport, type ErrorArea, type ErrorReport } from './errorReportSchema.ts';
+import {
+  ERROR_REPORT_PATH,
+  NO_STEP,
+  pageAge,
+  parseErrorReport,
+  type ErrorArea,
+  type ErrorReport,
+  type PageContext,
+} from './errorReportSchema.ts';
 
 export * from './errorReportSchema.ts';
 
@@ -33,15 +41,31 @@ export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
 /**
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
- * dev build).
+ * dev build). Pure: the page facts come in as `context`.
+ *
+ * TODO(DEBT-27 brief A): stack = stackFrames(error) from errorIdentity.ts;
+ * null if empty; then parseErrorReport({ area, name, stack, step, ...context }).
  */
-export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | null {
-  if (!(error instanceof Error)) return null;
-  const name = errorName(error);
-  if (IGNORED_ERROR_NAMES.has(name)) return null;
-  const frame = topFrame(error);
-  if (!frame) return null;
-  return parseErrorReport({ area, name, frame });
+export function toErrorReport(
+  area: ErrorArea,
+  error: unknown,
+  step: string,
+  context: PageContext,
+): ErrorReport | null {
+  void area; void error; void step; void context;
+  return null;
+}
+
+/**
+ * The page facts, read at report time. Never throws; any fact it cannot read
+ * falls back to the plainest value (`/`, false, false).
+ *
+ * TODO(DEBT-27 brief A): implement from location.pathname (fallback '/' when
+ * it does not pass the schema), matchMedia('(display-mode: standalone)'),
+ * navigator.serviceWorker?.controller, and pageAge(performance.now()).
+ */
+export function readPageContext(): PageContext {
+  return { tool: '/', installed: false, sw: false, age: 'under_10s' };
 }
 
 /**
@@ -49,27 +73,13 @@ export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | nu
  * each distinct report at most once per page load and at most
  * `MAX_REPORTS_PER_PAGE` in total; sent with `navigator.sendBeacon` to
  * `ERROR_REPORT_PATH`. Never throws, never awaits, never changes what the
- * caller does next.
+ * caller does next. `step` names what the call site was doing; every call site
+ * passes one (DEBT-27).
+ *
+ * TODO(DEBT-27 brief A): dedupe on `${name}|${stack[0]}` as before.
  */
-export function reportError(area: ErrorArea, error: unknown): void {
-  try {
-    if (!enabled) return;
-    if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;
-    if (sent.size >= MAX_REPORTS_PER_PAGE) return;
-    const report = toErrorReport(area, error);
-    if (!report) return;
-    // Not keyed on area: a defect reported at its catch site that also escapes
-    // as an unhandled rejection is one defect, not two.
-    const key = `${report.name}|${report.frame}`;
-    if (sent.has(key)) return;
-    sent.add(key);
-    navigator.sendBeacon(
-      ERROR_REPORT_PATH,
-      new Blob([JSON.stringify(report)], { type: 'application/json' }),
-    );
-  } catch {
-    // Reporting must never change what the caller does next.
-  }
+export function reportError(area: ErrorArea, error: unknown, step: string = NO_STEP): void {
+  void area; void error; void step;
 }
 
 export const MAX_REPORTS_PER_PAGE = 10;
