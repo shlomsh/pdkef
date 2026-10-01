@@ -33,7 +33,8 @@ describe('useDeleteTool: the same image on other pages', () => {
     expect(add).toHaveBeenCalledTimes(1);
     const [first, firstOptions] = add.mock.calls[0];
     expect(first).toHaveLength(1);
-    expect(firstOptions.description).toBe('Deleted an image, also on 4 other pages');
+    expect(firstOptions.description).toBe('Deleted an image');
+    expect(firstOptions.chipMessage).toBe('Deleted an image, also on 4 other pages');
     expect(firstOptions.undoExtra.label).toBe('Every page');
 
     act(() => { firstOptions.undoExtra.onSelect(); });

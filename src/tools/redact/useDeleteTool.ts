@@ -100,19 +100,21 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
     });
     if (newLifts.length) setLifts((prev) => [...prev, ...newLifts]);
     // RED-33: one drag is one history entry, so one undo restores them all.
-    let summary = options.summary ?? deletedSummary(objects);
-    // RED-26: one image that other pages also draw offers "Every page" on the chip.
+    const summary = options.summary ?? deletedSummary(objects);
+    // RED-26: one image that other pages also draw offers "Every page" on the
+    // chip, which says so; the history entry keeps the plain summary.
+    let chipMessage: string | undefined;
     let undoExtra: { label: string; onSelect: () => void } | undefined;
     if (!options.summary && objects.length === 1) {
       const { rest, otherPages } = restOfImage(deletableObjects, markedForDeletionIds, objects[0]);
       if (otherPages > 0) {
-        summary = sharedImageMessage(otherPages);
+        chipMessage = sharedImageMessage(otherPages);
         // Through a ref: this runs on a later render, and `add` must see that render's elements.
         undoExtra = { label: 'Every page', onSelect: () => latest.current(rest, { summary: EVERY_PAGE_MESSAGE }) };
       }
     }
-    add(created, { type: 'ADD_DELETE', description: summary, undoChip: true, undoExtra });
-    announce(`${summary}.`);
+    add(created, { type: 'ADD_DELETE', description: summary, undoChip: true, undoExtra, chipMessage });
+    announce(`${chipMessage ?? summary}.`);
     // Marking is this tool's placement, so it spends the arming.
     disarmTool();
   };
