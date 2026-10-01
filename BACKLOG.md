@@ -22,7 +22,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too |  |
+| SNG-21 | P2 | [SNG-21](backlog/tasks/SNG-21.md) · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too | In progress |
 | SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
 
 ### Then, in order
