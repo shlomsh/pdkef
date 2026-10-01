@@ -15,7 +15,7 @@ Sketches: canvas https://claude.ai/code/artifact/04a61526-d581-42b9-9c67-80265d9
 The stage is the canvas and its commands, together. A command that changes the shape of the output
 (the mode) is never out of view while the canvas is, and the canvas changes shape the moment the
 command changes. The preview is the mode. Direction A's rule still holds: the output is the centre,
-the input file is a rail you glance at ([merge-direction-a-spec.md](./merge-direction-a-spec.md)).
+the input file is a rail you glance at ([merge-direction-a-spec.md](./archive/merge-direction-a-spec.md)).
 
 Why the old screen failed: the mode was a real decision presented as an already-made one. One card
 preselected, two cards that differ only by tint, a heading numbered "1." that needs no action, and a

@@ -227,7 +227,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
      /compress/ and /merge/ pass: picking a file used to shrink this title and
      drop the subhead at every width, which is what made the option cards and
      the primary button jump up underneath it). Below 1024px that fold-away is
-     still doing real work: docs/view-density-control-spec.md 4.7 and
+     still doing real work: docs/archive/view-density-control-spec.md 4.7 and
      src/data/tools.js record it by name for Compress and Compress Image
      specifically ("the Compress button sat ~550px below the fold" on a
      phone), and it is kept there, unchanged, for exactly that reason. At
@@ -261,7 +261,7 @@ const iconTone = slug === 'sign' ? 'sign' : slug === 'redact' ? 'redact' : undef
   /* Sign and Redact are the one exception to "no condensing at desktop"
      above, and the reason is a different rule than Compress's: their
      `ViewControl` (>=920px segmented Relaxed/Condensed/Full screen control,
-     see docs/view-density-control-spec.md) is a user-facing preference
+     see docs/archive/view-density-control-spec.md) is a user-facing preference
      whose *only* visible effect is this hero fold - there is nothing else
      for "Condensed" to do (`ViewControl.tsx`/`useViewDensity.js` only ever
      write the `data-view-density` attribute this file reads). The spec's own

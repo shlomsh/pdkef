@@ -3,8 +3,8 @@
 # Editor module boundaries plan
 
 Opened **2026-08-29**. Execution state lives only in the canonical
-[task files](../backlog/tasks/) (ARCH-01 through ARCH-07), summarized in the generated
-[backlog board](../BACKLOG.md); this record is the rationale and the evidence behind them, kept
+[task files](../../backlog/tasks/) (ARCH-01 through ARCH-07), summarized in the generated
+[backlog board](../../BACKLOG.md); this record is the rationale and the evidence behind them, kept
 separate so a task's one-line acceptance condition doesn't have to carry the full "why." It refines
 CLAUDE.md Part II §3.2's "editor core" and "element registry" rows into finer boundaries; it does not
 replace them.
@@ -55,7 +55,7 @@ would reverse the adapter direction and is rejected. Likewise, keeping the rende
 component/registry cycle this layout avoided.
 
 The guard has positive and negative fixtures in
-[`scripts/fixtures/editor-dependency-directions/`](../scripts/fixtures/editor-dependency-directions/).
+[`scripts/fixtures/editor-dependency-directions/`](../../scripts/fixtures/editor-dependency-directions/).
 The negative fixtures prove that model-layer Preact and browser-storage use, text-to-workspace imports,
 and unapproved workspace Preact hooks fail. Run the command locally before changing any of these seams;
 add a new exception only alongside a written architectural decision and a separate mechanical move
