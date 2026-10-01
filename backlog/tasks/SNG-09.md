@@ -98,6 +98,62 @@ on every side. Not yet checked on a phone.
 - [ ] A spike question is added to SNG-03: the cost of reading back the canvas pixels on iOS
   (`getImageData` on a large canvas) inside a tap.
 
+## 2026-10-01 research (online, before any code)
+
+Shlomi postponed OCR and any model. Four research briefs ran; sources are the agents' own, several from
+search snippets (paywalled or blocked pages), and inference is marked.
+
+**Decision: classical, tap-local, no model.**
+
+- **Models/OCR: postponed, revisit only on a measured failure class.** OCR returns word boxes, not rules, so
+  it cannot find an underline (at best it ranks which rule belongs to which label; that is FORM-06's
+  question, parked). Sizes: tesseract-wasm about 2.1 MB (BSD-2, needs WASM SIMD), Tesseract.js default
+  about 15 MB, onnxruntime-web wasm 10-14 MB with documented iOS Safari memory crashes
+  (zenn.dev/kaz_sakai/articles/ios-safari-onnx-memory). The only head-to-head, AutoFormBench
+  (arxiv.org/abs/2603.29832), has YOLO lines F1 0.74-0.82 against OpenCV 0.29-0.45, but its OpenCV baseline
+  is naive, the inputs are born-digital renders, and the task is "which lines are fillable fields", so it
+  does not decide this. Reopen if our corpus shows faint, dotted or comb rules as a large failure class;
+  the spike would be a ~1 MB line-segmentation net, not OCR.
+- **Method.** Binarise the window (integral-image Sauvola, Shafait 2008, Theta(HW)), gap-bridged horizontal
+  run scan with a 0-3 degree shear search, nearest valid run; a box also needs a vertical pair. No published
+  precision/recall exists for "nearest underline in a window"; adjacent form/table line work reports
+  80-95% (snippets only). The 1-3 ms per tap and 90-95% on moderate scans are inference. Our corpus is the
+  evidence.
+- **Max snap distance: about 3 mm** (about 19 CSS px at 1x), from the real screen size, not a fixed px
+  count. The agent's judgment, not a standard: touch offset error averages about 4 mm (a ACM 2019 study),
+  fingertip 8-10 mm (MIT Touch Lab), Parhi 2006 9.2 mm targets, and dense forms have 6-8 mm line pitch, so
+  a larger radius grabs the neighbouring line. A phone CSS px is about 0.16 mm, so derive px from
+  devicePixelRatio and screen size.
+- **Prior art.** Only Acrobat Fill & Sign (Sensei ML, scans OCR'd first) and Apple (iOS 17 / Sonoma) detect
+  fields on flat forms, and both show a highlight before the tap. Xodo, Smallpdf, Dropbox Sign and pdfFiller
+  place at the tap. No product does a silent snap; no published misplacement statistics. Adobe and Apple
+  pages were not fetchable, so this is snippet-level.
+- **Corpus.** No public scan set has rule or box ground truth under a licence we can commit (FUNSD and
+  XFUND non-commercial and text-only; RVL-CDIP no clean grant; NIST SD2 licence unclear, 1988 IRS 1040,
+  synthetic). Plan: (1) our own vector forms degraded to look scanned, 3 levels (mild scan, bad fax,
+  phone shadow), exact ground truth, taps sampled near known lines and boxes plus decoys on text and blank
+  areas; Augraphy (MIT) is a dev-time tool only, never a runtime dependency, and plain rasterise-and-degrade
+  steps need nothing; (2) 10-20 public-domain real scans (US federal forms) hand-labelled as a calibration
+  set, not the headline score.
+- **Metric.** Each tap is a correct snap, a wrong snap, or a decline. Snap precision = correct / (correct +
+  wrong), reported with the decline rate and per-degradation breakdown so declining everything cannot pass.
+  Gate on the lower bound of a one-sided 95% Clopper-Pearson interval: 59 snaps with 0 wrong, 93 with 1, 124
+  with 2. Taps in one form are correlated, so at least 30 documents and a cluster bootstrap by document.
+
+**No duplication with the form-detection tickets (checked 2026-10-01 against main 81edb380).**
+FORM-07 landed `rasterInk.js` unwired: a whole-page raster pass producing `collectPageInk`-shaped ink
+(Otsu, skew search, deskew, gap-bridged row runs, rects, checkbox squares), about 160 ms at 200 dpi, 440 ms at
+400 dpi. FORM-06 is the parked label-crop OCR spike. SNG-09 is a different job: a tap-time window read,
+placement only, nothing wired into `detectFormFields`. Rules: SNG-09 reuses `rasterInk` primitives where they
+are exported and does not edit `rasterInk.js`, FORM-06 or FORM-07; the degraded-scan corpus is built once
+here and also serves FORM-07's own "second and third scan before any threshold is trusted" gap, so nobody
+builds a parallel one. Coordinated with the Form-18 session by message (it confirmed it touches neither
+the corpus nor `baselines.json`). `rasterInk.js` exports `otsuThreshold`, `estimateSkewDegrees`,
+`mergeCollinear({offset, gap})`, `connectedComponents`, `letterHeight` and `inkFromRaster`; the page-level
+`inkFromRaster` assumes a whole raster plus page size in points, so a window needs its own pxPerPoint. Its
+OCR spike also found that Tesseract reads ruled-line fragments as `|` and `[`, so any later OCR needs the
+rules masked first.
+
 ## 2026-10-01 board cleanup
 
 - Status in_progress -> open. The Zapf checkbox part shipped (`zapfCheckboxSquare.test.js`); the tap-local snap to the printed line remains. Dropped SNG-03 from depends_on (retired).
