@@ -13,13 +13,11 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-12'
 reviewNotes: >-
-  2026-09-11: reviewed the rendered page (desktop and mobile, RTL) and
-  approved wording, terminology and typography for publish. 2026-09-12:
-  English gained reduce/shrink/resize vocabulary and two FAQ entries
-  (SEO-33); Hebrew wording unchanged; re-reviewed and approved by Shlomi on
-  the deployed site the same day.
-  2026-09-19: the English subhead closer was aligned to the shared one and the upload FAQ reworded without intensifiers (SEO-36); Hebrew wording unchanged, pending Shlomi's review; sourceHash refreshed mechanically.
-  09-19 later: subhead restated without the question; hash refreshed.
+  2026-09-11/12: reviewed in RTL on desktop and mobile and approved by
+  Shlomi; English vocabulary and FAQ additions (SEO-33) left the Hebrew
+  unchanged. 09-19 (SEO-36): English closer and FAQ reworded, hash refreshed
+  mechanically. 10-01 (QUAL-14): closer now "נשאר אצלכם במכשיר", matching
+  merge and sign; wording chosen by Shlomi.
 sourceHash: 'fnv1a64:d076cee8b67dd577'
 seoTitle: 'כיווץ קובץ PDF ל-100KB בחינם - הקטנת גודל | PDkef'
 seoDescription: >-
@@ -31,8 +29,8 @@ toolName: 'כיווץ PDF'
 h1: 'כיווץ קובץ PDF ל-100KB בחינם: הקטנת גודל קובץ'
 subhead: >-
   צריכים PDF מתחת ל-100KB לטופס או להעלאה? בחרו גודל יעד ובדקו את התוצאה.
-  לפעמים צריך מגבלה גדולה יותר כדי שהקובץ יישאר קריא. פרטי. הקובץ לא עוזב
-  את המכשיר שלכם.
+  לפעמים צריך מגבלה גדולה יותר כדי שהקובץ יישאר קריא. פרטי. הקובץ נשאר
+  אצלכם במכשיר.
 ariaLabel: 'כלי כיווץ PDF'
 aboutHeading: 'איך מכווצים קובץ PDF בחינם בדפדפן'
 aboutLead: >-
