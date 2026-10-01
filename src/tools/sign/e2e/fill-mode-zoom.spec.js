@@ -49,7 +49,8 @@ const PRACTICE_FORM = path.resolve(here, '..', '..', '..', '..', 'public', 'imag
 
 // Pixel 7: isMobile, so Chromium honours the viewport meta, and hasTouch.
 const { defaultBrowserType, ...pixel7 } = devices['Pixel 7'];
-test.use({ ...pixel7 });
+// The clamp is iOS only (`zoomsOnFocus`), so the phone says it is an iPhone.
+test.use({ ...pixel7, userAgent: devices['iPhone 14'].userAgent });
 
 // CI's Linux Chromium never applies the loosened viewport meta, so the
 // stand-in pinch stays at 1x on every retry (PR 27's run, 2026-09-26). The two
