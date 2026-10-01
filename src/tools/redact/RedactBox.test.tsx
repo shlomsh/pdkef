@@ -22,8 +22,8 @@ describe('RedactBox touch behaviour', () => {
     container = document.createElement('div');
   });
 
-  function mount(isSelected: boolean, onChange = vi.fn(), onSelect = vi.fn()) {
-    document.body.appendChild(container);
+  function mount(isSelected: boolean, onChange = vi.fn(), onSelect = vi.fn(), pseudoHost?: HTMLElement) {
+    (pseudoHost ?? document.body).appendChild(container);
     const wrapper = document.createElement('div');
     wrapper.getBoundingClientRect = () => ({ left: 0, top: 0, width: 500, height: 700, right: 500, bottom: 700, x: 0, y: 0, toJSON() {} }) as DOMRect;
     document.body.appendChild(wrapper);
@@ -75,6 +75,18 @@ describe('RedactBox touch behaviour', () => {
     expect(bar).not.toBeNull();
     expect(box.contains(bar)).toBe(false);
     expect(bar!.parentElement).toBe(document.body);
+  });
+
+  it('in pseudo full screen the bar portals into the element carrying data-pseudo-fullscreen', () => {
+    mockPointer(true);
+    const host = document.createElement('div');
+    host.setAttribute('data-pseudo-fullscreen', '');
+    document.body.appendChild(host);
+    mount(true, vi.fn(), vi.fn(), host);
+    const bar = document.querySelector('[data-redact-box-bar]');
+    expect(bar!.parentElement).toBe(host);
+    act(() => render(null, container));
+    host.remove();
   });
 
   it('on a fine pointer the toolbar floats inside the box', () => {
