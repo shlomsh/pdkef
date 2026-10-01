@@ -68,26 +68,6 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
   return new Blob([saved], { type: 'application/pdf' });
 }
 
-/**
- * Lists the page indexes that draw one image, for the "This image is on 12
- * pages" line (RED-26). Pure: it reads the `imageRef` that `extractPageObjects`
- * put on each image object, so it is exact (the same XObject), not a guess
- * from pixels or position.
- *
- * @param {Array<{kind: string, pageIndex: number, imageRef?: string}>} objects
- *   the result of `listDeletableObjects`
- * @param {string} imageRef an image object's `imageRef`, e.g. "12 0 R"
- * @returns {number[]} distinct page indexes, ascending
- */
-export function pagesDrawingImage(objects, imageRef) {
-  if (!imageRef) return [];
-  const pages = new Set();
-  for (const o of objects) {
-    if (o.kind === 'image' && o.imageRef === imageRef) pages.add(o.pageIndex);
-  }
-  return [...pages].sort((a, b) => a - b);
-}
-
 /** The `/XObject` dict of a resources dict, if it has one. */
 function xobjectDict(context, resources) {
   const found = context.lookup(resources?.get(PDFName.of('XObject')));

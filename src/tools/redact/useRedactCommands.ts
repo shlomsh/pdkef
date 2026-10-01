@@ -42,6 +42,8 @@ export interface AddOptions {
   undoChip?: boolean;
   /** RED-26: a second chip action, e.g. "Every page". Only with `undoChip`. */
   undoExtra?: UndoExtra;
+  /** The chip's message when it differs from `description`. */
+  chipMessage?: string;
 }
 
 export interface RemoveOptions {
@@ -91,7 +93,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       elements: additions.map((el, i) => captureAddedElement(el, baseIndex + i)),
     });
     setHistory((current) => pushCommand(current.past, current.future, entry));
-    if (options.undoChip) registerUndo(options.description, entry, options.undoExtra);
+    if (options.undoChip) registerUndo(options.chipMessage ?? options.description, entry, options.undoExtra);
   };
 
   const remove = (ids: ReadonlySet<string>, options: RemoveOptions) => {

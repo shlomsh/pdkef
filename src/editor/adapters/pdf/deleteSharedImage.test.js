@@ -9,7 +9,6 @@ import { extractPageObjects } from './pdfObjects.js';
 import {
   deleteObjectsFromPdf,
   listDeletableObjects,
-  pagesDrawingImage,
 } from './deleteObjects.js';
 
 // A real, valid 1x1 transparent PNG, as in deleteObjects.test.js.
@@ -48,14 +47,13 @@ const imageStreams = async (bytes) => {
   );
 };
 
-describe('shared image: imageRef and pagesDrawingImage', () => {
+describe('shared image: imageRef', () => {
   it('reports the same imageRef for the logo on every page', async () => {
     const objects = await listDeletableObjects(source());
     const images = objects.filter((o) => o.kind === 'image');
     expect(images).toHaveLength(5);
     expect(new Set(images.map((o) => o.imageRef))).toEqual(new Set(['5 0 R']));
-    expect(pagesDrawingImage(objects, '5 0 R')).toEqual([0, 1, 2, 3, 4]);
-    expect(pagesDrawingImage(objects, '9 0 R')).toEqual([]);
+    expect(images.map((o) => o.pageIndex)).toEqual([0, 1, 2, 3, 4]);
   });
 });
 
