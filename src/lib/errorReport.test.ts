@@ -69,11 +69,32 @@ describe('readPageContext', () => {
       expect(readPageContext().tool).toBe('/');
     }
   });
-  it('falls back when matchMedia throws', () => {
+  it('falls back for that one fact when matchMedia throws, keeping the others', () => {
     stubPage('/sign/', () => {
       throw new Error('no');
     });
-    expect(readPageContext()).toEqual({ tool: '/', installed: false, sw: false, age: 'under_10s' });
+    expect(readPageContext()).toMatchObject({ tool: '/sign/', installed: false });
+  });
+});
+
+describe('stack frames, as the review attacked them', () => {
+  it('never reads a frame out of the message of an error renamed after construction', () => {
+    class Renamed extends Error {}
+    const e = new Renamed("bad font '\n    at x (https://pdkef.com/_astro/Forged.js:1:1)'");
+    e.name = 'FontError';
+    e.stack = `Error: ${e.message}\n    at f (https://pdkef.com/_astro/Real.1.js:5:6)`;
+    expect(toErrorReport('fonts', e, 'save_draft', CTX)?.stack).toEqual(['Real.1.js:5:6']);
+  });
+  it('skips an oversized frame instead of losing the report', () => {
+    const e = new TypeError('x');
+    e.stack = `TypeError: x\n    at f (https://pdkef.com/_astro/${'a'.repeat(130)}.js:1:1)\n    at g (https://pdkef.com/_astro/Ok.2.js:3:4)`;
+    expect(toErrorReport('drafts', e, 'save_draft', CTX)?.stack).toEqual(['Ok.2.js:3:4']);
+  });
+  it('reads WebKit and Gecko frames', () => {
+    const e = new TypeError('x');
+    // The async line is verbatim from Playwright WebKit against a production build.
+    e.stack = 'readTextItems@https://pdkef.com/_astro/pdf.Zn.js:44:100768\nasync outer@http://localhost:4395/_astro/raw.Zz9.js:2:36\nasync*pageTextRuns@https://pdkef.com/_astro/Sign.1.js:9:9\n@https://pdkef.com/_astro/Sign.1.js:2:3';
+    expect(toErrorReport('sign_form_detection', e, 'detect_fields', CTX)?.stack).toEqual(['pdf.Zn.js:44:100768', 'raw.Zz9.js:2:36', 'Sign.1.js:9:9', 'Sign.1.js:2:3']);
   });
 });
 
@@ -96,6 +117,12 @@ describe('reportError', () => {
     expect(path).toBe('/api/report');
     const body = parseErrorReport(JSON.parse(await blob.text()));
     expect(body).toMatchObject({ area: 'drafts', name: 'TypeError', stack: ['A.js:1:2'], step: 'save_draft' });
+  });
+  it('keeps two call sites over one throw site apart', () => {
+    const e = errorAt('S.js:1:2');
+    reportError('drafts', e, 'save_draft');
+    reportError('drafts', e, 'load_draft');
+    expect(beacon).toHaveBeenCalledTimes(2);
   });
   it('sends one defect once, even when it also escapes as uncaught', () => {
     const e = errorAt('B.js:1:2');

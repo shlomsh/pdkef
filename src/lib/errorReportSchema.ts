@@ -72,7 +72,7 @@ export type ErrorReport = Readonly<{
 /** The page facts a report carries, read once per report in the browser. */
 export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age'>;
 
-/** The largest body the endpoint accepts. A full valid report is under 1.3KB. */
+/** The largest body the endpoint accepts. The largest valid report is about 1.5KB. */
 export const MAX_REPORT_BYTES = 2048;
 
 const KEYS = ['age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];

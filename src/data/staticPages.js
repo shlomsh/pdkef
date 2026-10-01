@@ -83,7 +83,7 @@ export const staticPages = [
         paragraphs: [
           'PDkef uses same-origin Vercel Web Analytics for basic, aggregate page views, the same category of measurement a paper counter at a doorway would give you: how many visits a page got, not who made them.',
           'Separately, PDkef sends anonymous, sanitized maintenance telemetry, things like which tool ran, whether it succeeded, and a coded error category, so bugs can be found and fixed. That allowlist explicitly excludes anything that could identify you or your document: no filenames, no text you typed, no signatures, no document or user IDs, and no raw error payloads. This telemetry exists purely to keep the tools working; it is never used to build a profile of you, and it never blocks a tool from working offline.',
-          'When something in our own code breaks, your browser may also send PDkef\'s own address one small anonymous note: which part of PDkef failed, the error\'s name, the lines in our code that led there and a few facts about the page, like whether you installed it. It never carries the error\'s message or anything from your document, and we keep daily counts and one example of each error, by browser family, for 90 days.',
+          'When something in our own code breaks, your browser may also send PDkef\'s own address one small anonymous note: which part of PDkef failed, the error\'s name, the lines in our code that led there and a few facts about the page, like whether you installed it. It never carries the error\'s message or anything from your document, and we keep daily counts and the latest example of each error, by browser family, for 90 days.',
         ],
       },
       {
