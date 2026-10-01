@@ -554,6 +554,28 @@ const PRINTED = [
     expect: none,
   },
   {
+    name: 'an undivided panel holding its own paragraph, beside unrelated ink',
+    why: 'FORM-10: the panel test reads the panel\'s own band span, so walls elsewhere at the same '
+      + 'heights (the box beside it) do not make it divided. A box full of prose is an explanation, '
+      + 'not a field, and nothing about the box beside it changes that.',
+    doc: {
+      ink: [
+        { ink: 'rect', x: 40, y: 100, width: 300, height: 40 },
+        { ink: 'rect', x: 360, y: 100, width: 40, height: 40 },
+        { ink: 'line', x: 380, y: 100, x2: 380, y2: 140 },
+      ],
+    },
+    text: [{ str: 'I declare that the details on this form are true and complete', left: 10, top: 75, width: 40, height: 5 }],
+    expect: none,
+  },
+  {
+    name: 'a lone 18pt tick square with nothing else on the page',
+    why: 'FORM-10: a closed square is admitted on its own merits (no caption, no neighbouring column), '
+      + 'so it no longer depends on unrelated ink adding a third wall to its band.',
+    doc: { ink: [{ ink: 'rect', x: 40, y: 200, width: 18, height: 18 }] },
+    expect: { ...none, cells: 1 },
+  },
+  {
     name: 'a clipping rectangle',
     why: 're W n paints nothing; counting clips as boxes once invented 76 phantom checkboxes',
     doc: { ink: [{ ink: 'clipRect', ...SQUARE }] },
