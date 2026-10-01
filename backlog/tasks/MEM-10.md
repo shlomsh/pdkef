@@ -1,13 +1,12 @@
 ---
 id: "MEM-10"
 title: "A shipped fix has no way to reach someone who keeps the app open"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "robustness"
 horizon: "next"
 order: 3
 depends_on: []
-needs: "A ruling on updates with several tabs open"
 ---
 
 # MEM-10 · A shipped fix has no way to reach someone who keeps the app open
@@ -39,6 +38,30 @@ in-flight work. Never automatic, never a modal, and never mid-export.
 
 Worth deciding in the same ticket: whether a build that fixes data loss should be able to mark
 itself as one, so the prompt can be more insistent for that case than for a copy change.
+
+## Decision (2026-10-01)
+
+Shlomi's ruling on updates with several tabs open:
+
+- **The same quiet line in every tab.** When a new service worker is installed and waiting, every
+  open tab of the site shows "A new version is ready · Reload" in the shell's existing status
+  vocabulary. Never a modal, never automatic.
+- **One click updates every tab together.** The clicking tab asks the others over a
+  `BroadcastChannel` whether any has an export in flight. If none does, it posts `SKIP_WAITING` to the
+  waiting worker. `skipWaiting()` runs only on that message, never on install, so the
+  no-skipWaiting invariant holds. On `controllerchange` every tab reloads itself, so no tab is left
+  running an old build's lazy imports against a deleted cache, which is the reason `skipWaiting` was
+  banned in the first place.
+- **An export in flight anywhere holds the update.** The line stays and the reload waits until the
+  export finishes. Work in progress survives because drafts live in IndexedDB
+  (`src/lib/drafts/draftStore.js`); a pending debounced draft save is flushed before the reload, and
+  that is verified, not assumed.
+- **Declined for v1: marking a data-loss fix build as "more insistent".** One quiet line in every tab
+  already reaches the person, which is what the 2026-09-20 report lacked. Reopen only if a fix fails to
+  land again.
+
+Acceptance adds a Playwright guard for two tabs: an old build open in both, a new build deployed, one
+click, both land on the new build with their work intact.
 
 ## Acceptance
 
