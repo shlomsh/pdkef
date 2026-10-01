@@ -41,15 +41,15 @@ describe('renderRedactionSurface blur', () => {
     expect(surface.props.style.WebkitBackdropFilter).toBe('none');
   });
 
-  it('defaults to the medium radius (0.4), RED-24\'s pre-levels blur, as a fraction of the box height, on the child blur layer', () => {
+  it('defaults to DEFAULT_BLUR_STRENGTH (0.3) as a fraction of the box height, on the child blur layer', () => {
     const child = blurChild(renderRedactionSurface('blur'));
     expect(child.props.class).toBe('redact-surface__blur');
-    expect(child.props.style.backdropFilter).toBe('blur(calc(0.4 * 100cqh))');
-    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.4 * 100cqh))');
+    expect(child.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
+    expect(child.props.style.WebkitBackdropFilter).toBe('blur(calc(0.3 * 100cqh))');
   });
 
   it('reads a lighter radius (0.3) for the light strength', () => {
-    const child = blurChild(renderRedactionSurface('blur', undefined, 'light'));
+    const child = blurChild(renderRedactionSurface('blur', undefined, 0.3));
     expect(child.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
   });
 
@@ -59,20 +59,20 @@ describe('renderRedactionSurface blur', () => {
   });
 
   it('RED-24: raises the fraction above the plain factor once boxHeightPt is under the 24pt floor', () => {
-    const child = blurChild(renderRedactionSurface('blur', undefined, 'medium', 12));
+    const child = blurChild(renderRedactionSurface('blur', undefined, 0.4, 12));
     // factor x max(12, 24) / 12 = 0.4 x 2 = 0.8
     expect(child.props.style.backdropFilter).toMatch(/^blur\(calc\(0\.8(\d+)? \* 100cqh\)\)$/);
   });
 
   it('RED-24: matches the plain factor once boxHeightPt is above the floor, so screen and export fractions agree', () => {
-    const child = blurChild(renderRedactionSurface('blur', undefined, 'medium', 100));
+    const child = blurChild(renderRedactionSurface('blur', undefined, 0.4, 100));
     expect(child.props.style.backdropFilter).toBe('blur(calc(0.4 * 100cqh))');
   });
 });
 
 describe('renderRedactionDrawingPreviewContent', () => {
   it('returns the blur layer for blur, scaled by strength', () => {
-    const content = renderRedactionDrawingPreviewContent('blur', 'light');
+    const content = renderRedactionDrawingPreviewContent('blur', 0.3);
     expect(content?.props.class).toBe('redact-surface__blur');
     expect(content?.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');
   });
@@ -83,7 +83,7 @@ describe('renderRedactionDrawingPreviewContent', () => {
   });
 
   it('RED-24: applies the floor once a boxHeightPt is given, same as the committed surface', () => {
-    const content = renderRedactionDrawingPreviewContent('blur', 'medium', 12);
+    const content = renderRedactionDrawingPreviewContent('blur', 0.4, 12);
     expect(content?.props.style.backdropFilter).toMatch(/^blur\(calc\(0\.8(\d+)? \* 100cqh\)\)$/);
   });
 });

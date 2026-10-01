@@ -3,9 +3,11 @@ id: "DEBT-17"
 title: "We cannot see what breaks in production, and a day proved it"
 status: "open"
 priority: "P1"
-epic: "architecture-debt"
-phase: "near-term"
+epic: "robustness"
+horizon: "now"
+order: 1
 depends_on: []
+needs: "The telemetry governance call"
 ---
 
 # DEBT-17 · We cannot see what breaks in production, and a day proved it

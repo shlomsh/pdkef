@@ -4,9 +4,7 @@ title: "Second-font / missing-style research across every single-font script"
 status: "done"
 priority: "P3"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-09-12 (gap (a) closed 2026-08-29, gap (b) closed 2026-09-12; CJK second faces deferred until build-time pre-subsetting exists)"
 ---
 
 # FONT-08 · Second-font / missing-style research across every single-font script

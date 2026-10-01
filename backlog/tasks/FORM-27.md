@@ -4,7 +4,6 @@ title: "An open comb's field is its printed row: teeth never split their own cel
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["FORM-26"]
 ---
 

@@ -4,7 +4,7 @@ import { TrashIcon } from './toolIcons.tsx';
 import ColorPickerMenu from './ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import BlurStrengthMenu from './BlurStrengthMenu.tsx';
+import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from './ToolbarMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
 import { resolveTypography } from '../editor/text/fonts.js';
@@ -419,11 +419,11 @@ export default function ElementToolbar({
       )}
       {element.type === 'blur' && (
         <>
-          <BlurStrengthMenu
+          <BlurStrengthSlider
+            elementId={element.id}
             value={element.strength}
             onChange={(strength) => onChange({ strength })}
-            title={t.blurStrengthTitle}
-            labels={{ light: t.blurStrengthLight, medium: t.blurStrengthMedium, strong: t.blurStrengthStrong }}
+            labels={{ title: t.blurStrengthTitle, lighter: t.blurStrengthLighter, stronger: t.blurStrengthStronger, defaultTick: t.blurStrengthDefault }}
           />
           <div className={styles.divider} />
         </>
@@ -460,7 +460,7 @@ export default function ElementToolbar({
           heading={groupLabel}
           triggerClassName={buttonClass()}
           triggerAttrs={{ 'data-editor-repeat-group-trigger': true }}
-          triggerContent={<>{pagesIcon}<span className={styles['repeat-group-count']}>{repeatGroupSize}</span></>}
+          triggerContent={<>{pagesIcon}<span className={styles['element-button-label']}>{groupLabel}</span></>}
           items={[
             ...(onRepeatOnEveryPage
               ? [{ label: t.repeatGroupFill, onSelect: onRepeatOnEveryPage, attrs: { 'data-editor-repeat-group-fill': true } }]
@@ -478,7 +478,9 @@ export default function ElementToolbar({
           title={t.repeatOnEveryPageTitle}
           data-editor-repeat-every-page
         >
-          {pagesIcon}
+          {/* A word beside the icon: two page-stack icons side by side (this
+              and Duplicate) did not explain themselves (review 2026-10-01). */}
+          {pagesIcon}<span className={styles['element-button-label']}>{t.repeatOnEveryPageLabel}</span>
         </button>
       )}
       {hasDeleteScope ? (

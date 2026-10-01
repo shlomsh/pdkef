@@ -15,11 +15,11 @@
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { Finder, PercentBox } from '../find/types.ts';
 
-/** Where a term came from: under a box, a Find search, or typed in the check. */
-export type TermSource = 'covered' | 'find' | 'typed';
+/** Where a term came from: under a box, a deleted text run, a Find search, or typed in the check. */
+export type TermSource = 'covered' | 'deleted' | 'find' | 'typed';
 
 export interface CheckTerm {
-  /** What the person sees: the covered text, the Find term, or the preset's label. */
+  /** What the person sees: the covered or deleted text, the Find term, or the preset's label. */
   label: string;
   source: TermSource;
   finder: Finder;
@@ -37,19 +37,26 @@ export interface CheckBox extends PercentBox {
 export type PlaceKind =
   | 'field'
   | 'comment'
+  | 'link'
   | 'bookmark'
   | 'title'
   | 'author'
   | 'subject'
   | 'keywords'
   | 'metadata'
-  | 'attachment';
+  | 'attachment'
+  /** A part of the file no page shows (RED-49): an old revision's leftovers,
+   * an orphaned stream. One place for all of them, since Remove it drops them together. */
+  | 'unused';
 
 export interface SavedPlace {
   kind: PlaceKind;
   text: string;
   /** Set for page-bound places (a field, a comment). */
   pageIndex?: number;
+  /** False for a place Remove it cannot take out alone (a form field's name).
+   * Absent means removable. */
+  removable?: boolean;
 }
 
 /** What `readSavedFile` reads from the saved bytes. */
@@ -68,8 +75,10 @@ export type Finding =
   | { kind: 'visible-in-picture'; pageIndex: number }
   /** Found in a saved page's text. */
   | { kind: 'in-text'; pageIndex: number }
-  /** Found in a place outside page text. */
-  | { kind: 'in-place'; place: PlaceKind; pageIndex?: number };
+  /** Found in a place outside page text. `placeIndex` is that place's index in
+   * `SavedFile.places`, and `text` its text, so a caller can hand the place
+   * back unchanged (to `removePlace`). */
+  | { kind: 'in-place'; place: PlaceKind; pageIndex?: number; text: string; placeIndex: number; removable?: boolean };
 
 export interface TermResult {
   term: CheckTerm;

@@ -4,9 +4,7 @@ title: "Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-08-29"
 ---
 
 # SIGN-17 · Fix CI-red tests from in-flight SIGN-04/SIGN-09 direction work

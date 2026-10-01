@@ -41,7 +41,13 @@ export interface SerializeContext {
 
 export interface RedactionInstruction {
   kind: 'blur' | 'solid';
-  element: { left: number; top: number; width: number; height: number; color?: string };
+  element: {
+    left: number; top: number; width: number; height: number; color?: string;
+    /** RED-32: set on a brush stroke; the flatten then paints the stroke, not the bbox. */
+    points?: [number, number][];
+    sizePt?: number;
+    strength?: unknown;
+  };
 }
 
 export type SerializeResult = void | RedactionInstruction | Promise<void | RedactionInstruction>;

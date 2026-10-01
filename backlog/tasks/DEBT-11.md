@@ -4,7 +4,6 @@ title: "Split editor.md so a Merge or shell edit loads tool rules, not the Sign 
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

@@ -4,9 +4,7 @@ title: "Retry failed live font loads"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-08-28"
 ---
 
 # SIGN-03 · Retry failed live font loads

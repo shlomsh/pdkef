@@ -1,9 +1,9 @@
 // Build-time only: the CSP hash of an inline style or script's exact text, in
 // the form Astro's `Astro.csp.insertStyleHash` / `insertScriptHash` take.
-// Astro hashes the styles it bundles itself; a component that emits a
-// `<style is:inline>` (CompareFigure.astro, so only the pages that render it
-// carry its CSS) has to register the hash for that page by hand. Plain JS so
-// no Node type declarations are needed by the .astro file that imports it.
+// Astro hashes the styles it bundles itself; a `<style is:inline>` (CompareFigure,
+// TheO) has to be registered by hand, from the route or layout that owns the
+// <head> (see inlineStyles.ts). Plain JS so no Node type declarations are needed
+// by the files that import it.
 import { createHash } from 'node:crypto';
 
 /**

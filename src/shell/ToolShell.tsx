@@ -114,6 +114,9 @@ export function useToolShell() {
  * because a toolbar rendered outside it would vanish the moment full screen
  * started. Every other tool gets the shell from BasePdfTool.
  *
+ * `inlineStatus` (editor only) keeps that hint on the filename's line on a wide
+ * desktop; see `.inline-status` in ToolShell.module.css for why it is opt-in.
+ *
  * `status` is the tool's live hint line. It rides in the identity row rather
  * than under the toolbar because that row is mostly empty space past the
  * filename, and a hint on a line of its own cost 53px of the most valuable band
@@ -134,7 +137,7 @@ export function useToolShell() {
  * you work (see ToolHero.astro). Keep the attribute even if nothing local reads
  * it.
  */
-export default function ToolShell({ editor = false, status = null, children }: { editor?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
+export default function ToolShell({ editor = false, inlineStatus = false, status = null, children }: { editor?: boolean; inlineStatus?: boolean; status?: ComponentChildren; children?: ComponentChildren }) {
   const { fileLabel, fileMeta, file, draftSaveState = 'idle', multiple, messages = englishShellMessages } = useToolShell();
   const draftStatus = draftSaveState === 'saved'
     ? { label: messages.draftSaved, className: styles.saved }
@@ -152,12 +155,12 @@ export default function ToolShell({ editor = false, status = null, children }: {
         : null;
 
   return (
-    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}`} data-tool-shell>
+    <div class={`${styles.shell}${editor ? ` ${styles.editor}` : ''}${editor && inlineStatus ? ` ${styles['inline-status']}` : ''}`} data-tool-shell>
       <div class={styles.identity}>
         {!editor && <FilePreview file={file} />}
 
         <span class={styles.text}>
-          <span class={styles.name}>
+          <span class={styles.name} title={fileLabel || undefined}>
             {fileLabel || (multiple ? messages.filesLoaded : messages.pdfLoaded)}
           </span>
           {(fileMeta || draftStatus) && (

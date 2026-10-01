@@ -4,7 +4,6 @@ title: "Spike: remove the text and images under a box instead of flattening the 
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

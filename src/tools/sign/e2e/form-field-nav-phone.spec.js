@@ -192,7 +192,7 @@ test.describe('filling a form field on a phone', () => {
     expect(compact.height).toBeCloseTo(compact.oneRow, 1);
     // Previous, Next and the disclosure: the whole compact set.
     expect(compact.buttons).toBe(3);
-    await expect(bar.getByRole('button', { name: 'Delete element' })).toHaveCount(0);
+    await expect(bar.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
 
     // The formatting controls are still one tap away, and the disclosure
     // expands the bar in place rather than opening a popover over the page.
@@ -201,8 +201,8 @@ test.describe('filling a form field on a phone', () => {
     // its title rather than its accessible name (FontPickerMenu.tsx).
     await expect(bar.getByTitle(/^Font: /)).toBeVisible();
     await expect(bar.getByRole('button', { name: 'Text color' })).toBeVisible();
-    await expect(bar.getByRole('button', { name: 'Duplicate element' })).toBeVisible();
-    await expect(bar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Duplicate', exact: true })).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
 
     const expanded = await readBarRows(page);
     expect(expanded.buttons).toBeGreaterThan(compact.buttons);
@@ -220,7 +220,7 @@ test.describe('filling a form field on a phone', () => {
     // The expanded state is the wrapped, multi-row case the row-gap fix
     // targets; the compact one has nothing to collide with.
     await bar.getByRole('button', { name: 'Formatting options' }).click();
-    await expect(bar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
 
     const buttons = await readButtons(page);
     const hit = buttons.map((button) => ({

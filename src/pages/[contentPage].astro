@@ -10,6 +10,7 @@ import { contentPages } from '../data/contentPages.js';
 import { getDocumentationContext } from '../i18n/documentation';
 import { getDocumentationShellMessages } from '../i18n/documentationMessages';
 import { documentationSourceFiles, lastModifiedFor } from '../site-lib/gitLastModified.js';
+import { registerContentPageStyles } from '../site-lib/inlineStyles';
 
 export async function getStaticPaths() {
   const entries = await getCollection('contentPages');
@@ -32,6 +33,8 @@ const pageId = entry.id;
 const page = entry.data;
 const context = await getDocumentationContext(pageId, 'en');
 const messages = getDocumentationShellMessages(context.effectiveLocale);
+// A page's inline-style hashes must be registered here, before the layout writes the <head>.
+registerContentPageStyles(Astro.csp, entry);
 ---
 
 <ContentPageLayout

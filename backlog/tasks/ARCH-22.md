@@ -4,7 +4,6 @@ title: "App source lives under src/; scripts/ depends on src/, never the other w
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-20", "QUAL-08"]
 ---
 

@@ -99,13 +99,14 @@ const tools = [
   // never ten or thirteen, the two counts that cannot be balanced at the 44px
   // floor.
   { name: 'Sign', path: '/sign/?next=0', fixture: 'sign-toolbar-e2e.pdf', wrapWidths: [320, 360, 390, 430, 500, 660, 693] },
+  // RED-31 made it eleven (Peek joined), so 300-320px packs 4+4+3.
   // RED-02 made Redact ten controls (Find joined). At 300-320px the 44px touch
   // floor caps a line at four, and ten can only pack 4+4+2 there (the comment
   // above the 251px rule in SignToolbar.module.css works through why 4+3+3 is
   // unreachable). Shlomi chose that split over moving or hiding Find
   // (2026-09-27), so those widths pin it exactly: a lone stranded control
   // still fails.
-  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340], acceptedSplits: { 300: '4+4+2', 320: '4+4+2' } },
+  { name: 'Redact', path: '/redact', fixture: 'redact-toolbar-e2e.pdf', wrapWidths: [300, 320, 340], acceptedSplits: { 300: '4+4+3', 320: '4+4+3' } },
 ];
 
 for (const tool of tools) {

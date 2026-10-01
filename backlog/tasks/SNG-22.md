@@ -3,8 +3,9 @@ id: "SNG-22"
 title: "Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field"
 status: "open"
 priority: "P3"
-epic: "sign-next-gen"
-phase: "longer-term"
+epic: "sign-fill-mode"
+horizon: "next"
+order: 4
 depends_on: []
 ---
 

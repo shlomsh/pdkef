@@ -4,9 +4,7 @@ title: "A standings table against the competition that is maintained, not writte
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-01"]
-legacy_state: "Done 2026-09-10"
 ---
 
 # SEO-02 · A standings table against the competition that is maintained, not written once

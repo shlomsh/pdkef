@@ -4,7 +4,6 @@ title: "The change-history dialog goes; Undo and Redo are the whole model"
 status: "done"
 priority: "P2"
 epic: "undo-and-redo"
-phase: "near-term"
 depends_on: ["UNDO-03"]
 ---
 

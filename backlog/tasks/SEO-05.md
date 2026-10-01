@@ -3,10 +3,9 @@ id: "SEO-05"
 title: "Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue"
 status: "blocked"
 priority: "P1"
-epic: "seo-awaiting-read"
-phase: "quick-win"
+epic: "search-and-languages"
 depends_on: []
-legacy_state: "Open"
+waiting_on: "2026-10-08"
 ---
 
 # SEO-05 · Read 2026-10-08 · The 100KB cluster ranks and does not convert, and the page implies something untrue

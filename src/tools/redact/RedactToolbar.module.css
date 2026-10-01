@@ -1,0 +1,82 @@
+/* Redact keeps a visible word on every toolbar control at every width
+   (RED-34). SignToolbar.module.css hides `.toolbar .label` below 1300px and
+   for [data-icon-only]; this sheet overrides that for Redact's toolbar only.
+   The tripled class outranks those rules whatever order the sheets load in. */
+.bar.bar.bar button > span:last-child {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Under the icon where the row is tight: below 1300px and on the phone grid. */
+@media (max-width: 1299px) {
+  .bar.bar.bar button {
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    padding-inline: 0.25rem;
+  }
+}
+
+/* Where the labels sit beside the icon (1300px and up), Redact's twelve
+   labelled controls (Share present) are 1177.6px wide in the wide DejaVu face CI
+   lands on, against the toolbar's 1172px content box: the twelfth wrapped, 5.6px
+   short (e2e/tool-toolbars/toolbar-desktop-one-line.spec.js). Redact is the only
+   toolbar that labels Undo, Redo and Peek at this width (RED-34), so rather than
+   take a word off one of them, the shared .5rem side padding comes in to .4rem:
+   3.2px a button over eleven buttons is 35.2px back, 29.6px spare. SignToolbar's
+   own spare is 32.3px; keep this one near it. The doubled class outranks the
+   shared `.toolbar { --btn-padding }` whatever order the sheets load in. */
+@media (min-width: 1300px) {
+  .bar.bar { --btn-padding: .6rem .4rem; }
+}
+
+/* The undo chip's Undo: a 44px hit area that does not grow the row. */
+.chip-hit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  margin-block: -14px;
+}
+
+/* One shared top: the column-labelled buttons are taller than the row-labelled
+   ones, and the shared toolbar centres, so the shorter controls sat a few px
+   lower. Stretch every control to the tallest, and let wrapped controls
+   (hint wrappers, dropdowns) stretch their button too. */
+@media (min-width: 920px) {
+  .bar.bar.bar { align-items: stretch; }
+  /* Only the wrappers (ArmHint's span, dropdowns). Never the view control:
+     ViewControl.module.css shows its segmented control and hides the lone
+     full-screen button beside it by `display`, and a display set here would
+     override both - the segments stacked and a second Full screen appeared. */
+  .bar.bar.bar > :not(button):not([role="radiogroup"]) { display: flex; flex-direction: column; }
+  .bar.bar.bar > :not(button):not([role="radiogroup"]) > button { flex: 1 1 auto; }
+}
+
+/* The view control's segments are icons in a segmented group, labelled by
+   their title; the word rule above is for the toolbar's own buttons. */
+.bar.bar.bar [role="radiogroup"] button { flex-direction: row; }
+
+/* Below 920px the view control is one Full screen button in the grid. Its
+   word is two words, so it may wrap under the icon rather than clip. */
+.bar.bar.bar [role="radiogroup"] + button > span:last-child {
+  white-space: normal;
+  line-height: 1;
+  text-align: center;
+}
+
+/* The phone's five-per-row grid gives each control ~52px: "Download" and
+   "Whiteout" need the smaller size to sit inside it with air on both sides. */
+@media (max-width: 480px) {
+  .bar.bar.bar button { font-size: 0.66rem; padding-inline: 0.125rem; }
+}

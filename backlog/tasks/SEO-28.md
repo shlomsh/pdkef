@@ -1,12 +1,10 @@
 ---
 id: "SEO-28"
 title: "Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it"
-status: "blocked"
+status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-01"]
-legacy_state: "Open"
 ---
 
 # SEO-28 · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it
@@ -132,3 +130,7 @@ visits every few days, not the two-month starvation this ticket is about; none o
 ## Addendum 2026-09-19: the clean control is gone
 
 SEO-36 edited `/unlock/` (description, subhead, FAQ) on 2026-09-19, on Shlomi's call that the page receives no traffic. No indexing request was made, so its crawl date still tells whether Google visits unrequested, but a content change is now on the page; read the 10-08 crawl date with that in mind.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the crawl-date comparison of `/redact/` and `/split/` against the controls moves there, to be done at the 2026-10-08 refresh.

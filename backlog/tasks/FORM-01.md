@@ -4,9 +4,7 @@ title: "Tell a caption from a field, and take form 101 to the 90% gate"
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-01 · Tell a caption from a field, and take form 101 to the 90% gate

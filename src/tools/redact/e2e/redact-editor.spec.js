@@ -270,7 +270,7 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = whiteout.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       // Whiteout is the only type with a per-element colour control - its
       // toolbar carries one extra button (colour trigger, duplicate, delete)
       // over blackout's two (duplicate, delete).
@@ -288,7 +288,7 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = blackout.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       await expect(toolbar.locator('button'), 'blackout has no colour control - only duplicate and delete').toHaveCount(2);
       const boxRect = await getBox(blackout, 'blackout box');
       const toolbarRect = await getBox(toolbar, 'blackout toolbar');
@@ -313,9 +313,10 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = blur.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
-      // Blur has no colour, but it has a strength picker (SITE-41): trigger, duplicate, delete.
-      await expect(toolbar.locator('button'), 'blur carries its strength trigger, duplicate and delete').toHaveCount(3);
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
+      // Blur has no colour, but it has a strength slider (RED-30), then duplicate and delete.
+      await expect(toolbar.locator('input[type="range"]'), 'blur carries its strength slider').toHaveCount(1);
+      await expect(toolbar.locator('button'), 'blur carries duplicate and delete').toHaveCount(2);
       const boxRect = await getBox(blur, 'blur box');
       const toolbarRect = await getBox(toolbar, 'blur toolbar');
       offsetAboveBoxTop.blur = boxRect.y - (toolbarRect.y + toolbarRect.height);
@@ -333,11 +334,14 @@ test.describe('Redact editor browser guardrails', () => {
       // cqh resolves against the container's content box, inside its 1px border.
       const surfaceHeight = await blur.locator('.redact-surface').evaluate((el) => el.clientHeight);
 
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), the pre-levels blur.
-      expect(await readBlurPx()).toBeCloseTo(0.4 * surfaceHeight, 0);
-      await toolbar.locator('[data-editor-blur-strength-trigger]').click();
-      await page.locator('[data-editor-blur-strength="light"]').click();
+      // 0.3 is DEFAULT_BLUR_STRENGTH (RED-24).
       expect(await readBlurPx()).toBeCloseTo(0.3 * surfaceHeight, 0);
+      await toolbar.locator('[data-editor-blur-strength-input]').evaluate((input) => {
+        input.value = '0.4';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      expect(await readBlurPx()).toBeCloseTo(0.4 * surfaceHeight, 0);
     }
 
     await dragBy(page, blur, 2000, -2000);
@@ -515,8 +519,15 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     expect(resizerHit.width).toBeGreaterThanOrEqual(44);
     expect(resizerHit.height).toBeGreaterThanOrEqual(44);
 
-    const floatingButton = whiteout.locator('[data-editor-actions] button').first();
+    // The coarse-pointer box toolbar is portalled into a fixed bar on body.
+    const floatingButton = page.locator('[data-editor-actions] button').first();
     await expect(floatingButton).toBeVisible();
+    const actionBar = page.locator('[data-editor-actions]').first();
+    const barBox = await getBox(actionBar, 'Box action bar');
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    expect(Math.abs(barBox.y + barBox.height - viewportHeight), 'bar is fixed to the viewport bottom').toBeLessThanOrEqual(1);
+    const selectedBox = await getBox(whiteout, 'Selected box');
+    expect(selectedBox.y + selectedBox.height, 'bar does not overlap the selected box').toBeLessThanOrEqual(barBox.y + 1);
     const floatingVisual = await getBox(floatingButton, 'Floating toolbar button');
     const floatingHit = await insetHitSize(floatingButton);
     expect(floatingHit.width, `visual was ${floatingVisual.width}px`).toBeGreaterThanOrEqual(44);
@@ -561,7 +572,7 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     // `.redact-element-btn` - so it gets the same `.element-button::before`
     // 44px floor whiteout's toolbar buttons already got above, proven the
     // same way (visual stays ~28px, only the hit box grows).
-    const blackoutDelete = blackout.locator('[data-editor-actions] button[title="Delete element"]');
+    const blackoutDelete = page.locator('[data-editor-actions] button[title="Delete"]');
     await expect(blackoutDelete).toBeVisible();
     const blackoutDeleteVisual = await getBox(blackoutDelete, 'Blackout toolbar delete button');
     expect(blackoutDeleteVisual.width, 'delete button visual should stay ~28px - only the hit box grows').toBeLessThan(32);
@@ -696,20 +707,31 @@ test.describe('find and redact (RED-02)', () => {
     // highlight's left edge sits at 100/612 of the page and its top just
     // above the cap height, 1pt of padding included.
     const pageCard = page.locator('[data-editor-page-card]').first();
-    const overlay = await getBox(pageCard.locator('.redact-draw-area'), 'page overlay');
-    const match = await getBox(pageCard.locator('[data-redact-find-match]').first(), 'first match');
-    expect(Math.abs((match.x - overlay.x) / overlay.width - 99 / 612)).toBeLessThan(0.01);
-    expect(Math.abs((match.y - overlay.y) / overlay.height - (792 - 713) / 792)).toBeLessThan(0.01);
-    expect(match.height / overlay.height).toBeGreaterThan(12 / 792);
+    // Find smoothly scrolls to the current match. Read both rectangles in the
+    // same browser evaluation so scrolling cannot move one between reads.
+    const matchWithinPage = await pageCard.evaluate((card) => {
+      const overlay = card.querySelector('.redact-draw-area')?.getBoundingClientRect();
+      const match = card.querySelector('[data-redact-find-match]')?.getBoundingClientRect();
+      if (!overlay || !match) throw new Error('Find match or page overlay has no bounding box');
+      return {
+        x: (match.x - overlay.x) / overlay.width,
+        y: (match.y - overlay.y) / overlay.height,
+        height: match.height / overlay.height,
+      };
+    });
+    expect(Math.abs(matchWithinPage.x - 99 / 612)).toBeLessThan(0.01);
+    expect(Math.abs(matchWithinPage.y - (792 - 713) / 792)).toBeLessThan(0.01);
+    expect(matchWithinPage.height).toBeGreaterThan(12 / 792);
 
     await page.locator('[data-redact-find-all]').click();
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(4);
     await expect(page.locator('[data-redact-find-status]')).toHaveText('1 of 4 on 2 pages, 4 covered');
     await expect(page.locator('[data-redact-find-all]')).toBeDisabled();
 
-    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Covered 4 matches', { exact: true })).toBeVisible();
+    await page.locator('[role="toolbar"][aria-label="PDF redaction"]').getByRole('button', { name: 'Undo' }).click();
     await expect(page.locator('[class*="redact-box"]')).toHaveCount(0);
-    await expect(page.locator('[data-redact-find-all]')).toHaveText('Redact all 4');
+    await expect(page.locator('[data-redact-find-all]')).toHaveText('Cover all 4');
   });
 
   // RED-11: the four boxes "Redact all" just added share one findSetId, so
@@ -841,7 +863,8 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const keepAfterDelete = await canvasRegionStats(pageCard, keepRatio);
     expect(keepAfterDelete.dark).toBeGreaterThan(keepBefore.dark * 0.8);
 
-    await page.getByRole('button', { name: 'Undo' }).click();
+    await expect(page.getByText('Deleted text', { exact: true })).toBeVisible();
+    await page.locator('[role="toolbar"][aria-label="PDF redaction"]').getByRole('button', { name: 'Undo' }).click();
     await expect.poll(async () => (await canvasRegionStats(pageCard, secretRatio)).dark)
       .toBeGreaterThan(secretBefore.dark * 0.8);
   });
@@ -863,11 +886,11 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     expect(text).not.toContain('SECRET');
   });
 
-  // RED-12: the real browser path (pdf.js rendering on a real canvas, its
-  // worker, the operator-list read) that redact.test.js can only run against
-  // a stubbed canvas. A blackout over the middle word: the saved page keeps
-  // the words either side as invisible text, in order, and not the boxed one.
-  test('download after a blackout over a middle word keeps the words either side as text, and not the boxed one', async ({ page }) => {
+  // The real browser path (pdf.js rendering on a real canvas, its worker,
+  // the operator-list read) that redact.test.js can only run against a
+  // stubbed canvas. A covered page is saved as one picture with no text
+  // layer at all (2026-09-28), whether or not a box lands on any of its text.
+  test('download after a blackout over a middle word saves the covered page with no text at all', async ({ page }) => {
     const doc = await PDFDocument.create();
     const pdfPage = doc.addPage([612, 792]);
     const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -895,9 +918,7 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     const wasmUrl = `${new URL('../../../../node_modules/pdfjs-dist/wasm/', import.meta.url).href}`;
     const saved = await getDocument({ data: new Uint8Array(fs.readFileSync(savedPath)), wasmUrl }).promise;
     const content = await (await saved.getPage(1)).getTextContent();
-    const words = content.items.map((item) => item.str).join(' ').split(/\s+/).filter(Boolean);
-    expect(words).toEqual(['LEFT', 'RIGHT']);
-    await expect(page.getByText(/saved as a picture only/)).toHaveCount(0);
+    expect(content.items).toEqual([]);
   });
 
   // RED-17: the saved-file check's done-state flow, in a real browser (pdf.js
@@ -935,7 +956,7 @@ test.describe('delete shows the page as it will be saved (RED-13)', () => {
     await expect(check).toBeVisible();
     const secretTerm = check.locator('[data-check-term="SECRET"]');
     await expect(secretTerm).toContainText('Page 1: still visible in the picture.');
-    const coverButton = secretTerm.getByRole('button', { name: 'Cover it' });
+    const coverButton = secretTerm.getByRole('button', { name: 'Add a box over it' });
     await expect(coverButton).toBeVisible();
 
     await coverButton.click();

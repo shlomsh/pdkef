@@ -1,5 +1,7 @@
 import { h } from 'preact';
 import { blurFraction, type BlurStrength } from '../model/blurStrength.ts';
+import { strokeSvgInPoints } from '../model/strokeGeometry.ts';
+import type { BlurStrokeElement, WhiteoutStrokeElement } from '../model/editorModel.ts';
 
 /**
  * Visual interior for a Redact box. Geometry, handles, and toolbars stay in
@@ -26,13 +28,37 @@ import { blurFraction, type BlurStrength } from '../model/blurStrength.ts';
  * know the box's height in points yet, `boxHeightPt` is left undefined and
  * `blurFraction` falls back to the plain, unfloored factor.
  */
-function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
+function blurFilter(strength: unknown, boxHeightPt?: number): string {
   // Rounded so boxes of the same size write the same string, whatever float
   // noise their percent geometry carries.
   const fraction = Number(blurFraction(strength, boxHeightPt ?? NaN).toFixed(4));
-  const filter = `blur(calc(${fraction} * 100cqh))`;
+  return `blur(calc(${fraction} * 100cqh))`;
+}
+
+/**
+ * RED-30: the slider's live paint. While the knob moves, the box's blur layer
+ * is rewritten straight in the DOM (the gesture golden rule: no state, no
+ * store per input event); the one commit on release re-renders the same
+ * string. The box is found by `data-redact-box-id`, so it works from a
+ * toolbar portalled out of the box. Returns whether a layer was painted.
+ */
+export function paintBlurStrength(root: ParentNode, elementId: string, strength: number): boolean {
+  const box = Array.from(root.querySelectorAll<HTMLElement>('[data-redact-box-id]'))
+    .find((node) => node.dataset.redactBoxId === elementId);
+  const layer = box?.querySelector<HTMLElement>('.redact-surface__blur');
+  if (!layer) return false;
+  const pt = Number(layer.dataset.boxHeightPt);
+  const filter = blurFilter(strength, Number.isFinite(pt) && layer.dataset.boxHeightPt ? pt : undefined);
+  layer.style.backdropFilter = filter;
+  layer.style.setProperty('-webkit-backdrop-filter', filter);
+  return true;
+}
+
+function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
+  const filter = blurFilter(strength, boxHeightPt);
   return h('div', {
     class: 'redact-surface__blur',
+    'data-box-height-pt': boxHeightPt === undefined ? undefined : String(boxHeightPt),
     style: {
       position: 'absolute',
       inset: 0,
@@ -96,4 +122,74 @@ export function redactionDrawingPreviewStyle(kind: 'blackout' | 'blur' | 'whiteo
  */
 export function renderRedactionDrawingPreviewContent(kind: 'blackout' | 'blur' | 'whiteout', strength?: BlurStrength, boxHeightPt?: number) {
   return kind === 'blur' ? blurLayer(strength, boxHeightPt) : null;
+}
+
+/**
+ * RED-32: a brush stroke's paint. Both kinds draw the same round-capped,
+ * round-joined polyline that redact.js strokes on the export canvas, in page
+ * points inside the stroke's own bbox, so the brush stays round at any zoom.
+ *
+ * A whiteout stroke is an inline SVG path in its color. A blur stroke is the
+ * blur box's backdrop-filter, masked to the stroke shape with `mask-image`
+ * (an SVG data URI of the same path; img-src already allows `data:`), its
+ * radius the blur rule applied to the brush diameter. The page's size in
+ * points is needed to convert percent geometry to points; a host that does
+ * not know the width yet (Redact once passed 0) gets a US Letter ratio from
+ * the height rather than a wrong-shaped brush.
+ */
+export function renderStrokeSurface(
+  stroke: BlurStrokeElement | WhiteoutStrokeElement,
+  pageWidthPt?: number,
+  pageHeightPt?: number,
+) {
+  const heightPt = pageHeightPt && pageHeightPt > 0 ? pageHeightPt : 792;
+  const widthPt = pageWidthPt && pageWidthPt > 0 ? pageWidthPt : heightPt * (612 / 792);
+  const svg = strokeSvgInPoints(stroke, widthPt, heightPt);
+
+  if (stroke.type === 'whiteoutStroke') {
+    return h('svg', {
+      class: 'redact-surface redact-surface--whiteoutStroke',
+      viewBox: svg.viewBox,
+      preserveAspectRatio: 'none',
+      'aria-hidden': 'true',
+      style: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' },
+    }, h('path', {
+      d: svg.d,
+      fill: 'none',
+      stroke: stroke.color || '#ffffff',
+      'stroke-width': svg.strokeWidth,
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    }));
+  }
+
+  const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${svg.viewBox}" preserveAspectRatio="none">`
+    + `<path d="${svg.d}" fill="none" stroke="#000" stroke-width="${svg.strokeWidth}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const mask = `url("data:image/svg+xml,${encodeURIComponent(maskSvg)}")`;
+  // Radius = blurFraction(strength, diameter) x diameter, in points; the
+  // container's height in points turns it into the fraction of 100cqh.
+  const bboxHeightPt = (stroke.height / 100) * heightPt;
+  const radiusPt = blurFraction(stroke.strength, stroke.sizePt) * stroke.sizePt;
+  const fraction = bboxHeightPt > 0 ? Number((radiusPt / bboxHeightPt).toFixed(4)) : 0;
+  const filter = `blur(calc(${fraction} * 100cqh))`;
+  return h('div', {
+    class: 'redact-surface redact-surface--blurStroke',
+    style: { position: 'absolute', inset: 0, pointerEvents: 'none', containerType: 'size' },
+  }, h('div', {
+    class: 'redact-surface__blur',
+    style: {
+      position: 'absolute',
+      inset: 0,
+      pointerEvents: 'none',
+      backgroundColor: 'rgba(255,255,255,0.1)',
+      backdropFilter: filter,
+      WebkitBackdropFilter: filter,
+      maskImage: mask,
+      WebkitMaskImage: mask,
+      maskSize: '100% 100%',
+      WebkitMaskSize: '100% 100%',
+      maskRepeat: 'no-repeat',
+      WebkitMaskRepeat: 'no-repeat',
+    },
+  }));
 }

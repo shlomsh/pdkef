@@ -4,9 +4,7 @@ title: "Close the loop: accept a PDF shared into PDkef from another app"
 status: "done"
 priority: "P3"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEMO-03 · Close the loop: accept a PDF shared into PDkef from another app

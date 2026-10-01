@@ -209,7 +209,7 @@ test.describe('typing into a narrow detected cell on a phone', () => {
     if (await compact.isVisible()) await compact.click();
     const bigger = page.getByTitle('Increase font size');
     for (let i = 0; i < 12; i += 1) await bigger.click();
-    await page.getByTitle('Delete element').click();
+    await page.locator('[data-editor-actions]').getByRole('button', { name: 'Delete', exact: true }).click();
     // Tools are one-shot: the first box disarmed Text, and its hints with it.
     await page.getByRole('toolbar', { name: 'PDF annotations' }).getByRole('button', { name: 'Text', exact: true }).click();
     await tapCell();

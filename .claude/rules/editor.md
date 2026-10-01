@@ -8,9 +8,9 @@ paths:
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
   - "docs/E4-headless-editor-core-plan.md"
-  - "docs/editor-module-boundaries-plan.md"
+  - "docs/archive/editor-module-boundaries-plan.md"
   - "docs/view-density-control-spec.md"
-  - "docs/sign-redact-draft-validation-plan.md"
+  - "docs/archive/sign-redact-draft-validation-plan.md"
 ---
 
 # Sign/Redact editor
@@ -144,6 +144,7 @@ Create is a gesture too (click-place or drag-draw), not an exception.
   `src/editor-ui/hooks/toolArming.js`'s `useArmTool`, so they cannot drift. Tell of the old bug: clicking empty
   space to get out of a tool placed a stray element, and with a drag tool `ENSURE_MINIMUM_SIZE`
   promoted a zero-size drag into a default box; Redact used to arrive with `'delete'` armed forever.
+- **The Blur and Whiteout brushes are the one exception** (RED-32): armed in brush mode, they stay armed after each stroke until Stop or Esc, because painting takes several strokes. One stroke is still one committed element.
 - **Repeat placement is opt-in by double-click** (`SET_TOOL` with `{ tool, locked: true }` in Sign;
   `setTool(tool, true)` in Redact). Toggle buttons read `e.detail >= 2` off `onClick`, not
   `ondblclick`, because the second click of a real dblclick would disarm before the lock landed. Shapes

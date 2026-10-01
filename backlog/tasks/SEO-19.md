@@ -4,9 +4,7 @@ title: "New tool: compress an image to a target size, because people are already
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-06", "SEO-13"]
-legacy_state: "Open"
 ---
 
 # SEO-19 · New tool: compress an image to a target size, because people are already asking us to

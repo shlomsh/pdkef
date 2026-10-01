@@ -191,8 +191,8 @@ exists: those tests exercise Sign, and a Sign-only commit that did not run them 
 coverage it has. Turning inference off would have hidden that, not fixed it.
 
 The fix is a leaf project for tests that deliberately span modules: `src/test/cross-tool/`
-(`cross-tool-tests`), holding those three plus `src/lib/languageAcceptance.test.js`, which imports
-`e2e/sign/fixtures/exportRenderCorpus.js` and so gave `lib` an edge to `fonts` (whose
+(`cross-tool-tests`), holding those three plus `src/test/cross-tool/languageAcceptance.test.js`, which imports
+`e2e/export/fixtures/exportRenderCorpus.js` and so gave `lib` an edge to `fonts` (whose
 `implicitDependencies` include `tool-sign`: a second cycle that also widened Sign to everything). Two
 placements were tried and rejected on the graph itself: `src/test/` as the project (every tool imports
 its helpers `setup.js`/`setInputFiles.js`/`fixtures/`, so the cycle came straight back), and leaving the

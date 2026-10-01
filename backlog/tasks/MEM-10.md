@@ -3,9 +3,11 @@ id: "MEM-10"
 title: "A shipped fix has no way to reach someone who keeps the app open"
 status: "open"
 priority: "P1"
-epic: "one-memory-space"
-phase: "near-term"
+epic: "robustness"
+horizon: "next"
+order: 3
 depends_on: []
+needs: "A ruling on updates with several tabs open"
 ---
 
 # MEM-10 · A shipped fix has no way to reach someone who keeps the app open

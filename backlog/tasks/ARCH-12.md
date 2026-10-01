@@ -4,9 +4,7 @@ title: "Validate canonical backlog and generated indexes in CI"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-11"
 ---
 
 ## Problem

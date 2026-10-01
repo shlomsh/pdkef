@@ -4,9 +4,7 @@ title: "A tapped text box on an iPhone opens its session but never its keyboard"
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-21"]
-legacy_state: "Open"
 ---
 
 # MOBI-24 · A tapped text box on an iPhone opens its session but never its keyboard

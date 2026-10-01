@@ -4,7 +4,6 @@ title: "Remove text, image pixels and paths under each box, with per-page flatte
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-05", "RED-06"]
 ---
 

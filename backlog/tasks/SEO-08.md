@@ -4,9 +4,7 @@ title: "The four OS how-to guides rank between 44 and 58, and one of them is our
 status: "done"
 priority: "P2"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-07"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-08 · The four OS how-to guides rank between 44 and 58, and one of them is our best-read page

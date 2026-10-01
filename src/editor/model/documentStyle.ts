@@ -31,6 +31,12 @@ export interface DocumentStyle {
   strokeWidth: number;
   whiteoutColor: string;
   signatureWidth: number;
+  /** RED-32: Redact's Box / Brush choice inside Blur and Whiteout. Optional: Sign never sets it. */
+  brushMode?: 'box' | 'brush';
+  /** RED-32: Redact's brush size in page points (2 to 40). */
+  brushSize?: number;
+  /** RED-40: Redact's blur strength, 0.1 to 0.7. Optional: Sign never sets it. */
+  blurStrength?: number;
 }
 
 /**

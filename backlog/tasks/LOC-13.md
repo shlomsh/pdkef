@@ -3,10 +3,9 @@ id: "LOC-13"
 title: "Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins"
 status: "blocked"
 priority: "P2"
-epic: "localization-pilots"
-phase: "near-term"
-depends_on: ["LOC-10", "LOC-11"]
-legacy_state: "Open"
+epic: "search-and-languages"
+depends_on: ["LOC-17", "SEO-40"]
+waiting_on: "LOC-17 and SEO-40"
 ---
 
 # LOC-13 · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins
@@ -107,8 +106,8 @@ against a paid reviewer and a schema extension. Recommendation to Shlomi: hold u
 read (2026-11-06) and LOC-12 (2026-11-12), and grow the English base first, since localization
 multiplies what the English pages already win. **Decision (Shlomi, 2026-09-12): hold.** The same-day
 ranking in LOC-11 put Indonesian ([LOC-14](LOC-14.md)) ahead of Spanish as the in-language candidate,
-and the image-to-target-size tool (SEO-19) ahead of both. This ticket unblocks when LOC-14 has run and
-LOC-12 has re-read the countries; if Spanish is still the best door then, the page is built as scoped
+and the image-to-target-size tool (SEO-19) ahead of both. This ticket unblocks when LOC-17 (the Indonesian read) and SEO-40 (the November reads, which
+now hold LOC-12's country re-read) are in; if Spanish is still the best door then, the page is built as scoped
 above, on the SEP 1 MB hook, and covers the photo limit as well as the PDF limit.
 
 ## Term and slug come from the data, not from this ticket
@@ -129,3 +128,7 @@ follow the term that wins and the limits the research verifies; do not fix them 
   Success: top ten on at least one target-size query in Mexico. Kill: no impressions on any of them,
   same as the English page's own bar in SEO-17.
 - No second Spanish page and no second language until that read is in.
+
+## 2026-10-01 board cleanup
+
+- depends_on is now LOC-17 and SEO-40 (LOC-10 and LOC-11 are done).

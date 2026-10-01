@@ -4,7 +4,6 @@ title: "One home for the ink edge builders"
 status: "done"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["ARCH-24"]
 ---
 

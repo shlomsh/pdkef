@@ -1,12 +1,10 @@
 ---
 id: "SEO-31"
 title: "Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/"
-status: "blocked"
+status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-19"]
-legacy_state: "Open"
 ---
 
 # SEO-31 · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/
@@ -290,3 +288,7 @@ tabulating it. Checked in the built page at 1280 and 390 wide (Chromium, 2026-09
 *2026-09-17:* indexed on 2026-09-12, the day of the request (Coverage -> Valid export), and already
 ranking: 27 impressions, 1 click, position 2.96 in the 7-day window to 09-15. Too small to read, logged
 as the first data point ahead of the 2026-11-07 read.
+
+## Closed 2026-10-01
+
+Merged into SEO-40: the eight-week read of `/photo-and-signature-size-for-forms/` (2026-11-07) moves there.

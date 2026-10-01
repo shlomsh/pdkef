@@ -4,9 +4,7 @@ title: "Establish dependency vulnerability and update governance"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open — no automated dependency security/update workflow found 2026-09-03"
 ---
 
 # SIGN-26 · Establish dependency vulnerability and update governance

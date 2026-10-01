@@ -6,7 +6,7 @@ Date: 2026-09-11. Scope: localizing the marketing home page (`/`, `src/pages/ind
 (`he`) and future locales, so that `/he/` (and equivalents) resolve to a real, indexable, RTL-correct
 edition instead of 404ing. This document does not cover `/sign/`, the ten standalone guides, or any
 other tool page - those are fully specified in
-[docs/app-documentation-localization-plan.md](./app-documentation-localization-plan.md) ("the Sign/guides
+[docs/archive/app-documentation-localization-plan.md](./archive/app-documentation-localization-plan.md) ("the Sign/guides
 doc"), which explicitly scoped the home page **out** ("Sign home page" there means `/sign/` as a tool
 hub, never `/`). This document supersedes nothing in that doc; it extends the same infrastructure to one
 more page family that doc never touched, and flags the one place the two plans now have to agree (the

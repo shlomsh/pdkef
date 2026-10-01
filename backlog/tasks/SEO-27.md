@@ -4,9 +4,7 @@ title: "Decide the localization question: Hebrew is nearly free, Hindi is not th
 status: "retired"
 priority: "P3"
 epic: "search-acquisition"
-phase: "later"
 depends_on: ["SEO-01"]
-legacy_state: "Retired 2026-09-11 - superseded by LOC-01 and LOC-05"
 ---
 
 # SEO-27 · Decide the localization question: Hebrew is nearly free, Hindi is not the win it looks like

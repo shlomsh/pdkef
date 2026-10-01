@@ -4,9 +4,7 @@ title: "Merge rejects PDFs with an empty MIME type that Compress accepts"
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-02 · Merge rejects PDFs with an empty MIME type that Compress accepts

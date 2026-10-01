@@ -4,7 +4,6 @@ title: "Boxes from one search stay a set: remove them together, blur strength sh
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

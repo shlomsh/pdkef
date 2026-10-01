@@ -4,9 +4,7 @@ title: "Decide the visual register: keep Sea Glass or move to warm paper"
 status: "done"
 priority: "P3"
 epic: "landing-story-demo"
-phase: "later"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEMO-06 · Decide the visual register: keep Sea Glass or move to warm paper

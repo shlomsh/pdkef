@@ -13,10 +13,19 @@
   transition: opacity 0.15s ease;
 }
 
-.redact-box:hover .redact-box-resizer,
-.redact-box.active .redact-box-resizer {
+.redact-box.active .redact-box-resizer,
+.redact-box.selected .redact-box-resizer {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* RED-35: hover reveals handles for fine pointers only; on touch they show
+   when the box is selected (rule above). */
+@media (hover: hover) {
+  .redact-box:hover .redact-box-resizer {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Whiteout's border reads as a true erase at rest (transparent) and only
@@ -85,9 +94,39 @@
   border-color: var(--color-danger);
 }
 
+/* RED-33: a target the drag box currently covers by half or more. Same look
+   as hover, toggled straight on the element during the gesture. */
+.delete-candidate-hot {
+  background: rgba(184, 76, 88, 0.1);
+  border-color: var(--color-danger);
+}
+
+/* RED-33: the drag box itself; the component positions it in percent. */
+.delete-marquee {
+  display: none;
+  position: absolute;
+  z-index: 13;
+  pointer-events: none;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--color-danger);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+/* RED-35: no hover on touch, so with Delete armed every target wears a
+   lighter version of the hover outline, which makes "Tap outlined text or an
+   image" true. */
+@media (hover: none), (pointer: coarse) {
+  .delete-candidate {
+    background: color-mix(in srgb, var(--color-danger) 5%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
+  }
+}
+
 /* RED-13: the moment an object is deleted. A snapshot of it sits over the
-   page until the page has been drawn without it (DeleteLift.tsx), then lifts
-   off and fades. Reduced motion never creates one. */
+   page until the page has been drawn without it (DeleteLift.tsx), then peels
+   off like a sticker (RED-28): the front is clipped away while its blank
+   underside folds over, then flies off. Reduced motion never creates one. */
 .delete-lift {
   position: absolute;
   z-index: 12;
@@ -100,15 +139,24 @@
   height: 100%;
 }
 
-.delete-lift.lifting {
-  animation: delete-lift 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.delete-lift-fly,
+.delete-lift-fold,
+.delete-lift-flap {
+  position: absolute;
+  inset: 0;
 }
 
-@keyframes delete-lift {
-  to {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.94);
-  }
+.delete-lift-fly {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12));
+}
+
+.delete-lift-fold {
+  transform-origin: 0 0;
+}
+
+.delete-lift-flap {
+  background: var(--color-surface);
+  border-radius: 2px;
 }
 
 /* Redact design-review finding #3: deleteElement (a box's own X) and
@@ -156,6 +204,7 @@
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 0.15em;
+  flex-shrink: 0;
 }
 
 /* Redact design-review finding #5: the Download control never said what it
@@ -182,4 +231,29 @@
      the same selector weight. This later, tool-specific readiness condition
      must win until the final canvas sets its viewport. */
   visibility: hidden !important;
+}
+
+/* RED-31: peek. The cover is hidden, not removed, and a dashed outline keeps
+   the box findable. Screen only: it is an attribute on the DOM node, never
+   part of the element. touch-callout and user-select stop iOS opening its
+   callout or selecting text on a long press. */
+.redact-box {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.redact-surface-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.redact-box[data-peeking] .redact-surface-host {
+  visibility: hidden;
+}
+
+.redact-box[data-peeking] {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -1px;
 }

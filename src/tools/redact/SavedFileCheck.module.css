@@ -70,6 +70,7 @@
   cursor: pointer;
 }
 
+.cover:disabled,
 .submit:disabled {
   opacity: 0.5;
   cursor: default;
@@ -103,4 +104,13 @@
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-ring);
+}
+
+/* RED-44: 44px targets on touch, like the rest of Redact (RED-35). */
+@media (pointer: coarse) {
+  .cover,
+  .submit,
+  .input {
+    min-height: 2.75rem;
+  }
 }

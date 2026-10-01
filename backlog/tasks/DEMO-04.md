@@ -4,9 +4,7 @@ title: "Say it stays on your phone, in words a non-technical person believes"
 status: "done"
 priority: "P2"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-04"
 ---
 
 # DEMO-04 · Say it stays on your phone, in words a non-technical person believes

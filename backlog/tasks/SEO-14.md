@@ -4,9 +4,7 @@ title: "Positioning review: Blur and Redact, the cluster we are already winning"
 status: "done"
 priority: "P2"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-11", "SEO-04"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-14 · Positioning review: Blur and Redact, the cluster we are already winning

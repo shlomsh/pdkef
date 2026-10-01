@@ -4,9 +4,7 @@ title: "One font manifest"
 status: "done"
 priority: "P2"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # FONT-02 · One font manifest

@@ -14,10 +14,16 @@ import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
+import { fieldValueTexts, isNonBlank } from './placeText.ts';
+import { unusedPartsText } from './unusedParts.ts';
+import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */
   picturePages: number[];
+  /** The saved file's bytes, to look for parts no page shows (RED-49). Read
+   * back from `doc` when not given. */
+  bytes?: Uint8Array;
 }
 
 const IMAGE_OPS_NAMES = [
@@ -30,18 +36,10 @@ const IMAGE_OPS_NAMES = [
   'paintSolidColorImageMask',
 ] as const;
 
-function fieldValuesToText(fieldValue: unknown): string[] {
-  if (typeof fieldValue === 'string' && fieldValue.trim() !== '') return [fieldValue];
-  if (Array.isArray(fieldValue)) {
-    return fieldValue.filter((v): v is string => typeof v === 'string' && v.trim() !== '');
-  }
-  return [];
-}
-
 function outlineTitles(items: Array<{ title?: string; items?: unknown[] }>): SavedPlace[] {
   const places: SavedPlace[] = [];
   for (const item of items) {
-    if (typeof item.title === 'string' && item.title.trim() !== '') {
+    if (isNonBlank(item.title)) {
       places.push({ kind: 'bookmark', text: item.title });
     }
     if (Array.isArray(item.items) && item.items.length > 0) {
@@ -51,21 +49,35 @@ function outlineTitles(items: Array<{ title?: string; items?: unknown[] }>): Sav
   return places;
 }
 
-async function readPlacesForPage(pdfDoc: any, pageIndex: number): Promise<SavedPlace[]> {
+async function readPlacesForPage(pdfjs: any, pdfDoc: any, pageIndex: number): Promise<SavedPlace[]> {
   const page = await pdfDoc.getPage(pageIndex + 1);
   const annotations = await page.getAnnotations();
   const places: SavedPlace[] = [];
   for (const annotation of annotations) {
-    for (const text of fieldValuesToText(annotation.fieldValue)) {
+    for (const text of fieldValueTexts(annotation.fieldValue)) {
       places.push({ kind: 'field', text, pageIndex });
     }
     const commentText = annotation.contentsObj?.str;
-    if (typeof commentText === 'string' && commentText.trim() !== '') {
+    if (isNonBlank(commentText)) {
       places.push({ kind: 'comment', text: commentText, pageIndex });
     }
-    const titleText = annotation.titleObj?.str;
-    if (typeof titleText === 'string' && titleText.trim() !== '') {
-      places.push({ kind: 'comment', text: titleText, pageIndex });
+    if (annotation.subtype === 'Widget') {
+      // A form field's name (/T) is reported, since it can hold a secret, but
+      // it cannot be removed alone: the field would lose its identity.
+      if (isNonBlank(annotation.fieldName)) {
+        places.push({ kind: 'field', text: annotation.fieldName, pageIndex, removable: false });
+      }
+    } else {
+      const titleText = annotation.titleObj?.str;
+      if (isNonBlank(titleText)) {
+        places.push({ kind: 'comment', text: titleText, pageIndex });
+      }
+    }
+    if (annotation.annotationType === pdfjs.AnnotationType?.LINK || annotation.subtype === 'Link') {
+      const url = annotation.url ?? annotation.unsafeUrl;
+      if (isNonBlank(url)) {
+        places.push({ kind: 'link', text: url, pageIndex });
+      }
     }
   }
   return places;
@@ -81,14 +93,14 @@ function metadataPlaces(info: Record<string, unknown> | undefined, metadata: unk
   ];
   for (const [field, kind] of infoFields) {
     const value = info?.[field];
-    if (typeof value === 'string' && value.trim() !== '') places.push({ kind, text: value });
+    if (isNonBlank(value)) places.push({ kind, text: value });
   }
 
   // pdf.js's Metadata class has no getAll(); it exposes entries only through
   // its Symbol.iterator (get(name) for one key). Iterate it directly.
   if (metadata && typeof (metadata as any)[Symbol.iterator] === 'function') {
     for (const [, value] of metadata as Iterable<[string, unknown]>) {
-      if (typeof value === 'string' && value.trim() !== '') {
+      if (isNonBlank(value)) {
         places.push({ kind: 'metadata', text: value });
       }
     }
@@ -102,11 +114,26 @@ async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; at
   const places: SavedPlace[] = [];
   for (const attachment of attachments.values()) {
     const filename = attachment?.filename;
-    if (typeof filename === 'string' && filename.trim() !== '') {
+    if (isNonBlank(filename)) {
       places.push({ kind: 'attachment', text: filename });
     }
   }
   return { places, attachmentCount: attachments.size };
+}
+
+/** RED-49: the one 'unused' place, when the file holds readable text in parts
+ * no page shows. pdf.js only follows what a page reaches, so this reads the
+ * raw objects with pdf-lib, through the same `unusedPartsText` that Remove it's
+ * locator uses. A file pdf-lib can't open has nothing to report here. */
+async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<SavedPlace[]> {
+  try {
+    const data = bytes ?? (await doc.getData());
+    const lib = await PDFDocument.load(data, { updateMetadata: false, ignoreEncryption: true, parseSpeed: ParseSpeeds.Fastest });
+    const text = unusedPartsText(lib);
+    return isNonBlank(text) ? [{ kind: 'unused', text, removable: true }] : [];
+  } catch {
+    return [];
+  }
 }
 
 /** True when a page's operator list paints at least one image. */
@@ -133,7 +160,7 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
     const geometry = pageGeometryFromPdfJsPage(page);
     pages.push({ text, geometry });
 
-    places.push(...(await readPlacesForPage(doc, pageIndex)));
+    places.push(...(await readPlacesForPage(pdfjs, doc, pageIndex)));
 
     if (items.length === 0) {
       const operatorList = await page.getOperatorList();
@@ -151,6 +178,7 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
 
   const { places: attachmentSavedPlaces, attachmentCount } = await attachmentPlaces(doc);
   places.push(...attachmentSavedPlaces);
+  places.push(...(await unusedPlaces(doc, options.bytes)));
 
   const picturePages = [...new Set([...options.picturePages, ...detectedPicturePages])].sort((a, b) => a - b);
 

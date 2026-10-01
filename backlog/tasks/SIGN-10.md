@@ -4,9 +4,7 @@ title: "A language/font source of truth and acceptance matrix"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # SIGN-10 · A language/font source of truth and acceptance matrix

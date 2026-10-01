@@ -3,10 +3,9 @@ id: "SEO-32"
 title: "New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump"
 status: "blocked"
 priority: "P3"
-epic: "new-tools-gated"
-phase: "later"
+epic: "search-and-languages"
 depends_on: ["SEO-06"]
-legacy_state: "Open"
+waiting_on: "SEO-06 crawl gate and a volume check"
 ---
 
 # SEO-32 · New tool: PDF to Markdown, English-only v1, Hebrew/RTL deferred pending anydoc-wasm's dependency bump

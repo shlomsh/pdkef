@@ -4,7 +4,6 @@ title: "Tests for scripts/ leave src/lib/, and site-only helpers get a home that
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: ["DEBT-04"]
 ---
 

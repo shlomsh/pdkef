@@ -4,9 +4,7 @@ title: "Localized tool pages: the route, the reviewed copy source, and the islan
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-02 · Localized tool pages: the route, the reviewed copy source, and the island message catalogue
@@ -38,7 +36,7 @@ builds the mechanism once; LOC-03 fills it for the first language.
   library, no client-side language detection. For Merge, Split, Compress, Unlock, PDF-to-Image and
   Image-to-PDF that is roughly thirty strings each. **Sign and Redact are the exception for the pilot**:
   the editor's `TOOL_COPY` vocabulary and dialogs are a larger surface, and the 2026-08-28 design
-  record ([docs/app-documentation-localization-plan.md](../../docs/app-documentation-localization-plan.md))
+  record ([docs/archive/app-documentation-localization-plan.md](../../docs/archive/app-documentation-localization-plan.md))
   already decided the editor stays English behind a visible "editor controls are in English" notice.
   Keep that decision for the pilot; revisit only if LOC-04 shows Sign is where the localized traffic
   goes.

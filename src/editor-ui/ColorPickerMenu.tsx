@@ -30,6 +30,9 @@ export default function ColorPickerMenu({ value, onChange, title, defaultColor =
             // and element.style.* is exempt from a strict CSP style-src.
             ref={(el) => { if (el) el.style.background = swatchColor; }}
           />
+          <svg className={styles['color-trigger-caret']} width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </button>
       }
       content={

@@ -184,6 +184,10 @@ export const FUNCTION_SHIMS = new Map([
         + 'WidgetEntry object.'],
       ['extractPageObjects', "reads a pdf-lib page's Resources dict and content bytes once before "
         + 'walking its own already-decoded tokens, the same shape as collectCheckboxGlyphs.'],
+      ['formMatrix', "reads a Form XObject's /Matrix (PDFName/PDFArray) into six plain numbers "
+        + '(RED-29).'],
+      ['walkForm', "decodes a Form XObject's stream (decodePDFRawStream) and reads its /Resources "
+        + 'and /Matrix before handing plain bytes to the same token walk as the page (RED-29).'],
       ['hasFillableAcroForm', "reads a pdf-lib document's AcroForm dict into a plain boolean. It "
         + 'references no import identifier directly - `pdfDoc.catalog.getAcroForm()` calls a method '
         + 'on its parameter rather than naming PDFName/PDFDict/etc. - so nothing here would actually '

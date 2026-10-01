@@ -3,8 +3,9 @@ id: "FORM-10"
 title: "The undivided-panel test reads the whole page, and a lone tick square survives only by accident"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 4
 depends_on: []
 ---
 

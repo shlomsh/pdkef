@@ -4,7 +4,6 @@ title: "change-scope.mjs diffs with --no-renames so a moved file's old owner is 
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

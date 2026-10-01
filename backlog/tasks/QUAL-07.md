@@ -4,7 +4,6 @@ title: "Skip the second product-e2e shard when the affected set is small enough 
 status: "retired"
 priority: "P3"
 epic: "module-boundaries"
-phase: "quick-win"
 depends_on: ["ARCH-20"]
 ---
 

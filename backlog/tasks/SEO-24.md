@@ -3,10 +3,9 @@ id: "SEO-24"
 title: "New tool: make a PDF look scanned"
 status: "blocked"
 priority: "P3"
-epic: "new-tools-gated"
-phase: "later"
+epic: "search-and-languages"
 depends_on: ["SEO-06"]
-legacy_state: "Open"
+waiting_on: "SEO-06 crawl gate and a volume check"
 ---
 
 # SEO-24 · New tool: make a PDF look scanned

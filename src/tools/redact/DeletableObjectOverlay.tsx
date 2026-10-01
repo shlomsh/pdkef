@@ -5,9 +5,13 @@ export interface DeletablePdfObject {
   pageIndex: number;
   kind: 'image' | 'text';
   preview?: string;
+  /** Images only: the XObject the PDF draws, e.g. "5 0 R" (RED-26). */
+  imageRef?: string;
   rect: { left: number; top: number; width: number; height: number };
   start: number;
   end: number;
+  /** RED-29: the Form XObjects from page to the stream holding the span; absent or empty for the page's own content. */
+  formPath?: string[];
 }
 
 /**
@@ -29,6 +33,7 @@ export default function DeletableObjectOverlay({ objects, markedIds, onSelect }:
       <div
         key={object.id}
         className={styles['delete-candidate']}
+        data-delete-id={object.id}
         title={
           object.kind === 'image'
             ? 'Click to delete this image'

@@ -4,9 +4,7 @@ title: "Type roles and vertical rhythm tokens for the marketing surface"
 status: "done"
 priority: "P1"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEMO-01 · Type roles and vertical rhythm tokens for the marketing surface

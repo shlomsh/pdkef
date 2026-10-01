@@ -4,9 +4,7 @@ title: "Every ranking how-to competitor shows a visible date or byline; our cont
 status: "done"
 priority: "P3"
 epic: "search-acquisition"
-phase: "later"
 depends_on: ["SEO-08"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-29 · Every ranking how-to competitor shows a visible date or byline; our content pages show neither

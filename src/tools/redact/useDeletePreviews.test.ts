@@ -104,10 +104,10 @@ describe('deleteSpansByPage', () => {
 
     expect([...byPage.keys()].sort()).toEqual([0, 1]);
     expect(byPage.get(0)).toEqual([
-      { start: 10, end: 20 },
-      { start: 30, end: 40 },
+      { start: 10, end: 20, formPath: [] },
+      { start: 30, end: 40, formPath: [] },
     ]);
-    expect(byPage.get(1)).toEqual([{ start: 5, end: 8 }]);
+    expect(byPage.get(1)).toEqual([{ start: 5, end: 8, formPath: [] }]);
   });
 
   it('ignores non-delete elements', () => {
@@ -127,6 +127,17 @@ describe('deleteSpansByPage', () => {
       { pageIndex: 0, type: 'delete', start: 30, end: 40 },
     ]);
     expect(a.get(0)).toEqual(b.get(0));
+  });
+
+  it('carries formPath and keeps same-offset spans in different streams apart', () => {
+    const byPage = deleteSpansByPage([
+      { pageIndex: 0, type: 'delete', start: 10, end: 20, formPath: ['7 0 R'] },
+      { pageIndex: 0, type: 'delete', start: 10, end: 20 },
+    ]);
+    expect(byPage.get(0)).toEqual([
+      { start: 10, end: 20, formPath: [] },
+      { start: 10, end: 20, formPath: ['7 0 R'] },
+    ]);
   });
 
   it('returns an empty map for no delete elements', () => {

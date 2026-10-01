@@ -1,0 +1,39 @@
+/* Sits over one page while a brush is armed and owns every press on it. */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  touch-action: none;
+  cursor: none;
+}
+
+.paint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Blur paints a translucent accent; whiteout sets its own colour on the
+   element while the stroke is drawn. */
+.path {
+  stroke: var(--color-primary-ring);
+}
+
+.ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--color-surface);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (pointer: coarse) {
+  .layer { cursor: default; }
+  .ring { display: none; }
+}

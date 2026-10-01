@@ -10,6 +10,14 @@ interface DeleteLikeElement {
   type: string;
   start?: number;
   end?: number;
+  formPath?: string[];
+}
+
+/** A span in the page's own content (`formPath` empty) or in a Form XObject stream. */
+export interface DeleteSpan {
+  start: number;
+  end: number;
+  formPath: string[];
 }
 
 interface DeleteSpanElement extends DeleteLikeElement {
@@ -28,26 +36,27 @@ function isDeleteSpanElement(element: DeleteLikeElement): element is DeleteSpanE
  * caring what order elements were added or undone in.
  *
  * @param {Array<DeleteLikeElement>} elements
- * @returns {Map<number, Array<{start: number, end: number}>>}
+ * @returns {Map<number, Array<{start: number, end: number, formPath: string[]}>>}
  */
 export function deleteSpansByPage(
   elements: ReadonlyArray<DeleteLikeElement>,
-): Map<number, Array<{ start: number; end: number }>> {
-  const byPage = new Map<number, Array<{ start: number; end: number }>>();
+): Map<number, DeleteSpan[]> {
+  const byPage = new Map<number, DeleteSpan[]>();
   for (const element of elements) {
     if (!isDeleteSpanElement(element)) continue;
     const spans = byPage.get(element.pageIndex) ?? [];
-    spans.push({ start: element.start, end: element.end });
+    spans.push({ start: element.start, end: element.end, formPath: element.formPath ?? [] });
     byPage.set(element.pageIndex, spans);
   }
   for (const spans of byPage.values()) {
-    spans.sort((a, b) => a.start - b.start || a.end - b.end);
+    spans.sort((a, b) => a.start - b.start || a.end - b.end || a.formPath.join('/').localeCompare(b.formPath.join('/')));
   }
   return byPage;
 }
 
-function spansKey(spans: Array<{ start: number; end: number }>): string {
-  return spans.map((s) => `${s.start}-${s.end}`).join(',');
+function spansKey(spans: DeleteSpan[]): string {
+  // formPath is part of the key: equal offsets in different streams are different spans.
+  return spans.map((s) => `${s.formPath.join('/')}:${s.start}-${s.end}`).join(',');
 }
 
 // pdf.js documents carry a runtime `destroy()` that isn't part of
@@ -161,7 +170,7 @@ export default function useDeletePreviews(
           buildDeletePreviewPage: (
             doc: import('@cantoo/pdf-lib').PDFDocument,
             pageIndex: number,
-            spans: Array<{ start: number; end: number }>,
+            spans: DeleteSpan[],
           ) => Promise<Uint8Array>;
         };
         if (cancelled) return;

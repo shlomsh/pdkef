@@ -4,9 +4,7 @@ title: "Route Sign/Redact's own preference storage through workspace instead of 
 status: "done"
 priority: "P3"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-09-03 — SignatureDialog now uses the shared preference contract"
 ---
 
 # ARCH-06 · Route Sign/Redact's own preference storage through workspace instead of raw localStorage

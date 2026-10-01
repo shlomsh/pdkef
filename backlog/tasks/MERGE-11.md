@@ -4,9 +4,7 @@ title: "Easy defaults: the simple merge is pick files, then Download, with nothi
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-03", "MERGE-06"]
-legacy_state: "Open"
 ---
 
 # MERGE-11 · Easy defaults: the simple merge is pick files, then Download, with nothing else in the way

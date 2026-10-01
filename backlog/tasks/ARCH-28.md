@@ -4,7 +4,6 @@ title: "Unit tests run by file impact, not by project: a core-folder change runs
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-27"]
 ---
 

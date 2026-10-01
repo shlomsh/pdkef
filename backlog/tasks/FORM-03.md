@@ -2,11 +2,11 @@
 id: "FORM-03"
 title: "Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach"
 status: "open"
-priority: "P1"
-epic: "form-understanding"
-phase: "near-term"
+priority: "P2"
+epic: "form-detection"
+horizon: "next"
+order: 6
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-03 · Label association to the gate; first, the header a tall table's last row cannot reach
@@ -50,3 +50,9 @@ only one: FORM-14 (a caption centred in its cell is a heading, not a label) is a
 - [ ] Unit fixture in `formCells.test.js` with a tall stack of row bands and one header above it.
 - [ ] Re-score both forms and record the label numbers in `docs/mobi-10-field-map-spike.md`, adding
   the FORM-12 and FORM-13 rows its score table is missing.
+
+From FORM-04: only Hebrew signature/date keywords exist (formCells.js); Latin labels need their own.
+
+## 2026-10-01 board cleanup
+
+- Priority P1 -> P2.

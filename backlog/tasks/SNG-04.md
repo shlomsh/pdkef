@@ -1,11 +1,12 @@
 ---
 id: "SNG-04"
 title: "One interaction machine and one input router, pure and synchronous, with the MOBI history as tests"
-status: "in_progress"
+status: "open"
 priority: "P1"
-epic: "sign-next-gen"
-phase: "near-term"
-depends_on: ["SNG-03"]
+epic: "sign-fill-mode"
+horizon: "next"
+order: 2
+depends_on: []
 ---
 
 # SNG-04 · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests
@@ -41,3 +42,7 @@ before select/preventDefault for a touch on an element not selected before it be
 and selects. Mouse and production (no `?next=1`) are unchanged. Shlomi confirmed on his iPhone.
 Still to do: the 8px slop before a selected element follows the finger, one constants table, and the
 machine and router this ticket describes.
+
+## 2026-10-01 board cleanup
+
+- Status in_progress -> open. Touch-claim slice 1 shipped (`touchClaim.ts`, b937c0e); the machine and router remain. Dropped SNG-03 from depends_on (retired).

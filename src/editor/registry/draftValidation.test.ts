@@ -4,10 +4,12 @@ import {
   dropUnsafeUpdates,
   isDraftElement,
   migrateDraftRecord,
+  validateDocumentStyle,
   validateDraftElements,
   validateDraftRecord,
   type DraftElement,
 } from './draftValidation.ts';
+import { applyHistoryEntries, revertHistoryEntries } from '../model/actionHistory.ts';
 
 const bytesOf = (length = 4) => new ArrayBuffer(length);
 
@@ -64,6 +66,20 @@ describe('validateDraftElements', () => {
     const { valid, droppedCount } = validateDraftElements([goodDeleteElement]);
     expect(valid).toEqual([goodDeleteElement]);
     expect(droppedCount).toBe(0);
+  });
+
+  it('accepts a delete element with no formPath (older drafts) or a string[] formPath', () => {
+    const withPath = { ...goodDeleteElement, id: 'delete-2', formPath: ['7 0 R', '9 0 R'] };
+    expect(validateDraftElements([goodDeleteElement, withPath]).valid).toEqual([goodDeleteElement, withPath]);
+    expect(validateDraftElements([{ ...goodDeleteElement, formPath: [] }]).droppedCount).toBe(0);
+  });
+
+  it('drops a delete element whose formPath is not an array of strings', () => {
+    for (const formPath of ['7 0 R', [7], [null], {}, null]) {
+      const { valid, droppedCount } = validateDraftElements([{ ...goodDeleteElement, formPath }]);
+      expect(valid).toEqual([]);
+      expect(droppedCount).toBe(1);
+    }
   });
 
   it('drops a delete element missing its byte span (start/end)', () => {
@@ -418,5 +434,114 @@ describe('dropUnsafeUpdates', () => {
     const result = dropUnsafeUpdates([goodText] as DraftElement[], [validUpdate, validAdd] as any, isDraftElement);
     expect(result).toEqual([validUpdate, validAdd]);
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('RED-30: blur strength migration', () => {
+  const blur = { id: 'blur-1', type: 'blur', pageIndex: 0, left: 1, top: 2, width: 30, height: 10 };
+
+  it('turns legacy strings into numbers in elements and history without adding or dropping entries', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: DRAFT_SCHEMA_VERSION,
+      elements: [{ ...blur, strength: 'strong' }, { ...blur, id: 'blur-2' }],
+      extra: {
+        actionHistory: [{
+          id: 'h1', type: 'UPDATE_ELEMENT', operation: 'update', pageIndex: 0, description: 'x', timestamp: 1,
+          updates: [{ id: 'blur-1', before: { strength: 'light' }, after: { strength: 'strong' } }],
+        }, {
+          id: 'h2', type: 'DELETE_ELEMENT', operation: 'delete', pageIndex: 0, description: 'y', timestamp: 2,
+          elements: [{ element: { ...blur, id: 'gone', strength: 'medium' }, index: 0 }],
+        }],
+      },
+    };
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    expect(migrated.elements[0].strength).toBe(0.5);
+    expect('strength' in migrated.elements[1]).toBe(false);
+    expect(migrated.extra.actionHistory).toHaveLength(2);
+    expect(migrated.extra.actionHistory[0].updates[0]).toEqual({ id: 'blur-1', before: { strength: 0.3 }, after: { strength: 0.5 } });
+    expect(migrated.extra.actionHistory[1].elements[0].element.strength).toBe(0.4);
+    // Idempotent.
+    expect(migrateDraftRecord(migrated)).toEqual(migrated);
+  });
+
+  it('accepts both a legacy string and a number as a valid blur element', () => {
+    expect(isDraftElement({ ...blur, strength: 'strong' })).toBe(true);
+    expect(isDraftElement({ ...blur, strength: 0.15 })).toBe(true);
+    expect(isDraftElement({ ...blur, strength: 'bogus' })).toBe(false);
+  });
+
+  it('an old draft with strong in its history undoes and redoes to 0.5 (and back to the original 0.3)', () => {
+    const record = {
+      fileName: 'a.pdf', fileBytes: bytesOf(), schemaVersion: 2,
+      elements: [{ ...blur, strength: 'strong' }],
+      extra: { actionHistory: [{
+        id: 'h1', type: 'UPDATE_ELEMENT', operation: 'update', pageIndex: 0, description: 'x', timestamp: 1,
+        updates: [{ id: 'blur-1', before: { strength: 'light' }, after: { strength: 'strong' } }],
+      }] },
+    };
+    const migrated = migrateDraftRecord(record) as Record<string, any>;
+    const [entry] = migrated.extra.actionHistory;
+    const live = migrated.elements as any[];
+    const undone = revertHistoryEntries(live, [entry]);
+    expect(undone[0].strength).toBe(0.3);
+    const redone = applyHistoryEntries(undone, [entry]);
+    expect(redone[0].strength).toBe(0.5);
+  });
+});
+
+describe('brush strokes (RED-32)', () => {
+  const stroke = {
+    id: 'st-1', pageIndex: 0, left: 10, top: 10, width: 20, height: 5,
+    points: [[12, 12], [25, 13]], sizePt: 14,
+  };
+  const whiteoutStroke = { ...stroke, type: 'whiteoutStroke', color: '#e0e0e0' };
+  const blurStroke = { ...stroke, id: 'st-2', type: 'blurStroke', strength: 'light' };
+
+  it('accepts both stroke types, with or without a blur strength', () => {
+    expect(isDraftElement(whiteoutStroke)).toBe(true);
+    expect(isDraftElement(blurStroke)).toBe(true);
+    const { strength: _drop, ...noStrength } = blurStroke;
+    expect(isDraftElement(noStrength)).toBe(true);
+  });
+
+  it('rejects points outside 0..100, non-finite or malformed pairs, and empty lists', () => {
+    expect(isDraftElement({ ...whiteoutStroke, points: [[12, 101]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[-1, 5]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[NaN, 5]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [[1, 2, 3]] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: [] })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, points: 'nope' })).toBe(false);
+  });
+
+  it('rejects a brush size outside 1..200, a missing color on whiteout, an unknown strength and a missing bbox', () => {
+    expect(isDraftElement({ ...whiteoutStroke, sizePt: 0.5 })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, sizePt: 201 })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, color: undefined })).toBe(false);
+    expect(isDraftElement({ ...blurStroke, strength: 'huge' })).toBe(false);
+    expect(isDraftElement({ ...whiteoutStroke, width: undefined })).toBe(false);
+  });
+
+  it('keeps an add entry for a stroke so undo still reaches it after a reload', () => {
+    const record = validateDraftRecord({
+      fileName: 'a.pdf',
+      fileBytes: bytesOf(),
+      elements: [whiteoutStroke],
+      extra: {
+        actionHistory: [{
+          id: 'h1', type: 'whiteoutStroke', operation: 'add', pageIndex: 0, description: 'Whiteout stroke',
+          timestamp: 1, elements: [{ element: whiteoutStroke, index: 0 }],
+        }],
+      },
+    });
+    expect(record?.elements).toEqual([whiteoutStroke]);
+    expect(record?.extra?.actionHistory).toHaveLength(1);
+  });
+});
+
+describe('carried blur strength (RED-40)', () => {
+  it('round-trips a numeric strength and resolves a legacy name', () => {
+    expect(validateDocumentStyle({ blurStrength: 0.25 })).toEqual({ blurStrength: 0.25 });
+    expect(validateDocumentStyle({ blurStrength: 'light' })).toEqual({ blurStrength: 0.3 });
+    expect(validateDocumentStyle({ blurStrength: 'loud' })).toEqual({});
   });
 });

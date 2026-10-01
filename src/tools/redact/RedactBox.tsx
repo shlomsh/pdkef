@@ -1,4 +1,5 @@
 import { useRef } from 'preact/hooks';
+import RedactBoxBar, { useCoarsePointer } from './RedactBoxBar.tsx';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { TOOLBAR_FLOATING_OFFSET } from '../../constants/signGeometry.js';
 import ElementToolbar from '../../editor-ui/ElementToolbar.tsx';
@@ -6,11 +7,13 @@ import ElementResizers from '../../editor-ui/ElementResizers.tsx';
 import { createElementRenderers } from '../../editor/registry/renderers.ts';
 import type { ElementType } from '../../editor/model/editorModel.ts';
 import useDraggableElement from '../../editor-ui/hooks/useDraggableElement.js';
+import usePressAndHold from './usePressAndHold.ts';
 import useElementResize from '../../editor-ui/hooks/useElementResize.js';
 import useVisualViewportScale from '../../editor-ui/hooks/useVisualViewportScale.ts';
 import visualViewportClamp, { toolbarScaleOriginCss, getStickyToolShellRect } from '../../editor-ui/hooks/visualViewportClamp.ts';
 import elementStyles from '../../editor-ui/EditorElement.module.css';
 import styles from './PdfRedactTool.module.css';
+import { boxKeyIntent, boxMovePatch, boxAriaLabel } from './boxKeys.ts';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // MOBI-17: which corner of the bar actually touches the box it belongs to, so
@@ -63,7 +66,9 @@ export default function RedactBox({
   onRemoveGroup,
   findSetSize,
   onRemoveFindSet,
+  pageWidthPoints,
   pageHeightPoints,
+  peekAll = false,
 }: {
   el: any;
   isSelected: boolean;
@@ -89,9 +94,13 @@ export default function RedactBox({
   findSetSize?: number;
   onRemoveFindSet?: () => void;
   /** RED-24: the page's height in points, for the blur box's on-screen radius. */
+  pageWidthPoints?: number;
   pageHeightPoints?: number;
+  /** RED-31: view state only - every box shows what is under it. */
+  peekAll?: boolean;
 }) {
   const elementRef = useRef<HTMLDivElement | null>(null);
+  const coarsePointer = useCoarsePointer();
   const { refs, floatingStyles, placement, update } = useFloating({
     placement: 'top-start',
     whileElementsMounted: autoUpdate,
@@ -140,7 +149,23 @@ export default function RedactBox({
     getPageWrapper,
     onSelect: () => onSelect(el.id),
     onChange: (patch: any) => onChange(el.id, patch),
+    // Only a selected box claims a touch (SNG-04's model, docs/sign-next-gen.md
+    // §12 #4). A finger landing on an unselected box is left to the browser, so
+    // it can scroll or pinch-zoom across a box that covers most of the page,
+    // and a plain tap still selects it through iOS's synthesised mouse click.
+    touchNeedsSelection: true,
+    isSelected,
   });
+  // RED-31: press and hold still to peek. The visual is one attribute written
+  // straight to the DOM (never state, never the element), and the drag hook
+  // above still gets every press.
+  const { onPressStart } = usePressAndHold({
+    onPeekChange: (on) => elementRef.current?.toggleAttribute('data-peeking', on),
+  });
+  const handlePress = (e: any) => {
+    onPressStart(e);
+    handleDragPointerDown(e);
+  };
   const { handleResizeStart } = useElementResize({
     element: el,
     elementRef,
@@ -156,13 +181,41 @@ export default function RedactBox({
   // `.redact-element-btn` guard was the one piece of Redact-specific logic
   // that survived the convergence onto the shared hook; it went away with
   // the inline button it protected).
-  const isWhiteout = el.type === 'whiteout';
-  const hasShapeHandles = true;
+  // RED-32: a painted stroke is a box to the outside world (select, delete,
+  // recolour) with no resize handles and no drag: moving the bbox would leave
+  // its points behind. The floating toolbar sees it as the box type that has
+  // the same controls (whiteout colour, blur strength).
+  const isStroke = el.type === 'blurStroke' || el.type === 'whiteoutStroke';
+  const isWhiteout = el.type === 'whiteout' || el.type === 'whiteoutStroke';
+  const hasShapeHandles = !isStroke;
+  const toolbarElement = el.type === 'blurStroke'
+    ? { ...el, type: 'blur' }
+    : el.type === 'whiteoutStroke' ? { ...el, type: 'whiteout' } : el;
+  // RED-43: keyboard access. Key handling is boxKeys.ts's pure function; this
+  // only dispatches to the callbacks a click, the delete button and a drag
+  // release already use. Keys from the floating toolbar's controls are ignored.
+  const handleKeyDown = (e: any) => {
+    if (e.target !== e.currentTarget) return;
+    const intent = boxKeyIntent(
+      e.key,
+      { shift: e.shiftKey, ctrl: e.ctrlKey, meta: e.metaKey, alt: e.altKey },
+      { isSelected, isStroke },
+    );
+    if (!intent) return;
+    e.preventDefault();
+    if (intent.kind === 'select') onSelect(el.id);
+    else if (intent.kind === 'deselect') onSelect('');
+    else if (intent.kind === 'delete') onDelete(el.id);
+    else {
+      const patch = boxMovePatch(el, intent.dx, intent.dy, pageWidthPoints ?? 0, pageHeightPoints ?? 0);
+      if (patch) onChange(el.id, patch);
+    }
+  };
   const surface = ELEMENT_RENDERERS[el.type as ElementType]({
     element: el,
     onChange: () => {},
     onSelect: () => {},
-    pageWidthPoints: 0,
+    pageWidthPoints: pageWidthPoints ?? 0,
     pageHeightPoints,
     renderTarget: 'redact',
   });
@@ -181,6 +234,27 @@ export default function RedactBox({
     hasShapeHandles && elementStyles.shape,
   ].filter(Boolean).join(' ');
 
+  const toolbar = (
+    <ElementToolbar
+      element={toolbarElement}
+      onChange={(changes: any) => {
+        if (changes.color) onChangeColor(el.id, changes.color);
+        if (changes.strength) onChangeStrength(el.id, changes.strength);
+      }}
+      // RED-03: the toolbar's own clone object can't identify a linked
+      // box's source once several boxes share the same geometry
+      // offset, so it's ignored in favour of duplicating by id.
+      onClone={() => onDuplicate(el.id)}
+      onDelete={() => onDelete(el.id)}
+      onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
+      repeatGroupSize={repeatGroupSize}
+      onUnlinkFromGroup={onUnlinkFromGroup}
+      onRemoveGroup={onRemoveGroup}
+      findSetSize={findSetSize}
+      onRemoveFindSet={onRemoveFindSet}
+    />
+  );
+
   return (
     <div
       ref={(node) => {
@@ -191,8 +265,14 @@ export default function RedactBox({
       }}
       className={className}
       data-editor-shape={hasShapeHandles || undefined}
-      onMouseDown={handleDragPointerDown}
-      onTouchStart={handleDragPointerDown}
+      data-peeking={peekAll || undefined}
+      data-redact-box-id={el.id}
+      tabIndex={0}
+      role="group"
+      aria-label={boxAriaLabel(el.type)}
+      onKeyDown={handleKeyDown}
+      onMouseDown={isStroke ? () => onSelect(el.id) : handlePress}
+      onTouchStart={isStroke ? undefined : handlePress}
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
       style={{
@@ -201,14 +281,21 @@ export default function RedactBox({
         top: `${el.top}%`,
         width: `${el.width}%`,
         height: `${el.height}%`,
-        cursor: 'move',
-        touchAction: 'none',
+        cursor: isStroke ? 'pointer' : 'move',
+        // Unselected: native pan and pinch pass straight through (see
+        // touchNeedsSelection above). Selected: one-finger drag is JS-owned,
+        // two-finger pinch still belongs to the browser (MOBI-31).
+        touchAction: isSelected ? 'pinch-zoom' : 'pan-x pan-y pinch-zoom',
         // A solid box sits above a blur, as the export paints it (redact.js).
-        zIndex: el.type === 'blur' ? 9 : 10
+        // The selected box rises above every sibling: its floating toolbar is
+        // a child, so it can never paint higher than the box itself, and a
+        // later box (a whiteout, say) would otherwise cover it. Matches
+        // `.element.active` in EditorElement.module.css.
+        zIndex: isSelected ? 50 : el.type === 'blur' ? 9 : 10
       }}
     >
-      {surface}
-      {hasShapeHandles ? (
+      <div className={styles['redact-surface-host']}>{surface}</div>
+      {isStroke ? null : hasShapeHandles ? (
         <ElementResizers
           element={el}
           isActive={isSelected}
@@ -236,7 +323,12 @@ export default function RedactBox({
           }}
         />
       )}
-      {isSelected && (
+      {isSelected && coarsePointer && (
+        <RedactBoxBar boxRef={elementRef}>
+          {toolbar}
+        </RedactBoxBar>
+      )}
+      {isSelected && !coarsePointer && (
         <div
           ref={refs.setFloating}
           className={elementStyles.actions}
@@ -252,24 +344,7 @@ export default function RedactBox({
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
         >
-          <ElementToolbar
-            element={el}
-            onChange={(changes: any) => {
-              if (changes.color) onChangeColor(el.id, changes.color);
-              if (changes.strength) onChangeStrength(el.id, changes.strength);
-            }}
-            // RED-03: the toolbar's own clone object can't identify a linked
-            // box's source once several boxes share the same geometry
-            // offset, so it's ignored in favour of duplicating by id.
-            onClone={() => onDuplicate(el.id)}
-            onDelete={() => onDelete(el.id)}
-            onRepeatOnEveryPage={onRepeatOnEveryPage ? () => onRepeatOnEveryPage(el.id) : undefined}
-            repeatGroupSize={repeatGroupSize}
-            onUnlinkFromGroup={onUnlinkFromGroup}
-            onRemoveGroup={onRemoveGroup}
-            findSetSize={findSetSize}
-            onRemoveFindSet={onRemoveFindSet}
-          />
+          {toolbar}
         </div>
       )}
     </div>

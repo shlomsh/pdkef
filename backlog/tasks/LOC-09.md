@@ -4,9 +4,7 @@ title: "Localize the home page, so /he/ is a real edition and not a 404 beside t
 status: "done"
 priority: "P3"
 epic: "localized-search"
-phase: "later"
 depends_on: ["LOC-03", "LOC-05"]
-legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-09 · Localize the home page, so /he/ is a real edition and not a 404 beside three Hebrew tool pages

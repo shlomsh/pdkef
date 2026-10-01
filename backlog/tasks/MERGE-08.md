@@ -4,9 +4,7 @@ title: "The assembled document: every page of the result, in order, rendered on 
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-01", "MERGE-07"]
-legacy_state: "Open"
 ---
 
 # MERGE-08 · The assembled document: every page of the result, in order, rendered on device before any merge

@@ -4,9 +4,7 @@ title: "flatten.svg has the palette baked in as 31 hex literals"
 status: "done"
 priority: "P3"
 epic: "site-quality"
-phase: "later"
 depends_on: []
-legacy_state: "Done 2026-09-05"
 ---
 
 # QUAL-03 · `flatten.svg` has the palette baked in as 31 hex literals

@@ -4,9 +4,7 @@ title: "Give iOS its own entry path, stated in the product"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-18"
 ---
 
 # MOBI-09 · Give iOS its own entry path, stated in the product

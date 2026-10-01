@@ -4,9 +4,7 @@ title: "Indonesian: the one large market where the category is searched in-langu
 status: "retired"
 priority: "P3"
 epic: "localized-search"
-phase: "later"
 depends_on: ["LOC-01", "LOC-03", "LOC-07"]
-legacy_state: "Retired 2026-09-11"
 ---
 
 # LOC-04 · ~~Indonesian: the one large market where the category is searched in-language, gated on LOC-01 and the Hebrew pilot~~

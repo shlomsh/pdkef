@@ -4,7 +4,6 @@ title: "History covers moves, resizes, styling and typing, not just add and dele
 status: "done"
 priority: "P1"
 epic: "undo-and-redo"
-phase: "near-term"
 depends_on: ["UNDO-01"]
 ---
 
