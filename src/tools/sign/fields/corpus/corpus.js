@@ -285,6 +285,32 @@ const PRINTED = [
     expect: { ...none, combs: 2 },
   },
   {
+    name: 'a label followed by a dotted leader',
+    why: 'FORM-19: Thai forms mark most answers with a label and a run of dots, which is text, not '
+      + 'ink, so there is nothing to close and nothing to rule. The text layer is the only evidence: '
+      + 'the dots after the label are one text field',
+    doc: {},
+    text: [{ str: `Name${'.'.repeat(24)}`, left: 10, top: 40, width: 40, height: 4 }],
+    expect: { ...none, cells: 1 },
+  },
+  {
+    name: 'a dotted leader between a heading and its page number',
+    why: 'FORM-19: a table-of-contents entry is a leader too, and nothing there is blank. A leader '
+      + 'that runs into nothing but a number is not a field; one that runs into a unit or a word '
+      + '("จำนวน.....แผ่น") still is',
+    doc: {},
+    text: [{ str: `Introduction${'.'.repeat(30)} 12`, left: 10, top: 40, width: 60, height: 4 }],
+    expect: none,
+  },
+  {
+    name: 'a dotted leader on a page that has its own widgets',
+    why: 'FORM-19: a page that declares its own fields has said where they are, so a dotted blank '
+      + 'left on it is not fillable. Only the widget is reported; the leader steps aside',
+    doc: { widgets: [{ widget: 'text', ...FIELD }] },
+    text: [{ str: `Notes${'.'.repeat(24)}`, left: 10, top: 80, width: 40, height: 4 }],
+    expect: { ...none, cells: 1 },
+  },
+  {
     name: 'a ruled row of three cells',
     why: 'a form row: two rules and four walls, so three closed cells',
     doc: { ink: [{ ink: 'cellRow', x: 40, y: 200, width: 240, height: 20, columns: 3 }] },

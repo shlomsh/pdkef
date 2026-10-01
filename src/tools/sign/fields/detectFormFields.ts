@@ -12,7 +12,8 @@ import { collectPageInk, pageCropBox } from './pageInk.js';
 import { detectPageRegions } from './formGrid.js';
 import { detectCellCandidates } from './formCells.js';
 import { detectLineCandidates } from './formLines.js';
-import { detectWidgetRegions } from './formWidgets.js';
+import { detectLeaderCandidates } from './formLeaders.js';
+import { detectWidgetRegions, collectCheckboxWidgets } from './formWidgets.js';
 import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 import { titleLineWritable } from './combTitleLine.js';
 import { horizontalRules } from './inkEdges.js';
@@ -124,7 +125,26 @@ const widgetsSource: FieldSource = {
 };
 
 /**
- * The two sources this module ships. A caller may pass its own `sources`
+ * Printed dotted leaders ("ชื่อ.........."): a label and a run of dots is text, not ink, so this
+ * reads the text layer alone (FORM-19, `formLeaders.js`). A source of its own, last in
+ * `SOURCE_ORDER`, because it is the weakest evidence there is: where a live widget or a drawn
+ * cell already explains a spot, `reconcile` keeps that and drops the leader.
+ */
+const leadersSource: FieldSource = {
+  name: 'leaders',
+  async detect(page, { pageIndex, textRuns }) {
+    // A page that declares its own widgets has already said where its fields are: the dotted
+    // blanks left on it are not fillable, so a leader there is noise, not a field.
+    const widgets = detectWidgetRegions(page, pageIndex);
+    if (widgets.combs.length + widgets.cells.length + collectCheckboxWidgets(page).length > 0) {
+      return { combs: [], checkboxes: [], cells: [] };
+    }
+    return { combs: [], checkboxes: [], cells: detectLeaderCandidates(pageIndex, textRuns) as DetectedCell[] };
+  },
+};
+
+/**
+ * The sources this module ships. A caller may pass its own `sources`
  * list (a future OCR or metadata source, or the corpus's ARCH-24 step C
  * stub, `corpus/thirdSourceContract.test.js`) - `detectFormFields` runs
  * whatever it is given and hands every source's regions to `reconcile` by
@@ -134,7 +154,7 @@ const widgetsSource: FieldSource = {
  * `widgets` until it earns a deliberate line in `SOURCE_ORDER`. This module
  * itself never has to change either way - that is the whole point of step C.
  */
-export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource];
+export const DEFAULT_SOURCES: FieldSource[] = [inkSource, widgetsSource, leadersSource];
 
 /**
  * One page's geometry (crop box plus rotation), exactly as `detectFormFields`
