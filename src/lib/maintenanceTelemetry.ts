@@ -1,4 +1,3 @@
-/// <reference types="@vercel/analytics" />
 /**
  * Anonymous maintenance telemetry boundary.
  *
@@ -6,9 +5,14 @@
  * maintenance event. Callers cannot add arbitrary fields: PDF bytes, names,
  * text, signatures, IDs, URLs, and exception messages do not fit this schema.
  * The configured transport is optional and best-effort, so editing and export
- * continue unchanged when a browser is offline or an analytics script fails.
+ * continue unchanged when a browser is offline or a beacon fails. Events travel
+ * to our own `/api/report`, never to a third party.
  */
 
+import { sendBeacon } from './errorReport';
+import {
+  parseMaintenanceEvent,
+} from './maintenanceEventSchema';
 import type {
   ExportDurationBucket,
   ExportErrorCode,
@@ -154,14 +158,23 @@ export function reportMaintenanceEvent(
   }
 }
 
+export const MAX_EVENTS_PER_PAGE = 20;
+
+let eventsSent = 0;
+
+export function resetMaintenanceEventsForTests(): void {
+  eventsSent = 0;
+}
+
 /**
- * Vercel Analytics is the existing, same-origin page-view integration. This
- * adapter is intentionally separate from event creation so a future provider
- * review cannot broaden the event schema by accident.
+ * Sends the event to our own `/api/report` by beacon (Vercel Hobby drops custom
+ * events). The event is re-parsed against the shared schema first, so a forged
+ * extra property never leaves the browser; at most `MAX_EVENTS_PER_PAGE` per page.
  */
-export const vercelMaintenanceTransport: MaintenanceTransport = (event) => {
-  if (typeof window === 'undefined') return;
-  window.va?.('event', { name: event.name, data: event.properties });
+export const beaconMaintenanceTransport: MaintenanceTransport = (event) => {
+  const parsed = parseMaintenanceEvent(event);
+  if (!parsed || eventsSent >= MAX_EVENTS_PER_PAGE) return;
+  if (sendBeacon(parsed)) eventsSent++;
 };
 
 /** Strip queries, fragments, origins, and malformed values before page views leave the browser. */

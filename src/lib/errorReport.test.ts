@@ -4,6 +4,7 @@ import {
   parseErrorReport,
   readPageContext,
   reportError,
+  sendBeacon,
   resetErrorReportingForTests,
   setReportingEnabledForTests,
   toErrorReport,
@@ -144,6 +145,11 @@ describe('reportError', () => {
     vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
     setReportingEnabledForTests(false);
     reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
+    expect(beacon).not.toHaveBeenCalled();
+  });
+  it('sendBeacon returns false and posts nothing when offline', () => {
+    vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
+    expect(sendBeacon({ a: 1 })).toBe(false);
     expect(beacon).not.toHaveBeenCalled();
   });
   it('never throws', () => {
