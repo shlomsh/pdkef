@@ -1,7 +1,7 @@
 ---
 id: "DEBT-20"
 title: "Every tool page ships the whole of pdf-lib before anyone opens a file"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
@@ -275,3 +275,23 @@ Nothing in CSS or DOM should change on the strength of it.
 Not yet done: a trace from the PageSpeed machine itself. The Phase 1 TBT re-run on `/redact/` desktop
 settles whether the 1,250 ms was mostly pdf-lib (gone now) or something else. If TBT lands low, close
 Phase 2 as "not this". Scripts: the throwaway harness was kept in the session scratchpad only.
+
+## 2026-10-01 PageSpeed re-run on the live `/redact/`: closed
+
+Report of 2026-10-01 14:24, https://pdkef.com/redact/, after Phase 1 (643fc21) deployed:
+
+| | Mobile | Desktop |
+| --- | ---: | ---: |
+| Performance | 100 | 100 |
+| FCP / LCP | 0.9s / 0.9s | 0.3s / 0.3s |
+| **TBT** | **0 ms** (was 70 ms) | **0 ms** (was 1,250 ms) |
+| CLS | 0 | 0 |
+| Speed Index | 1.8s | 0.3s |
+
+The 1,250 ms was the pdf-lib parse and evaluation burst, and it is gone. That also settles Phase 2: with
+TBT at zero the 995 ms of Style & Layout was a measurement artefact, as the lab trace above showed, so
+the phase closes as "not this" and no CSS or DOM change was made. Both phases are done.
+
+Found in passing, not part of this ticket: desktop Accessibility is 96, one failure, "Background and
+foreground colors do not have a sufficient contrast ratio" on `p.privacy-line` ("Private. Files never
+leave your device.") inside the empty-state dropzone (`src/shell/Dropzone.module.css`).
