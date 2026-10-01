@@ -106,4 +106,10 @@ From a fresh review of the first build of this contract:
 - e2e (`e2e/offline/app-update.spec.js`): a critical build reaches two tabs, one holding a file in
   Compress, with no navigation; offline nothing happens until back online. 7/7 three runs in a row.
   `check:push` green, 298 e2e passed.
-- Hebrew line awaits Shlomi's native read: "תיקון חשוב ל-PDkef מוכן. העמוד הזה ייטען מחדש בעוד רגע."
+- Hebrew line read and approved by Shlomi (2026-10-02): "תיקון חשוב ל-PDkef מוכן. העמוד הזה ייטען מחדש בעוד רגע."
+
+## CRITICAL_VERSION history
+
+| Version | Date | Why |
+| --- | --- | --- |
+| 1 | 2026-10-02 | Shlomi's call, the first bump. `scripts/sw.test.mjs` now reads the shipped version from `public/sw.js`, so a bump needs no test edit. |
