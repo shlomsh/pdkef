@@ -38,7 +38,7 @@ describe('RedactBox touch behaviour', () => {
         onHoverEnter={() => {}}
         onHoverLeave={() => {}}
         onDelete={() => {}}
-        onChangeColor={() => {}}
+        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}}
         onChangeStrength={() => {}}
         onDuplicate={() => {}}
       />,
@@ -95,7 +95,7 @@ describe('RedactBox keyboard (RED-43)', () => {
     act(() => render(
       <RedactBox el={EL} isSelected={true} isActiveHover={false} onSelect={onSelect} onChange={onChange}
         getPageWrapper={() => wrapper} onHoverEnter={() => {}} onHoverLeave={() => {}} onDelete={onDelete}
-        onChangeColor={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}}
+        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}}
         pageWidthPoints={500} pageHeightPoints={1000} />,
       container,
     ));
