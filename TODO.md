@@ -16,6 +16,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
 - [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
 
+### Search and languages
+
+- [SEO-41](backlog/tasks/SEO-41.md) P3 · Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten (in progress)
+
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks

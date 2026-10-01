@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 4 up next, 22 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -104,12 +104,17 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 Mostly waiting on dated Search Console reads. Two small things can ship now.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SEO-41 | P3 | [SEO-41](backlog/tasks/SEO-41.md) · Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten | In progress. Needs Shlomi: Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-03 | P1 | [SEO-03](backlog/tasks/SEO-03.md) · External signals: the work that moves the constraint and does not live in this repo |  |
-| SEO-41 | P3 | [SEO-41](backlog/tasks/SEO-41.md) · Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten | Needs Shlomi: Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed |
 
 ### Waiting
 
