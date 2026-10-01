@@ -17,3 +17,10 @@ export function viewportContent(original: string, scale: number, pinching = fals
   const held = Math.floor(scale * 100) / 100;
   return `${base}, minimum-scale=${held}, maximum-scale=${held}`;
 }
+
+// Only iOS zooms into a focused field, so only iOS gets the limits: elsewhere
+// they would just stop a low-vision person from pinching in (Lighthouse flags
+// it too). iPadOS reports itself as a Mac with a touch screen.
+export function zoomsOnFocus(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'>): boolean {
+  return /iPhone|iPad|iPod/.test(nav.userAgent) || (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1);
+}
