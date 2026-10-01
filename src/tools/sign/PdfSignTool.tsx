@@ -466,7 +466,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         setPageSizes([]);
         setErrorDetail(null);
         setProgress(0);
-        if (restored) recordAction('open_recent');
         dispatch({
           type: 'LOAD_DOCUMENT',
           payload: {
@@ -535,8 +534,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     loadStartedRef.current = true;
     const replacing = file !== null;
     const bytes = await selected.arrayBuffer();
-    await loadPdf(selected, bytes);
     recordAction(replacing ? 'replace_file' : 'add_files');
+    await loadPdf(selected, bytes);
   };
 
   // Printed grids and free-text cells on the loaded form, so placing a text
@@ -576,7 +575,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       );
     };
     reportMaintenanceEvent(detectionEvent(), transport);
-    recordAction('detect_fields');
   }, [formRegions]);
 
   // Next/Previous across those same fields (MOBI-06). Built once here, not in
@@ -682,11 +680,11 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     
     const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
+    recordAction('place_mark');
     placeSignatureAt(dataUrl, aspectRatio, placement.pageIndex, placement.left, placement.top);
     // The dialog both creates and places the signature, so that counts as the
     // tool's one placement - same as a click-placement on the page overlay.
     dispatch({ type: 'DISARM_TOOL' });
-    recordAction('place_mark');
     setDialogOpen(false);
     setTempPlacement(null);
     if (!persisted) {
@@ -699,9 +697,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const el = elements.find(e => e.id === id);
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
+    recordAction('delete_mark');
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
-    recordAction('delete_mark');
     setAnnouncement(t.removedElement);
   };
 
@@ -877,6 +875,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       setProgress(0);
       setAnnouncement(t.writingSignaturesIntoPdf);
       reportToolLifecycleEvent('tool_operation_started', 'sign');
+      recordAction('export');
     }
     const exportStartedAt = performance.now();
     // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
@@ -894,7 +893,6 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       if (!speculative) {
         reportMaintenanceEvent(signExportSucceeded(performance.now() - exportStartedAt), telemetryTransport);
         reportToolLifecycleEvent('tool_result_ready', 'sign');
-        recordAction('export');
       }
       onSigned(signedBlob, `signed_${sourceFile.name}`);
     } catch (err) {
