@@ -67,6 +67,23 @@ const CHECKBOX_MAX_SIZE = 16;
 const CHECKBOX_SQUARENESS = 0.12;
 /** Two boxes closer than this are the same drawn box (a stroke and a fill of one outline). */
 const DUPLICATE_TOLERANCE = 0.5;
+/** A gap narrower than this many pitches between two runs is inside one field, not between two. */
+const MERGE_GAP_PITCHES = 1.2;
+/**
+ * A gap this narrow between two runs is the gap between two separately drawn boxes (the 3pt between
+ * a square's walls and the next square's), not the decimal point of one field, which is about half a
+ * pitch (ภ.ง.ด.90: 4.8pt of 9.5).
+ */
+const MERGE_MIN_GAP_PITCHES = 0.4;
+/**
+ * ...and, in absolute terms, within this many points of each other. Digits of one field are drawn
+ * within a couple of points of one another (ภ.ง.ด.90's worst is 1.9pt), whereas a neighbouring box
+ * that merely shares a wall is off by more (the redaction sample's postal code sits next to a 16pt
+ * cell at 20pt pitch: 4pt). A ratio cannot say this, since 7.7/9.5 and 16/20 are the same 0.8.
+ */
+const MERGE_PITCH_JITTER = 2.5;
+/** Two pieces of one field have pitches this close (smaller over larger is the lower bound). */
+const MERGE_PITCH_RATIO = [0.7, 1.4];
 /** How much of a run's width must be ruled for that edge to count as closed. */
 const CLOSED_EDGE_COVERAGE = 0.7;
 
@@ -150,9 +167,59 @@ function runsFromTeeth(positions) {
   return runs;
 }
 
+/**
+ * Joins runs of one row that sit end to end, so a field whose digits are not drawn at one exact
+ * pitch comes back as one comb (FORM-17).
+ *
+ * ภ.ง.ด.90's amount combs vary by a point or two cell to cell and put a narrow gap for the
+ * decimal point before the satang digits, so exact-pitch chaining (`runsFromTeeth`) cuts one field
+ * into a narrow lead piece, the long body and a two-cell tail, and the tail is too short to be a
+ * comb on its own. The test that keeps this from undoing `runsFromTeeth`'s own boundary reading is
+ * the gap size: a gap *inside* a field is narrower than a cell, whereas the boundary form 101 and
+ * the health declaration were measured to have between two fields is a doubled gap or wider
+ * (see `runsFromTeeth`). Only a gap under `MERGE_GAP_PITCHES` pitches is bridged, never a wider one.
+ * That doubled gap also shows up as a one-cell run at twice the pitch whose end separators are
+ * shared with both neighbours, so a gap of zero is not enough: the two pieces must also have pitches
+ * within `MERGE_PITCH_RATIO` of each other. Measured on the scored forms, the merges that are wrong
+ * (form 101's dates, the health declaration's phone strip and boxes) all join pieces at 1.9x to
+ * 2.9x one another's pitch; ภ.ง.ด.90's own are 0.8x. A piece shorter than a comb also has to be no
+ * wider than the run it joins (and within `MERGE_PITCH_JITTER` points of it): the health declaration's phone strip has a lone cell 1.1x wider than
+ * the runs either side, which is a label cell between two fields, and no pitch band separates it
+ * from ภ.ง.ด.90's irregular digits except that direction. Runs share their end separators, so
+ * adjacent runs have a gap of zero or more, never less.
+ */
+function mergeAdjacentRuns(runs) {
+  const merged = [];
+  for (const run of runs) {
+    const last = merged[merged.length - 1];
+    const gap = last ? run.separators[0] - last.separators[last.separators.length - 1] : Infinity;
+    const ratio = last ? run.pitch / last.rightPitch : 1;
+    // A short piece is part of the field only when it is no wider than the run it joins: a lone cell
+    // wider than its neighbours is a label or spacer between two fields (the health declaration's
+    // phone strip), whereas ภ.ง.ด.90's lead and tail pieces are narrower (0.8x).
+    const shorter = last && run.separators.length < last.separators.length ? run : last;
+    const widerThanOther = last && shorter && shorter.pitch > (shorter === run ? last.rightPitch : run.pitch) * 1.02;
+    const shortPiece = last && Math.min(run.separators.length, last.separators.length) - 1 < MIN_CELLS;
+    const minPitch = last ? Math.min(last.rightPitch, run.pitch) : 0;
+    const bridged = gap > PITCH_TOLERANCE;
+    if (last && gap < MERGE_GAP_PITCHES * minPitch && (!bridged || gap >= MERGE_MIN_GAP_PITCHES * minPitch)
+      && ratio >= MERGE_PITCH_RATIO[0] && ratio <= MERGE_PITCH_RATIO[1]
+      && Math.abs(run.pitch - last.rightPitch) <= MERGE_PITCH_JITTER
+      && !(shortPiece && widerThanOther)) {
+      const shared = gap <= PITCH_TOLERANCE ? 1 : 0;
+      last.separators = [...last.separators, ...run.separators.slice(shared)];
+      last.rightPitch = run.pitch;
+      last.pitch = Math.max(last.pitch, run.pitch);
+    } else {
+      merged.push({ ...run, leftPitch: run.pitch, rightPitch: run.pitch });
+    }
+  }
+  return merged;
+}
+
 /** Grows a run by one pitch at each end, but only onto ink the page really draws. */
 function extendToWalls(run, row, edges) {
-  const { separators, pitch } = run;
+  const { separators, leftPitch = run.pitch, rightPitch = run.pitch } = run;
   const wallAt = (predicted) => {
     const candidates = edges
       .filter((edge) => Math.abs(edge.x - predicted) <= PITCH_TOLERANCE && touchesRow(edge, row))
@@ -160,8 +227,8 @@ function extendToWalls(run, row, edges) {
     return candidates[0]?.x;
   };
 
-  const left = wallAt(separators[0] - pitch);
-  const right = wallAt(separators[separators.length - 1] + pitch);
+  const left = wallAt(separators[0] - leftPitch);
+  const right = wallAt(separators[separators.length - 1] + rightPitch);
   return [
     ...(left === undefined ? [] : [left]),
     ...separators,
@@ -185,7 +252,7 @@ function findRunsFromWalls(walls, rules, edges, { requireCompactBoxes = false } 
     };
     const positions = distinctPositions(grouped.teeth.map((tooth) => tooth.x));
 
-    for (const run of runsFromTeeth(positions)) {
+    for (const run of mergeAdjacentRuns(runsFromTeeth(positions))) {
       const separators = extendToWalls(run, row, edges);
       const cells = separators.length - 1;
       if (cells < MIN_CELLS || cells > MAX_COMB_CELLS) continue;
