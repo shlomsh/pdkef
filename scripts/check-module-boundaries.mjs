@@ -98,14 +98,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+// The scan itself (collecting files, reading import specifiers, resolving them, the
+// <script src> pass, the tool route map) lives in scripts/import-graph.mjs, shared with
+// scripts/affected-scope.mjs (ARCH-32); re-exported here so every existing importer keeps working.
+import {
+  collectSourceFiles, IMPORT_PATTERN, importSpecifiers, resolveRelativeImport, relOf,
+  buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges, reverseEdgeMap,
+} from './import-graph.mjs';
+
+export { collectSourceFiles, IMPORT_PATTERN, importSpecifiers, buildEdges, buildToolRouteMap, scriptSrcSpecifiers, astroScriptSrcEdges };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const ALLOWLIST_PATH = path.join(__dirname, 'module-boundaries-allowlist.json');
 
-const SOURCE_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.astro'];
-const TEST_FILE = /\.(?:test|contract|spec)\.[cm]?[jt]sx?$/;
 
 // --- classification: one row per folder the target layout names --------------
 // Order matters: a more specific prefix is checked before the generic
@@ -261,93 +268,12 @@ export function testImportViolations() {
 }
 
 // --- import graph: relative-only, mirrors check-editor-dependency-directions.mjs ---
-// Exported (with importSpecifiers and IMPORT_PATTERN) so
-// scripts/check-module-boundaries.import-scan.test.mjs can diff this scan against
-// a real TypeScript AST parse of the same files; main() only runs from the CLI.
-// `testFiles: true` inverts the TEST_FILE filter to collect only test files
-// (rule 6's subject) instead of the default of everything but test files
-// (every other rule's subject); same walker, same extension list, no second
-// directory walk.
-export function collectSourceFiles(dir, out = [], { testFiles = false } = {}) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) collectSourceFiles(full, out, { testFiles });
-    else if (SOURCE_EXTENSIONS.includes(path.extname(entry.name)) && TEST_FILE.test(entry.name) === testFiles) out.push(full);
-  }
-  return out;
-}
+// The scan (collectSourceFiles, importSpecifiers, IMPORT_PATTERN, buildEdges, ...) moved to
+// scripts/import-graph.mjs in ARCH-32 and is re-exported above; scripts/check-module-boundaries.import-scan.test.mjs
+// still diffs it against a real TypeScript AST parse of the same files. main() only runs from the CLI.
 
-// Matches `import ... from '...'`, `export ... from '...'`, a bare
-// `import '...'` side-effect import, and `import('...')`. Deliberately static
-// (no template-literal specifiers), same limitation as the editor guard. The
-// import clause is matched by shape (`* as ns`, a `{ ... }` list, a default,
-// or default plus one of those) rather than "anything up to `from`", so a
-// `{` list spanning several lines counts: the first version stopped at the
-// line break and missed every multi-line import (ARCH-20 prep found one).
-const IMPORT_CLAUSE = String.raw`(?:type\s+)?(?:\*(?:\s+as\s+[\w$]+)?|\{[^}]*\}|[\w$]+(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[\w$]+))?)`;
-export const IMPORT_PATTERN = new RegExp(
-  String.raw`(?:^|\n)\s*(?:import|export)\s+${IMPORT_CLAUSE}\s*from\s+['"]([^'"]+)['"]`
-  + String.raw`|import\s*\(\s*['"]([^'"]+)['"]\s*\)`
-  + String.raw`|(?:^|\n)\s*import\s*['"]([^'"]+)['"]`,
-  'g',
-);
-
-export function importSpecifiers(source) {
-  const specifiers = [];
-  let match;
-  IMPORT_PATTERN.lastIndex = 0;
-  while ((match = IMPORT_PATTERN.exec(source)) !== null) {
-    specifiers.push(match[1] || match[2] || match[3]);
-  }
-  return specifiers;
-}
-
-// TS source imports routinely spell a `.ts` file's specifier with a `.js`
-// extension (Node ESM resolution rules); try the exact path first, then swap
-// any existing extension for each candidate before falling back to appending
-// one, then to an index file.
-function resolveRelativeImport(fromFile, specifierRaw) {
-  const specifier = specifierRaw.split('?')[0]; // strip Vite's `?raw` etc.
-  if (!specifier.startsWith('.') && !specifier.startsWith('/')) return null; // bare package
-  const base = specifier.startsWith('/') ? path.join(ROOT, specifier) : path.resolve(path.dirname(fromFile), specifier);
-  const ext = path.extname(base);
-  const stem = ext ? base.slice(0, -ext.length) : base;
-  const candidates = [
-    base,
-    ...SOURCE_EXTENSIONS.map((e) => stem + e),
-    ...SOURCE_EXTENSIONS.map((e) => base + e),
-    ...SOURCE_EXTENSIONS.map((e) => path.join(base, `index${e}`)),
-  ];
-  return candidates.find((c) => fs.existsSync(c) && fs.statSync(c).isFile()) || null;
-}
-
-function relOf(absPath) {
-  return path.relative(ROOT, absPath).split(path.sep).join('/');
-}
-
-export function buildEdges() {
-  const files = collectSourceFiles(SRC);
-  const seen = new Set();
-  const edges = [];
-  for (const file of files) {
-    const from = relOf(file);
-    const source = fs.readFileSync(file, 'utf8');
-    for (const specifier of importSpecifiers(source)) {
-      if (!specifier.startsWith('.') && !specifier.startsWith('/')) continue; // bare package, out of scope
-      const resolved = resolveRelativeImport(file, specifier);
-      if (!resolved) continue; // unresolved relative import is not this script's concern
-      const to = relOf(resolved);
-      if (to === from) continue;
-      // A file can import the same target from more than one statement (a
-      // value import and a type import, say); the boundary rules care about
-      // the file-to-file edge existing at all, not how many times.
-      const key = edgeKey(from, to);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      edges.push({ from, to });
-    }
-  }
-  return { files, edges };
+function edgeKey(from, to) {
+  return `${from} -> ${to}`;
 }
 
 function loadAllowlist() {
@@ -355,10 +281,6 @@ function loadAllowlist() {
   const parsed = JSON.parse(fs.readFileSync(ALLOWLIST_PATH, 'utf8'));
   if (!Array.isArray(parsed)) throw new Error(`${relOf(ALLOWLIST_PATH)} must be a JSON array`);
   return parsed;
-}
-
-function edgeKey(from, to) {
-  return `${from} -> ${to}`;
 }
 
 function main() {
@@ -445,26 +367,6 @@ function main() {
 // buildToolRouteMap() below.
 
 const SPEC_FILE = /\.spec\.[cm]?[jt]sx?$/;
-const PAGE_TOOL_IMPORT = /\.\.\/tools\/([^/]+)\/Pdf[A-Za-z0-9]*Tool/;
-
-// Scans top-level src/pages/*.astro only (not src/pages/[locale]/, which
-// renders several tools from one dynamic route and so cannot name "the" tool
-// for a slug the way a real, single-tool page can). Returns a Map of
-// '/<slug>' (no trailing slash) -> tool folder name.
-export function buildToolRouteMap(pagesDir = path.join(SRC, 'pages')) {
-  const routeMap = new Map();
-  if (!fs.existsSync(pagesDir)) return routeMap;
-  for (const entry of fs.readdirSync(pagesDir, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith('.astro')) continue;
-    const source = fs.readFileSync(path.join(pagesDir, entry.name), 'utf8');
-    const match = source.match(PAGE_TOOL_IMPORT);
-    if (!match) continue;
-    const slug = entry.name.slice(0, -'.astro'.length);
-    routeMap.set(`/${slug}`, match[1]);
-  }
-  return routeMap;
-}
-
 // Line and block comments stripped before scanning, so a route mentioned only
 // in prose (a header comment explaining a hand-off, say) never counts. The
 // `(^|[^:])` guard keeps a `https://` scheme intact rather than treating it as
@@ -639,43 +541,6 @@ export function scriptsImportViolations() {
 // module loaded only through a layout's `<script src>`, with no ordinary
 // import anywhere, would misread as consumed by nobody, when the site
 // genuinely depends on it.
-const SCRIPT_SRC = /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
-
-// Same relative-only stance as importSpecifiers/resolveRelativeImport: a
-// bare specifier or an absolute/protocol URL is not a src/ edge.
-export function scriptSrcSpecifiers(source) {
-  const specifiers = [];
-  let match;
-  SCRIPT_SRC.lastIndex = 0;
-  while ((match = SCRIPT_SRC.exec(source)) !== null) {
-    const specifier = match[1];
-    if (specifier.startsWith('.') || specifier.startsWith('/')) specifiers.push(specifier);
-  }
-  return specifiers;
-}
-
-// One edge per (astro file, script target) pair, over every `.astro` file in
-// src/ - not only layouts, since a page or component could carry its own
-// `<script src>` too and this pass has no reason to assume otherwise.
-// Exported so a test can prove the wiring end to end against the real tree
-// (a module like `src/site-lib/homeWorkspace.ts`, loaded only this way, needs
-// this pass to be reachable at all) rather than only against a fixture.
-export function astroScriptSrcEdges() {
-  const edges = [];
-  for (const file of collectSourceFiles(SRC).filter((f) => f.endsWith('.astro'))) {
-    const from = relOf(file);
-    const source = fs.readFileSync(file, 'utf8');
-    for (const specifier of scriptSrcSpecifiers(source)) {
-      const resolved = resolveRelativeImport(file, specifier);
-      if (!resolved) continue;
-      const to = relOf(resolved);
-      if (to === from) continue;
-      edges.push({ from, to });
-    }
-  }
-  return edges;
-}
-
 // The single identity every site file (a page, a layout, an `.astro`
 // component, an `i18n`/`data` module, or a `src/site-lib/` helper) shares
 // (ARCH-26). Distinct from any `tool:<name>` string, so it can never collide
@@ -747,11 +612,7 @@ const RULE9_LAYERS = new Set(['shell', 'editor-ui', 'lib']);
 export function commonLayerConsumerViolations() {
   const { edges } = buildEdges();
   const allEdges = [...edges, ...astroScriptSrcEdges()];
-  const reverseEdges = new Map();
-  for (const { from, to } of allEdges) {
-    if (!reverseEdges.has(to)) reverseEdges.set(to, new Set());
-    reverseEdges.get(to).add(from);
-  }
+  const reverseEdges = reverseEdgeMap(allEdges);
 
   const violations = [];
   for (const file of collectSourceFiles(SRC)) {
