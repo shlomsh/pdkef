@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-51](backlog/tasks/RED-51.md) P2 · Whiteout works like correction fluid: matched to the page, no border, colour in one tap (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
