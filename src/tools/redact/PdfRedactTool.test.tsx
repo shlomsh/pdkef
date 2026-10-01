@@ -17,6 +17,7 @@ import type { GestureControllerOptions } from '../../lib/gestures/controller.ts'
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import { loadDraft } from '../../lib/drafts/draftStore.js';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
@@ -144,6 +145,10 @@ vi.mock('./check/removePlace.ts', () => ({
 
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
+
+  beforeEach(() => {
+    resetActionTrailForTests();
+  });
 
   afterEach(() => {
     if (container.isConnected) {
@@ -322,6 +327,8 @@ describe('PdfRedactTool UI flow', () => {
         ['tool_operation_started', 'redact'],
         ['tool_result_ready', 'redact'],
       ]);
+      // DEBT-31: the trail reads as what the person did, names only.
+      expect(recentActions()).toEqual(['add_files', 'arm_tool', 'place_mark', 'export', 'download']);
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -1052,6 +1059,32 @@ describe('PdfRedactTool UI flow', () => {
     expect(parseFloat(box.style.width)).toBeCloseTo(expectedWidth);
     expect(parseFloat(box.style.height)).toBeCloseTo(expectedHeight);
     expectLatestGestureToCommitOnce();
+  });
+
+  it('DEBT-31: a resize release records resize_mark once, after the box was placed', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = required(container.querySelector(`.${REDACT_BOX}`), 'box');
+    await act(async () => {
+      box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+    const resizer = required(box.querySelector('[data-editor-resizer="bottom-right"]'), 'resizer');
+    await act(async () => {
+      resizer.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 100, bubbles: true }));
+    });
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mousemove', { clientX: 130, clientY: 180 }));
+    });
+    const before = recentActions();
+    expect(before).not.toContain('resize_mark');
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent('mouseup'));
+    });
+    expect(recentActions().filter((a) => a === 'resize_mark')).toHaveLength(1);
+    expect(recentActions().slice(0, 3)).toEqual(['add_files', 'arm_tool', 'place_mark']);
   });
 
   // --- Regression: whiteout box resize flying off-page (handleBoxResizeStart) ---
