@@ -23,9 +23,15 @@ export interface RedactCommandDeps<T extends { id: string; pageIndex: number }> 
   /** Clears the active and selected box when it is one of `ids`. */
   forgetSelection: (ids: ReadonlySet<string>) => void;
   /** Shows the undo chip and announces `message` (the island's registerUndo). */
-  registerUndo: (message: string, entry: ActionHistoryEntry<T>) => void;
+  registerUndo: (message: string, entry: ActionHistoryEntry<T>, extra?: UndoExtra) => void;
   /** Resolves update descriptions the way the island does today (describeRedactUpdate). */
   describeUpdate: (kind: ElementUpdateKind, element: T) => string;
+}
+
+/** A second button on the undo chip, shown before Undo. */
+export interface UndoExtra {
+  label: string;
+  onSelect: () => void;
 }
 
 export interface AddOptions {
@@ -34,6 +40,8 @@ export interface AddOptions {
   description: string;
   /** Show the undo chip and announce, as repeat-on-every-page does today. */
   undoChip?: boolean;
+  /** RED-26: a second chip action, e.g. "Every page". Only with `undoChip`. */
+  undoExtra?: UndoExtra;
 }
 
 export interface RemoveOptions {
@@ -83,7 +91,7 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
       elements: additions.map((el, i) => captureAddedElement(el, baseIndex + i)),
     });
     setHistory((current) => pushCommand(current.past, current.future, entry));
-    if (options.undoChip) registerUndo(options.description, entry);
+    if (options.undoChip) registerUndo(options.description, entry, options.undoExtra);
   };
 
   const remove = (ids: ReadonlySet<string>, options: RemoveOptions) => {

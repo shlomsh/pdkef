@@ -113,6 +113,7 @@ const UNDO_WINDOW_MS = 5000;
 interface RedactUndoAction {
   message: string;
   entryId: string;
+  extra?: { label: string; onSelect: () => void };
 }
 
 export default function PdfRedactTool() {
@@ -638,10 +639,10 @@ export default function PdfRedactTool() {
   // Shared by deleteElement and clearPage (finding #3) - both are complete
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
-  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>) => {
+  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
     setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, entryId: entry.id });
+    setUndoAction({ message, entryId: entry.id, extra });
     undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
   };
 
@@ -1078,7 +1079,14 @@ export default function PdfRedactTool() {
             onRedo={redoLast}
             canRedo={redoHistory.length > 0}
             exporting={status === 'redacting'}
-            undoAction={undoAction}
+            undoAction={undoAction && {
+              message: undoAction.message,
+              extra: undoAction.extra && {
+                label: undoAction.extra.label,
+                // Pressing it spends the chip, like Undo; the action it runs may register its own.
+                onSelect: () => { const run = undoAction.extra!.onSelect; clearUndoChip(); run(); },
+              },
+            }}
             onUndoAction={runUndoChip}
             statusMessage={finishStatusText(finishFacts)}
             peeking={peekAll}
