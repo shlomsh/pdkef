@@ -1,7 +1,7 @@
 // Pure pieces of the error-report endpoint (api/report.ts, DEBT-17): what is
 // counted, under which keys, and how much of a user agent survives. Nothing
 // here does I/O.
-import type { ErrorReport } from '../lib/errorReport.js';
+import type { ErrorReport } from '../lib/errorReportSchema.js';
 
 /** Reports counted per UTC day; past it the day is full and nothing more is stored. */
 export const DAILY_CAP = 5000;
