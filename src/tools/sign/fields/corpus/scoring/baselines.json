@@ -1,6 +1,7 @@
 {
   "_why": "Recorded recall and precision per scored form, plus the exact raw counts they are computed from (targets, candidates, matched at form level; targets/found for recall and candidates/matchedCandidates for precision at kind level). A ratchet, like the CSS ones: these only ever go DOWN by a deliberate edit that says why in its commit message. A number going up is free and should be re-recorded in the same change that earned it, or the next change gets to lose it silently. The counts are what scoring.test.js checks with exact equality; the percentages beside them stay the human-readable view.",
-  "_measuredAt": "2026-09-25",
+  "_labels": "FORM-03 (2026-10-01): `labels` is label association, the third gate criterion (85% on both Hebrew forms). Of the matched pairs whose truth target names a label, how many got a candidate label that contains, or is contained in, the target's (match.js labelAssociationCorrect, the spike's own test). Cells carry the label formCells.js resolved; combs and checkboxes are labelled by fieldLabels.js, as the MOBI-10 chain did, because the gate was defined on that union. `null` means the truth has no labelled targets matched, and pins zero graded pairs. Same ratchet as recall and precision: exact counts, SLACK on the rate. The low figures on the Latin and Thai forms are real (fieldLabels.js was tuned on the two Hebrew forms), recorded so they can only go up on purpose.",
+  "_measuredAt": "2026-10-01",
   "_iou": 0.5,
   "_readMe": "src/tools/sign/fields/corpus/README.md, section 'The scored corpus'. MOBI-13 has the programme and the one decision still open.",
   "forms": {
@@ -13,6 +14,11 @@
       "matched": 13,
       "recall": 100,
       "precision": 100,
+      "labels": {
+        "rate": 100,
+        "evaluated": 13,
+        "correct": 13
+      },
       "byKind": {
         "text": {
           "recall": 100,
@@ -55,7 +61,7 @@
           "matchedCandidates": 1
         }
       },
-      "sha256": "798c0b27d544130859efac286d9bdb64743fea26c3af60a1e8b5ea3e447af2bf"
+      "sha256": "3e6d1bb51c3a23880e56c3eeb027608fc33b0056266f878ba2335965a8d26e0e"
     },
     "health": {
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/health-declaration-2021.pdf",
@@ -66,6 +72,11 @@
       "matched": 65,
       "recall": 86.7,
       "precision": 100,
+      "labels": {
+        "rate": 96.9,
+        "evaluated": 65,
+        "correct": 63
+      },
       "byKind": {
         "text": {
           "recall": 66.7,
@@ -127,6 +138,11 @@
       "matched": 134,
       "recall": 96.4,
       "precision": 97.8,
+      "labels": {
+        "rate": 85.8,
+        "evaluated": 134,
+        "correct": 115
+      },
       "byKind": {
         "comb": {
           "recall": 100,
@@ -188,6 +204,11 @@
       "matched": 88,
       "recall": 100,
       "precision": 100,
+      "labels": {
+        "rate": 53.4,
+        "evaluated": 88,
+        "correct": 47
+      },
       "byKind": {
         "text": {
           "recall": 100,
@@ -233,6 +254,7 @@
       "matched": 0,
       "recall": 0,
       "precision": null,
+      "labels": null,
       "byKind": {
         "date": {
           "recall": 0,
@@ -279,6 +301,11 @@
       "matched": 105,
       "recall": 100,
       "precision": 86.8,
+      "labels": {
+        "rate": 6,
+        "evaluated": 67,
+        "correct": 4
+      },
       "byKind": {
         "comb": {
           "recall": 100,
@@ -324,6 +351,7 @@
       "matched": 57,
       "recall": 100,
       "precision": 100,
+      "labels": null,
       "byKind": {
         "text": {
           "recall": 100,
@@ -369,6 +397,11 @@
       "matched": 51,
       "recall": 98.1,
       "precision": 96.2,
+      "labels": {
+        "rate": 60.8,
+        "evaluated": 51,
+        "correct": 31
+      },
       "byKind": {
         "text": {
           "recall": 97.8,
@@ -415,6 +448,11 @@
       "matched": 42,
       "recall": 91.3,
       "precision": 100,
+      "labels": {
+        "rate": 53.8,
+        "evaluated": 39,
+        "correct": 21
+      },
       "byKind": {
         "text": {
           "recall": 93.3,
@@ -477,6 +515,11 @@
       "matched": 15,
       "recall": 100,
       "precision": 93.8,
+      "labels": {
+        "rate": 6.7,
+        "evaluated": 15,
+        "correct": 1
+      },
       "byKind": {
         "comb": {
           "recall": 100,

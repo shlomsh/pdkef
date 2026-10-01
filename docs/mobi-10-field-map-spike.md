@@ -53,6 +53,10 @@ radio, 15 text, 6 comb, 2 date, 1 signature. Each correction is recorded per tar
 | + ink-grid cell heuristic (`cells.mjs`), union | 69.1% / 91.4% / 83.3% | **86.7% / 94.2% / 96.9%** |
 | + narrow tick columns (MOBI-11, 2026-09-20), union | 82.0% / 92.7% / 80.7% | 86.7% / 94.2% / 96.9% |
 | + the writing strip as a cell's bounds (FORM-01, 2026-09-20), union | **85.6% / 96.7% / 81.5%** | **86.7% / 94.2% / 96.9%** (unchanged) |
+| + table rows scoped per column (FORM-12, 2026-09-22), union | 94.2% / 95.6% / 83.2% | 86.7% / 94.2% / 96.9% (unchanged) |
+| + a caption over identical empty rows is a header (FORM-13, 2026-09-24), union | 94.2% / **97.8%** / 83.2% | 86.7% / 94.2% / 96.9% (unchanged) |
+| today, before FORM-03 (2026-10-01), `scoreForm` | 96.4% / 97.8% / **58.2%** | 86.7% / **100%** / 96.9% |
+| + checkbox glyph kept out of the label, tall stacks reach their header (FORM-03) | 96.4% / 97.8% / **85.8%** | 86.7% / 100% / 96.9% (unchanged) |
 | Gate | 90 / 90 / 85 | 90 / 90 / 85 |
 
 Numbers above are post-MOBI-11-step-1 (2026-09-17): lifting `cells.mjs` into product code
@@ -280,3 +284,53 @@ read a number here: **the spike is no longer the only place these are measured.*
 ratcheted, so that file is the live number and this record is the reasoning behind it. Where the two
 disagree, it is because the committed fixtures are geometry-only and this record scores the real
 source PDFs; `baselines.json` says so per form.
+
+---
+
+## Addendum, 2026-10-01 (FORM-03): label association, measured again
+
+The 83.2% on form 101 was last measured on 2026-09-24 and nobody re-measured it, which is how it
+reached **58.2%** unseen. The two rows for FORM-12 and FORM-13 above were produced by running this
+spike's own chain (`extract.mjs`, `label.mjs`, `cells.mjs`, union, `score.mjs`) at those two
+commits, and both read 83.2% on form 101 and 96.9% on health, the figures the FORM-03 ticket
+quoted. The chain no longer runs on today's code: `cells.mjs` still calls `detectPageCellCandidates`
+and `reconcileFields`, which ARCH-24 replaced with `detectFormFields`. So the two rows after it come
+from `scoreForm` (`corpus/scoring/score.js`), which now computes the same union and the same
+containment test. It reproduces the chain on health to the pair (63/65 both ways); form 101 moved
+between the two for the two reasons below, each of which a unit test now pins.
+
+Form 101, 134 matched pairs with a truth label:
+
+| | correct | rate |
+| --- | --- | --- |
+| today, before | 78 | 58.2% |
+| checkbox glyph kept out of the label | 106 | 79.1% |
+| + a tall stack reaches the header printed over it | 115 | **85.8%** |
+
+1. **37 pairs: a checkbox's own glyph became the first word of its label** ("o לא" against the
+   truth's "לא / תושב ישראל"). `fieldLabels.js` drops a text item that sits mostly inside a
+   candidate's box, because that is the field's own printed content. SNG-09 (2026-09-26) shrank a
+   Zapf Dingbats checkbox to the printed square, which is about a third of the area of the glyph
+   that draws it, so the glyph stopped being "mostly inside" and started anchoring labels. A
+   one-character item that wraps a candidate is now its own glyph too (`isOwnGlyph`).
+2. **9 pairs: the header a tall table's last rows cannot reach.** Rows 11 to 13 of the children
+   table stand past `HEADER_SEARCH_HEIGHT` (220pt) from their column header, so the
+   tick columns and the name column came out unlabelled. `headerAbove` now measures its reach from
+   the top of the cell's own stack of row bands (`stackRise` in `formCells.js`: the cells that abut
+   it in its own column, band after band), so the header is still `HEADER_SEARCH_HEIGHT` above the
+   *table*, not above the row. A cell with nothing stacked above it searches exactly as before, and
+   the nearest text above still wins, so no row that already found its header changed. Recall,
+   precision and every count in `baselines.json` are unchanged on all ten scored forms.
+
+Health stays at 96.9% (63/65). What is left on form 101 is 19 pairs: six date cells in the
+children table labelled by a neighbouring checkbox's glyph or option text, four letter-spaced titles
+("ש נ ת ה מ ס" has its spaces in the PDF's own text), three "/ /" date separators, five labels
+whose printed wording differs from the truth's ("ממעסיק זה", "עובד יומי"), and the postcode comb,
+which takes "תאריך עליה" from the row above it.
+
+`baselines.json` now records a label figure per form, with exact counts, and `scoring.test.js` and
+`score-form.mjs --all` fail when it drops or rises past `SLACK`, the way recall and precision do. The
+Latin and Thai forms record low figures (1040: 53.4%, ภ.ง.ด.90: 6.0%, SA100: 6.7%): `fieldLabels.js`
+was tuned on the two Hebrew forms, and the point of recording them is that they can only move on
+purpose. Two forms record `null`: the 1970 1040 matches no target, and the Thai LOR YOR 01 truth
+carries no labels.

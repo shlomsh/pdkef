@@ -610,3 +610,40 @@ describe('FORM-14: a caption\'s own shape decides label vs heading, not what rep
     expect(headerCells.every((c) => c.kind === 'date')).toBe(true);
   });
 });
+
+describe('FORM-03: a tall stack of row bands reaches the one header printed above it', () => {
+  // Form 101's children table is 13 rows of ~22pt printed under one header, 286pt tall, so its last
+  // rows sit past `HEADER_SEARCH_HEIGHT` from their own column header. A 400pt page fits a stack of
+  // the same shape: 13 bands of 20pt, top at y=380, header printed right over it.
+  const tall = createPageGeometry({ cropBox: { x: 0, y: 0, width: 100, height: 400 }, rotation: 0 });
+  const bands = (rows, topY = 380) => mergeInk(...Array.from({ length: rows }, (_, i) => rowBand({
+    top: topY - i * 20, bottom: topY - (i + 1) * 20, columns: [0, 50, 100],
+  })));
+  // Page percent: a 4pt gap over the table's top rule, in a 400pt-tall page.
+  const header = text('Child name', { left: 50, top: 2, width: 30, height: 1 });
+  const lastRowCell = (cells) => cells.filter((c) => c.left >= 49).sort((a, b) => b.top - a.top)[0];
+
+  it('labels the last row of a stack taller than the header search height', () => {
+    const cells = detectCellCandidates(bands(13), tall, 0, [header]);
+    const column = cells.filter((c) => c.left >= 49);
+    expect(column).toHaveLength(13);
+    // The last row's own top is 240pt under the header: past 220, so only its stack reaches it.
+    expect(lastRowCell(cells).label).toBe('Child name');
+    expect(column.every((c) => c.label === 'Child name')).toBe(true);
+  });
+
+  it('does not stretch the reach for a cell with no stack above it', () => {
+    // The same header and the same distance, but one band standing alone down the page: nothing
+    // recovered says the header is its own, so it stays unlabelled rather than borrowing it.
+    const alone = rowBand({ top: 160, bottom: 140, columns: [0, 50, 100] });
+    const cells = detectCellCandidates(alone, tall, 0, [header]);
+    expect(cells.filter((c) => c.left >= 49).every((c) => c.label === undefined)).toBe(true);
+  });
+
+  it('stops at a gap: a band cut off from the stack is not part of it', () => {
+    // Two bands at the top, then a blank stretch, then one band 244pt down: it abuts nothing.
+    const ink = mergeInk(bands(2), rowBand({ top: 160, bottom: 140, columns: [0, 50, 100] }));
+    const cells = detectCellCandidates(ink, tall, 0, [header]);
+    expect(lastRowCell(cells).label).toBeUndefined();
+  });
+});

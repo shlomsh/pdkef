@@ -181,6 +181,25 @@ describe.each(FORMS)('$name', (form) => {
     expect(rose, `per-kind precision rose for ${form.name} - re-record the baseline`).toEqual([]);
   });
 
+  it('holds its label association, and records any gain (FORM-03)', () => {
+    // Label association is the third gate criterion beside recall and precision (85% on both Hebrew
+    // forms), and it fell from 83.2% to 58.2% on form 101 between 2026-09-24 and 2026-10-01 with no
+    // test to say so: a checkbox's own glyph stopped being excluded from its label when SNG-09
+    // shrank the region to the printed square. A form whose truth carries no labels records `labels: null`,
+    // pinned at zero graded pairs for the same reason a null precision pins zero candidates.
+    const { labels } = scored.get(form.name);
+    if (form.labels === null) {
+      expect(labels.evaluated, `${form.name} now grades label pairs where it recorded none - re-record the baseline`).toBe(0);
+      return;
+    }
+    expect(labels.rate, `label association fell below the recorded baseline for ${form.name}`)
+      .toBeGreaterThanOrEqual(form.labels.rate - SLACK);
+    expect(labels.rate, `label association rose above the recorded baseline for ${form.name} by more than SLACK - re-record the baseline`)
+      .toBeLessThanOrEqual(form.labels.rate + SLACK);
+    expect(labels.evaluated, `${form.name} graded label pairs moved`).toBe(form.labels.evaluated);
+    expect(labels.correct, `${form.name} correct labels moved`).toBe(form.labels.correct);
+  });
+
   it('scores a form that really has targets in it', () => {
     // Non-vacuity: an empty or unreadable truth file would make every
     // assertion above pass by having nothing to compare. Targets are the half
@@ -231,6 +250,9 @@ describe('the scored corpus as a whole', () => {
       // `null` is a recorded precision: it says "no candidates". Undefined is not.
       expect(form.precision === null || typeof form.precision === 'number',
         `${form.name} has no recorded precision`).toBe(true);
+      // `null` is a recorded label figure too: "no labelled truth to grade". Undefined is not.
+      expect(form.labels === null || typeof form.labels?.rate === 'number',
+        `${form.name} has no recorded label association`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.pdf)), `${form.name}: ${form.pdf} is missing`).toBe(true);
       expect(fs.existsSync(path.join(repoRoot, form.truth)), `${form.name}: ${form.truth} is missing`).toBe(true);
       for (const [kind, row] of Object.entries(form.byKind)) {
