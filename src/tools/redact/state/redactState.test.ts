@@ -498,3 +498,102 @@ describe('selectors', () => {
     expect(finishPhaseOf(run(saved, { type: 'EXPORT_CANCELLED', announcement: 'c' }))).toBe('saved');
   });
 });
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    if (value instanceof Map || value instanceof Set) return value;
+    if (value instanceof File || value instanceof Blob) return value;
+    for (const child of Object.values(value as object)) deepFreeze(child);
+  }
+  return value;
+}
+
+describe('reducer purity', () => {
+  const a = box('a');
+  const withBox = () => run(fresh(), addCommit([a]));
+  const undone = () => run(withBox(), { type: 'UNDO' });
+  const cases: Array<[string, () => RedactState, RedactAction]> = [
+    ['FILE_INITIALIZED', fresh, {
+      type: 'FILE_INITIALIZED', file, restored: false, elements: [box('z')], past: [], carried: undefined,
+      brush: INIT.brush, activeColor: INIT.activeColor, activeBlurStrength: INIT.activeBlurStrength,
+    }],
+    ['EDIT_COMMITTED add', fresh, addCommit([box('n')])],
+    ['EDIT_COMMITTED remove', withBox, (() => {
+      const entry = createActionEntry<RedactElement>({
+        operation: 'delete', type: 'DELETE', pageIndex: 0, description: 'Removed',
+        elements: captureElementSnapshots([a], (el) => el.id === 'a'),
+      });
+      return { type: 'EDIT_COMMITTED', edit: { kind: 'remove', ids: new Set(['a']) }, entry } as RedactAction;
+    })()],
+    ['EDIT_COMMITTED update', withBox, {
+      type: 'EDIT_COMMITTED',
+      edit: { kind: 'update', changesById: new Map([['a', { left: 40 }]]) },
+      entry: createUpdateEntry(a, { left: 40 }, () => 'Moved'),
+    }],
+    ['UNDO', withBox, { type: 'UNDO' }],
+    ['REDO', undone, { type: 'REDO' }],
+    ['TOOL_ARMED', fresh, { type: 'TOOL_ARMED', tool: 'blur', locked: true }],
+    ['BOX_SELECTED', withBox, { type: 'BOX_SELECTED', id: 'a' }],
+    ['EXPORT_STARTED', withBox, { type: 'EXPORT_STARTED', announcement: 'Saving' }],
+    ['REMOVE_STARTED', fresh, { type: 'REMOVE_STARTED' }],
+  ];
+
+  it.each(cases)('%s neither throws on a deep-frozen state (so mutates nothing), and returns a new object', (_name, make, action) => {
+    const state = deepFreeze(make());
+    let next!: RedactState;
+    expect(() => { next = redactReducer(state, action); }).not.toThrow();
+    expect(next).not.toBe(state);
+  });
+});
+
+describe('EDIT_COMMITTED history coalescing', () => {
+  const moveEntry = (el: RedactElement, changes: Partial<RedactElement>, timestamp: number) => {
+    const entry = createUpdateEntry(el, changes, () => 'Moved');
+    if (!entry) throw new Error('expected an entry');
+    return { ...entry, timestamp };
+  };
+  const moveCommit = (el: RedactElement, left: number, timestamp: number): RedactAction => ({
+    type: 'EDIT_COMMITTED',
+    edit: { kind: 'update', changesById: new Map([[el.id, { left }]]) },
+    entry: moveEntry(el, { left }, timestamp),
+  });
+
+  it('two moves of the same box inside the window fold into one history entry', () => {
+    const a = box('a', { left: 1 });
+    let s = run(fresh(), addCommit([a]));
+    const t0 = s.edits.history.past[0].timestamp + 10_000;
+    s = run(s, moveCommit(a, 20, t0), moveCommit({ ...a, left: 20 }, 40, t0 + 100));
+    expect(s.edits.history.past).toHaveLength(2);
+    const top = s.edits.history.past[0];
+    expect(top.operation).toBe('update');
+    if (top.operation === 'update') {
+      expect(top.updates[0].before).toEqual({ left: 1 });
+      expect(top.updates[0].after).toEqual({ left: 40 });
+    }
+    expect(s.edits.elements[0].left).toBe(40);
+    expect(s.edits.documentRevision).toBe(3);
+  });
+
+  it('a move outside the window stays its own entry', () => {
+    const a = box('a', { left: 1 });
+    let s = run(fresh(), addCommit([a]));
+    const t0 = s.edits.history.past[0].timestamp + 10_000;
+    s = run(s, moveCommit(a, 20, t0), moveCommit({ ...a, left: 20 }, 40, t0 + 501));
+    expect(s.edits.history.past).toHaveLength(3);
+  });
+
+  it('a net-zero fold drops the step as historyStack defines it, yet still advances the revision', () => {
+    const a = box('a', { left: 1 });
+    let s = run(fresh(), addCommit([a]));
+    const t0 = s.edits.history.past[0].timestamp + 10_000;
+    s = run(s, moveCommit(a, 20, t0));
+    expect(s.edits.history.past).toHaveLength(2);
+    const revisionBefore = s.edits.documentRevision;
+    s = run(s, moveCommit({ ...a, left: 20 }, 1, t0 + 100));
+    expect(s.edits.history.past).toHaveLength(1);
+    expect(s.edits.history.past[0].operation).toBe('add');
+    expect(s.edits.elements[0].left).toBe(1);
+    expect(s.edits.documentRevision).toBe(revisionBefore + 1);
+  });
+});
