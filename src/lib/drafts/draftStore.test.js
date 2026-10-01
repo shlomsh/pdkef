@@ -7,6 +7,7 @@ import { webcrypto } from 'node:crypto';
 // import, but it is a global side-effecting install either way.
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
+import * as errorReport from '../errorReport.ts';
 import {
   MAX_AGE_MS, MAX_RECENT_FILES, MERGE_DRAFT_MAX_BYTES,
   attachDraftPreview, cacheRecentFile, deleteDraft, hasDraftHint, isStoragePersisted, loadDraft, loadRecentFile,
@@ -349,6 +350,17 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
     // earlier test would otherwise leak into the next one's "fresh database"
     // assumptions - revision 1, no prior work to bump past.
     indexedDB = new IDBFactory();
+  });
+
+  it('reports a saveDraft failure to the error reporter under "drafts"', async () => {
+    const boom = new Error('boom');
+    vi.spyOn(indexedDB, 'open').mockImplementation(() => { throw boom; });
+    const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await saveDraft('sign', { fileBytes: bytesOf('%PDF-1.4 x') })).toBe(false);
+    expect(report).toHaveBeenCalledWith('drafts', boom, 'save_draft');
+    report.mockRestore();
+    quiet.mockRestore();
   });
 
   it('round-trips a single-file (Sign) entry and bumps the revision on a second autosave of the same document', async () => {

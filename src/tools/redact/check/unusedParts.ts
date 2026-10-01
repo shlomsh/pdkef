@@ -38,7 +38,7 @@ function streamBytes(stream: PDFStream): Uint8Array | undefined {
   try {
     return stream instanceof PDFRawStream ? decodePDFRawStream(stream).decode() : stream.getContents();
   } catch {
-    // A filter we can't undo (a picture codec, a damaged stream): nothing to read.
+    // expected: a filter we cannot undo (picture codec, damaged stream), nothing to read
     return undefined;
   }
 }

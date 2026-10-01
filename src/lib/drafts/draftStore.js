@@ -1,4 +1,14 @@
+import { reportError } from '../errorReport.ts';
 import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
+
+// The catches below also cover opening the database, which fails in private or
+// locked-down windows (InvalidStateError, UnknownError). That is the
+// environment, not a defect, so those two names are not reported.
+function reportStoreError(area, error, step) {
+  const name = error?.name;
+  if (name === 'InvalidStateError' || name === 'UnknownError') return;
+  reportError(area, error, step);
+}
 
 // Workspace-owned, on-device memory for every PDF a tool has touched. Uses
 // IndexedDB (not localStorage) because a record holds the raw PDF bytes as an
@@ -63,6 +73,7 @@ function getTabWriterId() {
     sessionStorage.setItem('pdf-toolkit:draft-writer', next);
     return (tabWriterId = next);
   } catch {
+    // expected: blocked sessionStorage, falls back to a random tab id
     return (tabWriterId = `tab-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   }
 }
@@ -71,7 +82,7 @@ function notifyDraftChange(tool, change) {
   try {
     localStorage.setItem(DRAFT_CHANGE_PREFIX + tool, JSON.stringify(change));
   } catch {
-    // Coordination is advisory; a blocked localStorage must not stop a draft
+    // expected: Coordination is advisory; a blocked localStorage must not stop a draft
     // write that already committed in IndexedDB.
   }
 }
@@ -93,7 +104,7 @@ export function subscribeToDraftChanges(tool, listener) {
         || (change.kind !== 'saved' && change.kind !== 'deleted')) return;
       listener({ revision: change.revision, kind: change.kind, conflictPolicy: 'last-writer-wins' });
     } catch {
-      // Ignore a corrupt advisory record. IndexedDB remains authoritative.
+      // expected: Ignore a corrupt advisory record. IndexedDB remains authoritative.
     }
   };
   window.addEventListener('storage', onStorage);
@@ -138,6 +149,7 @@ export const MERGE_DRAFT_MAX_BYTES = 200 * 1024 * 1024;
 export async function sourceIdForFiles(files) {
   const digests = [];
   for (const file of files) {
+    // expected: crypto.subtle missing (plain-http LAN), null means no drafts
     const id = await sourceIdForBytes(file?.fileBytes).catch(() => null);
     if (!id) return null;
     digests.push(id.slice('sha256:'.length));
@@ -190,6 +202,7 @@ export async function saveHandoff(tool, record) {
     });
     return true;
   } catch (e) {
+    reportStoreError('handoff', e, 'save_handoff');
     console.error('draftStore.saveHandoff failed:', e);
     return false;
   }
@@ -220,6 +233,7 @@ export async function takeHandoff(tool) {
     }
     return record.fileBytes ? record : null;
   } catch (e) {
+    reportStoreError('handoff', e, 'take_handoff');
     console.error('draftStore.takeHandoff failed:', e);
     return null;
   }
@@ -242,7 +256,7 @@ export function setCurrentEntry(tool, id) {
   try {
     localStorage.setItem(CURRENT_ENTRY_PREFIX + tool, id);
   } catch {
-    // Best-effort, like every other localStorage write in this file.
+    // expected: Best-effort, like every other localStorage write in this file.
   }
 }
 
@@ -251,7 +265,7 @@ export function clearCurrentEntry(tool) {
   try {
     localStorage.removeItem(CURRENT_ENTRY_PREFIX + tool);
   } catch {
-    // ditto
+    // expected: ditto
   }
 }
 
@@ -262,6 +276,7 @@ export function readCurrentEntryId(tool) {
   try {
     return localStorage.getItem(CURRENT_ENTRY_PREFIX + tool) || null;
   } catch {
+    // expected: blocked storage, no current-entry pointer
     return null;
   }
 }
@@ -281,7 +296,7 @@ function writeRecentFiles(entries) {
   try {
     localStorage.setItem(RECENT_FILES_META_KEY, JSON.stringify(entries));
   } catch {
-    // Recent documents are a convenience. A quota failure must not prevent a
+    // expected: Recent documents are a convenience. A quota failure must not prevent a
     // PDF from opening or interfere with a tool's own work on it.
   }
 }
@@ -315,6 +330,7 @@ function readIndexEntries() {
     if (entries.length !== parsed.length) writeRecentFiles(entries);
     return entries;
   } catch {
+    // expected: unparseable stored index falls back to []
     return [];
   }
 }
@@ -397,6 +413,7 @@ async function pruneOrphans(keptEntries) {
       };
     });
   } catch (e) {
+    // expected: best-effort cleanup, already reported with console.error
     console.error('draftStore.pruneOrphans failed:', e);
   }
 }
@@ -410,6 +427,7 @@ async function pruneOrphans(keptEntries) {
 export async function cacheRecentFile(tool, record) {
   if (!hasIndexedDB() || !record?.fileBytes) return false;
   await ensureMigrated();
+  // expected: crypto.subtle missing, returns false
   const id = await sourceIdForBytes(record.fileBytes).catch(() => null);
   if (!id) return false;
   const savedAt = Date.now();
@@ -434,6 +452,7 @@ export async function cacheRecentFile(tool, record) {
       };
     });
   } catch (e) {
+    reportStoreError('drafts', e, 'cache_recent_file');
     console.error('draftStore.cacheRecentFile failed:', e);
     return false;
   }
@@ -473,6 +492,7 @@ export async function loadRecentFile(id) {
     }
     return { ...record, tool: meta.tool };
   } catch (e) {
+    reportStoreError('drafts', e, 'load_recent_file');
     console.error('draftStore.loadRecentFile failed:', e);
     return null;
   }
@@ -518,7 +538,7 @@ export function attachDraftPreview(tool, preview) {
     writeRecentFiles(next);
     return true;
   } catch {
-    // Same bargain as upsertIndexEntry: a quota error here costs a thumbnail,
+    // expected: Same bargain as upsertIndexEntry: a quota error here costs a thumbnail,
     // and must not cost the entry.
     return false;
   }
@@ -550,6 +570,7 @@ export function readDraftMeta(tool) {
       pageCount: entry.pageCount, fileCount: entry.fileCount,
     };
   } catch {
+    // expected: sync best-effort read
     return null;
   }
 }
@@ -584,6 +605,7 @@ export function hasDraftHint(tool) {
     if (!indexIsParseable()) return true;
     return readIndexEntries().some((entry) => entry.id === id);
   } catch {
+    // expected: sync best-effort read
     return false;
   }
 }
@@ -593,6 +615,7 @@ function indexIsParseable() {
     JSON.parse(localStorage.getItem(RECENT_FILES_META_KEY) || '[]');
     return true;
   } catch {
+    // expected: parse probe, an unparseable index means no hint
     return false;
   }
 }
@@ -601,7 +624,7 @@ function hasIndexedDB() {
   try {
     return typeof indexedDB !== 'undefined' && indexedDB !== null;
   } catch {
-    // Accessing indexedDB can throw in some locked-down/Safari-private contexts.
+    // expected: Accessing indexedDB can throw in some locked-down/Safari-private contexts.
     return false;
   }
 }
@@ -635,9 +658,10 @@ function requestStoragePersistence() {
   if (persistenceRequested) return;
   persistenceRequested = true;
   try {
+    // expected: optional browser API, false is normal
     navigator?.storage?.persist?.().catch(() => {});
   } catch {
-    // No Storage API, or a browser that throws on it. Nothing to do: the
+    // expected: No Storage API, or a browser that throws on it. Nothing to do: the
     // tools keep working on best-effort storage exactly as before.
   }
 }
@@ -658,6 +682,7 @@ export async function isStoragePersisted() {
     const result = await navigator?.storage?.persisted?.();
     return typeof result === 'boolean' ? result : 'unknown';
   } catch {
+    // expected: optional browser API, returns 'unknown'
     return 'unknown';
   }
 }
@@ -689,6 +714,7 @@ async function withStore(mode, work) {
         .then((value) => {
           result = value;
         })
+        // expected: forwards the error to the transaction promise rejection
         .catch(reject);
       tx.oncomplete = () => resolve(result);
       tx.onabort = () => reject(tx.error);
@@ -762,7 +788,9 @@ export async function saveDraft(tool, record) {
   // avoids storing the same image twice.
   const { preview, fileBytes, files, fileName, fileType, ...toolFields } = record;
   const id = isMulti
+    // expected: crypto.subtle missing, save skipped
     ? await sourceIdForFiles(files).catch(() => null)
+    // expected: crypto.subtle missing, save skipped
     : await sourceIdForBytes(fileBytes).catch(() => null);
   if (!id) return false;
   const { savedAt } = createDraftRetention();
@@ -797,6 +825,7 @@ export async function saveDraft(tool, record) {
       };
     });
   } catch (e) {
+    reportStoreError('drafts', e, 'save_draft');
     console.error('draftStore.saveDraft failed:', e);
     return false;
   }
@@ -827,7 +856,7 @@ export async function saveDraft(tool, record) {
       notifyDraftChange(tool, { kind: 'saved', revision: latestWork.revision, updatedAt: latestWork.updatedAt, writerId });
     }
   } catch {
-    // Notification is advisory; a failed re-read must not undo an
+    // expected: Notification is advisory; a failed re-read must not undo an
     // already-committed save.
   }
   return true;
@@ -903,6 +932,7 @@ export async function loadDraft(tool) {
     clearCurrentEntry(tool);
     return null;
   } catch (e) {
+    reportStoreError('drafts', e, 'load_draft');
     console.error('draftStore.loadDraft failed:', e);
     clearCurrentEntry(tool);
     return null;
@@ -949,6 +979,7 @@ export async function deleteDraft(tool) {
       };
     });
   } catch (e) {
+    reportStoreError('drafts', e, 'delete_draft');
     console.error('draftStore.deleteDraft failed:', e);
     return false;
   }
@@ -967,7 +998,9 @@ const LEGACY_DRAFT_META_PREFIX = 'pdf-toolkit:workspace:draft-meta:';
 const LEGACY_TOOLS = ['sign', 'redact', 'merge'];
 
 function clearLegacyLocalStorage(tool) {
+  // expected: best-effort cleanup
   try { localStorage.removeItem(LEGACY_DRAFT_HINT_PREFIX + tool); } catch { /* best-effort */ }
+  // expected: best-effort cleanup
   try { localStorage.removeItem(LEGACY_DRAFT_META_PREFIX + tool); } catch { /* best-effort */ }
 }
 
@@ -992,6 +1025,7 @@ function ensureMigrated() {
         await migrateLegacyDraft(tool);
       }
     })().catch((e) => {
+      reportStoreError('drafts', e, 'migrate_legacy_drafts');
       console.error('draftStore.migrateLegacyDrafts failed:', e);
     });
   }
@@ -1011,6 +1045,7 @@ async function migrateLegacyDraft(tool) {
   try {
     legacy = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
   } catch (e) {
+    reportStoreError('drafts', e, 'read_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to read:', e);
     return;
   }
@@ -1020,13 +1055,16 @@ async function migrateLegacyDraft(tool) {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
+      // expected: best-effort cleanup, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an expired record:', e);
     }
     return;
   }
   const isMulti = Array.isArray(legacy.files);
   const id = isMulti
+    // expected: crypto.subtle missing, record dropped
     ? await sourceIdForFiles(legacy.files).catch(() => null)
+    // expected: crypto.subtle missing, record dropped
     : await sourceIdForBytes(legacy.fileBytes).catch(() => null);
   if (!id) {
     // Cannot safely address this record's bytes - drop it rather than leak
@@ -1034,6 +1072,7 @@ async function migrateLegacyDraft(tool) {
     try {
       await withStore('readwrite', (store) => { store.delete(tool); });
     } catch (e) {
+      // expected: best-effort cleanup, already reported with console.error
       console.error('draftStore.migrateLegacyDraft failed to delete an unaddressable record:', e);
     }
     return;
@@ -1075,6 +1114,7 @@ async function migrateLegacyDraft(tool) {
       };
     });
   } catch (e) {
+    reportStoreError('drafts', e, 'write_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to write:', e);
     return;
   }

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 2 up next, 13 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 1 up next, 13 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -18,12 +18,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -32,6 +26,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |  |
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |  |
+| SNG-23 | P2 | [SNG-23](backlog/tasks/SNG-23.md) · In the Simulator, the first tap on a field after tapping outside does not focus it |  |
 
 ### Parked
 
@@ -43,17 +38,11 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
-
 ### Parked
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| FORM-02 | P3 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |  |
+| FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
 
@@ -65,7 +54,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | Needs Shlomi: The telemetry governance call |
+| DEBT-27 | P1 | [DEBT-27](backlog/tasks/DEBT-27.md) · Error reports carry the call chain and the page's situation, not just one frame | In progress |
 
 ### Then, in order
 
@@ -126,7 +115,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page | Needs Shlomi: Your call on beat 4 |
+| DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 
 ## Polish
@@ -145,9 +134,9 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 9 done, 0 retired
-- Sign: finish fill mode: 1 done, 1 retired
-- Form detector accuracy: 10 done, 0 retired
-- Robustness and debt: 4 done, 0 retired
+- Sign: finish fill mode: 2 done, 1 retired
+- Form detector accuracy: 10 done, 1 retired
+- Robustness and debt: 5 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

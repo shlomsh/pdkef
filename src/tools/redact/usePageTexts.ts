@@ -8,6 +8,7 @@ import { GLYPH_BUDGET } from './find/itemGlyphs.ts';
 import { buildPageText } from './find/pageText.ts';
 import type { SearchablePage } from './find/findMatches.ts';
 import type { TextItemLike } from './find/types.ts';
+import { reportError } from '../../lib/errorReport.ts';
 
 export type PageTextsState =
   | { status: 'idle' | 'reading'; pages: SearchablePage[] }
@@ -56,6 +57,7 @@ export default function usePageTexts(
         finished = true;
         if (current) setState({ status: 'ready', pages });
       } catch (error) {
+        reportError('redact', error, 'read_page_text');
         console.error('Find could not read the page text', error);
         if (current) setState({ status: 'failed', pages });
       }

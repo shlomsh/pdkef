@@ -17,6 +17,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
+import { reportError } from '../../lib/errorReport.ts';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
@@ -225,6 +226,7 @@ export default function PdfCompressTool({
       setCompareStatus('idle');
     } catch (err) {
       if (runToken !== runTokenRef.current) return;
+      reportError('pdf_render', err, 'render_compare_preview');
       console.error(err);
       setCompareStatus('error');
     }
@@ -365,6 +367,7 @@ export default function PdfCompressTool({
         openCompare();
       }
     } catch (err) {
+      reportError('pdf_tool_run', err, 'compress');
       console.error(err);
       if (runToken !== runTokenRef.current) return;
       setStatus('error');

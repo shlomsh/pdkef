@@ -61,6 +61,7 @@ async function decodeImage(file) {
   try {
     return await decodeViaImageBitmap(file);
   } catch {
+    // expected: feature fallback: decode through an <img> element instead
     return decodeViaImageElement(file);
   }
 }

@@ -93,6 +93,7 @@ export async function resolvePdfCreationDate(file) {
     const { creationDate } = await inspectPdf(file);
     return creationDate;
   } catch {
+    // expected: contract is resolve-null, a file with no readable date just sorts without one
     return null;
   }
 }

@@ -3,6 +3,7 @@ import dialogStyles from '../../../shell/Dialog.module.css';
 import styles from './PageStrip.module.css';
 import { renderPdfThumbnails } from '../../../lib/thumbnails.js';
 import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
+import { reportError } from '../../../lib/errorReport.ts';
 
 export interface PreviewTarget {
   file: File;
@@ -90,7 +91,7 @@ export default function PagePreviewDialog({ target, onClose, onStep, onToggleSki
         setStale(false);
       },
       { pageIndices: [target.pageIndex], width, type: 'image/jpeg', quality: 0.85, signal: controller.signal },
-    ).catch(() => {});
+    ).catch((err) => { reportError('pdf_render', err, 'render_preview_page'); });
     return () => controller.abort();
   }, [target?.file, target?.pageIndex]);
 

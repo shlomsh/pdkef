@@ -6,13 +6,9 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Sign: finish fill mode
-
-- [SNG-20](backlog/tasks/SNG-20.md) P2 · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator
-
 ### Robustness and debt
 
-- [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
+- [DEBT-27](backlog/tasks/DEBT-27.md) P1 · Error reports carry the call chain and the page's situation, not just one frame (in progress)
 
 ## Waiting, by date
 
@@ -38,12 +34,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/
 - [RED-46](backlog/tasks/RED-46.md) · The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)
 - [SEO-40](backlog/tasks/SEO-40.md) · The Search Console exports
-- [DEMO-11](backlog/tasks/DEMO-11.md) · Your call on beat 4
 
 See [BACKLOG.md](BACKLOG.md) for every lane.

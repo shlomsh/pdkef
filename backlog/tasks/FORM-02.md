@@ -1,10 +1,9 @@
 ---
 id: "FORM-02"
 title: "Canonical field types, so a detected box can become a question"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "form-detection"
-horizon: "later"
 depends_on: []
 ---
 
@@ -53,3 +52,7 @@ not a licence to ship weights.
 ## 2026-10-01 board cleanup
 
 - Priority P1 -> P3.
+
+## Closed 2026-10-01
+
+Retired by Shlomi. Nothing was built. SNG-12 still names this ticket as the prerequisite for its question flow (its FORM-09 line), so that ticket needs its own decision on where question types come from.

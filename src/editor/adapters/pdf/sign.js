@@ -16,6 +16,7 @@ import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
+import { reportError } from '../../../lib/errorReport.ts';
 import { flattenDoc } from './flatten.js';
 
 /**
@@ -65,7 +66,7 @@ function baselineOffsetEm(pdfFont, lineHeightEm = DEFAULT_LINE_HEIGHT_EM) {
       );
     }
   } catch {
-    // Use the historic Helvetica fallback when fontkit metrics are unavailable.
+    // expected: Use the historic Helvetica fallback when fontkit metrics are unavailable.
   }
   return HELVETICA_BASELINE_OFFSET_EM;
 }
@@ -80,6 +81,7 @@ function pageUserUnit(page) {
     const number = page.doc.context.lookupMaybe(value, PDFNumber)?.asNumber();
     return Number.isFinite(number) && number > 0 ? number : 1;
   } catch {
+    // expected: invalid UserUnit from a producer defaults to 1
     return 1;
   }
 }
@@ -129,6 +131,11 @@ export async function signPdf(file, elements, onProgress) {
     try {
       return await fetchFont(fileName);
     } catch (error) {
+      // A failed fetch is the network (offline, not yet provisioned), which is
+      // expected. Classified by its message, read here and never sent; any other
+      // TypeError, like WebKit's `undefined is not a function`, is ours.
+      const network = error instanceof TypeError && /fetch|load failed|network/i.test(error.message);
+      if (!network) reportError('fonts', error, 'fetch_custom_font');
       console.warn(`Could not load custom font ${fileName}`, error);
       return null;
     }
