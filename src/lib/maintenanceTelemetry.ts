@@ -9,67 +9,27 @@
  * continue unchanged when a browser is offline or an analytics script fails.
  */
 
-export const MAINTENANCE_EVENT_NAMES = ['sign_export', 'sign_form_detection'] as const;
+import type {
+  ExportDurationBucket,
+  ExportErrorCode,
+  FieldCountBucket,
+  MaintenanceEvent,
+} from './maintenanceEventSchema';
 
-export type MaintenanceEventName = (typeof MAINTENANCE_EVENT_NAMES)[number];
-export type ExportDurationBucket = 'under_1s' | 'under_5s' | 'under_30s' | '30s_or_more';
-export type ExportErrorCode = 'unsupported_text' | 'cancelled' | 'invalid_document' | 'processing_failed';
-/**
- * How many form fields the on-open detector published, coarsely (FORM-11).
- * A bucket rather than the count for the same reason durations are bucketed:
- * the question is "does detection come back empty in the wild", and a bucket
- * answers it without carrying a number specific enough to characterise one
- * person's document.
- */
-export type FieldCountBucket = 'none' | 'one_to_five' | 'six_to_twenty' | 'over_twenty';
-
-export type SignExportProperties =
-  | Readonly<{
-      outcome: 'success';
-      duration_bucket: ExportDurationBucket;
-    }>
-  | Readonly<{
-      outcome: 'failure';
-      duration_bucket: ExportDurationBucket;
-      error_code: ExportErrorCode;
-    }>;
-
-/**
- * Why a detection run produced nothing, when it produced nothing.
- * Two codes are its own and not the export list's, because neither is a
- * failure of reading the document: `modules_unavailable` is a browser holding
- * a cached shell from before a deploy, and `not_started` is the run never
- * happening at all because its inputs were not there - the one path to "no
- * fields" that throws nothing anywhere. Every other failure reuses the export
- * vocabulary, so the boundary has one list of codes to review, not two that
- * drift.
- */
-export type FormDetectionErrorCode = ExportErrorCode | 'modules_unavailable' | 'not_started';
-
-/**
- * The detection walk's outcome. No duration: it is not a performance question.
- */
-export type FormDetectionProperties =
-  | Readonly<{
-      outcome: 'success';
-      field_count_bucket: FieldCountBucket;
-    }>
-  | Readonly<{
-      outcome: 'failure';
-      error_code: FormDetectionErrorCode;
-    }>;
-
-export type MaintenanceEventProperties = SignExportProperties | FormDetectionProperties;
-
-/**
- * A union keyed on the name, not one `{name, properties}` shape: with two
- * events sharing one properties type, a caller could hand `sign_export` a
- * field count and the compiler would agree. Each event's schema is now only
- * reachable through its own name.
- */
-export type MaintenanceEvent =
-  | Readonly<{ name: 'sign_export'; properties: SignExportProperties }>
-  | Readonly<{ name: 'sign_form_detection'; properties: FormDetectionProperties }>;
+// The event shapes live in the import-free schema the endpoint shares (DEBT-27).
+export {
+  MAINTENANCE_EVENT_NAMES,
+  parseMaintenanceEvent,
+  type ExportDurationBucket,
+  type ExportErrorCode,
+  type FieldCountBucket,
+  type FormDetectionErrorCode,
+  type FormDetectionProperties,
+  type MaintenanceEvent,
+  type MaintenanceEventName,
+  type MaintenanceEventProperties,
+  type SignExportProperties,
+} from './maintenanceEventSchema';
 
 /** The only transport shape approved for this client-side boundary. */
 export type MaintenanceTransport = (event: MaintenanceEvent) => void;
