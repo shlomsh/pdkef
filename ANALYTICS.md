@@ -39,11 +39,13 @@ blocked, offline, or unavailable.
   dashboard materially noisier or creates cost pressure.
 
 The four tool lifecycle events (`tool_file_accepted`, `tool_operation_started`,
-`tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) are sent to
-Vercel Web Analytics, but the project is on the Hobby plan, which does not record
-custom events, so they are sent and not recorded today. Sign's
-two maintenance events (`sign_form_detection`, `sign_export`) do not use them.
-They go to PDkef's own `/api/report` address, like error reports, and are kept
+`tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) go to
+PDkef's own `/api/report` address as daily counts per event and tool (no browser
+family), kept for 90 days under their own daily cap of 1,000 (`USAGE_DAILY_CAP`), and
+read with `npm run errors:read` under "Tool usage". Vercel Web Analytics is the
+transport for page views only. Sign's
+two maintenance events (`sign_form_detection`, `sign_export`) are separate events.
+They also go to `/api/report`, like error reports, and are kept
 as daily counts by browser family and version for 90 days. The product does not depend on
 event delivery.
 
@@ -142,3 +144,4 @@ additions if their question remains unanswered:
 | 2026-09-13 | Merge (MERGE-12) counts `tool_operation_started` on the Download tap, `tool_result_ready` when that tapped download is delivered, and `tool_operation_failed` on each entry into its error state; pre-merges on idle are not counted. | The explicit Merge step was removed, so the person's intent now lives in the Download tap, which is what `tool_operation_started` measured before. Counting every idle pre-merge would inflate "started" with work nobody asked for (each list change restarts one) and make the accepted to started to ready funnel in MERGE-16 incomparable with the pre-change baseline. Flagged for Shlomi. |
 | 2026-10-01 | Add anonymous error reports to PDkef's own `/api/report` (DEBT-17), outside the analytics provider. | Defects on a person's device were invisible to us. A report names only the area, the error name and the position in our own code, so it can point at a line without touching a document. |
 | 2026-10-01 | Widen anonymous error reports (DEBT-27): the chain of positions in our code, a step label, the page path, installed, service worker and page age, and the latest full example of each distinct error per day. | A single position was too little to troubleshoot from. Every added field is a position in our own code, a closed list, a bucket or a flag; still never a message, a document, a filename, text, an IP address or an identifier. |
+| 2026-10-01 | Move the four lifecycle events from Vercel custom events to `/api/report` (DEBT-28). | Hobby never recorded custom events, so the funnel had never been seen; daily per-tool counts on our own address keep the same allowlist and add no browser detail. |
