@@ -3,9 +3,17 @@
 // how much of a user agent survives. Nothing here does I/O.
 import type { ErrorReport } from '../lib/errorReportSchema.js';
 import { maintenanceEventField, type MaintenanceEvent } from '../lib/maintenanceEventSchema.js';
+import { usageEventField, type UsageEvent } from '../lib/usageEventSchema.js';
 
-/** Reports counted per UTC day; past it the day is full and nothing more is stored. */
-export const DAILY_CAP = 5000;
+/**
+ * Reports and Sign events counted per UTC day; past it the day is full. Budget: a report costs 6
+ * commands and a Sign event 4, so the worst case is about 6K a day; usage has its own cap, about 4K
+ * a day. Together near 10K a day, about 300K a month, inside Upstash Free's 500K with room for
+ * reads. Without a cap this low, a flood could spend the month and blind error reporting until it ends.
+ */
+export const DAILY_CAP = 1000;
+/** Usage events counted per UTC day, apart from the cap above. */
+export const USAGE_DAILY_CAP = 1000;
 const TTL_SECONDS = 90 * 24 * 60 * 60;
 
 export type Command = readonly (string | number)[];
@@ -69,6 +77,22 @@ export function eventCommands(event: MaintenanceEvent, engine: string, day: stri
   return [
     ['HINCRBY', `events:${day}`, maintenanceEventField(event, engine), 1],
     ['EXPIRE', `events:${day}`, TTL_SECONDS],
+  ];
+}
+
+/** First step for a usage event: its own day total, apart from errors. */
+export function usageCapCommands(day: string): Command[] {
+  return [
+    ['INCR', `usage:total:${day}`],
+    ['EXPIRE', `usage:total:${day}`, TTL_SECONDS],
+  ];
+}
+
+/** Second step for a usage event: a count per day and tool event, no sample. */
+export function usageCommands(event: UsageEvent, day: string): Command[] {
+  return [
+    ['HINCRBY', `usage:${day}`, usageEventField(event), 1],
+    ['EXPIRE', `usage:${day}`, TTL_SECONDS],
   ];
 }
 
