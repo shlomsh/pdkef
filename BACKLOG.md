@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 17 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 0 up next, 18 then, 19 waiting, 7 parked.
 
 ## Redact: finish removal
 
@@ -18,12 +18,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SNG-20 | P2 | [SNG-20](backlog/tasks/SNG-20.md) · iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator |  |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -32,6 +26,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |  |
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |  |
+| SNG-23 | P2 | [SNG-23](backlog/tasks/SNG-23.md) · In the Simulator, the first tap on a field after tapping outside does not focus it |  |
 
 ### Parked
 
@@ -142,7 +137,7 @@ Small, independent, good for a spare hour.
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
 - Redact: finish removal: 9 done, 0 retired
-- Sign: finish fill mode: 1 done, 1 retired
+- Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 0 retired
 - Robustness and debt: 4 done, 0 retired
 - Search and languages: 3 done, 0 retired

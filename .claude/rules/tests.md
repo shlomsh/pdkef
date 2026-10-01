@@ -187,11 +187,15 @@ e2e by file-level reachability for core changes.
 
 Real iOS Safari behaviour that Playwright's WebKit can't reproduce: native taps, the software keyboard,
 iOS's zoom on focus. `scripts/ios-gate/` drives a booted iPhone simulator through Appium's XCUITest
-driver and prints PASS / FAIL / MANUAL per scenario: tap a field (focus, keyboard up, no zoom out),
+driver and prints PASS / FAIL per scenario: tap a field (focus, keyboard up, no zoom out),
 type, the keyboard's Next, tap outside, and pinch then Next (zoom kept). Screenshots go to
 `$TMPDIR/pdkef-ios-gate/`.
 - Needs Xcode, a booted iPhone simulator, the preview on 4173 (`npm run build && npm run preview`), and
   the driver once: `APPIUM_HOME=node_modules/.cache/appium npx appium driver install xcuitest@12.13.2`.
 - Run it by hand before a release and after a Sign mobile change. It is not in `check:push` or CI.
-- Pinch comes out MANUAL today: check zoom kept between fields on a real iPhone (SNG-20). Toolbar and
-  font sheet focus stay in Playwright's WebKit project (`fill-mode-phone-regressions.spec.js`).
+- The pinch scenario drives Appium's `mobile: pinch` and passes or fails on the app (SNG-20): a pinch
+  does not dismiss the keyboard, and Next holds the zoom. It reloads the page first, because the tap
+  after "tap outside" does not focus a field (SNG-23). Toolbar and font sheet focus stay in
+  Playwright's WebKit project (`fill-mode-phone-regressions.spec.js`).
+- `astro preview` here binds to Astro's default port unless told: use
+  `npm run preview -- --host ::1 --port 4173` (the gate reaches it over `[::1]`), and stop it after.
