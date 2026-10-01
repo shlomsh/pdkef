@@ -141,13 +141,13 @@ over the search proxy if one becomes accessible.
   `gh pr list --author shlomsh` on the venue repo before forking**, the same way we now check a
   venue's own gates before drafting.
 - **Release history** - `package.json` bumped 0.1.0 to 1.0.0 (`054b8db` on `main`), notes drafted at
-  [docs/release-notes-v1.0.0.md](../../docs/release-notes-v1.0.0.md). `git tag` and
+  [docs/archive/release-notes-v1.0.0.md](../../docs/archive/release-notes-v1.0.0.md). `git tag` and
   `gh release create` were both refused by the agent sandbox's permission classifier, so the tag and
   the GitHub release are Shlomi's to run:
 
   ```bash
   git tag -a v1.0.0 054b8db -m "PDkef 1.0.0" && git push origin v1.0.0
-  gh release create v1.0.0 --title "PDkef 1.0.0" --notes-file docs/release-notes-v1.0.0.md
+  gh release create v1.0.0 --title "PDkef 1.0.0" --notes-file docs/archive/release-notes-v1.0.0.md
   ```
 
   Chose `1.0.0` over tagging the existing `0.1.0`: a 0.x tag on a product ten weeks live with nine
