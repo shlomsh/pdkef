@@ -23,6 +23,8 @@
  * stay literally true.
  */
 
+import { errorName, topFrame } from './errorIdentity.ts';
+
 export const ERROR_REPORT_PATH = '/api/report';
 
 /** Coarse feature areas. A frame names the line; this only groups them. */
@@ -90,14 +92,14 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
  * dev build).
- *
- * TODO(DEBT-17 brief A): implement with `errorName` and `topFrame` from
- * `./errorIdentity.ts`, then pass the result through `parseErrorReport`.
  */
 export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | null {
-  void area;
-  void error;
-  return null;
+  if (!(error instanceof Error)) return null;
+  const name = errorName(error);
+  if (IGNORED_ERROR_NAMES.has(name)) return null;
+  const frame = topFrame(error);
+  if (!frame) return null;
+  return parseErrorReport({ area, name, frame });
 }
 
 /**
@@ -106,11 +108,48 @@ export function toErrorReport(area: ErrorArea, error: unknown): ErrorReport | nu
  * `MAX_REPORTS_PER_PAGE` in total; sent with `navigator.sendBeacon` to
  * `ERROR_REPORT_PATH`. Never throws, never awaits, never changes what the
  * caller does next.
- *
- * TODO(DEBT-17 brief A): implement.
  */
 export function reportError(area: ErrorArea, error: unknown): void {
-  void toErrorReport(area, error);
+  try {
+    if (!enabled) return;
+    if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;
+    if (sent.size >= MAX_REPORTS_PER_PAGE) return;
+    const report = toErrorReport(area, error);
+    if (!report) return;
+    const key = `${report.area}|${report.name}|${report.frame}`;
+    if (sent.has(key)) return;
+    sent.add(key);
+    navigator.sendBeacon(
+      ERROR_REPORT_PATH,
+      new Blob([JSON.stringify(report)], { type: 'application/json' }),
+    );
+  } catch {
+    // Reporting must never change what the caller does next.
+  }
 }
 
 export const MAX_REPORTS_PER_PAGE = 10;
+
+// Module state, so a page load is the unit of "once" and of the cap.
+const sent = new Set<string>();
+let enabled = import.meta.env.PROD;
+
+export function setReportingEnabledForTests(value: boolean): void {
+  enabled = value;
+}
+
+export function resetErrorReportingForTests(): void {
+  sent.clear();
+}
+
+let installed = false;
+
+/** Reports window `error` and `unhandledrejection`; calling it twice adds nothing. */
+export function installUncaughtErrorReporting(): void {
+  if (installed || typeof window === 'undefined') return;
+  installed = true;
+  window.addEventListener('error', (event) => reportError('uncaught', event.error));
+  window.addEventListener('unhandledrejection', (event) =>
+    reportError('uncaught', event.reason),
+  );
+}
