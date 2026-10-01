@@ -53,6 +53,7 @@ describe('findingText', () => {
     { place: 'keywords', expected: "In the document's keywords." },
     { place: 'metadata', expected: "In the document's details." },
     { place: 'attachment', expected: "In an attached file's name." },
+    { place: 'unused', expected: 'In a part of the file no page shows.' },
   ];
 
   for (const { place, pageIndex, expected } of placeCases) {
@@ -218,6 +219,7 @@ describe('Remove it copy', () => {
     expect(removedMessage({ kind: 'attachment', text: 'a.png' })).toBe('Removed the attachment "a.png". Saved again and downloaded.');
     expect(removedMessage({ kind: 'field', text: 'x' })).toBe('Cleared the field. Saved again and downloaded.');
     expect(removedMessage({ kind: 'metadata', text: 'x' })).toBe('Removed the document details. Saved again and downloaded.');
+    expect(removedMessage({ kind: 'unused', text: 'x' })).toBe('Removed the parts of the file no page shows. Saved again and downloaded.');
     expect(removedMessage({ kind: 'bookmark', text: 'Short' })).toBe('Removed the bookmark "Short". Saved again and downloaded.');
     const long = removedMessage({ kind: 'bookmark', text: 'b'.repeat(80) });
     expect(long).toBe(`Removed the bookmark "${'b'.repeat(39)}…". Saved again and downloaded.`);

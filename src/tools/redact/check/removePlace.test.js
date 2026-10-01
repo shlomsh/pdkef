@@ -91,7 +91,7 @@ async function buildFixture() {
 
   addOutline(doc);
 
-  ctx.assign(ctx.nextRef(), ctx.stream('')); // an unrelated object that must survive
+  ctx.assign(ctx.nextRef(), ctx.stream('')); // an unreachable object with nothing to read: no place, but removePlace drops it
   const xmpRef = ctx.register(ctx.stream(XMP, { Type: 'Metadata', Subtype: 'XML' }));
   doc.catalog.set(PDFName.of('Metadata'), xmpRef);
 
@@ -146,7 +146,7 @@ describe('removePlace', () => {
     expect(saved.places.some((p) => p.kind === 'metadata')).toBe(true);
     // The fixture really covers every kind.
     const kinds = new Set(saved.places.map((p) => p.kind));
-    for (const kind of ['field', 'comment', 'link', 'bookmark', 'title', 'author', 'subject', 'keywords', 'metadata', 'attachment']) {
+    for (const kind of ['field', 'comment', 'link', 'bookmark', 'title', 'author', 'subject', 'keywords', 'metadata', 'attachment', 'unused']) {
       expect(kinds.has(kind)).toBe(true);
     }
   });
@@ -159,7 +159,8 @@ describe('removePlace', () => {
     for (const [index, place] of before.places.entries()) {
       if (skip(place) || place.removable === false) continue;
       const after = await read(await removePlace(bytes, place));
-      const expected = before.places.filter((_, i) => i !== index).map(label);
+      // Every removal also drops the parts no page shows (RED-49), so that place is gone too.
+      const expected = before.places.filter((p, i) => i !== index && p.kind !== 'unused').map(label);
       expect(after.places.map(label), `after removing ${label(place)}`).toEqual(expected);
       expect(pageTexts(after)).toEqual(pageTexts(before));
       expect(after.pages.length).toBe(before.pages.length);
@@ -185,7 +186,7 @@ describe('removePlace', () => {
     const after = await read(out);
     expect(after.places.some((p) => p.kind === 'metadata')).toBe(false);
     const before = await read(bytes);
-    expect(after.places.map(label)).toEqual(before.places.filter((p) => p.kind !== 'metadata').map(label));
+    expect(after.places.map(label)).toEqual(before.places.filter((p) => p.kind !== 'metadata' && p.kind !== 'unused').map(label));
   });
 
   it('removes a bookmark with its children, relinking siblings and fixing the counts', async () => {

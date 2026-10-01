@@ -15,10 +15,15 @@ import type { SearchablePage } from '../find/findMatches.ts';
 import type { PlaceKind, SavedFile, SavedPlace } from './types.ts';
 import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { fieldValueTexts, isNonBlank } from './placeText.ts';
+import { unusedPartsText } from './unusedParts.ts';
+import { PDFDocument, ParseSpeeds } from '@cantoo/pdf-lib';
 
 interface ReadSavedFileOptions {
   /** Pages already known to be pictures (from redaction), zero-based. */
   picturePages: number[];
+  /** The saved file's bytes, to look for parts no page shows (RED-49). Read
+   * back from `doc` when not given. */
+  bytes?: Uint8Array;
 }
 
 const IMAGE_OPS_NAMES = [
@@ -116,6 +121,21 @@ async function attachmentPlaces(pdfDoc: any): Promise<{ places: SavedPlace[]; at
   return { places, attachmentCount: attachments.size };
 }
 
+/** RED-49: the one 'unused' place, when the file holds readable text in parts
+ * no page shows. pdf.js only follows what a page reaches, so this reads the
+ * raw objects with pdf-lib, through the same `unusedPartsText` that Remove it's
+ * locator uses. A file pdf-lib can't open has nothing to report here. */
+async function unusedPlaces(doc: any, bytes: Uint8Array | undefined): Promise<SavedPlace[]> {
+  try {
+    const data = bytes ?? (await doc.getData());
+    const lib = await PDFDocument.load(data, { updateMetadata: false, ignoreEncryption: true, parseSpeed: ParseSpeeds.Fastest });
+    const text = unusedPartsText(lib);
+    return isNonBlank(text) ? [{ kind: 'unused', text, removable: true }] : [];
+  } catch {
+    return [];
+  }
+}
+
 /** True when a page's operator list paints at least one image. */
 function pageHasImagePaint(operatorList: { fnArray: number[] }, imageOps: Set<number>): boolean {
   return operatorList.fnArray.some((fn) => imageOps.has(fn));
@@ -158,6 +178,7 @@ export async function readSavedFile(pdfjs: any, doc: any, options: ReadSavedFile
 
   const { places: attachmentSavedPlaces, attachmentCount } = await attachmentPlaces(doc);
   places.push(...attachmentSavedPlaces);
+  places.push(...(await unusedPlaces(doc, options.bytes)));
 
   const picturePages = [...new Set([...options.picturePages, ...detectedPicturePages])].sort((a, b) => a - b);
 

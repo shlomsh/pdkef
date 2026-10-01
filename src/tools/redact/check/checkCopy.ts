@@ -50,6 +50,7 @@ const PLACE_TEXT: Record<PlaceKind, (page?: string) => string> = {
   keywords: () => "In the document's keywords.",
   metadata: () => "In the document's details.",
   attachment: () => "In an attached file's name.",
+  unused: () => 'In a part of the file no page shows.',
 };
 
 export function findingText(finding: Finding): string {
@@ -97,6 +98,7 @@ export function removedMessage(place: Pick<SavedPlace, 'kind' | 'text'>): string
     case 'subject': return `Removed the subject. ${done}`;
     case 'keywords': return `Removed the keywords. ${done}`;
     case 'metadata': return `Removed the document details. ${done}`;
+    case 'unused': return `Removed the parts of the file no page shows. ${done}`;
   }
 }
 
