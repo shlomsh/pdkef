@@ -335,7 +335,7 @@ test.describe('fill mode on a desktop', () => {
         await element.getByRole('button', { name: 'Aa' }).click();
         await page.locator('[data-font-picker-menu]').getByRole('option', { name: font, exact: true }).click();
         await expect(element.getByRole('button', { name: 'Aa' })).toHaveAttribute('title', new RegExp(font));
-        await element.getByTitle('Delete element').click();
+        await element.getByTitle('Delete', { exact: true }).click();
         await expect(element).toHaveCount(0);
       }
       await slot.focus();
