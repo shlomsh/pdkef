@@ -53,10 +53,16 @@ The loop, end to end:
       with no fields (`not_started`, `modules_unavailable`) never throw, so only Sign's maintenance
       events show them, and those went to Vercel custom events, which Hobby drops. They now go to
       `/api/report` and `errors:read` prints them by browser family.
-- [x] **The next swallowed error is a decision** (was DEBT-25): a CI ratchet on catches that neither
-      report, rethrow nor say `// expected:`.
-- [ ] **A flood cannot blind it** (was DEBT-26): a per-IP rate limit on `/api/report` at Vercel's
-      firewall if Hobby has one; if not, recorded here with what stands instead.
+- [x] **The next swallowed error is a decision** (was DEBT-25): `test:swallowed-errors`, zero
+      tolerance, in CI, `check:fast` and `check:push`. A catch, `.catch` or `.then` rejection handler
+      must report, rethrow unconditionally, or carry `// expected: <why>`; all 106 expected catches
+      now say why in place. Made strict on review, it found three failures the DEBT-17 triage missed
+      because they used the error for a message: Security's encryption check and unlock, and To
+      Image's conversion. All three report now.
+- [x] **A flood cannot blind it** (was DEBT-26): Vercel's firewall, Hobby's one rate-limit rule:
+      `POST /api/report`, 10 per 60 s per IP (fixed window), then 429. Published 2026-10-01 with
+      `vercel firewall rules add` / `publish`, Shlomi's numbers; verified against production, the
+      11th empty POST in a minute got 429. One IP now needs about 8 hours to spend the day's cap.
 - [x] The drill passes again on the final code, not the code it first ran on.
 - [x] Real iOS Safari (Simulator, the broken build) delivers a report whose frames resolve to the
       cause, so the drill's one limit (Playwright WebKit keeps more async frames) is measured.
