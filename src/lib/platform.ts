@@ -33,3 +33,9 @@ export function isIOSDevice(nav: NavigatorPlatformInfo | null | undefined): bool
   if (IOS_DEVICE_PATTERN.test(platform) || IOS_DEVICE_PATTERN.test(userAgent)) return true;
   return platform === 'MacIntel' && (nav.maxTouchPoints || 0) > 1;
 }
+
+/** True on Android phones and tablets. Used with isIOSDevice for hints that
+ * only make sense where the OS file picker lists cloud drives (MERGE-18). */
+export function isAndroidDevice(nav: NavigatorPlatformInfo | null | undefined): boolean {
+  return /Android/.test(nav?.userAgent || '');
+}
