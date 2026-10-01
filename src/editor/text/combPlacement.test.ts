@@ -7,6 +7,8 @@ import {
   fieldFontSize,
   placeCombOnRegion,
   placeTextOnCell,
+  toPercent,
+  toPoints,
   topKeepingInkCentre,
   type CombRegion,
   type FieldRegion,
@@ -609,5 +611,16 @@ describe('topKeepingInkCentre', () => {
     const em = (fontSize / PAGE_HEIGHT) * 100;
     const inkCentre = (family: string, boxTop: number) => boxTop + em * (baselineDropEm(family) - figureCentreEm(family));
     expect(inkCentre('Gveret Levin', newTop)).toBeCloseTo(inkCentre('Arimo', top), 9);
+  });
+});
+
+describe('toPoints and toPercent', () => {
+  it('convert between page percent and points', () => {
+    expect(toPoints(50, 842)).toBe(421);
+    expect(toPercent(421, 842)).toBe(50);
+  });
+  it('return 0 for a page with no size', () => {
+    expect(toPoints(50, 0)).toBe(0);
+    expect(toPercent(10, 0)).toBe(0);
   });
 });
