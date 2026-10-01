@@ -10,7 +10,7 @@ paths:
   - "scripts/check-css-duplication.js"
   - "scripts/check-editor-global-css.js"
   - "scripts/check-page-weight.js"
-  - "docs/E2.*"
+  - "docs/archive/E2.*"
 ---
 
 
@@ -49,8 +49,8 @@ at (QUAL-15, superseding QUAL-13's h1 stroke).
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
 `theme-color` in `BaseLayout.astro`, `theme_color`/`background_color` in
-`public/manifest.webmanifest`, and the inline `<style>` colors in `public/sitemap.xsl`, none of which
-are CSS. A color-only change needs only a dev-server check.
+`public/manifest.webmanifest`, the inline `<style>` colors in `public/sitemap.xsl`, and the hand-coloured
+`public/images/redaction-guide/flatten.svg` (mint strokes, primary teal), none of which are CSS. A color-only change needs only a dev-server check.
 
 ## The styling boundary (scoped hybrid, landed 2026-07)
 
@@ -81,6 +81,11 @@ are CSS. A color-only change needs only a dev-server check.
   `@theme` is `static` because the editor's CSS Modules read `--shadow-sm`, `--ease-out`,
   `--radius-md` and the `--font-weight-*` steps, which Tailwind cannot see; tree-shaking them would make
   their presence depend on an unrelated `.astro` file using the same utility (580 bytes a page).
+- **`transition-[...]` sets `transition-property` only, never the shorthand.** A comma list of
+  properties is fine (`transition-[width,opacity] duration-[180ms]`); one with a duration baked in
+  (`transition-[opacity_150ms]`) compiles to an invalid property list and the browser drops the whole
+  declaration, so the home tiles did not animate for two epics with no error. Check the compiled CSS,
+  not the class string.
 - **Utilities are compiled per page family (ARCH-13).** Five entry sheets in `src/styles/` (`homePage`,
   `toolPage`, `contentPage`, `licensesPage`, `notFoundPage`) each import `global.css`, then
   `tailwindcss/utilities.css` with `source(none)`, then an explicit `@source` list of the markup that
@@ -94,6 +99,11 @@ are CSS. A color-only change needs only a dev-server check.
   is that `:focus-visible { border-radius: 4px }` in `global.css` no longer beats module radii, so a
   focused editor card keeps its 16px shape; no element loses a focus ring. Kept on purpose: the old
   precedence was an accident of order.
+- **The E2.2 CSS-Modules branch was re-implemented on `main`, not merged (`a825e33`).** `main` had
+  restructured `PdfRedactTool` so far that a trial merge in a throwaway worktree kept both versions of
+  the success block and orphaned download UI. Only the `.module.css` files and `global.css` deletions
+  were reused; the class swaps were redone on top of `main`. A long-lived styling branch that touches
+  every island is rebuilt that way, not merged.
 
 ## `build.inlineStylesheets: 'always'` is a measured decision
 
@@ -138,8 +148,8 @@ only, so they go blind if this flips. Full numbers in the comment on `inlineStyl
   follows dynamic imports too, so a conditional import changes nothing. `CompareFigure.astro` (LOC-15,
   2026-09-13) keeps its CSS as a string (`compareFigure.css?inline`, which the build minifies; `?raw` would ship
   the source comments), emits it as `<style is:inline>`
-  where it renders, and registers the hash with `Astro.csp.insertStyleHash(cspSha256(css))` so
-  `test:csp` passes; that took the factor 9.94x to 9.76x at 40 pages. `CompareTable.astro` is the
+  where it renders, and the route that owns the `<head>` registers the hash (`site-lib/inlineStyles.ts`;
+  a component cannot, see [csp-scripts-pwa]) so `test:csp` passes; that took the factor 9.94x to 9.76x at 40 pages. `CompareTable.astro` is the
   same shape and the next candidate.
 - **Page weight** (`check-page-weight.js`): two budgets per page, not ratchets: document plus
   eagerly-referenced JS (brotli), and eagerly-referenced images (raw). Runtime `import()` chunks are

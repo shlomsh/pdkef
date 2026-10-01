@@ -4,9 +4,7 @@ title: "Make non-default language fonts explicitly offline-ready"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-07", "SIGN-10"]
-legacy_state: "Done 2026-09-04 — opt-in family packs with visible readiness and upgrade retention"
 ---
 
 # SIGN-23 · Make non-default language fonts explicitly offline-ready

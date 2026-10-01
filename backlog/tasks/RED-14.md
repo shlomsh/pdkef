@@ -4,7 +4,6 @@ title: "Redact island refactor: one commit path, linked-box and Delete hooks, ty
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

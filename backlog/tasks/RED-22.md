@@ -1,14 +1,15 @@
 ---
 id: "RED-22"
 title: "Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-19", "RED-20", "RED-21"]
 ---
 
 # RED-22 · Every export checked four ways; a failing page is saved as a picture only, and RED-12's layer retires
+
+**Retired 2026-09-28.** Shlomi chose single-image flattening over removal in place: simple and safe by construction beats a content-stream editor for the narrow value of editing a covered page later. The spike that proved it possible is in `spikes/red-18/` and RED-18.
 
 *Replaces RED-09's read-back, which re-read our own layer with the reader that wrote it.*
 

@@ -4,7 +4,6 @@ title: "Adopt Nx on the drawn boundaries: one project per module, tags that enfo
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "longer-term"
 depends_on: ["ARCH-17", "ARCH-18", "ARCH-19"]
 ---
 

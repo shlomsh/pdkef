@@ -4,7 +4,6 @@ title: "Sign's Whiteout: decide whether it removes what it covers, or says plain
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "later"
 depends_on: []
 ---
 

@@ -1,10 +1,9 @@
 ---
 id: "MOBI-34"
 title: "Field-to-field navigation reads the reviewed field map, not the raw detector output"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["MOBI-33"]
 ---
 
@@ -22,3 +21,7 @@ If MOBI-33 decides to stay hints-only, retire this ticket with it.
 
 - [ ] Next/previous visits exactly the reviewed fields, in the reviewed order.
 - [ ] A field deleted in review is never visited; a field added in review is.
+
+## Closed 2026-10-01
+
+Retired with MOBI-33: there is no review layer. Fill mode covers navigation over added and removed fields (`sign-next-gen-guidelines.md`).

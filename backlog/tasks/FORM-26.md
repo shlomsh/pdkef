@@ -4,7 +4,6 @@ title: "Ticks rising from an underline divide a row into columns"
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
 ---
 

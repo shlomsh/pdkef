@@ -1,10 +1,9 @@
 ---
 id: "MOBI-13"
 title: "A scored form corpus: precision and recall measured every run, ratcheted so a gain is never quietly lost"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-11"]
 ---
 
@@ -14,7 +13,7 @@ depends_on: ["MOBI-11"]
 
 Two machines exist and they do not talk to each other.
 
-**Regression:** `src/editor/adapters/pdf/corpus/` answers "does this element still behave the way we
+**Regression:** `src/tools/sign/fields/corpus/` answers "does this element still behave the way we
 decided". One row per element, real PDFs, 75 tests. It cannot say whether the detector is getting
 better or worse on real forms, and it says so in its own README.
 
@@ -76,7 +75,7 @@ not carry it out: its egress policy denied the public web at the gateway, so `ww
 other candidate host answered `403 CONNECT tunnel failed`. A later session on an environment whose
 policy allows the public web fetched both, checked both sha256s against the values recorded here
 (they matched, so the committed ground truth still describes the form), and landed them in
-`src/editor/adapters/pdf/corpus/scoring/forms/`.
+`src/tools/sign/fields/corpus/scoring/forms/`.
 
 | form | sha256 | url |
 | --- | --- | --- |
@@ -117,7 +116,7 @@ were being treated as one:
 So `score.js` now does its own pdf.js text pass and feeds `detectPage`, because
 `useFormFieldRegions.ts` does one and a score of a pipeline we do not ship is not a measurement.
 That is what took health to 94.2% and itc101's precision to 91.4%. The conversion from pdf.js items
-to `formCells`' shape is now one shared module, `src/editor/adapters/pdf/textRuns.js`, rather than a
+to `formCells`' shape is now one shared module, `src/tools/sign/fields/textRuns.js`, rather than a
 copy in each caller. The element corpus still runs without text, deliberately and for the reasons in
 `detect.js`: it isolates a geometry rule, where this measures the shipped pipeline.
 
@@ -247,7 +246,7 @@ to serve raster input, with the evidence and the annotated truth already in plac
 
 Two things it broke on the way in, both fixed:
 
-- `score-form.mjs` crashed calling `toFixed` on a null precision, at the exact point where the most
+- `scripts/score-form.mjs` crashed calling `toFixed` on a null precision, at the exact point where the most
   interesting form had the most to say.
 - `scoring.test.js` asserted `candidates > 0` as a non-vacuity check, which is right for a truth file
   that failed to load and wrong for a measurement that is legitimately zero. Non-vacuity now rests on
@@ -292,3 +291,7 @@ does should be a separate ticket whose evidence is this instrument's numbers mov
       the detector can see. The scanned form needed one amendment to `scoring.test.js` so a
       legitimately-zero candidate count could be expressed; see the 1970 section above.)*
 - [x] The fixture decision above is recorded here with its date and reason once made.
+
+## Closed 2026-10-01
+
+Delivered: `src/tools/sign/fields/corpus/scoring/{baselines.json,scoring.test.js}` and `scripts/score-form.mjs`. The stale paths in the body above were corrected on this date.

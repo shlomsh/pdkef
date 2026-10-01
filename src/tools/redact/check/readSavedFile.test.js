@@ -2,7 +2,7 @@ import { describe, expect, it, beforeAll } from 'vitest';
 import path from 'path';
 import { pathToFileURL } from 'url';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFDocument, StandardFonts } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFString, StandardFonts } from '@cantoo/pdf-lib';
 import { readSavedFile } from './readSavedFile.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 
@@ -38,6 +38,22 @@ async function buildFixture() {
   field.setText('field-secret-value');
   field.addToPage(textPage, { x: 20, y: 100, width: 150, height: 20, font });
 
+  // A Link annotation with a URI action, the way readPlacesForPage reads it back.
+  const context = doc.context;
+  const linkAnnot = context.obj({
+    Type: 'Annot',
+    Subtype: 'Link',
+    Rect: [20, 60, 170, 80],
+    Border: [0, 0, 0],
+    A: {
+      Type: 'Action',
+      S: 'URI',
+      URI: PDFString.of('https://example.com/secret-path'),
+    },
+  });
+  const linkRef = context.register(linkAnnot);
+  textPage.node.addAnnot(linkRef);
+
   const imagePage = doc.addPage([400, 200]);
   const png = await doc.embedPng(
     Uint8Array.from(atob(PNG_1X1_BASE64), (c) => c.charCodeAt(0)),
@@ -71,11 +87,18 @@ describe('readSavedFile', () => {
 
       const kinds = result.places.map((place) => place.kind).sort();
       expect(kinds).toEqual(
-        expect.arrayContaining(['attachment', 'author', 'field', 'keywords', 'subject', 'title']),
+        expect.arrayContaining(['attachment', 'author', 'field', 'keywords', 'link', 'subject', 'title']),
       );
 
       const field = result.places.find((place) => place.kind === 'field');
       expect(field).toMatchObject({ kind: 'field', text: 'field-secret-value', pageIndex: 0 });
+
+      // The field's name is reported too, marked as not removable.
+      const fieldName = result.places.find((place) => place.kind === 'field' && place.removable === false);
+      expect(fieldName).toMatchObject({ text: 'secret.field', pageIndex: 0, removable: false });
+
+      const link = result.places.find((place) => place.kind === 'link');
+      expect(link).toMatchObject({ kind: 'link', text: 'https://example.com/secret-path', pageIndex: 0 });
 
       const title = result.places.find((place) => place.kind === 'title');
       expect(title?.text).toBe('Secret Title 12345');

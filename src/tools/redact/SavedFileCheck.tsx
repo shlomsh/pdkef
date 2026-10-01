@@ -4,18 +4,23 @@ import styles from './SavedFileCheck.module.css';
 import {
   attachmentsNote,
   canCover,
+  canRemove,
   CHECK_FAILED,
   CHECK_LEAD,
   CHECKING,
   COVER_IT,
+  COVER_IT_NOTE,
   findingText,
   NO_MATCH,
   NOTHING_COVERED,
   picturePagesNote,
+  REMOVE_IT,
+  REMOVING,
   SEARCH_BUTTON,
   SEARCH_LABEL,
   unsolidNote,
 } from './check/checkCopy.ts';
+import type { InPlaceFinding } from './check/checkCopy.ts';
 import type { CheckTerm } from './check/types.ts';
 import type { SavedFileCheckState } from './useSavedFileCheck.ts';
 
@@ -27,10 +32,18 @@ export default function SavedFileCheck({
   state,
   onSearch,
   onCover,
+  onRemove,
+  removing = false,
+  note = null,
 }: {
   state: SavedFileCheckState;
   onSearch: (text: string) => void;
   onCover: (term: CheckTerm, pageIndex: number) => void;
+  /** RED-25: take one place outside page text out of the saved file. */
+  onRemove?: (finding: InPlaceFinding) => void;
+  removing?: boolean;
+  /** What the last Remove it did, said plainly. */
+  note?: string | null;
 }) {
   const [query, setQuery] = useState('');
   if (state.status === 'idle') return null;
@@ -50,6 +63,7 @@ export default function SavedFileCheck({
   return (
     <section className={styles.check} aria-label="Check of the saved file" data-saved-file-check>
       {unsolid && <p className={styles.danger} role="alert">{unsolid}</p>}
+      {note && <p className={styles.note} role="status" data-check-removed>{note}</p>}
       <p className={styles.lead}>{CHECK_LEAD}</p>
       {outcome.results.length === 0 && <p className={styles.note}>{NOTHING_COVERED}</p>}
       {results.length > 0 && (
@@ -62,11 +76,16 @@ export default function SavedFileCheck({
               ) : (
                 <ul className={styles.findings}>
                   {findings.map((finding) => (
-                    <li key={findingText(finding)} className={styles.finding}>
+                    <li key={finding.kind === 'in-place' ? `place:${finding.placeIndex}` : findingText(finding)} className={styles.finding}>
                       {findingText(finding)}
                       {canCover(finding) && (
                         <button type="button" className={styles.cover} onClick={() => onCover(term, finding.pageIndex)}>
                           {COVER_IT}
+                        </button>
+                      )}
+                      {onRemove && canRemove(finding) && (
+                        <button type="button" className={styles.cover} disabled={removing} onClick={() => onRemove(finding)}>
+                          {removing ? REMOVING : REMOVE_IT}
                         </button>
                       )}
                     </li>
@@ -77,6 +96,7 @@ export default function SavedFileCheck({
           ))}
         </ul>
       )}
+      {results.some(({ findings }) => findings.some(canCover)) && <p className={styles.note}>{COVER_IT_NOTE}</p>}
       {pictures && <p className={styles.note}>{pictures}</p>}
       {attachments && <p className={styles.note}>{attachments}</p>}
       <form

@@ -185,13 +185,14 @@ export interface SignMessages {
   signatureColorTitle: string;
   whiteoutColorTitle: string;
   blurStrengthTitle: string;
-  blurStrengthLight: string;
-  blurStrengthMedium: string;
-  blurStrengthStrong: string;
+  blurStrengthLighter: string;
+  blurStrengthDefault: string;
+  blurStrengthStronger: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;
   /** RED-03: ElementToolbar.tsx's Redact-only "repeat on every page" button. */
   repeatOnEveryPageTitle: string;
+  repeatOnEveryPageLabel: string;
   /** RED-03: the linked set's menu, once a box is linked (repeatGroupSize
    * >= 2). `{n}` is the set's size; the title doubles as the menu heading. */
   repeatGroupTitleTemplate: string;

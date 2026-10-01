@@ -4,9 +4,7 @@ title: "The Sign toolbar's per-row cap stopped matching when the Feedback contro
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-08-29"
 ---
 
 # SIGN-18 · The Sign toolbar's per-row cap stopped matching when the Feedback control made it ten

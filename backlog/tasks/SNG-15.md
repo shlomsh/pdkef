@@ -1,10 +1,9 @@
 ---
 id: "SNG-15"
 title: "Fill mode, slice 1: the production editor with every writing spot a real field the platform's own arrows hop"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-14"]
 ---
 
@@ -96,3 +95,7 @@ slice (b937c0ef). Shlomi checked combs, plain fields, autocorrect and one-finger
 
 Split out: the toolbar under native zoom (SNG-17, after SNG-16 was retired), the practice form dropping
 `?next=1` (SNG-18), ticks in form 101's glyph boxes (SNG-09, a separate session).
+
+## Closed 2026-10-01
+
+On main (a4e2f76b: `useCombCaret.ts`, FocusProxy autocorrect) and the default since SNG-19. Its open items were split to SNG-17, SNG-18, SNG-09 and SNG-04.

@@ -4,7 +4,6 @@ title: "Redo for Sign and Redact, on the keyboard and in the Undo dialog"
 status: "done"
 priority: "P2"
 epic: "undo-and-redo"
-phase: "near-term"
 depends_on: []
 ---
 

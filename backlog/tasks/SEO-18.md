@@ -1,12 +1,10 @@
 ---
 id: "SEO-18"
 title: "Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data"
-status: "blocked"
+status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-07", "SEO-12"]
-legacy_state: "Open"
 ---
 
 # SEO-18 · Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data
@@ -148,3 +146,7 @@ owner to apply rather than raised in this change, per instruction. Nothing else 
 (class resolution, editor-global-CSS, dead-utility check all still pass).
 
 *2026-09-12:* deployed at `6e9da0c`; indexing requested for `/sign-pdf-in-your-language/` in Search Console the same day. Moved to `seo-awaiting-read`, blocked, eight-week read due 2026-11-07 (first look at the 2026-10-08 refresh for crawl and indexing state).
+
+## Closed 2026-10-01
+
+Merged into SEO-40: the eight-week read of `/sign-pdf-in-your-language/` (2026-11-07) moves there.

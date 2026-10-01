@@ -4,7 +4,6 @@ title: "Narrow the fonts project's tool-sign edge to the text pipeline, not all 
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-20", "QUAL-08"]
 ---
 

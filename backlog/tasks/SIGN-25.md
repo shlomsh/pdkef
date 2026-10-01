@@ -4,9 +4,7 @@ title: "Reconcile and enforce shipped dependency licenses"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "release-blocker"
 depends_on: []
-legacy_state: "Done — reviewed browser runtime inventory and CI guard landed 2026-09-04"
 ---
 
 # SIGN-25 · Reconcile and enforce shipped dependency licenses

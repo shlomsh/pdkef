@@ -38,10 +38,9 @@ export const BUILD_ONLY_CLOSURES = new Set(['astro', '@astrojs/preact', '@vercel
 // its parent package. The two signal packages are emitted by Astro's client.
 export const RUNTIME_PACKAGE_NAMES = [
   ...RUNTIME_ROOT_PACKAGES,
-  '@preact/signals', '@preact/signals-core', '@pdf-lib/standard-fonts', '@pdf-lib/upng',
-  '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'color', 'color-convert',
-  'color-name', 'color-string', 'html-entities', 'is-arrayish',
-  'node-html-better-parser', 'pako', 'require-from-string', 'simple-swizzle', 'tabbable', 'tslib',
+  '@preact/signals', '@preact/signals-core',
+  '@floating-ui/core', '@floating-ui/react-dom', '@floating-ui/utils', 'culori', 'fflate',
+  'html-entities', 'node-html-better-parser', 'pako', 'require-from-string', 'tabbable', 'tslib',
 ].sort((a, b) => a.localeCompare(b));
 
 export const LICENSE_URL_OVERRIDES = {

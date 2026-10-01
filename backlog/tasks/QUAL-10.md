@@ -4,9 +4,7 @@ title: "Saved-work restore must not shift Sign, Redact, or Merge"
 status: "done"
 priority: "P1"
 epic: "site-quality"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-09-17"
 ---
 
 # QUAL-10 · Saved-work restore must not shift the page

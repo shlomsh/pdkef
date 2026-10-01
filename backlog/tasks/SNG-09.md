@@ -1,11 +1,12 @@
 ---
 id: "SNG-09"
 title: "Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document"
-status: "in_progress"
+status: "open"
 priority: "P1"
-epic: "sign-next-gen"
-phase: "near-term"
-depends_on: ["SNG-03"]
+epic: "sign-fill-mode"
+horizon: "next"
+order: 1
+depends_on: []
 ---
 
 # SNG-09 · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document
@@ -96,3 +97,7 @@ on every side. Not yet checked on a phone.
 - [ ] The same tap-local snap improves free placement on vector forms, on lines the detector missed.
 - [ ] A spike question is added to SNG-03: the cost of reading back the canvas pixels on iOS
   (`getImageData` on a large canvas) inside a tap.
+
+## 2026-10-01 board cleanup
+
+- Status in_progress -> open. The Zapf checkbox part shipped (`zapfCheckboxSquare.test.js`); the tap-local snap to the printed line remains. Dropped SNG-03 from depends_on (retired).

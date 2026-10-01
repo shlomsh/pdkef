@@ -89,7 +89,7 @@ describe('useRedactCommands.add', () => {
   it('shows the undo chip only when undoChip is requested', () => {
     const h = makeHarness();
     h.commands.add([box({ id: 'a' })], { type: 'ADD_DELETE', description: 'Marked text for deletion', undoChip: true });
-    expect(h.registerUndo).toHaveBeenCalledWith('Marked text for deletion', h.getHistory().past[0]);
+    expect(h.registerUndo).toHaveBeenCalledWith('Marked text for deletion', h.getHistory().past[0], undefined);
   });
 
   it('is a no-op with no additions', () => {

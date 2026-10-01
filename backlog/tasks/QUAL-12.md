@@ -1,12 +1,10 @@
 ---
 id: "QUAL-12"
 title: "Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback"
-status: "open"
+status: "done"
 priority: "P3"
-epic: "site-quality"
-phase: "quick-win"
+epic: "polish"
 depends_on: ["QUAL-11"]
-legacy_state: "Open"
 ---
 
 # QUAL-12 · Mint and paper leftovers

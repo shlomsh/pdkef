@@ -4,9 +4,7 @@ title: "The store: one recents memory space, work saved per file, the per-tool d
 status: "done"
 priority: "P1"
 epic: "one-memory-space"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MEM-01 · The store: one recents memory space, work saved per file, the per-tool draft folded in

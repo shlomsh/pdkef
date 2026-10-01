@@ -4,7 +4,6 @@ title: "Score Thai and English forms in the benchmark"
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
 ---
 

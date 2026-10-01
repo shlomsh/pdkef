@@ -1,27 +1,44 @@
 import { describe, expect, it } from 'vitest';
-import { BLUR_STRENGTHS, DEFAULT_BLUR_STRENGTH, blurFactor, blurFraction, blurRadiusPx, isBlurStrength, resolveBlurStrength } from './blurStrength.ts';
+import {
+  BLUR_MAX, BLUR_MIN, DEFAULT_BLUR_STRENGTH, blurFactor, blurFraction, blurRadiusPx, isBlurStrengthValue,
+  resolveBlurStrength, snapBlurStrength,
+} from './blurStrength.ts';
 
 describe('blurStrength', () => {
-  it('restores a blur box saved without a strength as medium, the pre-levels blur', () => {
-    expect(DEFAULT_BLUR_STRENGTH).toBe('medium');
-    expect(blurFactor(undefined)).toBe(blurFactor('medium'));
+  it('a missing or unknown strength reads as the default 0.3', () => {
+    expect(DEFAULT_BLUR_STRENGTH).toBe(0.3);
+    expect(resolveBlurStrength(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength('bogus')).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength('toString')).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(resolveBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(blurFactor(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
   });
 
-  it('orders levels from light to strong, each blurrier than the last', () => {
-    const factors = BLUR_STRENGTHS.map((s) => blurFactor(s));
-    for (let i = 1; i < factors.length; i++) expect(factors[i]).toBeGreaterThan(factors[i - 1]);
+  it('legacy names migrate: light 0.3, medium 0.4, strong 0.5', () => {
+    expect(resolveBlurStrength('light')).toBe(0.3);
+    expect(resolveBlurStrength('medium')).toBe(0.4);
+    expect(resolveBlurStrength('strong')).toBe(0.5);
+    expect(isBlurStrengthValue('strong')).toBe(true);
+    expect(isBlurStrengthValue('bogus')).toBe(false);
+    expect(isBlurStrengthValue(Infinity)).toBe(false);
   });
 
-  it('keeps every level above the 0.25 x box height that measured as a smear', () => {
-    for (const s of BLUR_STRENGTHS) expect(blurFactor(s)).toBeGreaterThan(0.25);
+  it('a number is clamped to [0.05, 0.55]', () => {
+    expect(resolveBlurStrength(0.55)).toBe(0.55);
+    expect(resolveBlurStrength(0.6)).toBe(BLUR_MAX);
+    expect(resolveBlurStrength(0)).toBe(BLUR_MIN);
+    expect(resolveBlurStrength(9)).toBe(BLUR_MAX);
   });
 
-  it('rejects unknown values and resolves them to the default', () => {
-    expect(isBlurStrength('light')).toBe(true);
-    expect(isBlurStrength('toString')).toBe(false);
-    expect(isBlurStrength(0.5)).toBe(false);
-    expect(resolveBlurStrength('bogus')).toBe('medium');
-    expect(resolveBlurStrength('medium')).toBe('medium');
+  it('snapBlurStrength: within 0.02 of 0.3 snaps to it, else hundredths, clamped', () => {
+    expect(snapBlurStrength(0.31)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(snapBlurStrength(0.28)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(snapBlurStrength(0.43)).toBe(0.43);
+    expect(snapBlurStrength(0.4)).toBe(0.4);
+    expect(snapBlurStrength(0.2549)).toBe(0.25);
+    expect(snapBlurStrength(0.01)).toBe(BLUR_MIN);
+    expect(snapBlurStrength(3)).toBe(BLUR_MAX);
+    expect(snapBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
   });
 
   describe('blurFraction: radius = factor x max(box height, 24pt)', () => {
@@ -42,10 +59,10 @@ describe('blurStrength', () => {
     });
 
     it('falls back to the plain factor when the box height is not known', () => {
-      expect(blurFraction('medium', 0)).toBe(blurFactor('medium'));
-      expect(blurFraction('medium', -5)).toBe(blurFactor('medium'));
-      expect(blurFraction('medium', NaN)).toBe(blurFactor('medium'));
-      expect(blurFraction('medium', Infinity)).toBe(blurFactor('medium'));
+      expect(blurFraction('medium', 0)).toBe(blurFactor(0.4));
+      expect(blurFraction('medium', -5)).toBe(blurFactor(0.4));
+      expect(blurFraction('medium', NaN)).toBe(blurFactor(0.4));
+      expect(blurFraction('medium', Infinity)).toBe(blurFactor(0.4));
     });
   });
 
@@ -76,5 +93,19 @@ describe('blurStrength', () => {
       const radius = blurRadiusPx('medium', boxHeightPx, pxPerPt);
       expect(radius / boxHeightPx).toBeCloseTo(blurFraction('medium', boxHeightPx / pxPerPt));
     });
+  });
+});
+
+describe('blurRadiusPx at the slider ends (RED-30)', () => {
+  it('0.05 gives 0.05 x max(h, 24pt) and 0.55 gives 0.55 x max(h, 24pt)', () => {
+    expect(blurRadiusPx(0.05, 200, 1)).toBeCloseTo(10);
+    expect(blurRadiusPx(0.55, 200, 1)).toBeCloseTo(110);
+    // Under the 24pt floor: absolute radius from the floor.
+    expect(blurRadiusPx(0.05, 10, 1)).toBeCloseTo(1.2);
+    expect(blurRadiusPx(0.55, 10, 1)).toBeCloseTo(13.2);
+  });
+
+  it('a legacy name and its number give the same radius', () => {
+    expect(blurRadiusPx('strong', 100, 1)).toBe(blurRadiusPx(0.5, 100, 1));
   });
 });

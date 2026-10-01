@@ -1,16 +1,17 @@
 import type { ComponentChildren } from 'preact';
-import { Search, Shrink } from 'lucide-preact';
+import { Search, Eye } from 'lucide-preact';
 import ViewControl from '../../editor-ui/ViewControl.tsx';
 import EditorToolStatus, { type ToolCopy } from '../../editor-ui/EditorToolStatus.tsx';
 import ArmHint from '../../editor-ui/ArmHint.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import ToolShell, { FILE_ACTIONS, useToolShell } from '../../shell/ToolShell.tsx';
 import { useArmTool, useAutoArmHint } from '../../editor-ui/hooks/toolArming.js';
-import { WhiteoutIcon, EraserIcon } from '../../editor-ui/toolIcons.tsx';
+import { WhiteoutIcon, EraserIcon, BlurToolIcon, BlackoutToolIcon } from '../../editor-ui/toolIcons.tsx';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
 import styles from '../../editor-ui/SignToolbar.module.css';
 import redactStyles from './PdfRedactTool.module.css';
+import barStyles from './RedactToolbar.module.css';
 
 // What each tool is called in front of a user and what it is waiting for -
 // the same contract SignToolbar's TOOL_COPY holds, for the same reason: every
@@ -21,16 +22,23 @@ import redactStyles from './PdfRedactTool.module.css';
 // find...", which describes a gesture half this tool's users do not have.
 //
 // Delete's sentence stops at "delete it": "from the file" was the idle tip's
-// job ("Delete takes an image or text run out of the file itself"), and on a
+// job ("Delete takes text or an image out of the file"), and on a
 // phone every sentence here shares one fixed-height row with the keep-on
 // switch beside it, sized by the longest of them - the extra clause was a
 // third line that every tool's row then paid for (e2e/tool-toolbars/
 // toolbar-phone-row.spec.js).
 const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
-  delete:   { action: 'Click a highlighted image or text run to delete it.', actionTouch: 'Tap something highlighted to delete it.', button: 'Delete' },
-  blackout: { action: 'Click and drag on a page to draw a blackout box.',    actionTouch: 'Tap and drag to black out an area.',       button: 'Blackout' },
-  whiteout: { action: 'Click and drag on a page to draw a whiteout box.',    actionTouch: 'Tap and drag to white out an area.',       button: 'Whiteout' },
-  blur:     { action: 'Click and drag on a page to blur an area.',           actionTouch: 'Tap and drag to blur an area.',            button: 'Blur' },
+  delete:   { action: 'Click text or an image to delete it, or drag across several.', actionTouch: 'Tap outlined text or an image to delete it.', button: 'Delete' },
+  blackout: { action: 'Click and drag to draw a blackout box.',           actionTouch: 'Drag to draw a blackout box.',                button: 'Blackout' },
+  whiteout: { action: 'Click and drag to draw a whiteout box.',           actionTouch: 'Drag to draw a whiteout box.',                button: 'Whiteout' },
+  blur:     { action: 'Click and drag to draw a blur box.',               actionTouch: 'Drag to draw a blur box.',                    button: 'Blur' },
+};
+
+// RED-32: the same tools armed as a brush. The brush stays on until Esc or a
+// second press of its tool, so it shows no keep-on switch (RED-42).
+const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = {
+  blur:     { action: 'Click and drag to paint a blur.',    actionTouch: 'Drag to paint a blur.',    button: 'Blur' },
+  whiteout: { action: 'Click and drag to paint whiteout.', actionTouch: 'Drag to paint whiteout.', button: 'Whiteout' },
 };
 
 const isRedactToolType = (tool: string): tool is RedactToolType => tool in TOOL_COPY;
@@ -55,13 +63,16 @@ export default function RedactToolbar({
   exporting = false,
   undoAction = null,
   onUndoAction,
-  handoffReady = false,
-  handoffBusy = false,
-  onCompressHandoff,
   showWelcomeTip = true,
+  restoredNote = false,
+  brushControls = null,
+  brushMode = false,
   findOpen = false,
   onToggleFind,
   findBar = null,
+  statusMessage,
+  peeking = false,
+  onPeekChange,
 }: {
   activeStyle: RedactToolType | null;
   toolLocked: boolean;
@@ -94,21 +105,29 @@ export default function RedactToolbar({
   /** Finding #3: a pending short-lived undo (a box removed, or a page
    * cleared). Present, this wins the status line's slot over the armed-tool
    * hint, the same way Merge's own undo chip wins its header slot. */
-  undoAction?: { message: string } | null;
+  undoAction?: { message: string; extra?: { label: string; onSelect: () => void } } | null;
   onUndoAction?: () => void;
-  /** Finding #4: whether a redacted export exists to hand off to Compress. */
-  handoffReady?: boolean;
-  handoffBusy?: boolean;
-  onCompressHandoff?: () => void;
   /** A restored document is already in progress, so omit the newcomer-only
    * idle tip until the person selects a tool. */
   showWelcomeTip?: boolean;
+  /** RED-45: true while a reopened document's work is untouched. */
+  restoredNote?: boolean;
   /** RED-02: whether the find row is open, and the row itself. It renders
    * inside this sticky card, under the buttons, so it stays in reach while
    * the pages scroll. */
+  /** RED-32: the Box / Brush row for Blur and Whiteout, under the buttons. */
+  brushControls?: ComponentChildren;
+  /** Blur or Whiteout is armed as a brush: the status line says how to paint. */
+  brushMode?: boolean;
   findOpen?: boolean;
   onToggleFind?: () => void;
   findBar?: ComponentChildren;
+  /** A message from the island (export progress, done, an export cancelled by
+   * an edit) for the status slot. The undo chip wins the slot when both exist. */
+  statusMessage?: ComponentChildren;
+  /** RED-31: the Peek button is held down (or Space is). View state only. */
+  peeking?: boolean;
+  onPeekChange?: (on: boolean) => void;
 }) {
   const { requestReplace } = useToolShell();
 
@@ -148,7 +167,10 @@ export default function RedactToolbar({
   // Absent when no tool is armed, which is also what a tool missing from
   // TOOL_COPY looks like: the status line falls back to the idle tip rather
   // than rendering a half-built sentence.
-  const activeToolCopy = activeStyle ? TOOL_COPY[activeStyle] : null;
+  const brushArmed = brushMode && (activeStyle === 'blur' || activeStyle === 'whiteout');
+  const activeToolCopy = activeStyle
+    ? (brushArmed ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
+    : null;
 
   const toolClass = (tool: RedactToolType) =>
     `${styles.button}${activeStyle === tool ? ` ${styles.active}` : ''}${activeStyle === tool && toolLocked ? ` ${styles.locked}` : ''}`;
@@ -159,15 +181,19 @@ export default function RedactToolbar({
     // above their toolbars; spacing belongs to the shared shell.
     <ToolShell
       editor
+      inlineStatus
       status={
         <EditorToolStatus
           copy={activeToolCopy}
           locked={toolLocked}
           onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
+          showKeepOn={!brushArmed}
           // QUAL-10: restored work is not a newcomer's first visit, so it gets
           // no tip; the empty idle row still holds the stack's reserved height.
-          idle={showWelcomeTip ? 'Tip: pick a tool to start. Delete takes an image or text run out of the file itself.' : ''}
-          reserveCopies={Object.values(TOOL_COPY)}
+          idle={showWelcomeTip
+            ? 'Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.'
+            : restoredNote ? 'Your changes from last time are back. Undo still works.' : ''}
+          reserveCopies={[...Object.values(TOOL_COPY), ...Object.values(BRUSH_COPY)]}
           // Finding #3: one slot, and the undo chip wins it - matching
           // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While
           // it is showing, the armed-tool hint is not lost, just deferred: it
@@ -178,16 +204,19 @@ export default function RedactToolbar({
           // height for the chip itself, so it must never be taller than the
           // rows that are reserved: one line, ellipsised, never wrapped
           // (`.undo-chip-text`).
-          override={undoAction && (
+          override={undoAction ? (
             <span className={redactStyles['undo-chip']}>
               <span className={redactStyles['undo-chip-text']}>{undoAction.message}</span>
-              <button type="button" className={redactStyles['undo-chip-btn']} onClick={onUndoAction}>Undo</button>
+              {undoAction.extra && (
+                <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={undoAction.extra.onSelect}>{undoAction.extra.label}</button>
+              )}
+              <button type="button" className={`${redactStyles['undo-chip-btn']} ${barStyles['chip-hit']}`} onClick={onUndoAction}>Undo</button>
             </span>
-          )}
+          ) : (statusMessage ?? undefined)}
         />
       }
     >
-      <div className={styles.toolbar} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">
+      <div className={`${styles.toolbar} ${barStyles.bar}`} role="toolbar" aria-label="PDF redaction" dir="ltr" lang="en">
         <ArmHint tool="blur" label="Blur" action={TOOL_COPY.blur.action} locked={activeStyle === 'blur' && toolLocked} autoShowTool={autoShowTool}>
           <button
             type="button"
@@ -195,11 +224,7 @@ export default function RedactToolbar({
             onClick={armTool('blur')}
             aria-pressed={activeStyle === 'blur'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="4" y1="5" x2="15" y2="5" />
-              <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" fill-opacity="0.3" stroke="currentColor" stroke-width="1.3" stroke-dasharray="2.5 2" />
-              <line x1="4" y1="19" x2="12" y2="19" />
-            </svg>
+            <BlurToolIcon />
             <span className={styles.label}>Blur</span>
           </button>
         </ArmHint>
@@ -211,11 +236,7 @@ export default function RedactToolbar({
             onClick={armTool('blackout')}
             aria-pressed={activeStyle === 'blackout'}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="4" y1="5" x2="15" y2="5" />
-              <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
-              <line x1="4" y1="19" x2="12" y2="19" />
-            </svg>
+            <BlackoutToolIcon />
             <span className={styles.label}>Blackout</span>
           </button>
         </ArmHint>
@@ -260,6 +281,25 @@ export default function RedactToolbar({
           </button>
         )}
 
+        {/* RED-31: hold to see what is under every box; release covers it again. */}
+        {onPeekChange && (
+          <button
+            type="button"
+            className={`${styles.button}${peeking ? ` ${styles.active}` : ''}`}
+            onPointerDown={(e) => { e.preventDefault(); onPeekChange(true); }}
+            onPointerUp={() => onPeekChange(false)}
+            onPointerCancel={() => onPeekChange(false)}
+            onPointerLeave={() => onPeekChange(false)}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-pressed={peeking}
+            title="Hold to see what is under the boxes"
+            data-redact-peek
+          >
+            <Eye size={18} aria-hidden="true" />
+            <span className={styles.label}>Peek</span>
+          </button>
+        )}
+
         {/* Undo and Redo are the whole history model, one tap each, plus the
             keyboard shortcuts (src/lib/history/useHistoryShortcuts.js). A
             third "History" control used to sit beside them and open a
@@ -274,7 +314,6 @@ export default function RedactToolbar({
           onClick={onUndo}
           title="Undo"
           disabled={actionHistory.length === 0}
-          data-icon-only
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 7v6h6" />
@@ -289,7 +328,6 @@ export default function RedactToolbar({
           onClick={onRedo}
           title="Redo"
           disabled={!canRedo}
-          data-icon-only
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 7v6h-6" />
@@ -323,34 +361,14 @@ export default function RedactToolbar({
           onDownload={handleDownloadPdf}
           onPrepareShare={handlePrepareShare}
           onShare={handleSharePdf}
-          downloadTitle={elementsCount === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
+          downloadTitle={elementsCount === 0 ? 'Draw a box or delete something first' : 'Download the redacted PDF'}
           shareTitle={elementsCount === 0
-            ? 'Add at least one redaction box first'
+            ? 'Draw a box or delete something first'
             : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
         />
 
-        {/* Finding #4: the quiet next-tool hand-off, right beside the
-            Download/Share pair it depends on - Merge's own "Compress" /
-            "Sign" row (docs/ux-design-guidelines.md §13) is the model,
-            reused through draftStore.js's saveHandoff rather than copied
-            (module boundaries forbid importing another tool). Only ever
-            visible once a redacted export actually exists, so it never
-            competes with the existing controls in the toolbars measured by
-            e2e/tool-toolbars/toolbar-touch-targets.spec.js (that spec never
-            exports a file). */}
-        {handoffReady && (
-          <button
-            type="button"
-            className={styles.button}
-            onClick={onCompressHandoff}
-            disabled={handoffBusy}
-            title="Hand the redacted PDF to Compress"
-          >
-            <Shrink size={18} aria-hidden="true" />
-            <span className={styles.label}>Compress</span>
-          </button>
-        )}
       </div>
+      {brushControls}
       {findBar}
     </ToolShell>
   );

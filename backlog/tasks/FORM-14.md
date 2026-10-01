@@ -4,7 +4,6 @@ title: "A caption centred in its cell is a heading, not a label"
 status: "done"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["FORM-13"]
 ---
 

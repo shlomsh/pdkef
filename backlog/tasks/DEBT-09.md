@@ -4,7 +4,6 @@ title: "The renderer registry becomes a factory the tool calls, and Redact's res
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
 ---
 

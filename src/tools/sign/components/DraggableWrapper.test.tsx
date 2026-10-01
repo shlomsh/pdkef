@@ -369,7 +369,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
     expect(requiredElement(wrapper, 'button[aria-label="Next field"]')).toBeTruthy();
     expect(requiredElement(wrapper, 'button[aria-label="Formatting options"]')).toBeTruthy();
-    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+    expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
   it('reveals the full toolbar on tapping Aa, and folds back on tapping it again', () => {
@@ -380,7 +380,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
       requiredElement<HTMLButtonElement>(wrapper, 'button[aria-label="Formatting options"]').click();
     });
 
-    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
 
     act(() => {
@@ -388,14 +388,14 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     });
 
     expect(requiredElement(wrapper, 'button[aria-label="Previous field"]')).toBeTruthy();
-    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+    expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
   it('never collapses on a fine pointer (desktop), even while editing with a fieldNav', () => {
     setPointerCoarse(false);
     const wrapper = mount(baseElement());
 
-    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -403,7 +403,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(true);
     const wrapper = mount(baseElement(), { fieldNav: null });
 
-    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -411,7 +411,7 @@ describe('DraggableWrapper compact editing toolbar (MOBI-16)', () => {
     setPointerCoarse(true);
     const wrapper = mount(baseElement(), { isEditing: false });
 
-    expect(requiredElement(wrapper, 'button[title="Delete element"]')).toBeTruthy();
+    expect(requiredElement(wrapper, 'button[title="Delete"]')).toBeTruthy();
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
   });
 
@@ -534,7 +534,7 @@ describe('DraggableWrapper fill mode (SNG-15)', () => {
     expect(wrapper.querySelector('button[aria-label="Previous field"]')).toBeNull();
     expect(wrapper.querySelector('button[aria-label="Next field"]')).toBeNull();
     expect(wrapper.querySelector(`.${elementStyles['quick-field-nav']}`)).toBeNull();
-    expect(wrapper.querySelector('button[title="Delete element"]')).toBeNull();
+    expect(wrapper.querySelector('button[title="Delete"]')).toBeNull();
   });
 
   it('renders production chrome as today when fill props are absent, even on a coarse pointer', () => {

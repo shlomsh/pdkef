@@ -8,7 +8,7 @@ short: it holds what every agent needs in every session. Everything else is load
   rule covers what. If you are working from a prompt alone, open the relevant rule before editing.
 - **[docs/troubleshooting.md](./docs/troubleshooting.md)** - read *before* debugging when an island
   silently does nothing, a whole Playwright suite goes red at once, or hydration dies on `'__H'`.
-- **[TODO.md](./TODO.md)** - the single backlog (generated from `backlog/tasks/`). No task state here.
+- **[TODO.md](./TODO.md)** - what's next across the board, generated from `backlog/tasks/`; [BACKLOG.md](./BACKLOG.md) holds every lane. No task state here.
 - **[README.md](./README.md)** - for humans and the GitHub landing page, not agent guidance.
 - **`docs/`** - design records for individual pieces of work, linked from the rule that needs them.
   [docs/sign-tool-product-decisions.md](./docs/sign-tool-product-decisions.md) is the confirmed Sign
@@ -150,8 +150,9 @@ brackets carries the evidence; do not relearn it.
 
 ## Voice (for any user-facing text)
 
-Warm, modest, honest: a person sharing something useful, not a company selling a product. First person
-is welcome. Plain facts over intensifiers ("Runs on your device. Free. Open source."). Privacy at human
+Warm, modest, positive: a person sharing something useful, not a company selling a product. First person
+is welcome. Say what it does; no "limits" or "honest caveats" sections, no self-deprecating disclaimers,
+and never a claim that isn't verified against the code. Plain facts over intensifiers ("Runs on your device. Free. Open source."). Privacy at human
 altitude, never security jargon. Explain, don't compete: no competitor names, no us-vs-them. Free
 because it should be, not as a funnel. **No em dashes** (use spaced hyphens, commas, or split the
 sentence). Never frame PDkef around how little time it took to build. The full voice guide, origin

@@ -1,10 +1,9 @@
 ---
 id: "DEBT-07"
 title: "editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the repo: decide on QUAL-08's numbers"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: ["DEBT-04", "DEBT-05", "DEBT-06", "QUAL-08"]
 ---
 
@@ -154,3 +153,7 @@ ARCH-27 re-ran Nx at the sha of each of 83 real pushes and fed a hand-written ma
 have changed a verdict. Even so, Shlomi decided the same day to keep Nx: the removal branch of this
 ticket is not taken. What remains here is the `editor`-leaves-`CORE_PROJECTS` branch; ARCH-28's
 file-level unit selection makes most of its value moot for unit tests.
+
+## Closed 2026-10-01
+
+Merged into ARCH-32: what is left (taking `editor` out of `CORE_PROJECTS`, and the `SignMessages` cut that keeps `i18n` from importing `editor`) is answered by file-level reachability there. Nx itself stays (ARCH-27).

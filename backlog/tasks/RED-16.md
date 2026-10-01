@@ -1,11 +1,12 @@
 ---
 id: "RED-16"
 title: "One text reader: Delete's previews read their text from the glyph read, and the second decoder goes"
-status: "open"
-priority: "P2"
-epic: "redact-tool"
-phase: "near-term"
-depends_on: ["RED-12"]
+status: "in_progress"
+priority: "P3"
+epic: "redact"
+horizon: "now"
+order: 2
+depends_on: []
 ---
 
 # RED-16 · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes
@@ -21,3 +22,8 @@ page's own glyph order. Take Delete's preview text from that read and retire the
 
 - Delete's previews read the same text pdf.js reads, Hebrew in order, with RED-13's guards still green.
 - `visualOrder.js` and the parser's own ToUnicode decoding are gone, or what remains says why.
+
+## 2026-10-01 board cleanup
+
+- Dropped RED-12 from depends_on: RED-12 is retired (its text layer was reverted on 2026-09-28; `pageGlyphs.ts` is still the glyph read this ticket builds on).
+- Priority P2 -> P3: it is a pure refactor.

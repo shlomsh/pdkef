@@ -3,10 +3,11 @@ id: "MERGE-18"
 title: "Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant"
 status: "open"
 priority: "P2"
-epic: "merge-tool"
-phase: "later"
+epic: "polish"
+horizon: "now"
+order: 2
 depends_on: ["MERGE-11"]
-legacy_state: "Open"
+needs: "Decide route A and the Merge bookmarks switch"
 ---
 
 # MERGE-18 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
@@ -59,3 +60,7 @@ touching the CSP.
   change.
 - If Route B: a separate build ticket with the CSP diff, the consent copy and the trust-page note as
   its own acceptance list; this ticket closes as the decision.
+
+## Also decide
+
+Whether Merge adds a bookmark per source file, and where that switch lives (MERGE-15). The outline code and the `bookmarks` option on `mergePdfs` exist; the UI never passes it.

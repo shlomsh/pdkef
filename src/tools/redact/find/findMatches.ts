@@ -1,3 +1,4 @@
+import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
 import type { PageGeometry } from '../../../editor/geometry/coords.ts';
 import { matchBoxes, type MatchBoxShape, type MeasureText } from './matchBoxes.ts';
 import type { FindMatch, Finder, PageText, PercentBox } from './types.ts';
@@ -5,13 +6,17 @@ import type { FindMatch, Finder, PageText, PercentBox } from './types.ts';
 export interface SearchablePage {
   text: PageText;
   geometry: PageGeometry;
+  /** RED-15: the page's glyphs (`readPageGlyphs`), so a match is boxed on its
+   * real letters. Absent or null where the page's glyphs were not read or
+   * could not be, and the box is then estimated from the text item. */
+  glyphs?: readonly PageGlyph[] | null;
 }
 
 /** Every range `finder` proposes on every page, in page then reading order,
  * each with its boxes. A range that yields no box (only separators) is dropped. */
 export function findMatches(pages: readonly SearchablePage[], finder: Finder, measure?: MeasureText, shape?: MatchBoxShape): FindMatch[] {
-  return pages.flatMap(({ text, geometry }) => finder(text.text).flatMap((range) => {
-    const boxes = matchBoxes(text, range, geometry, measure, shape);
+  return pages.flatMap(({ text, geometry, glyphs }) => finder(text.text).flatMap((range) => {
+    const boxes = matchBoxes(text, range, geometry, measure, shape, glyphs);
     if (boxes.length === 0) return [];
     return [{
       id: `${text.pageIndex}:${range.start}`,

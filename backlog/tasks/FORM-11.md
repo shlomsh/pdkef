@@ -4,7 +4,6 @@ title: "Say what the detector found, and tell a failure from an honest zero"
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
 ---
 

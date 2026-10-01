@@ -80,10 +80,6 @@ Text pipeline map, verified from code: [docs/wysiwyg-text-architecture.md](../..
   (the shared esbuild-and-serve harness) stays in `e2e/sign/fixtures/` rather than moving with them,
   because `cjk-advance-parity-guard.spec.js` (a `fonts` guard) and `shapingGuardHarness.js` also import
   it; the two `e2e/export/` specs import it across the directory boundary instead of duplicating it.
-- **Redact's invisible text layer is the one exception to everything below** (RED-12,
-  `src/editor/adapters/pdf/invisibleText.js`): it is never drawn (render mode 3), so it uses one
-  glyphless font for every script, with each code mapped back through ToUnicode and given its original
-  advance through `/W`, and needs no fonts.js family, shaping or guard. Never reuse it for visible text.
 - **Resolve every family through `src/editor/text/fonts.js`** (`resolveFontFamily(family, text)`),
   from `TextNode`, `SignatureDialog` and `src/editor/registry/text.ts` alike. The browser substitutes a
   system font per missing glyph; a PDF embeds one font per run and draws an empty rectangle. Latin-only
@@ -211,3 +207,9 @@ Every expensive failure here was an omission.
   its shaped position; never rasterise, and **never batch glyphs into a shared `showText` run**, which
   advances by `/W` and silently drifts wherever the shaper disagrees (checking against `hmtx` does not
   catch it).
+- **fontkit reverses an RTL run but never mirrors it.** `layout(..., 'rtl')` painted `א(ב)` as `)ב(א`
+  (FONT-09). `layoutRun` in `src/editor/text/shapeRun.ts` swaps each Bidi_Mirrored character for its
+  `bidi-js` mirror first (when the font has it, as HarfBuzz does) and is the only path to `layout()` for
+  both `shapedWidth` and `drawShapedRun`. `/ActualText` keeps the typed characters, so pdftotext
+  extracts what was typed; pdf.js ignores ActualText and reads the swapped brackets back. The module is
+  export-only because `bidi-js` in `textMetrics.ts` cost /sign/ 5.3 KB brotli of eager JS.

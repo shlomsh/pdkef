@@ -4,7 +4,6 @@ title: "Edit Pages gets undo and redo, the destructive tool that has neither"
 status: "done"
 priority: "P2"
 epic: "undo-and-redo"
-phase: "near-term"
 depends_on: []
 ---
 

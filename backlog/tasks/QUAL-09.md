@@ -4,7 +4,6 @@ title: "A webkit-only e2e job, so the chromium shards stop paying 51s to install
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "quick-win"
 depends_on: ["QUAL-06"]
 ---
 

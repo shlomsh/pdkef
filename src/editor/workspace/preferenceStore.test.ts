@@ -46,13 +46,21 @@ describe('editor workspace preferences', () => {
   });
 
   it('round-trips a valid blur strength and ignores an invalid stored value', () => {
-    expect(setEditorPreference('lastBlurStrength', 'light', { userScope: scope })).toBe(true);
-    expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBe('light');
+    expect(setEditorPreference('lastBlurStrength', 0.25, { userScope: scope })).toBe(true);
+    expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBe(0.25);
 
     const record = JSON.parse(localStorage.getItem(recordKey) ?? 'null');
     record.values.lastBlurStrength = 'invisible';
     localStorage.setItem(recordKey, JSON.stringify(record));
     expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBeNull();
+  });
+
+  it('reads a blur strength remembered before the slider (a legacy name) as its number', () => {
+    setEditorPreference('lastBlurStrength', 0.25, { userScope: scope });
+    const record = JSON.parse(localStorage.getItem(recordKey) ?? 'null');
+    record.values.lastBlurStrength = 'strong';
+    localStorage.setItem(recordKey, JSON.stringify(record));
+    expect(getEditorPreference('lastBlurStrength', { userScope: scope })).toBe(0.5);
   });
 
   it('migrates established unscoped preferences without discarding them', () => {
@@ -268,6 +276,11 @@ describe('editor workspace preferences', () => {
 
     it('is empty when nothing is stored', () => {
       expect(getAppStyle({ userScope: scope })).toEqual({});
+    });
+
+    it('keeps a blur strength and a whiteout colour (RED-40)', () => {
+      expect(rememberAppStyle({ blurStrength: 0.55, whiteoutColor: '#eeeeee' }, { userScope: scope })).toBe(true);
+      expect(getAppStyle({ userScope: scope })).toEqual({ blurStrength: 0.55, whiteoutColor: '#eeeeee' });
     });
 
     it('merges an explicit choice key by key across calls', () => {

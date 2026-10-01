@@ -1,12 +1,10 @@
 ---
 id: "SEO-09"
 title: "Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word"
-status: "blocked"
+status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-09 · Read 2026-10-08 · Split ranks at 85 for extract queries because it never uses the word
@@ -78,3 +76,7 @@ today; close it, or reopen it with a finding, from that refresh.
 ## Addendum 2026-09-19: h1 shortened, extract words kept
 
 SEO-36 changed the `/split/` h1 to "Split PDF Online Free: Extract Pages" (dropped "in Your Browser"), added the shared subhead closer and reworded the upload FAQ answer. The extract vocabulary this ticket reads on is unchanged.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the `/split/` extract-cluster read moves there, to be done at the 2026-10-08 refresh.

@@ -3,8 +3,9 @@ id: "FORM-19"
 title: "A dotted leader after a label is a text field"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 2
 depends_on: ["FORM-16"]
 ---
 

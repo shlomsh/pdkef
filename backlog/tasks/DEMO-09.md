@@ -4,9 +4,7 @@ title: "Hero demo shows both stories stacked until ScrollDriver hydrates"
 status: "done"
 priority: "P1"
 epic: "landing-story-demo"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-25"
 ---
 
 # DEMO-09 · Hero demo shows both stories stacked until ScrollDriver hydrates

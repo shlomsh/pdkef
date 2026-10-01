@@ -4,7 +4,6 @@ title: "The boundary checker scans test files: a test outside src/test/cross-too
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

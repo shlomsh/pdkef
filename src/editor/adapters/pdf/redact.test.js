@@ -1,10 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import zlib from 'zlib';
 import { pathToFileURL } from 'url';
-import { describe, expect, it, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
+import { describe, expect, it, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { PDFDocument, StandardFonts, degrees } from '@cantoo/pdf-lib';
 import { redactPdf } from './redact.js';
 
 // redact.js reaches pdfjs through sign.js's getPdfjs(), which does a dynamic
@@ -138,40 +136,29 @@ describe('redactPdf library integration with real fixtures', () => {
 
   it('copies pages with no redaction losslessly, keeping their real text layer', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const { blob, pictureOnlyPages } = await redactPdf(file, []);
+    const { blob } = await redactPdf(file, []);
 
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.type).toBe('application/pdf');
-    expect(pictureOnlyPages).toEqual([]);
     const details = await getPdfDocDetails(blob);
     expect(details.pageCount).toBe(5);
     // Untouched by redaction, so still real vector text, not a rasterized image.
     expect(details.pageTexts).toEqual(['11', '12', '13', '14', '15']);
   });
 
-  // This box (10-40% left, 10-30% top) sits in the page's upper-left corner;
-  // num-5.pdf's "12" glyph core sits much lower (its baseline is at 41% up
-  // from the bottom), so the box never reaches it - confirmed by planning
-  // this exact box against the fixture's real glyphs (planTextLayer kept: 1,
-  // dropped: 0). The page still goes through the rasterize-and-embed path
-  // (RED-12 flattens any page carrying a box, whether or not it lands on
-  // text), but since the box misses the number, RED-12's invisible layer
-  // keeps it selectable in the saved file - this is no longer a "the text is
-  // gone" case, and asserting '' here would just be re-asserting the old,
-  // pre-RED-12 behaviour.
-  it('flattens the page carrying a redaction, but keeps text a box does not reach', async () => {
+  // A covered page is saved as one picture with no text layer at all, even
+  // where a box misses the page's own text entirely (this box sits in the
+  // page's upper-left corner; num-5.pdf's "12" glyph core sits much lower).
+  // Every other page is still the original lossless copy.
+  it('flattens the page carrying a redaction into a picture with no text, whether or not a box reaches the text', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const { blob, pictureOnlyPages } = await redactPdf(file, [
+    const { blob } = await redactPdf(file, [
       { id: 'r1', type: 'blackout', pageIndex: 1, left: 10, top: 10, width: 30, height: 20, color: '#000000' },
     ]);
 
-    expect(pictureOnlyPages).toEqual([]);
     const details = await getPdfDocDetails(blob);
     expect(details.pageCount).toBe(5);
-    // Page index 1 (the second page, "12") was rasterized, but the box misses
-    // its glyphs, so the invisible text layer still carries "12" over the
-    // picture. Every other page is still the original lossless copy.
-    expect(details.pageTexts).toEqual(['11', '12', '13', '14', '15']);
+    expect(details.pageTexts).toEqual(['11', '', '13', '14', '15']);
   });
 
   it('preserves the original page dimensions on a flattened page', async () => {
@@ -194,14 +181,10 @@ describe('redactPdf library integration with real fixtures', () => {
 
   it('flattens a blur redaction the same destructive way as a solid one', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const { blob, pictureOnlyPages } = await redactPdf(file, [
+    const { blob } = await redactPdf(file, [
       { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
     ]);
 
-    // A full-page (100%x100%) box covers every glyph on the page, so unlike
-    // the box above, this one really does leave nothing behind: '' is still
-    // correct.
-    expect(pictureOnlyPages).toEqual([]);
     const details = await getPdfDocDetails(blob);
     expect(details.pageCount).toBe(5);
     expect(details.pageTexts).toEqual(['11', '12', '13', '', '15']);
@@ -211,13 +194,13 @@ describe('redactPdf library integration with real fixtures', () => {
   // full-height (100%) box is 500px tall and a half-height (50%) box is
   // 250px tall. blurStrength.ts's factors (light 0.3, medium 0.4, strong 0.5)
   // apply to the box's own height, not the page's.
-  it('blurs at medium (RED-24 default) when a blur box carries no strength', async () => {
+  it('blurs at DEFAULT_BLUR_STRENGTH (0.3) when a blur box carries no strength', async () => {
     const file = getFixtureFile('num-5.pdf');
     await redactPdf(file, [
       { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
     ]);
 
-    expect(appliedFilters).toEqual(['blur(200px)']);
+    expect(appliedFilters).toEqual(['blur(150px)']);
   });
 
   // RED-24: radius = factor x max(box height, 24pt). num-5.pdf's pages are
@@ -241,6 +224,16 @@ describe('redactPdf library integration with real fixtures', () => {
     ]);
 
     expect(appliedFilters).toEqual(['blur(150px)']);
+  });
+
+  it('exports the slider ends: 0.05 and 0.55 of the box\'s own height (RED-30)', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    await redactPdf(file, [
+      { id: 'r1', type: 'blur', strength: 0.05, pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+      { id: 'r2', type: 'blur', strength: 0.55, pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+
+    expect(appliedFilters).toEqual(['blur(25px)', 'blur(275px)']);
   });
 
   it('gives two boxes of different heights different radii', async () => {
@@ -295,11 +288,9 @@ describe('redactPdf library integration with real fixtures', () => {
   });
 });
 
-// RED-12/RED-09: what the invisible text layer keeps, drops and falls back
-// on. These build their own one-page fixtures (rather than reusing num-5.pdf,
-// whose pages hold one bare number each) because they need several words on
-// one line to test word-level keep/drop decisions.
-describe('redactPdf: the invisible text layer (RED-12/RED-09)', () => {
+// A covered page is saved as one picture with no text layer at all
+// (2026-09-28); an uncovered page is still the original lossless copy.
+describe('redactPdf: a covered page saves with no text layer', () => {
   // Same canvas/JPEG stubs as the describe block above; duplicated rather
   // than shared across `describe`s because vitest's per-file beforeAll only
   // needs to run once either way, but keeping each block's fixture setup
@@ -334,180 +325,127 @@ describe('redactPdf: the invisible text layer (RED-12/RED-09)', () => {
     HTMLCanvasElement.prototype.getContext = originalGetContext;
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  /**
-   * A one-page, 300x100pt fixture with three words on one baseline:
-   * "LEFT MIDDLE RIGHT", Helvetica 24pt, baseline at y=50. Word x-ranges
-   * (from `font.widthOfTextAtSize`, confirmed against the real pdf.js
-   * operator list): LEFT 20-78.68, MIDDLE 85.352-176.024, RIGHT 182.696-257.36.
-   */
-  async function buildThreeWordFixture() {
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([300, 100]);
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    page.drawText('LEFT MIDDLE RIGHT', { x: 20, y: 50, size: 24, font });
-    const bytes = new Uint8Array(await doc.save());
-    return new File([bytes], 'three-words.pdf', { type: 'application/pdf' });
-  }
-
-  // A box over MIDDLE's x-range (82-181pt, with margin clear of LEFT's 78.68
-  // and RIGHT's 182.696) and over the glyphs' vertical core band, computed
-  // and confirmed against `planTextLayer` directly: it drops exactly the
-  // MIDDLE word (kept: 1 run of "LEFT RIGHT", dropped: 1) and touches neither
-  // neighbour.
-  const MIDDLE_BOX = {
-    id: 'r1',
-    type: 'blackout',
-    pageIndex: 0,
-    left: (82 / 300) * 100,
-    top: 30,
-    width: ((181 - 82) / 300) * 100,
-    height: 27,
-    color: '#000000',
-  };
-
-  async function getPageTexts(blob) {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const loaded = await pdfjs.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false }).promise;
-    const page = await loaded.getPage(1);
-    const tc = await page.getTextContent();
-    return tc.items.map((item) => item.str);
-  }
-
-  /** Every `stream ... endstream` body in the saved PDF, inflated where it is
-   * a flate stream (the invisible font's ToUnicode CMap, the page's own
-   * content stream) and kept raw otherwise (the embedded JPEG picture), all
-   * concatenated - so a literal search below covers everything the file
-   * actually stores, not just the parts that happen to compress. */
-  function inflateAllStreams(bytes) {
-    const text = Buffer.from(bytes).toString('latin1');
-    const re = /stream\r?\n([\s\S]*?)[\r\n]*endstream/g;
-    const decoded = [];
-    let match;
-    while ((match = re.exec(text)) !== null) {
-      const raw = Buffer.from(match[1], 'latin1');
-      try {
-        decoded.push(zlib.inflateSync(raw));
-      } catch {
-        decoded.push(raw);
-      }
-    }
-    return Buffer.concat(decoded);
-  }
-
-  function utf16BEBytes(text) {
-    const buf = Buffer.alloc(text.length * 2);
-    for (let i = 0; i < text.length; i += 1) buf.writeUInt16BE(text.charCodeAt(i), i * 2);
-    return buf;
-  }
-
-  it('keeps the words on either side of a boxed middle word, and drops the boxed one', async () => {
-    const file = await buildThreeWordFixture();
-    const { blob, pictureOnlyPages } = await redactPdf(file, [MIDDLE_BOX]);
-
-    // pdf.js may split the line at the gap the dropped word left; what
-    // matters is the words and their order.
-    expect((await getPageTexts(blob)).join('').split(/\s+/)).toEqual(['LEFT', 'RIGHT']);
-    expect(pictureOnlyPages).toEqual([]);
-  });
-
-  // The read-back check reads the saved page, which is unrotated and sized to
-  // the picture, so it must measure with the saved page's geometry, not the
-  // original's. With the original's, a rotated page's layer was checked in the
-  // wrong place.
-  it('keeps the neighbours of a boxed word on a rotated page, and passes the read-back', async () => {
-    const doc = await PDFDocument.create();
-    const page = doc.addPage([300, 100]);
-    page.setRotation(degrees(90));
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-    page.drawText('LEFT MIDDLE RIGHT', { x: 20, y: 50, size: 24, font });
-    const file = new File([new Uint8Array(await doc.save())], 'rotated.pdf', { type: 'application/pdf' });
-
-    // MIDDLE's core in PDF space (x 82..181, y 44..70), into the rotated view.
-    const probe = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
-    const viewport = (await probe.getPage(1)).getViewport({ scale: 1 });
-    const corners = [[82, 44], [181, 44], [82, 70], [181, 70]].map(([x, y]) => viewport.convertToViewportPoint(x, y));
-    const xs = corners.map(([x]) => x);
-    const ys = corners.map(([, y]) => y);
-    const rotatedBox = {
-      id: 'r1',
-      type: 'blackout',
-      pageIndex: 0,
-      left: (Math.min(...xs) / viewport.width) * 100,
-      top: (Math.min(...ys) / viewport.height) * 100,
-      width: ((Math.max(...xs) - Math.min(...xs)) / viewport.width) * 100,
-      height: ((Math.max(...ys) - Math.min(...ys)) / viewport.height) * 100,
-      color: '#000000',
-    };
-
-    const { blob, pictureOnlyPages } = await redactPdf(file, [rotatedBox]);
-    expect(pictureOnlyPages).toEqual([]);
-    expect((await getPageTexts(blob)).join('').split(/\s+/)).toEqual(['LEFT', 'RIGHT']);
-  });
-
-  it('never writes the boxed word into the saved bytes, inflated or not, as text or as UTF-16BE', async () => {
-    const file = await buildThreeWordFixture();
-    const { blob } = await redactPdf(file, [MIDDLE_BOX]);
-    const inflated = inflateAllStreams(new Uint8Array(await blob.arrayBuffer()));
-
-    expect(inflated.includes(Buffer.from('MIDDLE', 'ascii'))).toBe(false);
-    expect(inflated.includes(utf16BEBytes('MIDDLE'))).toBe(false);
-  });
-
-  // RED-09 sabotage: force planTextLayer to plan as if MIDDLE's box were not
-  // there (re-running the real planner with `boxes = []`), so the layer it
-  // writes claims MIDDLE too even though a box covers it. `textLayerReadsBack`
-  // must catch this on the read-back pass and redact.js must save the page
-  // again as its picture alone, listing it in `pictureOnlyPages` - proving
-  // the read-back check is what actually protects a covered word, not just
-  // the planner getting it right the first time.
-  it('RED-09: falls back to picture-only when the written layer does not match its box', async () => {
-    vi.doMock('./textLayer.ts', async (importOriginal) => {
-      const actual = await importOriginal();
-      return {
-        ...actual,
-        planTextLayer: (glyphs, geometry) => actual.planTextLayer(glyphs, geometry, []),
-      };
-    });
-    vi.resetModules();
-    const { redactPdf: sabotagedRedactPdf } = await import('./redact.js');
-
-    const file = await buildThreeWordFixture();
-    const { blob, pictureOnlyPages } = await sabotagedRedactPdf(file, [MIDDLE_BOX]);
-
-    expect(pictureOnlyPages).toEqual([0]);
-    expect(await getPageTexts(blob)).toEqual([]);
-
-    vi.doUnmock('./textLayer.ts');
-    vi.resetModules();
-  });
-
-  it('saves a page whose glyphs cannot be read as its picture alone, and lists it, leaving other pages untouched', async () => {
+  it('saves a covered page with no text at all, while an uncovered page keeps its own', async () => {
     const file = getFixtureFile('num-5.pdf');
-    // num-5.pdf's page 2 (pageIndex 1, "12") is the one boxed here; make
-    // reading its glyphs throw so redact.js falls back to the picture alone,
-    // the same as a broken content stream or an unresolved font would.
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const probe = await pdfjs.getDocument({ data: bytes, useWorkerFetch: false, isEvalSupported: false }).promise;
-    const targetPage = await probe.getPage(2); // pageIndex 1, one-based here
-    const proto = Object.getPrototypeOf(targetPage);
-    const original = proto.getOperatorList;
-    vi.spyOn(proto, 'getOperatorList').mockImplementation(function unreadable(...args) {
-      if (this.pageNumber === 2) throw new Error('simulated: glyphs could not be read');
-      return original.apply(this, args);
-    });
-
-    const { blob, pictureOnlyPages } = await redactPdf(file, [
+    const { blob } = await redactPdf(file, [
       { id: 'r1', type: 'blackout', pageIndex: 1, left: 10, top: 10, width: 30, height: 20, color: '#000000' },
     ]);
 
-    expect(pictureOnlyPages).toEqual([1]);
     const details = await getPdfDocDetails(blob);
-    // The unreadable page is a picture with no text at all; every other page
-    // is still the original lossless copy, untouched by the sabotage.
-    expect(details.pageTexts).toEqual(['11', '', '13', '14', '15']);
+    // pageIndex 1 (the second page, "12") carried the box: no text at all.
+    // pageIndex 0 (uncovered) still has its real, lossless text.
+    expect(details.pageTexts[1]).toBe('');
+    expect(details.pageTexts[0]).toBe('11');
+  });
+});
+
+// RED-32: brush strokes. A page with a stroke is a covered page (saved as one
+// picture, no text layer), a whiteout stroke is painted with the solids in its
+// own colour at the brush diameter, and a blur stroke blurs the post-solids
+// snapshot clipped to the stroke.
+describe('redactPdf: brush strokes', () => {
+  let originalToDataURL;
+  let originalGetContext;
+  let calls;
+  let appliedFilters;
+
+  beforeAll(() => {
+    originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.toDataURL = function toDataURL() {
+      calls.push({ canvas: this, op: 'encode' });
+      return `data:image/jpeg;base64,${JPEG_1X1_BASE64}`;
+    };
+    HTMLCanvasElement.prototype.getContext = function getContext() {
+      const canvasEl = this;
+      const state = { canvas: canvasEl, fillStyle: '', strokeStyle: '', lineWidth: 1, lineCap: 'butt', lineJoin: 'miter' };
+      return new Proxy(state, {
+        get(t, p) {
+          if (p in t) return t[p];
+          if (p === 'getTransform') return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+          return (...args) => {
+            calls.push({ canvas: canvasEl, op: String(p), args, strokeStyle: t.strokeStyle, fillStyle: t.fillStyle, lineWidth: t.lineWidth, lineCap: t.lineCap, lineJoin: t.lineJoin, composite: t.globalCompositeOperation });
+          };
+        },
+        set(t, p, v) {
+          t[p] = v;
+          if (p === 'filter' && v !== 'none') appliedFilters.push(v);
+          return true;
+        },
+      });
+    };
+  });
+
+  beforeEach(() => {
+    calls = [];
+    appliedFilters = [];
+  });
+
+  afterAll(() => {
+    HTMLCanvasElement.prototype.toDataURL = originalToDataURL;
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
+  });
+
+  const whiteoutStroke = (over = {}) => ({
+    id: 's1', type: 'whiteoutStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10,
+    points: [[20, 45], [40, 45]], sizePt: 20, color: '#dddddd', ...over,
+  });
+
+  it('saves a page carrying only a stroke as one picture with no text layer', async () => {
+    const { blob } = await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke()]);
+    const details = await getPdfDocDetails(blob);
+    expect(details.pageTexts).toEqual(['11', '12', '', '14', '15']);
+  });
+
+  it('paints a whiteout stroke across the page in its colour at the brush diameter, round-capped', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke()]);
+    const stroke = calls.find((c) => c.op === 'stroke');
+    // num-5.pdf renders at 500 x 500px (200 x 200pt, scale 2.5).
+    expect(stroke).toMatchObject({ strokeStyle: '#dddddd', lineWidth: 50, lineCap: 'round', lineJoin: 'round' });
+    const page = stroke.canvas;
+    const path = calls.filter((c) => c.canvas === page && (c.op === 'moveTo' || c.op === 'lineTo'));
+    expect(path.map((c) => [c.op, ...c.args])).toEqual([['moveTo', 100, 225], ['lineTo', 200, 225]]);
+  });
+
+  it('paints a tap as a disc of the brush diameter', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [whiteoutStroke({ points: [[50, 50]], sizePt: 10, left: 45, top: 45, width: 10, height: 10 })]);
+    const arc = calls.find((c) => c.op === 'arc');
+    expect(arc.args).toEqual([250, 250, 12.5, 0, Math.PI * 2]);
+    expect(arc.fillStyle).toBe('#dddddd');
+  });
+
+  it('paints a whiteout stroke again after a blur, so a solid always ends on top', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      whiteoutStroke(),
+      { id: 'b1', type: 'blur', pageIndex: 2, left: 0, top: 0, width: 100, height: 100 },
+    ]);
+    const strokes = calls.filter((c) => c.op === 'stroke');
+    expect(strokes).toHaveLength(2);
+    const page = strokes[0].canvas;
+    const onPage = calls.filter((c) => c.canvas === page);
+    const lastDrawImage = onPage.map((c) => c.op).lastIndexOf('drawImage');
+    expect(onPage.indexOf(strokes[1])).toBeGreaterThan(lastDrawImage);
+  });
+
+  it('blurs a blur stroke at the rule applied to the brush diameter and clips it to the stroke', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      { id: 's2', type: 'blurStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10, points: [[20, 45], [40, 45]], sizePt: 40, strength: 'strong' },
+    ]);
+    // Diameter 40pt = 100px; strong 0.5 of max(diameter, 24pt) = 50px.
+    expect(appliedFilters).toEqual(['blur(50px)']);
+    const clip = calls.find((c) => c.op === 'stroke' && c.composite === 'destination-in');
+    expect(clip).toMatchObject({ lineWidth: 100, lineCap: 'round', lineJoin: 'round' });
+    // The piece is pasted at the stroke's bbox on the page canvas.
+    const page = calls.find((c) => c.op === 'encode').canvas;
+    const paste = calls.filter((c) => c.canvas === page && c.op === 'drawImage' && c.args.length === 3).pop();
+    expect(paste.args.slice(1)).toEqual([50, 200]);
+  });
+
+  it('gives a small blur stroke the 24pt-floor radius, like a small box', async () => {
+    await redactPdf(getFixtureFile('num-5.pdf'), [
+      { id: 's3', type: 'blurStroke', pageIndex: 2, left: 10, top: 40, width: 40, height: 10, points: [[20, 45], [40, 45]], sizePt: 8, strength: 'medium' },
+    ]);
+    // 8pt brush: medium radius = 0.4 x 24pt = 9.6pt = 24px.
+    expect(appliedFilters[0]).toMatch(/^blur\(24(\.\d+)?px\)$/);
   });
 });

@@ -10,15 +10,22 @@ import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
-import { getEditorPreference, setEditorPreference, subscribeToEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
 import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
-import usePageHeightsPt from './usePageHeightsPt.ts';
+import usePeekAll from './usePeekAll.ts';
+import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
+import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
+import BrushControls, { brushStyleOf, resolveBrush, useEyedropper, type BrushSettings } from './BrushControls.tsx';
+import { checkBoxesFromElements } from './check/checkBoxes.ts';
+import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
+import usePageSizesPt from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
+import DeleteMarquee from './DeleteMarquee.tsx';
 import { groupMembers, repeatCopies } from './repeatGroup.ts';
 import { findSetMembers } from './findSet.ts';
 import useLinkedBoxes from './useLinkedBoxes.ts';
@@ -26,14 +33,16 @@ import type { RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
+import { ALREADY_GONE, removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
 import useSavedFileCheck from './useSavedFileCheck.ts';
+import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
 import { PRESET_FINDERS, termFinder } from './find/finders.ts';
 import type { CheckBox, CheckTerm } from './check/types.ts';
 import FindHighlights from './FindHighlights.tsx';
 import useFind from './useFind.ts';
+import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
-import { pictureOnlyNotice } from './pictureOnlyNotice.ts';
 import {
   applyHistoryEntries,
   revertHistoryEntries,
@@ -50,19 +59,23 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
+import { FileActions } from '../../shell/ToolShell.tsx';
+import RedactFinish from './RedactFinish.tsx';
+import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
+import { redactedFileName } from './redactFileName.ts';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
 import useCurrentPage from '../../editor-ui/hooks/useCurrentPage.js';
 import type { RedactToolType } from '../../editor/model/editorModel.ts';
-import { DEFAULT_BLUR_STRENGTH, type BlurStrength } from '../../editor/model/blurStrength.ts';
+import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 
 // RED-14: RedactElement itself now lives in redactElements.ts (see its
 // own comment there for why it isn't just RedactElement, and why that's also
 // what lets useDeleteTool.ts/useLinkedBoxes.ts import it without a cycle).
 
-const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<RedactToolType>(['whiteout', 'blackout', 'blur', 'delete']);
+const REDACT_ELEMENT_TYPES: ReadonlySet<string> = new Set<string>(['whiteout', 'blackout', 'blur', 'delete', 'blurStroke', 'whiteoutStroke']);
 
 function isRedactElement(value: unknown): value is RedactElement {
   return isDraftElement(value) && REDACT_ELEMENT_TYPES.has(value.type);
@@ -101,6 +114,7 @@ const UNDO_WINDOW_MS = 5000;
 interface RedactUndoAction {
   message: string;
   entryId: string;
+  extra?: { label: string; onSelect: () => void };
 }
 
 export default function PdfRedactTool() {
@@ -113,6 +127,8 @@ export default function PdfRedactTool() {
   // restores; tool-specific instructions remain available whenever a tool is
   // armed. Manual picks deliberately reset this to the welcoming default.
   const [showWelcomeTip, setShowWelcomeTip] = useState(true);
+  // RED-45: a document reopened with its work says so, quietly, until the first edit.
+  const [restoredWithWork, setRestoredWithWork] = useState(false);
   // Draft persistence needs an editor-owned baseline, not a guess based on
   // when a File object first appeared. A load/restoration captures the current
   // revision; every real document operation advances it.
@@ -137,6 +153,10 @@ export default function PdfRedactTool() {
   // 'editing' and this renders alongside the workspace. A failed document load
   // still uses status='error', which unmounts the workspace (see below).
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  // RED-36: an edit retired a running export. Said where it is seen (the
+  // status line and the finish row), not only to a screen reader; cleared by
+  // the next export or the next file.
+  const [exportCancelled, setExportCancelled] = useState(false);
   const [progress, setProgress] = useState(0);
   const [announcement, setAnnouncement] = useState('');
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
@@ -150,8 +170,27 @@ export default function PdfRedactTool() {
   // "draw a box" - which on a phone meant the page could not be scrolled.
   const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
   const [toolLocked, setToolLocked] = useState(false);
-  const [activeColor, setActiveColor] = useState('#ffffff');
-  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(DEFAULT_BLUR_STRENGTH);
+  // RED-40: the browser-wide preferences are only the last fallback now.
+  const [activeColor, setActiveColor] = useState(() =>
+    resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
+  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(() =>
+    resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')));
+  // RED-32: Box or Brush inside Blur and Whiteout, and the brush's size. Both
+  // are remembered like the whiteout colour and become the default for the
+  // next document. A brush is not a tool of its own: it is one of these two
+  // tools armed in brush mode.
+  // RED-32 / RED-40: the brush, whiteout colour and blur strength are document
+  // settings. `carried` holds only what this document's owner explicitly chose
+  // (it rides in the draft); a document that never chose follows the person's
+  // latest choice in any document.
+  const [carried, setCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
+  const [brush, setBrush] = useState<BrushSettings>(() => resolveBrush(undefined, getAppStyle()));
+  const changeBrush = (next: BrushSettings) => {
+    setBrush(next);
+    setCarried((c) => ({ ...c, ...brushStyleOf(next) }));
+    rememberAppStyle(brushStyleOf(next));
+  };
+  const [eyedropping, setEyedropping] = useState(false);
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
@@ -166,36 +205,37 @@ export default function PdfRedactTool() {
   const disarmTool = () => {
     if (!toolLocked) setTool(null);
   };
+  // The brush is armed when Blur or Whiteout is armed in brush mode. It is the
+  // one documented exception to "a tool disarms after one placement": painting
+  // takes several strokes, so it stays armed until Stop or Esc.
+  const brushKind: 'blur' | 'whiteout' | null =
+    brush.mode === 'brush' && (activeStyle === 'blur' || activeStyle === 'whiteout') ? activeStyle : null;
   const [drawingState, setDrawingState] = useState<RedactDrawingState | null>(null);
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
   const cancelDrawingRef = useRef<(() => void) | null>(null);
 
   useEffect(() => () => cancelDrawingRef.current?.(), []);
 
-  useEffect(() => {
-    const stored = getEditorPreference('lastWhiteoutColor');
-    if (stored) setActiveColor(stored);
-    return subscribeToEditorPreference('lastWhiteoutColor', ({ value }) => {
-      if (value) setActiveColor(value);
-    });
-  }, []);
-
+  // RED-40: colour and strength are per-document style, like the brush.
   const rememberColor = (color: string) => {
     setActiveColor(color);
-    setEditorPreference('lastWhiteoutColor', color);
+    setCarried((c) => ({ ...c, whiteoutColor: color }));
+    rememberAppStyle({ whiteoutColor: color });
   };
 
+  useEyedropper(
+    eyedropping && brushKind === 'whiteout',
+    rememberColor,
+    () => setEyedropping(false),
+  );
   useEffect(() => {
-    const stored = getEditorPreference('lastBlurStrength');
-    if (stored) setActiveBlurStrength(stored);
-    return subscribeToEditorPreference('lastBlurStrength', ({ value }) => {
-      if (value) setActiveBlurStrength(value);
-    });
-  }, []);
+    if (brushKind !== 'whiteout') setEyedropping(false);
+  }, [brushKind]);
 
   const rememberBlurStrength = (strength: BlurStrength) => {
     setActiveBlurStrength(strength);
-    setEditorPreference('lastBlurStrength', strength);
+    setCarried((c) => ({ ...c, blurStrength: strength }));
+    rememberAppStyle({ blurStrength: strength });
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
   // on touch/drag interaction (mobile has no hover), so the controls stay hidden
@@ -210,6 +250,8 @@ export default function PdfRedactTool() {
   // color could be picked. Mirrors the Sign tool's activeElementId, which is click-set
   // and never cleared on mouseleave for the same reason.
   const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
+  // RED-31: hold Peek (or Space) to see under every box. View state only.
+  const { peekAll, setPeekAll } = usePeekAll();
 
   // Undo history mirrors the Sign tool's atomic add/delete/update commands
   // (see actionHistory.ts, useHistoryShortcuts.js). Add commands remove
@@ -266,12 +308,6 @@ export default function PdfRedactTool() {
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
 
-  // RED-09: which pages, if any, lost their invisible text layer and were
-  // saved as a picture alone - set from a successful export's
-  // `pictureOnlyPages`, cleared alongside `exportedForHandoff` wherever that
-  // export goes stale (see the invalidation effect below).
-  const [pictureOnlyNote, setPictureOnlyNote] = useState<string | null>(null);
-
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
@@ -298,6 +334,41 @@ export default function PdfRedactTool() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeStyle, activeBoxId, selectedBoxId]);
+
+  // With no tool armed, a tap on blank page area is the phone's way out of a
+  // selection (the tool disarms after one placement, so this is the usual state
+  // right after drawing a box). An armed tool's own page handler deselects.
+  const tapOutside = useTapOutsideDeselect({
+    onDeselect: () => {
+      setActiveBoxId(null);
+      setSelectedBoxId(null);
+    },
+    isArmed: () => !!activeStyle,
+    excludedSelector: [
+      `.${styles['redact-box']}`,
+      '[data-editor-actions]',
+      '[data-editor-resizer]',
+      '[data-editor-color-menu]',
+      '[data-redact-find-match]',
+      'button',
+      'a',
+      'input',
+    ].join(', '),
+  });
+
+  // A click anywhere outside the selected box drops the selection, not only on
+  // blank page area: the page header, the margin and the rest of the screen
+  // too. A document listener, so it is one path wherever the click lands; the
+  // container keeps the touch handlers for iOS's jittery taps (MOBI-30). Read
+  // through a ref so the listener is added once and still sees this render's
+  // `isArmed`.
+  const tapOutsideRef = useRef(tapOutside);
+  tapOutsideRef.current = tapOutside;
+  useEffect(() => {
+    const onDocumentClick = (e: MouseEvent) => tapOutsideRef.current.onClick(e);
+    document.addEventListener('click', onDocumentClick);
+    return () => document.removeEventListener('click', onDocumentClick);
+  }, []);
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
@@ -367,7 +438,6 @@ export default function PdfRedactTool() {
   useEffect(() => {
     clearPrepared();
     setExportedForHandoff(null);
-    setPictureOnlyNote(null);
     // An export still running was started from boxes that no longer exist.
     // Retiring it here rather than in handleSavePdf's own bail is what lets
     // the workspace come back out of `.is-processing`: only this effect knows
@@ -382,7 +452,8 @@ export default function PdfRedactTool() {
     if (statusRef.current !== 'redacting') return;
     setStatus('editing');
     setProgress(0);
-    setAnnouncement('Your edits changed while the PDF was being prepared. Export again to create an up-to-date file.');
+    setExportCancelled(true);
+    setAnnouncement('You changed something, so that download stopped. Download again when ready.');
     // Keyed on the revision, not on `elements`, so this fires on exactly what
     // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
     // two different notions of "the document moved", an edit that bumped the
@@ -419,12 +490,27 @@ export default function PdfRedactTool() {
         renderedPageNumbersRef.current = new Set();
         setSizedPageCount(0);
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
+        // RED-39: a new file starts clean - no tool armed, nothing selected, Find
+        // closed with its term. None of that belongs to the file just left.
+        disarmTool();
+        setActiveBoxId(null);
+        setSelectedBoxId(null);
+        find.setOpen(false);
+        find.setTerm('');
+        find.setPreset(null);
+        setExportCancelled(false);
         setShowWelcomeTip(!restored);
+        setRestoredWithWork(restored && presetElements.length > 0);
         setFile(selected);
         setPdfDocument(null);
         setNumPages(0);
         setErrorDetail(null);
         setProgress(0);
+        setCarried(preset.carried);
+        setBrush(resolveBrush(preset.carried, getAppStyle()));
+        // RED-40: a restored document keeps its own colour and strength.
+        setActiveColor(resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
+        setActiveBlurStrength(resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength')));
         setElements(presetElements);
         setHistory({ past: preset.actionHistory, future: [] }); // a restored draft has no redoable future - future is never persisted
         setDraftBaselineRevision(documentRevisionRef.current);
@@ -449,7 +535,7 @@ export default function PdfRedactTool() {
     const pdfs = incoming.filter((f) => f.type === 'application/pdf');
 
     if (pdfs.length === 0) {
-      setAnnouncement('Please select a valid PDF file.');
+      setAnnouncement('Choose a PDF file.');
       return;
     }
 
@@ -470,6 +556,7 @@ export default function PdfRedactTool() {
     fileBytes: fileBytesRef.current,
     elements,
     actionHistory,
+    carried,
     status,
     isDirty: documentRevision !== draftBaselineRevision,
     loadStartedRef,
@@ -483,6 +570,8 @@ export default function PdfRedactTool() {
     // below) and never draws one either, so it may not start the drag
     // gesture this function owns.
     if (!activeStyle || activeStyle === 'delete') return;
+    // A brush paints through BrushLayer, which owns the press.
+    if (brushKind) return;
 
     const target = e.target as Element | null;
     if (target?.closest(`.${styles['redact-box']}`)) {
@@ -538,15 +627,23 @@ export default function PdfRedactTool() {
     });
   };
 
+  // RED-32: one stroke, one history entry. The brush stays armed afterwards
+  // (no disarmTool): painting is several strokes in a row.
+  const addStroke = (stroke: CommittedStroke) => {
+    const word = stroke.type === 'blurStroke' ? 'blur' : 'whiteout';
+    commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: `Painted a ${word} stroke` });
+    setAnnouncement(`Painted a ${word} stroke.`);
+  };
+
   // Registers a short-lived Undo chip for a delete/clear command already
   // pushed onto actionHistory, and announces it through the live region.
   // Shared by deleteElement and clearPage (finding #3) - both are complete
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
-  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>) => {
+  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
     setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, entryId: entry.id });
+    setUndoAction({ message, entryId: entry.id, extra });
     undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
   };
 
@@ -637,7 +734,7 @@ export default function PdfRedactTool() {
     const el = elements.find(e => e.id === id);
     if (!el) return;
     commands.remove(new Set([id]), {
-      type: 'DELETE_ELEMENT', description: `Deleted ${el.type} box`, pageIndex: el.pageIndex, chipMessage: 'Removed 1 box',
+      type: 'DELETE_ELEMENT', description: `Removed the ${el.type} box`, pageIndex: el.pageIndex, chipMessage: `Removed the ${el.type} box`,
     });
   };
 
@@ -735,7 +832,7 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
-  const pageHeightsPt = usePageHeightsPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur'));
+  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur' || el.type === 'blurStroke') || brushKind !== null);
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
@@ -766,25 +863,24 @@ export default function PdfRedactTool() {
       additions.forEach((addition) => { addition.findSetId = findSetId; });
     }
     const nextId = find.nextOpenAfter(new Set(matches.map((match) => match.id)));
-    const description = matches.length === 1
-      ? `Redacted "${matches[0].text}"`
-      : `Redacted ${matches.length} matches`;
-    commands.add(additions, { type: 'FIND_AND_REDACT', description });
+    // RED-37: never the matched text itself - the description is announced
+    // and shown in the undo chip, and reading a secret aloud is what the box
+    // was for.
+    const description = matches.length === 1 ? 'Covered 1 match' : `Covered ${matches.length} matches`;
+    commands.add(additions, { type: 'FIND_AND_REDACT', description, undoChip: true });
     setAnnouncement(`${description}.`);
     find.setCurrentId(nextId);
   };
 
-  // RED-17: the check of each saved export. Every page with a box is saved as
-  // a picture today (redact.js), so those are the pages text search can't see;
-  // RED-22 narrows this to pages that fell back once removal keeps the rest.
-  const checkBoxes: CheckBox[] = elements
-    .filter((el) => el.type === 'blur' || el.type === 'blackout' || el.type === 'whiteout')
-    .map((el) => ({ pageIndex: el.pageIndex, left: el.left, top: el.top, width: el.width, height: el.height, type: el.type as CheckBox['type'], color: el.color }));
+  // RED-17: the check of each saved export. Every page with a box is saved
+  // as a picture, with no text layer at all (redact.js), so those are the
+  // pages text search can't see.
+  const checkBoxes: CheckBox[] = checkBoxesFromElements(elements);
   const savedCheck = useSavedFileCheck({
     pdfDocument,
     saved: exportedForHandoff?.blob ?? null,
     boxes: checkBoxes,
-    findTerms,
+    findTerms: [...deletedTerms(elements), ...findTerms],
     picturePages: [...new Set(checkBoxes.map((box) => box.pageIndex))].sort((a, b) => a - b),
     measure: find.measure,
   });
@@ -794,20 +890,58 @@ export default function PdfRedactTool() {
     redactMatches(uncoveredMatches(pages, term.finder, checkBoxes, find.measure));
   };
 
+  // RED-25: Remove it. Bytes in, bytes out (check/removePlace.ts); the new
+  // file replaces the saved one under the same name, downloads again, and the
+  // saved-file check re-runs on it because `exportedForHandoff` changed.
+  const [removing, setRemoving] = useState(false);
+  const [removedNote, setRemovedNote] = useState<string | null>(null);
+  const removeFromCheck = async (finding: InPlaceFinding) => {
+    if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
+    const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
+    if (!place) return;
+    const { blob, name } = exportedForHandoff;
+    setRemoving(true);
+    try {
+      const { removePlace, PlaceNotFoundError } = await import('./check/removePlace.ts');
+      try {
+        const bytes = await removePlace(new Uint8Array(await blob.arrayBuffer()), place);
+        const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+        clearPrepared();
+        setExportedForHandoff({ blob: next, name });
+        download(next, name);
+        setRemovedNote(removedMessage(place));
+        setAnnouncement(removedMessage(place));
+      } catch (error) {
+        if (!(error instanceof PlaceNotFoundError)) throw error;
+        // Nothing changed; a fresh blob object makes the check read it again.
+        setExportedForHandoff({ blob: new Blob([blob], { type: blob.type }), name });
+        setRemovedNote(ALREADY_GONE);
+        setAnnouncement(ALREADY_GONE);
+      }
+    } catch (error) {
+      console.error(error);
+      setRemovedNote(null);
+      setAnnouncement("I couldn't remove that. Your saved file is unchanged.");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   const handleSavePdf = async (exportAction = 'download') => {
     if (!file) return;
     if (elements.length === 0) {
-      setAnnouncement('Please add at least one redaction box.');
+      setAnnouncement('Draw a box or delete something first.');
       return;
     }
 
     setErrorDetail(null);
-    setPictureOnlyNote(null);
+    setRemovedNote(null);
+    setExportCancelled(false);
     setStatus('redacting');
     setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
     setAnnouncement(
-      hasBoxes ? 'Applying redactions and flattening pages...' : 'Removing selected content...',
+      hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
     );
 
     // DEBT-18: everything this run is an export *of*, captured before the
@@ -824,26 +958,23 @@ export default function PdfRedactTool() {
       // export, which is the right outcome: the boxes stay, the message is
       // "try again". Repeat exports reuse the module registry's copy.
       const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
-      const { blob: redactedBlob, pictureOnlyPages } = await applyPageEdits(sourceFile, elements, (p) => {
+      const { blob: redactedBlob } = await applyPageEdits(sourceFile, elements, (p) => {
         if (run.isCurrent()) setProgress(p);
       });
       if (!run.isCurrent()) return;
       run.settle();
-      const filename = `redacted_${sourceFile.name}`;
+      const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
       setExportedForHandoff({ blob: redactedBlob, name: filename });
-      const note = pictureOnlyNotice(pictureOnlyPages);
-      setPictureOnlyNote(note);
-      const noteSuffix = note ? ` ${note}` : '';
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         setStatus('editing');
-        setAnnouncement(`Your redacted PDF is ready to share.${noteSuffix}`);
+        setAnnouncement('Your redacted PDF is ready to share.');
       } else {
         download(redactedBlob, filename);
         setStatus('editing');
-        setAnnouncement(`PDF redacted successfully. Download started.${noteSuffix}`);
+        setAnnouncement('Saved. Download started.');
       }
     } catch (err) {
       console.error(err);
@@ -859,7 +990,7 @@ export default function PdfRedactTool() {
       setStatus('editing');
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
       setErrorDetail(detail);
-      setAnnouncement(`Redaction stopped. ${detail}`);
+      setAnnouncement(`The download stopped. ${detail}`);
     }
   };
 
@@ -879,12 +1010,12 @@ export default function PdfRedactTool() {
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
-      setAnnouncement('PDF shared successfully.');
+      setAnnouncement('Shared.');
     } else if (result.status === 'canceled') {
       setAnnouncement('Sharing canceled. Your redacted PDF is still ready to share.');
     } else if (result.status === 'error') {
       console.error(result.error);
-      setAnnouncement('Could not open the share sheet. Please try again.');
+      setAnnouncement('Could not open the share sheet. Try again.');
     }
   };
 
@@ -896,24 +1027,42 @@ export default function PdfRedactTool() {
   // boundaries). Disabled until exportedForHandoff exists (an export has
   // actually succeeded), mirroring Merge's own `prepared.status !== 'ready'`
   // gate on its hand-off buttons.
-  const requestCompressHandoff = async () => {
+  const requestHandoff = async (tool: 'compress' | 'sign') => {
     if (handoffBusy || !exportedForHandoff) return;
     setHandoffBusy(true);
     setHandoffFailed(false);
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff('compress', {
+      const saved = await saveHandoff(tool, {
         fileName: exportedForHandoff.name,
         fileType: 'application/pdf',
         fileBytes: await exportedForHandoff.blob.arrayBuffer(),
       });
       if (!saved) throw new Error('handoff');
-      window.location.href = '/compress/';
+      window.location.href = `/${tool}/`;
     } catch (err) {
       console.error(err);
       setHandoffFailed(true);
       setHandoffBusy(false);
     }
+  };
+
+  // RED-36: everything the finish row and the status line say, from state
+  // that already exists. A page with any box is saved as a picture; a page
+  // with only deletions keeps its text (applyPageEdits.js).
+  const finishPhase: FinishPhase = status === 'redacting' ? 'exporting'
+    : exportedForHandoff ? 'saved'
+    : exportCancelled ? 'cancelled'
+    : elements.length === 0 ? 'empty'
+    : 'ready';
+  const finishFacts: FinishFacts = {
+    phase: finishPhase,
+    progress,
+    fileName: exportedForHandoff?.name ?? (file ? redactedFileName(file.name) : ''),
+    pageCount: numPages,
+    picturePages: new Set(elements.filter((el) => el.type !== 'delete').map((el) => el.pageIndex)).size,
+    boxCount: elements.filter((el) => el.type !== 'delete').length,
+    deletionCount: elements.filter((el) => el.type === 'delete').length,
   };
 
   return (
@@ -929,7 +1078,7 @@ export default function PdfRedactTool() {
       // Download will actually produce once there is something to redact -
       // rename-in-place is not required, so this stays derived rather than
       // becoming its own editable field the way Merge's output name is.
-      fileLabel={elements.length > 0 && file ? `redacted_${file.name}` : file?.name}
+      fileLabel={elements.length > 0 && file ? redactedFileName(file.name) : file?.name}
       fileMeta={describeFile(file, numPages, isFullscreenActive ? currentPage : null)}
       draftSaveState={draftSaveState}
       ownsShell
@@ -969,12 +1118,32 @@ export default function PdfRedactTool() {
             onRedo={redoLast}
             canRedo={redoHistory.length > 0}
             exporting={status === 'redacting'}
-            undoAction={undoAction}
+            undoAction={undoAction && {
+              message: undoAction.message,
+              extra: undoAction.extra && {
+                label: undoAction.extra.label,
+                // Pressing it spends the chip, like Undo; the action it runs may register its own.
+                onSelect: () => { const run = undoAction.extra!.onSelect; clearUndoChip(); run(); },
+              },
+            }}
             onUndoAction={runUndoChip}
-            handoffReady={!!exportedForHandoff}
-            handoffBusy={handoffBusy}
-            onCompressHandoff={() => { void requestCompressHandoff(); }}
+            statusMessage={finishStatusText(finishFacts)}
+            peeking={peekAll}
+            onPeekChange={setPeekAll}
             showWelcomeTip={showWelcomeTip}
+            restoredNote={restoredWithWork && documentRevision === draftBaselineRevision}
+            brushControls={(activeStyle === 'blur' || activeStyle === 'whiteout') && (
+              <BrushControls
+                tool={activeStyle}
+                settings={brush}
+                onSettings={changeBrush}
+                color={activeColor}
+                onColor={rememberColor}
+                eyedropping={eyedropping}
+                onToggleEyedropper={() => setEyedropping((on) => !on)}
+              />
+            )}
+            brushMode={brushKind !== null}
             findOpen={find.open}
             onToggleFind={() => find.setOpen(!find.open)}
             findBar={find.open && (
@@ -995,14 +1164,19 @@ export default function PdfRedactTool() {
             )}
           />
 
-          <div className={workspaceStyles['pages-container']}>
+          <div
+            className={workspaceStyles['pages-container']}
+            onTouchStart={tapOutside.onTouchStart}
+            onTouchEnd={tapOutside.onTouchEnd}
+            onTouchCancel={tapOutside.onTouchCancel}
+          >
             {Array.from({ length: numPages }).map((_, i) => (
               <div key={i} data-editor-page-card>
                 <EditorPageHeader
                   pageNumber={i + 1}
                   onClear={elements.some(el => el.pageIndex === i) ? () => clearPage(i) : null}
                   clearOptions={clearPageOptions(i)}
-                  clearTitle="Clear all redactions on this page"
+                  clearTitle="Clear every box on this page"
                 />
                 <div
                   className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
@@ -1022,8 +1196,8 @@ export default function PdfRedactTool() {
                   }}
                 >
                   <PdfPageCanvas
-                    pdfDocument={deleteTool.deletePreviews.get(i) ?? pdfDocument}
-                    pageNum={deleteTool.deletePreviews.has(i) ? 1 : i + 1}
+                    pdfDocument={(!peekAll && deleteTool.deletePreviews.get(i)) || pdfDocument}
+                    pageNum={!peekAll && deleteTool.deletePreviews.has(i) ? 1 : i + 1}
                     onViewportReady={handlePageViewportReady}
                   />
 
@@ -1060,7 +1234,9 @@ export default function PdfRedactTool() {
                         onRemoveGroup={() => removeLinked(el.id, 'repeatGroup')}
                         findSetSize={selected ? findSetMembers(elements, el.id).length : undefined}
                         onRemoveFindSet={() => removeLinked(el.id, 'findSet')}
-                        pageHeightPoints={pageHeightsPt[el.pageIndex]}
+                        pageWidthPoints={pageSizesPt[el.pageIndex]?.width}
+                        pageHeightPoints={pageSizesPt[el.pageIndex]?.height}
+                        peekAll={peekAll}
                       />
                     );
                   })}
@@ -1081,6 +1257,12 @@ export default function PdfRedactTool() {
                       onSelect={deleteTool.markObject}
                     />
                   )}
+                  {activeStyle === 'delete' && (
+                    <DeleteMarquee
+                      objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i && !deleteTool.markedForDeletionIds.has(object.id))}
+                      onCommit={deleteTool.markObjects}
+                    />
+                  )}
 
                   {find.open && (
                     <FindHighlights
@@ -1088,6 +1270,19 @@ export default function PdfRedactTool() {
                       currentId={find.currentId}
                       coveredIds={find.coveredIds}
                       onPick={find.setCurrentId}
+                    />
+                  )}
+
+                  {brushKind && (
+                    <BrushLayer
+                      pageIndex={i}
+                      kind={brushKind}
+                      sizePt={brush.size}
+                      color={brushKind === 'whiteout' ? activeColor : undefined}
+                      strength={brushKind === 'blur' ? activeBlurStrength : undefined}
+                      pageWidthPt={pageSizesPt[i]?.width}
+                      pageHeightPt={pageSizesPt[i]?.height}
+                      onCommit={addStroke}
                     />
                   )}
 
@@ -1118,84 +1313,53 @@ export default function PdfRedactTool() {
             ))}
           </div>
 
-          {/* Finding #5: an honest count beside the always-visible completion
-              pair, updated live off `elements.length` - the Download control
-              used to never say what it would produce. */}
-          {elements.length > 0 && (
-            <p className={styles['export-count']}>
-              {elements.length} box{elements.length === 1 ? '' : 'es'} marked
-            </p>
-          )}
-
-          {/* Keep the document-completion actions available after the last
-              page, matching Sign. On mobile the compact toolbar prioritizes
-              editing controls and can hide Download when native file sharing
-              is available, so this is the reliable place to finish either
-              way. */}
-          <EditorExportActions
-            variant="completion"
+          {/* RED-36: the one finish row - what will be saved, Download (with
+              its progress while saving), what was saved, then Compress it and
+              Sign it. The export error and the saved-file check sit under it,
+              where the result is. */}
+          <RedactFinish
+            facts={finishFacts}
             canShare={canSharePdf}
             shareReady={shareReady}
-            disabled={elements.length === 0 || status === 'redacting'}
             onDownload={handleDownloadPdf}
             onPrepareShare={() => handleSavePdf('share')}
             onShare={handleSharePdf}
-            downloadTitle={elements.length === 0 ? 'Add at least one redaction box first' : 'Apply redactions and download'}
-            shareTitle={elements.length === 0
-              ? 'Add at least one redaction box first'
-              : (shareReady ? 'Share the redacted PDF' : 'Apply redactions and prepare the PDF for sharing')}
-          />
-
-          {/* Export error - recoverable, so it renders alongside the still-mounted
-              workspace instead of replacing it (see handleSavePdf's catch). */}
-          {errorDetail && (
-            <ErrorMessage title="Redaction stopped." fullWidth>
-              {errorDetail}
-            </ErrorMessage>
-          )}
-
-          {/* RED-09: a page or two lost their invisible text layer and were
-              saved as a picture alone - quiet, not an error, since the export
-              itself succeeded. */}
-          {pictureOnlyNote && (
-            <p className={pdfToolStyles['hint-message']} role="status">
-              {pictureOnlyNote}
-            </p>
-          )}
-
-          <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} />
-
-          {/* Finding #4: mirrors Merge's own handoffFailed line - the hand-off
-              is a nice-to-have next step, not the primary export, so a failed
-              save-to-IndexedDB reports itself quietly here rather than as a
-              blocking error. */}
-          {handoffFailed && (
-            <p className={`${pdfToolStyles['hint-message']} ${pdfToolStyles.danger}`} role="status">
-              Could not hand this off to Compress. Download it instead and open it there.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Redacting progress */}
-      {status === 'redacting' && (
-        <div className={pdfToolStyles['status-block--compact']}>
-          <span className={`${pdfToolStyles['tool-primary-action-progress']} ${pdfToolStyles['tool-primary-action-progress--standalone']}`}>
-            <svg className={pdfToolStyles['progress-ring']} width="22" height="22" viewBox="0 0 40 40">
-              <circle className={pdfToolStyles['progress-ring-track']} cx="20" cy="20" r="18" stroke="var(--color-border-strong)" />
-            </svg>
-            Applying redactions… {Math.round(progress * 100)}%
-          </span>
+            onHandoff={(tool) => { void requestHandoff(tool); }}
+            handoffBusy={handoffBusy}
+            handoffFailed={handoffFailed}
+          >
+            {/* Export error - recoverable, so it renders alongside the still-mounted
+                workspace instead of replacing it (see handleSavePdf's catch). */}
+            {errorDetail && (
+              <ErrorMessage title="The download stopped." fullWidth>
+                {errorDetail}
+              </ErrorMessage>
+            )}
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} />
+          </RedactFinish>
         </div>
       )}
 
       {/* Error */}
       {status === 'error' && (
-        <ErrorMessage title="Redaction failed." fullWidth>
-          The PDF may be password-protected or corrupted.
+        <ErrorMessage title="This PDF didn't open." fullWidth>
+          <LoadErrorBody />
         </ErrorMessage>
       )}
 
     </BasePdfTool>
+  );
+}
+
+// RED-39: a failed load used to leave no way out on a phone - the file is
+// already set, so no dropzone shows, and Replace lives in the toolbar that
+// never mounted. It renders inside BasePdfTool, so the shell's own Replace
+// (FileActions, through useToolShell().requestReplace) is in reach.
+function LoadErrorBody() {
+  return (
+    <>
+      It may be damaged, or locked with a password. A locked PDF opens in <a href="/unlock/">Unlock</a> first.
+      <FileActions />
+    </>
   );
 }

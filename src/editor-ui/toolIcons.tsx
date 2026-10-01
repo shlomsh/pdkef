@@ -19,6 +19,26 @@ export function WhiteoutIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+/* A droplet: Blur softens what is under the box. */
+export function BlurToolIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2c4 5 7 8.5 7 12.5a7 7 0 1 1-14 0C5 10.5 8 7 12 2Z" />
+    </svg>
+  );
+}
+
+/* A solid bar over a line of text: Blackout hides what is under the box. */
+export function BlackoutToolIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="5" x2="15" y2="5" stroke-width="2" />
+      <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
+      <line x1="4" y1="19" x2="12" y2="19" stroke-width="2" />
+    </svg>
+  );
+}
+
 /* An eraser: Delete takes the object out of the file itself. */
 export function EraserIcon({ size = 18 }: { size?: number }) {
   return (

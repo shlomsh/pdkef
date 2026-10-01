@@ -4,9 +4,7 @@ title: "Share the effective typography descriptor"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # SIGN-08 · Share the effective typography descriptor

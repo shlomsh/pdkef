@@ -8,7 +8,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@cantoo/pdf-lib",
-    "version": "2.9.1",
+    "version": "2.11.1",
     "license": "MIT",
     "url": "https://pdf-lib.js.org"
   },
@@ -49,18 +49,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/Hopding/fontkit"
   },
   {
-    "name": "@pdf-lib/standard-fonts",
-    "version": "1.0.0",
-    "license": "MIT",
-    "url": "https://github.com/Hopding/standard-fonts"
-  },
-  {
-    "name": "@pdf-lib/upng",
-    "version": "1.0.1",
-    "license": "MIT",
-    "url": "https://github.com/Hopding/upng"
-  },
-  {
     "name": "@preact/signals",
     "version": "2.9.2",
     "license": "MIT",
@@ -80,7 +68,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@vercel/functions",
-    "version": "3.9.7",
+    "version": "3.9.9",
     "license": "Apache-2.0",
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
@@ -92,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.3.1",
+    "version": "7.3.5",
     "license": "MIT",
     "url": "https://astro.build"
   },
@@ -103,28 +91,16 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/lojjic/bidi-js"
   },
   {
-    "name": "color",
-    "version": "4.2.3",
+    "name": "culori",
+    "version": "4.0.2",
     "license": "MIT",
-    "url": "https://github.com/Qix-/color"
+    "url": "git@github.com:Evercoder/culori"
   },
   {
-    "name": "color-convert",
-    "version": "2.0.1",
+    "name": "fflate",
+    "version": "0.8.3",
     "license": "MIT",
-    "url": "https://github.com/Qix-/color-convert"
-  },
-  {
-    "name": "color-name",
-    "version": "1.1.4",
-    "license": "MIT",
-    "url": "https://github.com/colorjs/color-name"
-  },
-  {
-    "name": "color-string",
-    "version": "1.9.1",
-    "license": "MIT",
-    "url": "https://github.com/Qix-/color-string"
+    "url": "https://101arrowz.github.io/fflate"
   },
   {
     "name": "html-entities",
@@ -133,14 +109,8 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "url": "https://github.com/mdevils/html-entities"
   },
   {
-    "name": "is-arrayish",
-    "version": "0.3.4",
-    "license": "MIT",
-    "url": "https://github.com/qix-/node-is-arrayish"
-  },
-  {
     "name": "lucide-preact",
-    "version": "1.42.0",
+    "version": "1.49.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
@@ -185,12 +155,6 @@ export const RUNTIME_LICENSE_PACKAGES = [
     "version": "5.1.4",
     "license": "MIT",
     "url": "https://github.com/szimek/signature_pad"
-  },
-  {
-    "name": "simple-swizzle",
-    "version": "0.2.4",
-    "license": "MIT",
-    "url": "https://github.com/qix-/node-simple-swizzle"
   },
   {
     "name": "sortablejs",

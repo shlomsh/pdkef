@@ -4,7 +4,6 @@ title: "Home launcher: tablet picker still moves when recents load"
 status: "done"
 priority: "P3"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

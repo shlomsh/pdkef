@@ -4,9 +4,7 @@ title: "Move editor/model out of lib/"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-08-30"
 ---
 
 # ARCH-01 · Move editor/model out of lib/

@@ -176,7 +176,7 @@ test.describe('getting back into a text box on touch', () => {
     );
     // Selected, not editing: the full bar, with Duplicate, is up.
     await expect(openSession(page)).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Duplicate element' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Duplicate', exact: true })).toBeVisible();
 
     await tapCentre(page, box);
 

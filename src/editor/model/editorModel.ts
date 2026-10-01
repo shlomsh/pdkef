@@ -32,7 +32,9 @@ export type ElementType =
   | 'signature'
   | 'whiteout'
   | 'blackout'
-  | 'blur';
+  | 'blur'
+  | 'blurStroke'
+  | 'whiteoutStroke';
 
 /**
  * Element kinds the Sign workspace can arm for placement, plus `'date'`: not
@@ -41,7 +43,7 @@ export type ElementType =
  * registry definition and prefills the placed `TextElement`'s content. See
  * `dateFormatId`/`dateValue` below.
  */
-export type SignToolType = Exclude<ElementType, 'blackout' | 'blur'> | 'date';
+export type SignToolType = Exclude<ElementType, 'blackout' | 'blur' | 'blurStroke' | 'whiteoutStroke'> | 'date';
 
 /** Tool identifiers exposed by the destructive Redact workspace. */
 export type RedactToolType = 'delete' | 'blackout' | 'blur' | 'whiteout';
@@ -206,8 +208,32 @@ export interface WhiteoutElement extends ElementBase, BoxGeometry {
 export interface BlackoutElement extends ElementBase, BoxGeometry { type: 'blackout'; }
 
 /** Blurred destructive-redaction box, flattened by redact.js on export.
- * `strength` picks the blur level (blurStrength.ts); absent means 'strong'. */
+ * `strength` picks the blur level (blurStrength.ts); absent means the default (0.4); a draft saved before RED-30 may still hold light|medium|strong, which blurStrength.ts resolves. */
 export interface BlurElement extends ElementBase, BoxGeometry { type: 'blur'; strength?: BlurStrength; }
+
+/**
+ * RED-32: a brush stroke's own geometry. `points` are page percents (0..100,
+ * x then y), already simplified on commit (strokeGeometry.ts). `sizePt` is
+ * the brush DIAMETER in page points, so a stroke is the same width on the
+ * page at any zoom. The element's BoxGeometry is the stroke's bbox including
+ * the brush radius, so selection, hit-testing and history work unchanged.
+ */
+export interface StrokeGeometry {
+  points: [number, number][];
+  sizePt: number;
+}
+
+/** A blur brush stroke; `strength` as on a blur box (blurStrength.ts). */
+export interface BlurStrokeElement extends ElementBase, BoxGeometry, StrokeGeometry {
+  type: 'blurStroke';
+  strength?: BlurStrength;
+}
+
+/** A whiteout brush stroke, painted opaque in `color`. */
+export interface WhiteoutStrokeElement extends ElementBase, BoxGeometry, StrokeGeometry {
+  type: 'whiteoutStroke';
+  color: string;
+}
 
 /**
  * The full editor element model: a discriminated union keyed on `type`. Narrow
@@ -222,7 +248,9 @@ export type EditorElement =
   | SignatureElement
   | WhiteoutElement
   | BlackoutElement
-  | BlurElement;
+  | BlurElement
+  | BlurStrokeElement
+  | WhiteoutStrokeElement;
 
 /**
  * Mutable fields for an existing element. Identity, type, and page placement

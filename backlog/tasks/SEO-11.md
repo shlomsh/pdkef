@@ -4,9 +4,7 @@ title: "The positioning review protocol: what we may claim, and what proves it"
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-02"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-11 · The positioning review protocol: what we may claim, and what proves it

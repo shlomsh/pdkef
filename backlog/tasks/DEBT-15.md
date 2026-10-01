@@ -3,8 +3,9 @@ id: "DEBT-15"
 title: "Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log"
 status: "open"
 priority: "P3"
-epic: "architecture-debt"
-phase: "later"
+epic: "robustness"
+horizon: "next"
+order: 6
 depends_on: []
 ---
 

@@ -7,7 +7,7 @@
 import type { SavedSignature } from '../model/savedSignature.ts';
 import { appWideStyleOf, type DocumentStyle } from '../model/documentStyle.ts';
 import { validateDocumentStyle } from '../registry/draftValidation.ts';
-import { isBlurStrength, type BlurStrength } from '../model/blurStrength.ts';
+import { isBlurStrengthValue, resolveBlurStrength, type BlurStrength } from '../model/blurStrength.ts';
 
 export interface EditorPreferences {
   penColor: string;
@@ -93,7 +93,11 @@ function readSavedSignatures(value: unknown): SavedSignature[] | null {
   return new Set(parsed.map((signature) => signature.id)).size === parsed.length ? parsed : null;
 }
 
-function readBlurStrength(value: string): BlurStrength | null { return isBlurStrength(value) ? value : null; }
+function readBlurStrength(value: string): BlurStrength | null {
+  if (isBlurStrengthValue(value)) return resolveBlurStrength(value);
+  const parsed = Number(value);
+  return value.trim() !== '' && Number.isFinite(parsed) ? resolveBlurStrength(parsed) : null;
+}
 const LEGACY_READERS: { [K in EditorPreferenceKey]: (value: string) => EditorPreferences[K] | null } = {
   penColor: readString, penThickness: readPositiveNumber, lastWhiteoutColor: readString,
   lastBlurStrength: readBlurStrength,
@@ -107,7 +111,7 @@ function isPreferenceValue<K extends EditorPreferenceKey>(key: K, value: unknown
     case 'penThickness':
       return typeof value === 'number' && Number.isFinite(value) && value > 0;
     case 'lastBlurStrength':
-      return isBlurStrength(value);
+      return isBlurStrengthValue(value);
     default: return typeof value === 'string' && value.length > 0;
   }
 }
@@ -115,7 +119,9 @@ function readValues(raw: unknown): Partial<EditorPreferences> | null {
   if (!isObject(raw)) return null;
   const values: Partial<EditorPreferences> = {};
   (Object.keys(LEGACY_STORAGE_KEYS) as EditorPreferenceKey[]).forEach((key) => {
-    if (isPreferenceValue(key, raw[key])) (values as Record<EditorPreferenceKey, unknown>)[key] = raw[key];
+    if (!isPreferenceValue(key, raw[key])) return;
+    // RED-30: a strength saved as light|medium|strong reads back as its number.
+    (values as Record<EditorPreferenceKey, unknown>)[key] = key === 'lastBlurStrength' ? resolveBlurStrength(raw[key]) : raw[key];
   });
   return values;
 }

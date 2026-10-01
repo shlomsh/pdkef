@@ -4,9 +4,7 @@ title: "Consolidate documentation locale routing under src/i18n/"
 status: "done"
 priority: "P3"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-08-30"
 ---
 
 # ARCH-07 · Consolidate documentation locale routing under src/i18n/

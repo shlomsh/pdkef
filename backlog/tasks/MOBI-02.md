@@ -4,9 +4,7 @@ title: "A form filled in PDkef still ships with its live, empty fields"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MOBI-02 · A form filled in PDkef still ships with its live, empty fields

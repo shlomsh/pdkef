@@ -4,7 +4,6 @@ title: "Redact: a blur strength picker on the blur box toolbar"
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

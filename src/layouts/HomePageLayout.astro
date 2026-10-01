@@ -38,6 +38,7 @@ import { getPublishedEditionPaths } from '../i18n/localizedTools';
 import { getToolCardCopy } from '../i18n/cardMessages';
 import { documentationPath } from '../i18n/documentationLocales';
 import { renderInline } from '../site-lib/contentMarkup';
+import { registerInlineStyle, theOStyle } from '../site-lib/inlineStyles';
 
 interface Variant {
   locale?: string;
@@ -93,6 +94,8 @@ const { title, description, faqKicker, faq, founderStory, draftPersistence, offl
 // other edition keeps the founder-story card until it has its own fourth beat
 // (the ring is the O of "Open source"). See src/data/homeContent.js.
 const showTheO = locale === 'en' && Boolean(home.theO);
+// TheO.astro emits this style; the hash has to be registered before the <head> below is written.
+if (showTheO) registerInlineStyle(Astro.csp, theOStyle);
 
 // h1/h1Accent: see src/data/homeContent.js's header comment. h1Accent is
 // validated (content.config.ts's localizedHome schema, and by construction
@@ -705,7 +708,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
     position: relative;
     width: 100vw;
     margin-inline: calc(50% - 50vw);
-    background: var(--home-workspace, #c3f0e6);
+    background: var(--home-workspace);
   }
   /* 1116svh. The original extra room buys the dwell on the finished first
      story; the added 176svh pauses the second story on its initial inbox,
@@ -824,7 +827,7 @@ const toolHrefs = locale === 'en' ? undefined : Object.fromEntries(homeTools.map
   }
   /* The dock is the first screen's bottom edge in the same ink as the
      On-device chip at its top: deep teal, white labels, light tiles. (It used
-     to carry a literal #c4e1e6, a palette-invariant violation; CLAUDE.md says
+     to carry a hardcoded Sea Glass literal, a palette-invariant violation; CLAUDE.md says
      colours come from :root tokens, never literals.) */
   .home-dock { box-sizing: border-box; display: flex; align-items: flex-start; justify-content: safe center; gap: 20px; padding: 10px 24px; background: var(--color-primary); border-top: 1px solid var(--color-primary-active); }
   /* The in-flow dock scrolls sideways only at widths where it genuinely does

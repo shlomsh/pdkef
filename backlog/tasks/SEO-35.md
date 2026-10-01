@@ -1,12 +1,10 @@
 ---
 id: "SEO-35"
 title: "Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop"
-status: "blocked"
+status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-35 · Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop
@@ -83,3 +81,7 @@ made, per the acceptance section above.
 ## Addendum 2026-09-19: one more change on merge, not an expansion
 
 SEO-36 changed the `/merge/` h1 to "Merge or Combine PDF Files Online Free" (dropped "In Your Browser", title untouched, combine kept), added the shared subhead closer, and reworded the description and upload FAQ answer. No new content, no indexing request.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the combine-vocabulary read on `/merge/` moves there, to be done at the 2026-10-08 refresh.

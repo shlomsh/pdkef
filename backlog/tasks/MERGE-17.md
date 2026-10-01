@@ -4,9 +4,7 @@ title: "One quiet line after the first merge: it works offline and can be instal
 status: "done"
 priority: "P3"
 epic: "merge-tool"
-phase: "optional"
 depends_on: ["MERGE-12"]
-legacy_state: "Open"
 ---
 
 # MERGE-17 · One quiet line after the first merge: it works offline and can be installed

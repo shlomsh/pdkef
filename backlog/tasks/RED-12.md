@@ -1,14 +1,15 @@
 ---
 id: "RED-12"
 title: "Covered pages keep their text: the picture plus an invisible text layer without the boxed words"
-status: "done"
+status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 
 # RED-12 · Covered pages keep their text: the picture plus an invisible text layer without the boxed words
+
+**Shipped 2026-09-28, then reverted the same day.** Covered pages are single pictures again with no invisible text layer (Shlomi: simple wins; the layer re-added text hidden on the page by other means, and its value was search only). `wordsUnderBoxes` in `textLayer.ts` survives for the saved-file check (RED-17).
 
 *Filed 2026-09-27 from Shlomi's review of the Redact epic. It replaces RED-04 to RED-08; the reasoning is
 in [docs/redact-content-removal.md](../../docs/redact-content-removal.md), "Revised plan".*

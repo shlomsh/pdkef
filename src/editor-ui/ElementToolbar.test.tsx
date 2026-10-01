@@ -394,7 +394,7 @@ describe('ElementToolbar linked repeat set (RED-03)', () => {
     const { host, onDelete } = mount({ onRepeatOnEveryPage: () => {} });
     expect(host.querySelector('[data-editor-repeat-every-page]')).not.toBeNull();
     expect(host.querySelector('[data-editor-delete-scope-trigger]')).toBeNull();
-    await click(host.querySelector('button[title="Delete element"]'));
+    await click(host.querySelector('button[title="Delete"]'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
@@ -483,7 +483,7 @@ describe('ElementToolbar find set (RED-11)', () => {
   it('findSetSize of 1 keeps the one-tap trash', async () => {
     const { host, onDelete } = mount({ findSetSize: 1 });
     expect(host.querySelector('[data-editor-delete-scope-trigger]')).toBeNull();
-    await click(host.querySelector('button[title="Delete element"]'));
+    await click(host.querySelector('button[title="Delete"]'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,4 @@
-import type { WhiteoutElement, BlackoutElement, BlurElement, RedactToolType } from '../../editor/model/editorModel.ts';
+import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, RedactToolType } from '../../editor/model/editorModel.ts';
 import type { DeleteElement } from '../../editor/registry/draftValidation.ts';
 
 /**
@@ -14,7 +14,14 @@ export interface Links {
 
 export type RedactBoxElement = (WhiteoutElement | BlackoutElement | BlurElement) & Links;
 
-export type RedactElement = RedactBoxElement | DeleteElement;
+/** RED-32: a painted stroke. Selectable, deletable and recolourable like a box, never resized. */
+export type RedactStrokeElement = (BlurStrokeElement | WhiteoutStrokeElement) & Links;
+
+export type RedactElement = RedactBoxElement | RedactStrokeElement | DeleteElement;
+
+export function isStrokeElement(el: RedactElement): el is RedactStrokeElement {
+  return el.type === 'blurStroke' || el.type === 'whiteoutStroke';
+}
 
 export function isDeleteElement(el: RedactElement): el is DeleteElement {
   return el.type === 'delete';

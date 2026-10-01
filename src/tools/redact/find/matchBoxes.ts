@@ -2,9 +2,17 @@
  * RED-02: turns a proposed text range into the page-percent boxes a redaction
  * element stores, one per line the range covers. Pure; no DOM, no pdf.js
  * import.
+ *
+ * RED-15: when the page's glyphs are given, a box is the union of the glyphs
+ * the range covers (`glyphBoxes.ts`). The measured estimate below is what is
+ * left for an item whose glyphs cannot be mapped to its text, and for a page
+ * whose glyphs could not be read, so Find never offers nothing.
  */
 
+import type { PageGlyph } from '../../../editor/adapters/pdf/pageGlyphs.ts';
 import { toPagePercentBox, type PageGeometry } from '../../../editor/geometry/coords.ts';
+import { glyphsBox, type PointBox } from './glyphBoxes.ts';
+import { glyphsOf, pageGlyphMap } from './itemGlyphs.ts';
 import type { PageText, PercentBox, PlacedItem, TextRange } from './types.ts';
 
 const PAD_PT = 1;
@@ -31,13 +39,6 @@ const SHAPES: Record<MatchBoxShape, { pad: number; cutEm: number; descent: numbe
   cover: { pad: PAD_PT, cutEm: CUT_PAD_EM, descent: DESCENT_FACTOR, ascent: ASCENT_FACTOR },
   core: { pad: 0, cutEm: 0, descent: 0.15, ascent: 0.7 },
 };
-
-interface PointBox {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-}
 
 function normalize(x: number, y: number): { x: number; y: number } {
   const len = Math.hypot(x, y);
@@ -106,6 +107,14 @@ function clampPercentBox(box: PercentBox): PercentBox {
   return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
 }
 
+/** One text item's share of a match: the glyphs that drew it, or, where they
+ * could not be mapped, the estimated box. */
+interface Part {
+  item: PlacedItem;
+  matched: PageGlyph[];
+  estimate: PointBox | null;
+}
+
 /** True when nothing between two spans in the page's text is a line break. */
 function isSameLine(page: PageText, prevEnd: number, nextStart: number): boolean {
   return !page.text.slice(prevEnd, nextStart).includes('\n');
@@ -121,26 +130,42 @@ export function matchBoxes(
   geometry: PageGeometry,
   measure: MeasureText = countChars,
   shape: MatchBoxShape = 'cover',
+  glyphs?: readonly PageGlyph[] | null,
 ): PercentBox[] {
-  const overlapping = page.items.filter((item) => item.end > range.start && item.start < range.end);
+  const overlapping: { item: PlacedItem; index: number }[] = [];
+  page.items.forEach((item, index) => {
+    if (item.end > range.start && item.start < range.end) overlapping.push({ item, index });
+  });
   if (overlapping.length === 0) return [];
 
-  const paddedBoxes = overlapping.map((item) => {
+  const glyphMap = glyphs ? pageGlyphMap(page, glyphs) : null;
+  const parts: Part[] = [];
+  for (const { item, index } of overlapping) {
     const from = Math.max(0, range.start - item.start);
     const to = Math.min(item.end - item.start, range.end - item.start);
-    return padBox(sliceBox(item, page.text.slice(item.start, item.end), from, to, measure, shape), SHAPES[shape].pad);
-  });
-
-  const mergedBoxes: PointBox[] = [paddedBoxes[0]];
-  for (let i = 1; i < paddedBoxes.length; i += 1) {
-    const prevItem = overlapping[i - 1];
-    const curItem = overlapping[i];
-    if (isSameLine(page, prevItem.end, curItem.start)) {
-      mergedBoxes[mergedBoxes.length - 1] = unionBox(mergedBoxes[mergedBoxes.length - 1], paddedBoxes[i]);
-    } else {
-      mergedBoxes.push(paddedBoxes[i]);
+    const itemGlyphs = glyphMap?.items[index] ?? null;
+    if (!itemGlyphs) {
+      // Glyphs that do not spell this item (or a page whose glyphs were not
+      // read): the measured estimate, so Find still offers a box.
+      const estimate = padBox(sliceBox(item, page.text.slice(item.start, item.end), from, to, measure, shape), SHAPES[shape].pad);
+      parts.push({ item, matched: [], estimate });
+      continue;
     }
+    const matched = glyphsOf(itemGlyphs, from, to);
+    if (matched.length > 0) parts.push({ item, matched, estimate: null });
   }
+  if (parts.length === 0) return [];
+
+  const lines: Part[][] = [[parts[0]]];
+  for (let i = 1; i < parts.length; i += 1) {
+    if (isSameLine(page, parts[i - 1].item.end, parts[i].item.start)) lines[lines.length - 1].push(parts[i]);
+    else lines.push([parts[i]]);
+  }
+
+  const mergedBoxes = lines.map((line): PointBox => {
+    const exact = glyphMap ? glyphsBox(line.flatMap((part) => part.matched), glyphMap.near, shape) : null;
+    return [exact, ...line.map((part) => part.estimate)].filter((box): box is PointBox => box !== null).reduce(unionBox);
+  });
 
   return mergedBoxes.map((box) =>
     clampPercentBox(toPagePercentBox(geometry, { x0: box.x0, y0: box.y0, x1: box.x1, y1: box.y1 })),

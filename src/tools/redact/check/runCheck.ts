@@ -13,6 +13,7 @@ import { pageGeometryFromPdfJsPage } from '../../../editor/geometry/coords.ts';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { readTextItems } from '../../../lib/pdfTextItems.ts';
 import type { SearchablePage } from '../find/findMatches.ts';
+import { GLYPH_BUDGET } from '../find/itemGlyphs.ts';
 import type { MeasureText } from '../find/matchBoxes.ts';
 import { buildPageText } from '../find/pageText.ts';
 import type { TextItemLike } from '../find/types.ts';
@@ -67,14 +68,18 @@ export async function runSavedFileCheck({
 
   const original: SearchablePage[] = [];
   const coveredPages = [];
+  let glyphsKept = 0;
   for (let pageIndex = 0; pageIndex < originalDoc.numPages; pageIndex += 1) {
     const page = await originalDoc.getPage(pageIndex + 1);
     const geometry = pageGeometryFromPdfJsPage(page);
     const items = (await readTextItems(page)).filter(isTextItem);
-    original.push({ text: buildPageText(pageIndex, items), geometry });
+    // RED-15: every page's glyphs (within the budget), so a repeat the check
+    // offers to cover is boxed on its real letters, as Find boxes it.
+    const glyphs = glyphsKept < GLYPH_BUDGET || boxes.some((box) => box.pageIndex === pageIndex) ? await readGlyphs(pdfjs, page) : null;
+    glyphsKept += glyphs?.length ?? 0;
+    original.push({ text: buildPageText(pageIndex, items), geometry, glyphs });
     const pageBoxes = boxes.filter((box) => box.pageIndex === pageIndex);
     if (pageBoxes.length === 0) continue;
-    const glyphs = await readGlyphs(pdfjs, page);
     // A page whose text can't be read gives no covered term; its boxes still
     // count for Find's and typed terms, and the page was saved as a picture.
     if (glyphs) coveredPages.push({ glyphs, geometry, boxes: pageBoxes });
@@ -83,7 +88,7 @@ export async function runSavedFileCheck({
   const loadingTask = pdfjs.getDocument({ data: savedBytes.slice(), wasmUrl: PDFJS_WASM_URL });
   try {
     const savedDoc = await loadingTask.promise;
-    const saved = await readSavedFile(pdfjs, savedDoc, { picturePages });
+    const saved = await readSavedFile(pdfjs, savedDoc, { picturePages, bytes: savedBytes });
 
     const unsolidPages: number[] = [];
     const solidBoxPages = [...new Set(boxes.filter((box) => box.type !== 'blur').map((box) => box.pageIndex))];

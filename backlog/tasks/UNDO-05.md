@@ -3,8 +3,9 @@ id: "UNDO-05"
 title: "Merge and Split share one undo chip, and Split's stops leaking"
 status: "open"
 priority: "P2"
-epic: "undo-and-redo"
-phase: "near-term"
+epic: "robustness"
+horizon: "next"
+order: 1
 depends_on: []
 ---
 

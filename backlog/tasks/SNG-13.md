@@ -4,7 +4,6 @@ title: "A fillable PDF names its fields in its own words: /TU, else a readable /
 status: "retired"
 priority: "P2"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -4,7 +4,6 @@ title: "Quick or Keep the text: the person chooses knowing the cost; the engine 
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

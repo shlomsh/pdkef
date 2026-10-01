@@ -17,6 +17,9 @@ import type { GestureControllerOptions } from '../../lib/gestures/controller.ts'
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
+import { loadDraft } from '../../lib/drafts/draftStore.js';
+import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
+import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -47,6 +50,12 @@ async function settleUntil(description: string, ready: () => boolean, limit = 50
   if (!ready()) throw new Error(`Timed out waiting for ${description}`);
 }
 
+// RED-40: restored-draft tests hand loadDraft a record; every other test gets the real one.
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.js')>();
+  return { ...actual, loadDraft: vi.fn(actual.loadDraft) };
+});
+
 const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
 
 // Exercise the real controller while wrapping each commit callback. This proves
@@ -63,6 +72,19 @@ vi.mock('../../lib/gestures/controller.ts', async (importOriginal) => {
     },
   };
 });
+
+// RED-30: drag the blur slider to `value` and release: input events paint live,
+// the one change event commits.
+async function dragBlurSlider(value: number, steps: number[] = []): Promise<void> {
+  const input = required(document.querySelector<HTMLInputElement>('[data-editor-blur-strength-input]'), 'blur slider');
+  for (const step of [...steps, value]) {
+    await act(async () => {
+      input.value = String(step);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+  await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+}
 
 function makePdfFile(name: string): File {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -89,7 +111,6 @@ vi.mock('pdfjs-dist', () => {
 vi.mock('../../editor/adapters/pdf/redact.js', () => ({
   redactPdf: vi.fn(async () => ({
     blob: new Blob(['redacted'], { type: 'application/pdf' }),
-    pictureOnlyPages: [] as number[],
   }))
 }));
 
@@ -102,6 +123,18 @@ const mockedRedactPdf = vi.mocked(redactPdf);
 // describe block below is unaffected - only that block overrides it.
 vi.mock('./usePageTexts.ts', () => ({ default: vi.fn(() => ({ status: 'idle', pages: [] })) }));
 const mockedUsePageTexts = vi.mocked(usePageTexts);
+
+const checkOverride = vi.hoisted(() => ({ current: null as null | ((args: never) => unknown) }));
+// RED-25: the saved-file check runs the real hook unless a test overrides it.
+vi.mock('./useSavedFileCheck.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useSavedFileCheck.ts')>();
+  return { default: (...args: Parameters<typeof actual.default>) => ((checkOverride.current ?? actual.default) as (...a: typeof args) => ReturnType<typeof actual.default>)(...args) };
+});
+const mockedRemovePlace = vi.hoisted(() => vi.fn());
+vi.mock('./check/removePlace.ts', () => ({
+  removePlace: mockedRemovePlace,
+  PlaceNotFoundError: class PlaceNotFoundError extends Error {},
+}));
 
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
@@ -151,7 +184,7 @@ describe('PdfRedactTool UI flow', () => {
     // this is the idle tip, not any tool's own copy.
     const header = query(container, `.${toolbarStyles.help}`);
     expect(header).not.toBeNull();
-    expect(header.textContent).toContain('pick a tool to start');
+    expect(header.textContent).toContain('pick a tool');
     
     // Verify toolbar modes exist
     const toolbar = query(container, `.${toolbarStyles.toolbar}`);
@@ -159,15 +192,10 @@ describe('PdfRedactTool UI flow', () => {
     expect(toolbar.textContent).toContain('Blackout');
     expect(toolbar.textContent).toContain('Blur');
 
-    // Completion actions live below the document too. This matters on mobile,
-    // where the compact toolbar prioritizes editing tools and may hide its
-    // Download control when native sharing is available.
-    const exportActions = query(container, `.${workspaceStyles['export-actions']}`);
-    expect(exportActions).not.toBeNull();
-    const downloadButton = required(Array.from(exportActions.querySelectorAll<HTMLButtonElement>('button'))
-      .find((button) => button.textContent.trim() === 'Download'), 'Download button');
-    expect(downloadButton).not.toBeNull();
-    expect(downloadButton.disabled).toBe(true);
+    // RED-36: before anything is drawn, the finish row below the document is a
+    // sentence that says what to do, not a greyed Download (guideline §2).
+    expect(container.querySelector(`.${workspaceStyles['export-actions']}`)).toBeNull();
+    expect(container.textContent).toContain('Draw a box or delete something, then download it here.');
 
     // E9: ViewControl replaced FullscreenButton in this exact slot.
     const radiogroup = toolbar.querySelector('[role="radiogroup"]');
@@ -176,8 +204,9 @@ describe('PdfRedactTool UI flow', () => {
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
-  it('uses the shared remembered whiteout color for a newly drawn redaction', async () => {
-    localStorage.setItem('pdf-toolkit:lastWhiteoutColor', '#123456');
+  it('uses the remembered app-wide whiteout color for a newly drawn redaction', async () => {
+    // RED-40: the colour is per-document style; the app-wide style seeds a new document.
+    rememberAppStyle({ whiteoutColor: '#123456' });
 
     try {
       const drawArea = await loadFileAndGetDrawArea();
@@ -188,8 +217,68 @@ describe('PdfRedactTool UI flow', () => {
       expect(surface).not.toBeNull();
       expect(surface.style.backgroundColor).toBe('rgb(18, 52, 86)');
     } finally {
-      localStorage.removeItem('pdf-toolkit:lastWhiteoutColor');
+      localStorage.clear();
     }
+  });
+
+  describe('RED-40: whiteout colour and blur strength are per-document style', () => {
+    // A restored document keeps what its owner chose; a fresh one starts from the app-wide style.
+    async function mountRestored(carried: Record<string, unknown>): Promise<HTMLElement> {
+      vi.mocked(loadDraft).mockResolvedValueOnce({
+        fileName: 'restored.pdf',
+        fileType: 'application/pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+        elements: [],
+        extra: { actionHistory: [], carried },
+      } as never);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      await settleUntil('the restored draft to open', () => container.querySelector('.redact-draw-area') !== null);
+      const drawArea = query<HTMLElement>(container, '.redact-draw-area');
+      drawArea.getBoundingClientRect = () => ({
+        left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {},
+      });
+      return drawArea;
+    }
+
+    afterEach(() => { localStorage.clear(); });
+
+    it('a restored document draws whiteout in its own colour, not the app-wide one', async () => {
+      rememberAppStyle({ whiteoutColor: '#00ff00' });
+      const drawArea = await mountRestored({ whiteoutColor: '#ff0000' });
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 0, 0)');
+    });
+
+    it('a fresh document draws whiteout in the app-wide colour', async () => {
+      rememberAppStyle({ whiteoutColor: '#00ff00' });
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      expect(surface.style.backgroundColor).toBe('rgb(0, 255, 0)');
+    });
+
+    it('a restored document draws blur at its own strength, not the app-wide one', async () => {
+      rememberAppStyle({ blurStrength: 0.5 });
+      const drawArea = await mountRestored({ blurStrength: 0.2 });
+      await armTool('Blur');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const layer = query<HTMLElement>(container, '.redact-surface__blur');
+      expect(layer.style.backdropFilter).toContain('blur(calc(0.2 * 100cqh))');
+    });
+
+    it('a fresh document draws blur at the app-wide strength', async () => {
+      rememberAppStyle({ blurStrength: 0.5 });
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Blur');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const layer = query<HTMLElement>(container, '.redact-surface__blur');
+      expect(layer.style.backdropFilter).toContain('blur(calc(0.5 * 100cqh))');
+    });
   });
 
   it('keeps the redaction editor open after downloading', async () => {
@@ -226,8 +315,126 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('RED-25: Remove it saves the file again without that place, downloads it, and checks it again', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    const place = { kind: 'title', text: 'Secret title' };
+    const term = { label: 'Secret', source: 'typed', finder: () => [] };
+    const finding = { kind: 'in-place', place: 'title', text: 'Secret title', placeIndex: 0 };
+    const savedArgs: Array<Blob | null> = [];
+    checkOverride.current = (args: { saved: Blob | null }) => {
+      savedArgs.push(args.saved);
+      const state = args.saved
+        ? { status: 'done', typed: [], outcome: { results: [{ term, findings: [finding] }], unsolidPages: [], context: { saved: { places: [place], picturePages: [], attachmentCount: 0 }, original: [] } } }
+        : { status: 'idle' };
+      return { state, search: vi.fn() };
+    };
+    mockedRemovePlace.mockResolvedValue(new Uint8Array([37, 80, 68, 70]));
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const download = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => { download.click(); });
+      await settleUntil('the export', () => container.querySelector('[data-saved-file-check]') !== null);
+      const downloadsBefore = (window.URL.createObjectURL as Mock).mock.calls.length;
+      const exported = savedArgs[savedArgs.length - 1];
+
+      const remove = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-saved-file-check] button'))
+        .find((button) => button.textContent === 'Remove it'), 'Remove it button');
+      await act(async () => { remove.click(); });
+      await settleUntil('the saved file to change', () => savedArgs[savedArgs.length - 1] !== exported);
+
+      expect(mockedRemovePlace).toHaveBeenCalledTimes(1);
+      expect(mockedRemovePlace.mock.calls[0][1]).toEqual(place);
+      expect((window.URL.createObjectURL as Mock).mock.calls.length).toBe(downloadsBefore + 1);
+      expect(container.querySelector('[data-check-removed]')?.textContent).toBe('Removed the title. Saved again and downloaded.');
+    } finally {
+      checkOverride.current = null;
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('RED-31: Space peeks under every box, the Peek button shows it, and an export taken while peeking is unchanged', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+    window.URL.revokeObjectURL = vi.fn();
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const box = query(container, `.${REDACT_BOX}`);
+      const peekButton = query(container, '[data-redact-peek]');
+      expect(peekButton.getAttribute('aria-pressed')).toBe('false');
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', bubbles: true })); });
+      expect(box.hasAttribute('data-peeking')).toBe(true);
+      expect(peekButton.getAttribute('aria-pressed')).toBe('true');
+
+      const download = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      const revokedBefore = (window.URL.revokeObjectURL as Mock).mock.calls.length;
+      const callsBefore = mockedRedactPdf.mock.calls.length;
+      await act(async () => { download().click(); });
+      await settleUntil('the export while peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedBefore);
+      const whilePeeking = JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore][1]));
+
+      await act(async () => { document.body.dispatchEvent(new KeyboardEvent('keyup', { code: 'Space', bubbles: true })); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      const revokedMid = (window.URL.revokeObjectURL as Mock).mock.calls.length;
+      await act(async () => { download().click(); });
+      await settleUntil('the export after peeking', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > revokedMid);
+      expect(JSON.parse(JSON.stringify(mockedRedactPdf.mock.calls[callsBefore + 1][1]))).toEqual(whilePeeking);
+      expect(JSON.stringify(whilePeeking)).not.toContain('peek');
+    } finally {
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
+  it('RED-31: holding a box for 250ms peeks it, release covers it, and it never moves', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = query(container, `.${REDACT_BOX}`);
+    const style = box.getAttribute('style');
+    vi.useFakeTimers();
+    try {
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
+      act(() => { vi.advanceTimersByTime(250); });
+      expect(box.hasAttribute('data-peeking')).toBe(true);
+      document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 160, clientY: 380, bubbles: true }));
+      expect(box.style.transform).not.toContain('translate(');
+      act(() => { document.dispatchEvent(new MouseEvent('mouseup')); window.dispatchEvent(new MouseEvent('mouseup')); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      expect(box.getAttribute('style')).toContain(style!.split(';')[1] ?? '');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('RED-31: moving 5px before 250ms is a normal move, not a peek', async () => {
+    const drawArea = await loadFileAndGetDrawArea();
+    await drawBox(drawArea, 50, 200, 200, 500);
+    const box = query(container, `.${REDACT_BOX}`);
+    vi.useFakeTimers();
+    try {
+      act(() => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 100, clientY: 300, bubbles: true })); });
+      act(() => { document.body.dispatchEvent(new MouseEvent('mousemove', { clientX: 108, clientY: 300, bubbles: true })); });
+      expect(box.style.transform).toContain('translate(');
+      act(() => { vi.advanceTimersByTime(400); });
+      expect(box.hasAttribute('data-peeking')).toBe(false);
+      act(() => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('keeps the same PDF page mounted while redacting', async () => {
-    let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
+    let finishRedaction!: (value: { blob: Blob }) => void;
     mockedRedactPdf.mockImplementationOnce(() => new Promise((resolve) => {
       finishRedaction = resolve;
     }));
@@ -255,75 +462,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelector(`.${workspaceStyles.workspace}`).getAttribute('aria-busy')).toBe('true');
 
       await act(async () => {
-        finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+        finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
       });
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
-  });
-
-  // RED-09: a page whose invisible text layer failed export is still a
-  // successful export - the notice is quiet, in the done state and the
-  // announcement, not an error.
-  it('shows the picture-only notice when the export reports a picture-only page', async () => {
-    mockedRedactPdf.mockResolvedValueOnce({
-      blob: new Blob(['redacted'], { type: 'application/pdf' }),
-      pictureOnlyPages: [2],
-    });
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-
-      await act(async () => {
-        downloadButton.click();
-      });
-      await settleUntil('the picture-only notice to render', () => container.textContent.includes("Page 3 was saved as a picture only, so its text can't be selected."));
-
-      const announcementRegion = required(
-        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
-        'sr-only announcement region',
-      );
-      expect(announcementRegion.textContent).toContain("Page 3 was saved as a picture only, so its text can't be selected.");
-    } finally {
-      window.URL.createObjectURL = originalCreateObjectURL;
-      window.URL.revokeObjectURL = originalRevokeObjectURL;
-    }
-  });
-
-  it('renders no picture-only notice when no page needed one', async () => {
-    mockedRedactPdf.mockResolvedValueOnce({
-      blob: new Blob(['redacted'], { type: 'application/pdf' }),
-      pictureOnlyPages: [],
-    });
-    const originalCreateObjectURL = window.URL.createObjectURL;
-    const originalRevokeObjectURL = window.URL.revokeObjectURL;
-    window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
-    window.URL.revokeObjectURL = vi.fn();
-
-    try {
-      const drawArea = await loadFileAndGetDrawArea();
-      await drawBox(drawArea, 50, 200, 200, 500);
-      const downloadButton = required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
-        .find((button) => button.textContent.includes('Download')), 'Download button');
-
-      await act(async () => {
-        downloadButton.click();
-      });
-      const announcementRegion = required(
-        container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'),
-        'sr-only announcement region',
-      );
-      await settleUntil('the download announcement', () => announcementRegion.textContent.includes('PDF redacted successfully. Download started.'));
-
-      expect(container.textContent).not.toContain('was saved as a picture');
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -340,7 +480,7 @@ describe('PdfRedactTool UI flow', () => {
     try {
       const fixturePath = `${__dirname}/../../lib/__fixtures__/num-1.pdf`;
       const fixtureBytes = fs.readFileSync(fixturePath);
-      mockedRedactPdf.mockResolvedValueOnce({ blob: new Blob([fixtureBytes], { type: 'application/pdf' }), pictureOnlyPages: [] });
+      mockedRedactPdf.mockResolvedValueOnce({ blob: new Blob([fixtureBytes], { type: 'application/pdf' }) });
 
       const drawArea = await loadFileAndGetDrawArea(
         new File([fixtureBytes], 'num-1.pdf', { type: 'application/pdf' })
@@ -438,6 +578,74 @@ describe('PdfRedactTool UI flow', () => {
         undo.click();
       });
       expect(container.querySelectorAll(`.${redactStyles['delete-candidate']}`)).toHaveLength(1);
+    });
+
+    // RED-33: a pointer event by name, since jsdom has no PointerEvent.
+    function pointer(target: EventTarget, type: string, x: number, y: number) {
+      const event = new MouseEvent(type, { clientX: x, clientY: y, button: 0, bubbles: true });
+      Object.defineProperty(event, 'pointerId', { value: 1 });
+      Object.defineProperty(event, 'pointerType', { value: 'mouse' });
+      target.dispatchEvent(event);
+    }
+    async function dragBox(drawArea: HTMLElement, from: [number, number], to: [number, number]) {
+      await act(async () => { pointer(drawArea, 'pointerdown', ...from); });
+      await act(async () => { pointer(window, 'pointermove', ...to); });
+      await act(async () => { pointer(window, 'pointerup', ...to); });
+      // The release's own click is swallowed until the next task.
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
+    }
+    const candidates = () => container.querySelectorAll(`.${redactStyles['delete-candidate']}`);
+    const toolbarBtn = (title: string) => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`)).find((btn) => btn.title === title),
+      `${title} button`,
+    );
+
+    it('deletes everything a dragged box covers as one undo step (RED-33)', async () => {
+      // Ten separate text runs: nine in a row near the top, one lower down.
+      const { PDFDocument, StandardFonts } = await import('@cantoo/pdf-lib');
+      const pdf = await PDFDocument.create();
+      const page = pdf.addPage([500, 1000]);
+      const font = await pdf.embedFont(StandardFonts.Helvetica);
+      for (let n = 0; n < 9; n++) page.drawText(String(n), { x: 40 + n * 40, y: 900, size: 20, font });
+      page.drawText('word', { x: 40, y: 300, size: 20, font });
+      const drawArea = await loadFileAndGetDrawArea(new File([new Uint8Array(await pdf.save())], 'ten.pdf', { type: 'application/pdf' }));
+      await armTool('Delete');
+      await settleUntil('the ten text runs', () => candidates().length === 10);
+      expect(candidates()).toHaveLength(10);
+
+      // A drag that covers nothing does nothing, and the tool stays armed.
+      await dragBox(drawArea, [480, 500], [495, 520]);
+      expect(candidates()).toHaveLength(10);
+
+      // Drag across the row of nine.
+      await dragBox(drawArea, [10, 40], [490, 140]);
+      expect(candidates()).toHaveLength(0); // deleting spent the arming
+      const chip = required(container.querySelector(`.${redactStyles['undo-chip-btn']}`)?.parentElement, 'undo chip');
+      expect(chip.textContent).toContain('Deleted 9 pieces of text');
+      const chipUndo = () => required(container.querySelector<HTMLButtonElement>(`.${redactStyles['undo-chip-btn']}`), 'chip Undo');
+
+      // The chip restores all nine together.
+      await act(async () => { chipUndo().click(); });
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(10);
+
+      // Delete them again, then hover-delete the word as its own step.
+      await dragBox(drawArea, [10, 40], [490, 140]);
+      expect(candidates()).toHaveLength(0);
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(1);
+      await act(async () => { candidates()[0].dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      // Undo steps back one entry at a time: the word first, then all nine at once.
+      await act(async () => { toolbarBtn('Undo').click(); });
+      await armTool('Delete');
+      expect(candidates()).toHaveLength(1);
+      await act(async () => { toolbarBtn('Undo').click(); });
+      expect(candidates()).toHaveLength(10);
+
+      // Redo deletes the nine together again.
+      await act(async () => { toolbarBtn('Redo').click(); });
+      expect(candidates()).toHaveLength(1);
     });
 
     it('does not start a redaction-box drag gesture while the Delete tool is active', async () => {
@@ -601,6 +809,64 @@ describe('PdfRedactTool UI flow', () => {
     expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
   });
 
+  describe('RED-32 brushes', () => {
+    const brushSegment = (label: string) => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === label),
+      `${label} segment`,
+    );
+    async function armBrush(tool: string) {
+      await armTool(tool);
+      await act(async () => { brushSegment('Brush').click(); });
+    }
+    async function paint(drawArea: HTMLElement, points: [number, number][]) {
+      const layer = query(drawArea, '[data-brush-layer]');
+      layer.getBoundingClientRect = drawArea.getBoundingClientRect;
+      await act(async () => {
+        layer.dispatchEvent(new MouseEvent('mousedown', { clientX: points[0][0], clientY: points[0][1], bubbles: true, cancelable: true }));
+      });
+      for (const [x, y] of points.slice(1)) {
+        await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y })); });
+      }
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+
+    afterEach(() => localStorage.clear());
+
+    it('a stroke commits exactly one simplified element and the brush stays armed', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armBrush('Whiteout');
+      // 40 points 0.1px apart: far closer than the simplifier's step.
+      const points: [number, number][] = Array.from({ length: 40 }, (_, i) => [100 + i * 0.1, 200]);
+      await paint(drawArea, points);
+
+      expectLatestGestureToCommitOnce();
+      const strokes = container.querySelectorAll(`.${REDACT_BOX}`);
+      expect(strokes).toHaveLength(1);
+      // Still armed for the next stroke, with the brush layer on the page.
+      expect(container.querySelector('[data-brush-layer]')).not.toBeNull();
+      await paint(drawArea, [[100, 300], [160, 320]]);
+      expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
+    });
+
+    it('Escape disarms the brush', async () => {
+      await loadFileAndGetDrawArea();
+      await armBrush('Blur');
+      expect(container.querySelector('[data-brush-layer]')).not.toBeNull();
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+      expect(container.querySelector('[data-brush-layer]')).toBeNull();
+    });
+
+    it('remembers the mode and size for the next document', async () => {
+      await loadFileAndGetDrawArea();
+      await armBrush('Whiteout');
+      const size = query<HTMLInputElement>(container, '[data-brush-controls] input[type="range"]');
+      size.value = '30';
+      await act(async () => { size.dispatchEvent(new Event('input', { bubbles: true })); });
+      expect(getAppStyle()).toMatchObject({ brushMode: 'brush', brushSize: 30 });
+      expect(localStorage.getItem('pdf-toolkit:redact-brush:v1')).toBeNull();
+    });
+  });
+
   it('draws a box whose left/top/width/height are pxToPercent of the draw area, not raw px/rect.width math', async () => {
     const drawArea = await loadFileAndGetDrawArea();
 
@@ -673,7 +939,7 @@ describe('PdfRedactTool UI flow', () => {
       window.dispatchEvent(new MouseEvent('mouseup'));
     });
 
-    const deleteBtn = query<HTMLButtonElement>(box, '[data-editor-actions] button[title="Delete element"]');
+    const deleteBtn = query<HTMLButtonElement>(box, '[data-editor-actions] button[title="Delete"]');
 
     const startLeftPercent = parseFloat(box.style.left);
     const startTopPercent = parseFloat(box.style.top);
@@ -884,7 +1150,40 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelector('[data-editor-resizer="top-right"]')).not.toBeNull();
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
+    });
+
+    it('a click anywhere outside the selected box drops the selection, a click on the box keeps it', async () => {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      const select = async () => {
+        await act(async () => {
+          box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
+        });
+        await act(async () => {
+          window.dispatchEvent(new MouseEvent('mouseup'));
+        });
+      };
+
+      await select();
+      await act(async () => {
+        box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).not.toBeNull();
+
+      // Outside the pages entirely: the page's surroundings, not blank page area.
+      await act(async () => {
+        document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
+
+      await select();
+      const header = query<HTMLElement>(container, '[data-editor-page-header]');
+      await act(async () => {
+        header.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(box.querySelector('[data-editor-actions]')).toBeNull();
     });
 
     it('blackout shows the shared floating toolbar, with a delete control, only once selected', async () => {
@@ -907,7 +1206,7 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
       // No per-element colour control for blackout/blur - only whiteout gets
       // one, so the toolbar holds exactly its three shared buttons (duplicate,
       // repeat-on-every-page since this mock document has more than one page,
@@ -940,10 +1239,11 @@ describe('PdfRedactTool UI flow', () => {
 
       expect(box.hasAttribute('data-editor-shape')).toBe(true);
       expect(box.querySelectorAll('[data-editor-resizer]').length).toBe(8);
-      expect(box.querySelector('[data-editor-actions] button[title="Delete element"]')).not.toBeNull();
-      // Blur additionally gets its own strength trigger (SITE-41), so its
-      // toolbar has one more button than blackout's duplicate/repeat/delete trio.
-      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(4);
+      expect(box.querySelector('[data-editor-actions] button[title="Delete"]')).not.toBeNull();
+      // Blur additionally gets its strength slider (RED-30), which is a range
+      // input, not a button: its buttons are blackout's duplicate/repeat/delete trio.
+      expect(box.querySelector('[data-editor-actions] [data-editor-blur-strength-input]')).not.toBeNull();
+      expect(box.querySelectorAll('[data-editor-actions] button').length).toBe(3);
     });
 
     it('SITE-41: picking a strength from a selected blur box\'s toolbar applies it and remembers it, and undo restores the previous strength and redo reapplies it', async () => {
@@ -966,33 +1266,23 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      const strengthTrigger = required(
-        box.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
-        'blur strength trigger',
-      );
-      await act(async () => { strengthTrigger.click(); });
-
-      const lightItem = required(
-        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
-        'light strength item',
-      );
-      await act(async () => { lightItem.click(); });
+      await dragBlurSlider(0.4, [0.2, 0.25]);
 
       const blurLayer = required(box.querySelector<HTMLElement>('.redact-surface__blur'), 'blur layer');
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
 
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so undo restores the
-      // box's original, unpicked strength to that, not 'light'.
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
+      // DEFAULT_BLUR_STRENGTH (0.3), so undo restores the box's original,
+      // unpicked strength to that, not 0.4.
+      expect(blurLayer.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH} * 100cqh))`);
 
       // Redo brings the picked strength back.
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
       });
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
     });
 
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
@@ -1010,16 +1300,7 @@ describe('PdfRedactTool UI flow', () => {
       });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
 
-      const strengthTrigger = required(
-        firstBox.querySelector<HTMLButtonElement>('[data-editor-blur-strength-trigger]'),
-        'blur strength trigger',
-      );
-      await act(async () => { strengthTrigger.click(); });
-      const lightItem = required(
-        document.querySelector<HTMLElement>('[data-editor-blur-strength="light"]'),
-        'light strength item',
-      );
-      await act(async () => { lightItem.click(); });
+      await dragBlurSlider(0.4);
 
       await act(async () => { blurBtn.click(); });
       await drawBox(drawArea, 50, 550, 200, 700);
@@ -1027,7 +1308,7 @@ describe('PdfRedactTool UI flow', () => {
       const secondBox = boxes[boxes.length - 1] as HTMLElement;
       const secondBlurLayer = required(secondBox.querySelector<HTMLElement>('.redact-surface__blur'), 'second blur layer');
 
-      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.3 * 100cqh))');
+      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
@@ -1411,7 +1692,7 @@ describe('PdfRedactTool UI flow', () => {
       const describedBy = required(deleteBtn.getAttribute('aria-describedby'), 'aria-describedby');
       expect(describedBy).toBeTruthy();
       const hint = required(document.getElementById(describedBy), 'tool hint');
-      expect(hint.textContent).toContain('Click a highlighted image or text run to delete it');
+      expect(hint.textContent).toContain('Click text or an image to delete it, or drag across several');
       expect(hint.textContent).toContain('Double-click to keep Delete on');
     });
 
@@ -1488,17 +1769,17 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
 
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(0);
-      expect(announcementRegion().textContent).toContain('Removed 1 box');
+      expect(announcementRegion().textContent).toContain('Removed the blackout box');
 
       const chip = statusSlot();
       expect(chip.querySelector(`.${redactStyles['undo-chip']}`)).not.toBeNull();
-      expect(chip.textContent).toContain('Removed 1 box');
+      expect(chip.textContent).toContain('Removed the blackout box');
       // The chip did not replace the stack: every tool's hidden reservation is
       // still there under it, holding the row's height, and the shell is told
       // the slot is live (that attribute is what hides the filename on a phone).
@@ -1512,7 +1793,7 @@ describe('PdfRedactTool UI flow', () => {
       });
 
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(1);
-      expect(announcementRegion().textContent).toContain('Undid: Deleted');
+      expect(announcementRegion().textContent).toContain('Undid: Removed the blackout box');
     });
 
     it('announces and offers Undo when a page is cleared, and Undo restores every box', async () => {
@@ -1523,7 +1804,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelectorAll(`.${REDACT_BOX}`)).toHaveLength(2);
 
       const clearBtn = required(
-        container.querySelector<HTMLButtonElement>('button[title="Clear all redactions on this page"]'),
+        container.querySelector<HTMLButtonElement>('button[title="Clear every box on this page"]'),
         'Clear page button',
       );
       await act(async () => {
@@ -1561,7 +1842,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           window.dispatchEvent(new MouseEvent('mouseup'));
         });
-        const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+        const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
         await act(async () => {
           deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
@@ -1898,7 +2179,7 @@ describe('PdfRedactTool UI flow', () => {
       const pageCards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       const firstBox = query<HTMLElement>(pageCards[0], `.${REDACT_BOX}`);
       await selectBox(firstBox);
-      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => {
         duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -2063,9 +2344,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(boxes()[1])).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'medium' is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
-      // 'light' is the choice that actually differs from what a fresh blur box starts with.
-      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      // 0.3 is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
+      // 0.4 is the choice that actually differs from what a fresh blur box starts with.
+      await dragBlurSlider(0.4);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(boxes()[1])).toBe(after);
@@ -2087,7 +2368,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes()).toHaveLength(2);
 
       await selectBox(boxes()[0]);
-      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate element"]');
+      const duplicateButton = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
       await act(async () => { duplicateButton.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(boxes()).toHaveLength(3);
 
@@ -2124,8 +2405,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(copyOnPage2)).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 'medium' is DEFAULT_BLUR_STRENGTH (RED-24), so 'light' actually differs.
-      await pickFromBoxMenu('[data-editor-blur-strength-trigger]', '[data-editor-blur-strength="light"]');
+      // 0.3 is DEFAULT_BLUR_STRENGTH (RED-24), so 0.4 actually differs.
+      await dragBlurSlider(0.4);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(otherFoundBox)).toBe(after);
@@ -2300,7 +2581,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -2348,7 +2629,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete element"]');
+      const deleteBtn = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Delete"]');
       await act(async () => {
         deleteBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       });
@@ -2531,7 +2812,7 @@ describe('PdfRedactTool UI flow', () => {
     it('shows no box count and the plain file name before any box exists', async () => {
       await loadFileWithoutArming(makePdfFile('secret.pdf'));
 
-      expect(container.querySelector(`.${redactStyles['export-count']}`)).toBeNull();
+      expect(container.querySelector('[data-redact-count]')).toBeNull();
       const name = query(container, `.${toolShellStyles.name}`);
       expect(name.textContent).toBe('secret.pdf');
     });
@@ -2540,13 +2821,13 @@ describe('PdfRedactTool UI flow', () => {
       const drawArea = await loadFileAndGetDrawArea(makePdfFile('secret.pdf'));
       await drawBox(drawArea, 50, 200, 200, 500);
 
-      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('1 box marked');
+      expect(query(container, '[data-redact-count]').textContent).toBe('1 box');
       expect(query(container, `.${toolShellStyles.name}`).textContent).toBe('redacted_secret.pdf');
 
       await armTool('Blackout');
       await drawBox(drawArea, 60, 220, 220, 520);
 
-      expect(query(container, `.${redactStyles['export-count']}`).textContent).toContain('2 boxes marked');
+      expect(query(container, '[data-redact-count]').textContent).toBe('2 boxes');
     });
   });
 
@@ -2559,8 +2840,8 @@ describe('PdfRedactTool UI flow', () => {
   // that reason.
   describe('an edit that lands mid-export (DEBT-18)', () => {
     it('drops an export whose boxes a keyboard redo has already changed', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2600,7 +2881,7 @@ describe('PdfRedactTool UI flow', () => {
 
         createObjectURL.mockClear();
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
 
@@ -2627,8 +2908,8 @@ describe('PdfRedactTool UI flow', () => {
     // tell the person: a file still being read is loading, it has no edits
     // that could have changed mid-prepare.
     it('leaves a replacement file loading instead of reporting the export as invalidated', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2702,7 +2983,7 @@ describe('PdfRedactTool UI flow', () => {
         // nothing when it finally resolves.
         createObjectURL.mockClear();
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
         expect(createObjectURL).not.toHaveBeenCalled();
@@ -2718,8 +2999,8 @@ describe('PdfRedactTool UI flow', () => {
     // tool the person has navigated away from. Sign's unmount does the same
     // with activeExportRequestRef.
     it('does not download an export that finishes after the editor unmounts', async () => {
-      let finishRedaction!: (value: { blob: Blob; pictureOnlyPages: number[] }) => void;
-      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob; pictureOnlyPages: number[] }>((resolve) => {
+      let finishRedaction!: (value: { blob: Blob }) => void;
+      mockedRedactPdf.mockImplementationOnce(() => new Promise<{ blob: Blob }>((resolve) => {
         finishRedaction = resolve;
       }));
       const originalCreateObjectURL = window.URL.createObjectURL;
@@ -2743,7 +3024,7 @@ describe('PdfRedactTool UI flow', () => {
         createObjectURL.mockClear();
 
         await act(async () => {
-          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }), pictureOnlyPages: [] });
+          finishRedaction({ blob: new Blob(['redacted'], { type: 'application/pdf' }) });
           await new Promise((resolve) => setTimeout(resolve, 0));
         });
 

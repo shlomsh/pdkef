@@ -4,9 +4,7 @@ title: "Keep or remove page localization: decide after LOC-11 has measured the t
 status: "done"
 priority: "P1"
 epic: "localized-search"
-phase: "near-term"
 depends_on: ["LOC-11"]
-legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-10 · Keep or remove page localization: decide after LOC-11 has measured the top languages

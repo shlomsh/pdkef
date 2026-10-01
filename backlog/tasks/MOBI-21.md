@@ -4,9 +4,7 @@ title: "There is no way back into a text box on touch once its edit session clos
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "release-blocker"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MOBI-21 · There is no way back into a text box on touch once its edit session closes

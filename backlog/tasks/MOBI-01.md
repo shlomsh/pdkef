@@ -3,10 +3,10 @@ id: "MOBI-01"
 title: "Verify the Android share-sheet round trip on real hardware"
 status: "blocked"
 priority: "P1"
-epic: "mobile-round-trip"
-phase: "quick-win"
+epic: "robustness"
 depends_on: []
-legacy_state: "Open"
+waiting_on: "An Android phone"
+needs: "Half an hour with an Android phone"
 ---
 
 # MOBI-01 · Verify the Android share-sheet round trip on real hardware

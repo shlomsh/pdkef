@@ -4,9 +4,7 @@ title: "Hand-off row border is 1.09:1 on the rail tint: use the rail's one secon
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: ["MERGE-14"]
-legacy_state: "Done 2026-09-13"
 ---
 
 # MERGE-19 · Hand-off row border is 1.09:1 on the rail tint: use the rail's one secondary border

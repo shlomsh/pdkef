@@ -4,9 +4,7 @@ title: "A tiny checkbox's resize handles float noticeably past its own corner"
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: ["MOBI-27"]
-legacy_state: "Done 2026-09-24"
 ---
 
 # MOBI-29 · A tiny checkbox's resize handles float noticeably past its own corner

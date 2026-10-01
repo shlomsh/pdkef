@@ -4,9 +4,7 @@ title: "Is a second language worth building at all? The ROI judgment on LOC-01's
 status: "done"
 priority: "P3"
 epic: "localized-search"
-phase: "later"
 depends_on: ["LOC-01"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-07 · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured
@@ -23,12 +21,12 @@ the wrong person to grade it. This ticket is for a fresh agent, starting from th
 from the enthusiasm.
 
 **Read first, in this order.** The ROI note at the bottom of [LOC-01](LOC-01.md); the per-language
-verdict table above it; then [docs/localized-search-research-brief-report.md](../../docs/localized-search-research-brief-report.md)
+verdict table above it; then [docs/archive/localized-search-research-brief-report.md](../../docs/archive/localized-search-research-brief-report.md)
 for the per-task Trends and SERP tables with the numbers. Do not re-run any of it. Every Trends
 chart and SERP in there came from Shlomi's browser because this environment cannot fetch either
 (findings doc, section 2), and the phrasing behind each chart was verified against competitors' own
 localized pages before the link was built. The brief itself
-([docs/localized-search-research-brief.md](../../docs/localized-search-research-brief.md)) is the
+([docs/archive/localized-search-research-brief.md](../../docs/archive/localized-search-research-brief.md)) is the
 method; do not re-derive it.
 
 **Part 1: the judgment, for Indonesian.** Write the ROI case both ways, then pick. The inputs are all

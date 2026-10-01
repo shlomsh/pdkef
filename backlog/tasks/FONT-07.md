@@ -4,9 +4,7 @@ title: "Emoji"
 status: "retired"
 priority: "P3"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Open, not started"
 ---
 
 # FONT-07 · Emoji

@@ -31,7 +31,7 @@ import { clientPointToPagePercent, type PageGeometry } from '../../../editor/geo
 import { fillTapDecision } from './fillTap.ts';
 import { reachTarget } from './fillReach.ts';
 import { fillKeyOf, focusFillInput } from './fillDom.ts';
-import { classifyTouchTap, type TapGestureSample } from '../tapOutsideDeselect.ts';
+import { classifyTouchTap, type TapGestureSample } from '../../../lib/gestures/tapOutsideDeselect.ts';
 import { useFill } from './FillContext.tsx';
 import { FILL_KEY_ATTR, type FillTapDecision, type FillTool, type PagePoint, type ReachTarget } from './fillTypes.ts';
 

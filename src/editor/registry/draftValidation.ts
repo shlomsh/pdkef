@@ -6,6 +6,7 @@ import {
 import { MAX_HISTORY_DEPTH } from '../model/historyStack.ts';
 import { getElementDefinition } from './index.ts';
 import { hasNumber, hasString, isRecord } from './schema.ts';
+import { isBlurStrengthValue, resolveBlurStrength } from '../model/blurStrength.ts';
 import { isDateFormatId } from '../text/dateFormat.ts';
 // The version constant lives with the draft layer in src/lib/drafts/ (it is
 // stamped there); re-exported so the editor-side callers and tests keep one
@@ -15,6 +16,7 @@ export { DRAFT_SCHEMA_VERSION };
 
 const ELEMENT_TYPES: readonly ElementType[] = [
   'text', 'rectangle', 'ellipse', 'line', 'symbol', 'signature', 'whiteout', 'blackout', 'blur',
+  'blurStroke', 'whiteoutStroke',
 ];
 
 /**
@@ -22,7 +24,9 @@ const ELEMENT_TYPES: readonly ElementType[] = [
  * registry (that unification is SIGN-14 scope), so it needs its own shape
  * guard here or every real Redact draft carrying one would be quarantined as
  * invalid. `start`/`end` are the byte span in the page's merged content
- * stream, required because both the download and the on-screen preview
+ * stream, or in the Form XObject stream named by `formPath` (the forms from
+ * page to the stream holding the span; absent in older drafts, meaning the
+ * page's own content), required because both the download and the on-screen preview
  * (RED-13) key off them - a restored draft missing them would otherwise pass
  * validation and then break the save.
  */
@@ -36,6 +40,7 @@ export interface DeleteElement extends HistoryElement {
   height: number;
   start: number;
   end: number;
+  formPath?: string[];
   preview?: string;
   [field: string]: unknown;
 }
@@ -46,7 +51,9 @@ function isDeleteElement(value: unknown): value is DeleteElement {
   return isRecord(value) && value.type === 'delete' && hasString(value, 'id')
     && hasNumber(value, 'pageIndex') && hasString(value, 'sourceObjectId') && hasString(value, 'kind')
     && hasNumber(value, 'left') && hasNumber(value, 'top') && hasNumber(value, 'width') && hasNumber(value, 'height')
-    && hasNumber(value, 'start') && hasNumber(value, 'end');
+    && hasNumber(value, 'start') && hasNumber(value, 'end')
+    && (value.formPath === undefined
+      || (Array.isArray(value.formPath) && value.formPath.every((tag) => typeof tag === 'string')));
 }
 
 export function isEditorElement(value: unknown): value is EditorElement {
@@ -57,6 +64,39 @@ export function isEditorElement(value: unknown): value is EditorElement {
 
 export function isDraftElement(value: unknown): value is DraftElement {
   return isEditorElement(value) || isDeleteElement(value);
+}
+
+/**
+ * RED-30: a blur `strength` saved as light|medium|strong becomes its number.
+ * Idempotent and applied to a record of any version: to the live elements and
+ * to every element or patch inside the persisted history (`before`, `after`,
+ * and add/delete snapshots), so undo and redo of a pre-slider entry restore
+ * the right blur. Nothing here touches history order or length.
+ */
+function legacyStrengthToNumber<T>(value: T): T {
+  if (!isRecord(value) || typeof value.strength !== 'string' || !isBlurStrengthValue(value.strength)) return value;
+  return { ...value, strength: resolveBlurStrength(value.strength) };
+}
+
+export function migrateBlurStrengths(record: Record<string, unknown>): Record<string, unknown> {
+  const elements = Array.isArray(record.elements) ? record.elements.map(legacyStrengthToNumber) : record.elements;
+  let extra = record.extra;
+  if (isRecord(extra) && Array.isArray(extra.actionHistory)) {
+    const actionHistory = extra.actionHistory.map((entry) => {
+      if (!isRecord(entry)) return entry;
+      const updates = Array.isArray(entry.updates)
+        ? entry.updates.map((update) => (isRecord(update)
+          ? { ...update, before: legacyStrengthToNumber(update.before), after: legacyStrengthToNumber(update.after) }
+          : update))
+        : entry.updates;
+      const captured = Array.isArray(entry.elements)
+        ? entry.elements.map((item) => (isRecord(item) ? { ...item, element: legacyStrengthToNumber(item.element) } : item))
+        : entry.elements;
+      return { ...entry, ...(updates !== undefined ? { updates } : {}), ...(captured !== undefined ? { elements: captured } : {}) };
+    });
+    extra = { ...extra, actionHistory };
+  }
+  return { ...record, ...(elements !== undefined ? { elements } : {}), ...(extra !== undefined ? { extra } : {}) };
 }
 
 /**
@@ -110,7 +150,7 @@ export function migrateDraftRecord(record: unknown): unknown {
     migrated = { ...migrated, extra: { ...migrated.extra, actionHistory } };
   }
 
-  return { ...migrated, schemaVersion: DRAFT_SCHEMA_VERSION };
+  return { ...migrateBlurStrengths(migrated), schemaVersion: DRAFT_SCHEMA_VERSION };
 }
 
 /**
@@ -145,6 +185,12 @@ export function validateDocumentStyle(value: unknown): Partial<DocumentStyle> {
   if (hasNumber(value, 'signatureWidth') && (value.signatureWidth as number) > 0) {
     carried.signatureWidth = value.signatureWidth as number;
   }
+  if (value.brushMode === 'box' || value.brushMode === 'brush') carried.brushMode = value.brushMode;
+  if (hasNumber(value, 'brushSize') && (value.brushSize as number) >= 2 && (value.brushSize as number) <= 40) {
+    carried.brushSize = value.brushSize as number;
+  }
+  // RED-40: a legacy name resolves to its number, so only numbers are kept.
+  if (isBlurStrengthValue(value.blurStrength)) carried.blurStrength = resolveBlurStrength(value.blurStrength);
   return carried;
 }
 

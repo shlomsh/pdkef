@@ -82,6 +82,9 @@ Real, indexed static pages that agents and cautious humans check before trusting
 `src/site-lib/contentMarkup.ts`), consumed by the three `.astro` pages and their Markdown twins; they share
 `src/styles/staticPage.css` and are linked from `Footer.astro` and each other.
 
+- **Parked on purpose: IndexNow (faster Bing/Yandex indexing, low priority) and an in-app feedback form.**
+  The form is rejected because it would loosen `connect-src 'self'`; feedback is footer links to GitHub
+  Issues and Discussions, which add no network surface. Do not revive either without that trade-off in view.
 - `/contact/` points at GitHub Issues and Discussions; there is no support inbox and inventing one
   would be worse than none. The site-wide `Organization` JSON-LD (`src/data/organizationSchema.js`,
   rendered by `OrganizationSchema.astro` from `BaseLayout`) follows suit: a `ContactPoint` with

@@ -3,8 +3,9 @@ id: "FORM-25"
 title: "Detection's contract is type-checked, not only documented"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "now"
+order: 2
 depends_on: ["ARCH-24", "FORM-23"]
 ---
 

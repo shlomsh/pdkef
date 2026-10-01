@@ -2,9 +2,10 @@
 id: "FORM-18"
 title: "A comb drawn as separate squares is a comb, not a row of checkboxes"
 status: "open"
-priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+priority: "P1"
+epic: "form-detection"
+horizon: "now"
+order: 1
 depends_on: ["FORM-16"]
 ---
 
@@ -24,3 +25,7 @@ pitch is a comb whether its cells touch or not; a real checkbox stands alone or 
   re-recorded.
 - An element-corpus row pins a run of separate equal squares as one comb, and a column of the same
   squares as checkboxes.
+
+## 2026-10-01 board cleanup
+
+- Priority P2 -> P1: with fill mode, this ticket's false positives become wrong stops.
