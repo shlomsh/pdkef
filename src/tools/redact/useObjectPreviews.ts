@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { previewTexts } from '../../editor/adapters/pdf/deletePreviews.ts';
 import { getPdfjs } from '../../editor/adapters/pdf/pdfjsLoader.js';
@@ -36,7 +36,12 @@ export default function useObjectPreviews(
     previews: new Map(),
   });
 
+  // The object set whose read ran to the end: arming Delete again for the same
+  // file reuses it instead of reading every page's glyphs a second time.
+  const finishedFor = useRef<DeletablePdfObject[] | null>(null);
+
   useEffect(() => {
+    if (finishedFor.current === objects) return undefined;
     const pages = [...new Set(objects.filter((o) => o.kind === 'text').map((o) => o.pageIndex))].sort((a, b) => a - b);
     if (!enabled || !pdfDocument || pages.length === 0) return undefined;
     let current = true;
@@ -56,6 +61,7 @@ export default function useObjectPreviews(
           for (const [id, text] of previewTexts(onPage, glyphs, pageGeometryFromPdfJsPage(page))) previews.set(id, text);
           setRead({ objects, previews: new Map(previews) });
         }
+        if (current) finishedFor.current = objects;
       } catch (error) {
         // Without previews Delete still works: the label is the generic one.
         console.error('Delete could not read the text of this PDF', error);
