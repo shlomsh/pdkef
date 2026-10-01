@@ -1,7 +1,7 @@
 ---
 id: "ARCH-32"
 title: "e2e selected by file-level reachability: a src/editor/ change runs the pages that import it"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

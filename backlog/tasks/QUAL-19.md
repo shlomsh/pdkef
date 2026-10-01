@@ -1,7 +1,7 @@
 ---
 id: "QUAL-19"
 title: "Sign's corpus scoring test sets up inside its hook timeout under a full run"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

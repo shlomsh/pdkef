@@ -1,7 +1,7 @@
 ---
 id: "DEBT-21"
 title: "Nothing checks that a navigating-away flag uses the hook that survives a Back"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "next"
