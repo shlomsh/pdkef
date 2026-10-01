@@ -28,6 +28,14 @@ import { tokenize, multiplyMatrix, applyMatrix } from '../../../editor/adapters/
  *    paths (`re W* n`) that draw nothing at all. Counting those as boxes
  *    inflates the checkbox count by 76 phantom 13.3x10.8 "squares". `n` ends a
  *    path without painting it, so only the painting operators publish.
+ *    FORM-05 re-measured this rule on all ten scored forms and it holds. Clip
+ *    rectangles (`re W n`) found per form, as operators / distinct: health 1,027 /
+ *    129, Thai lor-yor 593 / 11, Thai pnd90 36 / 7, Thai sso 14 / 4, form 101,
+ *    I-9 and SA100 1 each, 1040 (2024), 1970 and the practice form none. Fed to
+ *    the cell and line detectors as a separate stroked channel, they added no
+ *    match on nine forms and one on health (65 to 66 of 75 targets) for five
+ *    false positives (precision 100 to 93%). So they stay out of `rects`, and a
+ *    separate channel is not worth building on any form we have.
  *
  * Deliberately out of scope, because no evidence form needs it and untested
  * recursion is worse than a documented limit: content inside a Form XObject
