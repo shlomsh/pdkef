@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 41 live: 4 up next, 10 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 3 up next, 10 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -55,7 +55,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | QUAL-19 | P2 | [QUAL-19](backlog/tasks/QUAL-19.md) · Sign's corpus scoring test sets up inside its hook timeout under a full run | In progress |
-| DEBT-21 | P3 | [DEBT-21](backlog/tasks/DEBT-21.md) · Nothing checks that a navigating-away flag uses the hook that survives a Back | In progress |
 | ARCH-32 | P2 | [ARCH-32](backlog/tasks/ARCH-32.md) · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it | In progress |
 | DEBT-15 | P3 | [DEBT-15](backlog/tasks/DEBT-15.md) · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log | In progress |
 
@@ -136,7 +135,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 6 done, 3 retired
+- Robustness and debt: 7 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

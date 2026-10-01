@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [QUAL-19](backlog/tasks/QUAL-19.md) P2 · Sign's corpus scoring test sets up inside its hook timeout under a full run (in progress)
-- [DEBT-21](backlog/tasks/DEBT-21.md) P3 · Nothing checks that a navigating-away flag uses the hook that survives a Back (in progress)
 - [ARCH-32](backlog/tasks/ARCH-32.md) P2 · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it (in progress)
 - [DEBT-15](backlog/tasks/DEBT-15.md) P3 · Field placement: a points-based combFontSize signature, and comments that carry the why, not the incident log (in progress)
 
