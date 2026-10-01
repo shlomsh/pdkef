@@ -6,6 +6,7 @@ function canShareFiles(files) {
   try {
     return typeof navigator.canShare !== 'function' || navigator.canShare({ files });
   } catch {
+    // expected: feature detect, canShare unsupported means cannot share
     return false;
   }
 }
@@ -79,6 +80,7 @@ export function usePdfShare() {
       });
       return { status: 'shared' };
     } catch (error) {
+      // expected: the error is returned to the caller in the result, not discarded
       return { status: error?.name === 'AbortError' ? 'canceled' : 'error', error };
     } finally {
       sharingRef.current = false;

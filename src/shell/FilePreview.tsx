@@ -70,7 +70,7 @@ export default function FilePreview({ file }: FilePreviewProps) {
           if (!cancelled) setPreviewSrc(dataUrl);
         })
         .catch(() => {
-          // Keep the glyph - a preview is a nicety, never a hard requirement.
+          // expected: Keep the glyph - a preview is a nicety, never a hard requirement.
         });
       return () => {
         cancelled = true;

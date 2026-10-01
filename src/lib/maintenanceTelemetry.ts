@@ -154,6 +154,7 @@ export function reportMaintenanceEvent(
     transport(event);
     return true;
   } catch {
+    // expected: telemetry must never break a tool, a failed transport reports false
     return false;
   }
 }
@@ -184,6 +185,7 @@ export function sanitizeAnalyticsPath(url: string): string {
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '/';
     return parsed.pathname || '/';
   } catch {
+    // expected: an unparseable URL falls back to the root path
     return '/';
   }
 }
@@ -205,7 +207,7 @@ export function sanitizeAnalyticsEvent<T extends AnalyticsBeforeSendEvent>(event
       return { ...event, url: new URL(parsed.pathname || '/', parsed.origin).href };
     }
   } catch {
-    // Use the safe fallback below.
+    // expected: Use the safe fallback below.
   }
   return { ...event, url: 'https://pdkef.com/' };
 }

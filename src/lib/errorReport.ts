@@ -78,6 +78,7 @@ function safely<T>(read: () => T, fallback: T): T {
   try {
     return read();
   } catch {
+    // expected: reporting code must never throw, an unreadable value falls back
     return fallback;
   }
 }
@@ -106,7 +107,7 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
     sentSites.add(site);
     sendBeacon(report);
   } catch {
-    // Reporting must never change what the caller does next.
+    // expected: Reporting must never change what the caller does next.
   }
 }
 
@@ -128,6 +129,7 @@ export function sendBeacon(payload: object): boolean {
       new Blob([JSON.stringify(payload)], { type: 'application/json' }),
     );
   } catch {
+    // expected: reporting code must never throw, a failed beacon is simply not sent
     return false;
   }
 }

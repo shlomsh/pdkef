@@ -10,6 +10,7 @@ function readStoredDensity() {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === 'relaxed' || stored === 'condensed' ? stored : DEFAULT_DENSITY;
   } catch {
+    // expected: blocked localStorage, the stored preference falls back to the default
     return DEFAULT_DENSITY;
   }
 }
@@ -32,7 +33,7 @@ export default function useViewDensity() {
       // independently gates its compact presentation on this density value,
       // so Relaxed still expands the hero without discarding the restore hint.
     } catch {
-      // Locked-down/private-browsing contexts: the tool must not break because
+      // expected: Locked-down/private-browsing contexts: the tool must not break because
       // a preference could not be applied.
     }
   }, [density]);
@@ -42,7 +43,7 @@ export default function useViewDensity() {
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // Preference just won't persist across reloads; not fatal.
+      // expected: Preference just won't persist across reloads; not fatal.
     }
   }, []);
 

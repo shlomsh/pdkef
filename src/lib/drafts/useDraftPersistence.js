@@ -23,6 +23,7 @@ function isInstalledStandalone() {
     // exposes this legacy boolean on `navigator` instead.
     return typeof navigator !== 'undefined' && navigator.standalone === true;
   } catch {
+    // expected: feature detect, no standalone mode available
     return false;
   }
 }
@@ -297,7 +298,7 @@ export function useDraftPersistence({
         attachDraftPreview(tool, dataUrl);
       })
       .catch(() => {
-        // A preview is decoration. An encrypted or malformed PDF that pdf.js
+        // expected: A preview is decoration. An encrypted or malformed PDF that pdf.js
         // refuses must not take the draft down with it.
       });
     return () => {

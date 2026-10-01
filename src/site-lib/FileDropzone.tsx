@@ -73,6 +73,7 @@ export default function FileDropzone({
       if (!saved) throw new Error('handoff');
       window.location.href = withFillModeParam(toolHref(tool), window.location.search);
     } catch {
+      // expected: the user sees handoffFailed, and saveHandoff reports its own failure
       setError(messages.handoffFailed);
       setBusy(false);
     }
@@ -163,7 +164,10 @@ export default function FileDropzone({
       const response = await fetch('/images/redaction-guide/sample.pdf');
       if (!response.ok) throw new Error('sample');
       await handleFiles([new File([await response.blob()], SAMPLE_FILE_NAME, { type: 'application/pdf' })]);
-    } catch { setError(messages.sampleLoadFailed); }
+    } catch {
+      // expected: a same-origin fetch can fail offline, the user sees sampleLoadFailed
+      setError(messages.sampleLoadFailed);
+    }
   };
   const resolvedToolDisplayName = toolDisplayName ?? tools.find(t => t.slug === toolTarget)?.gridTitle ?? toolTarget;
   return (
