@@ -254,6 +254,8 @@ describe('PdfSignTool UI flow', () => {
       expect(container.querySelector('[data-editor-text-input]')).toBe(textInput);
       expect(textInput.value).toBe(initialText);
       expect(query(container, '[role="alert"]').textContent).toContain(errorText);
+      // DEBT-31: the report for a throwing export carries the action that triggered it.
+      expect(recentActions()).toContain('export');
 
       await act(async () => {
         textInput.value = 'Corrected text';

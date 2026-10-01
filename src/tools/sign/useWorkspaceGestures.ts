@@ -370,6 +370,7 @@ export default function useWorkspaceGestures({
       dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
       dispatch({ type: 'DISARM_TOOL' });
+      recordAction('delete_mark');
       logAction(
         'delete',
         'DELETE_ELEMENT',
@@ -377,7 +378,6 @@ export default function useWorkspaceGestures({
         t.removedSymbolFromBoxDescription,
         snapshots,
       );
-      recordAction('delete_mark');
       setAnnouncement(t.removedSymbolFromBoxAnnouncement);
       return;
     }
@@ -421,6 +421,7 @@ export default function useWorkspaceGestures({
     }
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
+    recordAction('place_mark');
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     // One placement per arming, so the next click on empty page area falls
     // through to the workspace's deselect handler instead of making a second
@@ -446,7 +447,6 @@ export default function useWorkspaceGestures({
       logAction('add', 'ADD_SYMBOL', pageIndex, t.addedSymbolDescription, [captureAddedElement(placed, nextElementIndex)]);
       setAnnouncement(checkboxRegion ? t.addedSymbolInBoxAnnouncement : t.addedSymbolAnnouncement);
     }
-    recordAction('place_mark');
   };
 
   /**
@@ -564,6 +564,7 @@ export default function useWorkspaceGestures({
       );
 
       dispatch({ type: 'DISARM_TOOL' });
+      recordAction('place_mark');
 
       if (tool === 'whiteout') {
         logAction('add', 'ADD_WHITEOUT', pageIndex, t.addedWhiteoutDescription, [captureAddedElement(finalElement, nextElementIndex)]);
@@ -577,7 +578,6 @@ export default function useWorkspaceGestures({
         logAction('add', 'ADD_SHAPE', pageIndex, formatMessage(t.addedShapeDescriptionTemplate, { label }), [captureAddedElement(finalElement, nextElementIndex)]);
         setAnnouncement(formatMessage(t.addedShapeAnnouncementTemplate, { label }));
       }
-      recordAction('place_mark');
       },
       cancel: () => {
       gestureCancelRef.current = null;
