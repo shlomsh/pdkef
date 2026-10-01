@@ -12,6 +12,7 @@ import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
@@ -75,34 +76,40 @@ export default function PdfToImageTool() {
     setPageSelector('');
     setPageSelectorError('');
     resetOutput();
+    recordAction('add_files');
   };
 
   const handlePageSelectorChange = (next: string) => {
     setPageSelector(next);
     setPageSelectorError('');
     resetOutput();
+    recordAction('select_pages');
   };
 
   const handleFormatChange = (next: string) => {
     if (next === format) return;
     setFormat(next);
     resetOutput();
+    recordAction('change_setting');
   };
 
   const handleScaleChange = (next: number) => {
     if (next === scale) return;
     setScale(next);
     resetOutput();
+    recordAction('change_setting');
   };
 
   const handleLayoutChange = (next: string) => {
     if (next === layout) return;
     setLayout(next);
     resetOutput();
+    recordAction('change_setting');
   };
 
   const handleConvert = async () => {
     if (!file) return;
+    recordAction('export');
     setPageSelectorError('');
     setStatus('converting');
     setProgress(0);
@@ -144,6 +151,7 @@ export default function PdfToImageTool() {
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement('Images shared successfully.');
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your images are still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
@@ -152,6 +160,7 @@ export default function PdfToImageTool() {
   // No zip dependency is used (keeps the reviewed-permissive-license + zero-network constraint
   // simple) - multi-page output downloads each image sequentially instead.
   const downloadAll = () => {
+    recordAction('download');
     images.forEach((image, index) => {
       setTimeout(() => {
         const link = document.createElement('a');
@@ -287,6 +296,7 @@ export default function PdfToImageTool() {
                   class={pdfToolStyles['download-button']}
                   href={images[0].url}
                   download={images[0].filename}
+                  onClick={() => recordAction('download')}
                 >
                   <svg class={pdfToolStyles['download-check']} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" class={pdfToolStyles['check-circle']} />
@@ -303,7 +313,7 @@ export default function PdfToImageTool() {
                     {images.map((image) => (
                       <li key={image.pageNumber} class={fileListStyles['file-item']}>
                         <span class={fileListStyles['file-name']}>Page {image.pageNumber}</span>
-                        <a href={image.url} download={image.filename}>
+                        <a href={image.url} download={image.filename} onClick={() => recordAction('download')}>
                           Download
                         </a>
                       </li>
