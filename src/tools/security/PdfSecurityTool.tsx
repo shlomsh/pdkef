@@ -1,5 +1,5 @@
 import { useRef, useState } from 'preact/hooks';
-import { isPdfEncrypted, protectPdf, unlockPdf, WrongPasswordError } from './security.js';
+import { isPdfEncrypted, protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';
@@ -18,6 +18,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const [mode, setMode] = useState<string | null>(null); // 'unlock' | 'protect' | null
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
+  const [readError, setReadError] = useState<string | null>(null); // why the picked file could not be checked
   const { shareReady, prepare, clearPrepared, sharePrepared } = usePdfShare();
   const passwordRef = useRef<HTMLInputElement | null>(null);
   // DEBT-18: both async paths here belong to one file, so they share one run.
@@ -43,10 +44,25 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
     setPassword('');
     resetOutput();
     setMode(null);
+    setReadError(null);
     setAnnouncement(`Checking file "${selectedFile.name}"...`);
 
     const run = fileRun.begin();
-    const encrypted = await isPdfEncrypted(selectedFile);
+    let encrypted: boolean;
+    try {
+      encrypted = await isPdfEncrypted(selectedFile);
+    } catch (err: any) {
+      console.error(err);
+      if (!run.isCurrent()) return;
+      run.settle();
+      const message = err instanceof UnreadablePdfError
+        ? 'Make sure it is a PDF and is not damaged.'
+        : 'Something went wrong while opening it. Please try again.';
+      setReadError(message);
+      setStatus('error');
+      setAnnouncement(`This file could not be read. ${message}`);
+      return;
+    }
     // A slower check on a file that has since been replaced must not decide
     // the form's mode: offering Unlock for a file with no password sends
     // handleSubmit down the unlockPdf branch, which can only ever fail.
@@ -131,6 +147,12 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
       fileLabel={file?.name}
       fileMeta={describeFile(file)}
     >
+      {hasFiles && !mode && status === 'error' && readError && (
+        <div class="tool-workspace">
+          <ErrorMessage title="This file could not be read.">{readError}</ErrorMessage>
+        </div>
+      )}
+
       {hasFiles && mode && (
         <div class="tool-workspace">
           <form class={styles['unlock-form']} onSubmit={handleSubmit}>

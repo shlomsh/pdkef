@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 51 live: 4 up next, 19 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 3 up next, 15 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -48,10 +48,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| FORM-19 | P2 | [FORM-19](backlog/tasks/FORM-19.md) · A dotted leader after a label is a text field |  |
-| FORM-20 | P3 | [FORM-20](backlog/tasks/FORM-20.md) · A checkbox printed as a symbol-font glyph |  |
-| FORM-10 | P2 | [FORM-10](backlog/tasks/FORM-10.md) · The undivided-panel test reads the whole page, and a lone tick square survives only by accident |  |
-| FORM-05 | P2 | [FORM-05](backlog/tasks/FORM-05.md) · Do the clip-path rectangles a form rules its cells with belong in the ink? |  |
 | FORM-03 | P2 | [FORM-03](backlog/tasks/FORM-03.md) · Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach |  |
 | FORM-07 | P2 | [FORM-07](backlog/tasks/FORM-07.md) · A scanned form's ruled geometry, from its raster |  |
 
@@ -62,7 +58,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 | FORM-02 | P3 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |  |
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
-| FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |  |
 | FORM-29 | P3 | [FORM-29](backlog/tasks/FORM-29.md) · The detector's cell, line and widget readers are type-checked |  |
 
 ## Robustness and debt
@@ -74,7 +69,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | Needs Shlomi: The telemetry governance call |
-| DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |  |
 
 ### Then, in order
 
@@ -155,7 +149,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
-- Form detector accuracy: 3 done, 0 retired
+- Form detector accuracy: 8 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
@@ -173,7 +167,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Merge tool: 19 done, 0 retired
 - Localization pilots: 1 done, 0 retired
 - Module boundaries: 20 done, 2 retired
-- Architecture debt: 15 done, 2 retired
+- Architecture debt: 16 done, 2 retired
 - Undo and redo: 5 done, 0 retired
 - One memory space: 3 done, 0 retired
 - Form understanding: 15 done, 3 retired

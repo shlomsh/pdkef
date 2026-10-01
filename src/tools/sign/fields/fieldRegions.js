@@ -148,14 +148,14 @@ function absorbWritable(combs, cells) {
 }
 
 /**
- * The two sources today, earlier wins a tie. A new source may add its name
+ * The three sources today, earlier wins a tie. A new source may add its name
  * here to place it deliberately; one that does not is still folded in, last
  * (see `reconcile`'s module doc, ARCH-24 step C) - this list decides
  * precedence, not membership.
  */
 // Frozen so a caller cannot mutate detection precedence for every other
 // caller by pushing or splicing the array it imported.
-export const SOURCE_ORDER = Object.freeze(['ink', 'widgets']);
+export const SOURCE_ORDER = Object.freeze(['ink', 'widgets', 'leaders']);
 
 /**
  * `combs` and `checkboxes` are "protected": once accepted they are never

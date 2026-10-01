@@ -143,6 +143,8 @@ const MIN_CELL_WIDTH = 15;
  */
 const MIN_TICK_CELL_WIDTH = 6;
 const MIN_TICK_COLUMN_ROWS = 3;
+/** Abutting cells in one column whose heights are within this ratio are rows of one stack. */
+const STACKED_ROW_HEIGHT_RATIO = 0.8;
 /**
  * A vertical that does not span a whole band still counts as a column edge when it starts at the
  * band's own floor rule and rises at least this fraction of the band's height: a tick rising from
@@ -208,6 +210,42 @@ function verticalCoverage(edges, x, bottomY, topY) {
     cursor = to;
   }
   return covered / span;
+}
+
+/**
+ * The x-stretch a column shares with its band's top and bottom rules: from the column, each
+ * height's rules are chained outward while they touch (within POS_TOLERANCE), and the two
+ * reaches are intersected. A lone square drawn as its own rect has a span the width of the
+ * square; a table's page-wide rules give a page-wide span.
+ */
+function bandSpan(topRules, bottomRules, left, right) {
+  const reach = (rules) => {
+    let from = left;
+    let to = right;
+    for (let grew = true; grew;) {
+      grew = false;
+      for (const rule of rules) {
+        if (rule.x0 < from && rule.x1 >= from - POS_TOLERANCE) { from = rule.x0; grew = true; }
+        if (rule.x1 > to && rule.x0 <= to + POS_TOLERANCE) { to = rule.x1; grew = true; }
+      }
+    }
+    return [from, to];
+  };
+  const [topFrom, topTo] = reach(topRules);
+  const [bottomFrom, bottomTo] = reach(bottomRules);
+  return [Math.max(topFrom, bottomFrom), Math.min(topTo, bottomTo)];
+}
+
+/**
+ * A closed square: small, and as wide as it is tall. A tick box is the one closed shape that is
+ * its own evidence, with no neighbouring column to lean on, so it is admitted without the
+ * lone-box caption test that tells a panel from a field (FORM-10).
+ */
+const MAX_SQUARE_SIDE = 20;
+const SQUARE_ASPECT = 0.75;
+function isSquare(width, height) {
+  const side = Math.max(width, height);
+  return side <= MAX_SQUARE_SIDE && Math.min(width, height) / side >= SQUARE_ASPECT;
 }
 
 /**
@@ -286,19 +324,27 @@ function buildClosedCells(ink) {
       const edgeXs = (keep) => distinctPositions(bandEdges.filter(keep).map((edge) => edge.x), POS_TOLERANCE)
         .sort((a, b) => a - b);
       const xs = edgeXs((edge) => spansBand(edge) || risesFromFloor(edge));
-      // A row bounded by only its own two outer walls (xs.length === 2) is a single undivided
-      // box: an instructional/explanatory panel on both spike forms (one bordered paragraph, no
-      // internal rule), but also the ordinary shape of a lone labelled field on a Western form (a
-      // name, an address, an employer) that sits alone on its own row with nothing beside it to
-      // divide it. Geometry alone cannot tell those two apart - a panel and a lone field can be
-      // the same size - so this band is not dropped outright any more; the pair is still pushed
-      // as a candidate cell, tagged `lone: true`, and `detectCellCandidates` below is where the
-      // two are actually told apart, by whether the box carries any text of its own: a panel is
-      // always full of the prose it exists to hold, a field is empty until someone writes in it.
-      // A row with a real interior wall (xs.length >= 3) needs no such tagging; it was never
+      // A box with no interior wall of its own is a single undivided box: an instructional/
+      // explanatory panel on both spike forms (one bordered paragraph, no internal rule), but also
+      // the ordinary shape of a lone labelled field on a Western form (a name, an address, an
+      // employer) that sits alone on its own row with nothing beside it to divide it. Geometry
+      // alone cannot tell those two apart - a panel and a lone field can be the same size - so
+      // the box is still pushed as a candidate cell, tagged `lone: true`, and
+      // `detectCellCandidates` below is where the two are actually told apart, by whether the box
+      // carries any text of its own: a panel is always full of the prose it exists to hold, a
+      // field is empty until someone writes in it. A box with a real interior wall was never
       // ambiguous.
+      //
+      // "Own" is the band's own x-span (`bandSpan`): the walls standing inside the stretch its top
+      // and bottom rules share with the column, never walls elsewhere on the page that merely
+      // fall at the same heights. A page-global count made a lone box's verdict depend on ink
+      // nowhere near it (FORM-10). A closed square is its own case, tagged `square`: see
+      // `isSquare`.
       if (xs.length < 2) continue;
-      const lone = xs.length === 2;
+      const isLone = (walls, left, right) => {
+        const [spanLeft, spanRight] = bandSpan(rulesAt[i], rulesAt[k], left, right);
+        return walls.filter((x) => x >= spanLeft - POS_TOLERANCE && x <= spanRight + POS_TOLERANCE).length === 2;
+      };
       // The next rule down the page below this band's floor that actually crosses a column, if
       // any. A floor-ticked column's caption is printed in the strip between the floor and this
       // rule (FORM-26 part B, see `captionBelowFloor`). Scoped to the column's own x-range like
@@ -356,7 +402,8 @@ function buildClosedCells(ink) {
           const floorTicked = (leftCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(left))
             || (rightCoverage < CLOSED_EDGE_COVERAGE && isFloorTick(right));
           columns.push({
-            left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH, lone,
+            left, right, bottom, top, width, height, closure, narrow: width < MIN_CELL_WIDTH,
+            lone: isLone(xs, left, right), square: isSquare(width, height),
             floorTicked, nextRuleY: floorTicked ? nextRuleBelow(left, right) : null,
           });
         }
@@ -385,9 +432,10 @@ function buildClosedCells(ink) {
           (c) => c.left >= column.left - POS_TOLERANCE && c.right <= column.right + POS_TOLERANCE,
         );
         const walls = edgeXs(spansBand);
-        const wallLone = walls.length === 2;
         for (const column of columnsBetween(walls)) {
-          if (holdsTicked(column)) bandCells.push({ ...column, lone: wallLone, tickDivided: true });
+          if (holdsTicked(column)) {
+            bandCells.push({ ...column, lone: isLone(walls, column.left, column.right), tickDivided: true });
+          }
         }
       }
       cells.push(...bandCells);
@@ -692,6 +740,14 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
     closedColumnCounts.set(key, (closedColumnCounts.get(key) || 0) + 1);
   }
 
+  // A row of a stack: another cell in its own column abuts it and is about as tall. Equal rows
+  // repeating down one column are a divided box (a two-line answer area, a table), where a ledge
+  // or underline inside one box leaves a short strip beside a tall one.
+  const isStackedRow = (cell) => closedCells.some((other) => other !== cell
+    && columnKey(other) === columnKey(cell)
+    && (Math.abs(other.top - cell.bottom) <= POS_TOLERANCE || Math.abs(other.bottom - cell.top) <= POS_TOLERANCE)
+    && Math.min(other.height, cell.height) / Math.max(other.height, cell.height) >= STACKED_ROW_HEIGHT_RATIO);
+
   // First pass: geometry + text classification; the column-repeat count
   // (table-cell vs text) below needs the whole population.
   const resolved = [];
@@ -768,13 +824,34 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       });
       continue;
     }
-    if (cell.lone) {
-      // A lone box (no interior wall, see buildClosedCells) is either an instructional/
-      // explanatory panel or a single labelled field, and geometry alone cannot tell them apart -
-      // a panel and a lone field can be the same size. Own text settles the panel case: a panel
-      // is always full of the prose it exists to hold, so any text of the box's own drops it
-      // outright, same as the general FULL_TEXT_COVERAGE/MAX_LABEL_CHARS filters below would for
-      // a divided row, just decided outright rather than by a coverage ratio (a short paragraph
+    // A lone closed square with no text is a tick box, and is admitted on that alone (FORM-10): no
+    // caption, no neighbouring column. Without this the verdict on a lone square rested on whatever
+    // else the page happened to draw in its band.
+    if (cell.lone && cell.square && ownText.length === 0) {
+      resolved.push({
+        bounds: toPagePercentBox(geometry, {
+          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
+        }),
+        enclosureBounds: undefined,
+        writableBounds: undefined,
+        cell,
+        kind: 'checkbox',
+        label: headerAbove(cell, textItemsPoints)?.str?.trim(),
+        ownTextCount: 0,
+        coverage: 0,
+        closure: cell.closure,
+      });
+      continue;
+    }
+    // A lone box is judged when nothing else vouches for it: a row of a stack has a rule between
+    // it and its neighbour, so it is one row of a divided box rather than an undivided panel.
+    if (cell.lone && !isStackedRow(cell)) {
+      // A lone box (no interior wall inside its own band span, see buildClosedCells) is either an
+      // instructional/explanatory panel or a single labelled field, and geometry alone cannot tell
+      // them apart - a panel and a lone field can be the same size. Own text settles the panel
+      // case: a panel is always full of the prose it exists to hold, so any text of the box's own
+      // drops it outright, same as the general FULL_TEXT_COVERAGE/MAX_LABEL_CHARS filters below
+      // would for a divided row, just decided outright rather than by a coverage ratio (a short paragraph
       // can sit well under FULL_TEXT_COVERAGE and still not be a field). A box with no text of
       // its own still needs a label above it before it is trusted as a field: a bare frame with
       // nothing printed near it (a decorative rule, a photo box) is not evidence of a field

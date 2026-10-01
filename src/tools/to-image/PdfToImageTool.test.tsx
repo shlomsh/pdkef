@@ -131,6 +131,45 @@ describe('PdfToImageTool UI flow', () => {
     nativeShare.restore();
   });
 
+  it('revokes every image URL on unmount', async () => {
+    mockState.numPages = 2;
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
+      callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
+    };
+    let n = 0;
+    const created = [];
+    URL.createObjectURL = vi.fn(() => {
+      const url = `blob:img-${++n}`;
+      created.push(url);
+      return url;
+    });
+    URL.revokeObjectURL = vi.fn();
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfToImageTool />, container);
+    });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('report.pdf')]);
+    });
+    const convertButton = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent.includes('Convert to'),
+    );
+    await act(async () => {
+      convertButton.click();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(created.length).toBeGreaterThanOrEqual(2);
+    URL.revokeObjectURL.mockClear();
+
+    act(() => render(null, container));
+
+    const revoked = URL.revokeObjectURL.mock.calls.map((c) => c[0]);
+    for (const url of created) expect(revoked).toContain(url);
+  });
+
   it('combines a multi-page PDF into a single image when that layout is chosen', async () => {
     HTMLCanvasElement.prototype.toBlob = function toBlob(callback, type) {
       callback(new Blob(['fake-image-bytes'], { type: type || 'image/png' }));
