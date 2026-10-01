@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import Sortable from 'sortablejs';
 import { imagesToPdf } from './imageToPdf.js';
 import { sortByDate, sortByName } from '../../lib/sort.js';
-import { useObjectUrls } from '../../lib/useObjectUrls.js';
+import { useObjectUrls, useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from '../../shell/FileList.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
@@ -42,12 +42,8 @@ export default function PdfImageToPdfTool() {
     clearPrepared();
   }, [entries, clearPrepared]);
 
-  useEffect(() => {
-    // Revoke every thumbnail object URL on unmount.
-    return () => {
-      for (const entry of entries) URL.revokeObjectURL(entry.thumbnail);
-    };
-  }, []);
+  // Revoke every live thumbnail object URL on unmount.
+  useRevokeOnUnmount(entries.map((e) => e.thumbnail));
 
   // Drag-to-reorder: SortableJS owns the DOM order during a drag; on drop
   // we read its final order back into Preact state, which becomes the

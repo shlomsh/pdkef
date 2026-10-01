@@ -3,7 +3,7 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { isPdfEncrypted, unlockPdf, protectPdf, WrongPasswordError, SecurityError } from './security.js';
+import { isPdfEncrypted, unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
 
 describe('security.js', () => {
   function getFixtureFile(name = 'num-1.pdf') {
@@ -47,6 +47,17 @@ describe('security.js', () => {
     const file = new File([blob], 'test.pdf', { type: 'application/pdf' });
     const isEnc = await isPdfEncrypted(file);
     expect(isEnc).toBe(true);
+  });
+
+  it('rejects with UnreadablePdfError for bytes that are not a PDF', async () => {
+    const file = new File([new Uint8Array([1, 2, 3, 4])], 'junk.pdf', { type: 'application/pdf' });
+    await expect(isPdfEncrypted(file)).rejects.toThrow(UnreadablePdfError);
+  });
+
+  it('rejects with UnreadablePdfError when the file cannot be read', async () => {
+    const file = new File(['x'], 'gone.pdf', { type: 'application/pdf' });
+    file.arrayBuffer = () => Promise.reject(new Error('NotReadableError'));
+    await expect(isPdfEncrypted(file)).rejects.toThrow(UnreadablePdfError);
   });
 
   it('protects an unencrypted PDF and text survives round trip', async () => {

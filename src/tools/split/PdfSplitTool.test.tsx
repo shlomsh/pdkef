@@ -26,6 +26,12 @@ function makePdfFile(name) {
   return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
+const { saveHandoffMock } = vi.hoisted(() => ({ saveHandoffMock: vi.fn() }));
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
+  ...(await importOriginal()),
+  saveHandoff: saveHandoffMock,
+}));
+
 const { mockState } = vi.hoisted(() => ({ mockState: { numPages: 4 } }));
 
 // Mock pdfjs-dist
@@ -300,6 +306,80 @@ describe('PdfSplitTool UI flow', () => {
       'num-5-page-5.pdf',
     ]);
     nativeShare.restore();
+  });
+
+  // DEBT-19: handoffToCompress awaited an import and a save with no staleness
+  // check, so a file dropped meanwhile still had its predecessor's bytes parked
+  // for Compress and the page navigated away.
+  describe('the Compress hand-off (DEBT-19)', () => {
+    async function readyWithFixture() {
+      // jsdom's Blob has no arrayBuffer().
+      if (!Blob.prototype.arrayBuffer) {
+        Blob.prototype.arrayBuffer = function arrayBuffer() {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsArrayBuffer(this);
+          });
+        };
+      }
+      URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+      URL.revokeObjectURL = vi.fn();
+      const navigate = vi.fn();
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => render(<PdfSplitTool navigate={navigate} />, container));
+      const bytes = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/num-5.pdf'));
+      const input = container.querySelector('input[type="file"]');
+      const pick = async (name) => {
+        await act(async () => {
+          setInputFiles(input, [new File([bytes], name, { type: 'application/pdf' })]);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        });
+      };
+      const compressButton = () =>
+        Array.from(container.querySelectorAll(`.${styles['next-step']}`)).find((b) => b.textContent.includes('Compress'));
+      await pick('first.pdf');
+      return { navigate, pick, compressButton };
+    }
+
+    it('hands nothing to Compress and stays put when a new file arrives mid-save', async () => {
+      let releaseSave;
+      saveHandoffMock.mockImplementation(() => new Promise((resolve) => { releaseSave = () => resolve(true); }));
+      const { navigate, pick, compressButton } = await readyWithFixture();
+
+      await act(async () => {
+        compressButton().click();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(releaseSave).toBeDefined();
+
+      await pick('second.pdf');
+      await act(async () => {
+        releaseSave();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+
+      expect(navigate).not.toHaveBeenCalled();
+      expect(compressButton().disabled).toBe(false);
+    });
+
+    it('still navigates to Compress when nothing changed', async () => {
+      saveHandoffMock.mockResolvedValue(true);
+      const { navigate, compressButton } = await readyWithFixture();
+
+      await act(async () => {
+        compressButton().click();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+
+      expect(saveHandoffMock).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith('/compress/');
+    });
   });
 
   // DEBT-18: the load path had no cancellation at all, so the first file's

@@ -12,6 +12,9 @@ vi.mock('./security.js', () => ({
   isPdfEncrypted: vi.fn(),
   unlockPdf: vi.fn(),
   protectPdf: vi.fn(),
+  UnreadablePdfError: class UnreadablePdfError extends Error {
+    constructor() { super('unreadable'); this.name = 'UnreadablePdfError'; }
+  },
   WrongPasswordError: class WrongPasswordError extends Error {
     constructor() { super('Incorrect password'); this.name = 'WrongPasswordError'; }
   },
@@ -70,6 +73,42 @@ describe('PdfSecurityTool', () => {
     const submitBtn = container.querySelector('button[type="submit"]');
     expect(submitBtn.textContent).toContain('Protect PDF');
     expect(container.textContent).toContain("Enter a password to protect it");
+  });
+
+  it('shows a read error, no form and no "Checking file" when the check fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    securityLib.isPdfEncrypted.mockRejectedValue(new securityLib.UnreadablePdfError());
+    mount();
+
+    await loadFile('broken.pdf');
+
+    expect(container.querySelector('[role="alert"]').textContent).toContain('could not be read');
+    expect(container.querySelector('form')).toBeNull();
+    expect(container.querySelector('[role="status"]').textContent).not.toContain('Checking file');
+    expect(container.querySelector('[role="status"]').textContent).toContain('could not be read');
+  });
+
+  it('ignores a stale read failure after the file was replaced', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let rejectFirst;
+    securityLib.isPdfEncrypted
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectFirst = reject; }))
+      .mockResolvedValue(false);
+    mount();
+
+    await loadFile('slow-broken.pdf');
+    await loadFile('fine.pdf');
+    const dialog = container.querySelector('dialog[aria-labelledby="confirm-replace-title"]');
+    const confirm = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Replace file');
+    await act(async () => { confirm.click(); await new Promise((r) => setTimeout(r, 10)); });
+
+    await act(async () => {
+      rejectFirst(new securityLib.UnreadablePdfError());
+      await new Promise((r) => setTimeout(r, 10));
+    });
+
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(container.querySelector('button[type="submit"]').textContent).toContain('Protect PDF');
   });
 
   // Replace is the one file action this tool has now: Start over used to sit
