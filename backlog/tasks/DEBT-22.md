@@ -1,7 +1,7 @@
 ---
 id: "DEBT-22"
 title: "tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "now"
