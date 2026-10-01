@@ -334,10 +334,11 @@ function selectionCleared(state: RedactState): RedactState {
 export function redactReducer(state: RedactState, action: RedactAction): RedactState {
   switch (action.type) {
     case 'FILE_INITIALIZED': {
-      // A new file starts clean (RED-39): nothing selected, no export in
-      // flight or saved, its own style. A *locked* tool stays armed, exactly
-      // as `disarmTool` always behaved here (see the report).
-      const afterTool = state.tool.toolLocked ? state : disarmed(state);
+      // A new file starts clean (RED-39): no tool armed, locked or not,
+      // nothing selected, no export in flight or saved, its own style.
+      // Before SNG-08 `initialize` called `disarmTool`, which keeps a locked
+      // tool, so a tool locked on the last file stayed armed on the next.
+      const afterTool = disarmed(state);
       return {
         document: {
           ...afterTool.document,
