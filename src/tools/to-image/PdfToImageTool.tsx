@@ -10,6 +10,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { useRevokeOnUnmount } from '../../lib/useObjectUrls.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
@@ -35,6 +36,7 @@ export default function PdfToImageTool() {
   const [pageSelector, setPageSelector] = useState('');
   const [pageSelectorError, setPageSelectorError] = useState('');
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
+  useHoldUpdate(status === 'converting');
   const [progress, setProgress] = useState(0);
   const [images, setImages] = useState<any[]>([]);
   useRevokeOnUnmount(images.map((i) => i.url));

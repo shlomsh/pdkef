@@ -44,6 +44,7 @@ import {
 } from '../../editor/model/actionHistory.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { getSignExportReadiness } from './signExportReadiness.ts';
 import { reportToolLifecycleEvent } from '../../lib/productAnalytics.ts';
 import {
@@ -124,6 +125,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   } = useSignTool();
   const setSelectedTool = (tool: SignToolType | null) => dispatch({ type: 'SET_TOOL', payload: tool });
   const [status, setStatus] = useState('idle'); // idle | loading | editing | signing | done | error
+  useHoldUpdate(status === 'signing'); // speculative exports never set 'signing'
   // Export errors are recoverable without unmounting the editor. A failed
   // document load still uses status='error' with the workspace's load copy.
   const [errorDetail, setErrorDetail] = useState<string | null>(null);

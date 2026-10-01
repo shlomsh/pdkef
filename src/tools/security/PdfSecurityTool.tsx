@@ -8,6 +8,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
@@ -15,6 +16,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
+  useHoldUpdate(status === 'processing');
   const [mode, setMode] = useState<string | null>(null); // 'unlock' | 'protect' | null
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');

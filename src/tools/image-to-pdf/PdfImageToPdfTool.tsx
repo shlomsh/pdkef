@@ -12,6 +12,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { formatFileSize } from '../../lib/format.js';
 
 let nextId = 0;
@@ -30,6 +31,7 @@ function toEntry(file: File): ImageEntry {
 export default function PdfImageToPdfTool() {
   const [entries, setEntries] = useState<ImageEntry[]>([]);
   const [status, setStatus] = useState('idle'); // idle | converting | done | error
+  useHoldUpdate(status === 'converting');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
