@@ -4,7 +4,7 @@
  * file. "No match" is always "in the text I could read", and the lead line
  * always says pictures can't be searched and the person decides.
  */
-import type { Finding, PlaceKind } from './types.ts';
+import type { Finding, PlaceKind, SavedPlace } from './types.ts';
 
 export const CHECK_LEAD =
   "I searched the saved file's text, form fields, comments, bookmarks and document details. "
@@ -23,6 +23,12 @@ export const SEARCH_LABEL = 'Look for something else in the saved file';
 export const SEARCH_BUTTON = 'Search';
 
 export const COVER_IT = 'Add a box over it';
+
+export const REMOVE_IT = 'Remove it';
+
+export const REMOVING = 'Removing...';
+
+export const ALREADY_GONE = 'That was already gone.';
 
 export const COVER_IT_NOTE = 'Adding a box covers it in your next download. Download again to get the new copy.';
 
@@ -53,6 +59,9 @@ export function findingText(finding: Finding): string {
     case 'in-text':
       return `Page ${finding.pageIndex + 1}: in the page's text.`;
     case 'in-place':
+      if (finding.place === 'field' && finding.removable === false) {
+        return finding.pageIndex === undefined ? "In a form field's name." : `In a form field's name on page ${finding.pageIndex + 1}.`;
+      }
       return PLACE_TEXT[finding.place](finding.pageIndex === undefined ? undefined : String(finding.pageIndex + 1));
   }
 }
@@ -60,6 +69,35 @@ export function findingText(finding: Finding): string {
 /** Whether a box can be put over this finding from the editor. */
 export function canCover(finding: Finding): finding is Extract<Finding, { pageIndex: number; kind: 'visible-in-picture' | 'in-text' }> {
   return finding.kind === 'visible-in-picture' || finding.kind === 'in-text';
+}
+
+export type InPlaceFinding = Extract<Finding, { kind: 'in-place' }>;
+
+/** Whether Remove it can take this finding out of the saved file. */
+export function canRemove(finding: Finding): finding is InPlaceFinding {
+  return finding.kind === 'in-place' && finding.removable !== false;
+}
+
+function truncated(text: string, max = 40): string {
+  const one = text.replace(/\s+/g, ' ').trim();
+  return one.length > max ? `${one.slice(0, max - 1).trimEnd()}...` : one;
+}
+
+/** What the panel says after a place was removed and the file saved again. */
+export function removedMessage(place: Pick<SavedPlace, 'kind' | 'text'>): string {
+  const done = 'Saved again and downloaded.';
+  switch (place.kind) {
+    case 'bookmark': return `Removed the bookmark "${truncated(place.text)}". ${done}`;
+    case 'attachment': return `Removed the attachment "${truncated(place.text)}". ${done}`;
+    case 'field': return `Cleared the field. ${done}`;
+    case 'comment': return `Removed the comment. ${done}`;
+    case 'link': return `Removed the link. ${done}`;
+    case 'title': return `Removed the title. ${done}`;
+    case 'author': return `Removed the author. ${done}`;
+    case 'subject': return `Removed the subject. ${done}`;
+    case 'keywords': return `Removed the keywords. ${done}`;
+    case 'metadata': return `Removed the document details. ${done}`;
+  }
 }
 
 export function picturePagesNote(pages: readonly number[]): string | null {

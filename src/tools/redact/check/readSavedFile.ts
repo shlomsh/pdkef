@@ -56,10 +56,17 @@ async function readPlacesForPage(pdfjs: any, pdfDoc: any, pageIndex: number): Pr
     if (isNonBlank(commentText)) {
       places.push({ kind: 'comment', text: commentText, pageIndex });
     }
-    // A form field's /T is its name, not a note someone left: not a place.
-    const titleText = annotation.subtype === 'Widget' ? undefined : annotation.titleObj?.str;
-    if (isNonBlank(titleText)) {
-      places.push({ kind: 'comment', text: titleText, pageIndex });
+    if (annotation.subtype === 'Widget') {
+      // A form field's name (/T) is reported, since it can hold a secret, but
+      // it cannot be removed alone: the field would lose its identity.
+      if (isNonBlank(annotation.fieldName)) {
+        places.push({ kind: 'field', text: annotation.fieldName, pageIndex, removable: false });
+      }
+    } else {
+      const titleText = annotation.titleObj?.str;
+      if (isNonBlank(titleText)) {
+        places.push({ kind: 'comment', text: titleText, pageIndex });
+      }
     }
     if (annotation.annotationType === pdfjs.AnnotationType?.LINK || annotation.subtype === 'Link') {
       const url = annotation.url ?? annotation.unsafeUrl;
