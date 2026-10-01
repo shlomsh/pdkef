@@ -92,7 +92,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "astro",
-    "version": "7.3.1",
+    "version": "7.3.5",
     "license": "MIT",
     "url": "https://astro.build"
   },

@@ -11,14 +11,12 @@
 // only :root tokens from global.css, never its literals - that file's
 // rgba()/hex values are fine for a runtime-driven island but would be a
 // literal-color regression here.
-import { cspSha256 } from '../site-lib/cspHash.js';
 import { renderInline } from '../site-lib/contentMarkup';
-// The figure's CSS as a string, not a stylesheet in the module graph (see
+import { compareFigureStyle } from '../site-lib/inlineStyles';
+// The figure's CSS is a string, not a stylesheet in the module graph (see
 // compareFigure.css): emitted below as <style is:inline>, so only a page that
-// renders the figure carries it, and hashed here so the page's CSP style-src
-// accepts it. Astro hashes only the styles it bundles itself. ?inline rather
-// than ?raw, so the build minifies it and the source comments never ship.
-import compareFigureCss from './compareFigure.css?inline';
+// renders the figure carries it. Its CSP hash is registered by the route that
+// renders the page, not here (site-lib/inlineStyles.ts says why).
 
 interface Props {
   beforeSrc: string;
@@ -33,13 +31,9 @@ interface Props {
 }
 
 const { beforeSrc, afterSrc, beforeLabel, afterLabel, alt, width, height, caption, wipe = false } = Astro.props;
-// `Astro.csp` is typed optional (it exists only with the CSP feature on, which
-// astro.config.mjs enables); without it the page would ship the style
-// unhashed and test:csp would say so.
-Astro.csp?.insertStyleHash(cspSha256(compareFigureCss));
 ---
 
-<style is:inline set:html={compareFigureCss}></style>
+<style is:inline set:html={compareFigureStyle}></style>
 <figure class:list={['compare-figure', { 'compare-figure-wipe': wipe }]}>
   <div class="compare-figure-box">
     <img class="compare-figure-image" src={beforeSrc} alt={alt} width={width} height={height} loading="lazy" decoding="async" />
