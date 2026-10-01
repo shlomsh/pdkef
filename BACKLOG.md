@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 3 up next, 15 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 3 up next, 15 then, 19 waiting, 7 parked.
 
 ## Redact: finish removal
 
@@ -58,7 +58,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 | FORM-02 | P3 | [FORM-02](backlog/tasks/FORM-02.md) · Canonical field types, so a detected box can become a question |  |
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
-| FORM-29 | P3 | [FORM-29](backlog/tasks/FORM-29.md) · The detector's cell, line and widget readers are type-checked |  |
 
 ## Robustness and debt
 
@@ -149,7 +148,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
-- Form detector accuracy: 8 done, 0 retired
+- Form detector accuracy: 9 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
