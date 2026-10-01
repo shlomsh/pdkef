@@ -35,7 +35,8 @@ export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
-  useHoldUpdate(file !== null || status === 'processing');
+  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
