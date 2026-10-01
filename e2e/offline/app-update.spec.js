@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { startTwoBuildServer } from './twoBuildServer.js';
 
 /*
@@ -18,6 +18,11 @@ import { startTwoBuildServer } from './twoBuildServer.js';
  */
 
 test.skip(!existsSync('dist/precache-manifest.json'), 'needs a built dist/ (npm run build)');
+
+// The critical deploy is the shipped CRITICAL_VERSION plus one (twoBuildServer), so its cache is
+// named from the source, and bumping the constant for a real fix needs no spec edit.
+const SHIPPED_CRITICAL = Number(/const CRITICAL_VERSION = (\d+);/.exec(readFileSync('public/sw.js', 'utf8'))[1]);
+const CRITICAL_CACHE = new RegExp(`^pdkef-c${SHIPPED_CRITICAL + 1}-.*e2e$`);
 
 let server;
 let context;
@@ -296,7 +301,7 @@ test('a critical build reaches two tabs with no navigation, even past a file ope
   expect(navigations.map((n) => n.count)).toEqual([1, 1]);
   expect(await controlledBy(busy)).toBe(await controlledBy(other));
   const keys = await ownCaches(other);
-  expect(keys).toEqual([expect.stringMatching(/^pdkef-c1-.*e2e$/)]);
+  expect(keys).toEqual([expect.stringMatching(CRITICAL_CACHE)]);
 });
 
 test('offline, a critical build does nothing and shows nothing until back online', async () => {
@@ -326,5 +331,5 @@ test('offline, a critical build does nothing and shows nothing until back online
     await waitForController(tab);
   }
   expect(seen.size).toBe(2);
-  expect(await ownCaches(other)).toEqual([expect.stringMatching(/^pdkef-c1-.*e2e$/)]);
+  expect(await ownCaches(other)).toEqual([expect.stringMatching(CRITICAL_CACHE)]);
 });
