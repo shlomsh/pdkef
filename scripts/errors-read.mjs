@@ -32,7 +32,10 @@ const keys = Array.from({ length: days }, (_, n) =>
 const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify(keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]])),
+  body: JSON.stringify([
+    ...keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
+    ...keys.map((d) => ['HGETALL', `events:${d}`]),
+  ]),
 });
 if (!res.ok) {
   console.error(`Store answered ${res.status}.`);
@@ -44,7 +47,8 @@ if (!res.ok) {
 const rows = new Map();
 const samples = new Map();
 const replies = await res.json();
-replies.forEach(({ result }, idx) => {
+const eventReplies = replies.slice(keys.length * 2);
+replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   const isSample = idx % 2 === 1;
   for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
     const field = result[n];
@@ -67,3 +71,27 @@ for (const [field, count] of table) {
   console.log(`    npm run errors:resolve -- ${(sample.stack ?? []).join(' ')}`);
 }
 if (!table.length) console.log(`(no reports in the last ${days} days)`);
+
+// Sign's maintenance events: events:<day> holds `name|outcome|detail...|engine` -> count.
+function sumEvents(results) {
+  const sums = new Map();
+  for (const result of results) {
+    for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
+      sums.set(result[n], (sums.get(result[n]) ?? 0) + Number(result[n + 1]));
+    }
+  }
+  return [...sums]
+    .sort((a, b) => b[1] - a[1])
+    .map(([field, count]) => {
+      const parts = field.split('|');
+      const [name, outcome] = parts;
+      const engine = parts.length > 2 ? parts[parts.length - 1] : '';
+      return [count, name, outcome ?? '', parts.slice(2, -1).join(' '), engine];
+    });
+}
+console.log('\nSign maintenance events');
+const eventRows = sumEvents(eventReplies.map((r) => r.result));
+if (eventRows.length) {
+  console.log('count | event | outcome | detail | engine');
+  for (const row of eventRows) console.log(row.join(' | '));
+} else console.log('(none)');
