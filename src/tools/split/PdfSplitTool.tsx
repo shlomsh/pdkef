@@ -97,9 +97,9 @@ export default function PdfSplitTool({
   const handoffRun = useLatestRun();
   /** A tap on the element while it was still preparing: deliver on ready. */
   const pendingTap = useRef(false);
-  // Hold only once the person has tapped Download while the build is still preparing
-  // (the tap sets `announcement`, so this re-evaluates); an untapped prepare is speculative.
-  useHoldUpdate(status === 'preparing' && pendingTap.current);
+  // A Download tap during 'preparing' waits on this build, so hold through all of
+  // it; an untapped prepare only delays an update by a moment.
+  useHoldUpdate(status === 'preparing');
   const outputsRef = useRef<OutputFile[]>([]);
   outputsRef.current = outputs;
 
