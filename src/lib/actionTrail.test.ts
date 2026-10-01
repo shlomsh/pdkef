@@ -19,6 +19,11 @@ describe('action trail', () => {
     recordAction('add_files');
     expect(recentActions()).toEqual(['add_files', 'clear_all', 'add_files']);
   });
+  it('ignores a name off the list and does not displace the trail', () => {
+    for (const name of ACTIONS.slice(0, MAX_ACTIONS)) recordAction(name);
+    recordAction('nope' as ActionName);
+    expect(recentActions()).toEqual(ACTIONS.slice(0, MAX_ACTIONS));
+  });
   it('keeps only the last MAX_ACTIONS', () => {
     const twelve = ACTIONS.slice(0, MAX_ACTIONS + 2);
     for (const name of twelve) recordAction(name);

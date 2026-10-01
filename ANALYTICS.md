@@ -88,7 +88,7 @@ name, the chain of positions in our own published JavaScript that led there (up
 to 8, file name and line number each), a short label our code gives the step it
 was doing (like `export`), the page's path (like `/sign/`, never a query or
 anything after it), whether PDkef is installed as an app, whether a service
-worker served the page, and roughly how long the page had been open (under 10
+worker served the page, roughly how long the page had been open (under 10
 seconds, under a minute, under 10 minutes, or longer), and the last up to 10
 UI action names (DEBT-31) from a closed list, oldest first, kept in memory until
 an error is reported. Never the error message,

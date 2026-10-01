@@ -132,6 +132,18 @@ describe('/api/report stays silent', () => {
     );
   });
 
+  it('counts an older build\'s eight-key report, storing an empty actions list', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+    const { actions: _drop, ...old } = report;
+    expect((await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify(old) }))).status).toBe(204);
+    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+    const hsets = commands.filter(([name]) => name === 'HSET');
+    expect(hsets).toHaveLength(1);
+    expect(JSON.parse(hsets[0][3]).actions).toEqual([]);
+  });
+
   it.each([
     ['an unknown action name', ['add_files', 'not_a_real_action']],
     ['11 names', Array(11).fill('add_files')],

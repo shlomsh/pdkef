@@ -22,6 +22,9 @@
  * - `actions`, the last few things the person did in the tool (`add_files`, `clear_all`), names off
  *   the closed list below, oldest first, at most `MAX_ACTIONS`. Names only: no file name, count,
  *   position or text (DEBT-31);
+ *   Optional when parsing: a tab on a cached older build (the service worker keeps old builds alive,
+ *   and a rolling deploy does the same) sends the eight other fields, and dropping those reports
+ *   would lose crashes exactly when they matter; a missing `actions` parses as `[]`;
  * - `installed` (display-mode standalone), `sw` (a service worker controls the
  *   page), and `age`, how long the page had been open, bucketed. No online
  *   flag: nothing is sent offline, so it would always say true.
@@ -92,7 +95,9 @@ export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' 
 /** The largest body the endpoint accepts. The largest valid report is about 1.5KB. */
 export const MAX_REPORT_BYTES = 2048;
 
-const KEYS = ['actions', 'age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];
+/** The eight keys an older build sends; the current build adds `actions`. Exactly these two shapes. */
+const KEYS = ['age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];
+const KEYS_WITH_ACTIONS = ['actions', ...KEYS].sort();
 const AREAS: ReadonlySet<string> = new Set(ERROR_AREAS);
 const AGES: ReadonlySet<string> = new Set(PAGE_AGES);
 const ACTION_NAMES: ReadonlySet<string> = new Set(ACTIONS);
@@ -103,14 +108,16 @@ const STEP = /^[a-z][a-z0-9_]{0,31}$/;
 const TOOL = /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/;
 
 /**
- * Accepts exactly these nine fields, each in its own shape, and nothing else.
+ * Accepts exactly these fields, each in its own shape, and nothing else: eight keys (an older build,
+ * no `actions`, stored as `[]`) or all nine.
  * Run on both sides: the browser never sends what this rejects, and the
  * endpoint never stores it.
  */
 export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const keys = Object.keys(value).sort();
-  if (keys.length !== KEYS.length || keys.some((key, i) => key !== KEYS[i])) return null;
+  const expected = 'actions' in value ? KEYS_WITH_ACTIONS : KEYS;
+  if (keys.length !== expected.length || keys.some((key, i) => key !== expected[i])) return null;
   const { actions, area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
   if (typeof area !== 'string' || !AREAS.has(area)) return null;
   if (typeof name !== 'string' || !NAME.test(name)) return null;
@@ -120,10 +127,11 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof tool !== 'string' || !TOOL.test(tool)) return null;
   if (typeof installed !== 'boolean' || typeof sw !== 'boolean') return null;
   if (typeof age !== 'string' || !AGES.has(age)) return null;
-  if (!Array.isArray(actions) || actions.length > MAX_ACTIONS) return null;
-  if (!actions.every((action) => typeof action === 'string' && ACTION_NAMES.has(action))) return null;
+  const trail = actions === undefined && !('actions' in value) ? [] : actions;
+  if (!Array.isArray(trail) || trail.length > MAX_ACTIONS) return null;
+  if (!trail.every((action) => typeof action === 'string' && ACTION_NAMES.has(action))) return null;
   return Object.freeze({
-    actions: Object.freeze([...actions] as ActionName[]),
+    actions: Object.freeze([...trail] as ActionName[]),
     area: area as ErrorArea,
     name,
     stack: Object.freeze([...stack] as string[]),

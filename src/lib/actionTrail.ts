@@ -4,15 +4,17 @@
  * nothing else: no file name, count, position or text. It never throws and never leaves the page
  * by itself; only `reportError` reads it, when something already broke.
  */
-import { MAX_ACTIONS, type ActionName } from './errorReportSchema.ts';
+import { ACTIONS, MAX_ACTIONS, type ActionName } from './errorReportSchema.ts';
 
 const trail: ActionName[] = [];
+const KNOWN: ReadonlySet<string> = new Set(ACTIONS);
 
 /**
  * Call from a handler, after the person did the thing. A repeat of the last action is dropped, so
  * a drag or a slider cannot push the useful history out of the ring.
  */
 export function recordAction(name: ActionName): void {
+  if (!KNOWN.has(name)) return; // a cast or untyped caller must not poison every report
   if (trail[trail.length - 1] === name) return;
   trail.push(name);
   if (trail.length > MAX_ACTIONS) trail.shift();
