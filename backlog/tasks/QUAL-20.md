@@ -1,7 +1,7 @@
 ---
 id: "QUAL-20"
 title: "The home demo's scroll-progress e2e fails under a full 4-worker run"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"

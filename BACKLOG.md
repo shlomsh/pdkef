@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 1 up next, 11 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 2 up next, 10 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -55,6 +55,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
+| QUAL-20 | P2 | [QUAL-20](backlog/tasks/QUAL-20.md) · The home demo's scroll-progress e2e fails under a full 4-worker run | In progress |
 
 ### Then, in order
 
@@ -62,7 +63,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 | DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
-| QUAL-20 | P2 | [QUAL-20](backlog/tasks/QUAL-20.md) · The home demo's scroll-progress e2e fails under a full 4-worker run |  |
 
 ### Waiting
 
