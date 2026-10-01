@@ -1,0 +1,158 @@
+/* RED-51: the selected box's controls as a light pill, the look of the top
+   toolbar card (ToolShell's .editor). Groups wrap whole, never a lone control. */
+.pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-1);
+  box-sizing: border-box;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg), 0 4px 20px var(--color-surface-soft);
+  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  color: var(--color-text);
+}
+
+.floating {
+  position: absolute;
+  width: max-content;
+  z-index: 10;
+}
+
+.group {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.button,
+.auto,
+.eyedropper,
+.custom {
+  position: relative;
+  box-sizing: border-box;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button,
+.eyedropper,
+.custom {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+}
+
+.button:hover,
+.eyedropper:hover { background: var(--color-primary-soft); }
+
+.buttonWide {
+  width: auto;
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+
+.buttonWide svg { margin-inline-end: 6px; }
+
+.label { font-size: .78rem; font-weight: 600; white-space: nowrap; }
+
+.danger:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.separator {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border);
+  flex: none;
+}
+
+.auto {
+  height: 44px;
+  padding-inline: 2px;
+}
+
+.autoFace {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding-inline: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.auto[aria-pressed='true'] .autoFace {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.eyedropper[aria-pressed='true'] {
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.wheel {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--hue-wheel);
+}
+
+.swatch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  box-sizing: content-box;
+  background: var(--swatch);
+  border: 2px solid var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inkDark {
+  color: var(--color-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-text) 28%, transparent);
+}
+
+.inkLight { color: var(--color-surface); }
+
+.native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.custom:has(input:focus-visible) { outline: 2px solid var(--color-primary); }
+.auto:focus-visible,
+.eyedropper:focus-visible,
+.button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
