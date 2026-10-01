@@ -38,9 +38,11 @@ blocked, offline, or unavailable.
   sampling at current traffic. Revisit sampling only after volume makes the
   dashboard materially noisier or creates cost pressure.
 
-Custom events require Vercel Pro. Until the deployed project is on a plan that
-accepts them, page and Speed Insights data still work, and the product does not
-depend on event delivery.
+Vercel's custom events require Vercel Pro, which the project is not on, so Sign's
+two maintenance events (`sign_form_detection`, `sign_export`) do not use them.
+They go to PDkef's own `/api/report` address, like error reports, and are kept
+as daily counts by browser family for 90 days. The product does not depend on
+event delivery.
 
 ## Event vocabulary, version 1
 
