@@ -89,7 +89,57 @@ field by its left edge and a generous vertical band, with the nearest top breaki
 
 ## Comb placement
 
-*(To be filled from `combPlacement.ts`.)*
+The code comments in `combPlacement.ts` keep the constraint behind each rule. These are the incidents and
+numbers that produced them.
+
+**The baseline drop is per font** (SIGN-38). Reaching for the Helvetica fallback offset instead of the
+family's own ascent, descent and padding put a comb about a point low on Arimo. That is invisible on
+free-placed text and very visible when the printed rule then cuts across the digits.
+
+**Centre the digits' ink, not the em box** (SIGN-38). Centring the em box put every family at a different
+height. In a 22pt cell at 14pt, Arimo's digit centre landed 1.71pt below the cell's middle, Gveret Levin's
+3.26pt below, and Pacifico's 7.75pt below, with Pacifico's baseline itself sitting below the cell. A
+font's ascent and descent describe its whole em box, not where "0123456789" draws ink inside it, so
+`figureCentreEm` reads the real distance from the TTF outlines.
+
+**The small downward nudge stays.** `TEXT_BOX_PADDING_EM` keeps the nudge toward the writing line that was
+approved for Arimo, and the formula must reproduce Arimo within 0.05pt (`combPlacement.test.ts`). Without
+it every font centred dead on the strip read as hanging off a caption printed above it, seen on form
+101's phone number.
+
+**Changing the font re-centres** (SIGN-39). `top` is set once, at placement, for whichever font the text
+was typed in. Typing and then picking a handwriting font, the usual flow, kept the old font's height:
+Arimo's date sat high and a handwriting phone number sat low, both on the same form. `topKeepingInkCentre`
+shifts `top` by the difference between the two families' ink-centre offsets, and does nothing when the two
+families resolve to the same face (the same family picked twice, or two Latin-only handwriting fonts both
+forced to the same Hebrew fallback).
+
+**A cell's box goes in the blank, not on the cell.** Centring on the whole labelled cell put the top of
+the typed text against the label's baseline, seen on form 101's employer row. Hence `writable`.
+
+**Open teeth inside a cell take the strip's text position.** Form 101's identity number is a row of short
+teeth in the same row as the name cells, and placed on the rule it stood 5pt lower than them. The box
+sits where a cell's text sits in the blank strip, and never below the rule when the strip is shorter than
+the box.
+
+**A comb seeds its first size from the strip.** Seeding from the teeth's own height floored form 101's
+birth-date comb to `MIN_FONT_SIZE_PT` while the name cells in the same row, seeded from their writable
+strip, landed near 12pt. A boxed comb has no `writable` and seeds from its own bounds, which are already
+the box. In both cases the seed is the whole strip, never the comb's own box-fill margin, so a document
+that starts on a comb carries the size a same-height cell in its row would.
+
+**Open-teeth height cap, tried and dropped.** A cap on an open comb's font size from its teeth height was
+added and removed within one afternoon. Open teeth are dividers, not a height to fit, so they pass no
+height ceiling and the digits keep the size every other field on the form gets.
+
+**Hit targets.** An open comb's ink is about 4pt tall on an A4 page, well under a finger, so the hit band
+is 1.4% above and 0.6% below the rule, in page percent so it does not depend on zoom. A checkbox on the
+health declaration is 6.6pt square, about a millimetre and a half, so its hit area is grown
+symmetrically and neighbours resolve by the nearer centre instead of shrinking the target back down.
+Detected fields sit edge to edge: form 101's two date fields share a wall and the health declaration's
+yes/no checkboxes are a few points apart, so a tap between two picks the one it is nearer the middle of.
+A free-text cell is already a real rectangle, unlike a checkbox, so its margin is only forgiveness for tap
+and measurement imprecision.
 
 ## The measurements behind the numbers
 
