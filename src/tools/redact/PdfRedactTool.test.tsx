@@ -1815,12 +1815,12 @@ describe('PdfRedactTool UI flow', () => {
   }
 
   // RED-52: RED-43's keyboard move needs the page size in points, which the
-  // island only read when a blur box or brush was around. Never arm Blur or a
-  // brush here: that is the one condition under which the bug shows.
+  // island only read when a blur box, a blur stroke or a brush was around. Arm
+  // neither Blur nor a brush here: the bug only shows when neither is around.
   describe('RED-52: arrow keys move a whiteout or blackout box on a document with no blur', () => {
     for (const label of ['Whiteout', 'Blackout']) {
-      it(`${label}: two ArrowDown presses move it two points and one undo puts it back`, async () => {
-        const drawArea = await loadFileAndGetDrawArea();
+      it(`${label}: one ArrowDown press moves it one point and one undo puts it back`, async () => {
+        const drawArea = await loadFileWithoutArming();
         await armTool(label);
         await drawBox(drawArea, 50, 200, 200, 500);
 
@@ -1842,15 +1842,12 @@ describe('PdfRedactTool UI flow', () => {
         expect(findBox().className).toContain(redactStyles.selected);
 
         const before = parseFloat(findBox().style.top);
-        const onePointPct = (1 / 792) * 100;
-        for (let press = 0; press < 2; press += 1) {
-          await act(async () => {
-            findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-          });
-        }
-        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + 2 * onePointPct, 4);
+        await act(async () => {
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        });
+        // One point on the mocked 792-point page.
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + (1 / 792) * 100, 4);
 
-        // RED-43: consecutive moves coalesce into a single undo entry.
         await act(async () => {
           window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
         });
