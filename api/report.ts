@@ -9,8 +9,9 @@
 // exported function per HTTP method (`export function POST(request: Request)`).
 //
 // Always 204, whatever happens, so the endpoint can never block or break a
-// tool. Stored: counts per day and engine bucket only - no IP, no full user
-// agent, no time finer than the day. Nothing from the request is logged.
+// tool. Stored: counts per day, plus the latest validated example of each,
+// with an engine bucket - no IP, no full user agent, no time finer than the
+// day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import {
   DAILY_CAP,

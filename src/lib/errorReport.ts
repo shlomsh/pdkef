@@ -1,6 +1,7 @@
 /**
- * The browser side of anonymous error reports (DEBT-17). The schema, and why
- * it is only area, name and frame, is `errorReportSchema.ts`.
+ * The browser side of anonymous error reports (DEBT-17, DEBT-27). The schema,
+ * and why it holds only positions, identifiers, flags and a bucket, is
+ * `errorReportSchema.ts`.
  */
 
 import { errorName, stackFrames } from './errorIdentity.ts';
@@ -62,18 +63,22 @@ export function toErrorReport(
  * falls back to the plainest value (`/`, false, false).
  */
 export function readPageContext(): PageContext {
+  // One fact per guard: a browser missing one API keeps the other three.
+  const path = safely(() => location.pathname, '/');
+  return {
+    // Same shape as the schema's TOOL; a path outside it must not kill the report.
+    tool: /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/.test(path) ? path : '/',
+    installed: safely(() => matchMedia('(display-mode: standalone)').matches === true, false),
+    sw: safely(() => Boolean(navigator.serviceWorker?.controller), false),
+    age: safely(() => pageAge(performance.now()), 'under_10s' as const),
+  };
+}
+
+function safely<T>(read: () => T, fallback: T): T {
   try {
-    const path = location.pathname;
-    const standalone = matchMedia?.('(display-mode: standalone)').matches === true;
-    return {
-      // Same shape as the schema's TOOL; a path outside it must not kill the report.
-      tool: /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/.test(path) ? path : '/',
-      installed: standalone,
-      sw: Boolean(navigator.serviceWorker?.controller),
-      age: pageAge(performance.now()),
-    };
+    return read();
   } catch {
-    return { tool: '/', installed: false, sw: false, age: 'under_10s' };
+    return fallback;
   }
 }
 
@@ -92,11 +97,14 @@ export function reportError(area: ErrorArea, error: unknown, step: string): void
     if (sent.size >= MAX_REPORTS_PER_PAGE) return;
     const report = toErrorReport(area, error, step, readPageContext());
     if (!report) return;
-    // Not keyed on area: a defect reported at its catch site that also escapes
-    // as an unhandled rejection is one defect, not two.
-    const key = `${report.name}|${report.stack[0]}`;
-    if (sent.has(key)) return;
+    // Keyed on the step, so two call sites over one shared throw site stay two.
+    // An uncaught error is the exception: if its throw site was already
+    // reported from a catch, the escape is the same defect, not a new one.
+    const site = `${report.name}|${report.stack[0]}`;
+    const key = `${site}|${report.step}`;
+    if (sent.has(key) || (report.area === 'uncaught' && sentSites.has(site))) return;
     sent.add(key);
+    sentSites.add(site);
     navigator.sendBeacon(
       ERROR_REPORT_PATH,
       new Blob([JSON.stringify(report)], { type: 'application/json' }),
@@ -110,6 +118,7 @@ export const MAX_REPORTS_PER_PAGE = 10;
 
 // Module state, so a page load is the unit of "once" and of the cap.
 const sent = new Set<string>();
+const sentSites = new Set<string>();
 // `import.meta.env` exists only under Vite; Playwright specs and scripts import
 // modules that reach this one under plain Node, where reading it would throw at
 // import time.
@@ -121,6 +130,7 @@ export function setReportingEnabledForTests(value: boolean): void {
 
 export function resetErrorReportingForTests(): void {
   sent.clear();
+  sentSites.clear();
 }
 
 let installed = false;

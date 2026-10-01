@@ -54,7 +54,7 @@ replies.forEach(({ result }, idx) => {
   }
 });
 const table = [...rows].sort((a, b) => b[1] - a[1]);
-console.log('count | area | name | frame | engine');
+console.log('count | area | name | frame | step | engine');
 for (const [field, count] of table) {
   console.log(`${count} | ${field.split('|').join(' | ')}`);
   let sample = null;

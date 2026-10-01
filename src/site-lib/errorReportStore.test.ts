@@ -42,12 +42,12 @@ describe('commands', () => {
   it('splits the cap step from the count step and joins them', () => {
     expect(capCommands('2026-10-01')[0]).toEqual(['INCR', 'errors:total:2026-10-01']);
     expect(countCommands(report, 'ios-26', '2026-10-01')).toEqual([
-      ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|ios-26', 1],
+      ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26', 1],
       ['EXPIRE', 'errors:2026-10-01', 7776000],
       [
         'HSET',
         'errors:sample:2026-10-01',
-        'drafts|TypeError|Tool.abc123.js:10:5|ios-26',
+        'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26',
         JSON.stringify({ stack: report.stack, step: 'export', tool: '/sign/', installed: false, sw: true, age: 'under_1m', engine: 'ios-26' }),
       ],
       ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
