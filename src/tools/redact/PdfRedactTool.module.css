@@ -243,6 +243,15 @@
   user-select: none;
 }
 
+/* The Peek button is held down: a long press on a phone must not select its
+   label or open the callout. */
+.peek-button {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
 .redact-surface-host {
   position: absolute;
   inset: 0;
