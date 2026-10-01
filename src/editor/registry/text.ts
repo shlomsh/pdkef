@@ -6,12 +6,12 @@ import { hasNumber, hasString, isRecord } from './schema.ts';
 import { COMB_MIN_CELL_EM, COMB_NATURAL_WIDTH_TOLERANCE_PX, MAX_FONT_SIZE_PT, MIN_COMB_WIDTH_PCT, MIN_FONT_SIZE_PT, TEXT_RESIZE_SCALE_FACTOR } from '../../constants/signGeometry.js';
 import { combCellCenterFraction, combCellCount } from '../text/comb.js';
 import { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs } from '../text/textTransforms.js';
-import { fontkitFont, shapedWidth, unrepresentableCharacters } from '../text/textMetrics.ts';
+import { fontkitFont, unrepresentableCharacters } from '../text/textMetrics.ts';
 
 // Keep the coverage and shaping imports stable for callers that do not need
 // PDF drawing. drawShapedRun intentionally lives in textPdf.ts.
 export { normalizeTabsForBidi, stripInvisibleFormatting, findMissingGlyphs };
-export { fontkitFont, shapedWidth, unrepresentableCharacters };
+export { fontkitFont, unrepresentableCharacters };
 
 export function applyTextResize({ startFontSize, delta, startRect, fallbackDeltaPoints }: TextResizeInput): TextResizePatch {
   let fontSize = startFontSize;

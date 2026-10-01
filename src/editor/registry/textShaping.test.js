@@ -10,9 +10,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, StandardFonts, rgb } from '@cantoo/pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { normalizeTabsForBidi, shapedWidth, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
+import { normalizeTabsForBidi, stripInvisibleFormatting, unrepresentableCharacters } from './text.ts';
+import { shapedWidth } from '../text/shapeRun.ts';
 import { drawShapedRun, serializeText } from './textPdf.ts';
 import { resolveBidiRuns } from '../text/bidiRuns.js';
 import { composeHebrewClusters } from '../text/hebrewComposition.js';
@@ -515,5 +516,83 @@ describe('a bidi run is shaped whole, so a kern pair that spans a space fires', 
     const perWordPen = shapedWidth(font, 'Tel', size) + fk.glyphForCodePoint(0x20).advanceWidth / fk.unitsPerEm * size;
     expect(xs[4]).toBeCloseTo(perWordPen - 113 / fk.unitsPerEm * size, 6);
     expect(xs[4]).not.toBeCloseTo(perWordPen, 3);
+  });
+});
+
+/**
+ * FONT-09: an RTL run draws each Bidi_Mirrored character as its mirror
+ * (UAX#9 rule L4), the way the editor's textarea does. fontkit's
+ * `layout(..., 'rtl')` reverses glyph order but never mirrors, so without
+ * this `א(ב)` painted `)ב(א` - measured 2026-09-29 in Heebo and Arimo. The
+ * expected ids below are each character's own cmap glyph, listed in the
+ * order the browser paints them left to right.
+ */
+describe('an RTL run mirrors paired punctuation, as the screen does (FONT-09)', () => {
+  const glyphIdsOf = (fk, visual) => Array.from(visual).map((char) => fk.glyphForCodePoint(char.codePointAt(0)).id);
+  const drawnGlyphIds = (page) => page.pushOperators.mock.calls.flat()
+    .filter((op) => op.name === 'Tj')
+    .map((op) => parseInt(op.args[0].asString(), 16));
+  const actualTexts = (page) => page.pushOperators.mock.calls.flat()
+    .filter((op) => op.name === 'BDC')
+    .map((op) => op.args[1].get(PDFName.of('ActualText')).decodeText());
+
+  async function exportRtl(fileName, text) {
+    const font = await embedFont(fileName);
+    const page = mockPage(font);
+    await serializeText(
+      { type: 'text', text, textDirection: 'rtl', fontSize: 24, fontFamily: 'Heebo', fontWeight: 'normal', fontStyle: 'normal', color: '#000000', left: 0, top: 0, page: 1 },
+      { page, pdfWidth: 612, pdfHeight: 792, pdfX: 300, pdfY: 700, loadCustomFont: async () => font, baselineOffset: () => 0 },
+    );
+    return { fk: font.embedder.font, page };
+  }
+
+  it.each(['Heebo-Regular.ttf', 'Arimo-Regular.ttf'])('paints א(ב) as (ב)א in %s', async (fileName) => {
+    const { fk, page } = await exportRtl(fileName, 'א(ב)');
+    // Non-vacuity: the two brackets really are different glyphs here.
+    expect(glyphIdsOf(fk, '(')).not.toEqual(glyphIdsOf(fk, ')'));
+    expect(drawnGlyphIds(page)).toEqual(glyphIdsOf(fk, '(ב)א'));
+  });
+
+  it('paints Arabic brackets once-mirrored in Scheherazade New, whose rtlm feature fontkit also applies', async () => {
+    // The one bundled face with an `rtlm` feature (both weights). fontkit runs
+    // rtlm over the whole RTL run, where HarfBuzz runs it only on characters
+    // it could not mirror by codepoint, so a double mirror would show here.
+    const { fk, page } = await exportRtl('ScheherazadeNew-Regular.ttf', 'ب(ت) [ث] «ج»');
+    expect(drawnGlyphIds(page)).toEqual(glyphIdsOf(fk, '«ج» [ث] (ت)ب'));
+  });
+
+  it('paints the brackets round an embedded Latin word the right way on both sides', async () => {
+    // Three bidi runs: `)` (RTL), `Email` (LTR), `דוא"ל (` (RTL). Each RTL
+    // run mirrors its own bracket; the LTR run is untouched.
+    const { fk, page } = await exportRtl('Heebo-Regular.ttf', 'דוא"ל (Email)');
+    expect(drawnGlyphIds(page)).toEqual(glyphIdsOf(fk, '(Email) ל"אוד'));
+  });
+
+  it('leaves an LTR run\'s brackets alone', async () => {
+    const font = await embedHeebo();
+    const fk = font.embedder.font;
+    const page = mockPage(font);
+    drawShapedRun(page, { text: 'a(b)', pdfFont: font, size: 24, x: 0, y: 0, color: rgb(0, 0, 0), direction: 'ltr' });
+    expect(drawnGlyphIds(page)).toEqual(glyphIdsOf(fk, 'a(b)'));
+  });
+
+  it('keeps the typed characters in /ActualText, mirroring only the ink', async () => {
+    // /ActualText is the run's visual order (docs/wysiwyg-text-architecture.md
+    // §7: poppler runs its own bidi over it), built from what was typed. A
+    // mirrored bracket there would extract as the wrong bracket.
+    const { page } = await exportRtl('Heebo-Regular.ttf', 'א(ב)');
+    expect(actualTexts(page)).toEqual([')ב(א']);
+  });
+
+  it('measures the same mirrored run it draws', async () => {
+    // A mirrored pair usually shares one advance, so the line width alone
+    // would not show a split; this pins that shapedWidth sums the drawn glyphs.
+    const font = await embedHeebo();
+    const fk = font.embedder.font;
+    const size = 24;
+    const page = mockPage(font);
+    drawShapedRun(page, { text: 'א(ב)', pdfFont: font, size, x: 0, y: 0, color: rgb(0, 0, 0), direction: 'rtl' });
+    const drawnAdvance = drawnGlyphIds(page).reduce((sum, id) => sum + fk.getGlyph(id).advanceWidth, 0) * size / fk.unitsPerEm;
+    expect(shapedWidth(font, 'א(ב)', size, 'rtl')).toBeCloseTo(drawnAdvance, 9);
   });
 });
