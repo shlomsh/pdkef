@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 39 live: 1 up next, 10 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 38 live: 0 up next, 10 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -49,12 +49,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 ## Robustness and debt
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | In progress |
 
 ### Then, in order
 
@@ -134,7 +128,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 11 done, 3 retired
+- Robustness and debt: 12 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
