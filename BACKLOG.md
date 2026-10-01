@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 63 live: 12 up next, 24 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 64 live: 13 up next, 24 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -92,6 +92,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | DEBT-17 | P1 | [DEBT-17](backlog/tasks/DEBT-17.md) · We cannot see what breaks in production, and a day proved it | Needs Shlomi: The telemetry governance call |
 | DEBT-19 | P2 | [DEBT-19](backlog/tasks/DEBT-19.md) · The small tools' teardown and error paths never got the hardening the big ones did |  |
 | DEBT-20 | P2 | [DEBT-20](backlog/tasks/DEBT-20.md) · Every tool page ships the whole of pdf-lib before anyone opens a file | In progress |
+| DEBT-22 | P2 | [DEBT-22](backlog/tasks/DEBT-22.md) · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else |  |
 
 ### Then, in order
 
@@ -205,7 +206,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Merge tool: 19 done, 0 retired
 - Localization pilots: 1 done, 0 retired
 - Module boundaries: 20 done, 2 retired
-- Architecture debt: 15 done, 3 retired
+- Architecture debt: 15 done, 2 retired
 - Undo and redo: 5 done, 0 retired
 - One memory space: 3 done, 0 retired
 - Form understanding: 15 done, 3 retired
