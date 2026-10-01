@@ -35,3 +35,22 @@ export function useObjectUrls() {
 
   return { url, setBlob, clear };
 }
+
+/**
+ * For tools that hold a LIST of object URLs (thumbnails, page images), where
+ * the single-URL hook above doesn't fit. Pass every URL currently alive and
+ * they are all revoked on unmount. The cleanup reads the latest list through
+ * a ref, which is exactly what a `[]`-deps effect closing over state gets
+ * wrong: it only ever sees the list from the first render. Per-item removal
+ * stays the caller's job.
+ */
+export function useRevokeOnUnmount(urls) {
+  const ref = useRef(urls);
+  ref.current = urls;
+  useEffect(
+    () => () => {
+      for (const u of ref.current) URL.revokeObjectURL(u);
+    },
+    [],
+  );
+}

@@ -14,7 +14,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
-- [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
 
 ## Waiting, by date
 
