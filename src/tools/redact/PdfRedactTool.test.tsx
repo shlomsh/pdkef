@@ -56,6 +56,12 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
   return { ...actual, loadDraft: vi.fn(actual.loadDraft) };
 });
 
+const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/productAnalytics.ts')>();
+  return { ...actual, reportToolLifecycleEvent: lifecycleSpy };
+});
+
 const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
 
 // Exercise the real controller while wrapping each commit callback. This proves
@@ -145,6 +151,7 @@ describe('PdfRedactTool UI flow', () => {
       container.remove();
     }
     gestureCommitSpies.length = 0;
+    lifecycleSpy.mockClear();
     vi.restoreAllMocks();
   });
 
@@ -309,6 +316,12 @@ describe('PdfRedactTool UI flow', () => {
       expect(container.querySelector(`.${REDACT_BOX}`)).not.toBeNull();
       expect(container.querySelector('.download-button')).toBeNull();
       expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:redacted-pdf');
+      // DEBT-28: a file in, then one started and one ready, nothing failed.
+      expect(lifecycleSpy.mock.calls).toEqual([
+        ['tool_file_accepted', 'redact'],
+        ['tool_operation_started', 'redact'],
+        ['tool_result_ready', 'redact'],
+      ]);
     } finally {
       window.URL.createObjectURL = originalCreateObjectURL;
       window.URL.revokeObjectURL = originalRevokeObjectURL;
@@ -330,6 +343,11 @@ describe('PdfRedactTool UI flow', () => {
       await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
       expect(container.textContent).not.toContain('Saved redacted');
       expect(downloadButton().disabled).toBe(false);
+      expect(lifecycleSpy.mock.calls).toEqual([
+        ['tool_file_accepted', 'redact'],
+        ['tool_operation_started', 'redact'],
+        ['tool_operation_failed', 'redact'],
+      ]);
 
       window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
       await act(async () => { downloadButton().click(); });
