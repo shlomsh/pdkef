@@ -52,6 +52,8 @@ export type ToolCopy = { action: string; actionTouch: string; button: string };
  * @param {object|null} props.copy - { action, button } for the armed tool, or null when idle
  * @param {boolean} props.locked - whether the armed tool stays on across placements
  * @param {function} props.onToggleKeepOn - flip that setting, leaving the tool armed either way
+ * @param {boolean} [props.showKeepOn] - false for a tool that stays armed anyway (Redact's brush, RED-42);
+ *   the hidden reservations keep the switch, so the row's reserved height does not change
  * @param {any} props.idle - what to say when no tool is armed
  * @param {ToolCopy[]} [props.reserveCopies] - every other tool
  *   this toolbar can arm, rendered hidden purely to hold the row's height steady - see the
@@ -92,6 +94,7 @@ export default function EditorToolStatus({
   copy,
   locked,
   onToggleKeepOn,
+  showKeepOn = true,
   idle,
   reserveCopies = [],
   override = null,
@@ -118,6 +121,7 @@ export default function EditorToolStatus({
   copy: ToolCopy | null;
   locked: boolean;
   onToggleKeepOn: () => void;
+  showKeepOn?: boolean;
   idle: string;
   reserveCopies?: ToolCopy[];
   override?: ComponentChildren;
@@ -180,7 +184,7 @@ export default function EditorToolStatus({
           a switch whose whole row changes colour reads as a button that swapped
           identity rather than as one setting that changed value. A hidden
           reservation renders a plain span here, never a second real switch. */}
-      {interactive ? (
+      {interactive ? (showKeepOn && (
         <button
           type="button"
           role="switch"
@@ -192,7 +196,7 @@ export default function EditorToolStatus({
           <span className={styles['status-switch']} aria-hidden="true" />
           {keepOnText(rowCopy.button)}
         </button>
-      ) : (
+      )) : (
         <span className={styles['status-action']}>
           <span className={styles['status-switch']} aria-hidden="true" />
           {keepOnText(rowCopy.button)}
