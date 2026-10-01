@@ -315,6 +315,34 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    const originalRevokeObjectURL = window.URL.revokeObjectURL;
+    window.URL.createObjectURL = vi.fn(() => { throw new Error('blocked'); });
+    window.URL.revokeObjectURL = vi.fn();
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const drawArea = await loadFileAndGetDrawArea();
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const downloadButton = () => required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
+        .find((button) => button.textContent.includes('Download')), 'Download button');
+      await act(async () => { downloadButton().click(); });
+      await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
+      expect(container.textContent).not.toContain('Saved redacted');
+      expect(downloadButton().disabled).toBe(false);
+
+      window.URL.createObjectURL = vi.fn(() => 'blob:redacted-pdf');
+      await act(async () => { downloadButton().click(); });
+      await settleUntil('the retry to be downloaded', () => (window.URL.revokeObjectURL as Mock).mock.calls.length > 0);
+      expect(container.textContent).not.toContain('The download stopped.');
+      expect(container.textContent).toContain('Saved redacted');
+    } finally {
+      errorSpy.mockRestore();
+      window.URL.createObjectURL = originalCreateObjectURL;
+      window.URL.revokeObjectURL = originalRevokeObjectURL;
+    }
+  });
+
   it('RED-25: Remove it saves the file again without that place, downloads it, and checks it again', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;

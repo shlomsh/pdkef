@@ -378,6 +378,14 @@ describe('exporting', () => {
     expect(s.document.status).toBe('redacting');
   });
 
+  it('RED-50: EXPORT_FAILED after EXPORT_SAVED drops the saved bytes, so the phase is not saved', () => {
+    const saved = { blob, name: 'redacted_a.pdf' };
+    const s = run(fresh(), { type: 'EXPORT_STARTED', announcement: 'x' }, { type: 'EXPORT_SAVED', saved }, { type: 'EXPORT_FAILED', detail: 'd', announcement: 'a' });
+    expect(s.finish.exportedForHandoff).toBeNull();
+    expect(finishPhaseOf(s)).not.toBe('saved');
+    expect(s.document.errorDetail).toBe('d');
+  });
+
   it('EXPORT_DELIVERED returns to editing and announces', () => {
     const s = run(fresh(), { type: 'EXPORT_STARTED', announcement: 'x' }, { type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
     expect(s.document.status).toBe('editing');
