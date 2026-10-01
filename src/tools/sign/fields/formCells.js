@@ -390,6 +390,16 @@ function cellRect(cell) {
 }
 
 /**
+ * A box in PDF points as the page-percent box a published field carries.
+ *
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {Bounds} bounds
+ */
+function cellBox(geometry, bounds) {
+  return toPagePercentBox(geometry, cellRect(bounds));
+}
+
+/**
  * Text items whose bulk (>=50% of their own area) sits inside the cell.
  *
  * @param {Bounds} cell
@@ -625,6 +635,28 @@ function confidenceOf(resolved, kind) {
  */
 
 /**
+ * A tick box: its own box, no text, labelled by the column header above it.
+ *
+ * @param {ClosedCell} cell
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @param {TextPoints[]} textItems
+ * @returns {ResolvedCell}
+ */
+function tickBoxCell(cell, geometry, textItems) {
+  return {
+    bounds: cellBox(geometry, cell),
+    enclosureBounds: undefined,
+    writableBounds: undefined,
+    cell,
+    kind: 'checkbox',
+    label: headerAbove(cell, textItems)?.str?.trim(),
+    ownTextCount: 0,
+    coverage: 0,
+    closure: cell.closure,
+  };
+}
+
+/**
  * Closed-cell candidate fields on one page: the text/date/signature/table-cell
  * regions the comb/checkbox detector leaves alone.
  *
@@ -693,12 +725,8 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       const label = caption.str.trim();
       const fieldOwnText = textInsideCell(field, textItemsPoints);
       resolved.push({
-        bounds: toPagePercentBox(geometry, {
-          x0: field.left, y0: field.bottom, x1: field.right, y1: field.top,
-        }),
-        enclosureBounds: field.top === cell.top ? undefined : toPagePercentBox(geometry, {
-          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
-        }),
+        bounds: cellBox(geometry, field),
+        enclosureBounds: field.top === cell.top ? undefined : cellBox(geometry, cell),
         writableBounds: undefined,
         cell,
         kind: classifyKind(fieldOwnText, label),
@@ -714,36 +742,12 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
       // disqualified by any text at all.
       if (ownText.length > 0) continue;
       if ((closedColumnCounts.get(columnKey(cell)) || 0) < MIN_TICK_COLUMN_ROWS) continue;
-      resolved.push({
-        bounds: toPagePercentBox(geometry, {
-          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
-        }),
-        enclosureBounds: undefined,
-        writableBounds: undefined,
-        cell,
-        kind: 'checkbox',
-        label: headerAbove(cell, textItemsPoints)?.str?.trim(),
-        ownTextCount: 0,
-        coverage: 0,
-        closure: cell.closure,
-      });
+      resolved.push(tickBoxCell(cell, geometry, textItemsPoints));
       continue;
     }
     // A lone closed square with no text is a tick box on that alone (FORM-10).
     if (cell.lone && cell.square && ownText.length === 0) {
-      resolved.push({
-        bounds: toPagePercentBox(geometry, {
-          x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
-        }),
-        enclosureBounds: undefined,
-        writableBounds: undefined,
-        cell,
-        kind: 'checkbox',
-        label: headerAbove(cell, textItemsPoints)?.str?.trim(),
-        ownTextCount: 0,
-        coverage: 0,
-        closure: cell.closure,
-      });
+      resolved.push(tickBoxCell(cell, geometry, textItemsPoints));
       continue;
     }
     // A row of a stack has a rule between it and its neighbour, so only a
@@ -778,18 +782,12 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
 
     // Only the band carve is trusted as bounds (see the module doc).
     const field = writable.carve === 'band' ? writable.area : cell;
-    const bounds = toPagePercentBox(geometry, {
-      x0: field.left, y0: field.bottom, x1: field.right, y1: field.top,
-    });
-    const enclosureBounds = field === cell ? undefined : toPagePercentBox(geometry, {
-      x0: cell.left, y0: cell.bottom, x1: cell.right, y1: cell.top,
-    });
+    const bounds = cellBox(geometry, field);
+    const enclosureBounds = field === cell ? undefined : cellBox(geometry, cell);
     // A side carve is where the typed box belongs, though not trusted as
     // bounds; printed separators publish no strip and keep the whole span.
     const strip = writable.carve === 'side' ? typingStrip(cell, ownText, writable.area) : null;
-    const writableBounds = strip
-      ? toPagePercentBox(geometry, { x0: strip.left, y0: strip.bottom, x1: strip.right, y1: strip.top })
-      : undefined;
+    const writableBounds = strip ? cellBox(geometry, strip) : undefined;
     resolved.push({
       bounds, enclosureBounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
     });
