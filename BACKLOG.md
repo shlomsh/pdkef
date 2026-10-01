@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 39 live: 1 up next, 10 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 1 up next, 11 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -61,6 +61,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
+| QUAL-20 | P2 | [QUAL-20](backlog/tasks/QUAL-20.md) · The home demo's scroll-progress e2e fails under a full 4-worker run |  |
 | DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | Needs Shlomi: Whether the usage funnel is wanted, and the privacy-page sentence for it |
 
 ### Waiting
