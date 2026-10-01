@@ -7,10 +7,10 @@ paths:
   - "src/lib/gestures/**"
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
-  - "docs/E4-headless-editor-core-plan.md"
-  - "docs/editor-module-boundaries-plan.md"
-  - "docs/view-density-control-spec.md"
-  - "docs/sign-redact-draft-validation-plan.md"
+  - "docs/archive/E4-headless-editor-core-plan.md"
+  - "docs/archive/editor-module-boundaries-plan.md"
+  - "docs/archive/view-density-control-spec.md"
+  - "docs/archive/sign-redact-draft-validation-plan.md"
 ---
 
 # Sign/Redact editor
@@ -21,7 +21,7 @@ leave the device, and gestures mutate the DOM live and commit state once on rele
 the rules that fixed shipped bugs, each with its tell and its guard. Fonts and text export:
 `fonts-and-text.md`. Styling boundary: `styling.md`. The other tools, draft persistence, the
 cross-tool hand-off pattern and the UX guideline live in `tools-and-shell.md`. Design record for the
-core: [docs/E4-headless-editor-core-plan.md](../../docs/E4-headless-editor-core-plan.md). The target
+core: [docs/archive/E4-headless-editor-core-plan.md](../../docs/archive/E4-headless-editor-core-plan.md). The target
 folder layout for `src/`, the dependency rules between tools, shell, editor-ui, editor and lib, and
 the evidence behind both are in
 [docs/module-boundaries.md](../../docs/module-boundaries.md) (ARCH-15); read it before moving a file

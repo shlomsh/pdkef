@@ -1,7 +1,7 @@
 # Localized search demand: research brief
 
 A self-contained prompt for a research agent (human or otherwise). Written for
-[LOC-01](../backlog/tasks/LOC-01.md), the gate for the `localized-search` epic. **This document
+[LOC-01](../../backlog/tasks/LOC-01.md), the gate for the `localized-search` epic. **This document
 produces a per-language demand and phrasing matrix, not a translation.** Nothing here authorises
 publishing a page; that is decided ticket by ticket from the evidence this brief returns.
 

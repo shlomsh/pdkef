@@ -1,7 +1,7 @@
 # Localized search demand: research report
 
-Produced against [docs/localized-search-research-brief.md](./localized-search-research-brief.md) for
-[LOC-01](../backlog/tasks/LOC-01.md). Hebrew's incumbent check (source 2 of the ticket's method) was
+Produced against [docs/archive/localized-search-research-brief.md](./localized-search-research-brief.md) for
+[LOC-01](../../backlog/tasks/LOC-01.md). Hebrew's incumbent check (source 2 of the ticket's method) was
 already done by Shlomi's screenshots and is not repeated here; this report adds Hebrew's remaining
 criterion-1 gap and covers the languages LOC-01 still needs: Indonesian, Malay, Hindi (the
 decision-gating trio), then lighter passes on Filipino, Urdu, Bengali, Arabic.

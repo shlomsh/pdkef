@@ -6,7 +6,7 @@ through the real input: five one-page scans (two with Hebrew names), a twelve-pa
 landscape page, and one file meant to be encrypted (see "Not verified"). Every claim below was seen
 on screen or measured with getBoundingClientRect and getComputedStyle. Earlier context: the critique
 at `.impeccable/critique/2026-09-13T08-01-12Z__src-components-pdfmergetool-tsx.md`, the direction
-in `docs/merge-direction-a-spec.md`, the sketch in `docs/merge-direction-a-sketch.html`.
+in `docs/archive/merge-direction-a-spec.md`, the sketch in `docs/archive/merge-direction-a-sketch.html`.
 
 ## Where it stands
 

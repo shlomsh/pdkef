@@ -11,7 +11,7 @@ paths:
   - "public/robots.txt"
   - "README.md"
   - "docs/seo-*"
-  - "docs/localized-*"
+  - "docs/archive/localized-*"
   - "backlog/tasks/SEO-*"
   - "backlog/tasks/LOC-*"
   - "scripts/seo*"
