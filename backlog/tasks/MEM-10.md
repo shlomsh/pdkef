@@ -60,6 +60,18 @@ Shlomi's ruling on updates with several tabs open:
   already reaches the person, which is what the 2026-09-20 report lacked. Reopen only if a fix fails to
   land again.
 
+Two follow-up calls made while building it, the same day:
+
+- **Placement: just under the app bar, never on it.** Fixed at the top centre it covered the app bar's
+  chips (desktop) and the logo (phone). It now sits 8px under the bar, end-aligned with the chips on
+  tablet and desktop, centred on a phone.
+- **When the holding export finishes, Reload comes back; nothing reloads on its own.** Continuing the
+  update automatically would discard a result that Compress, Split, To Image and the others keep only
+  in memory until Download. Every tab returns to "A new version is ready · Reload" and the person clicks
+  again. A tab in the waiting state re-asks every few seconds, so a holding tab that closed or crashed
+  cannot strand it. If the worker refuses (a window that did not answer, such as a frozen tab or one
+  from a build before this ticket), the line says to close the other tabs and keeps the button.
+
 Acceptance adds a Playwright guard for two tabs: an old build open in both, a new build deployed, one
 click, both land on the new build with their work intact.
 

@@ -39,7 +39,7 @@ function makeWorker(ok = true) {
 function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
   const line = document.createElement('p');
   line.hidden = true;
-  line.dataset.state = 'ready';
+  line.dataset.appUpdateState = 'ready';
   line.innerHTML = '<button type="button" data-app-update-reload></button>';
   const reg: any = new Emitter();
   reg.waiting = opts.waiting ?? null;
@@ -118,7 +118,7 @@ describe('startAppUpdates', () => {
     const tab = makeTab(new Bus(), { waiting: makeWorker() });
     await tab.start();
     expect(tab.line.hidden).toBe(false);
-    expect(tab.line.dataset.state).toBe('ready');
+    expect(tab.line.dataset.appUpdateState).toBe('ready');
   });
 
   it('shows after updatefound reaches installed', async () => {
@@ -146,7 +146,7 @@ describe('startAppUpdates', () => {
     expect(worker.messages).toEqual([{ type: 'pdkef:skip-waiting', windows: 2 }]);
   });
 
-  it('a held answer posts nothing and puts both tabs in waiting; the release then posts skip-waiting', async () => {
+  it('a held answer posts nothing and puts both tabs in waiting; the release brings Reload back without reloading', async () => {
     const bus = new Bus();
     const worker = makeWorker();
     const a = makeTab(bus, { waiting: worker });
@@ -159,23 +159,52 @@ describe('startAppUpdates', () => {
       a.button.click();
       await vi.advanceTimersByTimeAsync(500);
       expect(worker.postMessage).not.toHaveBeenCalled();
-      expect(a.line.dataset.state).toBe('waiting');
-      expect(b.line.dataset.state).toBe('waiting');
+      expect(a.line.dataset.appUpdateState).toBe('waiting');
+      expect(b.line.dataset.appUpdateState).toBe('waiting');
     } finally {
       release();
     }
     await vi.advanceTimersByTimeAsync(500);
-    expect(worker.messages).toEqual([{ type: 'pdkef:skip-waiting', windows: 2 }]);
+    // The finished export's result may still be waiting for its Download, so
+    // the person clicks again; nothing reloads on its own.
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(a.line.dataset.appUpdateState).toBe('ready');
+    expect(b.line.dataset.appUpdateState).toBe('ready');
   });
 
-  it('ok:false retries then returns to ready', async () => {
+  it('a waiting tab gets Reload back when the holding tab is gone', async () => {
+    const bus = new Bus();
+    const a = makeTab(bus, { waiting: makeWorker() });
+    await a.start();
+    // Another tab said it was exporting, then closed without a word.
+    new FakeChannel(bus).postMessage({ type: 'update-waiting' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(a.line.dataset.appUpdateState).toBe('waiting');
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(a.line.dataset.appUpdateState).toBe('ready');
+    expect(a.reload).not.toHaveBeenCalled();
+  });
+
+  it('shows the line for a worker that was already installing when the tab loaded', async () => {
+    const tab = makeTab(new Bus());
+    const installing: any = new Emitter();
+    installing.state = 'installing';
+    tab.reg.installing = installing;
+    await tab.start();
+    installing.state = 'installed';
+    tab.reg.waiting = makeWorker();
+    installing.emit('statechange');
+    expect(tab.line.hidden).toBe(false);
+  });
+
+  it('ok:false retries, then says to close the other tabs and keeps the button', async () => {
     const worker = makeWorker(false);
     const tab = makeTab(new Bus(), { waiting: worker });
     await tab.start();
     tab.button.click();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(worker.postMessage).toHaveBeenCalledTimes(3);
-    expect(tab.line.dataset.state).toBe('ready');
+    expect(tab.line.dataset.appUpdateState).toBe('blocked');
     expect(tab.button.disabled).toBe(false);
   });
 

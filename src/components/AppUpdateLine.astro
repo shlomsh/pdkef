@@ -12,9 +12,11 @@ const { lang = 'en' } = Astro.props;
 const messages = getAppUpdateMessages(lang);
 ---
 
-<p class="app-update" data-app-update data-state="ready" role="status" hidden>
-  <span class="app-update-ready">{messages.ready}<span aria-hidden="true"> · </span><button type="button" data-app-update-reload>{messages.reload}</button></span>
+<p class="app-update" data-app-update data-app-update-state="ready" role="status" hidden>
+  <span class="app-update-ready">{messages.ready}</span>
+  <span class="app-update-blocked">{messages.blocked}</span>
   <span class="app-update-waiting">{messages.waiting}</span>
+  <span class="app-update-action"><span aria-hidden="true">·</span><button type="button" data-app-update-reload>{messages.reload}</button></span>
 </p>
 
 <style>
@@ -27,6 +29,11 @@ const messages = getAppUpdateMessages(lang);
     inset-block-start: calc(3.5rem + 8px);
     inset-inline-end: 1.5rem;
     max-inline-size: calc(100% - 32px);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 0.3rem;
     z-index: 80;
     padding: 0.25rem 0.7rem;
     font-size: 0.8rem;
@@ -52,15 +59,16 @@ const messages = getAppUpdateMessages(lang);
   .app-update[hidden] {
     display: none;
   }
-  .app-update[data-state='ready'] .app-update-waiting,
-  .app-update[data-state='waiting'] .app-update-ready {
+  /* One sentence per state; the Reload action in every state but 'waiting'. */
+  .app-update:not([data-app-update-state='ready']) .app-update-ready,
+  .app-update:not([data-app-update-state='blocked']) .app-update-blocked,
+  .app-update:not([data-app-update-state='waiting']) .app-update-waiting,
+  .app-update[data-app-update-state='waiting'] .app-update-action {
     display: none;
   }
-  .app-update-ready {
+  .app-update-action {
     display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
     column-gap: 0.3rem;
   }
   .app-update button {

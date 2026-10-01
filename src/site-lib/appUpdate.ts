@@ -18,13 +18,22 @@ export const ANSWER_WINDOW_MS = 400;
 export const ACK_TIMEOUT_MS = 3000;
 export const RETRY_DELAY_MS = 1500;
 export const MAX_ATTEMPTS = 3;
+export const RECHECK_WAITING_MS = 5000;
 
-export type LineState = 'ready' | 'waiting';
+/**
+ * 'ready': the Reload button. 'waiting': a tab has an export in flight; the
+ * button comes back once none does, and the person clicks again (an export's
+ * result may still be waiting for its Download, so finishing never reloads on
+ * its own). 'blocked': the worker refused because a window did not answer
+ * (a frozen tab, or one on a build from before MEM-10); the line says to close
+ * other tabs and keeps the button.
+ */
+export type LineState = 'ready' | 'waiting' | 'blocked';
 
 export type UpdateMessage =
   | { type: 'hold-query'; from: string; query: string }
   | { type: 'hold-answer'; to: string; from: string; query: string; held: boolean }
-  | { type: 'update-requested' }
+  | { type: 'hold-changed' }
   | { type: 'update-waiting' };
 
 /** An update, never a first install: a waiting worker beside a controller. */
@@ -95,8 +104,9 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   const channel = deps.createChannel(CHANNEL_NAME);
   const button = line?.querySelector<HTMLButtonElement>('[data-app-update-reload]') ?? null;
 
-  let requested = false;
+  let state: LineState | 'hidden' = 'hidden';
   let running = false;
+  let rechecking = false;
   let reloading = false;
   let lastCheck = deps.now();
   let answers = new Map<string, boolean>();
@@ -105,16 +115,17 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   const post = (message: UpdateMessage) => channel?.postMessage(message);
   const sleep = (ms: number) => new Promise<void>((resolve) => { deps.setTimeout(resolve, ms); });
 
-  function setState(state: LineState) {
+  function setState(next: LineState) {
+    state = next;
     if (!line) return;
-    line.dataset.state = state;
+    line.dataset.appUpdateState = next;
     line.removeAttribute('hidden');
   }
 
   const reg = await serviceWorker.register('/sw.js');
 
   function showIfWaiting() {
-    if (isUpdateWaiting(reg, serviceWorker.controller)) setState('ready');
+    if (state === 'hidden' && isUpdateWaiting(reg, serviceWorker.controller)) setState('ready');
   }
 
   function collectAnswers(): Promise<Answer[]> {
@@ -141,9 +152,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   async function requestUpdate(): Promise<void> {
     if (running || reloading) return;
     running = true;
-    requested = true;
     if (button) button.disabled = true;
-    post({ type: 'update-requested' });
     try {
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         const decision = decideRequest({ selfHeld: isUpdateHeld(), answers: await collectAnswers() });
@@ -155,8 +164,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
         if (await postSkipWaiting(decision.windows)) return;
         if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS);
       }
-      requested = false;
-      setState('ready');
+      if (!reloading) setState('blocked');
     } finally {
       running = false;
       if (button) button.disabled = false;
@@ -170,15 +178,30 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
       post({ type: 'hold-answer', to: message.from, from: id, query: message.query, held: isUpdateHeld() });
     } else if (message.type === 'hold-answer' && message.to === id && message.query === currentQuery) {
       answers.set(message.from, message.held);
-    } else if (message.type === 'update-requested') {
-      requested = true;
     } else if (message.type === 'update-waiting') {
       setState('waiting');
+    } else if (message.type === 'hold-changed') {
+      void recheckWaiting();
     }
   });
 
-  onUpdateHoldChange((held) => {
-    if (!held && requested) void requestUpdate();
+  // Back to the button once no tab holds. Asked again on every hold change and
+  // on a timer, so a holder that closed or crashed cannot strand the line.
+  async function recheckWaiting(): Promise<void> {
+    if (state !== 'waiting' || rechecking || running || reloading) return;
+    rechecking = true;
+    try {
+      const decision = decideRequest({ selfHeld: isUpdateHeld(), answers: await collectAnswers() });
+      if (decision.action !== 'wait' && state === 'waiting') setState('ready');
+    } finally {
+      rechecking = false;
+    }
+  }
+  deps.setInterval(() => { void recheckWaiting(); }, RECHECK_WAITING_MS);
+
+  onUpdateHoldChange(() => {
+    post({ type: 'hold-changed' });
+    void recheckWaiting();
   });
 
   button?.addEventListener('click', () => { void requestUpdate(); });
@@ -208,12 +231,14 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     deps.reload();
   });
 
-  reg.addEventListener('updatefound', () => {
-    const worker = reg.installing;
+  function watchInstalling(worker: WorkerLike | null) {
     worker?.addEventListener?.('statechange', () => {
       if (worker.state === 'installed') showIfWaiting();
     });
-  });
+  }
+  reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
+  // A tab that loads mid-install missed that updatefound.
+  watchInstalling(reg.installing);
 
   function checkForUpdate() {
     lastCheck = deps.now();
