@@ -1,0 +1,175 @@
+{
+ "id": "thai-sso-1-10",
+ "pageWidthPts": 841.92,
+ "pageHeightPts": 595.32,
+ "rules": [
+  {
+   "id": "thai-sso-1-10-r1",
+   "kind": "rule",
+   "x0": 565.9,
+   "x1": 588.4,
+   "y": 109.1,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r2",
+   "kind": "rule",
+   "x0": 598.15,
+   "x1": 676.15,
+   "y": 109.1,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r3",
+   "kind": "rule",
+   "x0": 565.9,
+   "x1": 588.4,
+   "y": 127.1,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r4",
+   "kind": "rule",
+   "x0": 598.15,
+   "x1": 676.15,
+   "y": 127.1,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r5",
+   "kind": "rule",
+   "x0": 565.9,
+   "x1": 633.4,
+   "y": 132.45,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r6",
+   "kind": "rule",
+   "x0": 565.9,
+   "x1": 633.4,
+   "y": 150.45,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r7",
+   "kind": "rule",
+   "x0": 445.5,
+   "x1": 772.9,
+   "y": 196.6,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r8",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 196.85,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r9",
+   "kind": "rule",
+   "x0": 445.5,
+   "x1": 772.9,
+   "y": 217.1,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r10",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 221,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r11",
+   "kind": "rule",
+   "x0": 268.9,
+   "x1": 385.9,
+   "y": 239.75,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r12",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 253.25,
+   "thickness": 1.08
+  },
+  {
+   "id": "thai-sso-1-10-r13",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 275.05,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r14",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 296.05,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r15",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 312.55,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r16",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 332.75,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r17",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 350.75,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r18",
+   "kind": "rule",
+   "x0": 444.75,
+   "x1": 772.15,
+   "y": 353.5,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r19",
+   "kind": "rule",
+   "x0": 61.9,
+   "x1": 385.9,
+   "y": 375.35,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r20",
+   "kind": "rule",
+   "x0": 445.5,
+   "x1": 772.9,
+   "y": 377.6,
+   "thickness": 0.72
+  },
+  {
+   "id": "thai-sso-1-10-r21",
+   "kind": "rule",
+   "x0": 445.5,
+   "x1": 772.9,
+   "y": 540,
+   "thickness": 0.72
+  }
+ ]
+}
