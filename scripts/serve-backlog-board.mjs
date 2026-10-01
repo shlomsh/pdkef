@@ -3,8 +3,8 @@
 // files on every request. The columns come from columnOf in backlog-data.mjs,
 // the same rule BACKLOG.md uses, so the two cannot disagree.
 import { createServer } from 'node:http';
-import { readTasks, columnOf, compareTasks, COLUMNS } from './backlog-data.mjs';
-import { lanes, closedEpics, LIVE_STATUSES } from './backlog-epics.mjs';
+import { readTasks, validateTasks, columnOf, compareTasks, COLUMNS } from './backlog-data.mjs';
+import { lanes, epics, LIVE_STATUSES } from './backlog-epics.mjs';
 
 const port = Number(process.env.BACKLOG_PORT || 4321);
 const host = '127.0.0.1';
@@ -15,8 +15,10 @@ const clientTask = (task) => ({
 });
 
 function board(tasks) {
+  const problems = validateTasks(tasks);
   const live = tasks.filter((task) => LIVE_STATUSES.has(task.status));
   return {
+    problems,
     lanes: lanes.map((lane) => {
       const mine = live.filter((task) => task.epic === lane.key);
       return {
@@ -24,7 +26,7 @@ function board(tasks) {
         columns: Object.fromEntries(COLUMNS.map(([column]) => [column, mine.filter((task) => columnOf(task) === column).sort(compareTasks).map(clientTask)])),
       };
     }),
-    closed: closedEpics.map((epic) => {
+    closed: epics.map((epic) => {
       const mine = tasks.filter((task) => task.epic === epic.key);
       return { label: epic.label, done: mine.filter((task) => task.status === 'done').length, retired: mine.filter((task) => task.status === 'retired').length };
     }).filter((epic) => epic.done + epic.retired > 0),
@@ -172,7 +174,7 @@ ul.plain code { font: 500 12px var(--font-id); }
 // Runs in the browser; embedded with toString() so it needs no escaping.
 function client(columns) {
   const FLAG_LABEL = 'Needs Shlomi';
-  const isDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const isDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value + 'T00:00:00Z')) && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmtDate = (d) => (isDate(d) ? new Date(d + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : d);
   const el = (id) => document.getElementById(id);
@@ -210,7 +212,7 @@ function client(columns) {
     const dates = dated.map((x) => x.t.waitingOn);
     const start = Date.parse(today + 'T00:00:00Z');
     const lo = Math.min(start, Date.parse(dates.slice().sort()[0] + 'T00:00:00Z'));
-    const end = Math.max(...dates.map((d) => Date.parse(d + 'T00:00:00Z'))) + 7 * 86400000;
+    const end = Math.max(start, ...dates.map((d) => Date.parse(d + 'T00:00:00Z'))) + 7 * 86400000;
     const span = end - lo;
     const pct = (d) => ((Date.parse(d + 'T00:00:00Z') - lo) / span * 100).toFixed(2) + '%';
     const byDate = {};
@@ -284,7 +286,9 @@ function client(columns) {
       const response = await fetch('/api/board', { cache: 'no-store' });
       if (!response.ok) throw new Error('The task files could not be read.');
       data = await response.json();
-      el('error').hidden = true;
+      // The board still renders a broken backlog, but says what check:backlog will reject.
+      el('error').hidden = !data.problems.length;
+      el('error').textContent = data.problems.length ? 'check:backlog would fail: ' + data.problems.join(' ') : '';
       el('live').textContent = 'Updated ' + new Date().toLocaleTimeString();
       render();
     } catch (caught) {

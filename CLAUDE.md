@@ -189,7 +189,7 @@ to raise a limit.** Page-weight budgets are budgets, not ratchets.
 | `content-and-copy.md` | `src/content/**`, `src/data/**`, `.astro` components, SEO docs | content collection, full voice guide, SEO invariants and acquisition |
 | `home-page.md` | `src/pages/index.astro`, `HeroDemo/**`, `FileDropzone*`, `e2e/home/**` | layout/CLS invariants, launcher vs demo, scroll-driven reveal |
 
-Design records: [docs/archive/E4-headless-editor-core-plan.md](./docs/archive/E4-headless-editor-core-plan.md) (editor
+Design records: [docs/E4-headless-editor-core-plan.md](./docs/E4-headless-editor-core-plan.md) (editor
 core), [docs/wysiwyg-text-architecture.md](./docs/wysiwyg-text-architecture.md) (text pipeline, current),
 [docs/shaping-guard-platform-calibration.md](./docs/shaping-guard-platform-calibration.md) (why a guard's
 green means what it means).

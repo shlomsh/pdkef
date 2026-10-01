@@ -12,6 +12,9 @@ const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const taskDirectory = resolve(projectDirectory, 'backlog/tasks');
 
 const ID_PATTERN = /^[A-Z]+-\d{2,}$/;
+// phase and legacy_state are listed so they get their own migration message below.
+const KNOWN_FIELDS = new Set(['id', 'title', 'status', 'priority', 'epic', 'horizon', 'order', 'depends_on', 'waiting_on', 'needs', 'phase', 'legacy_state']);
+const INTERNAL_FIELDS = new Set(['file', 'body']);
 
 function parseScalar(value) {
   const trimmed = value.trim();
@@ -28,11 +31,14 @@ function parseScalar(value) {
 export function parseTask(markdown, path = 'task') {
   const match = markdown.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) throw new Error(`${path} must start with YAML front matter.`);
-  const metadata = Object.fromEntries(match[1].split('\n').filter(Boolean).map((line) => {
+  const metadata = {};
+  for (const line of match[1].split('\n').filter(Boolean)) {
     const separator = line.indexOf(':');
     if (separator < 1) throw new Error(`${path} has invalid front matter: ${line}`);
-    return [line.slice(0, separator).trim(), parseScalar(line.slice(separator + 1))];
-  }));
+    const key = line.slice(0, separator).trim();
+    if (Object.hasOwn(metadata, key)) throw new Error(`${path} sets "${key}" twice.`);
+    metadata[key] = parseScalar(line.slice(separator + 1));
+  }
   for (const field of ['id', 'title', 'status', 'priority', 'epic']) {
     if (!metadata[field]) throw new Error(`${path} is missing required ${field}.`);
   }
@@ -64,6 +70,9 @@ export function validateTasks(tasks, registry = epics) {
     const registered = registry.find((epic) => epic.key === task.epic);
     if (!registered) errors.push(`${where}: epic "${task.epic}" is not registered in scripts/backlog-epics.mjs.`);
     else if (registered.closed && LIVE_STATUSES.has(task.status)) errors.push(`${where}: ${task.status} tickets cannot sit in the closed epic "${task.epic}"; move it to one of the six lanes (${lanes.map((lane) => lane.key).join(', ')}).`);
+    for (const key of Object.keys(task)) {
+      if (!KNOWN_FIELDS.has(key) && !INTERNAL_FIELDS.has(key)) errors.push(`${where}: unknown field "${key}" (fields: ${[...KNOWN_FIELDS].slice(0, 10).join(', ')}).`);
+    }
     if (task.phase !== undefined) errors.push(`${where}: "phase" was removed; it became "horizon" (now | next | later).`);
     if (task.legacy_state !== undefined) errors.push(`${where}: "legacy_state" was removed; delete the line.`);
     const needsHorizon = task.status === 'open' || task.status === 'in_progress';
@@ -71,6 +80,7 @@ export function validateTasks(tasks, registry = epics) {
       if (needsHorizon) errors.push(`${where}: ${task.status} ticket needs a horizon (one of ${HORIZONS.join(', ')}).`);
     } else if (!needsHorizon) errors.push(`${where}: horizon is only for open and in_progress tickets, not ${task.status}.`);
     else if (!HORIZONS.includes(task.horizon)) errors.push(`${where}: unsupported horizon "${task.horizon}" (one of ${HORIZONS.join(', ')}).`);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(task.waiting_on ?? '')) && !isDate(task.waiting_on)) errors.push(`${where}: waiting_on "${task.waiting_on}" is not a real date.`);
     if (task.status === 'blocked' && !task.waiting_on) errors.push(`${where}: blocked ticket needs waiting_on (an ISO date or short text).`);
     else if (task.status !== 'blocked' && task.waiting_on !== undefined) errors.push(`${where}: waiting_on is only for blocked tickets, not ${task.status}.`);
     if (task.order !== undefined && !/^[1-9]\d*$/.test(String(task.order))) errors.push(`${where}: order "${task.order}" must be a positive integer.`);
@@ -129,6 +139,10 @@ export function compareTasks(a, b) {
   return (orderOf(a) - orderOf(b)) || a.priority.localeCompare(b.priority) || a.id.localeCompare(b.id, undefined, { numeric: true });
 }
 
+// A real calendar date in ISO form: 2026-02-30 and 2026-13-01 are not.
 export function isDate(value) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ''));
+  const text = String(value ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const parsed = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === text;
 }

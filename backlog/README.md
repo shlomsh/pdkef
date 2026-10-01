@@ -6,20 +6,31 @@ Each file in [`tasks/`](tasks/) is one editable task record. This directory is t
 ---
 id: "RED-29"
 title: "Delete finds what a page draws inside a Form XObject"
-status: "open"           # open | in_progress | blocked | done | retired
-priority: "P1"           # P1 | P2 | P3
-epic: "redact"           # live work: one of the six lanes below. Done/retired: any registered epic.
-horizon: "next"          # now | next | later. Required for open and in_progress; not allowed otherwise.
-order: 1                 # optional positive integer: position inside its board column
+status: "open"
+priority: "P1"
+epic: "redact"
+horizon: "next"
+order: 1
 depends_on: []
-waiting_on: "2026-10-08" # required for blocked, not allowed otherwise. An ISO date or short text.
-needs: "A check on your iPhone" # optional: what Shlomi has to supply
 ---
 ```
 
+A blocked ticket swaps `horizon`/`order` for `waiting_on: "2026-10-08"`. Any ticket may add
+`needs: "A check on your iPhone"`. The parser has no comment syntax, so keep notes in the body.
+
+| key | values |
+| --- | --- |
+| `status` | open, in_progress, blocked, done, retired |
+| `priority` | P1, P2, P3 |
+| `epic` | live work: one of the six lanes below. Done or retired: any registered epic |
+| `horizon` | now, next, later. Required for open and in_progress, not allowed otherwise |
+| `order` | optional positive integer: position inside its board column |
+| `waiting_on` | required for blocked, not allowed otherwise. A real ISO date or short text |
+| `needs` | optional: what Shlomi has to supply |
+
 Key order in the file is id, title, status, priority, epic, horizon, order, depends_on, waiting_on,
 needs. Leave out an optional key that has no value. `phase` became `horizon` (now | next | later) and
-`legacy_state` is gone; the validator rejects both.
+`legacy_state` is gone; the validator rejects both, and any other unknown or repeated key.
 
 ## Lanes
 

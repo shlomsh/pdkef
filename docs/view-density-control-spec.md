@@ -3,7 +3,7 @@
 > **Status: landed.** `ViewControl.jsx`, `useViewDensity.js` and their tests are in the tree and wired
 > into both the Sign and Redact toolbars. This is kept as the design record for *why* the control works
 > the way it does, not as a task. Backlog state lives in
-> [TODO.md](../../TODO.md).
+> [TODO.md](../TODO.md).
 >
 > This file used to be named `E9-...`, which collided with the board's unrelated E9 (offline-first app
 > shell). The prefix was dropped; the doc was never a board epic.
@@ -11,7 +11,7 @@
 Implementation spec. Self-contained: read this plus the files it names, and you
 should not need the conversation that produced it.
 
-**Read [CLAUDE.md](../../CLAUDE.md) first**, in particular the CSP section, the
+**Read [CLAUDE.md](../CLAUDE.md) first**, in particular the CSP section, the
 "Styling direction" section, and the Sign editor toolbar rules. Several
 invariants below are load-bearing and each one already caused a shipped bug.
 

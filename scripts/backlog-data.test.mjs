@@ -66,6 +66,17 @@ describe('validateTasks', () => {
     expect(validateTasks([task('A-01', { status: 'done', epic: 'old', horizon: undefined, waiting_on: 'x' })], registry)).toEqual([expect.stringContaining('waiting_on is only for blocked tickets, not done')]);
   });
 
+  it('rejects a waiting_on that looks like a date but is not one', () => {
+    const blocked = (waiting_on) => task('A-01', { status: 'blocked', horizon: undefined, waiting_on });
+    expect(validateTasks([blocked('2026-13-45')], registry)).toEqual([expect.stringContaining('"2026-13-45" is not a real date')]);
+    expect(validateTasks([blocked('2026-02-30')], registry)).toEqual([expect.stringContaining('"2026-02-30" is not a real date')]);
+    expect(validateTasks([blocked('2028-02-29')], registry)).toEqual([]);
+  });
+
+  it('rejects an unknown field, so a typo in an optional key is not silently ignored', () => {
+    expect(validateTasks([task('A-01', { ordre: '1' })], registry)).toEqual([expect.stringContaining('unknown field "ordre"')]);
+  });
+
   it('accepts only a positive integer order', () => {
     expect(validateTasks([task('A-01', { order: 3 })], registry)).toEqual([]);
     for (const order of ['0', '-1', '1.5', 'first']) {
@@ -116,6 +127,14 @@ describe('parseTask', () => {
   it('requires front matter and the five required fields', () => {
     expect(() => parseTask('# no front matter', 'x.md')).toThrow('x.md must start with YAML front matter.');
     expect(() => parseTask('---\nid: "A-01"\ntitle: "t"\n---\nbody', 'x.md')).toThrow('x.md is missing required status.');
+  });
+
+  it('rejects a key set twice instead of keeping the last one', () => {
+    expect(() => parseTask('---\nid: "A-01"\nid: "A-02"\n---\nbody', 'x.md')).toThrow('x.md sets "id" twice.');
+  });
+
+  it('unescapes quotes inside a double-quoted value', () => {
+    expect(task('A-01', { title: 'The \\"Scanned\\" footer' }).title).toBe('The "Scanned" footer');
   });
 
   it('reads quoted list items without their quotes', () => {

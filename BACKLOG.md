@@ -193,12 +193,18 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
+- Redact: finish removal: 0 done, 0 retired
+- Sign: finish fill mode: 0 done, 0 retired
+- Form detector accuracy: 0 done, 0 retired
+- Robustness and debt: 0 done, 0 retired
+- Search and languages: 0 done, 0 retired
+- Polish: 0 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired
 - Landing story and demo: 10 done, 0 retired
 - Mobile round trip: 22 done, 7 retired
-- Site quality: 15 done, 0 retired
+- Site quality: 14 done, 1 retired
 - Search acquisition: 11 done, 1 retired
 - Localized search: 9 done, 1 retired
 - Awaiting a read: 0 done, 10 retired

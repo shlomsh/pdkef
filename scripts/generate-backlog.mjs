@@ -6,7 +6,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readTasks, validateTasks, columnOf, compareTasks, isDate, COLUMNS } from './backlog-data.mjs';
-import { lanes, closedEpics, LIVE_STATUSES } from './backlog-epics.mjs';
+import { lanes, epics, LIVE_STATUSES } from './backlog-epics.mjs';
 
 const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const backlogPath = resolve(projectDirectory, 'BACKLOG.md');
@@ -42,7 +42,7 @@ export function summary(tasks) {
     }).filter(Boolean).join('\n');
     return `## ${lane.label}\n\n${lane.why}\n\n${groups || '_Nothing live._\n'}`;
   }).join('\n');
-  const closed = closedEpics.map((epic) => {
+  const closed = epics.map((epic) => {
     const mine = tasks.filter((task) => task.epic === epic.key);
     const done = mine.filter((task) => task.status === 'done').length;
     const retired = mine.filter((task) => task.status === 'retired').length;
