@@ -127,7 +127,7 @@ export async function unsupportedCharactersInDocument(elements) {
       }
     });
   } catch (error) {
-    reportError('fonts', error);
+    reportError('fonts', error, 'check_font_coverage');
     return { characters: [], pageNumbers: [] };
   }
 }

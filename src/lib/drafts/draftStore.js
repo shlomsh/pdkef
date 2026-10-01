@@ -4,10 +4,10 @@ import { createDraftRetention, isDraftExpired } from './draftPolicy.js';
 // The catches below also cover opening the database, which fails in private or
 // locked-down windows (InvalidStateError, UnknownError). That is the
 // environment, not a defect, so those two names are not reported.
-function reportStoreError(area, error) {
+function reportStoreError(area, error, step) {
   const name = error?.name;
   if (name === 'InvalidStateError' || name === 'UnknownError') return;
-  reportError(area, error);
+  reportError(area, error, step);
 }
 
 // Workspace-owned, on-device memory for every PDF a tool has touched. Uses
@@ -200,7 +200,7 @@ export async function saveHandoff(tool, record) {
     });
     return true;
   } catch (e) {
-    reportStoreError('handoff', e);
+    reportStoreError('handoff', e, 'save_handoff');
     console.error('draftStore.saveHandoff failed:', e);
     return false;
   }
@@ -231,7 +231,7 @@ export async function takeHandoff(tool) {
     }
     return record.fileBytes ? record : null;
   } catch (e) {
-    reportStoreError('handoff', e);
+    reportStoreError('handoff', e, 'take_handoff');
     console.error('draftStore.takeHandoff failed:', e);
     return null;
   }
@@ -446,7 +446,7 @@ export async function cacheRecentFile(tool, record) {
       };
     });
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'cache_recent_file');
     console.error('draftStore.cacheRecentFile failed:', e);
     return false;
   }
@@ -486,7 +486,7 @@ export async function loadRecentFile(id) {
     }
     return { ...record, tool: meta.tool };
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'load_recent_file');
     console.error('draftStore.loadRecentFile failed:', e);
     return null;
   }
@@ -811,7 +811,7 @@ export async function saveDraft(tool, record) {
       };
     });
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'save_draft');
     console.error('draftStore.saveDraft failed:', e);
     return false;
   }
@@ -918,7 +918,7 @@ export async function loadDraft(tool) {
     clearCurrentEntry(tool);
     return null;
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'load_draft');
     console.error('draftStore.loadDraft failed:', e);
     clearCurrentEntry(tool);
     return null;
@@ -965,7 +965,7 @@ export async function deleteDraft(tool) {
       };
     });
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'delete_draft');
     console.error('draftStore.deleteDraft failed:', e);
     return false;
   }
@@ -1009,7 +1009,7 @@ function ensureMigrated() {
         await migrateLegacyDraft(tool);
       }
     })().catch((e) => {
-      reportStoreError('drafts', e);
+      reportStoreError('drafts', e, 'migrate_legacy_drafts');
       console.error('draftStore.migrateLegacyDrafts failed:', e);
     });
   }
@@ -1029,7 +1029,7 @@ async function migrateLegacyDraft(tool) {
   try {
     legacy = await withStore('readonly', (store) => reqToPromise(store.get(tool)));
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'read_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to read:', e);
     return;
   }
@@ -1094,7 +1094,7 @@ async function migrateLegacyDraft(tool) {
       };
     });
   } catch (e) {
-    reportStoreError('drafts', e);
+    reportStoreError('drafts', e, 'write_legacy_draft');
     console.error('draftStore.migrateLegacyDraft failed to write:', e);
     return;
   }
