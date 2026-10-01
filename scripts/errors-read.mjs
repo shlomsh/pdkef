@@ -32,21 +32,38 @@ const keys = Array.from({ length: days }, (_, n) =>
 const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify(keys.map((d) => ['HGETALL', `errors:${d}`])),
+  body: JSON.stringify(keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]])),
 });
 if (!res.ok) {
   console.error(`Store answered ${res.status}.`);
   process.exit(1);
 }
 
-// HGETALL returns a flat [field, count, field, count, ...] array.
+// HGETALL returns a flat [field, value, field, value, ...] array. Replies come
+// in pairs per day: counts, then samples (newest day first, so the first sample seen wins).
 const rows = new Map();
-for (const { result } of await res.json()) {
+const samples = new Map();
+const replies = await res.json();
+replies.forEach(({ result }, idx) => {
+  const isSample = idx % 2 === 1;
   for (let n = 0; n + 1 < (result?.length ?? 0); n += 2) {
-    rows.set(result[n], (rows.get(result[n]) ?? 0) + Number(result[n + 1]));
+    const field = result[n];
+    if (isSample) {
+      if (!samples.has(field)) samples.set(field, result[n + 1]);
+    } else rows.set(field, (rows.get(field) ?? 0) + Number(result[n + 1]));
   }
-}
+});
 const table = [...rows].sort((a, b) => b[1] - a[1]);
 console.log('count | area | name | frame | engine');
-for (const [field, count] of table) console.log(`${count} | ${field.split('|').join(' | ')}`);
+for (const [field, count] of table) {
+  console.log(`${count} | ${field.split('|').join(' | ')}`);
+  let sample = null;
+  try {
+    sample = JSON.parse(samples.get(field) ?? 'null');
+  } catch {}
+  if (!sample) continue;
+  console.log(`    ${sample.step} · ${sample.tool} · ${sample.installed ? 'installed' : 'browser'}/${sample.sw ? 'sw' : 'no-sw'} · ${sample.age}`);
+  for (const frame of sample.stack ?? []) console.log(`    ${frame}`);
+  console.log(`    npm run errors:resolve -- ${(sample.stack ?? []).join(' ')}`);
+}
 if (!table.length) console.log(`(no reports in the last ${days} days)`);
