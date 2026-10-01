@@ -387,6 +387,63 @@ describe('PdfRedactTool UI flow', () => {
       expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
     });
 
+    describe('two pipettes', () => {
+      const boxPipette = () => query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      const brushPipette = () => query<HTMLButtonElement>(container, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
+      const click = async (el: HTMLElement) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+      const brushSwatch = () => query<HTMLElement>(container, '[aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
+      async function selectedBoxAndBrushArmed() {
+        await drawWhiteoutAndSelect();
+        const canvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+        canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
+        canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
+        await armTool('Whiteout');
+        const brushSegment = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
+        await act(async () => { brushSegment.click(); });
+        const before = brushSwatch();
+        return { canvas, before };
+      }
+      async function pick(canvas: HTMLCanvasElement) {
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      }
+
+      it('with a box selected and the brush armed, the box pipette arms only itself and picks into the box', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        await click(boxPipette());
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(rgb('#0a141e'));
+        expect(autoPressed()).toBe('false');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        // pickColor also remembers the colour as the default (existing behaviour), so the brush follows it.
+        expect(before).toBe('#ffffff');
+      });
+
+      it('the brush pipette picks into the brush and leaves the box colour', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        const boxColor = surfaceColor();
+        await click(brushPipette());
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(boxColor);
+        expect(brushSwatch()).not.toBe(before);
+      });
+    });
+
+    it('the workspace carries data-pseudo-fullscreen only while pseudo full screen is on', async () => {
+      await loadFileAndGetDrawArea();
+      const workspace = () => query<HTMLElement>(container, '[data-redact-workspace-ready]');
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
+      const toggle = (label: string) => required(container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"], button[title="${label}"]`), label);
+      await act(async () => { toggle('Full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(true);
+      await act(async () => { toggle('Exit full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
+    });
+
     it('a restored whiteout without a colour mode (an old draft) keeps its colour when moved, and is never sampled', async () => {
       vi.mocked(loadDraft).mockResolvedValueOnce({
         fileName: 'restored.pdf',
