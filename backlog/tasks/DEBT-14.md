@@ -4,7 +4,6 @@ title: "Editor-time boundary feedback: ESLint with @nx/enforce-module-boundaries
 status: "retired"
 priority: "P3"
 epic: "architecture-debt"
-phase: "later"
 depends_on: ["DEBT-07"]
 ---
 

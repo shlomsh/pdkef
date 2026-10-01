@@ -4,7 +4,6 @@ title: "Decide whether Sign gets a review layer for the proposed field map, or s
 status: "retired"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["MOBI-11"]
 ---
 

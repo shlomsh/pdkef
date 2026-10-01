@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · Merge is an authority fight, not a content fight: add
 status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-35 · Read 2026-10-08 · Merge is an authority fight, not a content fight: add the combine vocabulary, then stop

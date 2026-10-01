@@ -4,9 +4,7 @@ title: "Pre-generate the signed PDF so Share is one tap, not two"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-09-05"
 ---
 
 # MOBI-07 · Pre-generate the signed PDF so Share is one tap, not two

@@ -4,7 +4,6 @@ title: "Data attributes replace the text-element class-name registry"
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
 ---
 

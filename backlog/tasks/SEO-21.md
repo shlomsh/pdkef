@@ -3,10 +3,10 @@ id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
 status: "open"
 priority: "P3"
-epic: "new-tools-gated"
-phase: "longer-term"
-depends_on: ["MOBI-02", "SEO-06"]
-legacy_state: "Open"
+epic: "search-and-languages"
+horizon: "now"
+order: 2
+depends_on: ["MOBI-02"]
 ---
 
 # SEO-21 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is

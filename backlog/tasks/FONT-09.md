@@ -4,7 +4,6 @@ title: "RTL export mirrors paired punctuation (Bidi_Mirroring)"
 status: "done"
 priority: "P1"
 epic: "fonts-and-script-support"
-phase: "near-term"
 depends_on: []
 ---
 

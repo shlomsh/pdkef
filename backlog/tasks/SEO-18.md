@@ -4,9 +4,7 @@ title: "Read 2026-11-07 · One page on signing a PDF in your own language, gener
 status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-07", "SEO-12"]
-legacy_state: "Open"
 ---
 
 # SEO-18 · Read 2026-11-07 · One page on signing a PDF in your own language, generated from the coverage data

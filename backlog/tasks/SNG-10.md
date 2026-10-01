@@ -4,7 +4,6 @@ title: "Practice form v2: the sketches' Employee details form becomes the app's 
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

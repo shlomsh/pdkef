@@ -4,9 +4,7 @@ title: "A checkbox sized to a tiny printed square jumps to the resize floor on t
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: ["MOBI-27"]
-legacy_state: "Done 2026-09-22"
 ---
 
 # MOBI-28 · A checkbox sized to a tiny printed square jumps to the resize floor on the first touch

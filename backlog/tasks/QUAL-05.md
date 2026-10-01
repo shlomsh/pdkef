@@ -4,7 +4,6 @@ title: "Shard the product e2e across two CI jobs, the last fixed-cost cut before
 status: "done"
 priority: "P3"
 epic: "module-boundaries"
-phase: "quick-win"
 depends_on: []
 ---
 

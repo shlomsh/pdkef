@@ -4,7 +4,6 @@ title: "Home launcher: pin the picker when recents load"
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

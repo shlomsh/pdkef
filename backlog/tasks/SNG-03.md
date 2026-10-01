@@ -4,7 +4,6 @@ title: "Spike on the iOS 26 Simulator: prove app-owned zoom, a bar that survives
 status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-02"]
 ---
 

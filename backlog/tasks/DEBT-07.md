@@ -4,7 +4,6 @@ title: "editor leaves CORE_PROJECTS after the ownership moves, or Nx leaves the 
 status: "retired"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: ["DEBT-04", "DEBT-05", "DEBT-06", "QUAL-08"]
 ---
 

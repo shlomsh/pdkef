@@ -4,7 +4,6 @@ title: "check:push stops testing what a change cannot reach: test-only diffs, th
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-29", "ARCH-30"]
 ---
 

@@ -4,7 +4,6 @@ title: "Three mobile sketches for the next-generation Sign; Shlomi picks one and
 status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-01"]
 ---
 

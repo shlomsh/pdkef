@@ -4,7 +4,6 @@ title: "npm install in a fresh worktree leaves package-lock.json unchanged"
 status: "done"
 priority: "P3"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

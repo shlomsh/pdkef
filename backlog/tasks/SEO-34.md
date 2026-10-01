@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · The home page has the site's best CTR and no query to
 status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-34 · Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools

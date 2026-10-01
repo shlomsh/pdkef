@@ -4,7 +4,6 @@ title: "Read-back check after every export: nothing extractable under any box"
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-12"]
 ---
 

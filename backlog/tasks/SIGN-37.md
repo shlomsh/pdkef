@@ -4,7 +4,6 @@ title: "Typed signatures are saved sharp enough for the size they are placed at"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
 ---
 

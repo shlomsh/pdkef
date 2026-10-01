@@ -19,7 +19,10 @@ function parseScalar(value) {
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     return trimmed.slice(1, -1).split(',').map((item) => item.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '')).filter(Boolean);
   }
-  return trimmed.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\(["\\])/g, '$1');
+  }
+  return trimmed.replace(/^'|'$/g, '');
 }
 
 export function parseTask(markdown, path = 'task') {

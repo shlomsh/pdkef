@@ -4,9 +4,7 @@ title: "Measure the Direction A closing wave against its acceptance lists before
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-03", "MERGE-09", "MERGE-11", "MERGE-13", "MERGE-14"]
-legacy_state: "Done 2026-09-13"
 ---
 
 # MERGE-20 · Measure the Direction A closing wave against its acceptance lists before the branch merges

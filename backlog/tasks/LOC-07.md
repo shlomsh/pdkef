@@ -4,9 +4,7 @@ title: "Is a second language worth building at all? The ROI judgment on LOC-01's
 status: "done"
 priority: "P3"
 epic: "localized-search"
-phase: "later"
 depends_on: ["LOC-01"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-07 · Is a second language worth building at all? The ROI judgment on LOC-01's evidence, and the languages it never measured

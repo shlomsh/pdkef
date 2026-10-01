@@ -4,9 +4,7 @@ title: "Indonesian pilot: one page for getting a PDF under 1 MB and a photo unde
 status: "done"
 priority: "P1"
 epic: "localization-pilots"
-phase: "near-term"
 depends_on: ["LOC-14"]
-legacy_state: "Open"
 ---
 
 # LOC-15 · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate

@@ -4,7 +4,6 @@ title: "One font, size and direction per document: they carry from field to fiel
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
 ---
 

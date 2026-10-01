@@ -4,7 +4,6 @@ title: "editor-ui leaves CORE_PROJECTS: the first change whose affected set the 
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: ["DEBT-01", "DEBT-02"]
 ---
 

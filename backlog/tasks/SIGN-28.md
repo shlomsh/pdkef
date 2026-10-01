@@ -4,9 +4,7 @@ title: "Export moves to a sticky bottom sheet on phones, leaving one row of tool
 status: "retired"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-27"]
-legacy_state: "Retired 2026-09-18: won't do, current two-row layout judged good enough"
 ---
 
 # SIGN-28 · ~~Export moves to a sticky bottom sheet on phones, leaving one row of tools on top~~

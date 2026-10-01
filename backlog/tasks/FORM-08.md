@@ -3,10 +3,9 @@ id: "FORM-08"
 title: "Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides"
 status: "open"
 priority: "P3"
-epic: "form-understanding"
-phase: "longer-term"
+epic: "form-detection"
+horizon: "later"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-08 · Re-evaluate `pdf-inspector`: the MIT crate grew the positioned API the wasm build still hides

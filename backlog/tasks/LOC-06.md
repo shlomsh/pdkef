@@ -4,9 +4,7 @@ title: "Per-locale measurement: extend the refresh procedure so localized pages 
 status: "done"
 priority: "P3"
 epic: "localized-search"
-phase: "near-term"
 depends_on: ["LOC-03"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-06 · Per-locale measurement: extend the refresh procedure so localized pages are read separately

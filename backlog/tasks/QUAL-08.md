@@ -4,7 +4,6 @@ title: "Measure ARCH-20 on a week of real commits: how often does CI actually na
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-20"]
 ---
 

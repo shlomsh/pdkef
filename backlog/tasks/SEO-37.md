@@ -3,10 +3,10 @@ id: "SEO-37"
 title: "Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI"
 status: "open"
 priority: "P2"
-epic: "english-base"
-phase: "near-term"
+epic: "search-and-languages"
+horizon: "now"
+order: 1
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-37 · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI

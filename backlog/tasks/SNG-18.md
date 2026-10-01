@@ -4,7 +4,6 @@ title: "Opening the practice form keeps fill mode's ?next=1"
 status: "done"
 priority: "P2"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

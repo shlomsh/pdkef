@@ -4,9 +4,7 @@ title: "Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other
 status: "done"
 priority: "P3"
 epic: "localized-search"
-phase: "later"
 depends_on: ["LOC-07"]
-legacy_state: "Done 2026-09-12"
 ---
 
 # LOC-08 · Tamil and Telugu demand check: reopening LOC-07 Part 2 for India's other major languages

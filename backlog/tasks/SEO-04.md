@@ -3,10 +3,9 @@ id: "SEO-04"
 title: "Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks"
 status: "blocked"
 priority: "P1"
-epic: "seo-awaiting-read"
-phase: "quick-win"
+epic: "search-and-languages"
 depends_on: []
-legacy_state: "Open"
+waiting_on: "2026-10-08"
 ---
 
 # SEO-04 · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks

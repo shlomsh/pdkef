@@ -4,9 +4,7 @@ title: "The Sign page says almost nothing about the one advantage nobody can cop
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-07 · The Sign page says almost nothing about the one advantage nobody can copy

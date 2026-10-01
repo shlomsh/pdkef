@@ -4,9 +4,7 @@ title: "Positioning review: Sign, the tool with the biggest gap between what it 
 status: "done"
 priority: "P1"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-11", "SEO-07"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-12 · Positioning review: Sign, the tool with the biggest gap between what it does and what it says

@@ -4,9 +4,7 @@ title: "Creating a text box from a tap on an iPhone may not raise the keyboard"
 status: "retired"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-24"]
-legacy_state: "Open"
 ---
 
 # MOBI-26 · Creating a text box from a tap on an iPhone may not raise the keyboard

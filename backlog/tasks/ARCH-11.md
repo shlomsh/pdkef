@@ -4,9 +4,7 @@ title: "Enforce editor dependency directions in CI"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "longer-term"
 depends_on: ["ARCH-10"]
-legacy_state: "Done — editor dependency directions enforced in CI 2026-09-04"
 ---
 
 # ARCH-11 · Enforce editor dependency directions in CI

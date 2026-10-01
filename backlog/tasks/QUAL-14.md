@@ -3,10 +3,11 @@ id: "QUAL-14"
 title: "Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading"
 status: "open"
 priority: "P3"
-epic: "site-quality"
-phase: "quick-win"
+epic: "polish"
+horizon: "next"
+order: 3
 depends_on: ["QUAL-15"]
-legacy_state: "Open"
+needs: "The Hebrew wording"
 ---
 
 # QUAL-14 · Citron stroke on the Hebrew pages

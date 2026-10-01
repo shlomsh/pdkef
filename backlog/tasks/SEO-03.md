@@ -3,10 +3,10 @@ id: "SEO-03"
 title: "External signals: the work that moves the constraint and does not live in this repo"
 status: "open"
 priority: "P1"
-epic: "english-base"
-phase: "longer-term"
+epic: "search-and-languages"
+horizon: "next"
+order: 1
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-03 · External signals: the work that moves the constraint and does not live in this repo

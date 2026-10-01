@@ -4,7 +4,6 @@ title: "The scored corpus locks in gains and names every regression"
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
 ---
 

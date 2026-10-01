@@ -4,7 +4,6 @@ title: "Four tools commit async results that their inputs already invalidated"
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
 ---
 

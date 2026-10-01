@@ -4,9 +4,7 @@ title: "Urdu in Nastaliq"
 status: "retired"
 priority: "P3"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Retired 2026-08-30"
 ---
 
 # FONT-06 · Urdu in Nastaliq

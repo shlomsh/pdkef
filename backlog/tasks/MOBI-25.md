@@ -4,9 +4,7 @@ title: "Next on a pinch-zoomed iPhone throws the page to its top"
 status: "retired"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-22"]
-legacy_state: "Open"
 ---
 
 # MOBI-25 · Next on a pinch-zoomed iPhone throws the page to its top

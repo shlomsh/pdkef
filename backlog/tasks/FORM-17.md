@@ -3,8 +3,9 @@ id: "FORM-17"
 title: "A comb with a divider before its last digits is one field, not two"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 1
 depends_on: ["FORM-16"]
 ---
 

@@ -4,7 +4,6 @@ title: "A scanned form finds nothing: the detector reads vector ink, and a scan 
 status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
-phase: "later"
 depends_on: ["MOBI-13"]
 ---
 

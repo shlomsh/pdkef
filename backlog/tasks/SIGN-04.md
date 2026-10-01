@@ -4,9 +4,7 @@ title: "Preserve Unicode content and whitespace"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-08-29"
 ---
 
 # SIGN-04 · Preserve Unicode content and whitespace

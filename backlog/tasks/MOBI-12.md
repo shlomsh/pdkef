@@ -4,9 +4,7 @@ title: "A touch on a text box's corner handle resizes the font, not the comb spa
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-09-18"
 ---
 
 # MOBI-12 · A touch on a text box's corner handle resizes the font, not the comb span

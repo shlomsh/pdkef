@@ -4,7 +4,6 @@ title: "A restored document says its boxes are back"
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

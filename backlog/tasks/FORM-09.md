@@ -4,9 +4,7 @@ title: "Ask the person what the form asks, and fill only what they confirm"
 status: "retired"
 priority: "P2"
 epic: "form-understanding"
-phase: "longer-term"
 depends_on: ["FORM-02"]
-legacy_state: "Open"
 ---
 
 # FORM-09 · Ask the person what the form asks, and fill only what they confirm

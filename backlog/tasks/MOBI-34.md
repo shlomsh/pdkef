@@ -4,7 +4,6 @@ title: "Field-to-field navigation reads the reviewed field map, not the raw dete
 status: "retired"
 priority: "P3"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["MOBI-33"]
 ---
 

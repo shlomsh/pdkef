@@ -4,9 +4,7 @@ title: "One context row over the editor toolbar on phones"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Opened 2026-09-17 from Shlomi's phone screenshots of /redact/"
 ---
 
 # SIGN-27 · One context row over the editor toolbar on phones

@@ -4,7 +4,6 @@ title: "Define common: shared code needs two consumers, and the checker says so"
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-22"]
 ---
 

@@ -4,9 +4,7 @@ title: "Direction defaults and native IME input"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-08-30"
 ---
 
 # SIGN-09 · Direction defaults and native IME input

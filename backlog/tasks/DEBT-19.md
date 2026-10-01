@@ -3,8 +3,9 @@ id: "DEBT-19"
 title: "The small tools' teardown and error paths never got the hardening the big ones did"
 status: "open"
 priority: "P2"
-epic: "architecture-debt"
-phase: "near-term"
+epic: "robustness"
+horizon: "now"
+order: 2
 depends_on: []
 ---
 

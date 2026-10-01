@@ -4,7 +4,6 @@ title: "Close the checker's core-to-site gap and fix the guidance that contradic
 status: "done"
 priority: "P2"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

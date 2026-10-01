@@ -4,9 +4,7 @@ title: "Read the merge funnel before and after each phase, with the guardrails t
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-03"]
-legacy_state: "Open"
 ---
 
 # MERGE-16 · Read the merge funnel before and after each phase, with the guardrails that keep it honest

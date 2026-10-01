@@ -4,7 +4,6 @@ title: "Trim the e2e specs that re-prove what a unit test already proves under j
 status: "done"
 priority: "P3"
 epic: "architecture-debt"
-phase: "later"
 depends_on: []
 ---
 

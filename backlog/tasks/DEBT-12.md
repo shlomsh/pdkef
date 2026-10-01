@@ -4,7 +4,6 @@ title: "Ratchets that ratchet: a page-count-invariant duplication factor, stale-
 status: "done"
 priority: "P3"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
 ---
 

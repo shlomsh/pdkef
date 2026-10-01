@@ -3,8 +3,9 @@ id: "SNG-20"
 title: "iOS gate: drive pinch-zoom, then the keyboard's Next, in the Simulator"
 status: "open"
 priority: "P2"
-epic: "sign-next-gen"
-phase: "near-term"
+epic: "sign-fill-mode"
+horizon: "now"
+order: 2
 depends_on: ["SNG-07"]
 ---
 

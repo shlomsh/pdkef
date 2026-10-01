@@ -4,9 +4,7 @@ title: "Measure non-English demand from outside Search Console: the gate for the
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # LOC-01 · Measure non-English demand from outside Search Console: the gate for the second language

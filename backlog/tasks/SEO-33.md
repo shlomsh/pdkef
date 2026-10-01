@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · Compress ranks page one and never says reduce, shrink
 status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-33 · Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume

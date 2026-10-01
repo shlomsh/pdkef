@@ -3,8 +3,8 @@ id: "SNG-12"
 title: "The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions"
 status: "open"
 priority: "P3"
-epic: "sign-next-gen"
-phase: "later"
+epic: "sign-fill-mode"
+horizon: "later"
 depends_on: ["FORM-03"]
 ---
 

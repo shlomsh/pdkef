@@ -3,8 +3,9 @@ id: "FORM-18"
 title: "A comb drawn as separate squares is a comb, not a row of checkboxes"
 status: "open"
 priority: "P1"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "now"
+order: 1
 depends_on: ["FORM-16"]
 ---
 

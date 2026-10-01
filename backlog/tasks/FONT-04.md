@@ -4,9 +4,7 @@ title: "Gujarati (~62M), Kannada (~44M), Odia"
 status: "retired"
 priority: "P3"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: ["FONT-02"]
-legacy_state: "Retired 2026-09-02"
 ---
 
 # FONT-04 · Gujarati (~62M), Kannada (~44M), Odia

@@ -4,7 +4,6 @@ title: "A Redo control in the editor toolbar, once its width is measured"
 status: "done"
 priority: "P3"
 epic: "undo-and-redo"
-phase: "longer-term"
 depends_on: ["UNDO-01"]
 ---
 

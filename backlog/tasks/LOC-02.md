@@ -4,9 +4,7 @@ title: "Localized tool pages: the route, the reviewed copy source, and the islan
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-11"
 ---
 
 # LOC-02 · Localized tool pages: the route, the reviewed copy source, and the island message catalogue

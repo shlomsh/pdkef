@@ -3,10 +3,9 @@ id: "MOBI-08"
 title: "Offer install at the moment it pays off, not in a card about working offline"
 status: "open"
 priority: "P3"
-epic: "mobile-round-trip"
-phase: "near-term"
+epic: "robustness"
+horizon: "later"
 depends_on: ["MOBI-01"]
-legacy_state: "Open"
 ---
 
 # MOBI-08 · Offer install at the moment it pays off, not in a card about working offline

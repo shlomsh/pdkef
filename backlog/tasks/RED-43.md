@@ -4,7 +4,6 @@ title: "A box can be reached and removed with the keyboard"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

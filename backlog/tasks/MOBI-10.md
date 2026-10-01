@@ -4,9 +4,7 @@ title: "Spike: can PDF Inspector map a flat form into answerable fields?"
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done"
 ---
 
 # MOBI-10 · Spike: can PDF Inspector map a flat form into answerable fields?

@@ -4,9 +4,7 @@ title: "Versioned, validated shared persistence"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-24"]
-legacy_state: "Done — 2026-09-04; revisioned source-deduplicated draft persistence"
 ---
 
 # SIGN-11 · Versioned, validated shared persistence

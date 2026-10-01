@@ -3,8 +3,9 @@ id: "SNG-08"
 title: "Consolidate Redact's state before it grows further"
 status: "open"
 priority: "P2"
-epic: "sign-next-gen"
-phase: "longer-term"
+epic: "redact"
+horizon: "next"
+order: 3
 depends_on: ["SNG-06"]
 ---
 

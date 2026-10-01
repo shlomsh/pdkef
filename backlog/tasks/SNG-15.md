@@ -4,7 +4,6 @@ title: "Fill mode, slice 1: the production editor with every writing spot a real
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-14"]
 ---
 

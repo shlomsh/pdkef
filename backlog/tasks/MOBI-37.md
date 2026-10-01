@@ -4,7 +4,6 @@ title: "Home launcher: recents start level with the demo, dropzone higher"
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

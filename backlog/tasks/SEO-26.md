@@ -4,9 +4,7 @@ title: "Say what PDkef does not do, and why, on a page that already exists"
 status: "retired"
 priority: "P3"
 epic: "english-base"
-phase: "later"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-26 · Say what PDkef does not do, and why, on a page that already exists

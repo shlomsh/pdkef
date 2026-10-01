@@ -4,7 +4,6 @@ title: "Spike: Hebrew and Arabic survivors of a partial rebuild keep their glyph
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

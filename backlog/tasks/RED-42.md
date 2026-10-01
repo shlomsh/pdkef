@@ -4,7 +4,6 @@ title: "Keep Blur on / Keep Whiteout on is hidden while a brush is armed"
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 
