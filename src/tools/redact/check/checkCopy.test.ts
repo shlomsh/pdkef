@@ -220,7 +220,7 @@ describe('Remove it copy', () => {
     expect(removedMessage({ kind: 'metadata', text: 'x' })).toBe('Removed the document details. Saved again and downloaded.');
     expect(removedMessage({ kind: 'bookmark', text: 'Short' })).toBe('Removed the bookmark "Short". Saved again and downloaded.');
     const long = removedMessage({ kind: 'bookmark', text: 'b'.repeat(80) });
-    expect(long).toBe(`Removed the bookmark "${'b'.repeat(39)}...". Saved again and downloaded.`);
+    expect(long).toBe(`Removed the bookmark "${'b'.repeat(39)}…". Saved again and downloaded.`);
     for (const kind of ['comment', 'link', 'author', 'subject', 'keywords'] as const) {
       const text = removedMessage({ kind, text: 'x' });
       expect(text).not.toMatch(/successfully|\u2014/);
