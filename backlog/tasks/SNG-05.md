@@ -4,7 +4,6 @@ title: "The next-generation phone surface behind a flag: contextual bar, app-own
 status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-04", "UNDO-04", "SNG-09"]
 ---
 

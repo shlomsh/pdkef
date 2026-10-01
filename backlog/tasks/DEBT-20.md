@@ -3,8 +3,9 @@ id: "DEBT-20"
 title: "Every tool page ships the whole of pdf-lib before anyone opens a file"
 status: "in_progress"
 priority: "P2"
-epic: "architecture-debt"
-phase: "near-term"
+epic: "robustness"
+horizon: "now"
+order: 3
 depends_on: []
 ---
 

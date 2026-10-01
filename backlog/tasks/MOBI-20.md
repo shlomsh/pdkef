@@ -4,9 +4,7 @@ title: "Every adjacent pair in the element toolbar overlaps by 12px, so each but
 status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-16"]
-legacy_state: "Open"
 ---
 
 # MOBI-20 · Every adjacent pair in the element toolbar overlaps by 12px, so each button's real hit width is 32px

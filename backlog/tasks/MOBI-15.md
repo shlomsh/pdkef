@@ -4,9 +4,7 @@ title: "Browser proof for field navigation: which way the arrows point, and that
 status: "done"
 priority: "P3"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-06"]
-legacy_state: "Open"
 ---
 
 # MOBI-15 · Browser proof for field navigation: which way the arrows point, and that the target clears the keyboard

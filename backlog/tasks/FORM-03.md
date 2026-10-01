@@ -3,10 +3,10 @@ id: "FORM-03"
 title: "Take label association to the 85% gate, starting with the column header a tall table's last row cannot reach"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 6
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-03 · Label association to the gate; first, the header a tall table's last row cannot reach

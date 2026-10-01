@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · A before-and-after preview on Compress, so quality is
 status: "retired"
 priority: "P3"
 epic: "seo-awaiting-read"
-phase: "later"
 depends_on: ["SEO-05", "SEO-13"]
-legacy_state: "Open"
 ---
 
 # SEO-25 · Read 2026-10-08 · A before-and-after preview on Compress, so quality is shown rather than promised

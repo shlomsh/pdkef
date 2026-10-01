@@ -4,7 +4,6 @@ title: "Split the site project so a page-only or content-only commit narrows ins
 status: "retired"
 priority: "P3"
 epic: "module-boundaries"
-phase: "longer-term"
 depends_on: ["ARCH-20", "QUAL-08"]
 ---
 

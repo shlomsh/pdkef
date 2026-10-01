@@ -4,9 +4,7 @@ title: "A symbol's resize handles overlap into a blob on a small detected checkb
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: ["MOBI-19"]
-legacy_state: "Done 2026-09-22"
 ---
 
 # MOBI-27 · A symbol's resize handles overlap into a blob on a small detected checkbox

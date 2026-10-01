@@ -3,10 +3,9 @@ id: "LOC-13"
 title: "Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins"
 status: "blocked"
 priority: "P2"
-epic: "localization-pilots"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["LOC-17", "SEO-40"]
-legacy_state: "Open"
+waiting_on: "LOC-17 and SEO-40"
 ---
 
 # LOC-13 · Spanish pilot: one target-size compress page for Mexico, on the niche this domain already wins

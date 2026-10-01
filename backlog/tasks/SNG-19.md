@@ -4,7 +4,6 @@ title: "Fill mode becomes Sign's default; the old editor moves behind ?next=0"
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-07"]
 ---
 

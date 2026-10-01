@@ -3,10 +3,9 @@ id: "SEO-23"
 title: "New tool: convert a PDF to grayscale, with the cost stated"
 status: "blocked"
 priority: "P3"
-epic: "new-tools-gated"
-phase: "later"
+epic: "search-and-languages"
 depends_on: ["SEO-06"]
-legacy_state: "Open"
+waiting_on: "SEO-06 crawl gate and a volume check"
 ---
 
 # SEO-23 · New tool: convert a PDF to grayscale, with the cost stated

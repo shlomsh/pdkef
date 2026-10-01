@@ -4,9 +4,7 @@ title: "On a phone the field moves are off-screen while you type: put them on th
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-06"]
-legacy_state: "Done 2026-09-22"
 ---
 
 # MOBI-16 · On a phone the field moves are off-screen while you type: put them on the element, not the top toolbar

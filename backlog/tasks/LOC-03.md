@@ -3,10 +3,9 @@ id: "LOC-03"
 title: "Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house"
 status: "blocked"
 priority: "P2"
-epic: "seo-awaiting-read"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["LOC-02"]
-legacy_state: "Open"
+waiting_on: "2026-11-06"
 ---
 
 # LOC-03 · Read 2026-11-06 · Hebrew pilot: three tool pages, phrased the way Israelis actually search, reviewed in-house

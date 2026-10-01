@@ -3,10 +3,9 @@ id: "FORM-06"
 title: "Spike: measure Tesseract heb on the two evidence forms before building any scanned path"
 status: "open"
 priority: "P3"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "later"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-06 · Spike: measure Tesseract `heb` on the two evidence forms before building any scanned path

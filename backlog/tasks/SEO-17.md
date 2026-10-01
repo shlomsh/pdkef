@@ -3,10 +3,9 @@ id: "SEO-17"
 title: "Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages"
 status: "blocked"
 priority: "P2"
-epic: "seo-awaiting-read"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["SEO-05", "SEO-06"]
-legacy_state: "Open"
+waiting_on: "2026-11-06"
 ---
 
 # SEO-17 · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages

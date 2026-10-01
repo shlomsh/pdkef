@@ -4,9 +4,7 @@ title: "Split PDF-library adapters out of workspace/ and lib/"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # ARCH-04 · Split PDF-library adapters out of workspace/ and lib/

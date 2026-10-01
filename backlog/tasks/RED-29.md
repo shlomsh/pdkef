@@ -3,8 +3,9 @@ id: "RED-29"
 title: "Delete finds what a page draws inside a Form XObject"
 status: "open"
 priority: "P1"
-epic: "redact-tool"
-phase: "near-term"
+epic: "redact"
+horizon: "next"
+order: 1
 depends_on: []
 ---
 

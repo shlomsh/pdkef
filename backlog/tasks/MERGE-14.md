@@ -4,9 +4,7 @@ title: "After Download, carry the result into Compress, Sign or Split without re
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "longer-term"
 depends_on: ["MERGE-12"]
-legacy_state: "Open"
 ---
 
 # MERGE-14 · After Download, carry the result into Compress, Sign or Split without re-picking it

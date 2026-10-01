@@ -4,7 +4,6 @@ title: "A scored form corpus: precision and recall measured every run, ratcheted
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-11"]
 ---
 

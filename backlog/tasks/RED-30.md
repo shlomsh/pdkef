@@ -4,7 +4,6 @@ title: "Blur strength is a slider on the box, from vaguely readable to strong, m
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

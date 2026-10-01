@@ -4,7 +4,6 @@ title: "The IRS 1040 saved-file check test finishes inside its timeout under a f
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -3,10 +3,9 @@ id: "SEO-30"
 title: "A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before"
 status: "blocked"
 priority: "P2"
-epic: "english-base"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["SEO-05", "SEO-13"]
-legacy_state: "Open"
+waiting_on: "SEO-05's verdict"
 ---
 
 # SEO-30 · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before

@@ -4,9 +4,7 @@ title: "Tapping outside a text box on a phone leaves it selected, with its bar a
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-09-24"
 ---
 
 # MOBI-30 · Tapping outside a text box on a phone leaves it selected, with its bar and handles up

@@ -4,9 +4,7 @@ title: "Merge on a phone: the action within reach, one sort control, an options 
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-06 · Merge on a phone: the action within reach, one sort control, an options row, a pinned button

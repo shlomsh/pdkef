@@ -4,7 +4,6 @@ title: "Text placed in a form cell sits at the same height in every font"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
 ---
 

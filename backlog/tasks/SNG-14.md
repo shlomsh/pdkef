@@ -4,7 +4,6 @@ title: "Spike: the keyboard's own ∧ ∨ hop between invisible text fields over
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -4,7 +4,6 @@ title: "The precision floor: detection is shown only where it is right 95% of th
 status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -4,9 +4,7 @@ title: "Positioning review: Compress, where the honest answer costs us the query
 status: "done"
 priority: "P2"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-11", "SEO-05"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-13 · Positioning review: Compress, where the honest answer costs us the query

@@ -3,10 +3,11 @@ id: "MERGE-18"
 title: "Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant"
 status: "open"
 priority: "P2"
-epic: "merge-tool"
-phase: "later"
+epic: "polish"
+horizon: "now"
+order: 2
 depends_on: ["MERGE-11"]
-legacy_state: "Open"
+needs: "Decide route A and the Merge bookmarks switch"
 ---
 
 # MERGE-18 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant

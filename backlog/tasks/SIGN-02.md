@@ -4,9 +4,7 @@ title: "Repair selection/editing invariants"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-08-28"
 ---
 
 # SIGN-02 · Repair selection/editing invariants

@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where
 status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-10 · Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it

@@ -4,7 +4,6 @@ title: "Changing a placed field element's font does not re-place it"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-38"]
 ---
 

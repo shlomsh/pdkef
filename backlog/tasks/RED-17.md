@@ -4,7 +4,6 @@ title: "Check the saved file: search it for what you covered, everywhere a secre
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

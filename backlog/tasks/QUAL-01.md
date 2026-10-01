@@ -4,9 +4,7 @@ title: "--color-primary fails WCAG AA as link text"
 status: "done"
 priority: "P2"
 epic: "site-quality"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-09"
 ---
 
 # QUAL-01 · `--color-primary` fails WCAG AA as link text

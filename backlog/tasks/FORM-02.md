@@ -3,10 +3,9 @@ id: "FORM-02"
 title: "Canonical field types, so a detected box can become a question"
 status: "open"
 priority: "P3"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "later"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-02 · Canonical field types, so a detected box can become a question

@@ -4,7 +4,6 @@ title: "Every export checked four ways; a failing page is saved as a picture onl
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-19", "RED-20", "RED-21"]
 ---
 

@@ -3,8 +3,9 @@ id: "SNG-06"
 title: "Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0"
 status: "open"
 priority: "P2"
-epic: "sign-next-gen"
-phase: "longer-term"
+epic: "sign-fill-mode"
+horizon: "next"
+order: 3
 depends_on: ["SNG-19", "SNG-07"]
 ---
 

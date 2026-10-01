@@ -4,9 +4,7 @@ title: "Name the file that failed to merge and offer to merge the rest"
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-04 · Name the file that failed to merge and offer to merge the rest

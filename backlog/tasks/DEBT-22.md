@@ -4,9 +4,7 @@ title: "tool-layout.spec.js's first-paint restore test fails intermittently in C
 status: "retired"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEBT-22 · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else

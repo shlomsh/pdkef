@@ -4,9 +4,7 @@ title: "The subhead promises page reordering the tool does not do yet"
 status: "done"
 priority: "P2"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-05 · The subhead promises page reordering the tool does not do yet

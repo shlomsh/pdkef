@@ -3,10 +3,10 @@ id: "SIGN-20"
 title: "The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong"
 status: "open"
 priority: "P3"
-epic: "fonts-and-script-support"
-phase: "optional"
+epic: "polish"
+horizon: "next"
+order: 2
 depends_on: []
-legacy_state: "Open — raised 2026-08-29 from SIGN-19"
 ---
 
 # SIGN-20 · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong

@@ -4,7 +4,6 @@ title: "Field detection is a capability with one entry point, not a pipeline the
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["FORM-14", "FORM-21"]
 ---
 

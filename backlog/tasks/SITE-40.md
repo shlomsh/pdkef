@@ -4,7 +4,6 @@ title: "Redact's toolbar packs 4+4+2 once 'Compress it' appears"
 status: "done"
 priority: "P3"
 epic: "site-quality"
-phase: "longer-term"
 depends_on: []
 ---
 

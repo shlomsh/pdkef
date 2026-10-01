@@ -4,9 +4,7 @@ title: "A Latin-script form in the ground-truth corpus"
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-04 · A Latin-script form in the ground-truth corpus

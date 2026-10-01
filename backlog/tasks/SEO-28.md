@@ -4,9 +4,7 @@ title: "Read 2026-10-08 · Redact and Split earn the most and are recrawled the 
 status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-01"]
-legacy_state: "Open"
 ---
 
 # SEO-28 · Read 2026-10-08 · Redact and Split earn the most and are recrawled the least, and nothing we control explains it

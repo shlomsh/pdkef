@@ -4,7 +4,6 @@ title: "True redaction: form field values, comments, watermark annotations and s
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-18"]
 ---
 

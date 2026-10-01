@@ -3,8 +3,9 @@ id: "RED-16"
 title: "One text reader: Delete's previews read their text from the glyph read, and the second decoder goes"
 status: "open"
 priority: "P3"
-epic: "redact-tool"
-phase: "near-term"
+epic: "redact"
+horizon: "next"
+order: 2
 depends_on: []
 ---
 

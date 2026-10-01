@@ -4,7 +4,6 @@ title: "Test the Sign editor where it breaks: WebKit iPhone project and an iOS S
 status: "done"
 priority: "P1"
 epic: "sign-next-gen"
-phase: "near-term"
 depends_on: ["SNG-04"]
 ---
 

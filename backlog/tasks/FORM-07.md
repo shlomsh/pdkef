@@ -3,10 +3,10 @@ id: "FORM-07"
 title: "A scanned form's ruled geometry, from its raster"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "longer-term"
+epic: "form-detection"
+horizon: "next"
+order: 7
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-07 · A scanned form's ruled geometry, from its raster

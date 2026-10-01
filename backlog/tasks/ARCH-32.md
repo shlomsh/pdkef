@@ -3,8 +3,9 @@ id: "ARCH-32"
 title: "e2e selected by file-level reachability: a src/editor/ change runs the pages that import it"
 status: "open"
 priority: "P2"
-epic: "module-boundaries"
-phase: "near-term"
+epic: "robustness"
+horizon: "next"
+order: 5
 depends_on: ["ARCH-31"]
 ---
 

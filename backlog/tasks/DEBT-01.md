@@ -4,7 +4,6 @@ title: "Move the two cross-tool Playwright specs out of tool folders and guard t
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "quick-win"
 depends_on: []
 ---
 

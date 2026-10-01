@@ -4,9 +4,7 @@ title: "A reviewable field-map stage in Sign, from the geometry detector, before
 status: "done"
 priority: "P2"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["MOBI-10"]
-legacy_state: "In Progress"
 ---
 
 # MOBI-11 · A reviewable field-map stage in Sign, from the geometry detector, before any guided filling

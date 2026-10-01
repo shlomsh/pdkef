@@ -3,10 +3,9 @@ id: "SEO-16"
 title: "Positioning review: Merge, Split and Protect & Unlock"
 status: "open"
 priority: "P3"
-epic: "english-base"
-phase: "later"
+epic: "search-and-languages"
+horizon: "later"
 depends_on: ["SEO-11", "SEO-39"]
-legacy_state: "Open"
 ---
 
 # SEO-16 · Positioning review: Merge, Split and Protect & Unlock

@@ -4,9 +4,7 @@ title: "Indonesian target-size compress: run the ROI gate on the size-limit fami
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: ["LOC-11"]
-legacy_state: "Open"
 ---
 
 # LOC-14 · Indonesian target-size compress: run the ROI gate on the size-limit family autocomplete surfaced

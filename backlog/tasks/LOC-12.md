@@ -4,9 +4,7 @@ title: "Read 2026-11-12 · Two-month country and language re-check, due 2026-11-
 status: "retired"
 priority: "P3"
 epic: "seo-awaiting-read"
-phase: "later"
 depends_on: ["LOC-10"]
-legacy_state: "Open"
 ---
 
 # LOC-12 · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12

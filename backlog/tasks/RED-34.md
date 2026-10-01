@@ -4,7 +4,6 @@ title: "Redact toolbar you can read: words under every tool on touch and laptops
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

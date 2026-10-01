@@ -3,9 +3,10 @@ id: "SEO-40"
 title: "The November eight-week reads"
 status: "blocked"
 priority: "P2"
-epic: "seo-awaiting-read"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: []
+waiting_on: "2026-11-07"
+needs: "The Search Console exports"
 ---
 
 # SEO-40 · The November eight-week reads

@@ -4,9 +4,7 @@ title: "Read 2026-11-07 · One content page on photo and signature size limits, 
 status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
-phase: "near-term"
 depends_on: ["SEO-19"]
-legacy_state: "Open"
 ---
 
 # SEO-31 · Read 2026-11-07 · One content page on photo and signature size limits, as inbound content for /compress-image/

@@ -3,10 +3,9 @@ id: "SEO-38"
 title: "One honest guide: remove the \"Scanned with CamScanner\" footer from a PDF"
 status: "blocked"
 priority: "P2"
-epic: "english-base"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["RED-27"]
-legacy_state: "Open"
+waiting_on: "About four weeks after indexing"
 ---
 
 # SEO-38 · One honest guide: remove the "Scanned with CamScanner" footer from a PDF

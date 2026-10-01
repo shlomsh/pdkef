@@ -4,9 +4,7 @@ title: "Spike: a bookmark per source file in the merged PDF"
 status: "done"
 priority: "P3"
 epic: "merge-tool"
-phase: "optional"
 depends_on: ["MERGE-09"]
-legacy_state: "Open"
 ---
 
 # MERGE-15 · Spike: a bookmark per source file in the merged PDF

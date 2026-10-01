@@ -4,7 +4,6 @@ title: "Redact on touch: a swipe scrolls, handles after a tap, Delete shows what
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

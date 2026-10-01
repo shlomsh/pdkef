@@ -3,10 +3,9 @@ id: "SEO-06"
 title: "Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools"
 status: "blocked"
 priority: "P1"
-epic: "seo-awaiting-read"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["SEO-01"]
-legacy_state: "Open"
+waiting_on: "2026-10-08"
 ---
 
 # SEO-06 · Read 2026-10-08 · Nine URLs have never been crawled, and three of them are working tools

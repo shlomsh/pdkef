@@ -4,9 +4,7 @@ title: "Malayalam"
 status: "done"
 priority: "P2"
 epic: "fonts-and-script-support"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done"
 ---
 
 # FONT-03 · Malayalam

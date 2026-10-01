@@ -4,7 +4,6 @@ title: "Shard the font guards: the font-guards job is the long pole on every run
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "quick-win"
 depends_on: []
 ---
 

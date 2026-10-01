@@ -4,9 +4,7 @@ title: "Separate saved-signature assets from scalar preferences"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done — 2026-09-04; signature assets moved to a separate versioned library"
 ---
 
 # SIGN-24 · Separate saved-signature assets from scalar preferences

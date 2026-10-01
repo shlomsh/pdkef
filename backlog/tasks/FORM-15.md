@@ -3,8 +3,8 @@ id: "FORM-15"
 title: "1040 amount boxes the form leaves blank read as fields"
 status: "open"
 priority: "P3"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "later"
 depends_on: []
 ---
 
