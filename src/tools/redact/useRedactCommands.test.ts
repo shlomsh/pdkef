@@ -189,6 +189,19 @@ describe('useRedactCommands.update', () => {
     expect(h.getHistory().past[0].description).toBe('Unlinked the box on this page');
   });
 
+  it('describes an entry by the primary change, so a move that re-sampled a colour is still a move', () => {
+    const h = makeHarness([box({ id: 'a', left: 0, top: 0, color: '#fff' })]);
+    h.commands.update('a', [{ id: 'a', changes: { left: 5, top: 6, color: '#000' } }], { primary: { left: 5, top: 6 } });
+    expect(h.describeUpdate).toHaveBeenCalledWith('move', expect.anything());
+    expect(h.getHistory().past[0].description).toBe('describeUpdate:move');
+  });
+
+  it('without a primary the same changes read as a style change', () => {
+    const h = makeHarness([box({ id: 'a', left: 0, top: 0, color: '#fff' })]);
+    h.commands.update('a', [{ id: 'a', changes: { left: 5, top: 6, color: '#000' } }]);
+    expect(h.describeUpdate).toHaveBeenCalledWith('style', expect.anything());
+  });
+
   it('is a no-op when the box does not exist', () => {
     const h = makeHarness([box({ id: 'a' })]);
     h.commands.update('missing', [{ id: 'missing', changes: { left: 1 } }]);

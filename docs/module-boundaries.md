@@ -20,7 +20,7 @@ src/shell/       BasePdfTool, ToolShell, FileDropzone, DownloadButton, PdfShareB
                  ErrorMessage, ProgressRing, DropzoneEmptyState, RecentFiles, FilePreview,
                  ConfirmDialog, homeWorkspace, sampleDocument         (imports no tool)
 src/editor/      the headless core, leaks fixed (ARCH-19)
-src/editor-ui/   ElementToolbar, ElementResizers, FontPickerMenu, ColorPicker*, ThicknessPickerMenu,
+src/editor-ui/   ElementResizers, ColorPicker*,
                  ArmHint, EditorToolStatus, EditorExportActions, EditorPageHeader, FullscreenButton,
                  ViewControl, UndoHistoryModal, PdfPageCanvas,
                  SignatureDialog                                       (shared by Sign and Redact)
@@ -117,8 +117,11 @@ moved it into `src/tools/sign/` once rule 9 made that measurable instead of assu
    `sampleDocument.ts`) into `src/site-lib/`. Enforced by `commonLayerConsumerViolations()`, with no
    ratcheting allowlist and no exception list of any kind (like rules 6 and 8): it holds at zero
    violations, so a module that fails it moves into the tool that actually uses it, or is deleted if
-   nothing does. An `.astro` file's `<script src="...">` is invisible to the main edge scan below,
-   so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
+   nothing does. RED-51 (2026-10-01) gave Redact its own box toolbar, so `ElementToolbar`, the font
+   and thickness pickers (`FontPickerMenu`, `FontOptionsList`, `FontSheet`, `ThicknessPickerMenu`)
+   and `useCoarsePointer` moved into `src/tools/sign/` and `BlurStrengthSlider` into
+   `src/tools/redact/`, by this rule. An `.astro` file's `<script src="...">` is invisible to the main
+   edge scan below, so this rule reads it separately, in `astroScriptSrcEdges()`, solely to answer whether the site
    consumes a given module.
 
 `scripts/check-module-boundaries.mjs` enforces exactly these nine rules; its header comment is the
@@ -271,8 +274,7 @@ error.
 `ArmHint.tsx`, `ColorPicker.tsx`, `ColorPickerMenu.{tsx,test.tsx}`,
 `EditorControls.module.css`, `EditorExportActions.{tsx,test.tsx}`,
 `EditorPageHeader.{tsx,module.css}`, `EditorToolStatus.tsx`, `ElementResizers.tsx`,
-`ElementToolbar.{tsx,test.tsx}`, `FontPickerMenu.{tsx,test.tsx}`, `FullscreenButton.tsx`,
-`PdfPageCanvas.tsx`, `ThicknessPickerMenu.tsx`,
+`FullscreenButton.tsx`, `PdfPageCanvas.tsx`,
 `UndoHistoryModal.{tsx,module.css}`, `ViewControl.{tsx,test.tsx,module.css}` - the ticket's list,
 minus three files it landed differently, plus one addition:
 

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { offset, flip, shift } from '@floating-ui/react';
-import Popover from '../shell/Popover.tsx';
-import styles from './EditorControls.module.css';
-import { englishSignMessages, formatMessage } from '../i18n/toolMessages';
-import type { SignMessages } from '../editor/registry/messages';
-import visualViewportClamp, { getStickyToolShellRect } from './hooks/visualViewportClamp.ts';
-import useCoarsePointer from './hooks/useCoarsePointer.ts';
+import Popover from '../../../shell/Popover.tsx';
+import styles from '../../../editor-ui/EditorControls.module.css';
+import { englishSignMessages, formatMessage } from '../../../i18n/toolMessages';
+import type { SignMessages } from '../../../editor/registry/messages';
+import visualViewportClamp, { getStickyToolShellRect } from '../../../editor-ui/hooks/visualViewportClamp.ts';
+import useCoarsePointer from '../useCoarsePointer.ts';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
 import FontSheet, { FILL_KEEP_SESSION_ATTR } from './FontSheet.tsx';
 

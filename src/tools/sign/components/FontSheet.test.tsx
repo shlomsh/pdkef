@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FontSheet, { computeSheetRevealScroll, FILL_KEEP_SESSION_ATTR } from './FontSheet.tsx';
-import { englishSignMessages } from '../i18n/toolMessages';
+import { englishSignMessages } from '../../../i18n/toolMessages';
 
 describe('computeSheetRevealScroll', () => {
   it('is zero when the element already clears the sheet by the margin', () => {
