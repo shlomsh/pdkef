@@ -30,3 +30,7 @@ zoomed in with the keyboard up, the page shifts sideways and the font list opens
 - [ ] On Shlomi's iPhone, filling form 101 end to end never leaves the toolbar out of reach.
 - [ ] A text element's toolbar menus (the font list) open on screen while zoomed with the keyboard up.
 - [ ] His own pinch zoom still works, and nothing changes without `?next=1`.
+
+## 2026-10-01 board cleanup
+
+- Stays in_progress. FontSheet (3f32b9a) and `visualViewportClamp` (0ae99dc) shipped; the toolbar under zoom (AC1) and pinch (AC3) need Shlomi's iPhone.

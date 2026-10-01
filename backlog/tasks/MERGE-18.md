@@ -59,3 +59,7 @@ touching the CSP.
   change.
 - If Route B: a separate build ticket with the CSP diff, the consent copy and the trust-page note as
   its own acceptance list; this ticket closes as the decision.
+
+## Also decide
+
+Whether Merge adds a bookmark per source file, and where that switch lives (MERGE-15). The outline code and the `bookmarks` option on `mergePdfs` exist; the UI never passes it.

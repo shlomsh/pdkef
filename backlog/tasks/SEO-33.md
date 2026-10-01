@@ -1,7 +1,7 @@
 ---
 id: "SEO-33"
 title: "Read 2026-10-08 · Compress ranks page one and never says reduce, shrink, resize or size reducer, the words with the volume"
-status: "blocked"
+status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
 phase: "near-term"
@@ -89,3 +89,7 @@ per the acceptance section above.
 ## Addendum 2026-09-19: same change as the SEO-05 addendum
 
 See SEO-05's 2026-09-19 addendum: subhead closer and one FAQ reworded on `/compress/` by SEO-36; the reduce/shrink/resize vocabulary is untouched.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the reduce/shrink/resize position read on `/compress/` moves there, to be done at the 2026-10-08 refresh.

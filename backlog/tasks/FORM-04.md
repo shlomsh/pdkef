@@ -1,7 +1,7 @@
 ---
 id: "FORM-04"
 title: "A Latin-script form in the ground-truth corpus"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "form-understanding"
 phase: "near-term"
@@ -39,3 +39,7 @@ rule FORM-01 adds would be tuned on Hebrew alone.
   the review rather than trusting the first pass.
 - [ ] Score the current detector against it and add the row to the spike record, whatever it says.
 - [ ] Name the left-edge hug and the Hebrew keyword list as findings if they are what fails.
+
+## Closed 2026-10-01
+
+Delivered by FORM-16 (flat SA100 and I-9, with reviewed truth).

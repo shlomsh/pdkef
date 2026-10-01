@@ -1,7 +1,7 @@
 ---
 id: "SNG-18"
 title: "Opening the practice form keeps fill mode's ?next=1"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -17,3 +17,7 @@ iPhone). Find the link or navigation that rewrites the URL and carry the query s
 ## Acceptance
 
 - [ ] Loading the practice form from `/sign/?next=1` stays in fill mode with the file open.
+
+## Closed 2026-10-01
+
+Shipped in 3d5cc0d (`withFillModeParam.ts` and `FileDropzone`). It is also moot since SNG-19 made fill mode the default.

@@ -1,7 +1,7 @@
 ---
 id: "SITE-40"
 title: "Redact's toolbar packs 4+4+2 once 'Compress it' appears"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "site-quality"
 phase: "longer-term"
@@ -36,3 +36,7 @@ Not a CSS threshold. It needs a Redact-side decision about the tenth control:
 
 The second is probably right on its own merits, independent of packing. Either way the fix should
 come with a toolbar spec that exports first, so the ten-control state stops being unmeasured.
+
+## Closed 2026-10-01
+
+Superseded by RED-36: Compress moved to `RedactFinish.tsx` and `RedactToolbar` has no Compress control, so the tenth-control packing no longer occurs.
