@@ -753,6 +753,7 @@ export default function PdfRedactTool() {
         download(next, name);
         dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
+        // expected: only PlaceNotFoundError stops here (the place is already gone); anything else is rethrown to the outer catch, which reports it
         if (!(error instanceof PlaceNotFoundError)) throw error;
         // Nothing changed; a fresh blob object makes the check read it again.
         dispatch({ type: 'EXPORT_SAVED', saved: { blob: new Blob([blob], { type: blob.type }), name } });

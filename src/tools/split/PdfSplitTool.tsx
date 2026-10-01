@@ -338,6 +338,7 @@ export default function PdfSplitTool({
       );
       setPageSelectorError('');
     } catch (err: any) {
+      // expected: the person's own page range did not parse; its message is shown under the field.
       // While a selector is being typed ("1-" or "1,") hold the error.
       const isPartial = /[-,]\s*$/.test(value);
       setPageSelectorError(isPartial ? '' : err.message);
