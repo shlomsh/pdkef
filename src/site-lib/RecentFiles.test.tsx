@@ -105,7 +105,7 @@ describe('RecentFiles', () => {
 
     it('returns the rank-based message only when total is 6 and index is the last (5)', () => {
       const file = { cacheId: 'sha256:b', tool: 'sign', fileName: 'b.pdf', savedAt: now - DAY_MS };
-      expect(retentionNotice(file, 5, 6, englishRecentFilesMessages, now)).toBe('Oldest of 6 saved files');
+      expect(retentionNotice(file, 5, 6, englishRecentFilesMessages, now)).toBe('Oldest of 6 files');
       expect(retentionNotice(file, 4, 6, englishRecentFilesMessages, now)).toBe('');
       expect(retentionNotice(file, 5, 5, englishRecentFilesMessages, now)).toBe('');
     });
