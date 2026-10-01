@@ -7,6 +7,7 @@ import { detectPageRegions } from './formGrid.js';
 import {
   collectTextFieldWidgets,
   detectWidgetRegions,
+  dropUnwiredCells,
   fillableTextField,
   markableButtonField,
   widgetRegions,
@@ -229,6 +230,49 @@ describe('widgetRegions', () => {
     const before = structuredClone(fields);
     expect(widgetRegions(fields, geometry, 0)).toEqual(widgetRegions(fields, geometry, 0));
     expect(fields).toEqual(before);
+  });
+});
+
+describe('dropUnwiredCells', () => {
+  const cell = (index) => ({ left: index * 10, top: 10, width: 10, height: 5 });
+  const cells = (count) => Array.from({ length: count }, (_, index) => cell(index));
+  const over = (index, scale = 1) => ({ ...cell(index), width: 10 * scale });
+
+  it('drops the one cell no widget touches when the rest of the page is wired', () => {
+    const row = cells(10);
+    const footprints = row.slice(0, 9).map((_, index) => over(index));
+    expect(dropUnwiredCells(row, footprints)).toEqual(row.slice(0, 9));
+  });
+
+  it('keeps every cell when the page is not wired enough', () => {
+    const row = cells(10);
+    const footprints = row.slice(0, 8).map((_, index) => over(index));
+    expect(dropUnwiredCells(row, footprints)).toEqual(row);
+  });
+
+  it('keeps every cell on a page with no widgets at all', () => {
+    const row = cells(10);
+    expect(dropUnwiredCells(row, [])).toEqual(row);
+  });
+
+  it('counts a widget narrower than its box when it covers enough of it', () => {
+    const row = cells(10);
+    const footprints = row.map((_, index) => over(index, 0.4));
+    expect(dropUnwiredCells(row, footprints)).toEqual(row);
+  });
+
+  it('does not count a widget that only grazes a box', () => {
+    const row = cells(10);
+    const footprints = [...row.slice(0, 9).map((_, index) => over(index)), { ...cell(9), width: 2 }];
+    expect(dropUnwiredCells(row, footprints)).toEqual(row.slice(0, 9));
+  });
+
+  it('returns nothing to drop for an empty page and does not mutate its input', () => {
+    expect(dropUnwiredCells([], [over(0)])).toEqual([]);
+    const row = cells(10);
+    const copy = JSON.parse(JSON.stringify(row));
+    dropUnwiredCells(row, row.slice(0, 9));
+    expect(row).toEqual(copy);
   });
 });
 

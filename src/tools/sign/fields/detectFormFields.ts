@@ -13,7 +13,7 @@ import { detectPageRegions } from './formGrid.js';
 import { detectCellCandidates } from './formCells.js';
 import { detectLineCandidates } from './formLines.js';
 import { detectLeaderCandidates } from './formLeaders.js';
-import { detectWidgetRegions, collectCheckboxWidgets } from './formWidgets.js';
+import { detectWidgetRegions, collectCheckboxWidgets, widgetFootprints, dropUnwiredCells } from './formWidgets.js';
 import { reconcile, SOURCE_ORDER, KIND_PRECEDENCE } from './fieldRegions.js';
 import { titleLineWritable } from './combTitleLine.js';
 import { horizontalRules } from './inkEdges.js';
@@ -103,7 +103,10 @@ const inkSource: FieldSource = {
       // The cell and line detectors are untyped JS that infer `kind` as `string`; every kind they
       // assign is in `DETECTOR_FIELD_KINDS` (FORM-23). Narrowed here, once, until they are
       // `@ts-check`ed (FORM-29).
-      cells: [...cells, ...lines] as DetectedCell[],
+      //
+      // A page that wires nearly every drawn cell to a widget has left the rest blank on purpose, so
+      // those are dropped here (FORM-15). The line pass above still saw them, as ground a cell explains.
+      cells: [...dropUnwiredCells(cells, widgetFootprints(page, geometry)), ...lines] as DetectedCell[],
     };
   },
 };
