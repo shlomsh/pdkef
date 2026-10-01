@@ -44,7 +44,10 @@ import useFind from './useFind.ts';
 import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
-import { initialRedactState, redactReducer, isDirty, canRedo as canRedoOf, restoredNoteVisible } from './state/redactState.ts';
+import {
+  initialRedactState, redactReducer, brushKindOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
+  canRedo as canRedoOf, restoredNoteVisible,
+} from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 import { useHistoryShortcuts } from '../../lib/history/useHistoryShortcuts.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
@@ -84,17 +87,6 @@ function describeRedactUpdate(kind: ElementUpdateKind, type: string): string {
   return `Changed ${type} box color`;
 }
 
-type DrawnRedactTool = Exclude<RedactToolType, 'delete'>;
-
-interface RedactDrawingState {
-  pageIndex: number;
-  startX: number;
-  startY: number;
-  type: DrawnRedactTool;
-  color?: string;
-  strength?: BlurStrength;
-}
-
 type RedactPointerEvent = (MouseEvent | TouchEvent) & { currentTarget: HTMLElement };
 
 // Redact design-review finding #3: one Undo chip, one slot, timed the same as
@@ -113,7 +105,8 @@ export default function PdfRedactTool() {
   }));
   const { elements, documentRevision } = state.edits;
   const { activeBoxId, selectedBoxId } = state.selection;
-  const { announcement } = state.view;
+  const { announcement, isPseudoFullscreen } = state.view;
+  const { activeStyle, toolLocked, activeColor, activeBlurStrength, brush, eyedropping, drawingState } = state.tool;
   const undoAction = state.edits.undoAction;
   const actionHistory = state.edits.history.past;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
@@ -155,19 +148,15 @@ export default function PdfRedactTool() {
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
-  // null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null - nothing armed -
-  // is the resting state, exactly as it is in the Sign tool: a tool arms for one
-  // box and disarms itself once that box is committed, unless it has been locked
-  // on. Before this the tool was permanently armed (it even started on Delete),
-  // so there was no state in which a drag on the document meant anything but
-  // "draw a box" - which on a phone meant the page could not be scrolled.
-  const [activeStyle, setActiveStyle] = useState<RedactToolType | null>(null);
-  const [toolLocked, setToolLocked] = useState(false);
+  // activeStyle is null | 'delete' | 'blackout' | 'blur' | 'whiteout'. Null -
+  // nothing armed - is the resting state, exactly as it is in the Sign tool: a
+  // tool arms for one box and disarms itself once that box is committed, unless
+  // it has been locked on. Before this the tool was permanently armed (it even
+  // started on Delete), so there was no state in which a drag on the document
+  // meant anything but "draw a box" - which on a phone meant the page could not
+  // be scrolled.
+  //
   // RED-40: the browser-wide preferences are only the last fallback now.
-  const [activeColor, setActiveColor] = useState(() =>
-    resolveWhiteoutColor(undefined, getAppStyle(), getEditorPreference('lastWhiteoutColor')));
-  const [activeBlurStrength, setActiveBlurStrength] = useState<BlurStrength>(() =>
-    resolveRedactBlurStrength(undefined, getAppStyle(), getEditorPreference('lastBlurStrength')));
   // RED-32: Box or Brush inside Blur and Whiteout, and the brush's size. Both
   // are remembered like the whiteout colour and become the default for the
   // next document. A brush is not a tool of its own: it is one of these two
@@ -176,34 +165,26 @@ export default function PdfRedactTool() {
   // settings. `carried` holds only what this document's owner explicitly chose
   // (it rides in the draft); a document that never chose follows the person's
   // latest choice in any document.
-  const [carried, setCarried] = useState<Partial<DocumentStyle> | undefined>(undefined);
-  const [brush, setBrush] = useState<BrushSettings>(() => resolveBrush(undefined, getAppStyle()));
+  const { carried } = state.tool;
   const changeBrush = (next: BrushSettings) => {
-    setBrush(next);
-    setCarried((c) => ({ ...c, ...brushStyleOf(next) }));
+    dispatch({ type: 'BRUSH_CHOSEN', brush: next, carriedPatch: brushStyleOf(next) });
     rememberAppStyle(brushStyleOf(next));
   };
-  const [eyedropping, setEyedropping] = useState(false);
 
   // The single entry point for arming: `setTool('blur')` for one box,
   // `setTool('blur', true)` to keep it on. Locking is meaningless without a
   // tool, so disarming always clears it.
   const setTool = (tool: RedactToolType | null, locked = false) => {
-    setActiveStyle(tool);
-    setToolLocked(tool ? locked : false);
+    dispatch(tool ? { type: 'TOOL_ARMED', tool, locked } : { type: 'TOOL_DISARMED' });
   };
 
   // Fired once a placement is committed. A locked tool ignores it and stays
   // armed - the same contract as the Sign reducer's DISARM_TOOL.
-  const disarmTool = () => {
-    if (!toolLocked) setTool(null);
-  };
+  const disarmTool = () => dispatch({ type: 'PLACEMENT_COMMITTED' });
   // The brush is armed when Blur or Whiteout is armed in brush mode. It is the
   // one documented exception to "a tool disarms after one placement": painting
   // takes several strokes, so it stays armed until Stop or Esc.
-  const brushKind: 'blur' | 'whiteout' | null =
-    brush.mode === 'brush' && (activeStyle === 'blur' || activeStyle === 'whiteout') ? activeStyle : null;
-  const [drawingState, setDrawingState] = useState<RedactDrawingState | null>(null);
+  const brushKind = brushKindOf(state);
   const drawingPreviewRef = useRef<HTMLDivElement | null>(null);
   const cancelDrawingRef = useRef<(() => void) | null>(null);
 
@@ -211,23 +192,21 @@ export default function PdfRedactTool() {
 
   // RED-40: colour and strength are per-document style, like the brush.
   const rememberColor = (color: string) => {
-    setActiveColor(color);
-    setCarried((c) => ({ ...c, whiteoutColor: color }));
+    dispatch({ type: 'COLOR_CHOSEN', color });
     rememberAppStyle({ whiteoutColor: color });
   };
 
   useEyedropper(
     eyedropping && brushKind === 'whiteout',
     rememberColor,
-    () => setEyedropping(false),
+    () => dispatch({ type: 'EYEDROPPER_STOPPED' }),
   );
   useEffect(() => {
-    if (brushKind !== 'whiteout') setEyedropping(false);
+    if (brushKind !== 'whiteout') dispatch({ type: 'EYEDROPPER_STOPPED' });
   }, [brushKind]);
 
   const rememberBlurStrength = (strength: BlurStrength) => {
-    setActiveBlurStrength(strength);
-    setCarried((c) => ({ ...c, blurStrength: strength }));
+    dispatch({ type: 'BLUR_STRENGTH_CHOSEN', strength });
     rememberAppStyle({ blurStrength: strength });
   };
   // Which existing box shows its delete/resize controls — set on hover (desktop) or
@@ -295,13 +274,11 @@ export default function PdfRedactTool() {
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
   const [handoffFailed, setHandoffFailed] = useState(false);
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+      dispatch({ type: 'FULLSCREEN_CHANGED', active: document.fullscreenElement === workspaceRef.current });
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
@@ -314,8 +291,7 @@ export default function PdfRedactTool() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (!activeStyle && !activeBoxId && !selectedBoxId) return;
-      setTool(null);
-      dispatch({ type: 'SELECTION_CLEARED' });
+      dispatch({ type: 'ESCAPED' });
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -355,7 +331,7 @@ export default function PdfRedactTool() {
 
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
-      setIsPseudoFullscreen(false);
+      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: false });
       return;
     }
 
@@ -364,10 +340,10 @@ export default function PdfRedactTool() {
     } else if (workspaceRef.current?.requestFullscreen && document.fullscreenEnabled !== false) {
       const promise = workspaceRef.current.requestFullscreen();
       if (promise) {
-        promise.catch(() => setIsPseudoFullscreen(true));
+        promise.catch(() => dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true }));
       }
     } else {
-      setIsPseudoFullscreen(true);
+      dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true });
     }
   };
 
@@ -407,7 +383,7 @@ export default function PdfRedactTool() {
     setSizedPageCount(renderedPageNumbersRef.current.size);
   }, []);
 
-  const isFullscreenActive = isFullscreen || isPseudoFullscreen;
+  const isFullscreenActive = isFullscreenActiveOf(state);
   const currentPage = useCurrentPage({
     active: isFullscreenActive,
     rootRef: workspaceRef,
@@ -475,7 +451,6 @@ export default function PdfRedactTool() {
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
         // RED-39: a new file starts clean - no tool armed, nothing selected, Find
         // closed with its term. None of that belongs to the file just left.
-        disarmTool();
         find.setOpen(false);
         find.setTerm('');
         find.setPreset(null);
@@ -490,10 +465,6 @@ export default function PdfRedactTool() {
         const brush = resolveBrush(preset.carried, getAppStyle());
         const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
         const strength = resolveRedactBlurStrength(preset.carried, getAppStyle(), getEditorPreference('lastBlurStrength'));
-        setCarried(preset.carried);
-        setBrush(brush);
-        setActiveColor(color);
-        setActiveBlurStrength(strength);
         // A restored draft has no redoable future - future is never persisted.
         dispatch({
           type: 'FILE_INITIALIZED', file: selected, restored, elements: presetElements, past: preset.actionHistory,
@@ -563,14 +534,14 @@ export default function PdfRedactTool() {
       return; // Ignore clicks on an existing box or its floating toolbar
     }
 
-    dispatch({ type: 'SELECTION_CLEARED' }); // clicking blank page area deselects/hides any box's controls
     e.preventDefault();
     const container = e.currentTarget;
     const origin = getPointerPercent(e, container);
     const type = activeStyle;
     const color = type === 'whiteout' ? activeColor : (type === 'blackout' ? '#000000' : undefined);
     const strength = type === 'blur' ? activeBlurStrength : undefined;
-    setDrawingState({ pageIndex, startX: origin.x, startY: origin.y, type, color, strength });
+    // Clicking blank page area deselects/hides any box's controls as the draw begins.
+    dispatch({ type: 'DRAW_STARTED', drawing: { pageIndex, startX: origin.x, startY: origin.y, type, color, strength } });
     cancelDrawingRef.current?.();
     cancelDrawingRef.current = startGesture({
       computePatch: (moveEvent) => {
@@ -590,7 +561,7 @@ export default function PdfRedactTool() {
       },
       commit: (patch) => {
         cancelDrawingRef.current = null;
-        setDrawingState(null);
+        dispatch({ type: 'DRAW_ENDED' });
         // A press that drew nothing has not spent the tool's one placement, so
         // it stays armed - otherwise a mistimed tap would silently disarm and
         // the next real drag would do nothing at all.
@@ -606,7 +577,7 @@ export default function PdfRedactTool() {
       },
       cancel: () => {
         cancelDrawingRef.current = null;
-        setDrawingState(null);
+        dispatch({ type: 'DRAW_ENDED' });
       },
     });
   };
@@ -999,7 +970,7 @@ export default function PdfRedactTool() {
             setTool={setTool}
             setAnnouncement={setAnnouncement}
             toggleFullscreen={toggleFullscreen}
-            isFullscreen={isFullscreen || isPseudoFullscreen}
+            isFullscreen={isFullscreenActive}
             handleDownloadPdf={handleDownloadPdf}
             handlePrepareShare={() => handleSavePdf('share')}
             handleSharePdf={handleSharePdf}
@@ -1033,7 +1004,7 @@ export default function PdfRedactTool() {
                 color={activeColor}
                 onColor={rememberColor}
                 eyedropping={eyedropping}
-                onToggleEyedropper={() => setEyedropping((on) => !on)}
+                onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED' })}
               />
             )}
             brushMode={brushKind !== null}
