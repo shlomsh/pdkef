@@ -98,9 +98,9 @@ describe('loading a file', () => {
     expect(isDirty(s)).toBe(false);
   });
 
-  it('FILE_INITIALIZED leaves a locked tool armed (disarmTool never overrode a lock)', () => {
+  it('FILE_INITIALIZED disarms even a locked tool: a new file starts with nothing armed (RED-39)', () => {
     const s = load(run(fresh(), { type: 'TOOL_ARMED', tool: 'blur', locked: true }));
-    expect(s.tool).toMatchObject({ activeStyle: 'blur', toolLocked: true });
+    expect(s.tool).toMatchObject({ activeStyle: null, toolLocked: false });
   });
 
   it('FILE_LOAD_STARTED / FILE_LOADED / FILE_LOAD_FAILED move the status', () => {

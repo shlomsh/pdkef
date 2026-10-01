@@ -13,7 +13,6 @@ import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
-import EditorExportActions from '../../editor-ui/EditorExportActions.tsx';
 import RedactBox from './RedactBox.tsx';
 import usePeekAll from './usePeekAll.ts';
 import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
@@ -56,7 +55,6 @@ import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './RedactFinish.tsx';
 import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
 import { redactedFileName } from './redactFileName.ts';
-import pdfToolStyles from '../../shell/PdfTool.module.css';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
 import styles from './PdfRedactTool.module.css';
 import { describeFile } from '../../lib/format.js';
