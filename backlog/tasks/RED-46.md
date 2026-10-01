@@ -5,8 +5,8 @@ status: "blocked"
 priority: "P2"
 epic: "redact"
 depends_on: []
-waiting_on: "Shlomi's Hebrew card pick, and whether to ship before or after the 2026-10-08 GSC read"
-needs: "Hebrew card: חלקים or מה שצריך (or unchanged); ship now or after 2026-10-08"
+waiting_on: "2026-10-08"
+needs: "The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase)"
 ---
 
 # RED-46 · The Redact page speaks the tool's words, without losing what people search for
@@ -92,4 +92,5 @@ Blocked 2026-10-01 on Shlomi's picks from the findings above, and the 2026-10-08
 
 - "Flatten" stays once, in FAQ 6, explained ("Do I need to flatten the PDF myself?" ... "Some tools call this flattening").
 - The two optional facts (document details left out; the saved-file check) are skipped.
-- Open: the Hebrew card's "אזורים" becomes "חלקים" or "מה שצריך", or stays; and whether the copy ships now or after the 2026-10-08 Search Console read, which measures the 2026-09-17 change on this page.
+- The Hebrew card's "אזורים" becomes "מה שצריך": "טשטשו מה שצריך ב-PDF, השחירו פרטים פרטיים או מחקו טקסט ותמונות. הקובץ נשאר במכשיר שלכם."
+- Ship after the 2026-10-08 Search Console read, so new body copy does not blur its measurement of the 2026-09-17 change. If that export shows a retired term carrying real impressions, put it back plainly and explained before shipping.
