@@ -54,8 +54,9 @@ Every other document keeps the tap-to-write model.
 
 ## Folded in
 
-- FORM-09: below the 90 / 90 / 85 gate there is no automatic question flow. Questions come from FORM-02's canonical types in the person's language, never a raw printed label. Nothing is written without confirmation; an uncertain field is asked differently or left to be filled by hand. Answers stay on device in `src/lib/drafts/draftStore.js`, and retention and deletion for reuse between forms are decided in the ticket before building. FORM-02 is the prerequisite.
+- FORM-09: below the 90 / 90 / 85 gate there is no automatic question flow. Questions come from a canonical field-type vocabulary in the person's language, never a raw printed label; defining that vocabulary is part of this ticket (FORM-02 was retired 2026-10-01 unbuilt, and its text is the starting point). Nothing is written without confirmation; an uncertain field is asked differently or left to be filled by hand. Answers stay on device in `src/lib/drafts/draftStore.js`, and retention and deletion for reuse between forms are decided in the ticket before building.
 
 ## 2026-10-01 board cleanup
 
 - depends_on: dropped SNG-05 (retired), kept FORM-03.
+- Folded-in line rewritten: FORM-02 is no longer a prerequisite; the vocabulary moves into this ticket's scope.

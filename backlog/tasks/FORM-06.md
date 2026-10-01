@@ -83,3 +83,7 @@ here added a dependency or asset, and the build is a separate ticket that needs 
 decision first and must measure degraded input (skew, noise, blur) before claiming anything. The
 SEO record's "rejected" row for OCR must be revised before any user-facing claim changes; this
 ticket does not edit it.
+
+## 2026-10-01 decision
+
+Shlomi: keep OCR as a possibility and check again in the future only. No build now, and the spike record stays as the evidence. The ticket stays open as the place to revisit it.

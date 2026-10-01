@@ -4,7 +4,7 @@ title: "A scanned form's ruled geometry, from its raster"
 status: "open"
 priority: "P2"
 epic: "form-detection"
-horizon: "next"
+horizon: "later"
 order: 7
 depends_on: []
 ---
@@ -105,3 +105,7 @@ the raster path exists and costs nothing at runtime; the harness is `scripts/spi
 stays open on a decision, not on work in progress: whether scans are common enough to serve (the
 allowlisted maintenance telemetry can say) and, if so, whether to productize the second ink source or run
 the FORM-06 OCR spike first, since labels and open-topped blanks are what limit recall on a scan.
+
+## 2026-10-01 decision
+
+Shlomi: keep OCR (FORM-06) as a possibility and check again in the future only. The raster path stays on `main` unwired; nothing is productized now.
