@@ -4,7 +4,6 @@ title: "The saved-file check's buttons are 44px touch targets"
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

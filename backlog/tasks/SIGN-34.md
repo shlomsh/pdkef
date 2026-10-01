@@ -4,7 +4,6 @@ title: "A new text box starts in the document's direction, free or on a field; a
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-33"]
 ---
 

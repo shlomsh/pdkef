@@ -1,12 +1,10 @@
 ---
 id: "LOC-12"
 title: "Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12"
-status: "blocked"
+status: "retired"
 priority: "P3"
 epic: "seo-awaiting-read"
-phase: "later"
 depends_on: ["LOC-10"]
-legacy_state: "Open"
 ---
 
 # LOC-12 · Read 2026-11-12 · Two-month country and language re-check, due 2026-11-12
@@ -44,3 +42,7 @@ LOC-08 and LOC-11.
 - A one-paragraph verdict here: nothing moved (close, and fold the next check into the regular SEO
   refresh), or a named language clearing both gates (reopen LOC-10 or open a restore ticket from its
   keep-list in reverse).
+
+## Closed 2026-10-01
+
+Merged into SEO-40: the two-month country and language re-check (2026-11-12) moves there.

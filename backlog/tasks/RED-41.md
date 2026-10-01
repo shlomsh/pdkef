@@ -4,7 +4,6 @@ title: "The box toolbar says Duplicate and Delete, in Sign and Redact"
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

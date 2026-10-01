@@ -4,9 +4,7 @@ title: "One tap: pre-merge on idle so Download is instant, with progress that te
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-09", "MERGE-11"]
-legacy_state: "Open"
 ---
 
 # MERGE-12 · One tap: pre-merge on idle so Download is instant, with progress that tells the truth

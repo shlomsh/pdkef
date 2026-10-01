@@ -4,9 +4,7 @@ title: "Trustworthy delivery checks and docs"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done — delivery/docs checks verified on 2026-09-03"
 ---
 
 # SIGN-16 · Trustworthy delivery checks and docs

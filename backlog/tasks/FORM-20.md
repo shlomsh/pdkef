@@ -3,8 +3,9 @@ id: "FORM-20"
 title: "A checkbox printed as a symbol-font glyph"
 status: "open"
 priority: "P3"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 3
 depends_on: ["FORM-16"]
 ---
 

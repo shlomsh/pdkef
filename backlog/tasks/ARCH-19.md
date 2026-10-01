@@ -4,7 +4,6 @@ title: "The editor core stops importing Preact components: fix the four src/edit
 status: "done"
 priority: "P2"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-16"]
 ---
 

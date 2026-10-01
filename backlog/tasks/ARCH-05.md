@@ -4,9 +4,7 @@ title: "Move draft persistence into workspace/"
 status: "done"
 priority: "P3"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: []
-legacy_state: "Done 2026-08-30"
 ---
 
 # ARCH-05 · Move draft persistence into workspace/

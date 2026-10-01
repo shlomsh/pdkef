@@ -3,10 +3,9 @@ id: "SEO-20"
 title: "New tool: crop a PDF, the only one of these with nothing to apologise for"
 status: "blocked"
 priority: "P2"
-epic: "new-tools-gated"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["SEO-06"]
-legacy_state: "Open"
+waiting_on: "SEO-06 crawl gate and a volume check"
 ---
 
 # SEO-20 · New tool: crop a PDF, the only one of these with nothing to apologise for

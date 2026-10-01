@@ -4,9 +4,7 @@ title: "Zoomed in, a box near the top of the screen is hidden under its own full
 status: "retired"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-17"]
-legacy_state: "Open"
 ---
 
 # MOBI-32 · Zoomed in, a box near the top of the screen is hidden under its own full toolbar

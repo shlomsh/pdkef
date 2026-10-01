@@ -4,9 +4,7 @@ title: "A valid 3-page PDF renders a blank thumbnail in the Merge list"
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-01 · A valid 3-page PDF renders a blank thumbnail in the Merge list

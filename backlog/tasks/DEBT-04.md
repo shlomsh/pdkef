@@ -4,7 +4,6 @@ title: "Move draft persistence, the pdf.js render context and the Sign/Redact-on
 status: "done"
 priority: "P1"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: ["DEBT-02"]
 ---
 

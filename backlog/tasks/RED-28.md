@@ -4,7 +4,6 @@ title: "A deleted object peels off like a sticker"
 status: "done"
 priority: "P3"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

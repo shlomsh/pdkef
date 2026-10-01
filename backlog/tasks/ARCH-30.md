@@ -4,7 +4,6 @@ title: "A subagent's check:fast costs what its own edit touched, not what the br
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-28", "ARCH-29"]
 ---
 

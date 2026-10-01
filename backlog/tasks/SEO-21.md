@@ -1,12 +1,12 @@
 ---
 id: "SEO-21"
 title: "Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is"
-status: "blocked"
+status: "open"
 priority: "P3"
-epic: "new-tools-gated"
-phase: "longer-term"
-depends_on: ["MOBI-02", "SEO-06"]
-legacy_state: "Open"
+epic: "search-and-languages"
+horizon: "now"
+order: 2
+depends_on: ["MOBI-02"]
 ---
 
 # SEO-21 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
@@ -131,3 +131,7 @@ soon.
 - Part B: the Trends reading above is recorded (done, 2026-09-12); a Keyword Planner absolute-volume
   read and the SEO-06 gate outcome are recorded here before the page is built; the scope statement, the
   reader's test, and the cross-links above are on the page.
+
+## 2026-10-01 board cleanup
+
+- Status blocked -> open. Part A (the shared flattener, replacing `sign.js`'s `getForm().flatten()`) ships now; Part B (the Flatten page) waits on the SEO-06 crawl gate and is tracked in this ticket's body.

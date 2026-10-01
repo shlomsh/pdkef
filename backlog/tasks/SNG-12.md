@@ -3,9 +3,9 @@ id: "SNG-12"
 title: "The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions"
 status: "open"
 priority: "P3"
-epic: "sign-next-gen"
-phase: "later"
-depends_on: ["SNG-05", "FORM-03"]
+epic: "sign-fill-mode"
+horizon: "later"
+depends_on: ["FORM-03"]
 ---
 
 # SNG-12 · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions
@@ -51,3 +51,11 @@ Every other document keeps the tap-to-write model.
 
 - [ ] Shlomi reopens it with a resolved answer to "how does a person connect a model".
 - [ ] A per-document gate on 90/90/85 is measured on the corpus before any question is asked.
+
+## Folded in
+
+- FORM-09: below the 90 / 90 / 85 gate there is no automatic question flow. Questions come from FORM-02's canonical types in the person's language, never a raw printed label. Nothing is written without confirmation; an uncertain field is asked differently or left to be filled by hand. Answers stay on device in `src/lib/drafts/draftStore.js`, and retention and deletion for reuse between forms are decided in the ticket before building. FORM-02 is the prerequisite.
+
+## 2026-10-01 board cleanup
+
+- depends_on: dropped SNG-05 (retired), kept FORM-03.

@@ -4,7 +4,6 @@ title: "Spike: true redaction, removing only what is under each box and keeping 
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

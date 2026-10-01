@@ -4,7 +4,6 @@ title: "Redact remembers the whiteout colour and blur strength per document, lik
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

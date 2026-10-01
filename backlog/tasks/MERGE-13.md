@@ -4,9 +4,7 @@ title: "A merge survives a crash: the file set and page edits saved on device, r
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-09"]
-legacy_state: "Open"
 ---
 
 # MERGE-13 · A merge survives a crash: the file set and page edits saved on device, restored on return

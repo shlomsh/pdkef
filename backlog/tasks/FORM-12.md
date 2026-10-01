@@ -4,7 +4,6 @@ title: "Stray rules from neighbouring boxes split table rows on form 101"
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: []
 ---
 

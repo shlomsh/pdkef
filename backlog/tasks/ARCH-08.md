@@ -4,9 +4,7 @@ title: "Make documentation shell messages data-driven per locale"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "near-term"
 depends_on: ["ARCH-07"]
-legacy_state: "Done 2026-09-03"
 ---
 
 # ARCH-08 · Make documentation shell messages data-driven per locale

@@ -3,8 +3,9 @@ id: "DEBT-21"
 title: "Nothing checks that a navigating-away flag uses the hook that survives a Back"
 status: "open"
 priority: "P3"
-epic: "architecture-debt"
-phase: "near-term"
+epic: "robustness"
+horizon: "next"
+order: 2
 depends_on: []
 ---
 

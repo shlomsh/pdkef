@@ -4,7 +4,6 @@ title: "Find: Cover all waits for every page, one Find control, 44px targets"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

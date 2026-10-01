@@ -4,9 +4,7 @@ title: "Four shaping/render guards passed on macOS and failed on Linux CI"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "release-blocker"
 depends_on: []
-legacy_state: "Done 2026-08-29"
 ---
 
 # SIGN-19 · Four shaping/render guards passed on macOS and failed on Linux CI

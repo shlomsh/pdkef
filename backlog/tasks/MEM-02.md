@@ -4,9 +4,7 @@ title: "Tools on the memory space: Sign, Redact and Merge save into the entry an
 status: "done"
 priority: "P1"
 epic: "one-memory-space"
-phase: "near-term"
 depends_on: ["MEM-01"]
-legacy_state: "Open"
 ---
 
 # MEM-02 · Tools on the memory space: Sign, Redact and Merge save into the entry and resume from the pointer

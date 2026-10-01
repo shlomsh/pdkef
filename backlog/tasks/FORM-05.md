@@ -3,10 +3,10 @@ id: "FORM-05"
 title: "Do the clip-path rectangles a form rules its cells with belong in the ink?"
 status: "open"
 priority: "P2"
-epic: "form-understanding"
-phase: "near-term"
+epic: "form-detection"
+horizon: "next"
+order: 5
 depends_on: []
-legacy_state: "Open"
 ---
 
 # FORM-05 · Do the clip-path rectangles a form rules its cells with belong in the ink?

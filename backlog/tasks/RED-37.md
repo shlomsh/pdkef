@@ -4,7 +4,6 @@ title: "Redact speaks one vocabulary, and every removal gets the undo chip"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

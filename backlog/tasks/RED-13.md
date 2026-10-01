@@ -4,7 +4,6 @@ title: "Delete shows the page as it will be saved, and Hebrew previews read in o
 status: "done"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -4,9 +4,7 @@ title: "Add more documents while the assembled pages are on screen"
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-08"]
-legacy_state: "Open"
 ---
 
 # MERGE-10 · Add more documents while the assembled pages are on screen

@@ -4,9 +4,7 @@ title: "Tap a detected checkbox to place a mark in it"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-03"]
-legacy_state: "Done"
 ---
 
 # MOBI-05 · Tap a detected checkbox to place a mark in it

@@ -8,10 +8,10 @@ It is a companion to **[hebrew-text-shaping-export.md](./hebrew-text-shaping-exp
 five-stage model and the per-defect measurements. That document is now stale in three places; §1.2 below
 says exactly where, and this document supersedes it on current state.
 
-The task breakdown lives in **[TODO.md](../TODO.md)**, under "WYSIWYG text: what the two engines actually
-guarantee", as W1 through W9. §8 here is the same plan with the reasoning attached; the two are numbered
-identically on purpose, because a plan in two places that drift is the failure this repo already had once
-with `scrum-board.data.js`.
+The task breakdown is §8 below, Stages 1 through 9. The nine tasks were tracked as W1 through W9 and are
+numbered identically on purpose (W1 = Stage 1, and so on); the reasoning, the commits and the outcome of
+each are in its Stage entry. All nine shipped on 2026-08-27, with W9 settled as "keep two engines, harden
+the guards" (§6.2).
 
 ---
 
@@ -230,7 +230,7 @@ reproduction that motivated the fix: `שלום ά` in Heebo now reports `[U+03AC
 mirror case, pasted U+FB1D in Alef, now reports `[]` instead of a refusal. Tests live in
 `src/editor/registry/textShaping.test.js` ("the normalization seam") and `src/lib/textCoverage.test.js`
 ("the normalization seam, at policy level"), both directions, both against the real font bytes. See
-§8 Stage 2 and `TODO.md`'s W2 entry for the full record, including the note that 'יִ' will not reproduce
+§8 Stage 2 for the full record, including the note that 'יִ' will not reproduce
 the false-refusal case - `String.fromCodePoint(0xfb1d)` is required.
 
 ## 1.5 The app already ships the opposite answer, on purpose
@@ -839,9 +839,8 @@ into `dist/` and runs it in the browser, rasterising with pdf.js at 3x against a
 baseline over 21 cases (never poppler against Chromium - that is the cross-rasteriser comparison the
 design record rejected on measured noise floors of 80-88%). `MIN_TOLERANCE_PCT` was calibrated, not
 declared, against an in-browser proxy for cross-rasteriser noise (worst measured 8.18%, times 1.5,
-rounded to 12.5) - the originally declared floor of 8 did not clear that proxy. Full record, including
-the non-vacuity assertion catching a real RTL anchoring defect in the corpus on its first run, in
-`TODO.md`'s W1 entry.
+rounded to 12.5) - the originally declared floor of 8 did not clear that proxy. The non-vacuity assertion
+caught a real RTL anchoring defect in the corpus on its first run.
 
 **Bought:** the first check on the artifact users actually receive. It is what would have caught the CJK
 subsetter corruption, which passed `pdffonts`, `pdftotext` and a zero exit code while rendering broken.
@@ -863,7 +862,7 @@ shaping guards, not a replacement for them.
 **Landed 2026-08-27 (W2).** Coverage in `src/editor/registry/text.ts` is now judged against the string
 that reaches `layout()` (§3.1): split on `/\r?\n/`, then `composeHebrewClusters` per line. Tests in both
 directions, in both `textShaping.test.js` and `textCoverage.test.js`, against the real font bytes. Full
-record in §1.4 above and in `TODO.md`'s W2 entry.
+record in §1.4 above.
 
 **Bought:** removes the last known path to a silently missing character - as a refusal, not a fix; W2
 turns the silent loss into a stopped download. **Note for what comes next:** the coverage-first rule in

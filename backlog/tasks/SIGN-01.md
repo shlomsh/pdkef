@@ -4,9 +4,7 @@ title: "Recover after export failure"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Done 2026-08-28"
 ---
 
 # SIGN-01 · Recover after export failure

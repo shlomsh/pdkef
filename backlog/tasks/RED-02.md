@@ -4,7 +4,6 @@ title: "Find and redact: search text, review every match, redact all or some"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

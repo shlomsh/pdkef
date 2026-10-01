@@ -4,9 +4,7 @@ title: "Make translated documentation freshness enforceable"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "near-term"
 depends_on: ["ARCH-07"]
-legacy_state: "Done 2026-09-03"
 ---
 
 # ARCH-09 · Make translated documentation freshness enforceable

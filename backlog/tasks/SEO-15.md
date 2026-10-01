@@ -4,9 +4,7 @@ title: "Positioning review: the three tools Google has never looked at"
 status: "done"
 priority: "P2"
 epic: "search-acquisition"
-phase: "near-term"
 depends_on: ["SEO-11", "SEO-06"]
-legacy_state: "Done 2026-09-11"
 ---
 
 # SEO-15 · Positioning review: the three tools Google has never looked at

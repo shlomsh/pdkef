@@ -1,12 +1,11 @@
 ---
 id: "SEO-30"
 title: "A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before"
-status: "open"
+status: "blocked"
 priority: "P2"
-epic: "english-base"
-phase: "near-term"
+epic: "search-and-languages"
 depends_on: ["SEO-05", "SEO-13"]
-legacy_state: "Open"
+waiting_on: "SEO-05's verdict"
 ---
 
 # SEO-30 · A two-click demo below the Compress hero, for a visitor who has never used a PDF tool before
@@ -61,3 +60,7 @@ the "OUR PICK" options grid SEO-05/this session's redesign just made the primary
   treatment on other high-traffic tool pages (`/redact/`, per SEO-14's finding it's 64% of clicks) - do
   not silently generalize to all nine tool pages without that decision being made explicitly, since
   CLAUDE.md's anti-doorway-page discipline applies to templated additions as much as templated pages.
+
+## 2026-10-01 board cleanup
+
+- Status open -> blocked: waits on SEO-05's verdict.

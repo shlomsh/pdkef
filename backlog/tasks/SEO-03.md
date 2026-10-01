@@ -1,12 +1,12 @@
 ---
 id: "SEO-03"
 title: "External signals: the work that moves the constraint and does not live in this repo"
-status: "in_progress"
+status: "open"
 priority: "P1"
-epic: "english-base"
-phase: "longer-term"
+epic: "search-and-languages"
+horizon: "next"
+order: 1
 depends_on: []
-legacy_state: "Open"
 ---
 
 # SEO-03 · External signals: the work that moves the constraint and does not live in this repo
@@ -141,13 +141,13 @@ over the search proxy if one becomes accessible.
   `gh pr list --author shlomsh` on the venue repo before forking**, the same way we now check a
   venue's own gates before drafting.
 - **Release history** - `package.json` bumped 0.1.0 to 1.0.0 (`054b8db` on `main`), notes drafted at
-  [docs/release-notes-v1.0.0.md](../../docs/release-notes-v1.0.0.md). `git tag` and
+  [docs/archive/release-notes-v1.0.0.md](../../docs/archive/release-notes-v1.0.0.md). `git tag` and
   `gh release create` were both refused by the agent sandbox's permission classifier, so the tag and
   the GitHub release are Shlomi's to run:
 
   ```bash
   git tag -a v1.0.0 054b8db -m "PDkef 1.0.0" && git push origin v1.0.0
-  gh release create v1.0.0 --title "PDkef 1.0.0" --notes-file docs/release-notes-v1.0.0.md
+  gh release create v1.0.0 --title "PDkef 1.0.0" --notes-file docs/archive/release-notes-v1.0.0.md
   ```
 
   Chose `1.0.0` over tagging the existing `0.1.0`: a 0.x tag on a product ten weeks live with nine
@@ -162,3 +162,7 @@ over the search proxy if one becomes accessible.
   `038b5d7` (main had moved past `054b8db` by then, which is fine - the release includes the notes file
   itself). awesome-selfhosted eligible from 2027-01-12.
 - Still queued from the second pass: the PWA directories, Lissy93/awesome-privacy (rules unchecked).
+
+## 2026-10-01 board cleanup
+
+- Status in_progress -> open: this is a permanent background ticket, not active work.

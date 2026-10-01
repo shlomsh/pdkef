@@ -4,9 +4,7 @@ title: "Replace permissive editor-shell types with shared contracts"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "longer-term"
 depends_on: ["SIGN-14"]
-legacy_state: "Done — typed editor-shell boundaries completed 2026-09-04"
 ---
 
 # ARCH-10 · Replace permissive editor-shell types with shared contracts

@@ -4,9 +4,7 @@ title: "Tap a detected comb run and type the whole number once"
 status: "done"
 priority: "P1"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-03"]
-legacy_state: "Done"
 ---
 
 # MOBI-04 · Tap a detected comb run and type the whole number once

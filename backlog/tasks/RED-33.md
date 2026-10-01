@@ -4,7 +4,6 @@ title: "Delete by dragging a box: everything under it goes on release, one undo 
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

@@ -4,9 +4,7 @@ title: "Download replaces Merge in place, named after the first file, with pages
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "quick-win"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # MERGE-03 · Download replaces Merge in place, named after the first file, with pages and size

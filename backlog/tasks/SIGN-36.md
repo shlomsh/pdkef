@@ -4,7 +4,6 @@ title: "Every text box can be aligned, and the download matches what the screen 
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-35"]
 ---
 

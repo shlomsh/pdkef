@@ -8,9 +8,9 @@ paths:
   - "scripts/check-gesture-golden-rule.js"
   - "scripts/check-editor-dependency-directions.mjs"
   - "docs/E4-headless-editor-core-plan.md"
-  - "docs/editor-module-boundaries-plan.md"
+  - "docs/archive/editor-module-boundaries-plan.md"
   - "docs/view-density-control-spec.md"
-  - "docs/sign-redact-draft-validation-plan.md"
+  - "docs/archive/sign-redact-draft-validation-plan.md"
 ---
 
 # Sign/Redact editor

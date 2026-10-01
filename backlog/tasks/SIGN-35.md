@@ -4,7 +4,6 @@ title: "A style chosen in a document also becomes the app default for new docume
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: ["SIGN-33"]
 ---
 

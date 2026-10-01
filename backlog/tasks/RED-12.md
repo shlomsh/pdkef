@@ -4,7 +4,6 @@ title: "Covered pages keep their text: the picture plus an invisible text layer 
 status: "retired"
 priority: "P1"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

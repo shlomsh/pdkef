@@ -6,7 +6,7 @@ ARCH-20 and QUAL-05 execute against. It does not move a single file; it says whe
 rules today (so the checker can be green from day one), and what still needs a human decision this
 ticket does not make.
 
-Related but narrower: [docs/editor-module-boundaries-plan.md](./editor-module-boundaries-plan.md)
+Related but narrower: [docs/archive/editor-module-boundaries-plan.md](./archive/editor-module-boundaries-plan.md)
 (ARCH-01 through ARCH-11) drew the boundaries *inside* `src/editor/` (model/geometry/text/registry/
 workspace/pdf-adapter) and is enforced by `scripts/check-editor-dependency-directions.mjs`. This
 record is one level up: the folders `src/` itself is cut into, and the tool-to-tool, tool-to-shell
@@ -165,8 +165,8 @@ file, which the ticket's own predecessor guard already handles and this one had 
   the right neighborhood; the gap is almost certainly counting method (raw file count vs. distinct
   component identity), not drift between `4ca0e26` and this checkout.
 - **33 edges violate the five rules above** on this checkout: 24 from flat `components` files into
-  `MergeTool/`or `SignTool/` (rule 5), 1 tool-to-tool edge (`src/components/MergeTool/useMergeDraft.ts`
-  importing `src/components/SignTool/useDraftPersistence.js` - rule 1, and not one the ticket
+  `MergeTool/`or `SignTool/` (rule 5), 1 tool-to-tool edge (`src/tools/merge/components/useMergeDraft.ts`
+  importing `src/lib/drafts/useDraftPersistence.js` - rule 1, and not one the ticket
   mentioned by name; see Surprises), and 8 from `src/editor/` into `src/components/` (rule 2/3). All
   33 are on `scripts/module-boundaries-allowlist.json` today, and `npm run test:module-boundaries` is
   green with them there.
@@ -179,13 +179,13 @@ file, which the ticket's own predecessor guard already handles and this one had 
 - **`model/editorModel.ts` does not import from `src/components`.** The ticket lists it as one of
   "four" editor files that leak into components. On this checkout it is a types-only file; the only
   mention of `src/components` is a doc comment pointing at where the fields it describes get
-  *rendered* (`// - rendering: src/components/SignTool/nodes/*.tsx.`), not an import. The real count
+  *rendered* (`// - rendering: src/tools/sign/components/nodes/*.tsx.`), not an import. The real count
   is **three** files (`registry/renderers.ts`, `registry/text.ts`,
   `workspace/useEditorDraftPersistence.ts`), eight edges. ARCH-19's scope should drop the
   `editorModel.ts` line item, or re-verify it fresh before starting, in case a file changed between
   `4ca0e26` and whatever commit ARCH-19 starts from.
-- **A fourth violation the ticket did not name:** `src/components/MergeTool/useMergeDraft.ts` imports
-  `src/components/SignTool/useDraftPersistence.js` (for `RESTORE_TIMEOUT_MS`, on inspection). That is
+- **A fourth violation the ticket did not name:** `src/tools/merge/components/useMergeDraft.ts` imports
+  `src/lib/drafts/useDraftPersistence.js` (for `RESTORE_TIMEOUT_MS`, on inspection). That is
   a real tool-to-tool edge, Merge depending on Sign, not just the "components cycle" the ticket
   described. It is allowlisted alongside the rest; ARCH-18 should look at it specifically, since it
   will not resolve itself the way the flat-file violations do when Merge and Sign both move (they
@@ -248,7 +248,7 @@ single tool owns them; they are consumed by the generic tool chrome or by more t
 - `CompareSlider.{tsx,test.tsx,module.css}` - a drag-based before/after image slider. At the time of
   this record it was imported by one `.astro` site component (`CompareFigure.astro`, for blog-style
   content) and by one tool (`PdfCompressTool.tsx`, the compress preview the `compare-preview.spec.js`
-  perf budget measures). It also imported `src/editor/gestures/controller.ts` directly, so it needed
+  perf budget measures). It also imported `src/editor/gestures/controller.ts` (now `src/lib/gestures/controller.ts`) directly, so it needed
   to land somewhere that may import `editor` - `shell` qualifies, `site` does not (rule 4 forbids the
   site importing a tool directly, and `PdfCompressTool.tsx` importing it back is `tool -> shell`,
   allowed). This is a gap in the ticket's shell list, not a contradiction of it: nothing in the
@@ -289,7 +289,7 @@ minus three files it landed differently, plus one addition:
   change. Recorded here for the same reason as the bullet above: so a future reader looks for it in
   the right folder instead of this one.
 
-- `src/lib/useViewDensity.js` is consumed only by `ViewControl.tsx`. It is not itself a component, so
+- `src/editor-ui/useViewDensity.js` is consumed only by `ViewControl.tsx`. It is not itself a component, so
   it was never going to appear in a "components that move" list, but its only consumer is moving to
   `editor-ui`, so it is the one `src/lib/` module in this record that travels with `editor-ui` rather
   than with a tool or staying in `lib`. Call this out explicitly in ARCH-16/17 so it does not get
@@ -443,7 +443,7 @@ ticket listed was confirmed real except the two noted as already move-proof (see
   this epic, so they need no change.
 - `DOM_TESTS` in `vitest.config.js` - see Surprises for exactly which lines matter.
 - `scripts/check-editor-dependency-directions.mjs` - its `EXCEPTIONS` list and `layerFor()` both
-  hardcode `src/components/SignTool/` paths; every ARCH-16/17/18/19 move that touches Sign needs a
+  hardcode `src/tools/sign/` paths; every ARCH-16/17/18/19 move that touches Sign needs a
   matching edit here, and ARCH-19 in particular changes what the exceptions list has to say.
 - `scripts/change-scope.mjs`'s `FONT_GUARD_INPUTS` hardcoded `/^src\/components\/SignTool\//` (true
   when this record was written; ARCH-20 deleted the list entirely rather than relocating it - the
@@ -452,10 +452,10 @@ ticket listed was confirmed real except the two noted as already move-proof (see
 - `playwright.config.js`'s `FONT_GUARDS` and `PERF_BUDGETS` globs match `**/sign/*-guard.spec.js`,
   `**/merge/merge-ready-time.spec.js`, etc.; they follow the `e2e/<tool>/` directories into
   `src/tools/<tool>/e2e/` when ARCH-17/18 move them, or need rewriting if the glob shape changes.
-- The Architecture section of `CLAUDE.md` names `src/components/Pdf*Tool.tsx` and describes Sign/Redact
+- The Architecture section of `CLAUDE.md` names `src/tools/*/Pdf*Tool.tsx` and describes Sign/Redact
   sharing `src/editor/`; update the paths once ARCH-16/17/18 land, in the same change, not left stale.
 - `docs/ux-design-guidelines.md` (named in ARCH-18's own acceptance criteria already) and
-  `docs/editor-module-boundaries-plan.md` both narrate file paths in prose; re-read them once the
+  `docs/archive/editor-module-boundaries-plan.md` both narrate file paths in prose; re-read them once the
   moves land rather than assuming they are still accurate.
 
 Confirmed *not* needing changes, despite being named in the ticket's Notes: `scripts/check-gesture-golden-rule.js`

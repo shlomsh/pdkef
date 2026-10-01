@@ -4,9 +4,7 @@ title: "Indonesian pilot: one page for getting a PDF under 1 MB and a photo unde
 status: "done"
 priority: "P1"
 epic: "localization-pilots"
-phase: "near-term"
 depends_on: ["LOC-14"]
-legacy_state: "Open"
 ---
 
 # LOC-15 · Indonesian pilot: one page for getting a PDF under 1 MB and a photo under 200 KB, on the size-limit family that cleared the gate
@@ -120,7 +118,7 @@ claims on-device processing. Expected start: page two, a slow climb, not a fast 
 
 Nothing built. Three inputs the page needs before a reviewer is hired, so the reviewer gets a
 skeleton with real numbers rather than a blank brief. The English skeleton for the reviewer is
-[docs/loc-15-reviewer-brief.md](../../docs/loc-15-reviewer-brief.md).
+[docs/archive/loc-15-reviewer-brief.md](../../docs/archive/loc-15-reviewer-brief.md).
 
 ### Portal limits, primary sources only (captured 2026-09-12)
 

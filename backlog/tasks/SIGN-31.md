@@ -4,9 +4,7 @@ title: "Double-tap locks Shapes and Sign on a phone"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "quick-win"
 depends_on: ["SIGN-30"]
-legacy_state: "Opened and closed 2026-09-24 as SIGN-30's follow-up (Shlomi: make double-tap lock Shapes and Sign on mobile too)"
 ---
 
 # SIGN-31 · Double-tap locks Shapes and Sign on a phone

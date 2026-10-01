@@ -4,9 +4,7 @@ title: "Anonymous usage and error maintenance signals"
 status: "done"
 priority: "P2"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done — 2026-09-04; sampled, allowlisted maintenance telemetry"
 ---
 
 # SIGN-13 · Anonymous usage and error maintenance signals

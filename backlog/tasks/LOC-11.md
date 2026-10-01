@@ -4,9 +4,7 @@ title: "Top-languages research: is there untapped in-language traffic behind the
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: ["LOC-08"]
-legacy_state: "Open"
 ---
 
 # LOC-11 · Top-languages research: is there untapped in-language traffic behind the site's top countries?

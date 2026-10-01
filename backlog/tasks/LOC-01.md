@@ -4,9 +4,7 @@ title: "Measure non-English demand from outside Search Console: the gate for the
 status: "done"
 priority: "P2"
 epic: "localized-search"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # LOC-01 · Measure non-English demand from outside Search Console: the gate for the second language
@@ -25,7 +23,7 @@ translation cost is what this ticket measures, before anyone builds a page.
 
 **The method: three outside sources, since GSC is structurally blind here.**
 
-1. **The research brief.** Run [docs/localized-search-research-brief.md](../../docs/localized-search-research-brief.md)
+1. **The research brief.** Run [docs/archive/localized-search-research-brief.md](../../docs/archive/localized-search-research-brief.md)
    through a research agent. It returns, per language, the in-language share of the anchor tasks
    (Google Trends by country, Keyword Planner or a third-party tool where available), the phrasing
    matrix per tool, the incumbents and their page quality (native / machine / mixed-language / LTR-only
@@ -103,7 +101,7 @@ above; it is decisive for Indonesian.
 
 ## Evidence captured 2026-09-11 (research brief report)
 
-[docs/localized-search-research-brief-report.md](../../docs/localized-search-research-brief-report.md)
+[docs/archive/localized-search-research-brief-report.md](../../docs/archive/localized-search-research-brief-report.md)
 committed, run against the brief with the tools reachable from this environment (no Trends comparison
 UI, no Keyword Planner, no `hl`/`gl`-scoped SERPs — all recorded as "not checked" per the brief's own
 rule rather than guessed). Its one clean, source-backed finding: Google's published

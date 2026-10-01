@@ -169,7 +169,7 @@ pointerdown and `registry[el.type].render(...)` for the body; it no longer conta
 
 **Dependency enforcement (ARCH-11).** The current, explicit import matrix and the narrow renderer /
 workspace-hook transition seams are maintained in
-[editor-module-boundaries-plan.md](./editor-module-boundaries-plan.md). Run
+[editor-module-boundaries-plan.md](./archive/editor-module-boundaries-plan.md). Run
 `npm run test:editor-dependency-directions`; CI resolves production static imports and rejects a
 reversed layer dependency. The registry renderer remains a documented Preact adapter seam rather than
 a reason to move files mechanically.

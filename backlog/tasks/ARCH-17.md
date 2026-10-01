@@ -4,7 +4,6 @@ title: "One folder per tool: Compress, Split, Edit pages, PDF to image, Image to
 status: "done"
 priority: "P1"
 epic: "module-boundaries"
-phase: "near-term"
 depends_on: ["ARCH-16"]
 ---
 

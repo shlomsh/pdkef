@@ -4,7 +4,6 @@ title: "A comb captioned above in its own box writes in the strip under the capt
 status: "done"
 priority: "P1"
 epic: "form-understanding"
-phase: "near-term"
 depends_on: ["FORM-27"]
 ---
 

@@ -4,9 +4,7 @@ title: "Field-to-field navigation so filling a form never needs aiming"
 status: "done"
 priority: "P2"
 epic: "mobile-round-trip"
-phase: "near-term"
 depends_on: ["MOBI-04"]
-legacy_state: "Open"
 ---
 
 # MOBI-06 · Field-to-field navigation so filling a form never needs aiming

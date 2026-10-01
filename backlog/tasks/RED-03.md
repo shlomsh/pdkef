@@ -4,7 +4,6 @@ title: "Repeat a box on every page"
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: []
 ---
 

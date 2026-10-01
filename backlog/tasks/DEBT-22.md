@@ -1,12 +1,10 @@
 ---
 id: "DEBT-22"
 title: "tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else"
-status: "open"
+status: "retired"
 priority: "P2"
 epic: "architecture-debt"
-phase: "near-term"
 depends_on: []
-legacy_state: "Open"
 ---
 
 # DEBT-22 · tool-layout.spec.js's first-paint restore test fails intermittently in CI and nowhere else
@@ -35,3 +33,7 @@ An instrumented run that logged a stack for every write to `data-view-density`, 
 that run) and read the page's state at the failing measurement, rather than theorising further. The test
 writes `<html>` attributes that live code also writes, on a page whose island is hydrating, and measures in
 the same breath; whatever the mechanism, a test that races the app it measures is the thing to fix.
+
+## Closed 2026-10-01
+
+No tool-layout first-paint failure has appeared in the main e2e runs since 2026-09-22. Reopen if it recurs.

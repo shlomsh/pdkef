@@ -4,9 +4,7 @@ title: "Measure the Direction A closing wave against its acceptance lists before
 status: "done"
 priority: "P1"
 epic: "merge-tool"
-phase: "near-term"
 depends_on: ["MERGE-03", "MERGE-09", "MERGE-11", "MERGE-13", "MERGE-14"]
-legacy_state: "Done 2026-09-13"
 ---
 
 # MERGE-20 · Measure the Direction A closing wave against its acceptance lists before the branch merges
@@ -16,7 +14,7 @@ landing its last wave (rail reorder, Options dissolved, WYSIWYG heading, `merged
 popover, tap-to-reveal page controls, shared pdf.js worker for thumbnails) when the day ended. Its
 reports are claims until measured. Method: `docs/ux-design-guidelines.md` "How we review"
 (real browser, getBoundingClientRect and getComputedStyle, 1280 and 375, fixtures injected through
-the real file input; the injector is described in `docs/merge-review-2026-09-13.md`). Run against
+the real file input; the injector is described in `docs/archive/merge-review-2026-09-13.md`). Run against
 `astro dev` on port 4399 in that worktree, not the 4173 preview.
 
 ## Checks
@@ -64,7 +62,7 @@ the real file input; the injector is described in `docs/merge-review-2026-09-13.
   254 ms / 550 ms / 485 ms with one shared `PDFWorker`; `e2e/merge/merge-thumbnail-throughput.spec.js`
   holds 2.5 s.
 
-**Still never exercised by a reviewer** (from `docs/merge-review-2026-09-13.md`): the encrypted-file
+**Still never exercised by a reviewer** (from `docs/archive/merge-review-2026-09-13.md`): the encrypted-file
 row with the repo's encrypted fixture, pointer drag on the grid, paste, folder drop, the duplicate
 nudge, the size-cap error, the install line after a first download, the Hebrew tag-name floor on
 desktop WebKit (Safari, not Chromium).

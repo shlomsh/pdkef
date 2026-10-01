@@ -4,9 +4,7 @@ title: "Relocate the shared page-coordinate transform into editor/geometry"
 status: "done"
 priority: "P2"
 epic: "editor-architecture"
-phase: "unspecified"
 depends_on: ["SIGN-05"]
-legacy_state: "Done 2026-08-30"
 ---
 
 # ARCH-02 · Relocate the shared page-coordinate transform into editor/geometry

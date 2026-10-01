@@ -4,9 +4,7 @@ title: "Home page and Replace: no warning when opening a file, Replace always co
 status: "done"
 priority: "P1"
 epic: "one-memory-space"
-phase: "near-term"
 depends_on: ["MEM-01"]
-legacy_state: "Open"
 ---
 
 # MEM-03 · Home page and Replace: no warning when opening a file, Replace always confirms and says the file stays

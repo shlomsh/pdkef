@@ -4,7 +4,6 @@ title: "Sign's Whiteout removes what it covers, through the same removal as Reda
 status: "retired"
 priority: "P2"
 epic: "redact-tool"
-phase: "later"
 depends_on: ["RED-22"]
 ---
 

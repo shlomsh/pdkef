@@ -1,10 +1,9 @@
 ---
 id: "MOBI-14"
 title: "A scanned form finds nothing: the detector reads vector ink, and a scan has none"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "mobile-round-trip"
-phase: "later"
 depends_on: ["MOBI-13"]
 ---
 
@@ -68,3 +67,7 @@ a person writes in, which is geometry.
 
 - [ ] Either a measured decision not to build it, recorded here with the evidence and the date, or
       `irs-1040-1970` scoring above zero with its baseline re-recorded in the change that earned it.
+
+## Closed 2026-10-01
+
+Merged into FORM-07: the scanned-form detector (a raster line-finding pass behind the existing detector) moves there, with the measured 0% recall evidence.

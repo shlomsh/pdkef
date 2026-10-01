@@ -4,7 +4,6 @@ title: "Blur and whiteout brushes: any size, any color, removed from the saved f
 status: "done"
 priority: "P2"
 epic: "redact-tool"
-phase: "near-term"
 depends_on: ["RED-30"]
 ---
 

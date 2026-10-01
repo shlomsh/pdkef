@@ -4,9 +4,7 @@ title: "Make the offline requirement testable"
 status: "done"
 priority: "P1"
 epic: "sign-tool-architecture"
-phase: "near-term"
 depends_on: []
-legacy_state: "Done 2026-09-02"
 ---
 
 # SIGN-07 · Make the offline requirement testable
