@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 63 live: 13 up next, 23 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 62 live: 14 up next, 21 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -12,14 +12,8 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| RED-49 | P2 | [RED-49](backlog/tasks/RED-49.md) · Check the saved file also reads what no page shows | In progress |
-
-### Then, in order
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-16 | P3 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes |  |
-| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Consolidate Redact's state before it grows further |  |
+| RED-16 | P3 | [RED-16](backlog/tasks/RED-16.md) · One text reader: Delete's previews read their text from the glyph read, and the second decoder goes | In progress |
+| SNG-08 | P2 | [SNG-08](backlog/tasks/SNG-08.md) · Consolidate Redact's state before it grows further | In progress |
 
 ### Waiting
 
@@ -190,7 +184,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 5 done, 0 retired
+- Redact: finish removal: 6 done, 0 retired
 - Sign: finish fill mode: 0 done, 0 retired
 - Form detector accuracy: 0 done, 0 retired
 - Robustness and debt: 1 done, 0 retired
