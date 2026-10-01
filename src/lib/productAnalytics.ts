@@ -38,6 +38,6 @@ export function reportToolLifecycleEvent(event: ToolLifecycleEvent, tool: Analyt
   try {
     window.va?.('event', { name: event, data: { tool } });
   } catch {
-    // Analytics must never alter an offline or local document workflow.
+    // expected: Analytics must never alter an offline or local document workflow.
   }
 }

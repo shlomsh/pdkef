@@ -14,6 +14,7 @@ export async function readGlyphs(pdfjs, pdfjsPage, options) {
       try {
         return pdfjsPage.commonObjs.get(name);
       } catch {
+        // expected: pdf.js throws for an unresolved font name, handled as no font
         return null;
       }
     }, options);

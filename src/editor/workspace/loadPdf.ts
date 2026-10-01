@@ -59,6 +59,7 @@ function disposePdfHandle(handle: unknown) {
   // pdf.js rejects the loading/render promise when cancelled. That rejection is
   // expected here, and must not become an unhandled rejection while a newer
   // document is loading.
+  // expected: a rejection from destroying a handle that was cancelled is expected
   void Promise.resolve(destroy.call(handle)).catch(() => {});
 }
 

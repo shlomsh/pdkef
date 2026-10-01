@@ -51,6 +51,7 @@ function isShallowRepository() {
           stdio: ['ignore', 'pipe', 'ignore'],
         }).trim() === 'true';
     } catch {
+      // expected: build-time script, a failed git probe means not shallow
       isShallowCache = false;
     }
   }
@@ -77,6 +78,7 @@ export function gitFileLastModifiedIso(file) {
       if (!isShallowBoundary) iso = new Date(dateIso).toISOString();
     }
   } catch {
+    // expected: build-time script, no git date falls back to null
     iso = null;
   }
   gitDateCache.set(file, iso);

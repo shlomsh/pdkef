@@ -132,7 +132,7 @@ export function formatSavedAt(savedAt: number | undefined, messages: RecentFiles
       if (magnitude >= size) return format.format(Math.round(seconds / size), unit);
     }
   } catch {
-    // Intl.RelativeTimeFormat is everywhere this app runs, but a missing
+    // expected: Intl.RelativeTimeFormat is everywhere this app runs, but a missing
     // timestamp label is not worth throwing inside a render.
   }
   return '';
