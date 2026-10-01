@@ -62,3 +62,24 @@ means that row and that ticket are revised before any user-facing claim changes.
 ## 2026-10-01 board cleanup
 
 - Priority P1 -> P3: OCR is not approved in `docs/sign-tool-product-decisions.md`.
+
+## 2026-10-01 spike
+
+**GO, scoped to label crops** (record: [docs/form-06-ocr-spike.md](../../docs/form-06-ocr-spike.md)).
+Tesseract `heb` (tesseract.js 7.0.0, tessdata_fast) on a clean 300 DPI raster of both Hebrew
+evidence forms, scored against the pdf.js text and positions:
+
+- Label-sized crops (Hebrew, 3+ letters), PSM 7 / PSM 8: CER 3.9% / 3.6% on the health declaration
+  and 0.9% / 1.0% on form 101; within one character of the truth 92.5-97.4%; exact 73.5-90.4%.
+- Whole page (PSM 3): found 99-100% of label-like runs, ink-fit word boxes at IoU 0.5 for 94-97%,
+  label-like CER 4.8% / 1.5%. Tesseract's layout analysis did not fail on the ruled forms.
+- Weak spots: final mem read as samekh, "כן" misread (shekel sign), digits and Latin (CER 25-60%).
+  Resolution matters: 200 DPI health CER is 5.7-5.9%, 150 DPI 6.4-10.2%.
+- Cost, desktop only (M2 Pro): crop 4-10 ms, page 2.2-3.5 s, init under 160 ms, about 2.0 MB gzipped
+  once. A phone was not measured.
+
+The GO is a measurement. OCR is still not approved in `docs/sign-tool-product-decisions.md`, nothing
+here added a dependency or asset, and the build is a separate ticket that needs that product
+decision first and must measure degraded input (skew, noise, blur) before claiming anything. The
+SEO record's "rejected" row for OCR must be revised before any user-facing claim changes; this
+ticket does not edit it.
