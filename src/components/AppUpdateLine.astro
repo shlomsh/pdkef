@@ -18,13 +18,15 @@ const messages = getAppUpdateMessages(lang);
 </p>
 
 <style>
+  /* Just under AppBar (sticky, h-14), never on it: end-aligned with the bar's
+     chips, whose padding (px-6, px-8 in a 1280px column) it mirrors, where the
+     page below is empty; centred on a phone, where nothing is beside the
+     heading. Fixed, so it takes no layout space. */
   .app-update {
     position: fixed;
-    inset-block-start: max(8px, env(safe-area-inset-top));
-    inset-inline: 0;
-    margin-inline: auto;
-    inline-size: max-content;
-    max-inline-size: calc(100vw - 32px);
+    inset-block-start: calc(3.5rem + 8px);
+    inset-inline-end: 1.5rem;
+    max-inline-size: calc(100% - 32px);
     z-index: 80;
     padding: 0.25rem 0.7rem;
     font-size: 0.8rem;
@@ -34,6 +36,18 @@ const messages = getAppUpdateMessages(lang);
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
+  }
+  @media (min-width: 1024px) {
+    .app-update {
+      inset-inline-end: max(2rem, calc((100% - 1280px) / 2 + 2rem));
+    }
+  }
+  @media (max-width: 560px) {
+    .app-update {
+      inset-inline: 0;
+      margin-inline: auto;
+      inline-size: max-content;
+    }
   }
   .app-update[hidden] {
     display: none;
