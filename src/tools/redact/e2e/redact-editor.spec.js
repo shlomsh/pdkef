@@ -237,7 +237,7 @@ test.describe('Redact editor browser guardrails', () => {
   // inside the box - different icon, different colour, a position that
   // itself moved (top/right 8px with resize handles shown, -10px without).
   // All three types now share exactly one selection chrome: the same
-  // floating toolbar (ElementToolbar via RedactBox's `[data-editor-actions]`
+  // floating toolbar (RedactBoxToolbar via RedactBox's `[data-editor-actions]`
   // wrapper), positioned the same way, showing nothing until the box is
   // selected and nothing on hover alone.
   test('keeps one shared selection chrome across whiteout, blackout and blur, resizable and page-bound, in the real browser', async ({ page }) => {

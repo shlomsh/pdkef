@@ -1,5 +1,5 @@
 import { Check, Pipette } from 'lucide-preact';
-import BlurStrengthSlider from '../../editor-ui/BlurStrengthSlider.tsx';
+import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import { TrashIcon } from '../../editor-ui/toolIcons.tsx';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';

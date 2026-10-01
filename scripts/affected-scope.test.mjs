@@ -84,7 +84,7 @@ describe('ownerOf', () => {
   it.each([
     ['src/shell/BasePdfTool.tsx', 'shell'],
     ['src/editor/workspace/useEditorDraftPersistence.ts', 'editor'],
-    ['src/editor-ui/ElementToolbar.tsx', 'editor-ui'],
+    ['src/editor-ui/ColorPickerMenu.tsx', 'editor-ui'],
     ['src/lib/format.js', 'lib'],
     ['src/tools/sign/PdfSignTool.tsx', 'tool-sign'],
     ['src/tools/sign/e2e/sign-editor.spec.js', 'tool-sign'],
@@ -443,7 +443,7 @@ describe('deriveScope', () => {
 
   // DEBT-06: editor-ui left CORE_PROJECTS, so an editor-ui-only change now
   // narrows instead of widening - the affected set nx actually reports for
-  // src/editor-ui/ElementToolbar.tsx (measured, see the ticket and the
+  // src/editor-ui/ColorPickerMenu.tsx (measured, see the ticket and the
   // header comment's rule 3). ARCH-23 (2026-09-18, the commit that filed the
   // ticket, 15396adf: "Tool tooltip leads with the button's name") changed
   // this test's expectation: fonts is now false for an editor-ui/tool-sign
@@ -631,7 +631,7 @@ describe('matchesFontsGlob', () => {
   it.each([
     'src/lib/format.js',
     'src/editor/model/editorModel.ts',
-    'src/editor-ui/ElementToolbar.tsx',
+    'src/editor-ui/ColorPickerMenu.tsx',
     'src/tools/sign/PdfSignTool.tsx',
     // Sign's product specs moved here; the font guards stayed in e2e/sign/,
     // and a Sign spec change running all 25 guards is what ARCH-23 removed.

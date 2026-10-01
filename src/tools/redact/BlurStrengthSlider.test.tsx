@@ -2,7 +2,7 @@ import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import BlurStrengthSlider, { DEFAULT_TICK_PERCENT } from './BlurStrengthSlider.tsx';
-import { renderRedactionSurface } from '../editor/registry/redactionSurface.ts';
+import { renderRedactionSurface } from '../../editor/registry/redactionSurface.ts';
 
 const labels = { title: 'Blur strength', lighter: 'Lighter', stronger: 'Stronger', defaultTick: 'Default blur' };
 let host: HTMLElement | null = null;

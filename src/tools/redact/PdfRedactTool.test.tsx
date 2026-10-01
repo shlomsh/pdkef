@@ -1369,7 +1369,7 @@ describe('PdfRedactTool UI flow', () => {
     // Design review: blackout and blur used to carry their own inline red
     // "corner" delete button, positioned and styled differently from
     // whiteout's floating toolbar. All three types now share one selection
-    // chrome (ElementToolbar via RedactBox's `[data-editor-actions]`
+    // chrome (RedactBoxToolbar via RedactBox's `[data-editor-actions]`
     // wrapper), so these three tests assert the same thing per type instead
     // of a whiteout-only one and two blackout/blur-only ones with different
     // assertions.

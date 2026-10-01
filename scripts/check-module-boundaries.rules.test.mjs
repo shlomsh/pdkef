@@ -114,7 +114,7 @@ describe('module boundaries: ruleViolation() - rule 2, core modules', () => {
 
 describe('module boundaries: ruleViolation() - rule 3, editor is headless', () => {
   it('may not import editor-ui', () => {
-    expect(check('src/editor/registry/renderers.ts', 'src/editor-ui/ElementToolbar.tsx'))
+    expect(check('src/editor/registry/renderers.ts', 'src/editor-ui/ColorPickerMenu.tsx'))
       .toBe('editor is headless: it may not import editor-ui or shell');
   });
 
@@ -124,7 +124,7 @@ describe('module boundaries: ruleViolation() - rule 3, editor is headless', () =
   });
 
   it('editor-ui importing editor is not a violation (the direction is allowed)', () => {
-    expect(check('src/editor-ui/ElementToolbar.tsx', 'src/editor/registry/renderers.ts')).toBeNull();
+    expect(check('src/editor-ui/ColorPickerMenu.tsx', 'src/editor/registry/renderers.ts')).toBeNull();
   });
 });
 
@@ -315,9 +315,9 @@ describe('rule 9: commonLayerConsumers() - two or more distinct tool/site consum
 
   it('editor is special: an editor module reached only through editor-ui counts via the tools that reach editor-ui', () => {
     const graph = reverseGraph([
-      ['src/editor/registry/renderers.ts', 'src/editor-ui/ElementToolbar.tsx'],
-      ['src/editor-ui/ElementToolbar.tsx', 'src/tools/sign/PdfSignTool.tsx'],
-      ['src/editor-ui/ElementToolbar.tsx', 'src/tools/redact/PdfRedactTool.tsx'],
+      ['src/editor/registry/renderers.ts', 'src/editor-ui/ColorPickerMenu.tsx'],
+      ['src/editor-ui/ColorPickerMenu.tsx', 'src/tools/sign/PdfSignTool.tsx'],
+      ['src/editor-ui/ColorPickerMenu.tsx', 'src/tools/redact/PdfRedactTool.tsx'],
     ]);
     expect(commonLayerConsumers('src/editor/registry/renderers.ts', graph))
       .toEqual(new Set(['tool:sign', 'tool:redact']));
