@@ -1,7 +1,7 @@
 ---
 id: "SNG-09"
 title: "Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document"
-status: "open"
+status: "in_progress"
 priority: "P1"
 epic: "sign-fill-mode"
 horizon: "next"

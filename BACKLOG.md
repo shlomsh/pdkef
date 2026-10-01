@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 1 up next, 15 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 42 live: 2 up next, 14 then, 19 waiting, 7 parked.
 
 ## Redact: finish removal
 
@@ -18,11 +18,16 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
 
+### Up next
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document | In progress |
+
 ### Then, in order
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-04 | P1 | [SNG-04](backlog/tasks/SNG-04.md) · One interaction machine and one input router, pure and synchronous, with the MOBI history as tests |  |
 | SNG-06 | P2 | [SNG-06](backlog/tasks/SNG-06.md) · Fill mode on desktop and iPad: parity, then retire the old editor behind ?next=0 |  |
 | SNG-22 | P3 | [SNG-22](backlog/tasks/SNG-22.md) · Fill mode draws its own text caret, 1.05em tall, so a tall-metric font's caret stays inside the field |  |

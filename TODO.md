@@ -6,6 +6,10 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Sign: finish fill mode
+
+- [SNG-09](backlog/tasks/SNG-09.md) P1 · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document (in progress)
+
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
