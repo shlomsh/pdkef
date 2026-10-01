@@ -6,7 +6,6 @@
 import { errorName, stackFrames } from './errorIdentity.ts';
 import {
   ERROR_REPORT_PATH,
-  NO_STEP,
   pageAge,
   parseErrorReport,
   type ErrorArea,
@@ -86,7 +85,7 @@ export function readPageContext(): PageContext {
  * caller does next. `step` names what the call site was doing; every call site
  * passes one (DEBT-27).
  */
-export function reportError(area: ErrorArea, error: unknown, step: string = NO_STEP): void {
+export function reportError(area: ErrorArea, error: unknown, step: string): void {
   try {
     if (!enabled) return;
     if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;

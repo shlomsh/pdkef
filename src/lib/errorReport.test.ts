@@ -7,7 +7,6 @@ import {
   resetErrorReportingForTests,
   setReportingEnabledForTests,
   toErrorReport,
-  NO_STEP,
   type PageContext,
 } from './errorReport.ts';
 
@@ -29,25 +28,25 @@ describe('toErrorReport', () => {
     for (const leak of ['Social', 'Users', 'tax', '2024.pdf', 'Cannot']) expect(json).not.toContain(leak);
   });
   it('drops ignored names, extension-only stacks and non-errors', () => {
-    expect(toErrorReport('pdf_render', errorAt('A.js:1:1', 'x', 'PasswordException'), NO_STEP, CTX)).toBeNull();
+    expect(toErrorReport('pdf_render', errorAt('A.js:1:1', 'x', 'PasswordException'), 'save_draft', CTX)).toBeNull();
     const ext = new Error('x');
     ext.stack = 'Error: x\n at chrome-extension://abc/inject.js:1:2';
-    expect(toErrorReport('uncaught', ext, NO_STEP, CTX)).toBeNull();
-    expect(toErrorReport('uncaught', 'a string', NO_STEP, CTX)).toBeNull();
-    expect(toErrorReport('uncaught', { name: 'TypeError' }, NO_STEP, CTX)).toBeNull();
+    expect(toErrorReport('uncaught', ext, 'save_draft', CTX)).toBeNull();
+    expect(toErrorReport('uncaught', 'a string', 'save_draft', CTX)).toBeNull();
+    expect(toErrorReport('uncaught', { name: 'TypeError' }, 'save_draft', CTX)).toBeNull();
   });
   it('cuts 12 frames to 8 and skips frames from other origins', () => {
     const e = new TypeError('x');
     const lines = Array.from({ length: 12 }, (_, i) => `    at f (https://pdkef.com/_astro/A.js:${i + 1}:1)\n    at g (https://cdn.x/o.js:${i}:1)`);
     e.stack = `TypeError: x\n${lines.join('\n')}`;
-    const report = toErrorReport('drafts', e, NO_STEP, CTX);
+    const report = toErrorReport('drafts', e, 'save_draft', CTX);
     expect(report?.stack).toHaveLength(8);
     expect(report?.stack[7]).toBe('A.js:8:1');
   });
   it('never reads a frame out of a multi-line message', () => {
     const e = new TypeError("bad\n    at x (https://pdkef.com/_astro/Secret.js:1:1)");
     e.stack = `${String(e)}\n    at f (https://pdkef.com/_astro/Real.js:5:6)`;
-    expect(toErrorReport('drafts', e, NO_STEP, CTX)?.stack).toEqual(['Real.js:5:6']);
+    expect(toErrorReport('drafts', e, 'save_draft', CTX)?.stack).toEqual(['Real.js:5:6']);
   });
   it('is null when the schema rejects the step', () => {
     expect(toErrorReport('drafts', errorAt('A.js:1:1'), 'has space', CTX)).toBeNull();
@@ -90,41 +89,41 @@ describe('reportError', () => {
 
   it('sends a repeated error once, as a body that parses back', async () => {
     const e = errorAt('A.js:1:2');
-    reportError('drafts', e);
-    reportError('drafts', e);
+    reportError('drafts', e, 'save_draft');
+    reportError('drafts', e, 'save_draft');
     expect(beacon).toHaveBeenCalledTimes(1);
     const [path, blob] = beacon.mock.calls[0] as [string, Blob];
     expect(path).toBe('/api/report');
     const body = parseErrorReport(JSON.parse(await blob.text()));
-    expect(body).toMatchObject({ area: 'drafts', name: 'TypeError', stack: ['A.js:1:2'], step: 'none' });
+    expect(body).toMatchObject({ area: 'drafts', name: 'TypeError', stack: ['A.js:1:2'], step: 'save_draft' });
   });
   it('sends one defect once, even when it also escapes as uncaught', () => {
     const e = errorAt('B.js:1:2');
-    reportError('drafts', e);
-    reportError('uncaught', e);
+    reportError('drafts', e, 'save_draft');
+    reportError('uncaught', e, 'save_draft');
     expect(beacon).toHaveBeenCalledTimes(1);
   });
   it('drops pdf.js cancellation', () => {
-    reportError('pdf_render', errorAt('C.js:1:2', 'x', 'RenderingCancelledException'));
+    reportError('pdf_render', errorAt('C.js:1:2', 'x', 'RenderingCancelledException'), 'save_draft');
     expect(beacon).not.toHaveBeenCalled();
   });
   it('caps the total per page', () => {
-    for (let i = 0; i < MAX_REPORTS_PER_PAGE + 5; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`));
+    for (let i = 0; i < MAX_REPORTS_PER_PAGE + 5; i++) reportError('drafts', errorAt(`A.js:${i + 1}:1`), 'save_draft');
     expect(beacon).toHaveBeenCalledTimes(MAX_REPORTS_PER_PAGE);
   });
   it('does nothing offline or outside production', () => {
     vi.stubGlobal('navigator', { onLine: false, sendBeacon: beacon });
-    reportError('drafts', errorAt('A.js:1:1'));
+    reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
     vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
     setReportingEnabledForTests(false);
-    reportError('drafts', errorAt('A.js:1:1'));
+    reportError('drafts', errorAt('A.js:1:1'), 'save_draft');
     expect(beacon).not.toHaveBeenCalled();
   });
   it('never throws', () => {
     beacon.mockImplementation(() => {
       throw new Error('nope');
     });
-    expect(() => reportError('drafts', errorAt('A.js:1:1'))).not.toThrow();
+    expect(() => reportError('drafts', errorAt('A.js:1:1'), 'save_draft')).not.toThrow();
   });
 });
 

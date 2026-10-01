@@ -72,9 +72,6 @@ export type ErrorReport = Readonly<{
 /** The page facts a report carries, read once per report in the browser. */
 export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age'>;
 
-/** The step a call site passes when it has none; every DEBT-17 site gets one. */
-export const NO_STEP = 'none';
-
 /** The largest body the endpoint accepts. A full valid report is under 1.3KB. */
 export const MAX_REPORT_BYTES = 2048;
 
