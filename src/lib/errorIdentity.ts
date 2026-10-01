@@ -14,18 +14,25 @@ const SAFE_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
  */
 const STACK_FRAME = /\/_astro\/([A-Za-z0-9_.-]+\.m?js):(\d+):(\d+)/;
 
-export function topFrame(error: Error): string {
+/** Every built-asset frame, top first, each `chunk:line:col`, at most `max`. */
+export function stackFrames(error: Error, max = 8): string[] {
   let stack = typeof error.stack === 'string' ? error.stack : '';
   // V8 opens the stack with `Name: message`, and a message can span lines, so a
   // crafted one could hold a line shaped like a frame. Drop that prefix before
   // scanning; WebKit and Gecko stacks carry no message to drop.
   const head = String(error);
   if (stack.startsWith(head)) stack = stack.slice(head.length);
+  const frames: string[] = [];
   for (const line of stack.split('\n')) {
+    if (frames.length >= max) break;
     const hit = STACK_FRAME.exec(line);
-    if (hit) return `${hit[1]}:${hit[2]}:${hit[3]}`;
+    if (hit) frames.push(`${hit[1]}:${hit[2]}:${hit[3]}`);
   }
-  return '';
+  return frames;
+}
+
+export function topFrame(error: Error): string {
+  return stackFrames(error, 1)[0] ?? '';
 }
 
 /**

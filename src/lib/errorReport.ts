@@ -3,7 +3,7 @@
  * it is only area, name and frame, is `errorReportSchema.ts`.
  */
 
-import { errorName, topFrame } from './errorIdentity.ts';
+import { errorName, stackFrames } from './errorIdentity.ts';
 import {
   ERROR_REPORT_PATH,
   NO_STEP,
@@ -12,6 +12,7 @@ import {
   type ErrorArea,
   type ErrorReport,
   type PageContext,
+  MAX_FRAMES,
 } from './errorReportSchema.ts';
 
 export * from './errorReportSchema.ts';
@@ -42,9 +43,6 @@ export const IGNORED_ERROR_NAMES: ReadonlySet<string> = new Set([
  * The report for this error, or null when it should not travel: an ignored
  * name, or no frame inside our own built output (an extension's error, or a
  * dev build). Pure: the page facts come in as `context`.
- *
- * TODO(DEBT-27 brief A): stack = stackFrames(error) from errorIdentity.ts;
- * null if empty; then parseErrorReport({ area, name, stack, step, ...context }).
  */
 export function toErrorReport(
   area: ErrorArea,
@@ -52,20 +50,32 @@ export function toErrorReport(
   step: string,
   context: PageContext,
 ): ErrorReport | null {
-  void area; void error; void step; void context;
-  return null;
+  if (!(error instanceof Error)) return null;
+  const name = errorName(error);
+  if (IGNORED_ERROR_NAMES.has(name)) return null;
+  const stack = stackFrames(error, MAX_FRAMES);
+  if (stack.length === 0) return null;
+  return parseErrorReport({ area, name, stack, step, ...context });
 }
 
 /**
  * The page facts, read at report time. Never throws; any fact it cannot read
  * falls back to the plainest value (`/`, false, false).
- *
- * TODO(DEBT-27 brief A): implement from location.pathname (fallback '/' when
- * it does not pass the schema), matchMedia('(display-mode: standalone)'),
- * navigator.serviceWorker?.controller, and pageAge(performance.now()).
  */
 export function readPageContext(): PageContext {
-  return { tool: '/', installed: false, sw: false, age: 'under_10s' };
+  try {
+    const path = location.pathname;
+    const standalone = matchMedia?.('(display-mode: standalone)').matches === true;
+    return {
+      // Same shape as the schema's TOOL; a path outside it must not kill the report.
+      tool: /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/.test(path) ? path : '/',
+      installed: standalone,
+      sw: Boolean(navigator.serviceWorker?.controller),
+      age: pageAge(performance.now()),
+    };
+  } catch {
+    return { tool: '/', installed: false, sw: false, age: 'under_10s' };
+  }
 }
 
 /**
@@ -75,11 +85,26 @@ export function readPageContext(): PageContext {
  * `ERROR_REPORT_PATH`. Never throws, never awaits, never changes what the
  * caller does next. `step` names what the call site was doing; every call site
  * passes one (DEBT-27).
- *
- * TODO(DEBT-27 brief A): dedupe on `${name}|${stack[0]}` as before.
  */
 export function reportError(area: ErrorArea, error: unknown, step: string = NO_STEP): void {
-  void area; void error; void step;
+  try {
+    if (!enabled) return;
+    if (navigator.onLine === false || typeof navigator.sendBeacon !== 'function') return;
+    if (sent.size >= MAX_REPORTS_PER_PAGE) return;
+    const report = toErrorReport(area, error, step, readPageContext());
+    if (!report) return;
+    // Not keyed on area: a defect reported at its catch site that also escapes
+    // as an unhandled rejection is one defect, not two.
+    const key = `${report.name}|${report.stack[0]}`;
+    if (sent.has(key)) return;
+    sent.add(key);
+    navigator.sendBeacon(
+      ERROR_REPORT_PATH,
+      new Blob([JSON.stringify(report)], { type: 'application/json' }),
+    );
+  } catch {
+    // Reporting must never change what the caller does next.
+  }
 }
 
 export const MAX_REPORTS_PER_PAGE = 10;
@@ -105,8 +130,8 @@ let installed = false;
 export function installUncaughtErrorReporting(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
-  window.addEventListener('error', (event) => reportError('uncaught', event.error));
+  window.addEventListener('error', (event) => reportError('uncaught', event.error, 'window_error'));
   window.addEventListener('unhandledrejection', (event) =>
-    reportError('uncaught', event.reason),
+    reportError('uncaught', event.reason, 'unhandled_rejection'),
   );
 }
