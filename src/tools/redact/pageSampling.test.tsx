@@ -1,6 +1,6 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sampleCanvasColor, sampleRingColor, useEyedropper } from './pageSampling.ts';
 
 function stubCanvas(pixel: [number, number, number]) {
@@ -108,5 +108,110 @@ describe('eyedropper', () => {
     expect(docClick).toHaveBeenCalledTimes(1);
     document.removeEventListener('click', docClick);
     cleanup();
+  });
+
+  describe('loupe', () => {
+    let frames: Array<() => void> = [];
+    const flush = () => { const f = frames; frames = []; f.forEach((cb) => cb()); };
+    const loupeEl = () => document.querySelector<HTMLElement>('[data-redact-eyedropper-loupe]');
+    const hexText = () => loupeEl()?.querySelector('[data-loupe-hex]')?.textContent;
+    const touchEvent = (type: string, touches: Array<{ id: number; x: number; y: number }>, changed = touches) => {
+      const mk = (t: { id: number; x: number; y: number }) => ({ identifier: t.id, clientX: t.x, clientY: t.y });
+      const e = new Event(type, { bubbles: true, cancelable: true });
+      Object.assign(e, { touches: touches.map(mk), changedTouches: changed.map(mk) });
+      return e;
+    };
+
+    beforeEach(() => {
+      frames = [];
+      vi.stubGlobal('requestAnimationFrame', (cb: () => void) => frames.push(cb));
+      vi.stubGlobal('cancelAnimationFrame', () => { frames = []; });
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    });
+    afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+    it('follows the mouse over a page with a translate and the hex, and hides off the page', () => {
+      const { canvas, cleanup } = mountDropper();
+      canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.style.transform).toBe('translate(0px, 60px)');
+      expect(loupeEl()?.style.display).not.toBe('none');
+      expect(hexText()).toBe('#010203');
+      expect(document.documentElement.hasAttribute('data-redact-eyedropping')).toBe(true);
+      document.body.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+      expect(loupeEl()?.style.display).toBe('none');
+      cleanup();
+    });
+
+    it('touch shows the loupe without picking, follows the slide, and picks on lift', () => {
+      const { canvas, onPick, onDone, cleanup } = mountDropper();
+      const start = touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]);
+      canvas.dispatchEvent(start);
+      flush();
+      expect(start.defaultPrevented).toBe(true);
+      expect(onPick).not.toHaveBeenCalled();
+      expect(loupeEl()?.style.display).not.toBe('none');
+      const before = loupeEl()?.style.transform;
+      canvas.dispatchEvent(touchEvent('touchmove', [{ id: 1, x: 80, y: 140 }]));
+      flush();
+      expect(loupeEl()?.style.transform).not.toBe(before);
+      expect(onPick).not.toHaveBeenCalled();
+      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 80, y: 140 }]));
+      expect(onPick).toHaveBeenCalledWith('#010203');
+      expect(onDone).toHaveBeenCalled();
+      expect(loupeEl()?.style.display).toBe('none');
+      cleanup();
+    });
+
+    it('a re-render with new callbacks mid-touch keeps the loupe and the gesture, and uses the latest callbacks', () => {
+      const { canvas } = stubCanvas([9, 8, 7]);
+      const card = document.createElement('div');
+      card.setAttribute('data-editor-page-card', '');
+      card.appendChild(canvas);
+      document.body.appendChild(card);
+      const host = document.createElement('div');
+      const first = { pick: vi.fn(), done: vi.fn() };
+      const latest = { pick: vi.fn(), done: vi.fn() };
+      function Host({ cb }: { cb: typeof first }) { useEyedropper(true, (c) => cb.pick(c), () => cb.done()); return null; }
+      act(() => render(<Host cb={first} />, host));
+      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]));
+      flush();
+      const el = loupeEl();
+      expect(el).not.toBeNull();
+      act(() => render(<Host cb={latest} />, host));
+      expect(loupeEl()).toBe(el);
+      canvas.dispatchEvent(touchEvent('touchmove', [{ id: 1, x: 80, y: 140 }]));
+      flush();
+      act(() => render(<Host cb={latest} />, host));
+      expect(loupeEl()).toBe(el);
+      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 80, y: 140 }]));
+      expect(latest.pick).toHaveBeenCalledWith('#090807');
+      expect(latest.done).toHaveBeenCalledTimes(1);
+      expect(first.pick).not.toHaveBeenCalled();
+      expect(first.done).not.toHaveBeenCalled();
+      act(() => render(null, host));
+      card.remove();
+    });
+
+    it('a second finger aborts without picking and stays armed', () => {
+      const { canvas, onPick, onDone, cleanup } = mountDropper();
+      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]));
+      flush();
+      canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }, { id: 2, x: 70, y: 130 }], [{ id: 2, x: 70, y: 130 }]));
+      expect(loupeEl()?.style.display).toBe('none');
+      canvas.dispatchEvent(touchEvent('touchend', [], [{ id: 1, x: 60, y: 120 }]));
+      expect(onPick).not.toHaveBeenCalled();
+      expect(onDone).not.toHaveBeenCalled();
+      expect(loupeEl()).not.toBeNull();
+      cleanup();
+    });
+
+    it('removes the loupe and the html attribute when deactivated', () => {
+      const { canvas, cleanup } = mountDropper();
+      canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      cleanup();
+      expect(loupeEl()).toBeNull();
+      expect(document.documentElement.hasAttribute('data-redact-eyedropping')).toBe(false);
+    });
   });
 });
