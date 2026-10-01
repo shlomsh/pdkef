@@ -1,6 +1,7 @@
 import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
+import { dropUnreachable } from './reachability.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
 
 /**
@@ -72,8 +73,13 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
   // Before RED-26's sweep, so a Form nothing draws any more stops counting
   // as drawing the image it lists.
-  removeOrphans(doc, replacedForms);
+  // One garbage-collection rule (RED-49): drop what nothing reaches, which
+  // covers the replaced Forms and old /Contents streams (RED-48) and any
+  // leftover the source already carried. Again after the image sweep, which
+  // unhooks images from the resources the pages list them in.
+  dropUnreachable(doc);
   removeUndrawnImages(doc, deletedImageRefs);
+  dropUnreachable(doc);
   clearDocumentDetails(doc);
 
   const saved = await doc.save();
@@ -327,7 +333,7 @@ export function clearDocumentDetails(doc) {
  * @param {Array<{start: number, end: number, formPath?: string[], imageRef?: string}>} spans
  * @param {Set<string>} [replacedForms] collects the ref tags of the original
  *   Forms a copy replaced and of the page's old `/Contents` streams, for
- *   `removeOrphans` (RED-48)
+ *   `dropUnreachable` (RED-48)
  */
 export function rewritePageContent(doc, page, spans, replacedForms = new Set()) {
   const pageSpans = spans.filter((span) => !span.formPath?.length);
@@ -494,49 +500,6 @@ function collectRefs(object, out) {
 }
 
 /**
- * Deletes from the file every object a rewrite replaced (the original Form
- * XObjects a per-page copy replaced, and a page's old `/Contents` streams) that
- * nothing references any more (no page, no other form, no annotation
- * appearance), then the inner forms that only it held, recursively. This is
- * what makes a deletion real: the text cut from the new stream must not survive
- * in an orphaned original that `save` would still write. A stream still
- * referenced elsewhere (say, shared by two pages) stays.
- *
- * @param {PDFDocument} doc
- * @param {Set<string>} candidates ref tags of the objects that were replaced
- */
-export function removeOrphans(doc, candidates) {
-  if (candidates.size === 0) return;
-  const { context } = doc;
-
-  const outgoing = new Map(); // object -> the tags it references
-  const incoming = new Map(); // tag -> how many other objects reference it
-  for (const [ref, object] of context.enumerateIndirectObjects()) {
-    const refs = new Set();
-    collectRefs(object, refs);
-    refs.delete(ref.tag);
-    outgoing.set(ref.tag, refs);
-    for (const tag of refs) incoming.set(tag, (incoming.get(tag) ?? 0) + 1);
-  }
-
-  const isForm = (tag) => {
-    const object = context.lookup(refFromTag(tag));
-    return object instanceof PDFStream && context.lookup(object.dict.get(PDFName.of('Subtype')))?.asString?.() === '/Form';
-  };
-
-  const queue = [...candidates];
-  while (queue.length > 0) {
-    const tag = queue.pop();
-    if ((incoming.get(tag) ?? 0) > 0 || !(candidates.has(tag) || isForm(tag))) continue;
-    context.delete(refFromTag(tag));
-    for (const child of outgoing.get(tag) ?? []) {
-      incoming.set(child, incoming.get(child) - 1);
-      queue.push(child);
-    }
-  }
-}
-
-/**
  * Builds a standalone, single-page PDF that previews what one page will look
  * like once the given spans are deleted, for the on-screen canvas to render
  * before the user downloads anything (RED-13: "what you see is what you
@@ -558,7 +521,7 @@ export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
   const replacedForms = new Set();
   const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, spans);
   rewritePageContent(previewDoc, copiedPage, translated, replacedForms);
-  removeOrphans(previewDoc, replacedForms);
+  dropUnreachable(previewDoc);
   return previewDoc.save();
 }
 
