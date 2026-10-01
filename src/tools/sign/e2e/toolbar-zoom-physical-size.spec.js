@@ -144,7 +144,7 @@ async function placeField(page, edge) {
 /** Tapping "Aa" expands the compact bar to the full `ElementToolbar` - Bold, Duplicate, Delete, ... */
 async function expandToFullToolbar(page) {
   await activeActions(page).getByRole('button', { name: 'Formatting options' }).click();
-  await expect(activeActions(page).getByRole('button', { name: 'Delete element' })).toBeVisible();
+  await expect(activeActions(page).getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
 }
 
 /** Row count: group the bar's buttons/dividers by their rounded `offsetTop`. */
@@ -403,7 +403,7 @@ for (const doc of DOCUMENTS) {
       // element this test needs to reach. The click still dispatches at the
       // element's real (layout-space, zoom-invariant) center.
       await activeActions(page).getByRole('button', { name: 'Formatting options' }).click({ force: true });
-      await expect(activeActions(page).getByRole('button', { name: 'Delete element' })).toBeAttached();
+      await expect(activeActions(page).getByRole('button', { name: 'Delete', exact: true })).toBeAttached();
 
       await assertEventuallyInsideViewport(
         page, PINCH_SCALE, doc.direction,

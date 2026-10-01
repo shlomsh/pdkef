@@ -89,7 +89,7 @@ test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
     await expect(actions.getByRole('button', { name: 'Formatting options' })).toBeVisible();
     // The full toolbar's own controls must not be present alongside it.
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toHaveCount(0);
-    await expect(actions.getByRole('button', { name: 'Delete element' })).toHaveCount(0);
+    await expect(actions.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
     // The status-line copy of the same control has stepped aside - not two
     // Previous/Next pairs fighting for the same job. It genuinely unmounts
     // here (SignToolbar.tsx's `elementNavTakesOver`), unchanged by SIGN-30:
@@ -107,7 +107,7 @@ test.describe('Sign per-element toolbar on a phone (MOBI-16)', () => {
     // status line stays out of it too, since the same edit session is still open.
     await actions.getByRole('button', { name: 'Formatting options' }).click();
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toBeVisible();
-    await expect(actions.getByRole('button', { name: 'Delete element' })).toBeVisible();
+    await expect(actions.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
     await expect(actions.getByRole('button', { name: 'Previous field' })).toHaveCount(0);
     await expect(statusLineFieldNav(page)).toHaveCount(0);
 
@@ -149,7 +149,7 @@ test.describe('Sign per-element toolbar on desktop (MOBI-16)', () => {
 
     const actions = activeActions(page);
     await expect(actions.getByRole('button', { name: 'B', exact: true })).toBeVisible();
-    await expect(actions.getByRole('button', { name: 'Delete element' })).toBeVisible();
+    await expect(actions.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
     await expect(actions.getByRole('button', { name: 'Previous field' })).toHaveCount(0);
     await expect(actions.getByRole('button', { name: 'Formatting options' })).toHaveCount(0);
     // Desktop never loses the status-line copy - it is still the only one.

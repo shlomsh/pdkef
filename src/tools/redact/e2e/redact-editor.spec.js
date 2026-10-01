@@ -270,7 +270,7 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = whiteout.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       // Whiteout is the only type with a per-element colour control - its
       // toolbar carries one extra button (colour trigger, duplicate, delete)
       // over blackout's two (duplicate, delete).
@@ -288,7 +288,7 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = blackout.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       await expect(toolbar.locator('button'), 'blackout has no colour control - only duplicate and delete').toHaveCount(2);
       const boxRect = await getBox(blackout, 'blackout box');
       const toolbarRect = await getBox(toolbar, 'blackout toolbar');
@@ -313,7 +313,7 @@ test.describe('Redact editor browser guardrails', () => {
     {
       const toolbar = blur.locator('[data-editor-actions]');
       await expect(toolbar).toBeVisible();
-      await expect(toolbar.getByRole('button', { name: 'Delete element' })).toBeVisible();
+      await expect(toolbar.getByRole('button', { name: 'Delete', exact: true })).toBeVisible();
       // Blur has no colour, but it has a strength slider (RED-30), then duplicate and delete.
       await expect(toolbar.locator('input[type="range"]'), 'blur carries its strength slider').toHaveCount(1);
       await expect(toolbar.locator('button'), 'blur carries duplicate and delete').toHaveCount(2);
@@ -572,7 +572,7 @@ test.describe('per-element touch targets (design-review findings #1 and #2)', ()
     // `.redact-element-btn` - so it gets the same `.element-button::before`
     // 44px floor whiteout's toolbar buttons already got above, proven the
     // same way (visual stays ~28px, only the hit box grows).
-    const blackoutDelete = page.locator('[data-editor-actions] button[title="Delete element"]');
+    const blackoutDelete = page.locator('[data-editor-actions] button[title="Delete"]');
     await expect(blackoutDelete).toBeVisible();
     const blackoutDeleteVisual = await getBox(blackoutDelete, 'Blackout toolbar delete button');
     expect(blackoutDeleteVisual.width, 'delete button visual should stay ~28px - only the hit box grows').toBeLessThan(32);
