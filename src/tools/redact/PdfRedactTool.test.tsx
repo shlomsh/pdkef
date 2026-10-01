@@ -335,6 +335,24 @@ describe('PdfRedactTool UI flow', () => {
     }
   });
 
+  it('DEBT-31: a file that fails to load still leaves add_files on the trail', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.reject(new Error('corrupt')),
+      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      const input = query<HTMLInputElement>(container, 'input[type="file"]');
+      await act(async () => { setInputFiles(input, [makePdfFile('broken.pdf')]); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(recentActions()).toEqual(['add_files']);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it('RED-50: a download that throws shows the error and no Saved line, and Download again completes', async () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     const originalRevokeObjectURL = window.URL.revokeObjectURL;
@@ -350,6 +368,8 @@ describe('PdfRedactTool UI flow', () => {
       await settleUntil('the failure', () => container.textContent.includes('The download stopped.'));
       expect(container.textContent).not.toContain('Saved redacted');
       expect(downloadButton().disabled).toBe(false);
+      // DEBT-31: the trigger is on the trail even though the export threw.
+      expect(recentActions()).toContain('export');
       expect(lifecycleSpy.mock.calls).toEqual([
         ['tool_file_accepted', 'redact'],
         ['tool_operation_started', 'redact'],

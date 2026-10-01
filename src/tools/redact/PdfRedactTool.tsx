@@ -493,8 +493,8 @@ export default function PdfRedactTool() {
     const replacing = !!file;
     const selected = pdfs[0];
     const bytes = await selected.arrayBuffer();
-    await loadPdf(selected, bytes);
     recordAction(replacing ? 'replace_file' : 'add_files');
+    await loadPdf(selected, bytes);
   };
 
   const { clearDraft, isRestoring, draftSaveState } = useEditorDraftPersistence({
@@ -563,8 +563,8 @@ export default function PdfRedactTool() {
           ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
         };
         commands.add([element], { type: `ADD_${type.toUpperCase()}`, description: `Added ${type} box` });
-        setAnnouncement(`Added ${type} box.`);
         recordAction('place_mark');
+        setAnnouncement(`Added ${type} box.`);
         disarmTool();
       },
       cancel: () => {
@@ -579,8 +579,8 @@ export default function PdfRedactTool() {
   const addStroke = (stroke: CommittedStroke) => {
     const word = stroke.type === 'blurStroke' ? 'blur' : 'whiteout';
     commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: `Painted a ${word} stroke` });
-    setAnnouncement(`Painted a ${word} stroke.`);
     recordAction('place_mark');
+    setAnnouncement(`Painted a ${word} stroke.`);
   };
 
   // Registers a short-lived Undo chip for a delete/clear command already
@@ -774,8 +774,8 @@ export default function PdfRedactTool() {
         const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
         clearPrepared();
         dispatch({ type: 'EXPORT_SAVED', saved: { blob: next, name } });
-        download(next, name);
         recordAction('delete_mark');
+        download(next, name);
         dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
         // expected: only PlaceNotFoundError stops here (the place is already gone); anything else is rethrown to the outer catch, which reports it
@@ -805,6 +805,7 @@ export default function PdfRedactTool() {
       type: 'EXPORT_STARTED',
       announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
     });
+    recordAction('export');
     reportToolLifecycleEvent('tool_operation_started', 'redact');
 
     // DEBT-18: everything this run is an export *of*, captured before the
@@ -830,14 +831,13 @@ export default function PdfRedactTool() {
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
       dispatch({ type: 'EXPORT_SAVED', saved: { blob: redactedBlob, name: filename } });
-      recordAction('export');
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
-        download(redactedBlob, filename);
         recordAction('download');
+        download(redactedBlob, filename);
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       }
