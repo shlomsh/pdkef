@@ -98,8 +98,12 @@ describe('RedactToolbar returning-work status', () => {
     mount({ activeStyle: 'blur', brushMode: true });
     expect(container.textContent).toContain('Click and drag to paint a blur.');
     expect(container.querySelector('[role="switch"]')).toBeNull();
+    // The hint that names the same setting goes with it; only hidden reservations keep it.
+    const visibleHints = [...container.querySelectorAll('[role="status"] *')].filter((n) => n.textContent === 'or double-click Blur');
+    expect(visibleHints).toHaveLength(0);
     mount({ activeStyle: 'blur', brushMode: false });
     expect(container.querySelector('[role="switch"]')?.textContent).toContain('Keep Blur on');
+    expect([...container.querySelectorAll('[role="status"] *')].some((n) => n.textContent === 'or double-click Blur')).toBe(true);
   });
 
   it('shows a visible word on every control, Undo and Redo included', () => {

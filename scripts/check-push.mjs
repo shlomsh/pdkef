@@ -132,7 +132,8 @@ export function narrowTestOnlyChange(scope, files) {
   };
 }
 
-// ARCH-31: Playwright reuses whatever listens on 4173 locally, and the port
+// ARCH-31: Playwright reuses whatever listens on its port (4173, or
+// PLAYWRIGHT_PORT) locally, and the port
 // is machine-wide, so another worktree's preview means testing that
 // worktree's build. `ownerCwd` is the listening process's working directory
 // (null when the port is free, undefined when it could not be read).
@@ -252,8 +253,12 @@ function printScope({ base, dirty, scope, unitScope }) {
   console.error(lines.join('\n'));
 }
 
+// The port Playwright will use: playwright.config.js reads PLAYWRIGHT_PORT
+// the same way, so the guard checks the port the run will actually reuse.
+const PREVIEW_PORT = Number(process.env.PLAYWRIGHT_PORT || 4173);
+
 function previewOwnerCwd() {
-  const r = spawnSync('lsof', ['-ti', 'tcp:4173', '-sTCP:LISTEN'], { encoding: 'utf8' });
+  const r = spawnSync('lsof', ['-ti', `tcp:${PREVIEW_PORT}`, '-sTCP:LISTEN'], { encoding: 'utf8' });
   const pid = r.status === 0 ? r.stdout.trim().split('\n')[0] : '';
   if (!pid) return null;
   const cwd = spawnSync('lsof', ['-a', '-p', pid, '-d', 'cwd', '-Fn'], { encoding: 'utf8' });
@@ -289,11 +294,11 @@ function main() {
     const ownerCwd = previewOwnerCwd();
     const verdict = portOwnerVerdict({ ownerCwd, root: realpathSync(ROOT) });
     if (verdict === 'foreign' || verdict === 'unknown') {
-      console.error(`check:push: port 4173 is held by ${verdict === 'foreign' ? ownerCwd : 'a process whose directory could not be read'}. Playwright would reuse it and test that build, not this worktree's. Run again once it is free.`);
+      console.error(`check:push: port ${PREVIEW_PORT} is held by ${verdict === 'foreign' ? ownerCwd : 'a process whose directory could not be read'}. Playwright would reuse it and test that build, not this worktree's. Run again once it is free.`);
       process.exit(1);
     }
     if (verdict === 'own') {
-      console.error("check:push: this worktree's own preview is already on 4173; Playwright reuses it and it serves the dist/ the build step writes.");
+      console.error(`check:push: this worktree's own preview is already on ${PREVIEW_PORT}; Playwright reuses it and it serves the dist/ the build step writes.`);
     }
   }
 
