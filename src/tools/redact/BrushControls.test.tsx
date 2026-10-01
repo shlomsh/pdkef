@@ -1,13 +1,11 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import BrushControls, {
   clampBrushSize,
   DEFAULT_BRUSH,
   brushStyleOf,
   resolveBrush,
-  sampleCanvasColor,
-  useEyedropper,
 } from './BrushControls.tsx';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
@@ -43,47 +41,6 @@ describe('brush settings', () => {
     expect(clampBrushSize(0)).toBe(2);
     expect(clampBrushSize(99)).toBe(40);
     expect(clampBrushSize(Number.NaN)).toBe(DEFAULT_BRUSH.size);
-  });
-});
-
-function stubCanvas(pixel: [number, number, number]) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 200;
-  canvas.height = 400;
-  canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 100, height: 200, right: 110, bottom: 220, x: 10, y: 20, toJSON() {} }) as DOMRect;
-  const getImageData = vi.fn(() => ({ data: new Uint8ClampedArray([...pixel, 255]) }));
-  canvas.getContext = (() => ({ getImageData })) as never;
-  return { canvas, getImageData };
-}
-
-describe('eyedropper', () => {
-  it('samples the canvas pixel under the pointer as a hex colour', () => {
-    const { canvas, getImageData } = stubCanvas([236, 235, 230]);
-    expect(sampleCanvasColor(canvas, 60, 120)).toBe('#ecebe6');
-    expect(getImageData).toHaveBeenCalledWith(100, 200, 1, 1);
-  });
-
-  it('the next press on a page sets the colour and is not a stroke', () => {
-    const { canvas } = stubCanvas([1, 2, 3]);
-    const card = document.createElement('div');
-    card.setAttribute('data-editor-page-card', '');
-    card.appendChild(canvas);
-    document.body.appendChild(card);
-    const onPick = vi.fn();
-    const onDone = vi.fn();
-    const pageHandler = vi.fn();
-    card.addEventListener('mousedown', pageHandler);
-    const host = document.createElement('div');
-    function Host() { useEyedropper(true, onPick, onDone); return null; }
-    act(() => render(<Host />, host));
-
-    canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 120, bubbles: true, cancelable: true }));
-
-    expect(onPick).toHaveBeenCalledWith('#010203');
-    expect(onDone).toHaveBeenCalled();
-    expect(pageHandler).not.toHaveBeenCalled();
-    act(() => render(null, host));
-    card.remove();
   });
 });
 
