@@ -186,9 +186,10 @@ Sign; Image to PDF → Merge; Compress → Sign; Sign → Compress for portals w
   names, and a file meant to fail (check that it really fails; a pdf-lib "encrypted" fixture did not).
 - Findings are ranked P1 to P3, each with a reproduction, a fix and an acceptance line with numbers
   in it, so the builder can close it without interpretation.
-- The Impeccable critique (dual agent, heuristic scoring) is a good first pass; its snapshot lives
-  under `.impeccable/critique/`. It scores; it does not decide direction. Direction comes from
-  sketches the owner picks between.
+- The Impeccable critique (dual agent, heuristic scoring) is a good first pass. Impeccable is a
+  local tool now (installed per person at user level, not vendored in this repo; see
+  `.gitignore`), and its snapshot lives under `.impeccable/critique/` on that machine. It scores;
+  it does not decide direction. Direction comes from sketches the owner picks between.
 - Verify the phone view on a real phone for anything the emulator cannot do (Web Share, scroll
   restoration, keyboard).
 
