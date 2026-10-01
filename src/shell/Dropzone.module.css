@@ -133,6 +133,9 @@
     background: none;
     border-radius: 0;
     font-size: 0.85rem;
+    /* Without the pill's light fill the line sits on --color-paper, where
+       --color-success is 4.3:1 (PageSpeed flagged it); the hover shade is 6:1. */
+    color: var(--color-success-hover);
   }
 
   .dropzone .file-picker-button {
