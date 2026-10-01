@@ -399,7 +399,9 @@ export function useDraftPersistence({
 
   // Work whose save failed (no IndexedDB, quota) lives only in memory, so
   // like a tool without drafts it holds an update back (MEM-10).
-  useHoldUpdate(draftSaveState === 'error');
+  // 'open' holds ordinary updates but not a force: a failed save cannot
+  // resolve within a force's wait.
+  useHoldUpdate(draftSaveState === 'error', 'open');
 
   return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }

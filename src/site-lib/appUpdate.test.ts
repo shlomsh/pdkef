@@ -3,12 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { holdUpdate, registerBeforeUpdateReload } from '../lib/appUpdate/updateHolds';
 import {
   BUSY_QUERY,
+  CHECK_EVERY_MS,
+  CRITICAL_ABANDON_MS,
+  CRITICAL_CHECK,
+  CRITICAL_PAGE_CAP_MS,
+  CRITICAL_UPDATE,
   LEAVING_RESET_MS,
   RECHECK_SHOWN_MS,
   STATUS_TIMEOUT_MS,
   TAB_CLOSED_RECHECK_MS,
+  VISIBLE_CHECK_MIN_MS,
   isUpdateWaiting,
   lineStateFor,
+  respondToCriticalUpdate,
   shouldCheckForUpdate,
   startAppUpdates,
 } from './appUpdate';
@@ -519,5 +526,364 @@ describe('controllerchange', () => {
     tab.sw.emit('controllerchange');
     await settle();
     expect(tab.line.hidden).toBe(true);
+  });
+});
+
+// MEM-13: a forced update. The worker's message arrives with a port; the
+// tab's only answer is { ready: true } on it, once its work is safe.
+function sendCritical(tab: ReturnType<typeof makeTab>) {
+  const port = { postMessage: vi.fn() };
+  tab.sw.emit('message', { data: { type: CRITICAL_UPDATE }, ports: [port] });
+  return port.postMessage;
+}
+const holdOpen = () => { const release = holdUpdate('open'); releases.push(release); return release; };
+
+describe('respondToCriticalUpdate', () => {
+  function makeDeps(over: Partial<Parameters<typeof respondToCriticalUpdate>[0]> = {}) {
+    let inFlight = false;
+    const listeners = new Set<(v: boolean) => void>();
+    const deps = {
+      flushDrafts: vi.fn(async () => {}),
+      exportInFlight: () => inFlight,
+      onExportChange: (l: (v: boolean) => void) => { listeners.add(l); return () => listeners.delete(l); },
+      capMs: 1000,
+      setTimeout: (fn: () => void, ms: number) => setTimeout(fn, ms),
+      clearTimeout: (id: unknown) => clearTimeout(id as any),
+      ...over,
+    };
+    return { deps, listeners, setInFlight: (v: boolean) => { inFlight = v; listeners.forEach((l) => l(v)); } };
+  }
+
+  it('flushes and replies at once with no export in flight', async () => {
+    const { deps } = makeDeps();
+    await expect(respondToCriticalUpdate(deps)).resolves.toEqual({ ready: true });
+    expect(deps.flushDrafts).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not look at exports until the flush has settled', async () => {
+    let finish!: () => void;
+    const { deps } = makeDeps({ flushDrafts: () => new Promise<void>((r) => { finish = r; }) });
+    let replied = false;
+    void respondToCriticalUpdate(deps).then(() => { replied = true; });
+    await settle();
+    expect(replied).toBe(false);
+    finish();
+    await settle();
+    expect(replied).toBe(true);
+  });
+
+  it('waits for an export to end, then replies and stops listening', async () => {
+    const { deps, listeners, setInFlight } = makeDeps();
+    setInFlight(true);
+    let replied = false;
+    void respondToCriticalUpdate(deps).then(() => { replied = true; });
+    await settle();
+    expect(replied).toBe(false);
+    expect(listeners.size).toBe(1);
+    setInFlight(false);
+    await settle();
+    expect(replied).toBe(true);
+    expect(listeners.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('gives up at the cap', async () => {
+    const { deps, listeners, setInFlight } = makeDeps();
+    setInFlight(true);
+    let replied = false;
+    void respondToCriticalUpdate(deps).then(() => { replied = true; });
+    await vi.advanceTimersByTimeAsync(999);
+    expect(replied).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(replied).toBe(true);
+    expect(listeners.size).toBe(0);
+  });
+});
+
+describe('forced update in the tab', () => {
+  it('shows the force variant and replies ready on the port', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const reply = sendCritical(tab);
+    expect(tab.line.dataset.appUpdateState).toBe('critical');
+    expect(tab.line.hidden).toBe(false);
+    await settle();
+    expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+  });
+
+  it('answers before the page has loaded', async () => {
+    const tab = makeTab(new Bus());
+    void tab.start({ loaded: new Promise<void>(() => {}) });
+    const reply = sendCritical(tab);
+    await settle();
+    expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+  });
+
+  it('flushes pending draft saves before replying', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    let finish!: () => void;
+    const unregister = registerBeforeUpdateReload(() => new Promise<void>((r) => { finish = r; }));
+    try {
+      const reply = sendCritical(tab);
+      await settle();
+      expect(reply).not.toHaveBeenCalled();
+      finish();
+      await settle();
+      expect(reply).toHaveBeenCalledTimes(1);
+    } finally {
+      unregister();
+    }
+  });
+
+  it('waits while an export is in flight, and replies when it ends', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const release = hold();
+    const reply = sendCritical(tab);
+    await vi.advanceTimersByTimeAsync(CRITICAL_PAGE_CAP_MS - 1);
+    expect(reply).not.toHaveBeenCalled();
+    release();
+    await settle();
+    expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+  });
+
+  it('gives up on an export at CRITICAL_PAGE_CAP_MS', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    hold();
+    const reply = sendCritical(tab);
+    await vi.advanceTimersByTimeAsync(CRITICAL_PAGE_CAP_MS - 1);
+    expect(reply).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+  });
+
+  it('a file open in a draftless tool does not hold a force', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    holdOpen();
+    const reply = sendCritical(tab);
+    await settle();
+    expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+  });
+
+  it('answers every ask, flushing once', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const flush = vi.fn();
+    const unregister = registerBeforeUpdateReload(flush);
+    try {
+      const first = sendCritical(tab);
+      const second = sendCritical(tab);
+      await settle();
+      expect(first).toHaveBeenCalledTimes(1);
+      expect(second).toHaveBeenCalledTimes(1);
+      expect(flush).toHaveBeenCalledTimes(1);
+    } finally {
+      unregister();
+    }
+  });
+
+  it('abandons a force with no controllerchange, and MEM-10 runs again', async () => {
+    const tab = makeTab(new Bus(), { waiting: makeWorker({ ready: true, busy: 1 }) });
+    await tab.start();
+    sendCritical(tab);
+    await settle();
+    expect(tab.line.dataset.appUpdateState).toBe('critical');
+    await vi.advanceTimersByTimeAsync(CRITICAL_ABANDON_MS);
+    await settle();
+    expect(tab.line.dataset.appUpdateState).toBe('waiting');
+    expect(tab.line.hidden).toBe(false);
+  });
+
+  it('a new ask after an abandon flushes again and waits for an export', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const flush = vi.fn();
+    const unregister = registerBeforeUpdateReload(flush);
+    try {
+      sendCritical(tab);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CRITICAL_ABANDON_MS);
+      await settle();
+      const release = hold();
+      const reply = sendCritical(tab);
+      await settle();
+      expect(flush).toHaveBeenCalledTimes(2);
+      expect(reply).not.toHaveBeenCalled();
+      release();
+      await settle();
+      expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+    } finally {
+      unregister();
+    }
+  });
+
+  it('before the abandon, a second ask shares the first reply', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const release = hold();
+    const first = sendCritical(tab);
+    await vi.advanceTimersByTimeAsync(CRITICAL_PAGE_CAP_MS - 1);
+    const second = sendCritical(tab);
+    await settle();
+    expect(second).not.toHaveBeenCalled();
+    release();
+    await settle();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows even after a dismissal, and later refreshes leave it alone', async () => {
+    const bus = new Bus();
+    const worker = makeWorker({ ready: true, busy: 1 });
+    const tab = makeTab(bus, { waiting: worker });
+    await tab.start();
+    tab.dismiss.click();
+    expect(tab.line.hidden).toBe(true);
+    sendCritical(tab);
+    expect(tab.line.hidden).toBe(false);
+    new FakeChannel(bus).postMessage({ type: 'busy-changed' });
+    await vi.advanceTimersByTimeAsync(RECHECK_SHOWN_MS * 2);
+    expect(tab.line.dataset.appUpdateState).toBe('critical');
+    expect(tab.line.hidden).toBe(false);
+  });
+
+  it('the controllerchange reload does not wait for a file open here, but still reloads once', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    holdOpen();
+    sendCritical(tab);
+    await settle();
+    tab.sw.emit('controllerchange');
+    tab.sw.emit('controllerchange');
+    await settle();
+    expect(tab.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('without a force, an open file still holds the reload (MEM-10)', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const release = holdOpen();
+    tab.sw.emit('controllerchange');
+    await settle();
+    expect(tab.reload).not.toHaveBeenCalled();
+    release();
+    await settle();
+    expect(tab.reload).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('discovery', () => {
+  const criticalChecks = (worker: any) => worker.postMessage.mock.calls.filter((c: any[]) => c[0].type === CRITICAL_CHECK).length;
+
+  it('a tab becoming visible asks for an update, then nudges the waiting worker', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    const before = criticalChecks(worker);
+    tab.advanceClock(VISIBLE_CHECK_MIN_MS);
+    tab.doc.emit('visibilitychange');
+    expect(tab.reg.update).toHaveBeenCalledTimes(1);
+    expect(criticalChecks(worker)).toBe(before);
+    await settle();
+    expect(criticalChecks(worker)).toBe(before + 1);
+  });
+
+  it('a new build reaching installed is nudged at once, without waiting for a check', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const installing: any = new Emitter();
+    installing.state = 'installing';
+    tab.reg.installing = installing;
+    tab.reg.emit('updatefound');
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    tab.reg.waiting = worker;
+    installing.state = 'installed';
+    installing.emit('statechange');
+    expect(criticalChecks(worker)).toBe(1);
+    expect(tab.reg.update).not.toHaveBeenCalled();
+  });
+
+  it('visible checks are throttled to VISIBLE_CHECK_MIN_MS; a hidden tab does not ask', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    tab.doc.emit('visibilitychange');
+    expect(tab.reg.update).not.toHaveBeenCalled();
+    tab.advanceClock(VISIBLE_CHECK_MIN_MS);
+    tab.doc.visibilityState = 'hidden';
+    tab.doc.emit('visibilitychange');
+    expect(tab.reg.update).not.toHaveBeenCalled();
+  });
+
+  it('coming online asks at once, whatever the throttle says', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    const before = criticalChecks(worker);
+    tab.win.emit('online');
+    await settle();
+    expect(tab.reg.update).toHaveBeenCalledTimes(1);
+    expect(criticalChecks(worker)).toBe(before + 1);
+  });
+
+  it('asks once an hour while open and visible', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    const before = criticalChecks(worker);
+    await vi.advanceTimersByTimeAsync(CHECK_EVERY_MS);
+    expect(tab.reg.update).toHaveBeenCalledTimes(1);
+    expect(criticalChecks(worker)).toBe(before + 1);
+    await vi.advanceTimersByTimeAsync(CHECK_EVERY_MS);
+    expect(tab.reg.update).toHaveBeenCalledTimes(2);
+  });
+
+  it('posts nothing when no worker is waiting', async () => {
+    const worker = makeWorker();
+    const tab = makeTab(new Bus(), { active: worker });
+    await tab.start();
+    tab.win.emit('online');
+    await settle();
+    expect(tab.reg.update).toHaveBeenCalledTimes(1);
+    expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('a rejected update() is swallowed and still nudges a waiting worker', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    const before = criticalChecks(worker);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    tab.reg.update = vi.fn(() => Promise.reject(new Error('offline')));
+    tab.win.emit('online');
+    await settle();
+    expect(tab.reg.update).toHaveBeenCalledTimes(1);
+    expect(criticalChecks(worker)).toBe(before + 1);
+    expect(errors).not.toHaveBeenCalled();
+    expect(tab.line.dataset.appUpdateState).not.toBe('critical');
+    errors.mockRestore();
+  });
+
+  it('a worker that throws on postMessage is swallowed', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    const answer = worker.postMessage;
+    worker.postMessage = vi.fn((message: any, transfer: any[]) => {
+      if (message.type === CRITICAL_CHECK) throw new Error('redundant');
+      answer(message, transfer);
+    });
+    tab.win.emit('online');
+    await settle();
+    expect(criticalChecks(worker)).toBe(1);
+  });
+
+  it('a build already waiting at load is nudged once', async () => {
+    const worker = makeWorker({ ready: true, busy: 0, silent: 0 });
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    expect(criticalChecks(worker)).toBe(1);
   });
 });

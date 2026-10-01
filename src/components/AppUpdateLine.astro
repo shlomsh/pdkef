@@ -17,6 +17,7 @@ const messages = getAppUpdateMessages(lang);
 <p class="app-update" data-app-update data-app-update-state="waiting" role="status" hidden>
   <span class="app-update-waiting">{messages.waiting}</span>
   <span class="app-update-blocked">{messages.blocked}</span>
+  <span class="app-update-critical">{messages.critical}</span>
   <button type="button" class="app-update-dismiss" data-app-update-dismiss aria-label={messages.dismiss}>
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
   </button>
@@ -61,9 +62,12 @@ const messages = getAppUpdateMessages(lang);
   .app-update[hidden] {
     display: none;
   }
-  /* One sentence per state. */
+  /* One sentence per state. 'critical' (MEM-13) is the forced update: the
+     reload is on its way, so there is nothing to hide the line for. */
   .app-update:not([data-app-update-state='blocked']) .app-update-blocked,
-  .app-update:not([data-app-update-state='waiting']) .app-update-waiting {
+  .app-update:not([data-app-update-state='waiting']) .app-update-waiting,
+  .app-update:not([data-app-update-state='critical']) .app-update-critical,
+  .app-update[data-app-update-state='critical'] .app-update-dismiss {
     display: none;
   }
   /* Hides the line in this tab until its next page load. The 44px hit area

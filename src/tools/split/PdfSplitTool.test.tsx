@@ -380,6 +380,33 @@ describe('PdfSplitTool UI flow', () => {
       expect(saveHandoffMock).toHaveBeenCalledTimes(1);
       expect(navigate).toHaveBeenCalledWith('/compress/');
     });
+
+    // The button disables itself for the navigation it starts, so a restored
+    // page used to bring it back permanently greyed out (lib/useNavigatingAway.ts).
+    it('offers Compress again after a restore, rather than coming back greyed out', async () => {
+      saveHandoffMock.mockResolvedValue(true);
+      const { navigate, compressButton } = await readyWithFixture();
+
+      await act(async () => {
+        compressButton().click();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(navigate).toHaveBeenCalledWith('/compress/');
+      expect(compressButton().disabled).toBe(true);
+
+      await act(async () => {
+        const restore = new Event('pageshow');
+        restore.persisted = true;
+        window.dispatchEvent(restore);
+      });
+
+      expect(compressButton().disabled).toBe(false);
+      await act(async () => {
+        compressButton().click();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(navigate).toHaveBeenCalledTimes(2);
+    });
   });
 
   // DEBT-18: the load path had no cancellation at all, so the first file's

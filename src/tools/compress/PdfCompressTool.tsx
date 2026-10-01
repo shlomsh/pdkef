@@ -82,7 +82,8 @@ export default function PdfCompressTool({
   const [level, setLevel] = useState('medium');
   const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
-  useHoldUpdate(file !== null || status === 'processing');
+  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
