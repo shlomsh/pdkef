@@ -54,7 +54,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | In progress. Needs Shlomi: The privacy-page sentence for the funnel |
+| DEBT-28 | P3 | [DEBT-28](backlog/tasks/DEBT-28.md) · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops | In progress |
 
 ### Then, in order
 

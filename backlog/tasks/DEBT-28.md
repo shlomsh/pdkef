@@ -6,7 +6,6 @@ priority: "P3"
 epic: "robustness"
 horizon: "now"
 depends_on: ["DEBT-27"]
-needs: "The privacy-page sentence for the funnel"
 ---
 
 # DEBT-28 · The tool usage funnel has never been recorded: its events go to Vercel custom events, which Hobby drops
@@ -54,6 +53,29 @@ error loop. Usage likely needs its own counter and cap.
       Kept, 2026-10-01.
 - [ ] If kept: a Sign or Merge run in production shows accepted, started and ready per tool in the
       reader the next minute, and error reports keep their own cap.
-- [ ] If retired: `productAnalytics.ts`, its call sites and the disclosures lose them, and
-      `ANALYTICS.md` records why.
-- [ ] Either way, every disclosure is literally true afterwards.
+- [x] Either way, every disclosure is literally true afterwards. The privacy sentence is Shlomi's
+      pick: "we keep it only as daily totals per tool for 90 days (Sign's also by browser family and
+      version)".
+
+## What was built (2026-10-01)
+
+- `src/lib/usageEventSchema.ts`: import-free, exactly `{name, properties: {tool}}` off the two
+  closed lists; 84 adversarial tests, including that no payload parses as another kind.
+- `productAnalytics.ts` beacons through `sendBeacon` (production, online, never throws), at most 40
+  a page. `window.va` custom events are gone; Vercel gets page views only.
+- `/api/report` counts usage as `usage:<day>` field `event|tool`, no browser family, 90 days, under
+  its own cap so usage can never spend the error loop's.
+- **The Upstash budget, which this work found DEBT-27 had wrong.** The store is on Upstash Free
+  (500K commands a month, each pipelined command counted). DEBT-27 allowed 5,000 reports a day at 6
+  commands, so a bad day or a flood could spend the month and leave error reporting blind until it
+  reset. Now: the day's total expires once instead of on every request, a report costs 5 commands,
+  a Sign or usage event 3, a request past the cap 1; caps are 1,000 reports and Sign events and
+  3,000 usage events a day (Shlomi's call), 14K commands a day at most, about 420K a month.
+  Shlomi chose to stay on Free.
+- Limits stack: 40 usage events per page, 10 requests a minute per IP (firewall), the daily caps
+  site-wide. `errors:read` prints a "Tool usage" table and says when a day reached a cap.
+- Verified locally against the real store: a real Merge run in a production build read back as
+  `merge | 1 | 1 | 1 | 0 | 100%`; loading files without downloading sends only `accepted`, so
+  `ready` counts only a delivered download; both keys carry their 90-day expiry. Test entries
+  deleted. Fresh review: no blockers; its two should-fixes (past-cap cost, a full day being
+  invisible) fixed.
