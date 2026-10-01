@@ -7,7 +7,17 @@ import { POST, GET } from '../../api/report.ts';
 // response to the page, and the server must not give it one worth surfacing.
 // Lives here, not beside the function: every .ts file under api/ deploys.
 
-const body = JSON.stringify({ area: 'drafts', name: 'TypeError', frame: 'A.1b.js:1:2' });
+const report = {
+  area: 'drafts',
+  name: 'TypeError',
+  stack: ['A.1b.js:1:2', 'B.2c.js:3:4'],
+  step: 'export',
+  tool: '/sign/',
+  installed: false,
+  sw: true,
+  age: 'under_10s',
+};
+const body = JSON.stringify(report);
 const post = () => POST(new Request('https://pdkef.com/api/report', { method: 'POST', body }));
 
 describe('/api/report stays silent', () => {
@@ -45,6 +55,27 @@ describe('/api/report stays silent', () => {
     const res = await post();
     expect(res.status).toBe(204);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('answers 204 without calling out when the body is over the byte limit', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const big = JSON.stringify({ ...report, name: 'A'.repeat(3000) });
+    const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: big }));
+    expect(res.status).toBe(204);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('stores exactly one sample, with only the sample keys', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => new Response(JSON.stringify([{ result: 1 }, { result: 1 }]), { status: 200 }));
+    expect((await post()).status).toBe(204);
+    const commands = fetchSpy.mock.calls.flatMap(([, init]) => JSON.parse(init.body));
+    const hsets = commands.filter(([name]) => name === 'HSET');
+    expect(hsets).toHaveLength(1);
+    expect(Object.keys(JSON.parse(hsets[0][3])).sort()).toEqual(
+      ['age', 'engine', 'installed', 'stack', 'step', 'sw', 'tool'],
+    );
   });
 
   it('answers an empty 204 to junk, and 405 only to a method no beacon uses', async () => {

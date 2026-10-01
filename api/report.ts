@@ -1,8 +1,9 @@
 // Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
-// and counts them in Upstash Redis (DEBT-17). The second request-time component
-// after middleware.ts; Astro itself stays output 'static' with no adapter, so
-// this is a plain function under api/. It never sees a PDF byte: a report is
-// three short identifiers, validated by parseErrorReport.
+// and counts them in Upstash Redis (DEBT-17), keeping the latest example of
+// each (DEBT-27). The second request-time component after middleware.ts; Astro
+// itself stays output 'static' with no adapter, so this is a plain function
+// under api/. It never sees a PDF byte: a report is positions in our own code,
+// identifiers, flags and a bucket, validated by parseErrorReport.
 //
 // Shape: Vercel's documented Web-standard form for non-Next projects, one
 // exported function per HTTP method (`export function POST(request: Request)`).

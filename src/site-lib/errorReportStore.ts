@@ -41,11 +41,21 @@ export function capCommands(day: string): Command[] {
   ];
 }
 
-/** Second step, only when the day is under its cap. */
+/** The count field and the sample field are one string: the fingerprint, `stack[0]` last of the report's own parts. */
+export function fingerprintField(report: ErrorReport, engine: string): string {
+  return `${report.area}|${report.name}|${report.stack[0]}|${engine}`;
+}
+
+/** Second step, only when the day is under its cap. The latest sample per fingerprint wins. */
 export function countCommands(report: ErrorReport, engine: string, day: string): Command[] {
+  const field = fingerprintField(report, engine);
+  const { stack, step, tool, installed, sw, age } = report;
+  const sample = JSON.stringify({ stack, step, tool, installed, sw, age, engine });
   return [
-    ['HINCRBY', `errors:${day}`, `${report.area}|${report.name}|${report.frame}|${engine}`, 1],
+    ['HINCRBY', `errors:${day}`, field, 1],
     ['EXPIRE', `errors:${day}`, TTL_SECONDS],
+    ['HSET', `errors:sample:${day}`, field, sample],
+    ['EXPIRE', `errors:sample:${day}`, TTL_SECONDS],
   ];
 }
 

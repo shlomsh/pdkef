@@ -9,7 +9,16 @@ import {
   reportCommands,
 } from './errorReportStore.js';
 
-const report = { area: 'drafts', name: 'TypeError', frame: 'Tool.abc123.js:10:5' } as const;
+const report = {
+  area: 'drafts',
+  name: 'TypeError',
+  stack: ['Tool.abc123.js:10:5', 'Base.def456.js:3:9'],
+  step: 'export',
+  tool: '/sign/',
+  installed: false,
+  sw: true,
+  age: 'under_1m',
+} as const;
 
 describe('engineBucket', () => {
   it.each([
@@ -35,8 +44,15 @@ describe('commands', () => {
     expect(countCommands(report, 'ios-26', '2026-10-01')).toEqual([
       ['HINCRBY', 'errors:2026-10-01', 'drafts|TypeError|Tool.abc123.js:10:5|ios-26', 1],
       ['EXPIRE', 'errors:2026-10-01', 7776000],
+      [
+        'HSET',
+        'errors:sample:2026-10-01',
+        'drafts|TypeError|Tool.abc123.js:10:5|ios-26',
+        JSON.stringify({ stack: report.stack, step: 'export', tool: '/sign/', installed: false, sw: true, age: 'under_1m', engine: 'ios-26' }),
+      ],
+      ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
-    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(4);
+    expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(6);
     expect(DAILY_CAP).toBe(5000);
   });
 });
