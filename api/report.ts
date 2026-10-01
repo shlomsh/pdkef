@@ -10,7 +10,7 @@
 // Always 204, whatever happens, so the endpoint can never block or break a
 // tool. Stored: counts per day and engine bucket only - no IP, no full user
 // agent, no time finer than the day. Nothing from the request is logged.
-import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReport.js';
+import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
 import {
   DAILY_CAP,
   capCommands,
