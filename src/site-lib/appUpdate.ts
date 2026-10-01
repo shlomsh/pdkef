@@ -189,6 +189,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   try {
     registered = await serviceWorker.register('/sw.js');
   } catch {
+    // expected: the browser refuses workers here; the site works without one
     return;
   }
   if (!registered) return;
@@ -255,6 +256,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
 
   function checkForUpdate() {
     lastCheck = deps.now();
+    // expected: an update check fails offline; the next one retries
     reg.update().catch(() => {});
   }
   doc.addEventListener('visibilitychange', () => {
