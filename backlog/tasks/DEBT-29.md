@@ -1,7 +1,7 @@
 ---
 id: "DEBT-29"
 title: "formCells.js: one cell-box helper, and detectCellCandidates split into one resolver per branch"
-status: "open"
+status: "in_progress"
 priority: "P3"
 epic: "robustness"
 horizon: "later"

@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 1 up next, 11 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 2 up next, 11 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -55,6 +55,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
+| DEBT-29 | P3 | [DEBT-29](backlog/tasks/DEBT-29.md) · formCells.js: one cell-box helper, and detectCellCandidates split into one resolver per branch | In progress |
 
 ### Then, in order
 
@@ -74,7 +75,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| DEBT-29 | P3 | [DEBT-29](backlog/tasks/DEBT-29.md) · formCells.js: one cell-box helper, and detectCellCandidates split into one resolver per branch |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
