@@ -34,8 +34,8 @@ const TOOL_COPY: Record<RedactToolType, ToolCopy> = {
   blur:     { action: 'Click and drag to draw a blur box.',               actionTouch: 'Drag to draw a blur box.',                    button: 'Blur' },
 };
 
-// RED-32: the same tools armed as a brush. The brush stays on until Stop or
-// Esc, so the keep-on switch reads the same as for a locked box tool.
+// RED-32: the same tools armed as a brush. The brush stays on until Esc or a
+// second press of its tool, so it shows no keep-on switch (RED-42).
 const BRUSH_COPY: Record<'blur' | 'whiteout', ToolCopy> = {
   blur:     { action: 'Click and drag to paint a blur.',    actionTouch: 'Drag to paint a blur.',    button: 'Blur' },
   whiteout: { action: 'Click and drag to paint whiteout.', actionTouch: 'Drag to paint whiteout.', button: 'Whiteout' },
@@ -164,8 +164,9 @@ export default function RedactToolbar({
   // Absent when no tool is armed, which is also what a tool missing from
   // TOOL_COPY looks like: the status line falls back to the idle tip rather
   // than rendering a half-built sentence.
+  const brushArmed = brushMode && (activeStyle === 'blur' || activeStyle === 'whiteout');
   const activeToolCopy = activeStyle
-    ? (brushMode && (activeStyle === 'blur' || activeStyle === 'whiteout') ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
+    ? (brushArmed ? BRUSH_COPY[activeStyle] : TOOL_COPY[activeStyle])
     : null;
 
   const toolClass = (tool: RedactToolType) =>
@@ -182,6 +183,7 @@ export default function RedactToolbar({
           copy={activeToolCopy}
           locked={toolLocked}
           onToggleKeepOn={() => activeStyle && (toolLocked ? unlockTool(activeStyle) : lockTool(activeStyle))}
+          showKeepOn={!brushArmed}
           // QUAL-10: restored work is not a newcomer's first visit, so it gets
           // no tip; the empty idle row still holds the stack's reserved height.
           idle={showWelcomeTip ? 'Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.' : ''}
