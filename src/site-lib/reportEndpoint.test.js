@@ -16,6 +16,7 @@ const report = {
   installed: false,
   sw: true,
   age: 'under_10s',
+  actions: [],
 };
 const body = JSON.stringify(report);
 const post = () => POST(new Request('https://pdkef.com/api/report', { method: 'POST', body }));
@@ -127,8 +128,18 @@ describe('/api/report stays silent', () => {
     const hsets = commands.filter(([name]) => name === 'HSET');
     expect(hsets).toHaveLength(1);
     expect(Object.keys(JSON.parse(hsets[0][3])).sort()).toEqual(
-      ['age', 'engine', 'installed', 'stack', 'step', 'sw', 'tool'],
+      ['actions', 'age', 'engine', 'installed', 'stack', 'step', 'sw', 'tool'],
     );
+  });
+
+  it.each([
+    ['an unknown action name', ['add_files', 'not_a_real_action']],
+    ['11 names', Array(11).fill('add_files')],
+  ])('answers 204 with no store call for %s', async (_, actions) => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const res = await POST(new Request('https://pdkef.com/api/report', { method: 'POST', body: JSON.stringify({ ...report, actions }) }));
+    expect(res.status).toBe(204);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('answers an empty 204 to junk, and 405 only to a method no beacon uses', async () => {
