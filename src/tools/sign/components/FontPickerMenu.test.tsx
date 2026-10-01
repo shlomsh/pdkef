@@ -1,12 +1,12 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import Popover from '../shell/Popover.tsx';
+import Popover from '../../../shell/Popover.tsx';
 import FontPickerMenu, { FONT_PREVIEW_DELAY_MS } from './FontPickerMenu.tsx';
-import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../editor/text/fonts.js';
+import { resolveFontFamily, HANDWRITING_FONTS, TEXT_FONTS } from '../../../editor/text/fonts.js';
 
-vi.mock('../shell/Popover.tsx', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../shell/Popover.tsx')>();
+vi.mock('../../../shell/Popover.tsx', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../shell/Popover.tsx')>();
   return { ...actual, default: vi.fn(actual.default) };
 });
 

@@ -24,7 +24,6 @@ import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preference
 declare const __dirname: string;
 
 const REDACT_BOX = redactStyles['redact-box'];
-const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -142,6 +141,34 @@ vi.mock('./check/removePlace.ts', () => ({
   PlaceNotFoundError: class PlaceNotFoundError extends Error {},
 }));
 
+// RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
+// The default is null (what jsdom gives today); the recorder is a plain
+// function so vi.restoreAllMocks() in this file's afterEach cannot wipe it.
+const pageSampler = vi.hoisted(() => ({
+  impl: (() => null) as (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => string | null,
+  calls: [] as Array<{ canvas: HTMLCanvasElement | null | undefined; box: { left: number; top: number; width: number; height: number } }>,
+}));
+vi.mock('./pageSampling.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./pageSampling.ts')>();
+  return {
+    ...actual,
+    sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
+      pageSampler.calls.push({ canvas, box });
+      return pageSampler.impl(canvas, box);
+    },
+  };
+});
+
+// RED-51: sets the selected box's colour through its toolbar's colour input.
+async function setSelectedBoxColor(color: string) {
+  const input = query<HTMLInputElement>(document.body, '[data-editor-actions] input[type="color"]');
+  await act(async () => {
+    input.value = color;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+}
+
 describe('PdfRedactTool UI flow', () => {
   let container = document.createElement('div');
 
@@ -211,8 +238,9 @@ describe('PdfRedactTool UI flow', () => {
     expect(radiogroup.querySelectorAll('[role="radio"]')).toHaveLength(3);
   });
 
-  it('uses the remembered app-wide whiteout color for a newly drawn redaction', async () => {
-    // RED-40: the colour is per-document style; the app-wide style seeds a new document.
+  it('RED-51: a newly drawn whiteout takes the page colour, not the remembered color', async () => {
+    // RED-51: a new whiteout is auto (colorMode 'auto') and takes the page's colour, '#ffffff'
+    // in jsdom where the canvas cannot be read. The remembered colour seeds the brush only.
     rememberAppStyle({ whiteoutColor: '#123456' });
 
     try {
@@ -222,10 +250,246 @@ describe('PdfRedactTool UI flow', () => {
 
       const surface = container.querySelector('.redact-surface--whiteout');
       expect(surface).not.toBeNull();
-      expect(surface.style.backgroundColor).toBe('rgb(18, 52, 86)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     } finally {
       localStorage.clear();
     }
+  });
+
+  describe('RED-51: whiteout follows the page', () => {
+    const CREAM = '#f7f1de';
+    const BLUE = '#deebf7';
+    const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+    // A drawn box sits at top 20%; the drag below moves it to 30%.
+    const byGeometry = (_canvas: unknown, box: { top: number }) => (box.top < 20.5 ? CREAM : BLUE);
+
+    beforeEach(() => {
+      pageSampler.calls.length = 0;
+      pageSampler.impl = byGeometry;
+    });
+    afterEach(() => {
+      pageSampler.impl = () => null;
+      pageSampler.calls.length = 0;
+      localStorage.clear();
+    });
+
+    const surfaces = () => Array.from(container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
+    const surfaceColor = () => required(surfaces()[0], 'whiteout surface').style.backgroundColor;
+    const autoPressed = () => query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-auto]').getAttribute('aria-pressed');
+    const announced = () => required(container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'announcement region').textContent;
+
+    async function selectBox(box: HTMLElement): Promise<void> {
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+    async function drawWhiteoutAndSelect(): Promise<HTMLElement> {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      return drawArea;
+    }
+    // Drags the box body by (50, 100) px: 10% right, 10% down on the 500x1000 draw area.
+    async function nudgeDown(): Promise<void> {
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+    async function undo(): Promise<void> {
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })); });
+    }
+    async function pressAuto(): Promise<void> {
+      const auto = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-auto]');
+      await act(async () => { auto.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+    function mockPageCount(numPages: number) {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({
+          numPages,
+          getPage: vi.fn(() => Promise.resolve({
+            getViewport: () => ({ width: 612, height: 792 }),
+            render: () => ({ promise: Promise.resolve() }),
+          })),
+        }),
+      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+    }
+
+    it('a drawn whiteout is auto and takes the colour sampled from its own page', async () => {
+      await drawWhiteoutAndSelect();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(autoPressed()).toBe('true');
+      const pageCanvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+      const drawCall = required(pageSampler.calls[0], 'the draw-time sample');
+      expect(drawCall.canvas).toBe(pageCanvas);
+      expect(drawCall.box.left).toBeCloseTo(10);
+      expect(drawCall.box.top).toBeCloseTo(20);
+    });
+
+    it('moving an auto whiteout re-samples it, and one Undo restores the position and the colour together', async () => {
+      await drawWhiteoutAndSelect();
+      const topBefore = parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top);
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb(BLUE));
+      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeGreaterThan(topBefore);
+
+      await undo();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeCloseTo(topBefore);
+      expect(announced()).toContain('Undid: Moved whiteout box');
+      expect(announced()).not.toContain('color');
+    });
+
+    it('a picked colour makes the box custom: a later move keeps it and never asks the sampler', async () => {
+      await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#123456');
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(autoPressed()).toBe('false');
+
+      pageSampler.calls.length = 0;
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(pageSampler.calls).toHaveLength(0);
+    });
+
+    it('Auto after a custom colour follows the page again, and one Undo brings the custom colour back', async () => {
+      await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#123456');
+      // Style edits within half a second fold into one step (and a custom-then-Auto fold is no change at all).
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 550)); });
+      await pressAuto();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(autoPressed()).toBe('true');
+
+      await undo();
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(autoPressed()).toBe('false');
+    });
+
+    it('the eyedropper on a selected whiteout takes a page pixel as a custom colour, keeps the box selected and disarms', async () => {
+      await drawWhiteoutAndSelect();
+      const canvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
+      canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
+
+      const eyedropper = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      await act(async () => { eyedropper.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(eyedropper.getAttribute('aria-pressed')).toBe('true');
+
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      // The click that follows a mouse pick must not deselect the box.
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+
+      expect(surfaceColor()).toBe(rgb('#0a141e'));
+      expect(autoPressed()).toBe('false');
+      expect(container.querySelector('[data-editor-actions]')).not.toBeNull();
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    describe('two pipettes', () => {
+      const boxPipette = () => query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      const brushPipette = () => query<HTMLButtonElement>(container, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
+      const click = async (el: HTMLElement) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+      const brushSwatch = () => query<HTMLElement>(container, '[aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
+      async function selectedBoxAndBrushArmed() {
+        await drawWhiteoutAndSelect();
+        const canvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+        canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
+        canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
+        await armTool('Whiteout');
+        const brushSegment = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
+        await act(async () => { brushSegment.click(); });
+        const before = brushSwatch();
+        return { canvas, before };
+      }
+      async function pick(canvas: HTMLCanvasElement) {
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      }
+
+      it('with a box selected and the brush armed, the box pipette arms only itself and picks into the box', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        await click(boxPipette());
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(rgb('#0a141e'));
+        expect(autoPressed()).toBe('false');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        // pickColor also remembers the colour as the default (existing behaviour), so the brush follows it.
+        expect(before).toBe('#ffffff');
+      });
+
+      it('the brush pipette picks into the brush and leaves the box colour', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        const boxColor = surfaceColor();
+        await click(brushPipette());
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(boxColor);
+        expect(brushSwatch()).not.toBe(before);
+      });
+    });
+
+    it('the workspace carries data-pseudo-fullscreen only while pseudo full screen is on', async () => {
+      await loadFileAndGetDrawArea();
+      const workspace = () => query<HTMLElement>(container, '[data-redact-workspace-ready]');
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
+      const toggle = (label: string) => required(container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"], button[title="${label}"]`), label);
+      await act(async () => { toggle('Full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(true);
+      await act(async () => { toggle('Exit full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
+    });
+
+    it('a restored whiteout without a colour mode (an old draft) keeps its colour when moved, and is never sampled', async () => {
+      vi.mocked(loadDraft).mockResolvedValueOnce({
+        fileName: 'restored.pdf',
+        fileType: 'application/pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+        elements: [{ id: 'old-1', pageIndex: 0, type: 'whiteout', left: 10, top: 20, width: 30, height: 30, color: '#abcdef' }],
+        extra: { actionHistory: [] },
+      } as never);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      await settleUntil('the restored whiteout', () => container.querySelector(`.${REDACT_BOX}`) !== null);
+      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      expect(surfaceColor()).toBe(rgb('#abcdef'));
+
+      pageSampler.calls.length = 0;
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb('#abcdef'));
+      expect(pageSampler.calls).toHaveLength(0);
+    });
+
+    it('a duplicate of an auto whiteout is sampled at its own position', async () => {
+      await drawWhiteoutAndSelect();
+      // Only the original's exact spot reads cream; anywhere else reads blue.
+      pageSampler.impl = (_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE);
+      const duplicate = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
+      await act(async () => { duplicate.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      const colors = surfaces().map((el) => el.style.backgroundColor);
+      expect(colors).toEqual([rgb(CREAM), rgb(BLUE)]);
+    });
+
+    it('Every page on an auto whiteout samples each copy on its own page', async () => {
+      mockPageCount(3);
+      await drawWhiteoutAndSelect();
+      const pageColors = [CREAM, BLUE, '#e0f0e0'];
+      const canvases = Array.from(container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
+      expect(canvases).toHaveLength(3);
+      pageSampler.impl = (canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null;
+
+      const repeat = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeat.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      const cards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const copyColors = cards.slice(1).map((card) => query<HTMLElement>(card, '.redact-surface--whiteout').style.backgroundColor);
+      expect(copyColors).toEqual([rgb(BLUE), rgb('#e0f0e0')]);
+    });
   });
 
   describe('RED-40: whiteout colour and blur strength are per-document style', () => {
@@ -251,22 +515,22 @@ describe('PdfRedactTool UI flow', () => {
 
     afterEach(() => { localStorage.clear(); });
 
-    it('a restored document draws whiteout in its own colour, not the app-wide one', async () => {
+    it('a restored document still draws whiteout in the page colour (auto), not its remembered one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
       const drawArea = await mountRestored({ whiteoutColor: '#ff0000' });
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
-      expect(surface.style.backgroundColor).toBe('rgb(255, 0, 0)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     });
 
-    it('a fresh document draws whiteout in the app-wide colour', async () => {
+    it('a fresh document draws whiteout in the page colour (auto), not the app-wide one', async () => {
       rememberAppStyle({ whiteoutColor: '#00ff00' });
       const drawArea = await loadFileAndGetDrawArea();
       await armTool('Whiteout');
       await drawBox(drawArea, 50, 200, 200, 500);
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
-      expect(surface.style.backgroundColor).toBe('rgb(0, 255, 0)');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 255, 255)');
     });
 
     it('a restored document draws blur at its own strength, not the app-wide one', async () => {
@@ -1179,7 +1443,7 @@ describe('PdfRedactTool UI flow', () => {
     // Design review: blackout and blur used to carry their own inline red
     // "corner" delete button, positioned and styled differently from
     // whiteout's floating toolbar. All three types now share one selection
-    // chrome (ElementToolbar via RedactBox's `[data-editor-actions]`
+    // chrome (RedactBoxToolbar via RedactBox's `[data-editor-actions]`
     // wrapper), so these three tests assert the same thing per type instead
     // of a whiteout-only one and two blackout/blur-only ones with different
     // assertions.
@@ -1249,7 +1513,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1282,7 +1545,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1548,6 +1810,48 @@ describe('PdfRedactTool UI flow', () => {
     return required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
   }
+
+  // RED-52: RED-43's keyboard move needs the page size in points, which the
+  // island only read when a blur box, a blur stroke or a brush was around. Arm
+  // neither Blur nor a brush here: the bug only shows when neither is around.
+  describe('RED-52: arrow keys move a whiteout or blackout box on a document with no blur', () => {
+    for (const label of ['Whiteout', 'Blackout']) {
+      it(`${label}: one ArrowDown press moves it one point and one undo puts it back`, async () => {
+        const drawArea = await loadFileWithoutArming();
+        await armTool(label);
+        await drawBox(drawArea, 50, 200, 200, 500);
+
+        const findBox = () => required(
+          container.querySelector<HTMLElement>(`[role="group"][aria-label="${label} box"]`),
+          `${label} box`
+        );
+        // The island starts reading page sizes when the first box appears, and
+        // the mocked pdf.js answers with settled promises: one task later the
+        // read has landed, as it has long before a person reaches for a key.
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        // Reach it the way a keyboard user does: focus, then Enter selects.
+        await act(async () => {
+          findBox().focus();
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+        expect(findBox().className).toContain(redactStyles.selected);
+
+        const before = parseFloat(findBox().style.top);
+        await act(async () => {
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        });
+        // One point on the mocked 792-point page.
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + (1 / 792) * 100, 4);
+
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+        });
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before, 4);
+      });
+    }
+  });
 
   // The mobile scroll fix itself (see the touchAction comment in
   // PdfRedactTool.tsx's page-wrapper style, and CLAUDE.md's "Sign editor
@@ -2272,17 +2576,7 @@ describe('PdfRedactTool UI flow', () => {
       // duplicateElement selects the duplicate of the box that was pressed
       // (page 0's), so its own toolbar/color trigger is already on screen.
       const originalColor = query<HTMLElement>(pageCards[0], '.redact-surface--whiteout').style.backgroundColor;
-      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
-      await act(async () => {
-        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      const swatch = required(
-        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
-        'a preset color swatch',
-      );
-      await act(async () => {
-        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await setSelectedBoxColor('#000000');
 
       pageCards.forEach((card) => {
         const surfaces = Array.from(card.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
@@ -2871,29 +3165,14 @@ describe('PdfRedactTool UI flow', () => {
       const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
       const originalColor = surface.style.backgroundColor;
 
-      // Select the box, open its color picker trigger, then pick a preset
-      // swatch. The popover portals to document.body (Popover.tsx's
-      // createPortal), so the swatch is queried there rather than in `container`.
+      // Select the box, then set a colour through its toolbar's colour input.
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
       });
       await act(async () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
-      const colorTrigger = query<HTMLButtonElement>(container, '[data-editor-actions] [aria-haspopup="true"]');
-      await act(async () => {
-        colorTrigger.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
-      // Default whiteout color is #ffffff (no remembered color set by this
-      // test), so the first preset swatch (#000000, ColorPicker.tsx's
-      // PRESET_COLORS[0]) is always a genuine change.
-      const swatch = required(
-        document.querySelector<HTMLButtonElement>('[data-editor-color-swatch]'),
-        'a preset color swatch',
-      );
-      await act(async () => {
-        swatch.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      });
+      await setSelectedBoxColor('#000000');
 
       const changedColor = surface.style.backgroundColor;
       expect(changedColor).not.toBe(originalColor);

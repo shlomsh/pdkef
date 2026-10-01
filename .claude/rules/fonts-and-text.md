@@ -5,7 +5,7 @@ paths:
   - "src/editor/adapters/pdf/**"
   - "src/editor/text/fontCoverageTable*"
   - "src/tools/sign/signExportReadiness*"
-  - "src/editor-ui/FontPickerMenu*"
+  - "src/tools/sign/components/FontPickerMenu*"
   - "src/tools/sign/components/SignatureDialog*"
   - "src/tools/sign/components/FontSupportNotice*"
   - "src/tools/sign/components/ExportReadinessNotice*"
@@ -172,7 +172,7 @@ Every expensive failure here was an omission.
    `HANDWRITING_FONTS`/`TEXT_FONTS` in `src/editor/text/fonts.js` derive from this, nothing to edit
    there directly) and its license metadata in the sibling `src/editor/text/fontLicenses.js`, then run
    `npm run generate:font-manifest` to refresh `src/styles/editorFonts.css` and the
-   `THIRD_PARTY_LICENSES.md` font lists. Add a label in `src/editor-ui/FontPickerMenu.tsx` if needed.
+   `THIRD_PARTY_LICENSES.md` font lists. Add a label in `src/tools/sign/components/FontPickerMenu.tsx` if needed.
 4. **New script: add a `SCRIPT_FALLBACKS` row.**
 5. **Update `src/editor/text/languageAlphabets.js`** for a new language or character set, then regenerate and
    commit both GENERATED files: `npm run generate:font-coverage` (`src/editor/text/fontCoverageTable.js`) and

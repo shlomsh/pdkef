@@ -302,11 +302,20 @@ describe('the tool', () => {
     expect(s.tool.carried).toEqual({ whiteoutColor: '#00ff00', brushMode: 'brush', brushSize: 24 });
   });
 
-  it('EYEDROPPER_TOGGLED flips and EYEDROPPER_STOPPED turns it off (no-op when already off)', () => {
-    const on = redactReducer(fresh(), { type: 'EYEDROPPER_TOGGLED' });
-    expect(on.tool.eyedropping).toBe(true);
-    expect(redactReducer(on, { type: 'EYEDROPPER_TOGGLED' }).tool.eyedropping).toBe(false);
-    expect(redactReducer(on, { type: 'EYEDROPPER_STOPPED' }).tool.eyedropping).toBe(false);
+  it('EYEDROPPER_TOGGLED arms a target, the same target again turns it off, the other switches', () => {
+    expect(fresh().tool.eyedropping).toBeNull();
+    const brush = redactReducer(fresh(), { type: 'EYEDROPPER_TOGGLED', target: 'brush' });
+    expect(brush.tool.eyedropping).toBe('brush');
+    expect(redactReducer(brush, { type: 'EYEDROPPER_TOGGLED', target: 'brush' }).tool.eyedropping).toBeNull();
+    const box = redactReducer(brush, { type: 'EYEDROPPER_TOGGLED', target: 'box' });
+    expect(box.tool.eyedropping).toBe('box');
+    expect(redactReducer(box, { type: 'EYEDROPPER_TOGGLED', target: 'box' }).tool.eyedropping).toBeNull();
+    expect(redactReducer(box, { type: 'EYEDROPPER_TOGGLED', target: 'brush' }).tool.eyedropping).toBe('brush');
+  });
+
+  it('EYEDROPPER_STOPPED turns it off (unchanged identity when already off)', () => {
+    const on = redactReducer(fresh(), { type: 'EYEDROPPER_TOGGLED', target: 'box' });
+    expect(redactReducer(on, { type: 'EYEDROPPER_STOPPED' }).tool.eyedropping).toBeNull();
     const off = fresh();
     expect(redactReducer(off, { type: 'EYEDROPPER_STOPPED' })).toBe(off);
   });
