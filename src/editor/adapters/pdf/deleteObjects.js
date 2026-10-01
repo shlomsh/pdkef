@@ -72,7 +72,7 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
 
   // Before RED-26's sweep, so a Form nothing draws any more stops counting
   // as drawing the image it lists.
-  removeOrphanedForms(doc, replacedForms);
+  removeOrphans(doc, replacedForms);
   removeUndrawnImages(doc, deletedImageRefs);
   clearDocumentDetails(doc);
 
@@ -326,7 +326,8 @@ export function clearDocumentDetails(doc) {
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {Array<{start: number, end: number, formPath?: string[], imageRef?: string}>} spans
  * @param {Set<string>} [replacedForms] collects the ref tags of the original
- *   Forms a copy replaced, for `removeOrphanedForms`
+ *   Forms a copy replaced and of the page's old `/Contents` streams, for
+ *   `removeOrphans` (RED-48)
  */
 export function rewritePageContent(doc, page, spans, replacedForms = new Set()) {
   const pageSpans = spans.filter((span) => !span.formPath?.length);
@@ -334,11 +335,25 @@ export function rewritePageContent(doc, page, spans, replacedForms = new Set()) 
 
   if (formSpans.length === 0 || pageSpans.length > 0) {
     const rewritten = spliceOut(getPageContentBytes(page), pageSpans);
+    noteOldContents(doc.context, page, replacedForms);
     // One merged stream replaces however many the page had. Offsets were
     // computed against the merged buffer, so the two must agree.
     page.node.set(PDFName.of('Contents'), doc.context.register(doc.context.flateStream(rewritten)));
   }
   if (formSpans.length > 0) rewriteFormContent(doc, page, formSpans, replacedForms);
+}
+
+/**
+ * Adds the ref tags of the page's current `/Contents` (a ref to a stream, to an
+ * array, or a direct array of refs) to `candidates`, before the rewrite
+ * replaces them: pdf-lib saves every registered object, so an old stream left
+ * behind would still carry the deleted text (RED-48).
+ */
+function noteOldContents(context, page, candidates) {
+  const contents = page.node.get(PDFName.of('Contents'));
+  if (contents instanceof PDFRef) candidates.add(contents.tag);
+  const array = context.lookup(contents);
+  if (array instanceof PDFArray) collectRefs(array, candidates);
 }
 
 const formPathKey = (item) => (item.formPath ?? []).join('>');
@@ -479,17 +494,19 @@ function collectRefs(object, out) {
 }
 
 /**
- * Deletes from the file every original Form XObject that a per-page copy
- * replaced and that nothing references any more (no page, no other form, no
- * annotation appearance), then the inner forms that only it held, recursively.
- * This is what makes a deletion real: the text cut from the copy must not
- * survive in an orphaned original that `save` would still write.
+ * Deletes from the file every object a rewrite replaced (the original Form
+ * XObjects a per-page copy replaced, and a page's old `/Contents` streams) that
+ * nothing references any more (no page, no other form, no annotation
+ * appearance), then the inner forms that only it held, recursively. This is
+ * what makes a deletion real: the text cut from the new stream must not survive
+ * in an orphaned original that `save` would still write. A stream still
+ * referenced elsewhere (say, shared by two pages) stays.
  *
  * @param {PDFDocument} doc
- * @param {Set<string>} replacedForms ref tags of the originals that were copied
+ * @param {Set<string>} candidates ref tags of the objects that were replaced
  */
-export function removeOrphanedForms(doc, replacedForms) {
-  if (replacedForms.size === 0) return;
+export function removeOrphans(doc, candidates) {
+  if (candidates.size === 0) return;
   const { context } = doc;
 
   const outgoing = new Map(); // object -> the tags it references
@@ -507,10 +524,10 @@ export function removeOrphanedForms(doc, replacedForms) {
     return object instanceof PDFStream && context.lookup(object.dict.get(PDFName.of('Subtype')))?.asString?.() === '/Form';
   };
 
-  const queue = [...replacedForms];
+  const queue = [...candidates];
   while (queue.length > 0) {
     const tag = queue.pop();
-    if ((incoming.get(tag) ?? 0) > 0 || !isForm(tag)) continue;
+    if ((incoming.get(tag) ?? 0) > 0 || !(candidates.has(tag) || isForm(tag))) continue;
     context.delete(refFromTag(tag));
     for (const child of outgoing.get(tag) ?? []) {
       incoming.set(child, incoming.get(child) - 1);
@@ -541,7 +558,7 @@ export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
   const replacedForms = new Set();
   const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, spans);
   rewritePageContent(previewDoc, copiedPage, translated, replacedForms);
-  removeOrphanedForms(previewDoc, replacedForms);
+  removeOrphans(previewDoc, replacedForms);
   return previewDoc.save();
 }
 
