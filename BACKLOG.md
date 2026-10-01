@@ -168,7 +168,6 @@ Small, independent, good for a spare hour.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| QUAL-12 | P3 | [QUAL-12](backlog/tasks/QUAL-12.md) · Mint and paper leftovers: the redaction guide illustration and the hero's duplicated fallback |  |
 | MERGE-18 | P2 | [MERGE-18](backlog/tasks/MERGE-18.md) · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant | Needs Shlomi: Decide route A and the Merge bookmarks switch |
 
 ### Then, in order
@@ -188,7 +187,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Form detector accuracy: 0 done, 0 retired
 - Robustness and debt: 1 done, 0 retired
 - Search and languages: 0 done, 0 retired
-- Polish: 0 done, 0 retired
+- Polish: 1 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
 - Fonts and script support: 6 done, 3 retired

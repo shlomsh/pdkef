@@ -49,8 +49,8 @@ at (QUAL-15, superseding QUAL-13's h1 stroke).
 Changing the theme: edit `:root`, then `grep -rn "rgba(0\|#[0-9a-f]\{6\}"` across `src/` and `public/`
 for escaped literals (button/dropzone shadows and the body glow have been hardcoded before), and update
 `theme-color` in `BaseLayout.astro`, `theme_color`/`background_color` in
-`public/manifest.webmanifest`, and the inline `<style>` colors in `public/sitemap.xsl`, none of which
-are CSS. A color-only change needs only a dev-server check.
+`public/manifest.webmanifest`, the inline `<style>` colors in `public/sitemap.xsl`, and the hand-coloured
+`public/images/redaction-guide/flatten.svg` (mint strokes, primary teal), none of which are CSS. A color-only change needs only a dev-server check.
 
 ## The styling boundary (scoped hybrid, landed 2026-07)
 
