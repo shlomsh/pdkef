@@ -58,7 +58,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.9.9",
     "@vercel/speed-insights": "^2.0.0",
-    "astro": "^7.3.1",
+    "astro": "^7.3.5",
     "bidi-js": "^1.1.0",
     "lucide-preact": "^1.49.0",
     "pdfjs-dist": "^6.3.289",

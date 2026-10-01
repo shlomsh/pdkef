@@ -1,6 +1,7 @@
 ---
 import ContentPageLayout from '../../layouts/ContentPageLayout.astro';
 import ContentPage from '../../components/ContentPage.astro';
+import { registerContentPageStyles } from '../../site-lib/inlineStyles';
 import { CONTENT_ICONS } from '../../data/contentIcons';
 import { documentationLocales, getDocumentationLocaleByPrefix } from '../../i18n/documentationLocales';
 import { getDocumentationContext, getDocumentationVariants } from '../../i18n/documentation';
@@ -38,6 +39,8 @@ const stale = context.preview && context.freshness === 'stale';
 // ToolCrossLinks/RelatedGuides, so the primaryCta's English-fallback
 // disclosure asks the identical question rather than a second one.
 const editionPaths = await getPublishedEditionPaths(context.effectiveLocale as any);
+// A page's inline-style hashes must be registered here, before the layout writes the <head>.
+registerContentPageStyles(Astro.csp, entry);
 ---
 
 <ContentPageLayout
