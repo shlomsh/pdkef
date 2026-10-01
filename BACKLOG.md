@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 53 live: 5 up next, 20 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 52 live: 4 up next, 20 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -103,12 +103,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 Mostly waiting on dated Search Console reads. Two small things can ship now.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SEO-41 | P3 | [SEO-41](backlog/tasks/SEO-41.md) · Flatten follow-ups: viewer check of the filled-form fixture, FAQ clause on the two meanings of flatten | In progress. Needs Shlomi: Open the filled-form fixture in Chrome's viewer and macOS Preview and say what each showed |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -164,7 +158,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Sign: finish fill mode: 0 done, 1 retired
 - Form detector accuracy: 3 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
-- Search and languages: 2 done, 0 retired
+- Search and languages: 3 done, 0 retired
 - Polish: 2 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
 - Editor architecture: 14 done, 0 retired
