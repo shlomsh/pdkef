@@ -49,7 +49,7 @@ everyone now.
   `self.registration.waiting`, `isCriticalOver(...)` and `readyToTakeOver()` (online and fully
   precached); post `{ type: 'pdkef:critical-update' }` with a MessagePort to every page window
   (`surveyWindows`'s filter); wait until every window replied `{ ready: true }` or
-  `CRITICAL_TAKEOVER_CAP_MS = 65_000` passed; then `self.skipWaiting()`. The existing
+  `CRITICAL_TAKEOVER_CAP_MS = 75_000` passed; then `self.skipWaiting()`. The existing
   `controllerchange` reload in every page does the rest.
 - Never touches the MEM-10 paths for a non-critical build. `skipWaiting()` still never runs on
   install unconditionally.
@@ -64,6 +64,23 @@ everyone now.
   `registration.update()` when the tab becomes visible, on `online`, and once an hour while open.
   After each, if `registration.waiting` exists, post `{ type: 'pdkef:critical-check' }` to it. Errors
   are swallowed with `// expected:` (offline, a fetch failure): never a console error, never a line.
+
+## Review decisions (2026-10-01)
+
+From a fresh review of the first build of this contract:
+
+- **A force that falls through is abandoned, not stuck.** If no takeover follows within
+  `CRITICAL_ABANDON_MS = 90_000` of the ask (the device went offline, the build stopped being ready, the
+  worker was stopped), the tab leaves the critical line and returns to MEM-10's behaviour; the next ask
+  starts fresh, with a new draft flush and export wait.
+- **A failed draft save is an `open` hold, not an `export` one.** It holds an ordinary update as before,
+  but it cannot resolve within a force's wait, so it does not delay one.
+- **The worker's cap is 75s**, leaving margin over the page's 60s cap plus its draft flush.
+- **First bump, legacy tabs.** A tab still running code from before this ticket cannot answer a force;
+  the worker goes ahead at its cap, and that tab reloads once its own holds release. Written into the
+  rule.
+- The visible-tab update check is every 60s at most (was 30 minutes), and coming online checks at once.
+  Each check is one conditional request for `sw.js`.
 
 ## Acceptance
 
