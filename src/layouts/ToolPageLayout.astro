@@ -197,19 +197,20 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         build-time HTML - putting the invitation inside it would mean it
         never renders for a crawler and flashes in after hydration for a
         visitor. This is the nearest server-rendered spot, directly above
-        where the dropzone appears. Shown on every tool (SEO-37): the service
-        worker precaches the whole build on install, pdfjs worker and wasm
-        included, and every tool runs on pdf-lib or pdfjs from those bundles,
-        so once the install has finished a visited tool opens and exports
-        offline (Merge and Sign are proved in e2e/offline). Only the live
-        status line below is Sign/Redact-only. Hangs off the trailing edge of the tool
+        where the dropzone appears. Kept to Sign and Redact only, same as
+        the live status line below. The other eight tools show it under their
+        card instead (SEO-37, after <main>): above the card it pushed Merge's
+        and Compress Image's first screen down ~52px and failed their phone
+        first-viewport guards. Hangs off the trailing edge of the tool
         card below it (left in RTL, right in LTR), so it copies <main>'s own
         max-width and padding rather than the hero's, and stays a bare <p>,
         not a wrapped one: e2e/tool-layout.spec.js's `body > div > div`
         locator must keep resolving to the app bar only. */}
+    {(tool.slug === 'sign' || tool.slug === 'redact') && (
     <p data-tool-restore-followup class="type-body mx-auto mb-4 w-full max-w-[1280px] px-4 text-center text-[var(--color-muted)] min-[560px]:px-6 min-[1024px]:mb-2 min-[1024px]:mt-0 min-[1024px]:text-end">
       {messages.airplaneModeNotice}
     </p>
+    )}
 
     {/* SEO-10: the no-limit fact, stated where a visitor scanning the SERP
         result actually lands, not buried in the FAQ below the tool. Kept to
@@ -248,6 +249,18 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
         <slot />
       </section>
     </main>
+
+    {/* SEO-37: the airplane-mode line for every tool but Sign and Redact (they
+        carry it above the card). The claim holds because the service worker
+        precaches the whole build on install, pdfjs worker and wasm included,
+        and these tools run on pdf-lib or pdfjs from those bundles; Merge is
+        proved offline in e2e/offline. Below the card so it moves nothing the
+        first screen has already laid out. */}
+    {tool.slug !== 'sign' && tool.slug !== 'redact' && (
+      <p data-airplane-note class="type-body mx-auto w-full max-w-[1280px] px-4 pb-1 text-center text-[var(--color-muted)] min-[560px]:px-6">
+        {messages.airplaneModeNotice}
+      </p>
+    )}
   </div>
 
   <style>
@@ -346,12 +359,14 @@ const editionPaths = locale === 'en' ? [] : await getPublishedEditionPaths(local
        marker and readiness signal. A stale pointer releases immediately in
        PdfMergeTool once the restore check returns with no files. */
     :global(html[data-merge-restore]) .tool-stage main,
-    :global(html[data-merge-restore]) [data-tool-followups] {
+    :global(html[data-merge-restore]) [data-tool-followups],
+    :global(html[data-merge-restore]) [data-airplane-note] {
       visibility: hidden;
     }
 
     :global(html[data-merge-restore]:has([data-merge-workspace-ready])) .tool-stage main,
-    :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups] {
+    :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-tool-followups],
+    :global(html[data-merge-restore]:has([data-merge-workspace-ready])) [data-airplane-note] {
       visibility: visible;
     }
 
