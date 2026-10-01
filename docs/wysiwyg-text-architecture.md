@@ -164,7 +164,7 @@ Both are font *selection*, above stage 1, and no existing guard can see either.
 ### Synthetic bold and italic
 
 `ElementToolbar.tsx` offers Bold and Italic unconditionally on every family
-([lines 116-137](../src/editor-ui/ElementToolbar.tsx#L116)). Eight handwriting families ship Regular only
+([lines 116-137](../src/tools/sign/components/ElementToolbar.tsx#L116)). Eight handwriting families ship Regular only
 (Caveat, Dancing Script, Great Vibes, Gveret Levin, Kalam, Mali, Pacifico, Sacramento), and Assistant,
 Heebo, Alef and Almarai have no Italic. With only a 400/normal `@font-face` declared, the browser
 **synthesises** the missing style (`font-synthesis` defaults to `auto`). The export does the opposite:

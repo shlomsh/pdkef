@@ -1,18 +1,16 @@
 import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
-import { TrashIcon } from './toolIcons.tsx';
-import ColorPickerMenu from './ColorPickerMenu.tsx';
+import { TrashIcon } from '../../../editor-ui/toolIcons.tsx';
+import ColorPickerMenu from '../../../editor-ui/ColorPickerMenu.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
-import BlurStrengthSlider from './BlurStrengthSlider.tsx';
-import ToolbarMenu from './ToolbarMenu.tsx';
-import { getEffectiveTextDirection, getTextAlign } from '../lib/signHelpers.js';
-import { resolveTypography } from '../editor/text/fonts.js';
-import { combCellCount, isComb, textForCoverage } from '../editor/text/comb.js';
-import { MAX_COMB_CELLS } from '../constants/signGeometry.js';
-import { formatDate, isDateFormatId, nextDateFormatId } from '../editor/text/dateFormat.ts';
-import { englishSignMessages, formatMessage, type SignMessages } from '../i18n/toolMessages';
-import styles from './EditorControls.module.css';
+import { getEffectiveTextDirection, getTextAlign } from '../../../lib/signHelpers.js';
+import { resolveTypography } from '../../../editor/text/fonts.js';
+import { combCellCount, isComb, textForCoverage } from '../../../editor/text/comb.js';
+import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
+import { formatDate, isDateFormatId, nextDateFormatId } from '../../../editor/text/dateFormat.ts';
+import { englishSignMessages, formatMessage, type SignMessages } from '../../../i18n/toolMessages';
+import styles from '../../../editor-ui/EditorControls.module.css';
 
 export default function ElementToolbar({
   element,
@@ -21,12 +19,6 @@ export default function ElementToolbar({
   onPreviewFontEnd,
   onClone,
   onDelete,
-  onRepeatOnEveryPage,
-  repeatGroupSize,
-  onUnlinkFromGroup,
-  onRemoveGroup,
-  findSetSize,
-  onRemoveFindSet,
   messages,
 }: {
   element: any;
@@ -35,33 +27,8 @@ export default function ElementToolbar({
   onPreviewFontEnd?: () => void;
   onClone: (...args: any[]) => void;
   onDelete: (...args: any[]) => void;
-  /** RED-03: Redact-only, one box repeated onto every other page. Optional
-   * because ElementToolbar is shared with Sign, which never passes it. */
-  onRepeatOnEveryPage?: () => void;
-  /** RED-03: how many boxes are in this box's linked set. >= 2 swaps the
-   * plain repeat button for the linked set's menu, and makes trash ask
-   * whether to delete this page's box or all of them; undefined or < 2 means the box
-   * is not (or no longer) linked to any other. Redact-only, like the three
-   * repeat/group props around it; Sign never passes it. */
-  repeatGroupSize?: number;
-  /** RED-03: detaches this one box from its linked set; it becomes an
-   * ordinary, unlinked box. Offered in the linked set's menu. */
-  onUnlinkFromGroup?: () => void;
-  /** RED-03: removes every box in the linked set, one undo step. Offered
-   * by trash on a linked box, beside "This page" (onDelete). */
-  onRemoveGroup?: () => void;
-  /** RED-11: how many boxes share this box's find set (findSet.ts). >= 2
-   * means it has one, so trash offers "All N from this search" alongside
-   * onDelete; undefined or < 2 leaves trash as a plain one-tap button (or,
-   * when the box is also linked, unaffected by this prop). Redact-only. */
-  findSetSize?: number;
-  /** RED-11: removes every box in the find set, one undo step. Offered by
-   * trash on a found box, after "This page"/"This box" and any linked-set
-   * "All N pages" item. */
-  onRemoveFindSet?: () => void;
   /** LOC-16 stage 2-5: optional and English-default, same shape as
-   * SignToolbar.tsx's `messages` prop. Shared with Redact (RedactBox.tsx),
-   * which never passes it, so its English rendering is unaffected. */
+   * SignToolbar.tsx's `messages` prop. */
   messages?: Partial<SignMessages>;
 }) {
   const t: SignMessages = { ...englishSignMessages, ...messages };
@@ -86,19 +53,6 @@ export default function ElementToolbar({
   const isDrawnShape = actualType === 'ellipse' || actualType === 'rectangle';
   const buttonClass = (active = false, danger = false) => [styles['element-button'], active && styles.active, danger && styles['element-button-danger']].filter(Boolean).join(' ');
 
-  // RED-03: a repeated box's linked set, when it has one.
-  const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
-  const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
-  // RED-11: a found box's find set, when it has one (findSet.ts). Independent
-  // of `linked` - a box can be both, neither, or just one.
-  const inFindSet = findSetSize !== undefined && findSetSize >= 2 && !!onRemoveFindSet;
-  const hasDeleteScope = (linked && onRemoveGroup) || inFindSet;
-  const pagesIcon = (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="6" y="2" width="14" height="16" rx="2" />
-      <path d="M4 6v14a2 2 0 0 0 2 2h12" />
-    </svg>
-  );
   const trashIcon = <TrashIcon strokeWidth={2.5} rounded={false} />;
 
   // SIGN-08: the same typography descriptor TextNode renders with and
@@ -417,24 +371,6 @@ export default function ElementToolbar({
           <div className={styles.divider} />
         </>
       )}
-      {element.type === 'blur' && (
-        <>
-          <BlurStrengthSlider
-            elementId={element.id}
-            value={element.strength}
-            onChange={(strength) => onChange({ strength })}
-            labels={{ title: t.blurStrengthTitle, lighter: t.blurStrengthLighter, stronger: t.blurStrengthStronger, defaultTick: t.blurStrengthDefault }}
-          />
-          <div className={styles.divider} />
-        </>
-      )}
-      {/* Redact's blackout element (element.type === 'blackout') intentionally
-          matches no branch above: it has no per-element colour (only whiteout
-          does) and no per-element strength (only blur does), so it falls
-          straight through to the shared duplicate + delete pair below with no
-          divider in front of it - the minimum shared chrome every redaction
-          type now uses on selection, instead of RedactBox's old separate
-          inline red delete button. */}
       <button
         type="button"
         className={buttonClass()}
@@ -454,63 +390,14 @@ export default function ElementToolbar({
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
         </svg>
       </button>
-      {linked ? (
-        <ToolbarMenu
-          title={groupLabel}
-          heading={groupLabel}
-          triggerClassName={buttonClass()}
-          triggerAttrs={{ 'data-editor-repeat-group-trigger': true }}
-          triggerContent={<>{pagesIcon}<span className={styles['element-button-label']}>{groupLabel}</span></>}
-          items={[
-            ...(onRepeatOnEveryPage
-              ? [{ label: t.repeatGroupFill, onSelect: onRepeatOnEveryPage, attrs: { 'data-editor-repeat-group-fill': true } }]
-              : []),
-            ...(onUnlinkFromGroup
-              ? [{ label: t.repeatGroupUnlink, onSelect: onUnlinkFromGroup, attrs: { 'data-editor-repeat-group-unlink': true } }]
-              : []),
-          ]}
-        />
-      ) : onRepeatOnEveryPage && (
-        <button
-          type="button"
-          className={buttonClass()}
-          onClick={onRepeatOnEveryPage}
-          title={t.repeatOnEveryPageTitle}
-          data-editor-repeat-every-page
-        >
-          {/* A word beside the icon: two page-stack icons side by side (this
-              and Duplicate) did not explain themselves (review 2026-10-01). */}
-          {pagesIcon}<span className={styles['element-button-label']}>{t.repeatOnEveryPageLabel}</span>
-        </button>
-      )}
-      {hasDeleteScope ? (
-        <ToolbarMenu
-          title={t.deleteElementTitle}
-          triggerClassName={buttonClass(false, true)}
-          triggerAttrs={{ 'data-editor-delete-scope-trigger': true }}
-          triggerContent={trashIcon}
-          items={[
-            linked
-              ? { label: t.deleteThisPage, onSelect: onDelete, attrs: { 'data-editor-delete-this-page': true } }
-              : { label: t.deleteThisBox, onSelect: onDelete, attrs: { 'data-editor-delete-this-box': true } },
-            ...(linked && onRemoveGroup
-              ? [{ label: formatMessage(t.deleteAllPagesTemplate, { n: repeatGroupSize }), onSelect: onRemoveGroup, attrs: { 'data-editor-delete-all-pages': true } }]
-              : []),
-            ...(inFindSet
-              ? [{ label: formatMessage(t.deleteFindSetTemplate, { n: findSetSize }), onSelect: onRemoveFindSet!, attrs: { 'data-editor-delete-find-set': true } }]
-              : []),
-          ]}
-        />
-      ) : (
-        <button
-          type="button"
-          className={buttonClass(false, true)}
-          onClick={onDelete}
-          title={t.deleteElementTitle}
-        >
-          {trashIcon}
-        </button>
-      )}
+      <button
+        type="button"
+        className={buttonClass(false, true)}
+        onClick={onDelete}
+        title={t.deleteElementTitle}
+      >
+        {trashIcon}
+      </button>
     </>
   );
 }

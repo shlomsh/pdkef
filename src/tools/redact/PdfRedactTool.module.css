@@ -4,7 +4,7 @@
    redaction boxes is cluttered with resize handles at rest. The delete
    affordance used to live here too (a Redact-only inline red cross, hidden
    the same way); it is gone in favour of the shared floating toolbar every
-   type now renders on selection (RedactBox.tsx, ElementToolbar.tsx) - one
+   type now renders on selection (RedactBox.tsx, RedactBoxToolbar.tsx) - one
    selection chrome, not a hover-only one that also disagreed on icon, colour
    and position with the other two types. */
 .redact-box .redact-box-resizer {
