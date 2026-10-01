@@ -55,9 +55,7 @@
 // The script is bundled (no is:inline), so the CSP covers it the same way.
 import { ArrowUpRight, Plane } from 'lucide-preact';
 import { GITHUB_REPO_URL } from '../data/organizationSchema.js';
-import { cspSha256 } from '../site-lib/cspHash.js';
-import { theOTimelineCss } from '../site-lib/theOTimeline';
-import theOCss from './theO.css?inline';
+import { theOStyle } from '../site-lib/inlineStyles';
 
 interface Line {
   word: string;
@@ -76,8 +74,9 @@ interface Props {
 }
 
 const { story } = Astro.props;
-const css = theOCss + theOTimelineCss();
-Astro.csp?.insertStyleHash(cspSha256(css));
+// The CSP hash for this style is registered by HomePageLayout, which owns the
+// <head> (site-lib/inlineStyles.ts says why).
+const css = theOStyle;
 
 // The ring draws the O of "Open source", and the paper plane lands where the
 // sentence's full stop would be, so the visible text leaves them out; screen

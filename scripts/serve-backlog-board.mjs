@@ -12,6 +12,7 @@ const host = '127.0.0.1';
 const clientTask = (task) => ({
   id: task.id, title: task.title, priority: task.priority, inProgress: task.status === 'in_progress',
   needs: task.needs || '', waitingOn: task.waiting_on || '',
+  status: task.status, dependsOn: Array.isArray(task.depends_on) ? task.depends_on : [], body: task.body || '',
 });
 
 function board(tasks) {
@@ -169,6 +170,33 @@ ul.plain code { font: 500 12px var(--font-id); }
 .closed-list .n { font: 500 12px var(--font-id); color: var(--muted); white-space: nowrap; }
 .error { color: var(--p1); }
 .live-status { color: var(--muted); font-size: 12px; }
+.card { cursor: pointer; }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Ticket detail */
+dialog.detail { width: min(760px, calc(100vw - 32px)); max-width: none; max-height: 85vh; padding: 0; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); color: var(--ink); overflow: hidden; }
+dialog.detail[open] { display: flex; flex-direction: column; }
+dialog.detail::backdrop { background: var(--ink); opacity: 0.45; }
+.d-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 16px 18px 12px; border-bottom: 1px solid var(--line); }
+.d-head h2 { overflow-wrap: anywhere; font-size: 17px; }
+.d-close { font: 500 13px var(--font-ui); color: var(--ink); background: transparent; border: 1px solid var(--line-strong); border-radius: 999px; padding: 5px 12px; cursor: pointer; flex: none; }
+.d-scroll { overflow: auto; padding: 14px 18px 20px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.d-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+.d-meta dt { color: var(--muted); }
+.d-meta dd { margin: 0; overflow-wrap: anywhere; }
+.md { display: grid; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.md h1, .md h2, .md h3 { font-size: 15px; font-weight: 650; text-wrap: balance; }
+.md h1 { font-size: 17px; }
+.md ul, .md ol { margin: 0; padding-left: 22px; display: grid; gap: 3px; }
+.md ul.tasks { list-style: none; padding-left: 4px; }
+.md code { font: 500 12px var(--font-id); background: var(--sunken); padding: 1px 4px; border-radius: 4px; }
+.md pre { margin: 0; overflow-x: auto; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.md pre code { background: transparent; padding: 0; white-space: pre; }
+.md a { color: var(--accent); }
+.md .tbl { overflow-x: auto; }
+.md table { border-collapse: collapse; font-size: 13px; }
+.md th, .md td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
+.md th { background: var(--sunken); }
 `;
 
 // Runs in the browser; embedded with toString() so it needs no escaping.
@@ -183,6 +211,7 @@ function client(columns) {
   let mode = 'all';
   try { mode = localStorage.getItem('board-mode') || 'all'; } catch (e) { /* storage unavailable */ }
   let showPark = true;
+  let lastText = '';
 
   function card(t) {
     const chips = ['<span class="chip ' + esc(t.priority) + '">' + esc(t.priority) + '</span>'];
@@ -190,10 +219,105 @@ function client(columns) {
     if (t.needs) chips.push('<span class="chip you">' + FLAG_LABEL + '</span>');
     if (t.waitingOn) chips.push('<span class="chip when">' + esc(fmtDate(t.waitingOn)) + '</span>');
     const note = t.needs ? '<div class="note">' + esc(t.needs) + '</div>' : '';
-    const text = (t.id + ' ' + t.title + ' ' + t.needs + ' ' + t.waitingOn).toLowerCase();
-    return '<article class="card" data-id="' + esc(t.id) + '" data-p="' + esc(t.priority) + '" data-you="' + Boolean(t.needs) + '" data-text="' + esc(text) + '">'
+    const text = (t.id + ' ' + t.title + ' ' + t.needs + ' ' + t.waitingOn + ' ' + t.body).toLowerCase();
+    return '<article class="card" tabindex="0" role="button" aria-haspopup="dialog" data-id="' + esc(t.id) + '" data-p="' + esc(t.priority) + '" data-you="' + Boolean(t.needs) + '" data-text="' + esc(text) + '">'
       + '<div class="top"><span class="id">' + esc(t.id) + '</span>' + chips.join('') + '</div>'
       + '<div class="title">' + esc(t.title) + '</div>' + note + '</article>';
+  }
+
+  // Small markdown renderer: escape first, then a fixed set of block and inline rules.
+  function inline(raw) {
+    const stash = [];
+    const keep = (html) => '\u0001' + (stash.push(html) - 1) + '\u0001';
+    let s = esc(raw);
+    s = s.replace(/`([^`]+)`/g, (m, c) => keep('<code>' + c + '</code>'));
+    s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, text, url) => keep(/^https?:\/\//i.test(url)
+      ? '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>'
+      : text + ' <code>' + url + '</code>'));
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/\*([^*\s][^*]*)\*/g, '<em>$1</em>');
+    return s.replace(/\u0001(\d+)\u0001/g, (m, i) => stash[Number(i)]);
+  }
+
+  function markdown(src) {
+    const lines = String(src).replace(/\r/g, '').split('\n');
+    const out = [];
+    const bullet = /^\s*[-*]\s+(.*)$/;
+    const numbered = /^\s*\d+[.)]\s+(.*)$/;
+    const sep = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+    const cells = (line) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+    const startsBlock = (line, next) => /^```/.test(line) || /^#{1,3}\s/.test(line) || bullet.test(line) || numbered.test(line) || (/^\s*\|/.test(line) && next !== undefined && sep.test(next));
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) { i++; continue; }
+      if (/^```/.test(line)) {
+        const code = [];
+        for (i++; i < lines.length && !/^```/.test(lines[i]); i++) code.push(lines[i]);
+        i++;
+        out.push('<pre><code>' + esc(code.join('\n')) + '</code></pre>');
+        continue;
+      }
+      const h = /^(#{1,3})\s+(.*)$/.exec(line);
+      if (h) { out.push('<h' + h[1].length + '>' + inline(h[2]) + '</h' + h[1].length + '>'); i++; continue; }
+      if (/^\s*\|/.test(line) && i + 1 < lines.length && sep.test(lines[i + 1])) {
+        const head = cells(line);
+        let html = '<div class="tbl"><table><thead><tr>' + head.map((c) => '<th>' + inline(c) + '</th>').join('') + '</tr></thead><tbody>';
+        for (i += 2; i < lines.length && /^\s*\|/.test(lines[i]); i++) html += '<tr>' + cells(lines[i]).map((c) => '<td>' + inline(c) + '</td>').join('') + '</tr>';
+        out.push(html + '</tbody></table></div>');
+        continue;
+      }
+      if (bullet.test(line) || numbered.test(line)) {
+        const ordered = !bullet.test(line);
+        const items = [];
+        let tasks = false;
+        for (; i < lines.length; i++) {
+          const m = (ordered ? numbered : bullet).exec(lines[i]);
+          if (!m) break;
+          const t = /^\[( |x|X)\]\s+(.*)$/.exec(m[1]);
+          if (t) { tasks = true; items.push('<li>' + (t[1] === ' ' ? '☐ ' : '☑ ') + inline(t[2]) + '</li>'); } else items.push('<li>' + inline(m[1]) + '</li>');
+        }
+        const tag = ordered ? 'ol' : 'ul';
+        out.push('<' + tag + (tasks ? ' class="tasks"' : '') + '>' + items.join('') + '</' + tag + '>');
+        continue;
+      }
+      const para = [];
+      for (; i < lines.length && lines[i].trim() && (!para.length || !startsBlock(lines[i], lines[i + 1])); i++) para.push(lines[i].trim());
+      out.push('<p>' + inline(para.join(' ')) + '</p>');
+    }
+    return out.join('');
+  }
+
+  // Detail dialog
+  let byId = {};
+  let openId = null;
+  const dlg = () => el('detail');
+  const cardOf = (id) => Array.from(document.querySelectorAll('.card')).find((c) => c.dataset.id === id);
+
+  function fillDetail(t) {
+    const meta = [['Status', t.status.replace(/_/g, ' ')]];
+    if (t.needs) meta.push(['Needs', t.needs]);
+    if (t.waitingOn) meta.push(['Waiting on', isDate(t.waitingOn) ? fmtDate(t.waitingOn) + ' (' + t.waitingOn + ')' : t.waitingOn]);
+    if (t.dependsOn.length) meta.push(['Depends on', t.dependsOn.join(', ')]);
+    el('dHead').innerHTML = '<div><div class="top"><span class="id">' + esc(t.id) + '</span><span class="chip ' + esc(t.priority) + '">' + esc(t.priority) + '</span></div><h2 id="dTitle">' + esc(t.title) + '</h2></div>'
+      + '<button type="button" class="d-close" id="dClose">Close</button>';
+    el('dMeta').innerHTML = meta.map(([k, v]) => '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>').join('');
+    el('dBody').innerHTML = markdown(t.body);
+  }
+
+  function openTicket(id) {
+    const t = byId[id];
+    if (!t || openId === id) return;
+    openId = id;
+    fillDetail(t);
+    el('dScroll').scrollTop = 0;
+    if (!dlg().open) dlg().showModal();
+    if (location.hash.slice(1) !== id) location.hash = id;
+  }
+
+  function syncHash() {
+    const id = decodeURIComponent(location.hash.slice(1));
+    if (id && byId[id]) openTicket(id);
+    else if (!id && dlg().open) dlg().close();
   }
 
   function renderSummary(all) {
@@ -274,23 +398,35 @@ function client(columns) {
   function render() {
     const all = [];
     data.lanes.forEach((lane) => columns.forEach(([c]) => lane.columns[c].forEach((t) => all.push({ col: c, t }))));
+    byId = {};
+    all.forEach((x) => { byId[x.t.id] = x.t; });
     renderSummary(all);
     renderTimeline(all);
     renderLanes();
     renderClosed();
     apply();
+    if (openId && byId[openId]) {
+      const scroller = el('dScroll');
+      const top = scroller.scrollTop;
+      fillDetail(byId[openId]);
+      scroller.scrollTop = top;
+    }
   }
 
   async function refresh() {
     try {
       const response = await fetch('/api/board', { cache: 'no-store' });
       if (!response.ok) throw new Error('The task files could not be read.');
-      data = await response.json();
+      const text = await response.text();
+      const changed = text !== lastText;
+      lastText = text;
+      data = JSON.parse(text);
       // The board still renders a broken backlog, but says what check:backlog will reject.
       el('error').hidden = !data.problems.length;
       el('error').textContent = data.problems.length ? 'check:backlog would fail: ' + data.problems.join(' ') : '';
       el('live').textContent = 'Updated ' + new Date().toLocaleTimeString();
-      render();
+      if (changed) render();
+      syncHash();
     } catch (caught) {
       el('error').hidden = false;
       el('error').textContent = caught.message;
@@ -305,6 +441,20 @@ function client(columns) {
     try { localStorage.setItem('board-mode', mode); } catch (err) { /* storage unavailable */ }
     apply();
   });
+  const lanesEl = el('lanes');
+  lanesEl.addEventListener('click', (e) => { const c = e.target.closest('.card'); if (c) openTicket(c.dataset.id); });
+  lanesEl.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('card')) { e.preventDefault(); openTicket(e.target.dataset.id); }
+  });
+  dlg().addEventListener('click', (e) => { if (e.target === dlg() || e.target.id === 'dClose') dlg().close(); });
+  dlg().addEventListener('close', () => {
+    const id = openId;
+    openId = null;
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    const c = id && cardOf(id);
+    if (c) c.focus();
+  });
+  window.addEventListener('hashchange', syncHash);
   el('q').addEventListener('input', apply);
   el('showPark').addEventListener('change', (e) => { showPark = e.target.checked; apply(); });
   refresh();
@@ -358,6 +508,10 @@ ${css}</style>
     <p class="note">Done and retired tickets stay in backlog/tasks/ as the record.</p>
   </section>
 </div>
+<dialog class="detail" id="detail" aria-labelledby="dTitle">
+  <div class="d-head" id="dHead"></div>
+  <div class="d-scroll" id="dScroll"><dl class="d-meta" id="dMeta"></dl><div class="md" id="dBody"></div></div>
+</dialog>
 <script>(${client})(${JSON.stringify(COLUMNS.map(([c, label]) => [c, label]))});</script>
 </body>
 </html>`;
