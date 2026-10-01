@@ -19,6 +19,9 @@
  *   build, so no build id is sent; `stack[0]` is the fingerprint counts use;
  * - `step`, a label the call site wrote (`thumbnail`, `export`), an identifier;
  * - `tool`, the page's path (`/sign/`, `/he/sign/`), never a query or fragment;
+ * - `actions`, the last few things the person did in the tool (`add_files`, `clear_all`), names off
+ *   the closed list below, oldest first, at most `MAX_ACTIONS`. Names only: no file name, count,
+ *   position or text (DEBT-31);
  * - `installed` (display-mode standalone), `sw` (a service worker controls the
  *   page), and `age`, how long the page had been open, bucketed. No online
  *   flag: nothing is sent offline, so it would always say true.
@@ -57,8 +60,22 @@ export const PAGE_AGES = ['under_10s', 'under_1m', 'under_10m', 'over_10m'] as c
 export type PageAge = (typeof PAGE_AGES)[number];
 
 export const MAX_FRAMES = 8;
+export const MAX_ACTIONS = 10;
+
+/**
+ * What a person can do in a tool, closed on purpose: a name here is the only way an action reaches
+ * a report. Generic across tools; a tool maps its handlers to the nearest name.
+ */
+export const ACTIONS = [
+  'add_files', 'replace_file', 'remove_file', 'clear_all', 'open_recent',
+  'undo', 'redo', 'reorder', 'sort', 'rotate', 'hide_page', 'delete_page', 'select_pages',
+  'change_setting', 'arm_tool', 'place_mark', 'move_mark', 'resize_mark', 'edit_mark', 'delete_mark',
+  'draw', 'detect_fields', 'fill_field', 'zoom', 'fullscreen', 'export', 'download', 'share',
+] as const;
+export type ActionName = (typeof ACTIONS)[number];
 
 export type ErrorReport = Readonly<{
+  actions: readonly ActionName[];
   area: ErrorArea;
   name: string;
   stack: readonly string[];
@@ -70,14 +87,15 @@ export type ErrorReport = Readonly<{
 }>;
 
 /** The page facts a report carries, read once per report in the browser. */
-export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age'>;
+export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' | 'actions'>;
 
 /** The largest body the endpoint accepts. The largest valid report is about 1.5KB. */
 export const MAX_REPORT_BYTES = 2048;
 
-const KEYS = ['age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];
+const KEYS = ['actions', 'age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];
 const AREAS: ReadonlySet<string> = new Set(ERROR_AREAS);
 const AGES: ReadonlySet<string> = new Set(PAGE_AGES);
+const ACTION_NAMES: ReadonlySet<string> = new Set(ACTIONS);
 const NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 const FRAME = /^[A-Za-z0-9_.-]{1,120}\.m?js:\d{1,7}:\d{1,7}$/;
 const STEP = /^[a-z][a-z0-9_]{0,31}$/;
@@ -85,7 +103,7 @@ const STEP = /^[a-z][a-z0-9_]{0,31}$/;
 const TOOL = /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/;
 
 /**
- * Accepts exactly these eight fields, each in its own shape, and nothing else.
+ * Accepts exactly these nine fields, each in its own shape, and nothing else.
  * Run on both sides: the browser never sends what this rejects, and the
  * endpoint never stores it.
  */
@@ -93,7 +111,7 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const keys = Object.keys(value).sort();
   if (keys.length !== KEYS.length || keys.some((key, i) => key !== KEYS[i])) return null;
-  const { area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
+  const { actions, area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
   if (typeof area !== 'string' || !AREAS.has(area)) return null;
   if (typeof name !== 'string' || !NAME.test(name)) return null;
   if (!Array.isArray(stack) || stack.length < 1 || stack.length > MAX_FRAMES) return null;
@@ -102,7 +120,10 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof tool !== 'string' || !TOOL.test(tool)) return null;
   if (typeof installed !== 'boolean' || typeof sw !== 'boolean') return null;
   if (typeof age !== 'string' || !AGES.has(age)) return null;
+  if (!Array.isArray(actions) || actions.length > MAX_ACTIONS) return null;
+  if (!actions.every((action) => typeof action === 'string' && ACTION_NAMES.has(action))) return null;
   return Object.freeze({
+    actions: Object.freeze([...actions] as ActionName[]),
     area: area as ErrorArea,
     name,
     stack: Object.freeze([...stack] as string[]),

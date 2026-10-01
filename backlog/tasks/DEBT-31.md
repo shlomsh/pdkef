@@ -1,10 +1,10 @@
 ---
 id: "DEBT-31"
 title: "Error reports carry the last few UI actions, so a crash's trigger is read, not inferred"
-status: "open"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
+horizon: "now"
 depends_on: ["DEBT-27"]
 needs: "The privacy-page sentence for action names in error reports"
 ---
