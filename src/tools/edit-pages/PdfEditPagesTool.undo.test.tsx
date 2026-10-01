@@ -1,7 +1,8 @@
 // @ts-nocheck - test-only, mirrors PdfEditPagesTool.test.tsx's untyped style
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import Sortable from 'sortablejs';
 import PdfEditPagesTool from './PdfEditPagesTool.tsx';
 import pageGridStyles from '../../shell/PageGrid.module.css';
@@ -42,6 +43,10 @@ vi.mock('./editPages.js', () => {
 
 describe('PdfEditPagesTool undo/redo', () => {
   let container;
+
+  beforeEach(() => {
+    resetActionTrailForTests();
+  });
 
   afterEach(() => {
     if (container) {
@@ -116,6 +121,20 @@ describe('PdfEditPagesTool undo/redo', () => {
     expect(thumbTransform(1)).toContain('rotate(90deg)');
     expect(toolbarButton('Undo').disabled).toBe(false);
     expect(toolbarButton('Redo').disabled).toBe(true);
+  });
+
+  it('records add, rotate, undo and redo in order (DEBT-31)', async () => {
+    await loadPdf();
+    await act(async () => {
+      rotateButton(1, 'right').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      toolbarButton('Undo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      toolbarButton('Redo').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(recentActions()).toEqual(['add_files', 'rotate', 'undo', 'redo']);
   });
 
   it('a removal toggle round-trips through undo and redo', async () => {
