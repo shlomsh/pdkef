@@ -83,50 +83,90 @@ test('top-aligns each tool hero icon with the first line of its title', async ({
 // draft-hint is intentionally insufficient: it is also used by Merge and can
 // be stale, so it must keep the ordinary fresh-visit hero rather than produce
 // a collapse followed by an inverse shift when the hint is rejected.
+//
+// The live island owns these three <html> attributes too: on a visit with no
+// saved draft its mount-time restore check ends in `clearDraftHintAttribute()`
+// (useDraftPersistence.js), which removes `data-draft-hint` and
+// `data-editor-restore` some 50-300ms after load, from an IndexedDB callback.
+// A test that set an attribute in one `page.evaluate` and measured in the next
+// lost that race now and then (DEBT-22: ~1 in 15 locally, intermittently in
+// CI), reading the fresh hero where it expected the restored one. So every step
+// below sets the complete marker state it needs AND measures inside a single
+// `page.evaluate`: reading layout forces a synchronous style recalc, and no
+// app task can run in the middle of one evaluate, so the measurement can only
+// ever see the markers this step wrote. Nothing is awaited or retried; the
+// app's late write is simply outrun by construction. (No transition or
+// animation is declared on the hero's measured properties, so the synchronous
+// read sees settled values.)
 test('uses the hydrated Sign/Redact density geometry for a validated first-paint restore only', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/sign/?next=0');
 
-  const measureHero = () => page.evaluate(() => {
-    const hero = document.querySelector('.tool-hero');
-    const title = hero?.querySelector('h1');
-    const icon = hero?.querySelector('.tool-hero-icon');
-    const subhead = hero?.querySelector('[data-hero-sub]');
-    if (!hero || !title || !icon || !subhead) return null;
-    return {
-      height: hero.getBoundingClientRect().height,
-      titleSize: getComputedStyle(title).fontSize,
-      iconSize: icon.getBoundingClientRect().width,
-      paddingBottom: getComputedStyle(hero).paddingBottom,
-      subheadDisplay: getComputedStyle(subhead).display,
-    };
-  });
+  const applyAndMeasureHero = ({ draftHint, editorRestore, viewDensityControl }) => page.evaluate(
+    ({ draftHint, editorRestore, viewDensityControl }) => {
+      const root = document.documentElement;
+      root.setAttribute('data-view-density', 'condensed');
+      for (const [name, on] of [['data-draft-hint', draftHint], ['data-editor-restore', editorRestore]]) {
+        if (on) root.setAttribute(name, '1');
+        else root.removeAttribute(name);
+      }
+      if (viewDensityControl && !document.querySelector('[data-test-view-density]')) {
+        const control = document.createElement('div');
+        control.setAttribute('aria-label', 'View density');
+        control.dataset.testViewDensity = '1';
+        document.body.appendChild(control);
+      }
 
-  await page.evaluate(() => {
-    document.documentElement.setAttribute('data-view-density', 'condensed');
-    document.documentElement.removeAttribute('data-draft-hint');
-    document.documentElement.removeAttribute('data-editor-restore');
-  });
-  const fresh = await measureHero();
+      const hero = document.querySelector('.tool-hero');
+      const title = hero?.querySelector('h1');
+      const icon = hero?.querySelector('.tool-hero-icon');
+      const subhead = hero?.querySelector('[data-hero-sub]');
+      if (!hero || !title || !icon || !subhead) return { geometry: null };
+      const geometry = {
+        height: hero.getBoundingClientRect().height,
+        titleSize: getComputedStyle(title).fontSize,
+        iconSize: icon.getBoundingClientRect().width,
+        paddingBottom: getComputedStyle(hero).paddingBottom,
+        subheadDisplay: getComputedStyle(subhead).display,
+      };
+      // Read back in the same task as the measurement: this step's own
+      // preconditions, so a failure can never be "the marker was not there".
+      return {
+        geometry,
+        markers: {
+          density: root.getAttribute('data-view-density'),
+          draftHint: root.hasAttribute('data-draft-hint'),
+          editorRestore: root.hasAttribute('data-editor-restore'),
+          control: !!document.querySelector('[aria-label="View density"]'),
+        },
+      };
+    },
+    { draftHint, editorRestore, viewDensityControl },
+  );
+
+  const measureStep = async (state) => {
+    const { geometry, markers } = await applyAndMeasureHero(state);
+    expect(geometry).not.toBeNull();
+    expect(markers).toEqual({
+      density: 'condensed',
+      draftHint: !!state.draftHint,
+      editorRestore: !!state.editorRestore,
+      control: !!state.viewDensityControl,
+    });
+    return geometry;
+  };
+
+  const fresh = await measureStep({});
 
   // A stale generic hint is not proof that this is the Sign/Redact editor
   // restore path. In particular, it cannot substitute for the marker before
   // ViewControl has mounted.
-  await page.evaluate(() => document.documentElement.setAttribute('data-draft-hint', '1'));
-  const staleHint = await measureHero();
+  const staleHint = await measureStep({ draftHint: true });
   expect(staleHint).toEqual(fresh);
 
-  await page.evaluate(() => document.documentElement.setAttribute('data-editor-restore', '1'));
-  const firstPaintRestore = await measureHero();
+  const firstPaintRestore = await measureStep({ draftHint: true, editorRestore: true });
 
-  await page.evaluate(() => {
-    document.documentElement.removeAttribute('data-editor-restore');
-    const control = document.createElement('div');
-    control.setAttribute('aria-label', 'View density');
-    control.dataset.testViewDensity = '1';
-    document.body.appendChild(control);
-  });
-  const hydratedControl = await measureHero();
+  const hydratedControl = await measureStep({ draftHint: true, viewDensityControl: true });
 
   expect(firstPaintRestore).not.toEqual(fresh);
   expect(firstPaintRestore).toEqual(hydratedControl);
