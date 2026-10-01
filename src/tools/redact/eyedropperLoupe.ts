@@ -63,8 +63,8 @@ export interface Loupe {
 }
 
 /** A magnifier over the page canvas: built once, moved by writing the DOM only. */
-export function createLoupe(host: Element): Loupe {
-  const doc = host.ownerDocument;
+export function createLoupe(hostOf: () => Element): Loupe {
+  const doc = hostOf().ownerDocument;
   const el = doc.createElement('div');
   el.className = cls(styles.loupe);
   el.setAttribute('data-redact-eyedropper-loupe', '');
@@ -85,7 +85,7 @@ export function createLoupe(host: Element): Loupe {
   el.append(lens, grid, center, hex);
   el.style.display = 'none';
   el.style.setProperty('--cell', `${LOUPE_SIZE / LOUPE_PIXELS}px`);
-  host.appendChild(el);
+  hostOf().appendChild(el);
 
   let frame = 0;
   let pending: { canvas: HTMLCanvasElement; x: number; y: number; touch: boolean } | null = null;
@@ -96,6 +96,8 @@ export function createLoupe(host: Element): Loupe {
     pending = null;
     if (!p) return;
     const { canvas } = p;
+    // Full screen can start while the eyedropper is armed: follow the host.
+    if (el.parentNode !== hostOf()) hostOf().appendChild(el);
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const px = canvasPixelAt(rect, canvas.width, canvas.height, p.x, p.y);

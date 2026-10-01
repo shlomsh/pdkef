@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { overlayHost } from './overlayHost.ts';
 import { createLoupe } from './eyedropperLoupe.ts';
 import { boxPixelRect, medianColor, ringStrips, type PercentBox } from './pageColor.ts';
 
@@ -98,7 +99,7 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
   doneRef.current = onDone;
   useEffect(() => {
     if (!active) return undefined;
-    const loupe = createLoupe(document.fullscreenElement ?? document.body);
+    const loupe = createLoupe(overlayHost);
     document.documentElement.setAttribute('data-redact-eyedropping', '');
     const canvasOf = (surface: Element | null) => surface?.querySelector<HTMLCanvasElement>('canvas') ?? null;
     let tracked: { id: number; canvas: HTMLCanvasElement | null; x: number; y: number } | null = null;
