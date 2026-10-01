@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { holdUpdate, registerBeforeUpdateReload } from '../lib/appUpdate/updateHolds';
-import { decideRequest, isUpdateWaiting, shouldCheckForUpdate, startAppUpdates } from './appUpdate';
+import { decideRequest, isUpdateWaiting, shouldCheckForUpdate, shouldShowLine, startAppUpdates } from './appUpdate';
 
 type Listener = (event: any) => void;
 
@@ -25,13 +25,20 @@ class Emitter {
   emit(type: string) { (this.handlers.get(type) ?? []).forEach((l) => l({})); }
 }
 
-function makeWorker(ok = true) {
+// The waiting worker answers update-status from `status` (mutable) and
+// skip-waiting with `ok`; `messages` records only skip-waiting posts.
+function makeWorker(ok = true, status: { ready: boolean; windows: number } | 'silent' = { ready: true, windows: 2 }) {
   const worker: any = new Emitter();
   worker.state = 'installed';
   worker.messages = [] as any[];
+  worker.status = status;
   worker.postMessage = vi.fn((message: any, transfer: any[]) => {
+    if (message.type === 'pdkef:update-status') {
+      if (worker.status !== 'silent') transfer[0].postMessage({ ...worker.status });
+      return;
+    }
     worker.messages.push(message);
-    transfer[0].postMessage({ ok });
+    transfer[0].postMessage({ ok, windows: message.windows, ready: worker.status === 'silent' ? true : worker.status.ready });
   });
   return worker;
 }
@@ -50,6 +57,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
   sw.register = vi.fn(async () => reg);
   const doc: any = new Emitter();
   doc.visibilityState = 'visible';
+  const win: any = new Emitter();
   let n = 0;
   let clock = 1_000_000;
   const reload = vi.fn();
@@ -59,7 +67,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
     return { port1, port2 };
   };
   return {
-    line, reg, sw, doc, reload,
+    line, reg, sw, doc, win, reload,
     button: line.querySelector('button') as HTMLButtonElement,
     advanceClock: (ms: number) => { clock += ms; },
     start: () => startAppUpdates({
@@ -68,6 +76,7 @@ function makeTab(bus: Bus, opts: { controller?: boolean; waiting?: any } = {}) {
       createChannel: () => new FakeChannel(bus),
       reload,
       document: doc,
+      window: win,
       setTimeout: (fn, ms) => setTimeout(fn, ms),
       clearTimeout: (t) => clearTimeout(t as any),
       setInterval: (fn, ms) => setInterval(fn, ms),
@@ -98,6 +107,12 @@ describe('pure decisions', () => {
   it('shouldCheckForUpdate is true from 30 minutes', () => {
     expect(shouldCheckForUpdate(0, 29 * 60_000)).toBe(false);
     expect(shouldCheckForUpdate(0, 30 * 60_000)).toBe(true);
+  });
+  it('shouldShowLine needs a ready build and more than one window', () => {
+    expect(shouldShowLine({ ready: true, windows: 2 })).toBe(true);
+    expect(shouldShowLine({ ready: true, windows: 1 })).toBe(false);
+    expect(shouldShowLine({ ready: false, windows: 3 })).toBe(false);
+    expect(shouldShowLine({ ready: false, windows: 1 })).toBe(false);
   });
 });
 
@@ -131,7 +146,84 @@ describe('startAppUpdates', () => {
     installing.state = 'installed';
     tab.reg.waiting = makeWorker();
     installing.emit('statechange');
+    await settle();
     expect(tab.line.hidden).toBe(false);
+  });
+
+  it('a single tab never shows the line', async () => {
+    const tab = makeTab(new Bus(), { waiting: makeWorker(true, { ready: true, windows: 1 }) });
+    await tab.start();
+    expect(tab.line.hidden).toBe(true);
+  });
+
+  it('a build that is not ready never shows the line', async () => {
+    const tab = makeTab(new Bus(), { waiting: makeWorker(true, { ready: false, windows: 3 }) });
+    await tab.start();
+    expect(tab.line.hidden).toBe(true);
+  });
+
+  it('a status timeout hides the line', async () => {
+    const worker = makeWorker();
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    expect(tab.line.hidden).toBe(false);
+    worker.status = 'silent';
+    tab.doc.emit('visibilitychange');
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(tab.line.hidden).toBe(true);
+  });
+
+  it('drops from two windows to one on a tab-closed message and hides the line', async () => {
+    const bus = new Bus();
+    const worker = makeWorker();
+    const tab = makeTab(bus, { waiting: worker });
+    await tab.start();
+    expect(tab.line.hidden).toBe(false);
+    worker.status = { ready: true, windows: 1 };
+    new FakeChannel(bus).postMessage({ type: 'tab-closed' });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(tab.line.hidden).toBe(true);
+    expect(tab.line.dataset.appUpdateState).toBe('ready');
+  });
+
+  it('pagehide tells the other tabs this one closed', async () => {
+    const bus = new Bus();
+    const a = makeTab(bus, { waiting: makeWorker() });
+    const bWorker = makeWorker();
+    const b = makeTab(bus, { waiting: bWorker });
+    await a.start();
+    await b.start();
+    expect(b.line.hidden).toBe(false);
+    bWorker.status = { ready: true, windows: 1 };
+    a.win.emit('pagehide');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(b.line.hidden).toBe(true);
+  });
+
+  it('going offline re-checks and hides when the build is no longer ready; online brings it back', async () => {
+    const worker = makeWorker();
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    expect(tab.line.hidden).toBe(false);
+    worker.status = { ready: false, windows: 2 };
+    tab.win.emit('offline');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(tab.line.hidden).toBe(true);
+    worker.status = { ready: true, windows: 2 };
+    tab.win.emit('online');
+    await vi.advanceTimersByTimeAsync(0);
+    expect(tab.line.hidden).toBe(false);
+  });
+
+  it('a skip-waiting reply with ready:false hides the line instead of blocking', async () => {
+    const worker = makeWorker(false);
+    const tab = makeTab(new Bus(), { waiting: worker });
+    await tab.start();
+    worker.status = { ready: false, windows: 2 };
+    tab.button.click();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(tab.line.hidden).toBe(true);
+    expect(worker.messages).toHaveLength(1);
   });
 
   it('click with no holds posts skip-waiting with windows = answering tabs + 1', async () => {
@@ -158,7 +250,7 @@ describe('startAppUpdates', () => {
       // The module-scoped registry is shared by both fake tabs, so both answer held.
       a.button.click();
       await vi.advanceTimersByTimeAsync(500);
-      expect(worker.postMessage).not.toHaveBeenCalled();
+      expect(worker.messages).toEqual([]);
       expect(a.line.dataset.appUpdateState).toBe('waiting');
       expect(b.line.dataset.appUpdateState).toBe('waiting');
     } finally {
@@ -167,7 +259,7 @@ describe('startAppUpdates', () => {
     await vi.advanceTimersByTimeAsync(500);
     // The finished export's result may still be waiting for its Download, so
     // the person clicks again; nothing reloads on its own.
-    expect(worker.postMessage).not.toHaveBeenCalled();
+    expect(worker.messages).toEqual([]);
     expect(a.line.dataset.appUpdateState).toBe('ready');
     expect(b.line.dataset.appUpdateState).toBe('ready');
   });
@@ -228,6 +320,7 @@ describe('startAppUpdates', () => {
     installing.state = 'installed';
     tab.reg.waiting = makeWorker();
     installing.emit('statechange');
+    await settle();
     expect(tab.line.hidden).toBe(false);
   });
 
@@ -237,7 +330,7 @@ describe('startAppUpdates', () => {
     await tab.start();
     tab.button.click();
     await vi.advanceTimersByTimeAsync(10_000);
-    expect(worker.postMessage).toHaveBeenCalledTimes(3);
+    expect(worker.messages).toHaveLength(3);
     expect(tab.line.dataset.appUpdateState).toBe('blocked');
     expect(tab.button.disabled).toBe(false);
   });
