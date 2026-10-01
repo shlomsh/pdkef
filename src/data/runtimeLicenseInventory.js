@@ -80,7 +80,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "@vercel/functions",
-    "version": "3.9.7",
+    "version": "3.9.9",
     "license": "Apache-2.0",
     "url": "https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package"
   },
@@ -140,7 +140,7 @@ export const RUNTIME_LICENSE_PACKAGES = [
   },
   {
     "name": "lucide-preact",
-    "version": "1.42.0",
+    "version": "1.49.0",
     "license": "ISC",
     "url": "https://lucide.dev"
   },
