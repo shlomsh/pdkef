@@ -112,4 +112,4 @@ From a fresh review of the first build of this contract:
 
 | Version | Date | Why |
 | --- | --- | --- |
-| 1 | 2026-10-02 | Shlomi's call, the first bump. `scripts/sw.test.mjs` now reads the shipped version from `public/sw.js`, so a bump needs no test edit. |
+| 1 | 2026-10-02 | No specific bug: Shlomi's call to move every open tab onto one common, current, stable build, so later forces start from code that can answer them. The unit tests and `e2e/offline/app-update.spec.js` now read the shipped version from `public/sw.js`, so a bump needs no test edit. |
