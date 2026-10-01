@@ -1,6 +1,6 @@
 ---
 id: "SEO-17"
-title: "Read 2026-10-08 · One content page on portal size limits, instead of three doorway pages"
+title: "Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages"
 status: "blocked"
 priority: "P2"
 epic: "seo-awaiting-read"
@@ -9,7 +9,7 @@ depends_on: ["SEO-05", "SEO-06"]
 legacy_state: "Open"
 ---
 
-# SEO-17 · Read 2026-10-08 · One content page on portal size limits, instead of three doorway pages
+# SEO-17 · Read 2026-11-06 · One content page on portal size limits, instead of three doorway pages
 
 *Re-filed 2026-09-12* from `search-acquisition` into `seo-awaiting-read`, read date 2026-10-08: live; first impressions and position.
 
@@ -121,3 +121,7 @@ the same portal-limit intent.
 *2026-09-17:* still not indexed, per Shlomi's Coverage -> Valid export. It is the one URL requested on
 09-11/09-12 that has not landed; every other requested URL was crawled within a day. The 09-11 request
 hit the quota (above), so the effective request date is 09-12, and the eight-week read stays 2026-11-06.
+
+## 2026-10-01 board cleanup
+
+- Title date corrected from 2026-10-08 to 2026-11-06 to match the body (the eight-week read). The 2026-10-08 refresh is a first look at crawl state only.

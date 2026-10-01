@@ -1,7 +1,7 @@
 ---
 id: "SNG-05"
 title: "The next-generation phone surface behind a flag: contextual bar, app-owned zoom, the chosen way through the page, and the finish"
-status: "open"
+status: "retired"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -40,3 +40,7 @@ The normative rules are `docs/sign-next-gen-guidelines.md`:
 - [ ] All three document classes of §5.6 work: a fillable PDF, a vector flat form, and a scan with 0 fields.
   - On the scan, tap to write snaps to the line (SNG-09), and the finish shows every page to check.
   - No copy anywhere claims the form is complete.
+
+## Closed 2026-10-01
+
+The phone surface and app-owned zoom were dropped on 2026-09-26 (SNG-02, SNG-03 and SNG-16 retired); zoom stays native. Two acceptance items carried to SNG-06: the section 1 regressions each have a test, and every mark is one undo away.

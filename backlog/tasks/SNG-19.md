@@ -1,7 +1,7 @@
 ---
 id: "SNG-19"
 title: "Fill mode becomes Sign's default; the old editor moves behind ?next=0"
-status: "in_progress"
+status: "done"
 priority: "P1"
 epic: "sign-next-gen"
 phase: "near-term"
@@ -23,3 +23,7 @@ the default." The flip waits for the iOS Simulator gate (SNG-07) to pass on this
   now covers them.
 - [ ] The full unit and e2e suites and `check:push` are green locally, then the full CI run on a PR to
   `main` is green before Shlomi pushes.
+
+## Closed 2026-10-01
+
+Shipped in fc4944b and ef503b2; `fillMode.ts` treats anything but `?next=0` as fill mode.

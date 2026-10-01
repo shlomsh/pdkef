@@ -1,7 +1,7 @@
 ---
 id: "SEO-26"
 title: "Say what PDkef does not do, and why, on a page that already exists"
-status: "open"
+status: "retired"
 priority: "P3"
 epic: "english-base"
 phase: "later"
@@ -43,3 +43,7 @@ saying so fairly is more persuasive than implying they are careless.
 - Each of the five is named with its one-sentence reason, and each reason is technically accurate.
 - Nothing in it disparages tools that do offer these features.
 - Any FAQ addition is mirrored into `<SeoSchema>`; `npm run test:seo` passes.
+
+## Closed 2026-10-01
+
+A "what PDkef does not do" section contradicts the CLAUDE.md voice rule (no limits or caveats sections).

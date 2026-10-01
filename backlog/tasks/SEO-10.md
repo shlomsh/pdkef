@@ -1,7 +1,7 @@
 ---
 id: "SEO-10"
 title: "Read 2026-10-08 · Merge answers the no-limit question in the FAQ, where nobody reading the SERP can see it"
-status: "blocked"
+status: "retired"
 priority: "P2"
 epic: "seo-awaiting-read"
 phase: "near-term"
@@ -57,3 +57,7 @@ Shipped; nothing left to build. **No indexing request, deliberately**: `/merge/`
 the shared Search Console pull the findings doc schedules for **2026-10-08** (section 1 names the
 check for this ticket). Marked `blocked` rather than `open` so the board shows only work that can move
 today; close it, or reopen it with a finding, from that refresh.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the `/merge/` no-limit read and its crawl-date control moves there, to be done at the 2026-10-08 refresh.

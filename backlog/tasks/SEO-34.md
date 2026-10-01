@@ -1,7 +1,7 @@
 ---
 id: "SEO-34"
 title: "Read 2026-10-08 · The home page has the site's best CTR and no query to rank for: target pdf tools"
-status: "blocked"
+status: "retired"
 priority: "P1"
 epic: "seo-awaiting-read"
 phase: "near-term"
@@ -91,3 +91,7 @@ review. Status stays `published`, reviewer/reviewedAt untouched.
 Indexing request and CTR/position read at the 2026-10-08 refresh are still open, per Acceptance.
 
 *2026-09-12:* deployed; indexing requested for `/` in Search Console the same day. Hebrew edition re-reviewed and approved by Shlomi on the deployed site. Nothing left but the 2026-10-08 read.
+
+## Closed 2026-10-01
+
+Merged into SEO-39: the `pdf tools` read on the home page moves there, to be done at the 2026-10-08 refresh.

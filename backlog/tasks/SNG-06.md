@@ -34,3 +34,9 @@ default everywhere (SNG-19), so desktop and iPad need their own checks.
 - [ ] Retire the old editor: after fill mode has been the default for a period with no regressions
   reported, delete the `?next=0` paths and MOBI-16's quick field navigation (Previous/Next), then
   update `.claude/rules/editor.md` and `docs/sign-fill-mode.md` in the same change.
+- [ ] The three regressions in `docs/sign-next-gen.md` section 1 each have a test (carried from SNG-05).
+- [ ] Every mark is one undo away (carried from SNG-05).
+
+## 2026-10-01 board cleanup
+
+- Stays open. Retiring `?next=0` waits for a soak period after the parity work. Two acceptance items were carried in from SNG-05.
