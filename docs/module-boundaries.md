@@ -31,7 +31,7 @@ src/tools/<t>/   the island, its components, its lib modules, its unit tests, it
 src/lib/         the genuinely shared modules only (about eight today)
 src/site-lib/    site-only/build-only helpers with no tool, shell, editor or lib consumer
                  (DEBT-05): contentMarkup, markdownRender, gitLastModified, cspHash,
-                 localeOfflinePacks, acceptNegotiation                (classified `site`)
+                 inlineStyles, localeOfflinePacks, acceptNegotiation                (classified `site`)
 site             src/pages, src/content, src/data, src/i18n, src/layouts, src/styles and the
                  .astro components, as today
 ```
