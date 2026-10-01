@@ -17,6 +17,7 @@ import type { GestureControllerOptions } from '../../lib/gestures/controller.ts'
 import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
+import { loadDraft } from '../../lib/drafts/draftStore.js';
 import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
@@ -47,6 +48,12 @@ async function settleUntil(description: string, ready: () => boolean, limit = 50
   }
   if (!ready()) throw new Error(`Timed out waiting for ${description}`);
 }
+
+// RED-40: restored-draft tests hand loadDraft a record; every other test gets the real one.
+vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.js')>();
+  return { ...actual, loadDraft: vi.fn(actual.loadDraft) };
+});
 
 const { gestureCommitSpies } = vi.hoisted(() => ({ gestureCommitSpies: [] as Mock[] }));
 
@@ -199,6 +206,66 @@ describe('PdfRedactTool UI flow', () => {
     } finally {
       localStorage.clear();
     }
+  });
+
+  describe('RED-40: whiteout colour and blur strength are per-document style', () => {
+    // A restored document keeps what its owner chose; a fresh one starts from the app-wide style.
+    async function mountRestored(carried: Record<string, unknown>): Promise<HTMLElement> {
+      vi.mocked(loadDraft).mockResolvedValueOnce({
+        fileName: 'restored.pdf',
+        fileType: 'application/pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+        elements: [],
+        extra: { actionHistory: [], carried },
+      } as never);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      await settleUntil('the restored draft to open', () => container.querySelector('.redact-draw-area') !== null);
+      const drawArea = query<HTMLElement>(container, '.redact-draw-area');
+      drawArea.getBoundingClientRect = () => ({
+        left: 0, top: 0, width: 500, height: 1000, right: 500, bottom: 1000, x: 0, y: 0, toJSON: () => {},
+      });
+      return drawArea;
+    }
+
+    afterEach(() => { localStorage.clear(); });
+
+    it('a restored document draws whiteout in its own colour, not the app-wide one', async () => {
+      rememberAppStyle({ whiteoutColor: '#00ff00' });
+      const drawArea = await mountRestored({ whiteoutColor: '#ff0000' });
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      expect(surface.style.backgroundColor).toBe('rgb(255, 0, 0)');
+    });
+
+    it('a fresh document draws whiteout in the app-wide colour', async () => {
+      rememberAppStyle({ whiteoutColor: '#00ff00' });
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const surface = query<HTMLElement>(container, '.redact-surface--whiteout');
+      expect(surface.style.backgroundColor).toBe('rgb(0, 255, 0)');
+    });
+
+    it('a restored document draws blur at its own strength, not the app-wide one', async () => {
+      rememberAppStyle({ blurStrength: 0.6 });
+      const drawArea = await mountRestored({ blurStrength: 0.2 });
+      await armTool('Blur');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const layer = query<HTMLElement>(container, '.redact-surface__blur');
+      expect(layer.style.backdropFilter).toContain('blur(calc(0.2 * 100cqh))');
+    });
+
+    it('a fresh document draws blur at the app-wide strength', async () => {
+      rememberAppStyle({ blurStrength: 0.6 });
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Blur');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      const layer = query<HTMLElement>(container, '.redact-surface__blur');
+      expect(layer.style.backdropFilter).toContain('blur(calc(0.6 * 100cqh))');
+    });
   });
 
   it('keeps the redaction editor open after downloading', async () => {
