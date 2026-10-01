@@ -4,6 +4,7 @@ import { holdUpdate, registerBeforeUpdateReload } from '../lib/appUpdate/updateH
 import {
   BUSY_QUERY,
   CHECK_EVERY_MS,
+  CRITICAL_ABANDON_MS,
   CRITICAL_CHECK,
   CRITICAL_PAGE_CAP_MS,
   CRITICAL_UPDATE,
@@ -682,6 +683,56 @@ describe('forced update in the tab', () => {
     } finally {
       unregister();
     }
+  });
+
+  it('abandons a force with no controllerchange, and MEM-10 runs again', async () => {
+    const tab = makeTab(new Bus(), { waiting: makeWorker({ ready: true, busy: 1 }) });
+    await tab.start();
+    sendCritical(tab);
+    await settle();
+    expect(tab.line.dataset.appUpdateState).toBe('critical');
+    await vi.advanceTimersByTimeAsync(CRITICAL_ABANDON_MS);
+    await settle();
+    expect(tab.line.dataset.appUpdateState).toBe('waiting');
+    expect(tab.line.hidden).toBe(false);
+  });
+
+  it('a new ask after an abandon flushes again and waits for an export', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const flush = vi.fn();
+    const unregister = registerBeforeUpdateReload(flush);
+    try {
+      sendCritical(tab);
+      await settle();
+      await vi.advanceTimersByTimeAsync(CRITICAL_ABANDON_MS);
+      await settle();
+      const release = hold();
+      const reply = sendCritical(tab);
+      await settle();
+      expect(flush).toHaveBeenCalledTimes(2);
+      expect(reply).not.toHaveBeenCalled();
+      release();
+      await settle();
+      expect(reply.mock.calls).toEqual([[{ ready: true }]]);
+    } finally {
+      unregister();
+    }
+  });
+
+  it('before the abandon, a second ask shares the first reply', async () => {
+    const tab = makeTab(new Bus());
+    await tab.start();
+    const release = hold();
+    const first = sendCritical(tab);
+    await vi.advanceTimersByTimeAsync(CRITICAL_PAGE_CAP_MS - 1);
+    const second = sendCritical(tab);
+    await settle();
+    expect(second).not.toHaveBeenCalled();
+    release();
+    await settle();
+    expect(first).toHaveBeenCalledTimes(1);
+    expect(second).toHaveBeenCalledTimes(1);
   });
 
   it('shows even after a dismissal, and later refreshes leave it alone', async () => {

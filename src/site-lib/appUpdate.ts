@@ -46,6 +46,8 @@ export const RECHECK_SHOWN_MS = 5000;
 export const REFRESH_EVERY_MS = 60 * 1000;
 /** MEM-13: the most a forced update waits in this tab for an export to finish. */
 export const CRITICAL_PAGE_CAP_MS = 60_000;
+/** MEM-13: a force that no controllerchange followed is dropped after this. */
+export const CRITICAL_ABANDON_MS = 90_000;
 /** MEM-13: a tab coming back to the foreground asks for a new build at most this often. */
 export const VISIBLE_CHECK_MIN_MS = 60 * 1000;
 export const CRITICAL_UPDATE = 'pdkef:critical-update';
@@ -178,6 +180,7 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   // variant, and the reload no longer waits for a file merely open here.
   let forced = false;
   let forcing: Promise<{ ready: true }> | null = null;
+  let abandonTimer: unknown = null;
   let lastCheck = deps.now();
 
   const post = (message: UpdateMessage) => channel?.postMessage(message);
@@ -226,6 +229,17 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
       // Shown even after a dismissal: the reload is on its way.
       line.hidden = false;
     }
+    if (!forcing) {
+      // The worker may give up (its own cap) and never claim; the force must
+      // not stay sticky, or a later ask would be answered with no new wait.
+      abandonTimer = deps.setTimeout(() => {
+        abandonTimer = null;
+        if (reloading) return;
+        forced = false;
+        forcing = null;
+        void refreshLine();
+      }, CRITICAL_ABANDON_MS);
+    }
     forcing ??= respondToCriticalUpdate({
       flushDrafts: () => flushBeforeUpdateReload(),
       exportInFlight: isExportInFlight,
@@ -257,6 +271,8 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
     }
     if (reloading) return;
     reloading = true;
+    if (abandonTimer !== null) deps.clearTimeout(abandonTimer);
+    abandonTimer = null;
     hideLine();
     // A force overrides a file merely open here; its export wait is over
     // (it answered ready, or the cap passed and the worker went ahead).

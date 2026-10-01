@@ -421,7 +421,9 @@ export function useMergeDraft({
 
   // A plan whose save failed (over MERGE_DRAFT_MAX_BYTES, no IndexedDB,
   // quota) lives only in memory, so it holds an update back (MEM-10).
-  useHoldUpdate(draftSaveState === 'error');
+  // 'open' holds ordinary updates but not a force: a failed save cannot
+  // resolve within a force's wait.
+  useHoldUpdate(draftSaveState === 'error', 'open');
 
   return { isRestoring, draftSaveState, clearDraft };
 }
