@@ -657,6 +657,168 @@ function tickBoxCell(cell, geometry, textItems) {
 }
 
 /**
+ * What a resolver may read, besides its cell: the page, the cell's own text and
+ * the column bookkeeping `detectCellCandidates` counts over every closed cell.
+ *
+ * @typedef {object} CellContext
+ * @property {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @property {TextPoints[]} textItemsPoints every text run on the page, in PDF points
+ * @property {TextPoints[]} ownText the runs whose bulk sits inside this cell
+ * @property {Map<string, number>} closedColumnCounts closed cells per column key
+ * @property {(cell: ClosedCell) => string} columnKey
+ * @property {(cell: ClosedCell) => boolean} isStackedRow
+ */
+
+/**
+ * One kind of closed cell's verdict. `undefined` means the cell is not this
+ * resolver's kind (ask the next one), `null` means it is and it is dropped, a
+ * cell means it is resolved. A drop must not fall through: a narrow cell that
+ * fails its tests would otherwise be re-read as a general field.
+ *
+ * @typedef {(cell: ClosedCell, context: CellContext) => ResolvedCell | null | undefined} CellResolver
+ */
+
+/**
+ * A floor-ticked band is one written line on its floor rule, so it is cut down
+ * to that line and captioned from below, which no other kind of cell reads.
+ *
+ * @type {CellResolver}
+ */
+export function resolveFloorTicked(cell, { geometry, textItemsPoints }) {
+  if (!cell.floorTicked) return undefined;
+  // The field is one written line standing on the floor rule, not the whole
+  // band above it (FORM-26 part A). Its height is what `writableArea`'s band
+  // carve gives the *row*, read once across the row's span because the row
+  // caption sits over one column only, falling back to the band's own top.
+  const rowLeft = /** @type {number} */ (cell.rowLeft);
+  const rowRight = /** @type {number} */ (cell.rowRight);
+  const row = {
+    left: rowLeft,
+    right: rowRight,
+    bottom: cell.bottom,
+    top: cell.top,
+    width: rowRight - rowLeft,
+    height: cell.top - cell.bottom,
+  };
+  const rowOwnText = textInsideCell(row, textItemsPoints);
+  const rowWritable = writableArea(row, rowOwnText);
+  const carvedTop = rowWritable && rowWritable.carve === 'band' ? rowWritable.area.top : cell.top;
+  const field = {
+    left: cell.left,
+    right: cell.right,
+    bottom: cell.bottom,
+    top: Math.min(cell.top, carvedTop),
+  };
+  // No caption below the floor means no field (FORM-26 part B): that keeps a
+  // stray tick pair, or a divider inside another field's comb, from being published.
+  const caption = captionBelowFloor(cell, textItemsPoints);
+  if (!caption) return null;
+  const label = caption.str.trim();
+  const fieldOwnText = textInsideCell(field, textItemsPoints);
+  return {
+    bounds: cellBox(geometry, field),
+    enclosureBounds: field.top === cell.top ? undefined : cellBox(geometry, cell),
+    writableBounds: undefined,
+    cell,
+    kind: classifyKind(fieldOwnText, label),
+    label,
+    ownTextCount: fieldOwnText.length,
+    coverage: 0,
+    closure: cell.closure,
+  };
+}
+
+/**
+ * A column too narrow for text tests to mean anything is a tick column when it
+ * repeats and holds nothing, so it is judged by its column, not by its text.
+ *
+ * @type {CellResolver}
+ */
+export function resolveNarrowTick(cell, { geometry, textItemsPoints, ownText, closedColumnCounts, columnKey }) {
+  if (!cell.narrow) return undefined;
+  // Admitted by its column, disqualified by any text at all.
+  if (ownText.length > 0) return null;
+  if ((closedColumnCounts.get(columnKey(cell)) || 0) < MIN_TICK_COLUMN_ROWS) return null;
+  return tickBoxCell(cell, geometry, textItemsPoints);
+}
+
+/**
+ * A lone square with no text is a tick box on its shape alone, so it skips the
+ * caption test a lone rectangle has to pass (FORM-10).
+ *
+ * @type {CellResolver}
+ */
+export function resolveLoneSquare(cell, { geometry, textItemsPoints, ownText }) {
+  if (!(cell.lone && cell.square && ownText.length === 0)) return undefined;
+  return tickBoxCell(cell, geometry, textItemsPoints);
+}
+
+/**
+ * A lone rectangle is as likely a panel or photo box as a field, so it must
+ * hold no text and carry a short caption right on it before it is trusted
+ * (SNG-10). A passing box is not resolved here: it falls through to the general
+ * resolver for its bounds and kind.
+ *
+ * @type {CellResolver}
+ */
+export function resolveLoneBox(cell, { textItemsPoints, ownText, isStackedRow }) {
+  // A row of a stack has a rule between it and its neighbour, so only a
+  // genuinely lone box is judged here.
+  if (!cell.lone || isStackedRow(cell)) return undefined;
+  // Own text settles the panel case: a panel is full of the prose it exists
+  // to hold, so any text drops it, even a short paragraph under
+  // FULL_TEXT_COVERAGE. A box with no text still needs a short caption right
+  // on it (`LONE_CAPTION_GAP`, `MAX_LABEL_CHARS`) before it is trusted as a
+  // field: precision first (SNG-10).
+  if (ownText.length > 0) return null;
+  const caption = headerAbove(cell, textItemsPoints);
+  if (!caption || caption.y0 - cell.top > LONE_CAPTION_GAP) return null;
+  if (caption.str.trim().length > MAX_LABEL_CHARS) return null;
+  return undefined;
+}
+
+/**
+ * Every cell no earlier resolver owns is a candidate text, date or signature
+ * field, kept only when its text reads as a short label and a blank is left to
+ * write in; it is last because it is the fallback for all the rest.
+ *
+ * @type {CellResolver}
+ */
+export function resolveGeneralCell(cell, { geometry, textItemsPoints, ownText }) {
+  const ownStr = ownText.map((t) => t.str).join(' ').trim();
+  const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
+  const cellArea = cell.width * cell.height;
+  const coverage = cellArea > 0 ? ownArea / cellArea : 1;
+  if (coverage > FULL_TEXT_COVERAGE) return null; // explanatory box, not an input
+  // A paragraph is not a short label hugging an edge, whatever its coverage.
+  if (ownStr.length > MAX_LABEL_CHARS) return null;
+  // A checkbox glyph rendered as text: already covered by that checkbox.
+  if (GLYPH_NOISE_RE.test(ownStr)) return null;
+
+  const writable = writableArea(cell, ownText);
+  if (!writable) return null;
+
+  const header = headerAbove(cell, textItemsPoints);
+  const label = ownText.length > 0 ? ownStr : header?.str?.trim();
+  const kind = classifyKind(ownText, label);
+
+  // Only the band carve is trusted as bounds (see the module doc).
+  const field = writable.carve === 'band' ? writable.area : cell;
+  const bounds = cellBox(geometry, field);
+  const enclosureBounds = field === cell ? undefined : cellBox(geometry, cell);
+  // A side carve is where the typed box belongs, though not trusted as
+  // bounds; printed separators publish no strip and keep the whole span.
+  const strip = writable.carve === 'side' ? typingStrip(cell, ownText, writable.area) : null;
+  const writableBounds = strip ? cellBox(geometry, strip) : undefined;
+  return {
+    bounds, enclosureBounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
+  };
+}
+
+/** The resolvers in the order a cell is offered to them; the first with a verdict decides. */
+const CELL_RESOLVERS = [resolveFloorTicked, resolveNarrowTick, resolveLoneSquare, resolveLoneBox, resolveGeneralCell];
+
+/**
  * Closed-cell candidate fields on one page: the text/date/signature/table-cell
  * regions the comb/checkbox detector leaves alone.
  *
@@ -692,105 +854,15 @@ export function detectCellCandidates(ink, geometry, pageIndex, textItems) {
   // First pass classifies each cell; the table-cell count needs the whole population.
   /** @type {ResolvedCell[]} */
   const resolved = [];
+  const shared = { geometry, textItemsPoints, closedColumnCounts, columnKey, isStackedRow };
   for (const cell of closedCells) {
-    const ownText = textInsideCell(cell, textItemsPoints);
-    if (cell.floorTicked) {
-      // The field is one written line standing on the floor rule, not the whole
-      // band above it (FORM-26 part A). Its height is what `writableArea`'s band
-      // carve gives the *row*, read once across the row's span because the row
-      // caption sits over one column only, falling back to the band's own top.
-      const rowLeft = /** @type {number} */ (cell.rowLeft);
-      const rowRight = /** @type {number} */ (cell.rowRight);
-      const row = {
-        left: rowLeft,
-        right: rowRight,
-        bottom: cell.bottom,
-        top: cell.top,
-        width: rowRight - rowLeft,
-        height: cell.top - cell.bottom,
-      };
-      const rowOwnText = textInsideCell(row, textItemsPoints);
-      const rowWritable = writableArea(row, rowOwnText);
-      const carvedTop = rowWritable && rowWritable.carve === 'band' ? rowWritable.area.top : cell.top;
-      const field = {
-        left: cell.left,
-        right: cell.right,
-        bottom: cell.bottom,
-        top: Math.min(cell.top, carvedTop),
-      };
-      // No caption below the floor means no field (FORM-26 part B): that keeps a
-      // stray tick pair, or a divider inside another field's comb, from being published.
-      const caption = captionBelowFloor(cell, textItemsPoints);
-      if (!caption) continue;
-      const label = caption.str.trim();
-      const fieldOwnText = textInsideCell(field, textItemsPoints);
-      resolved.push({
-        bounds: cellBox(geometry, field),
-        enclosureBounds: field.top === cell.top ? undefined : cellBox(geometry, cell),
-        writableBounds: undefined,
-        cell,
-        kind: classifyKind(fieldOwnText, label),
-        label,
-        ownTextCount: fieldOwnText.length,
-        coverage: 0,
-        closure: cell.closure,
-      });
-      continue;
+    const context = { ...shared, ownText: textInsideCell(cell, textItemsPoints) };
+    for (const resolver of CELL_RESOLVERS) {
+      const outcome = resolver(cell, context);
+      if (outcome === undefined) continue; // not this resolver's cell: ask the next
+      if (outcome) resolved.push(outcome);
+      break; // resolved, or dropped by the resolver that owns it
     }
-    if (cell.narrow) {
-      // Too narrow for text tests to mean anything: admitted by its column,
-      // disqualified by any text at all.
-      if (ownText.length > 0) continue;
-      if ((closedColumnCounts.get(columnKey(cell)) || 0) < MIN_TICK_COLUMN_ROWS) continue;
-      resolved.push(tickBoxCell(cell, geometry, textItemsPoints));
-      continue;
-    }
-    // A lone closed square with no text is a tick box on that alone (FORM-10).
-    if (cell.lone && cell.square && ownText.length === 0) {
-      resolved.push(tickBoxCell(cell, geometry, textItemsPoints));
-      continue;
-    }
-    // A row of a stack has a rule between it and its neighbour, so only a
-    // genuinely lone box is judged here.
-    if (cell.lone && !isStackedRow(cell)) {
-      // Own text settles the panel case: a panel is full of the prose it exists
-      // to hold, so any text drops it, even a short paragraph under
-      // FULL_TEXT_COVERAGE. A box with no text still needs a short caption right
-      // on it (`LONE_CAPTION_GAP`, `MAX_LABEL_CHARS`) before it is trusted as a
-      // field: precision first (SNG-10).
-      if (ownText.length > 0) continue;
-      const caption = headerAbove(cell, textItemsPoints);
-      if (!caption || caption.y0 - cell.top > LONE_CAPTION_GAP) continue;
-      if (caption.str.trim().length > MAX_LABEL_CHARS) continue;
-    }
-    const ownStr = ownText.map((t) => t.str).join(' ').trim();
-    const ownArea = ownText.reduce((sum, item) => sum + rectIntersectArea(cellRect(cell), item), 0);
-    const cellArea = cell.width * cell.height;
-    const coverage = cellArea > 0 ? ownArea / cellArea : 1;
-    if (coverage > FULL_TEXT_COVERAGE) continue; // explanatory box, not an input
-    // A paragraph is not a short label hugging an edge, whatever its coverage.
-    if (ownStr.length > MAX_LABEL_CHARS) continue;
-    // A checkbox glyph rendered as text: already covered by that checkbox.
-    if (GLYPH_NOISE_RE.test(ownStr)) continue;
-
-    const writable = writableArea(cell, ownText);
-    if (!writable) continue;
-
-    const header = headerAbove(cell, textItemsPoints);
-    const label = ownText.length > 0 ? ownStr : header?.str?.trim();
-    const kind = classifyKind(ownText, label);
-
-    // Only the band carve is trusted as bounds (see the module doc).
-    const field = writable.carve === 'band' ? writable.area : cell;
-    const bounds = cellBox(geometry, field);
-    const enclosureBounds = field === cell ? undefined : cellBox(geometry, cell);
-    // A side carve is where the typed box belongs, though not trusted as
-    // bounds; printed separators publish no strip and keep the whole span.
-    const strip = writable.carve === 'side' ? typingStrip(cell, ownText, writable.area) : null;
-    const writableBounds = strip ? cellBox(geometry, strip) : undefined;
-    resolved.push({
-      bounds, enclosureBounds, writableBounds, cell, kind, label, ownTextCount: ownText.length, coverage, closure: cell.closure,
-    });
   }
 
   // A wall column the floor ticks divided yields to them only when one survived
