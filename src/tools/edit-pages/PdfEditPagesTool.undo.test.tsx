@@ -137,6 +137,30 @@ describe('PdfEditPagesTool undo/redo', () => {
     expect(recentActions()).toEqual(['add_files', 'rotate', 'undo', 'redo']);
   });
 
+  it('records delete_page when deleting but nothing when restoring (DEBT-31)', async () => {
+    await loadPdf();
+    await act(async () => {
+      cards()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(recentActions()).toEqual(['add_files', 'delete_page']);
+    await act(async () => {
+      cards()[1].dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(recentActions()).toEqual(['add_files', 'delete_page']);
+  });
+
+  it('a throwing export still leaves export in the trail (DEBT-31)', async () => {
+    const { editPages } = await import('./editPages.js');
+    editPages.mockRejectedValueOnce(new Error('save failed'));
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await loadPdf();
+    const apply = Array.from(container.querySelectorAll('button')).find((b) => /apply|download|save/i.test(b.textContent));
+    await act(async () => {
+      apply.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(recentActions()).toContain('export');
+  });
+
   it('a removal toggle round-trips through undo and redo', async () => {
     await loadPdf();
 
