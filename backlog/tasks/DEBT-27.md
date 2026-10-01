@@ -49,16 +49,16 @@ The reports themselves:
 
 The loop, end to end:
 
-- [ ] **Failures that throw nothing are visible too** (was DEBT-24). Two of the four ways Sign ends
+- [x] **Failures that throw nothing are visible too** (was DEBT-24). Two of the four ways Sign ends
       with no fields (`not_started`, `modules_unavailable`) never throw, so only Sign's maintenance
       events show them, and those went to Vercel custom events, which Hobby drops. They now go to
       `/api/report` and `errors:read` prints them by browser family.
-- [ ] **The next swallowed error is a decision** (was DEBT-25): a CI ratchet on catches that neither
+- [x] **The next swallowed error is a decision** (was DEBT-25): a CI ratchet on catches that neither
       report, rethrow nor say `// expected:`.
 - [ ] **A flood cannot blind it** (was DEBT-26): a per-IP rate limit on `/api/report` at Vercel's
       firewall if Hobby has one; if not, recorded here with what stands instead.
-- [ ] The drill passes again on the final code, not the code it first ran on.
-- [ ] Real iOS Safari (Simulator, the broken build) delivers a report whose frames resolve to the
+- [x] The drill passes again on the final code, not the code it first ran on.
+- [x] Real iOS Safari (Simulator, the broken build) delivers a report whose frames resolve to the
       cause, so the drill's one limit (Playwright WebKit keeps more async frames) is measured.
 - [ ] After the push, a report sent to production lands in the live store and `errors:read` shows
       it; then it is deleted.
@@ -66,26 +66,34 @@ The loop, end to end:
 ## The drill: would this have cracked the bug that started DEBT-17? (2026-10-01)
 
 Shlomi's bar: the ticket is met only if an error like 2026-09-20's iOS detection failure can be
-tracked, reproduced and fixed in a close loop. Replayed end to end:
+tracked, reproduced and fixed in a close loop. The root cause as captured (`3840457a`,
+`src/lib/pdfTextItems.ts`): pdf.js's `getTextContent()` ends in `for await` over a `ReadableStream`,
+which Safari has never supported (WebKit bug 194379), so on iOS 26.6.2 every document detected zero
+fields with a `TypeError` while pages still rendered.
 
-1. **Break it as it broke.** A local branch put back the pre-`3840457a` text read
-   (`getTextContent()`, which ends in pdf.js's `for await` over a `ReadableStream`). A production
-   build ran in Playwright WebKit as an iPhone 15, with `ReadableStream`'s async iteration deleted
-   in an init script - what iOS Safari lacks (WebKit bug 194379), and why no local run ever failed.
-   Sign found **0 fields**, as on the iPhone.
-2. **Track.** Within 7 s of opening the file one report left the page, went through the real
-   endpoint code into the real store, and `errors:read` (0.5 s) showed it:
-   `sign_form_detection · TypeError · ios-17`, step `detect_fields`, tool `/sign/`, four frames.
-3. **Locate.** `errors:resolve -- <frames> --from <branch>` found the build and mapped the stack in
-   7.7 s: `pdf.mjs:16040 for await (const value of readableStream)` ← `pdfTextItems.ts:34`
-   `getTextContent()` ← `useFormFieldRegions.ts:173 readTextItems` ← `:267 pageTextRuns`.
-   With the engine bucket, that is the whole diagnosis: this engine cannot async-iterate a stream.
-4. **Reproduce.** The report names the missing capability, so deleting it in WebKit reproduces the
-   failure on demand. `src/tools/sign/e2e/ios-text-stream.spec.js` now does that permanently.
-5. **Fix and confirm.** The same drill against the fixed build: **10 fields, no report**.
+Replayed in **real Mobile Safari** (iOS 26.2 Simulator), nothing simulated, on the final code:
+
+0. **Measured first.** iOS 26.2 Safari: `ReadableStream.prototype[Symbol.asyncIterator]` is
+   `undefined`, and `for await` over a stream throws a `TypeError`. Its user agent says
+   `iPhone OS 18_7 ... Version/26.2`: Apple froze the OS token, so the endpoint would have filed the
+   September reports under `ios-18`. Fixed: `engineBucket` reads `Version/` (`349b1ec2`).
+1. **Break it as it broke.** A throwaway branch put back the pre-`3840457a` read; a production build
+   served with the real endpoint code in front of the real store. Sign rendered the page and found
+   **0 fields**.
+2. **Track.** Within 14 s one error report and one detection count left the page. `errors:read`
+   (0.5 s): `sign_form_detection · TypeError · detect_fields · ios-26`, seven frames, plus
+   `sign_form_detection · failure · processing_failed · ios-26` under Sign's events.
+3. **Locate.** `errors:resolve` on those seven frames (10 s): frame #1 is
+   `pdf.mjs:16040 for await (const value of readableStream)`, then `pdfTextItems.ts:33
+   getTextContent()`, `useFormFieldRegions.ts:173 readTextItems`, `:267 pageTextRuns`. That is the
+   recorded root cause, reached from the report alone. Three of Safari's async frames map to a
+   function's first line rather than a call, so read the chain by its named calls.
+4. **Reproduce.** The report names the engine and the `for await` line; iOS Safari reproduces it
+   with no setup, and `src/tools/sign/e2e/ios-text-stream.spec.js` keeps it reproduced in CI by
+   removing the same capability from Playwright's WebKit.
+5. **Fix and confirm.** The final code in the same Safari: **10 fields, no error report**, one
+   `success · six_to_twenty · ios-26` count.
 
 On 2026-09-20 this took most of a day and five wrong theories; replayed, report to root cause is
-about a minute. One honest limit: WebKit on a real device may keep fewer async frames than
-Playwright's, but frame #1 alone already names the `for await` line. The drill entry was deleted
-from the store afterwards.
-
+about a minute. The drill's entries were removed from the store field by field (it is shared with
+production), and the throwaway branch deleted.
