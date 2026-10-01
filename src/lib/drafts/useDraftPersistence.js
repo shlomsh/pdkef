@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { saveDraft, loadDraft, deleteDraft, hasDraftHint, subscribeToDraftChanges, attachDraftPreview, cacheRecentFile, isStoragePersisted } from './draftStore.js';
+import { registerBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
+import { useHoldUpdate } from '../useHoldUpdate.ts';
 import { reportError } from '../errorReport.ts';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
 
@@ -346,7 +348,14 @@ export function useDraftPersistence({
     };
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('pagehide', flush);
+    // An update reload (src/lib/appUpdate/updateHolds.ts, MEM-10) must not
+    // outrun the write: flush first, then await every in-flight save.
+    const unregister = registerBeforeUpdateReload(async () => {
+      flush();
+      await Promise.allSettled([...writePromisesRef.current.values()]);
+    });
     return () => {
+      unregister();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
     };
@@ -387,6 +396,10 @@ export function useDraftPersistence({
     : saveState.revision === currentRevision
     ? (saveState.state === 'saved' && notPersisted ? 'unpersisted' : saveState.state)
     : (canPersist ? 'pending' : 'idle');
+
+  // Work whose save failed (no IndexedDB, quota) lives only in memory, so
+  // like a tool without drafts it holds an update back (MEM-10).
+  useHoldUpdate(draftSaveState === 'error');
 
   return { clearDraft, isRestoring, draftSaveState, draftSaveRevision: currentRevision };
 }

@@ -1,0 +1,102 @@
+---
+// MEM-10: the quiet "a new version is ready" line, in the markup of every page
+// and hidden until the coordinator in src/site-lib/appUpdate.ts shows it, which
+// it does only when another tab holds a ready update back. No button: the
+// update itself happens on the next navigation once nothing holds it. Fixed
+// at the top so it never takes layout space (no CLS, nothing inserted into the
+// home first screen) and never a modal. Strings live here, not in the script.
+import { getAppUpdateMessages } from '../i18n/appUpdateMessages';
+
+interface Props {
+  lang?: string;
+}
+const { lang = 'en' } = Astro.props;
+const messages = getAppUpdateMessages(lang);
+---
+
+<p class="app-update" data-app-update data-app-update-state="waiting" role="status" hidden>
+  <span class="app-update-waiting">{messages.waiting}</span>
+  <span class="app-update-blocked">{messages.blocked}</span>
+  <button type="button" class="app-update-dismiss" data-app-update-dismiss aria-label={messages.dismiss}>
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+  </button>
+</p>
+
+<style>
+  /* Just under AppBar (sticky, h-14), never on it: end-aligned with the bar's
+     chips, whose padding (px-6, px-8 in a 1280px column) it mirrors, where the
+     page below is empty; centred on a phone, where nothing is beside the
+     heading. Fixed, so it takes no layout space. */
+  .app-update {
+    position: fixed;
+    inset-block-start: calc(3.5rem + 8px);
+    inset-inline-end: 1.5rem;
+    max-inline-size: calc(100% - 32px);
+    display: flex;
+    align-items: center;
+    column-gap: 0.4rem;
+    z-index: 80;
+    padding: 0.25rem 0.7rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+  }
+  @media (min-width: 1024px) {
+    .app-update {
+      inset-inline-end: max(2rem, calc((100% - 1280px) / 2 + 2rem));
+    }
+  }
+  @media (max-width: 560px) {
+    .app-update {
+      inset-inline: 0;
+      margin-inline: auto;
+      inline-size: max-content;
+      /* Two lines here: the sentence wraps, the dismiss stays beside it. */
+      border-radius: var(--radius-lg);
+    }
+  }
+  .app-update[hidden] {
+    display: none;
+  }
+  /* One sentence per state. */
+  .app-update:not([data-app-update-state='blocked']) .app-update-blocked,
+  .app-update:not([data-app-update-state='waiting']) .app-update-waiting {
+    display: none;
+  }
+  /* Hides the line in this tab until its next page load. The 44px hit area
+     comes from ::before, so the visible button stays small. */
+  .app-update-dismiss {
+    flex: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 28px;
+    min-block-size: 28px;
+    padding: 0;
+    color: var(--color-muted);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .app-update-dismiss::before {
+    content: '';
+    position: absolute;
+    inset-inline: -8px;
+    inset-block-start: 50%;
+    block-size: 44px;
+    transform: translateY(-50%);
+  }
+  .app-update-dismiss:hover,
+  .app-update-dismiss:focus-visible {
+    color: var(--color-text);
+    border-color: var(--color-border-strong);
+  }
+  .app-update-dismiss:focus-visible {
+    outline-offset: 0;
+  }
+</style>

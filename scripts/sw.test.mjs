@@ -86,8 +86,9 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     location: { origin: 'https://pdkef.test' },
     addEventListener: (name, listener) => listeners.set(name, listener),
     skipWaiting: vi.fn(async () => undefined),
-    clients: { claim: vi.fn(async () => undefined) },
+    clients: { claim: vi.fn(async () => undefined), matchAll: vi.fn(async () => []) },
     registration: { unregister: vi.fn(async () => true) },
+    navigator: { onLine: true },
   };
 
   vm.runInNewContext(source, {
@@ -102,6 +103,9 @@ function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], index
     Error,
     Array,
     console,
+    MessageChannel,
+    setTimeout: (...args) => setTimeout(...args),
+    clearTimeout: (...args) => clearTimeout(...args),
   });
 
   return { cache, caches, entries, entriesByCache, fetchImpl, indexedDB: indexedDBImpl, listeners, self };
@@ -119,6 +123,15 @@ async function dispatchActivate(worker) {
   return Promise.all(waits);
 }
 
+// Waits for every waitUntil, including ones registered while earlier ones run.
+async function awaitAll(waits) {
+  for (let done = 0; done < waits.length;) {
+    const upTo = waits.length;
+    await Promise.all(waits.slice(done, upTo));
+    done = upTo;
+  }
+}
+
 async function dispatchMessage(worker, data) {
   const waits = [];
   let reply;
@@ -127,7 +140,7 @@ async function dispatchMessage(worker, data) {
     ports: [{ postMessage: (value) => { reply = value; } }],
     waitUntil: (promise) => waits.push(Promise.resolve(promise)),
   });
-  await Promise.all(waits);
+  await awaitAll(waits);
   return reply;
 }
 
@@ -159,6 +172,7 @@ describe('offline-first service worker', () => {
 
     expect(Array.from(worker.entries.keys()).sort()).toEqual([
       'https://pdkef.test/',
+      'https://pdkef.test/__pdkef/precache-complete/',
       'https://pdkef.test/_astro/app.js',
       'https://pdkef.test/sign/',
     ]);
@@ -485,7 +499,7 @@ describe('precache manifest delivery policy', () => {
 // generate-precache-manifest.mjs). It must stay a valid classic worker
 // script, keep the __BUILD_ID__ placeholder for that same script to
 // substitute, and never gain a skipWaiting() call the minifier didn't put
-// there (see the "No skipWaiting()" invariant above).
+// there (see the skipWaiting() invariant in csp-scripts-pwa.md).
 describe('minified service worker', () => {
   it('evaluates in the same harness and keeps the invariants that matter', async () => {
     const worker = createWorker(vi.fn(async () => new Response('font bytes')), ['pdkef-previous'], createFakeIndexedDB(), minifiedWorkerSource);
@@ -495,7 +509,342 @@ describe('minified service worker', () => {
 
     expect(await response.text()).toBe('font bytes');
     expect(minifiedWorkerSource).toContain('__BUILD_ID__');
-    expect(minifiedWorkerSource).not.toMatch(/skipWaiting\s*\(/);
+    expect(minifiedWorkerSource.match(/skipWaiting\s*\(/g)).toHaveLength(1);
     expect(minifiedWorkerSource.length).toBeLessThan(workerSource.length * 0.6);
   });
+});
+
+// A fake open tab. `behavior` scripts its answer to the busy survey: 'busy',
+// 'idle', or 'never' (a frozen tab, or a page from before MEM-10).
+const realSetTimeout = setTimeout;
+const settle = () => new Promise((resolve) => realSetTimeout(resolve, 20));
+const fakeWindow = (id, behavior = 'idle', url = `https://pdkef.test/${id}/`) => ({
+  id,
+  url,
+  postMessage: vi.fn((_message, ports) => {
+    if (behavior === 'never') return;
+    ports[0].postMessage({ busy: behavior === 'busy' });
+  }),
+});
+
+// Runs `start()` under fake timers, lets real MessagePort replies land, then
+// jumps past every worker timeout so a window that never answers costs no real time.
+async function withSilentTimeouts(start) {
+  vi.useFakeTimers();
+  try {
+    const pending = start();
+    await settle();
+    await vi.advanceTimersByTimeAsync(5000);
+    return await pending;
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+// A worker with no readiness marker and a three-URL manifest, '/' and '/sign/' already cached.
+// `failing` lists pathnames that answer 503. Returns the worker and its fetched pathnames.
+function buildIncompleteWorker(source, windows, failing = []) {
+  const fetched = [];
+  const fetchImpl = vi.fn(async (request) => {
+    const url = requestUrl(request);
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ urls: ['/', '/sign/', '/_astro/app.js'] }));
+    const pathname = new URL(url).pathname;
+    fetched.push(pathname);
+    return failing.includes(pathname) ? new Response('no', { status: 503 }) : new Response('asset');
+  });
+  const worker = createWorker(fetchImpl, ['pdkef-previous'], createFakeIndexedDB(), source);
+  worker.self.clients.matchAll = vi.fn(async () => windows);
+  worker.entries.set('https://pdkef.test/', new Response('home'));
+  worker.entries.set('https://pdkef.test/sign/', new Response('sign'));
+  return { worker, fetched };
+}
+const PRECACHE_MARKER = 'https://pdkef.test/__pdkef/precache-complete/';
+
+// MEM-10: skipWaiting() runs only on the active worker's message, after every tab answered.
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('skip-waiting message (%s)', (_label, source) => {
+  const SKIP = 'pdkef:skip-waiting';
+  const build = (windows) => {
+    const worker = createWorker(vi.fn(async () => new Response('x')), ['pdkef-previous'], createFakeIndexedDB(), source);
+    worker.self.clients.matchAll = vi.fn(async () => windows);
+    worker.entries.set('https://pdkef.test/__pdkef/precache-complete/', new Response('ok'));
+    return worker;
+  };
+
+  it('skips waiting and replies ok when every window is idle', async () => {
+    const worker = build([fakeWindow('a'), fakeWindow('b')]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 2, busy: 0, silent: 0 });
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks each window with a busy-query and a reply port', async () => {
+    const a = fakeWindow('a');
+    await dispatchMessage(build([a]), { type: SKIP });
+    expect(a.postMessage).toHaveBeenCalledWith({ type: 'pdkef:busy-query' }, [expect.anything()]);
+  });
+
+  it('refuses when one window is busy', async () => {
+    const worker = build([fakeWindow('a'), fakeWindow('b', 'busy')]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: false, ready: true, windows: 2, busy: 1, silent: 0 });
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('refuses when one window never answers', async () => {
+    const worker = build([fakeWindow('a'), fakeWindow('b', 'never')]);
+    const reply = await withSilentTimeouts(() => dispatchMessage(worker, { type: SKIP }));
+    expect(reply).toEqual({ ok: false, ready: true, windows: 2, busy: 0, silent: 1 });
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('does not ask or count blob: windows', async () => {
+    const blob = fakeWindow('blob', 'busy', 'blob:https://pdkef.test/abc');
+    const worker = build([fakeWindow('a'), blob]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 1, busy: 0, silent: 0 });
+    expect(blob.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses without asking any window when the build is not fully precached', async () => {
+    const a = fakeWindow('a');
+    const worker = build([a]);
+    worker.entries.delete('https://pdkef.test/__pdkef/precache-complete/');
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: false, ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('refuses without asking any window while offline', async () => {
+    const a = fakeWindow('a');
+    const worker = build([a]);
+    worker.self.navigator.onLine = false;
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: false, ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(a.postMessage).not.toHaveBeenCalled();
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('posts the reply before it calls skipWaiting', async () => {
+    const worker = build([fakeWindow('a')]);
+    const order = [];
+    worker.self.skipWaiting = vi.fn(async () => { order.push('skipWaiting'); });
+    const waits = [];
+    worker.listeners.get('message')({
+      data: { type: SKIP },
+      ports: [{ postMessage: () => order.push('reply') }],
+      waitUntil: (promise) => waits.push(Promise.resolve(promise)),
+    });
+    await Promise.all(waits);
+    expect(order).toEqual(['reply', 'skipWaiting']);
+  });
+
+  it('while not ready and online, replies not-ready and fetches only the missing URLs, then marks complete', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, [fakeWindow('a')]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: false, ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(fetched).toEqual(['/_astro/app.js']);
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(true);
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 1, busy: 0, silent: 0 });
+  });
+
+  it('writes no marker while a URL still fails', async () => {
+    const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+    await dispatchMessage(worker, { type: SKIP });
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+    expect((await dispatchMessage(worker, { type: SKIP })).ready).toBe(false);
+  });
+
+  it('fetches nothing while offline', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, []);
+    worker.self.navigator.onLine = false;
+    await dispatchMessage(worker, { type: SKIP });
+    expect(fetched).toEqual([]);
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+  });
+
+  it('does not ask or count windows whose path is not a page (sitemap, robots)', async () => {
+    const sitemap = fakeWindow('s', 'busy', 'https://pdkef.test/sitemap.xml');
+    const robots = fakeWindow('r', 'busy', 'https://pdkef.test/robots.txt');
+    const worker = build([fakeWindow('a'), sitemap, robots]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 1, busy: 0, silent: 0 });
+    expect(sitemap.postMessage).not.toHaveBeenCalled();
+    expect(robots.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('never skips waiting for a font-pack message', async () => {
+    const worker = build([fakeWindow('a')]);
+    await dispatchMessage(worker, { type: 'pdkef:font-pack-status' });
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+  });
+
+  it('runs without a reply port and does not throw', async () => {
+    const worker = build([fakeWindow('a')]);
+    const waits = [];
+    worker.listeners.get('message')({ data: { type: SKIP }, waitUntil: (p) => waits.push(Promise.resolve(p)) });
+    await Promise.all(waits);
+    expect(worker.self.skipWaiting).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('install readiness marker (%s)', (_label, source) => {
+  const MARKER = 'https://pdkef.test/__pdkef/precache-complete/';
+  const install = async (perUrl) => {
+    const worker = createWorker(manifestResponder(['/', '/sign/'], perUrl), ['pdkef-previous'], createFakeIndexedDB(), source);
+    await dispatchInstall(worker);
+    return worker;
+  };
+
+  it('is written when every URL precaches', async () => {
+    expect((await install()).entries.has(MARKER)).toBe(true);
+  });
+
+  it('is not written when one URL misses', async () => {
+    const worker = await install((pathname) => (pathname === '/sign/' ? new Response('no', { status: 503 }) : new Response('asset')));
+    expect(worker.entries.has(MARKER)).toBe(false);
+  });
+});
+
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('update status message (%s)', (_label, source) => {
+  const STATUS = 'pdkef:update-status';
+  const build = (windows, marker = true) => {
+    const worker = createWorker(vi.fn(async () => new Response('x')), ['pdkef-previous'], createFakeIndexedDB(), source);
+    worker.self.clients.matchAll = vi.fn(async () => windows);
+    if (marker) worker.entries.set('https://pdkef.test/__pdkef/precache-complete/', new Response('ok'));
+    return worker;
+  };
+  const dispatchStatus = async (worker, sourceId) => {
+    const waits = [];
+    let reply;
+    worker.listeners.get('message')({
+      data: { type: STATUS },
+      source: { id: sourceId },
+      ports: [{ postMessage: (value) => { reply = value; } }],
+      waitUntil: (promise) => waits.push(Promise.resolve(promise)),
+    });
+    await awaitAll(waits);
+    return reply;
+  };
+
+  it('surveys every http(s) window except the asking one', async () => {
+    const asker = fakeWindow('me', 'busy');
+    const worker = build([asker, fakeWindow('a'), fakeWindow('b', 'busy'), fakeWindow('blob', 'busy', 'blob:https://pdkef.test/x')]);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: true, windows: 2, busy: 1, silent: 0 });
+    expect(asker.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('counts a window that never answers as silent', async () => {
+    const worker = build([fakeWindow('me'), fakeWindow('a', 'never')]);
+    expect(await withSilentTimeouts(() => dispatchStatus(worker, 'me'))).toEqual({ ready: true, windows: 1, busy: 0, silent: 1 });
+  });
+
+  it('is not ready without the marker, and asks no window', async () => {
+    const a = fakeWindow('a');
+    expect(await dispatchStatus(build([a], false), 'me')).toEqual({ ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(a.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('while not ready and online, completes the precache in the background and then reports ready', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, [fakeWindow('a')]);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(fetched).toEqual(['/_astro/app.js']);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: true, windows: 1, busy: 0, silent: 0 });
+  });
+
+  it('leaves the build not ready while a URL still fails', async () => {
+    const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+    await dispatchStatus(worker, 'me');
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+  });
+
+  it('fetches nothing for the missing URLs while offline', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, []);
+    worker.self.navigator.onLine = false;
+    await dispatchStatus(worker, 'me');
+    expect(fetched).toEqual([]);
+  });
+
+  it('does not ask or count non-page windows', async () => {
+    const sitemap = fakeWindow('s', 'busy', 'https://pdkef.test/sitemap.xml');
+    const worker = build([fakeWindow('a'), sitemap, fakeWindow('r', 'busy', 'https://pdkef.test/robots.txt')]);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: true, windows: 1, busy: 0, silent: 0 });
+    expect(sitemap.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('is not ready offline, and asks no window', async () => {
+    const a = fakeWindow('a');
+    const worker = build([a]);
+    worker.self.navigator.onLine = false;
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(a.postMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('silent takeover on navigation (%s)', (_label, source) => {
+  const nav = { method: 'GET', mode: 'navigate', url: 'https://pdkef.test/sign/' };
+  const build = ({ answer = { ok: true }, waiting = true } = {}) => {
+    const worker = createWorker(vi.fn(async () => new Response('fresh')), ['pdkef-previous'], createFakeIndexedDB(), source);
+    worker.entries.set('https://pdkef.test/sign/', new Response('cached sign page'));
+    const postMessage = vi.fn((_data, ports) => { if (answer) ports[0].postMessage(answer); });
+    if (waiting) worker.self.registration.waiting = { postMessage };
+    return { worker, postMessage };
+  };
+
+  it('asks the waiting worker to take over and answers with the takeover page when it agrees', async () => {
+    const { worker, postMessage } = build();
+    const { response } = await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    expect(postMessage).toHaveBeenCalledWith({ type: 'pdkef:skip-waiting' }, [expect.anything()]);
+    const html = await response.text();
+    expect(html).toContain('http-equiv="refresh"');
+    expect(html).not.toContain('<script');
+    expect(response.headers.get('Content-Security-Policy')).toBeTruthy();
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+  });
+
+  it('falls through when the waiting worker refuses', async () => {
+    const { worker } = build({ answer: { ok: false } });
+    const { response } = await dispatchFetch(worker, nav);
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('falls through when the waiting worker never replies', async () => {
+    const { worker } = build({ answer: null });
+    const { response } = await withSilentTimeouts(() => dispatchFetch(worker, nav));
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('posts nothing without a waiting worker', async () => {
+    const { worker, postMessage } = build({ waiting: false });
+    const { response } = await dispatchFetch(worker, nav);
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('serves a second navigation within the cooldown normally, without asking again', async () => {
+    const { worker, postMessage } = build();
+    await dispatchFetch(worker, nav);
+    const { response } = await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('posts nothing to the waiting worker while offline, and serves the cached page', async () => {
+    const { worker, postMessage } = build();
+    worker.self.navigator.onLine = false;
+    const { response } = await dispatchFetch(worker, nav);
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('after a reply with unanswered tabs, a second navigation does not ask again', async () => {
+    const { worker, postMessage } = build({ answer: { ok: false, ready: true, windows: 1, busy: 0, silent: 1 } });
+    await dispatchFetch(worker, nav);
+    await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('after a reply with only busy tabs, a second navigation asks again', async () => {
+    const { worker, postMessage } = build({ answer: { ok: false, ready: true, windows: 1, busy: 1, silent: 0 } });
+    await dispatchFetch(worker, nav);
+    await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(2);
+  });
+
 });

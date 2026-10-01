@@ -143,7 +143,7 @@ brackets carries the evidence; do not relearn it.
   first screen (hero, launcher, dock) is one composed unit that nothing gets inserted into. [home-page]
 - **Never reveal with an IntersectionObserver what JS first hid**; derive reveal state from scroll
   position (`animation-timeline: view()`). [home-page]
-- **Service worker: no `skipWaiting()`, best-effort precache except `/`, self-uninstall on a 404
+- **Service worker: `skipWaiting()` only when every tab is idle (MEM-10), best-effort precache except `/`, self-uninstall on a 404
   manifest.** [csp-scripts-pwa]
 - **Astro stays on `^7.0.3`**: older majors carry published advisories; anything needing
   `legacy-peer-deps` is re-audited first. [csp-scripts-pwa]
