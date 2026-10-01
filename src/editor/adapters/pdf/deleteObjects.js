@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFArray, PDFDict, PDFRef, PDFStream, decodePDFRawStream } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
 import { tokenize } from './contentStream.js';
 import { linksOverDeleted } from './linksOverDeleted.js';
@@ -40,27 +40,39 @@ export async function deleteObjectsFromPdf(file, deletions, onProgress) {
   }
 
   const deletedImageRefs = new Set();
+  const replacedForms = new Set(); // original Form refs (tags) that a per-page copy replaced
   const pageIndexes = [...byPage.keys()].sort((a, b) => a - b);
   for (const [step, pageIndex] of pageIndexes.entries()) {
     const page = doc.getPage(pageIndex);
-    const spans = byPage.get(pageIndex);
 
-    // Map each deletion to the bbox of the object it removes, read before
-    // the rewrite splices the content stream and its byte offsets stop
-    // matching `start`/`end`.
+    // Map each deletion to the object it removes, read before the rewrite
+    // splices a stream and its byte offsets stop matching `start`/`end`. A
+    // deletion inside a Form XObject only matches an object of the same form
+    // path: the same offsets mean something else in the page's own stream.
     const { objects } = extractPageObjects(page, pageIndex);
-    const deletedObjects = spans
-      .map((span) => objects.find((o) => o.start === span.start && o.end === span.end))
-      .filter(Boolean);
-    const deletedBoxes = deletedObjects.map((o) => o.bbox);
-    for (const o of deletedObjects) if (o.imageRef) deletedImageRefs.add(o.imageRef);
+    const spans = [];
+    const deletedBoxes = [];
+    for (const deletion of byPage.get(pageIndex)) {
+      const key = formPathKey(deletion);
+      const found = objects.find(
+        (o) => o.start === deletion.start && o.end === deletion.end && formPathKey(o) === key,
+      );
+      const imageRef = deletion.imageRef ?? found?.imageRef;
+      const bbox = found?.bbox ?? deletion.bbox;
+      if (bbox) deletedBoxes.push(bbox);
+      if (imageRef) deletedImageRefs.add(imageRef);
+      spans.push({ ...deletion, imageRef });
+    }
 
-    rewritePageContent(doc, page, spans);
+    rewritePageContent(doc, page, spans, replacedForms);
     removeLinksOverDeleted(doc, page, deletedBoxes);
 
     onProgress?.((step + 1) / pageIndexes.length);
   }
 
+  // Before RED-26's sweep, so a Form nothing draws any more stops counting
+  // as drawing the image it lists.
+  removeOrphanedForms(doc, replacedForms);
   removeUndrawnImages(doc, deletedImageRefs);
   clearDocumentDetails(doc);
 
@@ -125,16 +137,7 @@ function stillDrawnImages(doc) {
     const resources = page.node.Resources();
     const xobjects = xobjectDict(context, resources);
     if (xobjects) {
-      const names = new Set();
-      let previous = null;
-      for (const token of tokenize(getPageContentBytes(page))) {
-        if (token.type === 'operator') {
-          if (token.value === 'Do' && previous?.type === 'name') names.add(previous.value);
-          previous = null;
-        } else {
-          previous = token;
-        }
-      }
+      const names = drawnNames(getPageContentBytes(page));
       for (const name of names) {
         const value = xobjects.get(PDFName.of(name));
         if (value) noteXObject(context, value, resources, drawn, seen);
@@ -307,25 +310,213 @@ export function clearDocumentDetails(doc) {
 }
 
 /**
- * Rewrites one page's content stream with the given byte spans cut out, in
- * place on `doc`. Shared by `deleteObjectsFromPdf` (the real export) and
+ * Rewrites one page with the given byte spans cut out, in place on `doc`.
+ * Shared by `deleteObjectsFromPdf` (the real export) and
  * `buildDeletePreviewPage` (an on-screen preview of the same page), so the
  * two can never drift: whatever the download writes is exactly what the
  * screen already showed.
  *
+ * A span without a `formPath` is in the page's own content stream. A span
+ * with one is in a Form XObject the page draws (RED-29): the forms along the
+ * path are copied for this page and the copies edited, so a Form that other
+ * pages share is never changed under them.
+ *
  * @param {PDFDocument} doc the document `page` belongs to (owns the context
- *   that the rewritten stream is registered against)
+ *   that the rewritten streams are registered against)
  * @param {import('@cantoo/pdf-lib').PDFPage} page
- * @param {Array<{start: number, end: number}>} spans
+ * @param {Array<{start: number, end: number, formPath?: string[], imageRef?: string}>} spans
+ * @param {Set<string>} [replacedForms] collects the ref tags of the original
+ *   Forms a copy replaced, for `removeOrphanedForms`
  */
-export function rewritePageContent(doc, page, spans) {
-  const original = getPageContentBytes(page);
-  const rewritten = spliceOut(original, spans);
+export function rewritePageContent(doc, page, spans, replacedForms = new Set()) {
+  const pageSpans = spans.filter((span) => !span.formPath?.length);
+  const formSpans = spans.filter((span) => span.formPath?.length);
 
-  // One merged stream replaces however many the page had. Offsets were
-  // computed against the merged buffer, so the two must agree.
-  const stream = doc.context.flateStream(rewritten);
-  page.node.set(PDFName.of('Contents'), doc.context.register(stream));
+  if (formSpans.length === 0 || pageSpans.length > 0) {
+    const rewritten = spliceOut(getPageContentBytes(page), pageSpans);
+    // One merged stream replaces however many the page had. Offsets were
+    // computed against the merged buffer, so the two must agree.
+    page.node.set(PDFName.of('Contents'), doc.context.register(doc.context.flateStream(rewritten)));
+  }
+  if (formSpans.length > 0) rewriteFormContent(doc, page, formSpans, replacedForms);
+}
+
+const formPathKey = (item) => (item.formPath ?? []).join('>');
+
+function refFromTag(tag) {
+  const [objectNumber, generationNumber] = tag.split(' ').map(Number);
+  return PDFRef.of(objectNumber, generationNumber);
+}
+
+/** A direct copy of a dict's entries, so editing it never touches the original. */
+function cloneDict(context, dict, skip = []) {
+  const copy = PDFDict.withContext(context);
+  for (const [key, value] of dict?.entries() ?? []) {
+    if (!skip.includes(key.asString())) copy.set(key, value);
+  }
+  return copy;
+}
+
+/**
+ * Gives an editing level its own `/Resources` and `/XObject` dicts, cloned
+ * from the effective ones: the originals may be inherited from the Pages tree
+ * or shared with other pages and forms.
+ */
+function openResources(context, effective) {
+  const resources = cloneDict(context, effective);
+  const xobjects = cloneDict(context, xobjectDict(context, effective));
+  resources.set(PDFName.of('XObject'), xobjects);
+  return { resources, xobjects };
+}
+
+/**
+ * Cuts the spans that sit inside Form XObjects out of copies of those forms
+ * (RED-29). Never edits a form in place: each form along a path is copied once
+ * per page, the parent (the page, or the previous copy) is repointed at the
+ * copy, and only the copy's content loses the span.
+ */
+function rewriteFormContent(doc, page, spans, replacedForms) {
+  const { context } = doc;
+  const root = openResources(context, page.node.Resources());
+  page.node.set(PDFName.of('Resources'), root.resources);
+
+  const copies = new Map(); // path prefix -> editing level
+  const groups = new Map(); // full path -> its spans
+  for (const span of spans) {
+    const key = formPathKey(span);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(span);
+  }
+
+  const owners = [];
+  for (const [, group] of groups) {
+    const path = group[0].formPath;
+    let level = root;
+    for (let i = 0; i < path.length && level; i += 1) {
+      const prefix = path.slice(0, i + 1).join('>');
+      if (!copies.has(prefix)) copies.set(prefix, copyForm(context, level, path[i], replacedForms));
+      level = copies.get(prefix);
+    }
+    // A path that does not resolve in this document offers nothing to delete.
+    if (level && level !== root) owners.push({ level, group });
+  }
+
+  for (const { level, group } of owners) {
+    level.spans.push(...group);
+    level.bytes = spliceOut(level.bytes, group);
+  }
+  for (const level of copies.values()) {
+    if (!level) continue;
+    const stream = context.flateStream(level.bytes);
+    for (const [key, value] of level.dict.entries()) stream.dict.set(key, value);
+    context.assign(level.ref, stream);
+    dropUndrawnNames(level);
+  }
+}
+
+/**
+ * Copies the form that `parent` draws as `tag` into a new object (decoded
+ * content, the original's dict without its filters) and repoints every name in
+ * the parent that held the old ref. Returns undefined when nothing in the
+ * parent names that form.
+ */
+function copyForm(context, parent, tag, replacedForms) {
+  const names = [];
+  for (const [key, value] of parent.xobjects.entries()) {
+    if (value instanceof PDFRef && value.tag === tag) names.push(key);
+  }
+  const original = context.lookup(refFromTag(tag));
+  if (names.length === 0 || !(original instanceof PDFStream)) return undefined;
+
+  const dict = cloneDict(context, original.dict, ['/Filter', '/DecodeParms', '/Length', '/Resources']);
+  const own = context.lookup(original.dict.get(PDFName.of('Resources')));
+  // A form with no resources of its own draws with its parent's.
+  const { resources, xobjects } = openResources(context, own instanceof PDFDict ? own : parent.resources);
+  dict.set(PDFName.of('Resources'), resources);
+
+  const ref = context.nextRef();
+  for (const key of names) parent.xobjects.set(key, ref);
+  replacedForms.add(tag);
+  return { ref, dict, xobjects, bytes: decodePDFRawStream(original).decode(), spans: [] };
+}
+
+/**
+ * Drops from an edited copy the names of images its content no longer draws,
+ * so the whole-file sweep for undrawn images (RED-26) sees them as unused.
+ */
+function dropUndrawnNames(level) {
+  const imageRefs = new Set(level.spans.map((span) => span.imageRef).filter(Boolean));
+  if (imageRefs.size === 0) return;
+  const drawn = drawnNames(level.bytes);
+  const names = [];
+  for (const [key, value] of level.xobjects.entries()) {
+    if (value instanceof PDFRef && imageRefs.has(value.tag) && !drawn.has(key.decodeText())) names.push(key);
+  }
+  for (const key of names) level.xobjects.delete(key);
+}
+
+/** The XObject names a content stream draws with `Do`. */
+function drawnNames(bytes) {
+  const names = new Set();
+  let previous = null;
+  for (const token of tokenize(bytes)) {
+    if (token.type === 'operator') {
+      if (token.value === 'Do' && previous?.type === 'name') names.add(previous.value);
+      previous = null;
+    } else {
+      previous = token;
+    }
+  }
+  return names;
+}
+
+/** Every ref reachable from a direct object (dicts, arrays, stream dicts). */
+function collectRefs(object, out) {
+  if (object instanceof PDFRef) out.add(object.tag);
+  else if (object instanceof PDFStream) collectRefs(object.dict, out);
+  else if (object instanceof PDFDict) for (const [, value] of object.entries()) collectRefs(value, out);
+  else if (object instanceof PDFArray) for (let i = 0; i < object.size(); i += 1) collectRefs(object.get(i), out);
+}
+
+/**
+ * Deletes from the file every original Form XObject that a per-page copy
+ * replaced and that nothing references any more (no page, no other form, no
+ * annotation appearance), then the inner forms that only it held, recursively.
+ * This is what makes a deletion real: the text cut from the copy must not
+ * survive in an orphaned original that `save` would still write.
+ *
+ * @param {PDFDocument} doc
+ * @param {Set<string>} replacedForms ref tags of the originals that were copied
+ */
+export function removeOrphanedForms(doc, replacedForms) {
+  if (replacedForms.size === 0) return;
+  const { context } = doc;
+
+  const outgoing = new Map(); // object -> the tags it references
+  const incoming = new Map(); // tag -> how many other objects reference it
+  for (const [ref, object] of context.enumerateIndirectObjects()) {
+    const refs = new Set();
+    collectRefs(object, refs);
+    refs.delete(ref.tag);
+    outgoing.set(ref.tag, refs);
+    for (const tag of refs) incoming.set(tag, (incoming.get(tag) ?? 0) + 1);
+  }
+
+  const isForm = (tag) => {
+    const object = context.lookup(refFromTag(tag));
+    return object instanceof PDFStream && context.lookup(object.dict.get(PDFName.of('Subtype')))?.asString?.() === '/Form';
+  };
+
+  const queue = [...replacedForms];
+  while (queue.length > 0) {
+    const tag = queue.pop();
+    if ((incoming.get(tag) ?? 0) > 0 || !isForm(tag)) continue;
+    context.delete(refFromTag(tag));
+    for (const child of outgoing.get(tag) ?? []) {
+      incoming.set(child, incoming.get(child) - 1);
+      queue.push(child);
+    }
+  }
 }
 
 /**
@@ -339,15 +530,57 @@ export function rewritePageContent(doc, page, spans) {
  * @param {PDFDocument} sourceDoc an already loaded source document (callers
  *   load it once per file and reuse it across pages/rebuilds)
  * @param {number} pageIndex
- * @param {Array<{start: number, end: number}>} spans
+ * @param {Array<{start: number, end: number, formPath?: string[]}>} spans
+ *   a `formPath` names forms of `sourceDoc`; they are translated to the copy
  * @returns {Promise<Uint8Array>}
  */
 export async function buildDeletePreviewPage(sourceDoc, pageIndex, spans) {
   const previewDoc = await PDFDocument.create();
   const [copiedPage] = await previewDoc.copyPages(sourceDoc, [pageIndex]);
   previewDoc.addPage(copiedPage);
-  rewritePageContent(previewDoc, copiedPage, spans);
+  const replacedForms = new Set();
+  const translated = translateFormPaths(sourceDoc, sourceDoc.getPage(pageIndex), previewDoc, copiedPage, spans);
+  rewritePageContent(previewDoc, copiedPage, translated, replacedForms);
+  removeOrphanedForms(previewDoc, replacedForms);
   return previewDoc.save();
+}
+
+/**
+ * `copyPages` renumbers every object, so a `formPath` of the source's refs is
+ * rewritten to the copied page's by walking both trees in step, matching forms
+ * by the name the parent draws them under. A span whose path does not resolve
+ * is dropped.
+ */
+function translateFormPaths(sourceDoc, sourcePage, previewDoc, copiedPage, spans) {
+  const translated = [];
+  for (const span of spans) {
+    if (!span.formPath?.length) {
+      translated.push(span);
+      continue;
+    }
+    let sourceResources = sourcePage.node.Resources();
+    let previewResources = copiedPage.node.Resources();
+    const path = [];
+    for (const tag of span.formPath) {
+      const sourceXObjects = xobjectDict(sourceDoc.context, sourceResources);
+      const previewXObjects = xobjectDict(previewDoc.context, previewResources);
+      const key = [...(sourceXObjects?.entries() ?? [])].find(([, v]) => v instanceof PDFRef && v.tag === tag)?.[0];
+      const copied = key && previewXObjects?.get(key);
+      if (!(copied instanceof PDFRef)) {
+        path.length = 0;
+        break;
+      }
+      path.push(copied.tag);
+      const sourceForm = sourceDoc.context.lookup(sourceXObjects.get(key));
+      const previewForm = previewDoc.context.lookup(copied);
+      const sourceOwn = sourceDoc.context.lookup(sourceForm?.dict?.get(PDFName.of('Resources')));
+      const previewOwn = previewDoc.context.lookup(previewForm?.dict?.get(PDFName.of('Resources')));
+      if (sourceOwn instanceof PDFDict) sourceResources = sourceOwn;
+      if (previewOwn instanceof PDFDict) previewResources = previewOwn;
+    }
+    if (path.length === span.formPath.length) translated.push({ ...span, formPath: path });
+  }
+  return translated;
 }
 
 /**
