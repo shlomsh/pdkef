@@ -38,10 +38,13 @@ blocked, offline, or unavailable.
   sampling at current traffic. Revisit sampling only after volume makes the
   dashboard materially noisier or creates cost pressure.
 
-Vercel's custom events require Vercel Pro, which the project is not on, so Sign's
+The four tool lifecycle events (`tool_file_accepted`, `tool_operation_started`,
+`tool_result_ready`, `tool_operation_failed`, each with only `{tool}`) are sent to
+Vercel Web Analytics, but the project is on the Hobby plan, which does not record
+custom events, so they are sent and not recorded today. Sign's
 two maintenance events (`sign_form_detection`, `sign_export`) do not use them.
 They go to PDkef's own `/api/report` address, like error reports, and are kept
-as daily counts by browser family for 90 days. The product does not depend on
+as daily counts by browser family and version for 90 days. The product does not depend on
 event delivery.
 
 ## Event vocabulary, version 1
@@ -87,7 +90,7 @@ worker served the page, and roughly how long the page had been open (under 10
 seconds, under a minute, under 10 minutes, or longer). Never the error message,
 anything from a document, a filename, text, an IP address, or an identifier.
 The server keeps daily counts of identical reports, plus the latest full
-example of each distinct error per day with a coarse browser family and major
+example of each distinct error per day with a coarse browser family and
 version (like `ios-26`), in an Upstash Redis database connected through Vercel,
 and deletes them after 90 days. Each distinct report is sent at most once per
 page load, at most 10 per page; nothing is sent offline, and failures are
