@@ -218,7 +218,8 @@ export type RedactAction =
   // Exporting and what follows it
   | { type: 'EXPORT_STARTED'; announcement: string }
   | { type: 'EXPORT_PROGRESS'; progress: number }
-  | { type: 'EXPORT_FINISHED'; saved: SavedExport; announcement: string }
+  | { type: 'EXPORT_SAVED'; saved: SavedExport }
+  | { type: 'EXPORT_DELIVERED'; announcement: string }
   | { type: 'EXPORT_FAILED'; detail: string; announcement: string }
   | { type: 'EXPORT_CANCELLED'; announcement: string }
   | { type: 'EXPORT_ERROR_CLEARED' }
@@ -227,7 +228,7 @@ export type RedactAction =
   | { type: 'HANDOFF_FAILED' }
   | { type: 'FIND_TERM_REMEMBERED'; term: CheckTerm }
   | { type: 'REMOVE_STARTED' }
-  | { type: 'SAVED_EXPORT_REWRITTEN'; saved: SavedExport; note: string }
+  | { type: 'REMOVAL_NOTED'; note: string }
   | { type: 'REMOVE_FAILED'; announcement: string }
   | { type: 'REMOVE_SETTLED' }
   // View
@@ -498,11 +499,14 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
       };
     case 'EXPORT_PROGRESS':
       return state.document.progress === action.progress ? state : withDocument(state, { progress: action.progress });
-    case 'EXPORT_FINISHED':
+    case 'EXPORT_SAVED':
+      // The bytes are kept before they are delivered (download or share), as
+      // they always were: a delivery that throws still leaves them for the hand-off.
+      return withFinish(state, { exportedForHandoff: action.saved });
+    case 'EXPORT_DELIVERED':
       return {
         ...state,
         document: { ...state.document, status: 'editing' },
-        finish: { ...state.finish, exportedForHandoff: action.saved },
         view: { ...state.view, announcement: action.announcement },
       };
     case 'EXPORT_FAILED':
@@ -531,10 +535,10 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
       });
     case 'REMOVE_STARTED':
       return withFinish(state, { removing: true });
-    case 'SAVED_EXPORT_REWRITTEN':
+    case 'REMOVAL_NOTED':
       return {
         ...state,
-        finish: { ...state.finish, exportedForHandoff: action.saved, removedNote: action.note },
+        finish: { ...state.finish, removedNote: action.note },
         view: { ...state.view, announcement: action.note },
       };
     case 'REMOVE_FAILED':

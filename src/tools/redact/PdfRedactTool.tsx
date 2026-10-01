@@ -1,5 +1,4 @@
-import { useState, useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
-import type { PDFDocumentProxy } from 'pdfjs-dist';
+import { useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
@@ -21,7 +20,6 @@ import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
 import BrushControls, { brushStyleOf, resolveBrush, useEyedropper, type BrushSettings } from './BrushControls.tsx';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
-import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
 import usePageSizesPt from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
@@ -45,7 +43,7 @@ import { useTapOutsideDeselect } from './useTapOutsideDeselect.ts';
 import type { FindMatch } from './find/types.ts';
 import type { ActionHistoryEntry } from '../../editor/model/actionHistory.ts';
 import {
-  initialRedactState, redactReducer, brushKindOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
+  initialRedactState, redactReducer, brushKindOf, finishPhaseOf, isDirty, isFullscreenActive as isFullscreenActiveOf,
   canRedo as canRedoOf, restoredNoteVisible,
 } from './state/redactState.ts';
 import { type ElementUpdateKind } from '../../editor/model/updateKind.ts';
@@ -111,14 +109,13 @@ export default function PdfRedactTool() {
   const actionHistory = state.edits.history.past;
   const setAnnouncement = (message: string) => dispatch({ type: 'ANNOUNCED', message });
 
-  const [file, setFile] = useState<File | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(null);
+  const { file, numPages, pdfDocument, sizedPageCount, status, errorDetail, progress, showWelcomeTip } = state.document;
+  const { exportedForHandoff, handoffFailed, findTerms, removing, removedNote } = state.finish;
+
   // A returning person already knows this editor contains saved work. Do not
   // spend the identity row repeating the neutral newcomer tip after that work
   // restores; tool-specific instructions remain available whenever a tool is
   // armed. Manual picks deliberately reset this to the welcoming default.
-  const [showWelcomeTip, setShowWelcomeTip] = useState(true);
   // Draft persistence needs an editor-owned baseline, not a guess based on
   // when a File object first appeared. A load/restoration captures the current
   // revision; every real document operation advances it.
@@ -130,7 +127,6 @@ export default function PdfRedactTool() {
   // redo arriving by keyboard while `.is-processing` blocks the pointer -
   // retires the run in flight.
   const exportRun = useLatestRun(() => [file, documentRevisionRef.current]);
-  const [status, setStatus] = useState('idle'); // idle | loading | editing | redacting | error
   // Read by the invalidation effect below, which fires after the render that
   // already moved status on (a replacement file sets 'loading' in the same
   // batch as `file`), so it must ask what the workspace is showing now.
@@ -139,12 +135,9 @@ export default function PdfRedactTool() {
   // Export errors are recoverable without unmounting the editor - status stays
   // 'editing' and this renders alongside the workspace. A failed document load
   // still uses status='error', which unmounts the workspace (see below).
-  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   // RED-36: an edit retired a running export. Said where it is seen (the
   // status line and the finish row), not only to a screen reader; cleared by
   // the next export or the next file.
-  const [exportCancelled, setExportCancelled] = useState(false);
-  const [progress, setProgress] = useState(0);
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
   const { getPointerPercent } = usePdfCoordinates();
 
@@ -270,9 +263,7 @@ export default function PdfRedactTool() {
   // and handleSavePdf checks its ticket before committing anything, so the
   // hand-off and the Share sheet only ever carry an export of the boxes
   // currently on the page.
-  const [exportedForHandoff, setExportedForHandoff] = useState<{ blob: Blob; name: string } | null>(null);
   const [handoffBusy, setHandoffBusy] = useNavigatingAway();
-  const [handoffFailed, setHandoffFailed] = useState(false);
 
   const workspaceRef = useRef<HTMLDivElement | null>(null);
 
@@ -355,7 +346,6 @@ export default function PdfRedactTool() {
   // This is deliberately Redact-local; Sign's workspace has its own render
   // path and this is not a layout contract shared with Merge.
   const renderedPageNumbersRef = useRef(new Set<number>());
-  const [sizedPageCount, setSizedPageCount] = useState(0);
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
@@ -380,7 +370,7 @@ export default function PdfRedactTool() {
     // correctly accepts a legitimate 300×150 PDF page.
     if (renderedPageNumbersRef.current.has(pageNum)) return;
     renderedPageNumbersRef.current.add(pageNum);
-    setSizedPageCount(renderedPageNumbersRef.current.size);
+    dispatch({ type: 'PAGE_SIZED', sizedPageCount: renderedPageNumbersRef.current.size });
   }, []);
 
   const isFullscreenActive = isFullscreenActiveOf(state);
@@ -396,7 +386,7 @@ export default function PdfRedactTool() {
   // change, so it is cleared alongside usePdfShare's own prepared file.
   useEffect(() => {
     clearPrepared();
-    setExportedForHandoff(null);
+    dispatch({ type: 'SAVED_EXPORT_DISCARDED' });
     // An export still running was started from boxes that no longer exist.
     // Retiring it here rather than in handleSavePdf's own bail is what lets
     // the workspace come back out of `.is-processing`: only this effect knows
@@ -409,10 +399,7 @@ export default function PdfRedactTool() {
     // workspace into 'loading' - saying "editing" over that would show an
     // empty editor for the file still being read.
     if (statusRef.current !== 'redacting') return;
-    setStatus('editing');
-    setProgress(0);
-    setExportCancelled(true);
-    setAnnouncement('You changed something, so that download stopped. Download again when ready.');
+    dispatch({ type: 'EXPORT_CANCELLED', announcement: 'You changed something, so that download stopped. Download again when ready.' });
     // Keyed on the revision, not on `elements`, so this fires on exactly what
     // `exportRun`'s own keys ([file, documentRevisionRef.current]) watch. With
     // two different notions of "the document moved", an edit that bumped the
@@ -425,6 +412,10 @@ export default function PdfRedactTool() {
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
   }, []);
+
+  // loadPdf.ts reports a coarse status; each one is its own transition here.
+  const setLoadStatus = (next: 'loading' | 'editing' | 'error') =>
+    dispatch({ type: next === 'loading' ? 'FILE_LOAD_STARTED' : next === 'editing' ? 'FILE_LOADED' : 'FILE_LOAD_FAILED' });
 
   // Core loader shared by fresh file picks and draft restore. `bytes` is the source
   // PDF's ArrayBuffer; `presetElements` seeds restored redaction boxes.
@@ -444,23 +435,15 @@ export default function PdfRedactTool() {
     // renamed to `type`) and validated - see useEditorDraftPersistence.ts.
     const presetElements = preset.elements || [];
     await loadEditorPdf({
-      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus, setAnnouncement,
+      file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus: setLoadStatus, setAnnouncement,
       initialize: () => {
         renderedPageNumbersRef.current = new Set();
-        setSizedPageCount(0);
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
         // RED-39: a new file starts clean - no tool armed, nothing selected, Find
         // closed with its term. None of that belongs to the file just left.
         find.setOpen(false);
         find.setTerm('');
         find.setPreset(null);
-        setExportCancelled(false);
-        setShowWelcomeTip(!restored);
-        setFile(selected);
-        setPdfDocument(null);
-        setNumPages(0);
-        setErrorDetail(null);
-        setProgress(0);
         // RED-40: a restored document keeps its own colour and strength.
         const brush = resolveBrush(preset.carried, getAppStyle());
         const color = resolveWhiteoutColor(preset.carried, getAppStyle(), getEditorPreference('lastWhiteoutColor'));
@@ -475,8 +458,7 @@ export default function PdfRedactTool() {
       },
       onDocument: (doc, isCurrent) => {
         if (!isCurrent()) return;
-        setPdfDocument(doc);
-        setNumPages(doc.numPages);
+        dispatch({ type: 'DOCUMENT_READY', pdfDocument: doc, numPages: doc.numPages });
         void cacheRecentFile('redact', {
           fileName: selected.name,
           fileType: selected.type || 'application/pdf',
@@ -700,13 +682,11 @@ export default function PdfRedactTool() {
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
-  const [findTerms, setFindTerms] = useState<CheckTerm[]>([]);
-  useEffect(() => { setFindTerms([]); }, [pdfDocument]);
   const rememberFindTerm = () => {
     const term: CheckTerm | null = find.preset
       ? { label: PRESET_LABELS[find.preset], source: 'find', finder: PRESET_FINDERS[find.preset] }
       : (find.term.trim() ? { label: find.term.trim(), source: 'find', finder: termFinder(find.term.trim()) } : null);
-    if (term) setFindTerms((terms) => [...terms.filter((known) => known.label !== term.label), term]);
+    if (term) dispatch({ type: 'FIND_TERM_REMEMBERED', term });
   };
   const redactMatches = (matches: FindMatch[]) => {
     if (matches.length === 0) return;
@@ -757,37 +737,32 @@ export default function PdfRedactTool() {
   // RED-25: Remove it. Bytes in, bytes out (check/removePlace.ts); the new
   // file replaces the saved one under the same name, downloads again, and the
   // saved-file check re-runs on it because `exportedForHandoff` changed.
-  const [removing, setRemoving] = useState(false);
-  const [removedNote, setRemovedNote] = useState<string | null>(null);
   const removeFromCheck = async (finding: InPlaceFinding) => {
     if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
     const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
     if (!place) return;
     const { blob, name } = exportedForHandoff;
-    setRemoving(true);
+    dispatch({ type: 'REMOVE_STARTED' });
     try {
       const { removePlace, PlaceNotFoundError } = await import('./check/removePlace.ts');
       try {
         const bytes = await removePlace(new Uint8Array(await blob.arrayBuffer()), place);
         const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
         clearPrepared();
-        setExportedForHandoff({ blob: next, name });
+        dispatch({ type: 'EXPORT_SAVED', saved: { blob: next, name } });
         download(next, name);
-        setRemovedNote(removedMessage(place));
-        setAnnouncement(removedMessage(place));
+        dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
         if (!(error instanceof PlaceNotFoundError)) throw error;
         // Nothing changed; a fresh blob object makes the check read it again.
-        setExportedForHandoff({ blob: new Blob([blob], { type: blob.type }), name });
-        setRemovedNote(ALREADY_GONE);
-        setAnnouncement(ALREADY_GONE);
+        dispatch({ type: 'EXPORT_SAVED', saved: { blob: new Blob([blob], { type: blob.type }), name } });
+        dispatch({ type: 'REMOVAL_NOTED', note: ALREADY_GONE });
       }
     } catch (error) {
       console.error(error);
-      setRemovedNote(null);
-      setAnnouncement("I couldn't remove that. Your saved file is unchanged.");
+      dispatch({ type: 'REMOVE_FAILED', announcement: "I couldn't remove that. Your saved file is unchanged." });
     } finally {
-      setRemoving(false);
+      dispatch({ type: 'REMOVE_SETTLED' });
     }
   };
 
@@ -798,15 +773,11 @@ export default function PdfRedactTool() {
       return;
     }
 
-    setErrorDetail(null);
-    setRemovedNote(null);
-    setExportCancelled(false);
-    setStatus('redacting');
-    setProgress(0);
     const hasBoxes = elements.some((el) => el.type !== 'delete');
-    setAnnouncement(
-      hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
-    );
+    dispatch({
+      type: 'EXPORT_STARTED',
+      announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
+    });
 
     // DEBT-18: everything this run is an export *of*, captured before the
     // first await. `sourceFile` is used below instead of `file` so the name
@@ -823,22 +794,20 @@ export default function PdfRedactTool() {
       // "try again". Repeat exports reuse the module registry's copy.
       const { applyPageEdits } = await import('../../editor/adapters/pdf/applyPageEdits.js');
       const { blob: redactedBlob } = await applyPageEdits(sourceFile, elements, (p) => {
-        if (run.isCurrent()) setProgress(p);
+        if (run.isCurrent()) dispatch({ type: 'EXPORT_PROGRESS', progress: p });
       });
       if (!run.isCurrent()) return;
       run.settle();
       const filename = redactedFileName(sourceFile.name);
       // Finding #4: a successful export (either export path - Download or
       // Share - counts) is what unlocks the "Compress" hand-off below.
-      setExportedForHandoff({ blob: redactedBlob, name: filename });
+      dispatch({ type: 'EXPORT_SAVED', saved: { blob: redactedBlob, name: filename } });
 
       if (exportAction === 'share' && prepare(redactedBlob, filename)) {
-        setStatus('editing');
-        setAnnouncement('Your redacted PDF is ready to share.');
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
       } else {
         download(redactedBlob, filename);
-        setStatus('editing');
-        setAnnouncement('Saved. Download started.');
+        dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
       }
     } catch (err) {
       console.error(err);
@@ -851,10 +820,8 @@ export default function PdfRedactTool() {
       // failure are still there to fix, instead of unmounting the editor
       // behind a dead-end error screen (status='error' is reserved for a
       // failed document load, which never gets this far).
-      setStatus('editing');
       const detail = 'Could not export the PDF. Your edits are still here. Try again.';
-      setErrorDetail(detail);
-      setAnnouncement(`The download stopped. ${detail}`);
+      dispatch({ type: 'EXPORT_FAILED', detail, announcement: `The download stopped. ${detail}` });
     }
   };
 
@@ -863,7 +830,7 @@ export default function PdfRedactTool() {
   // automatically by the effect above whenever file/elements change, so this
   // never serves a stale export). Mirrors PdfSignTool's handleDownloadPdf.
   const handleDownloadPdf = () => {
-    setErrorDetail(null);
+    dispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (downloadPrepared()) {
       setAnnouncement('Download started.');
       return;
@@ -894,7 +861,7 @@ export default function PdfRedactTool() {
   const requestHandoff = async (tool: 'compress' | 'sign') => {
     if (handoffBusy || !exportedForHandoff) return;
     setHandoffBusy(true);
-    setHandoffFailed(false);
+    dispatch({ type: 'HANDOFF_STARTED' });
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
       const saved = await saveHandoff(tool, {
@@ -906,7 +873,7 @@ export default function PdfRedactTool() {
       window.location.href = `/${tool}/`;
     } catch (err) {
       console.error(err);
-      setHandoffFailed(true);
+      dispatch({ type: 'HANDOFF_FAILED' });
       setHandoffBusy(false);
     }
   };
@@ -914,11 +881,7 @@ export default function PdfRedactTool() {
   // RED-36: everything the finish row and the status line say, from state
   // that already exists. A page with any box is saved as a picture; a page
   // with only deletions keeps its text (applyPageEdits.js).
-  const finishPhase: FinishPhase = status === 'redacting' ? 'exporting'
-    : exportedForHandoff ? 'saved'
-    : exportCancelled ? 'cancelled'
-    : elements.length === 0 ? 'empty'
-    : 'ready';
+  const finishPhase: FinishPhase = finishPhaseOf(state);
   const finishFacts: FinishFacts = {
     phase: finishPhase,
     progress,

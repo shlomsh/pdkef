@@ -58,8 +58,7 @@ describe('initialRedactState', () => {
 describe('loading a file', () => {
   it('FILE_INITIALIZED sets the file and the document-owned settings, and starts clean', () => {
     let s = run(fresh(), { type: 'TOOL_ARMED', tool: 'blur', locked: false }, { type: 'BOX_SELECTED', id: 'b' });
-    s = redactReducer(s, { type: 'EXPORT_FINISHED', saved: { blob, name: 'x' }, announcement: 'ok' });
-    s = redactReducer(s, { type: 'EXPORT_CANCELLED', announcement: 'c' });
+    s = run(s, { type: 'EXPORT_SAVED', saved: { blob, name: 'x' } }, { type: 'EXPORT_CANCELLED', announcement: 'c' });
     s = redactReducer(s, { type: 'FIND_TERM_REMEMBERED', term: { label: 't', source: 'find', finder: (() => []) as never } });
     const el = box('r1');
     s = load(s, {
@@ -359,7 +358,7 @@ describe('selection', () => {
 describe('exporting', () => {
   it('EXPORT_STARTED enters the redacting status with a clean slate and announces', () => {
     let s = redactReducer(fresh(), { type: 'EXPORT_FAILED', detail: 'bad', announcement: 'x' });
-    s = run(s, { type: 'EXPORT_CANCELLED', announcement: 'c' }, { type: 'SAVED_EXPORT_REWRITTEN', saved: { blob, name: 'n' }, note: 'gone' });
+    s = run(s, { type: 'EXPORT_CANCELLED', announcement: 'c' }, { type: 'REMOVAL_NOTED', note: 'gone' });
     s = redactReducer(s, { type: 'EXPORT_STARTED', announcement: 'Saving…' });
     expect(s.document).toMatchObject({ status: 'redacting', errorDetail: null, exportCancelled: false, progress: 0 });
     expect(s.finish.removedNote).toBeNull();
@@ -372,11 +371,16 @@ describe('exporting', () => {
     expect(redactReducer(s, { type: 'EXPORT_PROGRESS', progress: 0.5 })).toBe(s);
   });
 
-  it('EXPORT_FINISHED keeps the saved bytes for the hand-off, returns to editing and announces', () => {
+  it('EXPORT_SAVED keeps the bytes for the hand-off before they are delivered, leaving the status alone', () => {
     const saved = { blob, name: 'redacted_a.pdf' };
-    const s = run(fresh(), { type: 'EXPORT_STARTED', announcement: 'x' }, { type: 'EXPORT_FINISHED', saved, announcement: 'Saved. Download started.' });
-    expect(s.document.status).toBe('editing');
+    const s = run(fresh(), { type: 'EXPORT_STARTED', announcement: 'x' }, { type: 'EXPORT_SAVED', saved });
     expect(s.finish.exportedForHandoff).toBe(saved);
+    expect(s.document.status).toBe('redacting');
+  });
+
+  it('EXPORT_DELIVERED returns to editing and announces', () => {
+    const s = run(fresh(), { type: 'EXPORT_STARTED', announcement: 'x' }, { type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
+    expect(s.document.status).toBe('editing');
     expect(s.view.announcement).toBe('Saved. Download started.');
   });
 
@@ -400,7 +404,7 @@ describe('exporting', () => {
   });
 
   it('SAVED_EXPORT_DISCARDED forgets the saved bytes; a no-op without any', () => {
-    const saved = redactReducer(fresh(), { type: 'EXPORT_FINISHED', saved: { blob, name: 'n' }, announcement: 'x' });
+    const saved = redactReducer(fresh(), { type: 'EXPORT_SAVED', saved: { blob, name: 'n' } });
     expect(redactReducer(saved, { type: 'SAVED_EXPORT_DISCARDED' }).finish.exportedForHandoff).toBeNull();
     const s = fresh();
     expect(redactReducer(s, { type: 'SAVED_EXPORT_DISCARDED' })).toBe(s);
@@ -430,16 +434,21 @@ describe('the hand-off, Find terms and Remove it', () => {
     expect(redactReducer(started, { type: 'REMOVE_SETTLED' }).finish.removing).toBe(false);
   });
 
-  it('SAVED_EXPORT_REWRITTEN replaces the saved file, keeps the note and announces the same words', () => {
-    const next = { blob, name: 'n.pdf' };
-    const s = redactReducer(fresh(), { type: 'SAVED_EXPORT_REWRITTEN', saved: next, note: 'Removed it.' });
+  it('EXPORT_SAVED also replaces the saved file after a removal', () => {
+    const first = { blob, name: 'n.pdf' };
+    const next = { blob: new Blob(['z']), name: 'n.pdf' };
+    const s = run(fresh(), { type: 'EXPORT_SAVED', saved: first }, { type: 'EXPORT_SAVED', saved: next });
     expect(s.finish.exportedForHandoff).toBe(next);
+  });
+
+  it('REMOVAL_NOTED shows the note and announces the same words', () => {
+    const s = redactReducer(fresh(), { type: 'REMOVAL_NOTED', note: 'Removed it.' });
     expect(s.finish.removedNote).toBe('Removed it.');
     expect(s.view.announcement).toBe('Removed it.');
   });
 
   it('REMOVE_FAILED clears the note and announces why', () => {
-    const s = run(fresh(), { type: 'SAVED_EXPORT_REWRITTEN', saved: { blob, name: 'n' }, note: 'x' }, { type: 'REMOVE_FAILED', announcement: "I couldn't remove that." });
+    const s = run(fresh(), { type: 'REMOVAL_NOTED', note: 'x' }, { type: 'REMOVE_FAILED', announcement: "I couldn't remove that." });
     expect(s.finish.removedNote).toBeNull();
     expect(s.view.announcement).toBe("I couldn't remove that.");
   });
@@ -484,7 +493,7 @@ describe('selectors', () => {
     expect(finishPhaseOf(withBox)).toBe('ready');
     expect(finishPhaseOf(run(withBox, { type: 'EXPORT_CANCELLED', announcement: 'c' }))).toBe('cancelled');
     expect(finishPhaseOf(run(withBox, { type: 'EXPORT_STARTED', announcement: 's' }))).toBe('exporting');
-    const saved = run(withBox, { type: 'EXPORT_FINISHED', saved: { blob, name: 'n' }, announcement: 'a' });
+    const saved = run(withBox, { type: 'EXPORT_SAVED', saved: { blob, name: 'n' } });
     expect(finishPhaseOf(saved)).toBe('saved');
     expect(finishPhaseOf(run(saved, { type: 'EXPORT_CANCELLED', announcement: 'c' }))).toBe('saved');
   });
