@@ -236,3 +236,95 @@ test('offline, a single tab keeps the old build until it is back online', async 
   await tab.reload();
   await expect.poll(() => buildOf(tab), { timeout: 15_000 }).toBe('new');
 });
+
+// MEM-13: a build that bumps CRITICAL_VERSION does not wait for a navigation or
+// for a file open in a draftless tool. The test never navigates: discovery is
+// what a real tab does (registration.update() on visible, online and hourly),
+// and the rest is the worker asking every tab, then taking over.
+
+// Records, from outside the page, every moment the line is shown in its critical
+// state. The binding survives the reload that follows, which a page-side flag
+// would not, and the reload lands too soon after the line to poll for it.
+async function watchCriticalLine(page, seen) {
+  await page.exposeFunction('__pdkefCriticalSeen', () => { seen.add(page); });
+  await page.evaluate(() => {
+    const el = document.querySelector('[data-app-update]');
+    const report = () => {
+      if (!el.hidden && el.dataset.appUpdateState === 'critical') window.__pdkefCriticalSeen();
+    };
+    new MutationObserver(report).observe(el, { attributes: true, attributeFilter: ['hidden', 'data-app-update-state'] });
+    report();
+  });
+}
+
+const controlledBy = (page) => page.evaluate(() => navigator.serviceWorker.controller?.scriptURL ?? null);
+const navigationsOf = (page) => {
+  const counter = { count: 0 };
+  page.on('framenavigated', (frame) => { if (frame === page.mainFrame()) counter.count += 1; });
+  return counter;
+};
+
+async function twoTabsOneHoldingCompress() {
+  const busy = await context.newPage();
+  await openWithFile(busy, '/compress/', await makePdfBuffer('critical e2e'));
+  await expect(busy.getByRole('button', { name: 'Compress PDF' })).toBeVisible();
+  const other = await context.newPage();
+  await other.goto('/merge/');
+  await waitControlled(busy);
+  await waitControlled(other);
+  return [busy, other];
+}
+
+test('a critical build reaches two tabs with no navigation, even past a file open in Compress', async () => {
+  const [busy, other] = await twoTabsOneHoldingCompress();
+  const seen = new Set();
+  for (const tab of [busy, other]) await watchCriticalLine(tab, seen);
+  const navigations = [navigationsOf(busy), navigationsOf(other)];
+
+  server.setPhase('critical');
+  await checkForUpdate(other);
+
+  // The ordinary build above would leave the busy tab silent and untouched;
+  // the critical one shows the force line in both.
+  await expect.poll(() => seen.size, { timeout: 20_000 }).toBe(2);
+
+  // Both reload on the worker's controllerchange; nobody navigated them.
+  for (const tab of [busy, other]) {
+    await expect.poll(() => buildOf(tab), { timeout: 30_000 }).toBe('critical');
+    await waitForController(tab);
+  }
+  expect(navigations.map((n) => n.count)).toEqual([1, 1]);
+  expect(await controlledBy(busy)).toBe(await controlledBy(other));
+  const keys = await ownCaches(other);
+  expect(keys).toEqual([expect.stringMatching(/^pdkef-c1-.*e2e$/)]);
+});
+
+test('offline, a critical build does nothing and shows nothing until back online', async () => {
+  const [busy, other] = await twoTabsOneHoldingCompress();
+  const seen = new Set();
+  for (const tab of [busy, other]) await watchCriticalLine(tab, seen);
+  const navigations = [navigationsOf(busy), navigationsOf(other)];
+  const before = await controlledBy(other);
+
+  server.setPhase('critical');
+  await context.setOffline(true);
+  // A tab's discovery fails quietly offline (the page swallows it); the test's
+  // own call rejects, which is the same failure.
+  await checkForUpdate(other).catch(() => {});
+  await other.waitForTimeout(4000);
+  expect(seen.size).toBe(0);
+  for (const tab of [busy, other]) await expect(line(tab)).toBeHidden();
+  expect(navigations.map((n) => n.count)).toEqual([0, 0]);
+  expect(await controlledBy(other)).toBe(before);
+  for (const tab of [busy, other]) expect(await buildOf(tab)).toBe('old');
+
+  // Back online the tabs find the build on their own (the online event); no
+  // call from the test and no navigation.
+  await context.setOffline(false);
+  for (const tab of [busy, other]) {
+    await expect.poll(() => buildOf(tab), { timeout: 30_000 }).toBe('critical');
+    await waitForController(tab);
+  }
+  expect(seen.size).toBe(2);
+  expect(await ownCaches(other)).toEqual([expect.stringMatching(/^pdkef-c1-.*e2e$/)]);
+});
