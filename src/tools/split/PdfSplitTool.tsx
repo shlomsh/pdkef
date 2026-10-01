@@ -10,6 +10,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
@@ -96,6 +97,9 @@ export default function PdfSplitTool({
   const handoffRun = useLatestRun();
   /** A tap on the element while it was still preparing: deliver on ready. */
   const pendingTap = useRef(false);
+  // Hold only once the person has tapped Download while the build is still preparing
+  // (the tap sets `announcement`, so this re-evaluates); an untapped prepare is speculative.
+  useHoldUpdate(status === 'preparing' && pendingTap.current);
   const outputsRef = useRef<OutputFile[]>([]);
   outputsRef.current = outputs;
 

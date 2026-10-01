@@ -22,6 +22,7 @@ import { sortByDate, sortByName } from '../../lib/sort.js';
 import { renderThumbnail } from '../../lib/thumbnails.js';
 import { formatFileSize } from '../../lib/format.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { isIOSDevice } from '../../lib/platform.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
@@ -352,6 +353,8 @@ export default function PdfMergeTool({
      what Merge used to mean; pre-merges are not counted. See ANALYTICS.md. */
   const [tap, setTap] = useState<'idle' | 'merging' | 'done'>('idle');
   const [pendingDownload, setPendingDownload] = useState(false);
+  // Only the person's Download tap, not usePreparedMerge's speculative build.
+  useHoldUpdate(tap === 'merging');
   const [downloadedOnce, setDownloadedOnce] = useState(false);
   const { shareReady, prepare, clearPrepared, sharePrepared, download } = usePdfShare();
   const listRef = useRef<HTMLUListElement | null>(null);
