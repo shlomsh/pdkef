@@ -45,8 +45,8 @@ Done 2026-10-01 on branch `red15-wave2`. Find boxes a match on the page's own gl
   glyphs per line (`find/glyphBoxes.ts`): the ink band (-0.25 to 0.9 em) plus 1 pt, drawn back from any
   neighbouring glyph core it would touch, never below the matched glyphs' own cores. The draw-back is
   needed because the forms set lines 1.04 ems apart: no fixed height both covers descenders and accents and
-  stays off the lines above and below (fixed bands of -0.25..0.9 em left 24 to 66% of words touching a
-  neighbour on these forms).
+  stays off the lines above and below (a fixed -0.25..0.9 em band still touched a neighbouring core for 4 to 65% of words on
+  these forms).
 - **Wiring.** `usePageTexts.ts` reads each page's glyphs (`readGlyphs`) beside its text items, within a
   400k-glyph memory budget (later pages fall back to the estimate); `runCheck.ts` does the same so the
   check's "cover this repeat" boxes are exact too. `SearchablePage` gains optional `glyphs`;
@@ -67,10 +67,9 @@ scored it; PDFium itself is not installed in this tree):
 | Health declaration, Hebrew (629) | 1.4% / 0% | 77.6% / 0% | 0.11 / 0.53 / 0.80 | 0.10 / 0.11 / 0.11 |
 | Hebrew lines (5) | 20% / 0% | 20% / 0% | n/a | n/a |
 
-Before, 8 to 16% of edges stopped short of their letters (negative overshoot, down to -2.4 em); after, no
+Before, 2.5 to 17% of edges stopped short of their letters (negative overshoot, down to -2.4 em); after, no
 edge is short of a core (the 25 edges under 0 sit inside a side bearing, where a neighbour's core stops
 the pad). The corpus test (`find/glyphBoxes.corpus.test.js`, under 1 s) boxes every word on the five pages
 and requires the cores a box reaches to be exactly its own word's letters and each wholly inside; it also
-checks that all but 1% of items map to glyphs (one rotated "Form" label and one underscore-run item fall
-back to the estimate) and that the estimate fails the same check (so it is not vacuous). Boxing "לביטחון"
+checks that all but 1% of items map to glyphs (a rotated "Form" label falls back to the estimate) and that the estimate fails the same check (so it is not vacuous). Boxing "לביטחון"
 from Find now reaches only that word; "המשרד" and "לאומי" stay.
