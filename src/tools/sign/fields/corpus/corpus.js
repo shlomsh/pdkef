@@ -589,6 +589,14 @@ const PRINTED = [
   },
 ];
 
+/** Ten drawn cells, two rows of five 72pt boxes (wide enough that the ink pass reads cells, not a comb). */
+const TWO_ROWS_OF_FIVE = [
+  { ink: 'cellRow', x: 20, y: 200, width: 360, height: 20, columns: 5 },
+  { ink: 'cellRow', x: 20, y: 240, width: 360, height: 20, columns: 5 },
+];
+/** A widget rectangle exactly over each of those ten cells, in the order a row of five is read. */
+const WIRED_BOXES = [200, 240].flatMap((y) => Array.from({ length: 5 }, (_, index) => ({ x: 20 + index * 72, y, width: 72, height: 20 })));
+
 /** Both sources describing one field, which is what a real fillable form is. */
 const HYBRID = [
   {
@@ -641,6 +649,40 @@ const HYBRID = [
       widgets: [{ widget: 'checkbox', x: 74, y: 204, width: 12, height: 12 }],
     },
     expect: { ...none, cells: 2, checkboxes: 1 },
+  },
+  {
+    name: 'a wired page with one drawn box no widget touches',
+    why: 'FORM-15: ten drawn cells in two rows of five, nine with a widget on them. The page is wired '
+      + '(90%), so the tenth is a box the form leaves blank on purpose and is not offered; the nine '
+      + 'widgets are reported once each',
+    doc: {
+      ink: TWO_ROWS_OF_FIVE,
+      widgets: WIRED_BOXES.slice(0, 9).map((box) => ({ widget: 'text', ...box })),
+    },
+    expect: { ...none, cells: 9 },
+  },
+  {
+    name: 'a page where widgets wire only some of the drawn boxes',
+    why: 'FORM-15: the same row with widgets on four of five cells is 80% wired, under the line, '
+      + 'so the form has not said the fifth is blank and it stays offered alongside the four widgets',
+    doc: {
+      ink: [{ ink: 'cellRow', x: 20, y: 200, width: 360, height: 20, columns: 5 }],
+      widgets: Array.from({ length: 4 }, (_, index) => ({ widget: 'text', x: 20 + index * 72, y: 200, width: 72, height: 20 })),
+    },
+    expect: { ...none, cells: 5 },
+  },
+  {
+    name: 'a dropdown over a drawn box on a wired page',
+    why: 'FORM-15: a /Ch widget wires the box under it just as a text field does (the I-9 State list). '
+      + 'Counting only /Tx would drop it with the one genuinely unwired box',
+    doc: {
+      ink: TWO_ROWS_OF_FIVE,
+      widgets: [
+        ...WIRED_BOXES.slice(0, 8).map((box) => ({ widget: 'text', ...box })),
+        { widget: 'dropdown', ...WIRED_BOXES[8] },
+      ],
+    },
+    expect: { ...none, cells: 9 },
   },
   {
     name: 'a widget and printed ink in different places',

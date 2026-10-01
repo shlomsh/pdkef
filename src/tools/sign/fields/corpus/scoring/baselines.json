@@ -182,12 +182,12 @@
     "irs-1040-2024": {
       "pdf": "src/tools/sign/fields/corpus/scoring/forms/irs-1040-2024.pdf",
       "truth": "src/tools/sign/fields/corpus/scoring/ground-truth/irs-1040-2024-page1.json",
-      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 100% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page. FORM-12 (2026-09-22): the page body is one 492x666pt unstroked fill, and its left side at x=91.6 was read as a wall that split every field it crossed. Treating a filled, unstroked panel taller and wider than any row as background, not ink, found t004 (the one miss, which had fallen under IoU 0.5) and removed 4 false positives. It added one: the line 6c amount box, closed on all four sides but not in the truth, so 2 false positives remain, both printed-geometry cells the widgets do not corroborate. A drop here means the widget pass broke. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged.",
+      "note": "The first live AcroForm among the real scored forms, and 88 answer locations on one page rather than our practice form's nine. Read 100% the way the practice form's 88.9% is read: the truth is derived from the same widgets formWidgets.js reads, so a high recall here is structural, not earned. What it actually measures is the ink pass alongside the widget pass on a crowded page. FORM-12 (2026-09-22): the page body is one 492x666pt unstroked fill, and its left side at x=91.6 was read as a wall that split every field it crossed. Treating a filled, unstroked panel taller and wider than any row as background, not ink, found t004 (the one miss, which had fallen under IoU 0.5) and removed 4 false positives. It added one: the line 6c amount box, closed on all four sides but not in the truth, so 2 false positives remain, both printed-geometry cells the widgets do not corroborate. A drop here means the widget pass broke. FORM-21 (2026-09-25): byKind now also records precision per kind, read from the candidate side - of the N candidates the detector itself called a kind, how many matched a target - migrated with no detection change, so every number holds exactly. That reading surfaces `table-cell` as a kind with candidates but no targets on this form, so its recall is null (nothing to hold) and only its precision is meaningful. FORM-21 review (2026-09-25): re-recorded again to add the exact raw integer counts (targets/candidates/matched per form; targets/found for recall and candidates/matchedCandidates for precision per kind) that scoring.test.js now asserts exactly - no detection change, and every percentage above is unchanged. FORM-15 (2026-10-01): a drawn cell that no widget touches is dropped when at least 90% of the page's drawn cells are wired to one (here 66 of 68), which removes the line 1i and line 6c boxes: candidates 90 to 88, precision 97.8 to 100, recall unchanged. No other scored form moves. The 100% is partly structural, as the recall is: the truth comes from the same widgets the rule reads.",
       "targets": 88,
-      "candidates": 90,
+      "candidates": 88,
       "matched": 88,
       "recall": 100,
-      "precision": 97.8,
+      "precision": 100,
       "byKind": {
         "text": {
           "recall": 100,
@@ -217,8 +217,8 @@
           "recall": null,
           "targets": 0,
           "found": 0,
-          "precision": 94.7,
-          "candidates": 38,
+          "precision": 100,
+          "candidates": 36,
           "matchedCandidates": 36
         }
       },
