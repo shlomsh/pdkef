@@ -889,7 +889,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         console.error(err);
         return;
       }
-      reportError('sign_export', err);
+      reportError('sign_export', err, 'export');
       reportMaintenanceEvent(signExportFailed(performance.now() - exportStartedAt, err), telemetryTransport);
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);

@@ -224,7 +224,7 @@ export default function PdfCompressTool({
       setCompareStatus('idle');
     } catch (err) {
       if (runToken !== runTokenRef.current) return;
-      reportError('pdf_render', err);
+      reportError('pdf_render', err, 'render_compare_preview');
       console.error(err);
       setCompareStatus('error');
     }
@@ -365,7 +365,7 @@ export default function PdfCompressTool({
         openCompare();
       }
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'compress');
       console.error(err);
       if (runToken !== runTokenRef.current) return;
       setStatus('error');

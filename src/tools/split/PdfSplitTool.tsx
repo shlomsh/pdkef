@@ -185,7 +185,7 @@ export default function PdfSplitTool({
         setStatus('ready');
       } catch (err) {
         if (prepareSeq.current !== seq) return;
-        reportError('pdf_tool_run', err);
+        reportError('pdf_tool_run', err, 'prepare_split');
         console.error(err);
         setStatus('error');
         setAnnouncement('Could not prepare the split PDF.');
@@ -272,7 +272,7 @@ export default function PdfSplitTool({
           );
         } catch (err) {
           // A run that lost its file had its document destroyed under it.
-          if (run.isCurrent()) reportError('pdf_render', err);
+          if (run.isCurrent()) reportError('pdf_render', err, 'render_thumbnail');
           console.error(`Error rendering thumbnail for page ${i}:`, err);
         }
       }
@@ -281,7 +281,7 @@ export default function PdfSplitTool({
     } catch (err) {
       console.error('Error loading PDF document:', err);
       if (!run.isCurrent()) return;
-      reportError('pdf_render', err);
+      reportError('pdf_render', err, 'load_document');
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     } finally {

@@ -200,7 +200,7 @@ export default function useDeletePreviews(
         });
         keysRef.current = nextKeys;
       } catch (err) {
-        reportError('redact', err);
+        reportError('redact', err, 'render_delete_preview');
         // Same fallback as the rest of Delete: an unreadable preview just
         // means that page keeps showing the (still correct, if less exact)
         // original render, not a broken editor.

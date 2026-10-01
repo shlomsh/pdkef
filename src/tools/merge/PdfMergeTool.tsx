@@ -554,7 +554,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/MergeDraftPersistence.tsx')
       .then((module) => { if (!cancelled) setDraftPersistence(() => module.default); })
-      .catch((err) => { reportError('chunk_load', err); if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
+      .catch((err) => { reportError('chunk_load', err, 'import_draft_persistence'); if (!cancelled) setDraftState((current) => ({ ...current, isRestoring: false })); });
     return () => { cancelled = true; };
   }, []);
 
@@ -583,7 +583,7 @@ export default function PdfMergeTool({
     let cancelled = false;
     import('./components/PageStrip.tsx')
       .then((module) => { if (!cancelled) setPageStrip(() => module.default); })
-      .catch((err) => { reportError('chunk_load', err); });
+      .catch((err) => { reportError('chunk_load', err, 'import_page_strip'); });
     return () => { cancelled = true; };
   }, [entries.length > 0, PageStrip]);
 

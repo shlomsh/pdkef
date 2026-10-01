@@ -167,7 +167,7 @@ export default function PdfImageToPdfTool() {
       setStatus('done');
       setAnnouncement('Your PDF is ready.');
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'build_pdf_from_images');
       console.error(err);
       setStatus('error');
       setAnnouncement('Conversion failed.');
