@@ -1208,6 +1208,7 @@ export default function PdfMergeTool({
       // shell copy, not a change to what Split/ImageToPdf/ToImage show.
       shellMessages={{ ...shellMessages, dropToAddMore: t.dropAnywhereNote }}
       emptyVariant="band"
+      showCloudDriveHint
       emptyBandHeading={t.emptyHeading}
       emptyBandBody={t.emptyBody}
       checkingDraft={!hasFiles && draftState.isRestoring}

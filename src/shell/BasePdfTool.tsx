@@ -63,6 +63,7 @@ interface BasePdfToolProps {
    * actual notice on a mount-effect iOS check; this only says the tool is
    * allowed to show it. */
   showIosFilesHint?: boolean;
+  showCloudDriveHint?: boolean;
   /** MERGE-06: while true the card renders `data-fill-viewport` and, at
    * desktop widths, the empty-state dropzone grows to fill the first screen
    * (ToolPageLayout.astro's `.tool-stage` rule). A tool passes it only while
@@ -137,6 +138,7 @@ export default function BasePdfTool({
   compact = false,
   shellMessages,
   showIosFilesHint = false,
+  showCloudDriveHint = false,
   fillViewport = false,
   emptyVariant = 'default',
   emptyBandHeading,
@@ -364,6 +366,7 @@ export default function BasePdfTool({
             compact={compact}
             messages={sm}
             showIosFilesHint={showIosFilesHint}
+            showCloudDriveHint={showCloudDriveHint}
             variant={emptyVariant}
             bandHeading={emptyBandHeading}
             bandBody={emptyBandBody}

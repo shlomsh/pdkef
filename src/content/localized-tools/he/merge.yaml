@@ -13,15 +13,12 @@ status: 'published'
 reviewer: 'Shlomi Shemesh'
 reviewedAt: '2026-09-17'
 reviewNotes: >-
-  2026-09-11: approved for publish. 09-12: English gained combine (SEO-35),
-  Hebrew unchanged, re-approved. 09-13: English subhead, steps 2-3 and a
-  drafts FAQ rewritten (MERGE-05/09/12/13); Hebrew step 3 and that FAQ answer
-  are AI drafts pending Shlomi's review. 09-17: איחוד leads everywhere on
-  Shlomi's native read, מיזוג stays as the synonym. 09-19: English h1 dropped
-  "In Your Browser", subhead gained the shared closer, description and upload
-  FAQ reworded (SEO-36); Hebrew unchanged, pending review; sourceHash
-  refreshed mechanically.
-sourceHash: 'fnv1a64:06bea1a1a2e622eb'
+  2026-09-11: approved for publish; re-approved 09-12. 09-13: Hebrew step 3
+  and drafts FAQ are AI drafts. 09-17: איחוד leads on Shlomi's native read,
+  מיזוג stays as the synonym. 09-19: English h1, subhead and FAQ reworded
+  (SEO-36), hash refreshed. 10-01: English gained the Drive, Dropbox and
+  iCloud FAQ (MERGE-18); its Hebrew answer is an AI draft pending review.
+sourceHash: 'fnv1a64:169d71efa5638bb9'
 seoTitle: 'איחוד ומיזוג קבצי PDF בחינם - ישירות בדפדפן, בלי העלאה | PDkef'
 seoDescription: >-
   אחדו ומזגו קבצי PDF לקובץ אחד, בחינם ובלי הגבלה. גררו לסדר הרצוי, הוסיפו
@@ -71,6 +68,14 @@ faq:
     answer: >-
       כן, זה אחד השימושים הנפוצים. הוסיפו כל עמוד סרוק או דוח PDF, סדרו
       אותם, ואחדו לקובץ אחד לדוח הוצאות, לתיק עבודות או לספר.
+  - question: 'אפשר להוסיף קבצי PDF מ-Google Drive, Dropbox או iCloud?'
+    answer: >-
+      כן, דרך בוחר הקבצים של המכשיר עצמו, כך ש-PDkef לא מתחבר לשירותים האלה.
+      באנדרואיד לחצו על בחירת קבצים ובחרו Google Drive מהרשימה, לצד "הורדות".
+      באייפון או באייפד פתחו את בחירת קבצים ואז עיון, וה-Drive, ה-Dropbox או
+      ה-iCloud Drive שלכם יופיעו ברגע שהאפליקציה שלהם מותקנת. במק או במחשב
+      Windows התקינו את אפליקציית Drive, Dropbox או OneDrive לשולחן העבודה, והתיקייה
+      שלה תופיע בבוחר הקבצים כמו כל תיקייה אחרת.
   - question: 'מה קורה לקבצים שלי אם סוגרים את הלשונית באמצע?'
     answer: >-
       שום דבר לא הולך לאיבוד. תוך כדי הוספת קבצים, שינוי סדר, סיבוב או דילוג

@@ -3,7 +3,7 @@ import { dropHasDirectory, filesFromDataTransfer } from './dropFiles.js';
 import type { Ref } from 'preact';
 import styles from './Dropzone.module.css';
 import { englishShellMessages, type ShellMessages } from '../i18n/toolMessages';
-import { isIOSDevice } from '../lib/platform.ts';
+import { isAndroidDevice, isIOSDevice } from '../lib/platform.ts';
 
 interface DropzoneEmptyStateProps {
   multiple?: boolean;
@@ -18,6 +18,8 @@ interface DropzoneEmptyStateProps {
    * still depends on the mount-effect iOS check below - this only says
    * "this tool is allowed to show it at all". */
   showIosFilesHint?: boolean;
+  /** MERGE-18: opt-in. Phones only (iOS or Android), same mount-effect rule. */
+  showCloudDriveHint?: boolean;
   /** Shlomi's follow-up (2026-09-13, Merge only): 'band' renders the
    * ghost-pages graphic and the two band-copy lines below, alongside the
    * default markup - `[data-variant="band"]` in Dropzone.module.css is what
@@ -38,6 +40,7 @@ export default function DropzoneEmptyState({
   compact = false,
   messages = englishShellMessages,
   showIosFilesHint = false,
+  showCloudDriveHint = false,
   variant = 'default',
   bandHeading,
   bandBody,
@@ -51,11 +54,18 @@ export default function DropzoneEmptyState({
   // mismatch by keeping the server's node and appending its own rather than
   // replacing it. Only the mount effect below may read `navigator`.
   const [isIOS, setIsIOS] = useState(false);
+  const [isPhone, setIsPhone] = useState(false);
 
   useEffect(() => {
     if (!showIosFilesHint) return;
     setIsIOS(isIOSDevice(typeof navigator === 'undefined' ? undefined : navigator));
   }, [showIosFilesHint]);
+
+  useEffect(() => {
+    if (!showCloudDriveHint) return;
+    const nav = typeof navigator === 'undefined' ? undefined : navigator;
+    setIsPhone(isIOSDevice(nav) || isAndroidDevice(nav));
+  }, [showCloudDriveHint]);
 
   const onInputChange = (event: Event) => {
     // Read the list out before resetting the input - `value = ''` empties a
@@ -169,6 +179,10 @@ export default function DropzoneEmptyState({
 
       {isIOS && (
         <p class={styles['ios-files-hint']}>{messages.iosFilesHint}</p>
+      )}
+
+      {isPhone && (
+        <p class={styles['ios-files-hint']}>{messages.cloudDriveHint}</p>
       )}
     </div>
   );

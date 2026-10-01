@@ -24,10 +24,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [SEO-21](backlog/tasks/SEO-21.md) P3 · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is
 
-### Polish
-
-- [MERGE-18](backlog/tasks/MERGE-18.md) P2 · Pick files from Google Drive: decide between the OS picker route and a Drive Picker that breaks the no-external-connect invariant
-
 ## Waiting, by date
 
 - 2026-10-08: [SEO-04](backlog/tasks/SEO-04.md) · Read 2026-10-08 · Thirteen blur queries are on page one and earning zero clicks
@@ -53,7 +49,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ## Needs Shlomi
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
-- [MERGE-18](backlog/tasks/MERGE-18.md) · Decide route A and the Merge bookmarks switch
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
 - [QUAL-14](backlog/tasks/QUAL-14.md) · The Hebrew wording
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
