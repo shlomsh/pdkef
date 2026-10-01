@@ -124,7 +124,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | SEO-37 | P2 | [SEO-37](backlog/tasks/SEO-37.md) · Show the proof on every tool page: the airplane-mode line beyond Sign and Redact, and a never-say guard in CI |  |
-| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |  |
+| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is | In progress |
 
 ### Then, in order
 

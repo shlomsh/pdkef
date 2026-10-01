@@ -1,10 +1,9 @@
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { getPdfjs } from './pdfjsLoader.js';
-import { getPdfRenderContext } from '../../../lib/pdfRender.js';
 import { PDFJS_WASM_URL } from '../../../lib/pdfjsWasm.js';
 import { getElementDefinition } from '../../registry/index.ts';
 import { blurRadiusPx } from '../../model/blurStrength.ts';
-import { pageGeometryFromPdfJsPage } from '../../geometry/coords.ts';
+import { RASTER_SCALE, rasterizePageToJpeg, buildImageOnlyPage } from './rasterPage.js';
 import { strokeInPixels } from '../../model/strokeGeometry.ts';
 
 /**
@@ -92,17 +91,14 @@ function buildStrokeBlur(source, stroke, strength, scale) {
  * bytes with the page's geometry.
  */
 async function flattenPage(pdfjsPage, pageElements) {
-  // Use scale = 2.5 to ensure the flattened image is crisp and readable
-  const scale = 2.5;
-  const viewport = pdfjsPage.getViewport({ scale });
+  return rasterizePageToJpeg(pdfjsPage, {
+    paint: (ctx, viewport, canvas) => paintBoxes(ctx, viewport, canvas, pageElements),
+  });
+}
 
-  const canvas = document.createElement('canvas');
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = getPdfRenderContext(canvas);
-
-  // Render the original PDF page to the canvas
-  await pdfjsPage.render({ canvasContext: ctx, viewport }).promise;
+/** Paints the page's redaction boxes onto its rendered canvas. */
+function paintBoxes(ctx, viewport, canvas, pageElements) {
+  const scale = RASTER_SCALE;
 
   // Each type owns the instruction it contributes to this destructive,
   // page-scoped flatten pass. The registry makes the type decision; this
@@ -168,10 +164,6 @@ async function flattenPage(pdfjsPage, pageElements) {
     }
     paintSolids();
   }
-
-  // Convert canvas to high-quality JPEG
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-  return dataUrl.split(',')[1];
 }
 
 /**
@@ -187,9 +179,7 @@ async function assemble(sourceDoc, covered) {
       newDoc.addPage(copiedPage);
       continue;
     }
-    const { width, height } = page.geometry;
-    const newPage = newDoc.addPage([width, height]);
-    newPage.drawImage(await newDoc.embedJpg(page.jpeg), { x: 0, y: 0, width, height });
+    await buildImageOnlyPage(newDoc, page.jpeg, page.width, page.height);
   }
   return newDoc.save();
 }
@@ -220,9 +210,7 @@ export async function redactPdf(file, elements, onProgress) {
     const pageElements = elements.filter((el) => el.pageIndex === i);
     if (pageElements.length > 0) {
       const pdfjsPage = await pdfjsDoc.getPage(i + 1);
-      const jpeg = await flattenPage(pdfjsPage, pageElements);
-      const geometry = pageGeometryFromPdfJsPage(pdfjsPage);
-      covered.set(i, { jpeg, geometry });
+      covered.set(i, await flattenPage(pdfjsPage, pageElements));
     }
     onProgress?.((i + 1) / pageCount);
   }
