@@ -90,6 +90,35 @@ describe('detectCellCandidates', () => {
     expect(detectCellCandidates(ink, geometry, 0, [header, paragraph])).toEqual([]);
   });
 
+  it('keeps a lone closed square on its own merits, with no other ink on the page', () => {
+    // FORM-10: a 16pt tick square is its own evidence. Its top rule spans only the square, so its
+    // band has exactly two walls; it is admitted as a square, not as a lone box needing a caption.
+    const ink = rowBand({ top: 76, bottom: 60, columns: [40, 56] });
+    const cells = detectCellCandidates(ink, geometry, 0, []);
+    expect(cells).toHaveLength(1);
+    expect(cells[0].width).toBeCloseTo(16, 5);
+  });
+
+  it('keeps the same square for the same reason when unrelated ink sits elsewhere on the page', () => {
+    // A wall far off in the same height range used to be what lifted the band to three walls.
+    const square = rowBand({ top: 76, bottom: 60, columns: [40, 56] });
+    const elsewhere = { horizontals: [], verticals: [{ x: 90, y0: 60, y1: 76 }], rects: [] };
+    expect(detectCellCandidates(mergeInk(square, elsewhere), geometry, 0, [])).toHaveLength(1);
+  });
+
+  it('still drops an undivided panel holding prose, whatever other ink shares its heights', () => {
+    // The panel's verdict reads its own span: a box beside it, with walls at the same heights but
+    // its own rules, does not make the panel "divided".
+    const panel = rowBand({ top: 80, bottom: 60, columns: [0, 60] });
+    const beside = rowBand({ top: 80, bottom: 60, columns: [70, 80, 100] });
+    const paragraph = text(
+      'I declare that the details on this form are true and complete',
+      { left: 5, top: 25, width: 50, height: 10 },
+    );
+    const found = detectCellCandidates(mergeInk(panel, beside), geometry, 0, [paragraph]);
+    expect(found.filter((c) => c.left < 60)).toEqual([]);
+  });
+
   it('ignores a row band outside the writable height range', () => {
     const tooShort = rowBand({ top: 80, bottom: 78, columns: [0, 50, 100] }); // 2pt < MIN_ROW_HEIGHT
     const tooTall = rowBand({ top: 80, bottom: 20, columns: [0, 50, 100] }); // 60pt > MAX_ROW_HEIGHT
@@ -579,5 +608,42 @@ describe('FORM-14: a caption\'s own shape decides label vs heading, not what rep
     const headerCells = candidates.filter((c) => c.top < HEADER_PERCENT_FLOOR - 1e-6);
     expect(headerCells).toHaveLength(2);
     expect(headerCells.every((c) => c.kind === 'date')).toBe(true);
+  });
+});
+
+describe('FORM-03: a tall stack of row bands reaches the one header printed above it', () => {
+  // Form 101's children table is 13 rows of ~22pt printed under one header, 286pt tall, so its last
+  // rows sit past `HEADER_SEARCH_HEIGHT` from their own column header. A 400pt page fits a stack of
+  // the same shape: 13 bands of 20pt, top at y=380, header printed right over it.
+  const tall = createPageGeometry({ cropBox: { x: 0, y: 0, width: 100, height: 400 }, rotation: 0 });
+  const bands = (rows, topY = 380) => mergeInk(...Array.from({ length: rows }, (_, i) => rowBand({
+    top: topY - i * 20, bottom: topY - (i + 1) * 20, columns: [0, 50, 100],
+  })));
+  // Page percent: a 4pt gap over the table's top rule, in a 400pt-tall page.
+  const header = text('Child name', { left: 50, top: 2, width: 30, height: 1 });
+  const lastRowCell = (cells) => cells.filter((c) => c.left >= 49).sort((a, b) => b.top - a.top)[0];
+
+  it('labels the last row of a stack taller than the header search height', () => {
+    const cells = detectCellCandidates(bands(13), tall, 0, [header]);
+    const column = cells.filter((c) => c.left >= 49);
+    expect(column).toHaveLength(13);
+    // The last row's own top is 240pt under the header: past 220, so only its stack reaches it.
+    expect(lastRowCell(cells).label).toBe('Child name');
+    expect(column.every((c) => c.label === 'Child name')).toBe(true);
+  });
+
+  it('does not stretch the reach for a cell with no stack above it', () => {
+    // The same header and the same distance, but one band standing alone down the page: nothing
+    // recovered says the header is its own, so it stays unlabelled rather than borrowing it.
+    const alone = rowBand({ top: 160, bottom: 140, columns: [0, 50, 100] });
+    const cells = detectCellCandidates(alone, tall, 0, [header]);
+    expect(cells.filter((c) => c.left >= 49).every((c) => c.label === undefined)).toBe(true);
+  });
+
+  it('stops at a gap: a band cut off from the stack is not part of it', () => {
+    // Two bands at the top, then a blank stretch, then one band 244pt down: it abuts nothing.
+    const ink = mergeInk(bands(2), rowBand({ top: 160, bottom: 140, columns: [0, 50, 100] }));
+    const cells = detectCellCandidates(ink, tall, 0, [header]);
+    expect(lastRowCell(cells).label).toBeUndefined();
   });
 });

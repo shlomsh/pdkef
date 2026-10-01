@@ -103,6 +103,25 @@ describe('labelFieldCandidates', () => {
     expect(out.label).toBe('תווית');
   });
 
+  it('excludes a checkbox glyph that is larger than the printed square it draws (FORM-03)', () => {
+    // Form 101 draws a checkbox as one Zapf Dingbats "o" whose box is about three times the area of
+    // the square, and since SNG-09 the candidate is that square: the glyph is no longer mostly
+    // inside it, and used to become the label's first word ("o לא").
+    const cand = candidate({ kind: 'checkbox', left: 40.5, top: 20.4, width: 1, height: 0.7 });
+    const glyph = text('o', { left: 40, top: 20, width: 1.4, height: 1.3, dir: 'ltr' });
+    const option = text('לא', { left: 38.5, top: 19.9, width: 1.5 });
+    const [out] = labelFieldCandidates([cand], [glyph, option]);
+    expect(out.label).toBe('לא');
+  });
+
+  it('does not take a wide text run for a glyph just because it spans a candidate', () => {
+    // The glyph rule needs a one-character item; a whole word that happens to cover a box is a label.
+    const cand = candidate({ kind: 'checkbox', left: 40.5, top: 20.4, width: 1, height: 0.7 });
+    const word = text('שם', { left: 40, top: 20, width: 3, height: 1.3 });
+    const [out] = labelFieldCandidates([cand], [word]);
+    expect(out.label).toBe('שם');
+  });
+
   it('leaves an already-labelled candidate untouched (e.g. a native AcroForm field name)', () => {
     // One deliberate difference from the MOBI-10 spike's label.mjs, which always overwrote
     // `label`: a candidate that already carries a real label must not have it replaced by a

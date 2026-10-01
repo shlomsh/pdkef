@@ -13,7 +13,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) P1 · We cannot see what breaks in production, and a day proved it
-- [DEBT-19](backlog/tasks/DEBT-19.md) P2 · The small tools' teardown and error paths never got the hardening the big ones did
 
 ## Waiting, by date
 
@@ -41,7 +40,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 - [DEBT-17](backlog/tasks/DEBT-17.md) · The telemetry governance call
 - [MEM-10](backlog/tasks/MEM-10.md) · A ruling on updates with several tabs open
-- [QUAL-14](backlog/tasks/QUAL-14.md) · The Hebrew wording
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [LOC-18](backlog/tasks/LOC-18.md) · Israeli portal size limits and a read-through of /he/

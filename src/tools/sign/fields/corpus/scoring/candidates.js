@@ -58,6 +58,7 @@ export function toCandidates(detected, pageIndex = 0) {
     confidence: region.confidence ?? 0.8,
     source: 'combined-heuristic',
     ...(region.cells ? { cells: region.cells } : {}),
+    ...(region.label ? { label: region.label } : {}),
   });
   return [
     ...detected.combs.map((region) => candidate(region, 'comb')),

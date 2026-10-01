@@ -17,7 +17,7 @@ corpus/
   scoring/
     match.js       IoU matching, lifted from the MOBI-10 spike. One home, two callers.
     candidates.js  detector regions -> the spike's CandidateField contract.
-    score.js       a form + its truth -> recall, precision, per-kind recall.
+    score.js       a form + its truth -> recall, precision, per-kind recall, label association.
     baselines.json what we get today. A ratchet. Edit deliberately, say why.
     ground-truth/  one reviewed file per scored form.
     forms/         the scored documents themselves, as issued.
@@ -253,6 +253,14 @@ to each percentage. `scoring.test.js` asserts them with `toBe`, no `SLACK`, beca
 rounds the same can still sit on different counts (targets and matched both scaling together, say),
 which is a real change a rounded number alone cannot show. `score-form.mjs` prints and diffs them the
 same way it does the percentages.
+
+**Label association is ratcheted the same way (FORM-03).** A row's `labels` is `{ rate, evaluated, correct }`:
+of the matched pairs whose truth target names a label, how many got a candidate label that contains, or is
+contained in, the target's (`match.js`'s `labelAssociationCorrect`). Cells carry the label `formCells.js`
+resolved; combs and checkboxes are labelled by `fieldLabels.js`, because the 85% gate was defined on that union.
+It is `null` where the truth grades no pair, which pins zero. `scoring.test.js` checks the rate with `SLACK`
+and the two counts exactly; `score-form.mjs` prints and diffs it. It was unmeasured between 2026-09-24 and
+2026-10-01 and fell from 83.2% to 58.2% on form 101 in that window, which is what this row exists to prevent.
 
 **Every per-kind check reads the union of the baseline's kinds and the actual run's, not the
 baseline's alone (FORM-21 review).** A kind the baseline recorded that the detector no longer produces

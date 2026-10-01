@@ -1,11 +1,9 @@
 ---
 id: "DEBT-19"
 title: "The small tools' teardown and error paths never got the hardening the big ones did"
-status: "open"
+status: "done"
 priority: "P2"
-epic: "robustness"
-horizon: "now"
-order: 2
+epic: "architecture-debt"
 depends_on: []
 ---
 
@@ -88,19 +86,19 @@ own outcome may be better than folding it into "not encrypted".
 
 ## Scope
 
-- [ ] Fix `PdfImageToPdfTool.tsx:45-50` so the unmount cleanup sees the current entries, and
+- [x] Fix `PdfImageToPdfTool.tsx:45-50` so the unmount cleanup sees the current entries, and
       `PdfToImageTool.tsx` so it has one at all. Prefer extending `useObjectUrls.js` to own a list
       over adding a second hand-rolled pattern; if a list owner comes out worse than a ref mirror in
       each tool, say so in the change rather than forcing it.
-- [ ] A unit test per tool that proves the revoke happens: unmount with URLs outstanding and assert
+- [x] A unit test per tool that proves the revoke happens: unmount with URLs outstanding and assert
       `URL.revokeObjectURL` was called with each. Both current sites pass a naive "does it have a
       cleanup" test, which is what let the `[]` one ship.
-- [ ] Guard `handoffToCompress` with `useLatestRun` (Split already has the import), bail before
+- [x] Guard `handoffToCompress` with `useLatestRun` (Split already has the import), bail before
       `saveHandoff` and `navigate`, and clear `handoffBusy` on the paths that abandon the handoff.
-- [ ] Catch the read failure in `PdfSecurityTool.handleFilesAdded` and surface it the way the other
+- [x] Catch the read failure in `PdfSecurityTool.handleFilesAdded` and surface it the way the other
       tools surface an unreadable file, so the announcement never ends on "Checking file".
-- [ ] Decide the malformed-PDF outcome in `isPdfEncrypted` above, and if it changes, cover it.
-- [ ] `npm run check:fast` green, then the full `ci.yml` chain once before the push.
+- [x] Decide the malformed-PDF outcome in `isPdfEncrypted` above, and if it changes, cover it.
+- [x] `npm run check:fast` green, then the full `ci.yml` chain once before the push.
 
 ## Acceptance
 
@@ -115,3 +113,16 @@ own outcome may be better than folding it into "not encrypted".
 Every line reference above was read at the DEBT-18 tip (`51d7907`), not carried from the review
 summary. Correction recorded on purpose: the review first reported `isPdfEncrypted` as having no
 error handling, and it has some, just not over `arrayBuffer`. The ticket describes the code.
+
+## Outcome
+
+Closed 2026-10-01. `useRevokeOnUnmount(urls)` in `src/lib/useObjectUrls.js` (a ref mirror read on
+unmount; a list owner would have meant rewriting both tools' state, which was worse) now backs both
+list teardowns. `handoffToCompress` has its own `useLatestRun` and checks it after every await;
+`invalidate()` clears `handoffBusy`. Security: `isPdfEncrypted` throws `UnreadablePdfError` for a file
+it cannot read or parse, and the tool shows an error instead of "Checking file"; a pdf-lib load failure
+is kept out of that bucket. The malformed-PDF decision: it no longer falls through to the Protect form.
+
+**Verified:** each new test fails against the old code (Image to PDF, Split, Security; PDF to Image had
+no teardown, so any unmount test fails there), `check:fast`, the non-Playwright `ci.yml` chain, and
+`check:push` (290 product e2e passed, perf and export guards green).

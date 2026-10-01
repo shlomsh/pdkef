@@ -1,3 +1,4 @@
+// @ts-check
 import { MAX_COMB_CELLS } from '../../../constants/signGeometry.js';
 import { createPageGeometry, toPagePercentBox } from '../../../editor/geometry/coords.ts';
 import { pageCropBox } from './pageInk.js';
@@ -43,6 +44,12 @@ const FIELD_COMB = 1 << 24;
  * @typedef {import('../../../editor/adapters/pdf/pdfObjects.js').WidgetEntry} WidgetEntry
  */
 
+/**
+ * @typedef {import('./fieldTypes.ts').PercentBox} PercentBox
+ * @typedef {import('./fieldTypes.ts').CombRegion} CombRegion
+ * @typedef {import('./fieldTypes.ts').DetectedCell} DetectedCell
+ */
+
 /** A writable text field, in PDF user space. `combCells` marks a comb run. */
 /**
  * @typedef {object} TextFieldWidget
@@ -76,10 +83,22 @@ const FIELD_PUSH_BUTTON = 1 << 16;
  * @returns {{x: number, y: number, width: number, height: number} | null}
  */
 export function visibleWritableRect(entry) {
-  if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
   if ((entry.fieldFlags ?? 0) & FIELD_READ_ONLY) return null;
+  return visibleRect(entry);
+}
+
+/**
+ * Where a widget of any type sits on the page, when a person can see it - pure. The same
+ * visibility and degenerate-`/Rect` checks as `visibleWritableRect`, without the read-only
+ * one: this answers "has the form put a widget here", not "can anyone write in it".
+ *
+ * @param {WidgetEntry} entry
+ * @returns {{x: number, y: number, width: number, height: number} | null}
+ */
+function visibleRect(entry) {
+  if ((entry.annotationFlags ?? 0) & (ANNOTATION_HIDDEN | ANNOTATION_NO_VIEW)) return null;
   const { rect } = entry;
-  if (!(rect?.width > 0) || !(rect?.height > 0)) return null;
+  if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
   const { x, y, width, height } = rect;
   return { x, y, width, height };
 }
@@ -127,7 +146,7 @@ export function fillableTextField(entry) {
   if (entry.fieldType !== '/Tx') return null;
   const rect = visibleWritableRect(entry);
   if (!rect) return null;
-  const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && entry.maxLen > 1;
+  const isComb = Boolean((entry.fieldFlags ?? 0) & FIELD_COMB) && (entry.maxLen ?? 0) > 1;
   return isComb ? { ...rect, combCells: entry.maxLen } : rect;
 }
 
@@ -150,10 +169,12 @@ export function fillableTextField(entry) {
  * @param {TextFieldWidget[]} fields
  * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
- * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ * @returns {{combs: Array<CombRegion & {kind: 'comb'}>, cells: DetectedCell[]}} in the editor's page percentages
  */
 export function widgetRegions(fields, geometry, pageIndex = 0) {
+  /** @type {Array<CombRegion & {kind: 'comb'}>} */
   const combs = [];
+  /** @type {DetectedCell[]} */
   const cells = [];
   for (const field of fields) {
     const box = toPagePercentBox(geometry, {
@@ -193,7 +214,14 @@ export function collectCheckboxWidgets(page) {
   return collectWidgets(page, markableButtonField);
 }
 
-/** Every widget on the page that `decide` accepts. */
+/**
+ * Every widget on the page that `decide` accepts.
+ *
+ * @template T
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {(entry: WidgetEntry) => T | null} decide
+ * @returns {T[]}
+ */
 function collectWidgets(page, decide) {
   return pageWidgets(page)
     .map((widget) => decide(widgetEntries(page.doc.context, widget)))
@@ -205,7 +233,7 @@ function collectWidgets(page, decide) {
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex
- * @returns {{combs: Array, cells: Array}} in the editor's page percentages
+ * @returns {{combs: Array<CombRegion & {kind: 'comb'}>, cells: DetectedCell[]}} in the editor's page percentages
  */
 export function detectWidgetRegions(page, pageIndex = 0) {
   const geometry = createPageGeometry({
@@ -213,4 +241,70 @@ export function detectWidgetRegions(page, pageIndex = 0) {
     rotation: page.getRotation().angle,
   });
   return widgetRegions(collectTextFieldWidgets(page), geometry, pageIndex);
+}
+
+/**
+ * How much of a drawn cell a widget must cover for that widget to count as the cell's own. The
+ * scored wired forms measure 0.86 or more on 1040 (66 of 68 cells), 0.89 on pnd90 and 0.39 on
+ * I-9 (a dropdown narrower than its ruled box); the cells no widget touches measure 0.00.
+ */
+const MIN_WIDGET_COVER = 0.3;
+/**
+ * How much of a page's drawn cells must already have a widget for the page to count as wired. The
+ * scored forms that declare widgets are at 1.00 (pnd90, I-9) or 0.97 (1040: 66 of 68); every
+ * page without widgets is at 0, so the rule is inert there.
+ */
+const MIN_WIRED_SHARE = 0.9;
+
+/**
+ * Every visible widget on the page, of any type (`/Tx`, `/Ch`, `/Btn`, `/Sig`), as page-percent
+ * boxes. `detectWidgetRegions` reports only the text fields; this is the wider question "where
+ * has the form put a widget at all", which a dropdown or a signature field answers too.
+ *
+ * @param {import('@cantoo/pdf-lib').PDFPage} page
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @returns {Array<{left: number, top: number, width: number, height: number}>}
+ */
+export function widgetFootprints(page, geometry) {
+  return collectWidgets(page, visibleRect).map((rect) => toPagePercentBox(geometry, {
+    x0: rect.x, y0: rect.y, x1: rect.x + rect.width, y1: rect.y + rect.height,
+  }));
+}
+
+/**
+ * The share of `cell` (page percent) that one widget box covers, 0..1.
+ *
+ * @param {PercentBox} cell
+ * @param {PercentBox} box
+ */
+function coveredShare(cell, box) {
+  const width = Math.min(cell.left + cell.width, box.left + box.width) - Math.max(cell.left, box.left);
+  const height = Math.min(cell.top + cell.height, box.top + box.height) - Math.max(cell.top, box.top);
+  return width > 0 && height > 0 ? (width * height) / (cell.width * cell.height) : 0;
+}
+
+/**
+ * FORM-15: on a page whose author has wired nearly every drawn box to a widget, a box that has no
+ * widget is one the form deliberately leaves blank, and is not offered as a field - pure.
+ *
+ * The 2024 1040 is the case: its answer boxes are all `/Tx` widgets, and the two amount boxes it
+ * rules on lines 1i and 6c (printed exactly like their neighbours) have none, because the
+ * answer goes in another column. Nothing in their ink or fill says so; the widget layer does.
+ *
+ * Two conditions keep it from reaching a form that merely has a widget or two: the cell must be
+ * untouched by every widget (any type), and at least `MIN_WIRED_SHARE` of the page's drawn cells
+ * must be wired. A flat form has no footprints and passes through whole, as does a page whose
+ * widgets sit beside the printed boxes rather than on them.
+ *
+ * @template {{left: number, top: number, width: number, height: number}} Cell
+ * @param {Cell[]} cells drawn cells, in page percent
+ * @param {Array<{left: number, top: number, width: number, height: number}>} footprints
+ * @returns {Cell[]}
+ */
+export function dropUnwiredCells(cells, footprints) {
+  if (cells.length === 0 || footprints.length === 0) return cells;
+  const wired = cells.map((cell) => footprints.some((box) => coveredShare(cell, box) >= MIN_WIDGET_COVER));
+  const wiredCount = wired.filter(Boolean).length;
+  if (wiredCount / cells.length < MIN_WIRED_SHARE) return cells;
+  return cells.filter((_, index) => wired[index]);
 }

@@ -374,6 +374,7 @@ const homePrivacyOpenSource = z.strictObject({
 
 const homeClosing = z.strictObject({
   heading: plain(3, 60),
+  headingStroke: plain(1, 60).optional(),
   backLink: plain(3, 60),
 });
 

@@ -33,6 +33,16 @@ const FALLBACK_DESCENT = -0.25;
 // the Unicode characters fonts commonly expose for that job. Zapf Dingbats is
 // a special case below because many real PDFs omit its ToUnicode map entirely.
 const CHECKBOX_GLYPHS = new Set(['\u2610', '\u25a1', '\u274f', '\u2751']);
+// Wingdings prints its checkboxes as ordinary characters, so the character alone says nothing:
+// 0x6F draws a box in Wingdings and is a letter in Times. These are the codes that draw an empty
+// box, by symbol-font family (FORM-20); a bullet (Wingdings 0x6C) or any other code is not here.
+// Wingdings: the square family (0x6F, 0x71, and the plain 0xA8). Wingdings 2 0x2A is the box
+// สปส.1-10 prints its four checkboxes with, confirmed against the embedded glyph's outline (two
+// nested rectangles, 1086 x 1086 of 2048 em), not assumed from a table.
+const SYMBOL_FONT_CHECKBOX_CODES = {
+  wingdings: new Set([0x6f, 0x71, 0xa8]),
+  wingdings2: new Set([0x2a]),
+};
 // In the standard Zapf Dingbats encoding these are ❏ and ❑ respectively.
 const ZAPF_DINGBATS_CHECKBOX_CODES = new Set([0x6f, 0x71]);
 // The square a person sees inside each of those glyphs, in glyph space
@@ -49,6 +59,20 @@ const ZAPF_DINGBATS_CHECKBOX_SQUARES = new Map([
   [0x6f, [64, 134, 590, 662]],
   [0x71, [66, 123, 598, 660]],
 ]);
+
+/**
+ * The Wingdings family a BaseFont names, or undefined: the `/ABCDEE+` subset tag, `#20` escapes and a
+ * `,Bold` style are not part of it.
+ */
+function symbolFontFamily(baseFont) {
+  const name = baseFont
+    .replace(/^\//, '')
+    .replace(/#([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/^[A-Z]{6}\+/, '');
+  const match = /^Wingdings\s*(2)?(?:[,-].*)?$/i.exec(name);
+  if (!match) return undefined;
+  return match[1] ? 'wingdings2' : 'wingdings';
+}
 
 function lookupDict(context, value) {
   const resolved = context.lookup(value);
@@ -235,6 +259,7 @@ function readFont(context, fontDict) {
     defaultWidth,
     toUnicode,
     isZapfDingbats: /ZapfDingbats/i.test(baseFont),
+    symbolFamily: symbolFontFamily(baseFont),
     ascent: Number.isFinite(ascent) ? ascent / 1000 : FALLBACK_ASCENT,
     descent: Number.isFinite(descent) ? descent / 1000 : FALLBACK_DESCENT,
   };
@@ -283,7 +308,19 @@ function decodeCodes(bytes, font) {
   return codes;
 }
 
+/**
+ * The character a symbol font means by `code`: a single-byte code is itself, and a two-byte font
+ * reports it through its ToUnicode map in the private-use range U+F020-F0FF (Word's way of
+ * embedding Wingdings), where the low byte is the Wingdings code.
+ */
+function symbolCode(font, code) {
+  const unicode = font.toUnicode.get(code)?.codePointAt(0);
+  if (unicode !== undefined && unicode >= 0xf020 && unicode <= 0xf0ff) return unicode - 0xf000;
+  return font.twoByte ? undefined : code;
+}
+
 function isCheckboxGlyph(font, code) {
+  if (font?.symbolFamily && SYMBOL_FONT_CHECKBOX_CODES[font.symbolFamily].has(symbolCode(font, code))) return true;
   return (font?.isZapfDingbats && ZAPF_DINGBATS_CHECKBOX_CODES.has(code))
     || CHECKBOX_GLYPHS.has(font?.toUnicode.get(code));
 }

@@ -1,3 +1,4 @@
+// @ts-check
 import { toPagePercentBox, pagePercentToPdfPoint } from '../../../editor/geometry/coords.ts';
 import { verticalEdges, horizontalRules } from './inkEdges.js';
 import { HEBREW_SIGNATURE, HEBREW_DATE } from './formCells.js';
@@ -105,9 +106,20 @@ function matchKeyword(caption) {
   return null;
 }
 
+/**
+ * @typedef {{x: number, y0: number, y1: number}} VerticalEdge
+ * @typedef {{y: number, x0: number, x1: number}} HorizontalRule
+ * @typedef {{str: string, x0: number, x1: number, y0: number, y1: number}} TextPoints
+ */
+
 /** A page-percent text run -> PDF points, the same conversion `formCells.js`'s own
  * `textItemToPoints` does (not imported from there: it is three lines, and the two files each
- * keep their own rather than share an import for something this small). */
+ * keep their own rather than share an import for something this small).
+ *
+ * @param {PageTextRun} item
+ * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
+ * @returns {TextPoints}
+ */
 function textItemToPoints(item, geometry) {
   const topLeft = pagePercentToPdfPoint({ x: item.left, y: item.top }, geometry);
   const bottomRight = pagePercentToPdfPoint({ x: item.left + item.width, y: item.top + item.height }, geometry);
@@ -125,6 +137,9 @@ function textItemToPoints(item, geometry) {
  * see the module doc's rule 2. One test for a box corner at either end and for a divider or comb
  * tooth in the middle, because both are the same fact: something vertical meets this rule where
  * it stands.
+ *
+ * @param {HorizontalRule} rule
+ * @param {VerticalEdge[]} edges
  */
 function closesIntoBoxOrComb(rule, edges) {
   return edges.some((edge) => {
@@ -137,9 +152,15 @@ function closesIntoBoxOrComb(rule, edges) {
  * True when the strip directly above the rule - the area it would publish as the writing area -
  * carries any ink or text at all: a second rule that would close it into a box, a vertical
  * reaching up into it, or a line of print that happens to sit there. See the module doc's rule 3.
+ *
+ * @param {HorizontalRule} rule
+ * @param {VerticalEdge[]} edges
+ * @param {HorizontalRule[]} rules
+ * @param {TextPoints[]} textItemsPoints
  */
 function writingBandHasInk(rule, edges, rules, textItemsPoints) {
   const top = rule.y + WRITING_BAND_HEIGHT;
+  /** @param {number} x0 @param {number} x1 */
   const overlapsX = (x0, x1) => x0 < rule.x1 && x1 > rule.x0;
   if (rules.some((other) => other.y > rule.y && other.y <= top && overlapsX(other.x0, other.x1))) return true;
   if (edges.some((edge) => edge.y1 > rule.y && edge.y0 < top && edge.x >= rule.x0 && edge.x <= rule.x1)) return true;
@@ -148,8 +169,13 @@ function writingBandHasInk(rule, edges, rules, textItemsPoints) {
 }
 
 /** The nearest text run sitting directly under the rule, starting near its left end or mostly
- * overlapping its span - a caption's usual position under a signature or date line. */
+ * overlapping its span - a caption's usual position under a signature or date line.
+ *
+ * @param {HorizontalRule} rule
+ * @param {TextPoints[]} textItemsPoints
+ */
 function captionBelow(rule, textItemsPoints) {
+  /** @type {TextPoints | null} */
   let best = null;
   let bestGap = Infinity;
   for (const item of textItemsPoints) {
@@ -167,8 +193,13 @@ function captionBelow(rule, textItemsPoints) {
 }
 
 /** The nearest text run sitting directly left of the rule, on its own baseline - a caption like
- * "Date:" printed beside a short line rather than under it. */
+ * "Date:" printed beside a short line rather than under it.
+ *
+ * @param {HorizontalRule} rule
+ * @param {TextPoints[]} textItemsPoints
+ */
 function captionLeft(rule, textItemsPoints) {
+  /** @type {TextPoints | null} */
   let best = null;
   let bestGap = Infinity;
   for (const item of textItemsPoints) {
@@ -183,7 +214,11 @@ function captionLeft(rule, textItemsPoints) {
 
 /** Page-percent bounding-box overlap test - plain rectangle intersection, not `fieldRegions.js`'s
  * `claimExtent`/IoU rule (that answers "is this the same field", this only answers "did I already
- * publish something here"). */
+ * publish something here").
+ *
+ * @param {PercentBox} a
+ * @param {PercentBox} b
+ */
 function boundsOverlap(a, b) {
   return a.left < b.left + b.width && a.left + a.width > b.left
     && a.top < b.top + b.height && a.top + a.height > b.top;
@@ -197,7 +232,7 @@ function boundsOverlap(a, b) {
 /**
  * Open signature/date line candidates on one page.
  *
- * @param {{verticals: Array, horizontals: Array, rects: Array}} ink
+ * @param {{verticals: VerticalEdge[], horizontals: HorizontalRule[], rects: Array<object>}} ink
  * @param {import('../../../editor/geometry/coords.ts').PageGeometry} geometry
  * @param {number} pageIndex
  * @param {PageTextRun[]} textItems page text, page-percent bounds
@@ -223,7 +258,8 @@ export function detectLineCandidates(ink, geometry, pageIndex, textItems, existi
     const kindLeft = left ? matchKeyword(left.str) : null;
     const kind = kindBelow || kindLeft;
     if (!kind) continue;
-    const caption = kindBelow ? below : left;
+    // A kind was matched, so whichever caption matched it is non-null.
+    const caption = /** @type {TextPoints} */ (kindBelow ? below : left);
 
     const bounds = toPagePercentBox(geometry, {
       x0: rule.x0, y0: rule.y, x1: rule.x1, y1: rule.y + WRITING_BAND_HEIGHT,
