@@ -9,6 +9,7 @@ import {
   decodePDFRawStream,
 } from '@cantoo/pdf-lib';
 import { extractPageObjects, getPageContentBytes } from './pdfObjects.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 import {
   deleteObjectsFromPdf,
   spliceOut,
@@ -44,9 +45,12 @@ async function buildSample() {
   return new Uint8Array(await doc.save());
 }
 
+// Objects with the preview Delete shows (RED-16: read through pdf.js, not by
+// the parser), so a test can find a run by what it says.
 async function objectsOf(bytes) {
   const doc = await PDFDocument.load(bytes);
-  return extractPageObjects(doc.getPage(0), 0);
+  const found = extractPageObjects(doc.getPage(0), 0);
+  return { ...found, objects: await withPreviews(bytes, found.objects) };
 }
 
 async function textOf(bytes) {
@@ -468,7 +472,7 @@ describe('deleteObjectsFromPdf: a link over a deleted text run', () => {
     linkOver(deleted, 'https://example.com/goes');
     const source = new Uint8Array(await doc.save());
     // Byte spans are read from the saved file, the one being edited.
-    const target = (await objectsOf(source)).objects.find((o) => o.preview === deleted.preview);
+    const target = (await objectsOf(source)).objects.filter((o) => o.kind === 'text')[runs.indexOf(deleted)];
 
     const blob = await deleteObjectsFromPdf(source, [target]);
     const outDoc = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()));

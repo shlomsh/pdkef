@@ -10,6 +10,7 @@ import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { applyPageEdits } from './applyPageEdits.js';
 import { listDeletableObjects } from './deleteObjects.js';
+import { withPreviews } from './objectPreviews.test-helper.js';
 import { buildFormXObjectPdf } from './formXObjectFixture.test-helper.js';
 
 vi.mock('pdfjs-dist', async () => {
@@ -82,7 +83,7 @@ function deleteElementFor(object, n) {
 async function setup() {
   const bytes = await buildFormXObjectPdf({ pages: 3 });
   const file = new File([bytes], 'forms.pdf', { type: 'application/pdf' });
-  const objects = await listDeletableObjects(file);
+  const objects = await withPreviews(bytes, await listDeletableObjects(file));
   const secret = objects.find((o) => o.pageIndex === 0 && o.kind === 'text' && /Secret 0/.test(o.preview ?? ''));
   return { file, secret, elements: secret ? [deleteElementFor(secret, 1)] : [] };
 }
