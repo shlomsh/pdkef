@@ -260,6 +260,9 @@ function buildXObjectTable(context, resources) {
     const subtype = context.lookup(stream.dict.get(PDFName.of('Subtype')))?.asString?.();
     table.set(key.asString(), {
       isImage: subtype === '/Image',
+      // A Form XObject is walked in place (RED-29). Only an indirect one can
+      // be named in a `formPath`, and a direct stream is not legal PDF anyway.
+      form: subtype === '/Form' && value instanceof PDFRef ? { ref: value, stream } : undefined,
       // The indirect reference as "12 0 R", the same on every page that draws
       // this one image (RED-26). Absent for a direct (inline-in-dict) stream.
       imageRef: value instanceof PDFRef ? value.tag : undefined,
@@ -568,8 +571,33 @@ export function widgetEntries(context, widget) {
   };
 }
 
+/** Form XObjects nested inside one another are followed this deep, no further. */
+const MAX_FORM_DEPTH = 8;
+
+/** A Form XObject's `/Matrix` as six numbers, identity when absent or malformed. */
+function formMatrix(context, stream) {
+  const array = context.lookup(stream.dict.get(PDFName.of('Matrix')));
+  if (!(array instanceof PDFArray) || array.size() !== 6) return IDENTITY;
+  const values = [];
+  for (let i = 0; i < 6; i += 1) values.push(context.lookup(array.get(i))?.asNumber?.());
+  return values.every((v) => Number.isFinite(v)) ? values : IDENTITY;
+}
+
 /**
- * Reports every deletable drawing operation on a page.
+ * Reports every deletable drawing operation on a page, including those the
+ * page draws inside Form XObjects (RED-29).
+ *
+ * Every object carries `formPath`: the `PDFRef` tags ("12 0 R") of the Forms
+ * from the page's content down to the stream that holds it, outermost first.
+ * `[]` is the page's own content. `start`/`end` are byte offsets into the
+ * decoded content of that holding stream (the page's concatenated content
+ * for `[]`, else the last Form in `formPath`), and `rect`/`bbox` are always
+ * in page space: the page CTM at the `Do`, times the Form's `/Matrix`, times
+ * the Form's own `q`/`cm`/`Q` state.
+ *
+ * A Form drawn more than once on the page is reported for its first `Do`
+ * only: a delete rewrites the Form's stream, which would remove every draw,
+ * so offering the later ones would promise a deletion that is not local.
  *
  * @param {import('@cantoo/pdf-lib').PDFPage} page
  * @param {number} pageIndex
@@ -578,248 +606,22 @@ export function widgetEntries(context, widget) {
 export function extractPageObjects(page, pageIndex = 0) {
   const context = page.doc.context;
   const bytes = getPageContentBytes(page);
-  const tokens = tokenize(bytes);
-
   const resources = lookupDict(context, page.node.get(PDFName.of('Resources')));
-  const fonts = buildFontTable(context, resources);
-  const xobjects = buildXObjectTable(context, resources);
-
   const { width: pageWidth, height: pageHeight } = page.getSize();
   const objects = [];
+  // Forms already walked on this page. Also the cycle guard: a Form that
+  // (indirectly) draws itself finds itself here and stops.
+  const walkedForms = new Set();
 
-  let ctm = IDENTITY;
-  const ctmStack = [];
-  let operands = [];
-
-  // Text object state, live only between BT and ET.
-  let inText = false;
-  let textStart = 0;
-  let tm = IDENTITY;
-  let tlm = IDENTITY;
-  let font = null;
-  let fontKey = null;
-  let fontSize = 0;
-  let charSpacing = 0;
-  let wordSpacing = 0;
-  let horizontalScale = 1;
-  let leading = 0;
-  let rise = 0;
-  let runMin = null;
-  let runMax = null;
-  let preview = '';
-
-  const num = (index) => {
-    const token = operands[index];
-    return token?.type === 'number' ? token.value : 0;
-  };
-
-  const noteBox = (box) => {
-    if (!runMin) {
-      runMin = [box.x, box.y];
-      runMax = [box.x + box.width, box.y + box.height];
-      return;
-    }
-    runMin[0] = Math.min(runMin[0], box.x);
-    runMin[1] = Math.min(runMin[1], box.y);
-    runMax[0] = Math.max(runMax[0], box.x + box.width);
-    runMax[1] = Math.max(runMax[1], box.y + box.height);
-  };
-
-  const showString = (bytesOfString) => {
-    const codes = decodeCodes(bytesOfString, font);
-    const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
-    const descent = (font?.descent ?? FALLBACK_DESCENT) * fontSize + rise;
-
-    for (const code of codes) {
-      const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) / 1000;
-      // Word spacing applies to single-byte code 32 only.
-      const applyWordSpacing = !font?.twoByte && code === 32;
-      const advance =
-        (glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)) *
-        horizontalScale;
-
-      const trm = multiplyMatrix(tm, ctm);
-      const corners = [
-        applyMatrix(trm, 0, descent),
-        applyMatrix(trm, advance, descent),
-        applyMatrix(trm, 0, ascent),
-        applyMatrix(trm, advance, ascent),
-      ];
-      const xs = corners.map((c) => c[0]);
-      const ys = corners.map((c) => c[1]);
-      noteBox({
-        x: Math.min(...xs),
-        y: Math.min(...ys),
-        width: Math.max(...xs) - Math.min(...xs),
-        height: Math.max(...ys) - Math.min(...ys),
-      });
-
-      const mapped = font?.toUnicode.get(code);
-      if (mapped !== undefined) preview += mapped;
-      else if (!font?.twoByte) preview += String.fromCharCode(code);
-
-      tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
-    }
-  };
-
-  const nextLine = (tx, ty) => {
-    tlm = multiplyMatrix([1, 0, 0, 1, tx, ty], tlm);
-    tm = tlm;
-  };
-
-  for (const token of tokens) {
-    if (token.type !== 'operator') {
-      operands.push(token);
-      continue;
-    }
-
-    const op = token.value;
-
-    switch (op) {
-      case 'q':
-        ctmStack.push(ctm);
-        break;
-      case 'Q':
-        ctm = ctmStack.pop() ?? IDENTITY;
-        break;
-      case 'cm':
-        ctm = multiplyMatrix(
-          [num(0), num(1), num(2), num(3), num(4), num(5)],
-          ctm,
-        );
-        break;
-
-      case 'Do': {
-        const name = operands[operands.length - 1];
-        const key = name?.type === 'name' ? `/${name.value}` : null;
-        if (key && xobjects.get(key)?.isImage) {
-          // Span covers the `/Name` operand as well as `Do`, so no orphan name
-          // is left behind. The preceding `cm` stays: it sits inside the
-          // enclosing q/Q and is undone by the `Q` regardless.
-          const box = transformedUnitBox(ctm);
-          const imageRef = xobjects.get(key).imageRef;
-          objects.push({
-            kind: 'image',
-            pageIndex,
-            name: key,
-            ...(imageRef ? { imageRef } : {}),
-            bbox: box,
-            start: name.start,
-            end: token.end,
-          });
-        }
-        break;
-      }
-
-      case 'BT':
-        inText = true;
-        textStart = token.start;
-        tm = IDENTITY;
-        tlm = IDENTITY;
-        runMin = null;
-        runMax = null;
-        preview = '';
-        break;
-
-      case 'ET':
-        if (inText && runMin && runMax) {
-          objects.push({
-            kind: 'text',
-            pageIndex,
-            // The content stream draws RTL glyphs in drawing (visual) order,
-            // not reading order, so the preview needs reordering for display.
-            preview: visualToLogical(preview),
-            bbox: {
-              x: runMin[0],
-              y: runMin[1],
-              width: runMax[0] - runMin[0],
-              height: runMax[1] - runMin[1],
-            },
-            start: textStart,
-            end: token.end,
-          });
-        }
-        inText = false;
-        break;
-
-      case 'Tf': {
-        const name = operands[operands.length - 2];
-        fontKey = name?.type === 'name' ? `/${name.value}` : null;
-        font = fontKey ? fonts.get(fontKey) ?? null : null;
-        fontSize = num(operands.length - 1);
-        break;
-      }
-      case 'Tc':
-        charSpacing = num(operands.length - 1);
-        break;
-      case 'Tw':
-        wordSpacing = num(operands.length - 1);
-        break;
-      case 'Tz':
-        horizontalScale = num(operands.length - 1) / 100;
-        break;
-      case 'TL':
-        leading = num(operands.length - 1);
-        break;
-      case 'Ts':
-        rise = num(operands.length - 1);
-        break;
-
-      case 'Tm':
-        tlm = [num(0), num(1), num(2), num(3), num(4), num(5)];
-        tm = tlm;
-        break;
-      case 'Td':
-        nextLine(num(operands.length - 2), num(operands.length - 1));
-        break;
-      case 'TD':
-        leading = -num(operands.length - 1);
-        nextLine(num(operands.length - 2), num(operands.length - 1));
-        break;
-      case 'T*':
-        nextLine(0, -leading);
-        break;
-
-      case 'Tj':
-      case "'":
-      case '"': {
-        if (op !== 'Tj') nextLine(0, -leading);
-        if (op === '"') {
-          wordSpacing = num(operands.length - 3);
-          charSpacing = num(operands.length - 2);
-        }
-        const str = operands[operands.length - 1];
-        if (str?.type === 'string' || str?.type === 'hexstring') showString(str.value);
-        break;
-      }
-
-      case 'TJ': {
-        const arr = operands[operands.length - 1];
-        if (arr?.type === 'array') {
-          for (const item of arr.value) {
-            if (item.type === 'number') {
-              // A kern: shifts the cursor without drawing.
-              const shift = (-item.value / 1000) * fontSize * horizontalScale;
-              tm = multiplyMatrix([1, 0, 0, 1, shift, 0], tm);
-            } else if (item.type === 'string' || item.type === 'hexstring') {
-              showString(item.value);
-            }
-          }
-        }
-        break;
-      }
-
-      default:
-        break;
-    }
-
-    operands = [];
-  }
+  walkStream(bytes, resources, IDENTITY, []);
 
   // Add page-relative percentages with a top-left origin, matching how the
   // editor stores every other element so the UI needs no second convention.
   for (const [index, object] of objects.entries()) {
-    object.id = `obj-${pageIndex}-${index}`;
+    const owner = object.formPath.length
+      ? `${object.formPath.map((tag) => tag.replace(/ /g, '_')).join('>')}-`
+      : '';
+    object.id = `obj-${pageIndex}-${owner}${index}`;
     object.rect = {
       left: (object.bbox.x / pageWidth) * 100,
       top: ((pageHeight - object.bbox.y - object.bbox.height) / pageHeight) * 100,
@@ -829,4 +631,273 @@ export function extractPageObjects(page, pageIndex = 0) {
   }
 
   return { objects, bytes };
+
+  /**
+   * Walks one content stream, pushing what it draws onto `objects`.
+   *
+   * @param {Uint8Array} streamBytes decoded content of the holding stream
+   * @param {PDFDict|undefined} streamResources
+   * @param {number[]} baseCtm matrix mapping this stream's space to the page
+   * @param {string[]} formPath
+   */
+  function walkStream(streamBytes, streamResources, baseCtm, formPath) {
+    const tokens = tokenize(streamBytes);
+    const fonts = buildFontTable(context, streamResources);
+    const xobjects = buildXObjectTable(context, streamResources);
+
+    let ctm = baseCtm;
+    const ctmStack = [];
+    let operands = [];
+
+    // Text object state, live only between BT and ET.
+    let inText = false;
+    let textStart = 0;
+    let tm = IDENTITY;
+    let tlm = IDENTITY;
+    let font = null;
+    let fontKey = null;
+    let fontSize = 0;
+    let charSpacing = 0;
+    let wordSpacing = 0;
+    let horizontalScale = 1;
+    let leading = 0;
+    let rise = 0;
+    let runMin = null;
+    let runMax = null;
+    let preview = '';
+
+    const num = (index) => {
+      const token = operands[index];
+      return token?.type === 'number' ? token.value : 0;
+    };
+
+    const noteBox = (box) => {
+      if (!runMin) {
+        runMin = [box.x, box.y];
+        runMax = [box.x + box.width, box.y + box.height];
+        return;
+      }
+      runMin[0] = Math.min(runMin[0], box.x);
+      runMin[1] = Math.min(runMin[1], box.y);
+      runMax[0] = Math.max(runMax[0], box.x + box.width);
+      runMax[1] = Math.max(runMax[1], box.y + box.height);
+    };
+
+    const showString = (bytesOfString) => {
+      const codes = decodeCodes(bytesOfString, font);
+      const ascent = (font?.ascent ?? FALLBACK_ASCENT) * fontSize + rise;
+      const descent = (font?.descent ?? FALLBACK_DESCENT) * fontSize + rise;
+
+      for (const code of codes) {
+        const glyphWidth = (font?.widths.get(code) ?? font?.defaultWidth ?? 500) / 1000;
+        // Word spacing applies to single-byte code 32 only.
+        const applyWordSpacing = !font?.twoByte && code === 32;
+        const advance =
+          (glyphWidth * fontSize + charSpacing + (applyWordSpacing ? wordSpacing : 0)) *
+          horizontalScale;
+
+        const trm = multiplyMatrix(tm, ctm);
+        const corners = [
+          applyMatrix(trm, 0, descent),
+          applyMatrix(trm, advance, descent),
+          applyMatrix(trm, 0, ascent),
+          applyMatrix(trm, advance, ascent),
+        ];
+        const xs = corners.map((c) => c[0]);
+        const ys = corners.map((c) => c[1]);
+        noteBox({
+          x: Math.min(...xs),
+          y: Math.min(...ys),
+          width: Math.max(...xs) - Math.min(...xs),
+          height: Math.max(...ys) - Math.min(...ys),
+        });
+
+        const mapped = font?.toUnicode.get(code);
+        if (mapped !== undefined) preview += mapped;
+        else if (!font?.twoByte) preview += String.fromCharCode(code);
+
+        tm = multiplyMatrix([1, 0, 0, 1, advance, 0], tm);
+      }
+    };
+
+    const nextLine = (tx, ty) => {
+      tlm = multiplyMatrix([1, 0, 0, 1, tx, ty], tlm);
+      tm = tlm;
+    };
+
+    for (const token of tokens) {
+      if (token.type !== 'operator') {
+        operands.push(token);
+        continue;
+      }
+
+      const op = token.value;
+
+      switch (op) {
+        case 'q':
+          ctmStack.push(ctm);
+          break;
+        case 'Q':
+          ctm = ctmStack.pop() ?? baseCtm;
+          break;
+        case 'cm':
+          ctm = multiplyMatrix(
+            [num(0), num(1), num(2), num(3), num(4), num(5)],
+            ctm,
+          );
+          break;
+
+        case 'Do': {
+          const name = operands[operands.length - 1];
+          const key = name?.type === 'name' ? `/${name.value}` : null;
+          const entry = key ? xobjects.get(key) : undefined;
+          if (entry?.isImage) {
+            // Span covers the `/Name` operand as well as `Do`, so no orphan name
+            // is left behind. The preceding `cm` stays: it sits inside the
+            // enclosing q/Q and is undone by the `Q` regardless.
+            const box = transformedUnitBox(ctm);
+            objects.push({
+              kind: 'image',
+              pageIndex,
+              name: key,
+              ...(entry.imageRef ? { imageRef: entry.imageRef } : {}),
+              formPath,
+              bbox: box,
+              start: name.start,
+              end: token.end,
+            });
+          } else if (entry?.form) {
+            walkForm(entry.form, streamResources, ctm, formPath);
+          }
+          break;
+        }
+
+        case 'BT':
+          inText = true;
+          textStart = token.start;
+          tm = IDENTITY;
+          tlm = IDENTITY;
+          runMin = null;
+          runMax = null;
+          preview = '';
+          break;
+
+        case 'ET':
+          if (inText && runMin && runMax) {
+            objects.push({
+              kind: 'text',
+              pageIndex,
+              // The content stream draws RTL glyphs in drawing (visual) order,
+              // not reading order, so the preview needs reordering for display.
+              preview: visualToLogical(preview),
+              formPath,
+              bbox: {
+                x: runMin[0],
+                y: runMin[1],
+                width: runMax[0] - runMin[0],
+                height: runMax[1] - runMin[1],
+              },
+              start: textStart,
+              end: token.end,
+            });
+          }
+          inText = false;
+          break;
+
+        case 'Tf': {
+          const name = operands[operands.length - 2];
+          fontKey = name?.type === 'name' ? `/${name.value}` : null;
+          font = fontKey ? fonts.get(fontKey) ?? null : null;
+          fontSize = num(operands.length - 1);
+          break;
+        }
+        case 'Tc':
+          charSpacing = num(operands.length - 1);
+          break;
+        case 'Tw':
+          wordSpacing = num(operands.length - 1);
+          break;
+        case 'Tz':
+          horizontalScale = num(operands.length - 1) / 100;
+          break;
+        case 'TL':
+          leading = num(operands.length - 1);
+          break;
+        case 'Ts':
+          rise = num(operands.length - 1);
+          break;
+
+        case 'Tm':
+          tlm = [num(0), num(1), num(2), num(3), num(4), num(5)];
+          tm = tlm;
+          break;
+        case 'Td':
+          nextLine(num(operands.length - 2), num(operands.length - 1));
+          break;
+        case 'TD':
+          leading = -num(operands.length - 1);
+          nextLine(num(operands.length - 2), num(operands.length - 1));
+          break;
+        case 'T*':
+          nextLine(0, -leading);
+          break;
+
+        case 'Tj':
+        case "'":
+        case '"': {
+          if (op !== 'Tj') nextLine(0, -leading);
+          if (op === '"') {
+            wordSpacing = num(operands.length - 3);
+            charSpacing = num(operands.length - 2);
+          }
+          const str = operands[operands.length - 1];
+          if (str?.type === 'string' || str?.type === 'hexstring') showString(str.value);
+          break;
+        }
+
+        case 'TJ': {
+          const arr = operands[operands.length - 1];
+          if (arr?.type === 'array') {
+            for (const item of arr.value) {
+              if (item.type === 'number') {
+                // A kern: shifts the cursor without drawing.
+                const shift = (-item.value / 1000) * fontSize * horizontalScale;
+                tm = multiplyMatrix([1, 0, 0, 1, shift, 0], tm);
+              } else if (item.type === 'string' || item.type === 'hexstring') {
+                showString(item.value);
+              }
+            }
+          }
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      operands = [];
+    }
+  }
+
+  /**
+   * Walks a Form XObject in place. A Form that cannot be read or lexed
+   * contributes nothing; it never costs the page its other objects.
+   */
+  function walkForm({ ref, stream }, parentResources, ctmAtDo, parentPath) {
+    if (parentPath.length >= MAX_FORM_DEPTH || walkedForms.has(ref.tag)) return;
+    walkedForms.add(ref.tag);
+    const before = objects.length;
+    try {
+      const ownResources = lookupDict(context, stream.dict.get(PDFName.of('Resources')));
+      walkStream(
+        decodePDFRawStream(stream).decode(),
+        ownResources ?? parentResources,
+        multiplyMatrix(formMatrix(context, stream), ctmAtDo),
+        [...parentPath, ref.tag],
+      );
+    } catch (err) {
+      objects.length = before;
+      console.error(`Could not read Form XObject ${ref.tag} on page ${pageIndex + 1}`, err);
+    }
+  }
 }
