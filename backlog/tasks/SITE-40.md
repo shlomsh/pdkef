@@ -1,7 +1,7 @@
 ---
 id: "SITE-40"
 title: "Redact's toolbar packs 4+4+2 once 'Compress it' appears"
-status: "done"
+status: "retired"
 priority: "P3"
 epic: "site-quality"
 depends_on: []

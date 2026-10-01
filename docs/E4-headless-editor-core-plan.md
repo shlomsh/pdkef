@@ -3,8 +3,8 @@
 # E4 Low-Level Design — Headless TS Editor Core (Lane E)
 
 > Execution plan for backlog epic **E4** (tickets E4.2, E4.3, E4.4) on the
-> [TODO.md](../../TODO.md). **Epic E4 is complete**; this is kept as the design record.
-> Design standard: [CLAUDE.md](../../CLAUDE.md) Part II §1.2 (gesture hot path), §3.2 (editor core),
+> [TODO.md](../TODO.md). **Epic E4 is complete**; this is kept as the design record.
+> Design standard: [CLAUDE.md](../CLAUDE.md) Part II §1.2 (gesture hot path), §3.2 (editor core),
 > §3.1 (styling boundary), §4 (gesture golden rule), §5 (known hazards). **E4.1 and E4.2 are done**:
 > E4.1 introduced `src/editor/model/editorModel.ts` and `coords.ts`; E4.2 introduced the framework-free gesture
 > controller and pointer normaliser. This is the reference a fresh session
@@ -36,10 +36,10 @@
 
 | Path | Location | Obeys golden rule? |
 |---|---|---|
-| **Sign drag** (move an element) | [`useDraggableElement.js`](../../src/editor-ui/hooks/useDraggableElement.js) | ✅ DOM-mutate `transform` during; single `onChange` on up |
-| **Sign resize** (all handles) | [`DraggableWrapper.jsx`](../../src/components/SignTool/DraggableWrapper.jsx) `handleResizeStart` (inline, ~250 lines) | ✅ `pendingResize` accumulator + CSSOM during; single `onChange` on up |
-| **Sign create** (drag-drawn: whiteout/line/ellipse/rectangle) | [`useWorkspaceGestures.ts`](../../src/lib/useWorkspaceGestures.ts) `handleOverlayPointerDown` | ✅ gesture controller owns move-time DOM preview and commits state once on release |
-| **Redact drag / resize / create** | [`PdfRedactTool.jsx`](../../src/components/PdfRedactTool.jsx) `handleBoxDragStart` / `handleBoxResizeStart` / `handlePointerDown`+`drawingState` | ❌ **`updateElement` / `setDrawingState` per move** on all three |
+| **Sign drag** (move an element) | [`useDraggableElement.js`](../src/editor-ui/hooks/useDraggableElement.js) | ✅ DOM-mutate `transform` during; single `onChange` on up |
+| **Sign resize** (all handles) | [`DraggableWrapper.jsx`](../src/components/SignTool/DraggableWrapper.jsx) `handleResizeStart` (inline, ~250 lines) | ✅ `pendingResize` accumulator + CSSOM during; single `onChange` on up |
+| **Sign create** (drag-drawn: whiteout/line/ellipse/rectangle) | [`useWorkspaceGestures.ts`](../src/lib/useWorkspaceGestures.ts) `handleOverlayPointerDown` | ✅ gesture controller owns move-time DOM preview and commits state once on release |
+| **Redact drag / resize / create** | [`PdfRedactTool.jsx`](../src/components/PdfRedactTool.jsx) `handleBoxDragStart` / `handleBoxResizeStart` / `handlePointerDown`+`drawingState` | ❌ **`updateElement` / `setDrawingState` per move** on all three |
 
 **Finding that reshapes the ticket scope:** the ARCHITECTURE doc frames the divergence as "drag was
 extracted, resize was inline." That is true for Sign, but the deeper reality is that **only Sign's
@@ -51,8 +51,8 @@ Redact off its per-move dispatch — otherwise convergence would preserve a gold
 
 The per-handle, anchor-preserving shape-resize math exists **twice, near-verbatim**:
 
-- [`DraggableWrapper.jsx:189-248`](../../src/components/SignTool/DraggableWrapper.jsx) (whiteout/ellipse/rectangle branch).
-- [`PdfRedactTool.jsx:452-508`](../../src/components/PdfRedactTool.jsx) (`handleBoxResizeStart` onMove).
+- [`DraggableWrapper.jsx:189-248`](../src/components/SignTool/DraggableWrapper.jsx) (whiteout/ellipse/rectangle branch).
+- [`PdfRedactTool.jsx:452-508`](../src/components/PdfRedactTool.jsx) (`handleBoxResizeStart` onMove).
 
 They already drifted once — the whiteout-resize-off-page regression (`ea10349`) was the Redact copy
 lagging the Sign fix (`ca411be`). Both are now covered by the E1.5 invariants
@@ -64,7 +64,7 @@ lagging the Sign fix (`ca411be`). Both are now covered by the E1.5 invariants
 The `type === 'line'` / `!isLine` / `isShape` / `symbol||signature` branching in
 `handleResizeStart` and the `DRAG_DRAWN_TOOLS` list encode exactly these behaviors:
 
-| Type | Handles emitted ([`ElementResizers.jsx`](../../src/components/ElementResizers.jsx)) | Resize behavior | Create behavior |
+| Type | Handles emitted ([`ElementResizers.jsx`](../src/components/ElementResizers.jsx)) | Resize behavior | Create behavior |
 |---|---|---|---|
 | `text` | 4 corners | Scale `fontSize` by drag projected on box diagonal; adjust `left`/`top` to hold the anchor edge; RTL anchors via CSS `right`. `MIN/MAX_FONT_SIZE_PT`. | Click-place; `autoFocus`; inherits last text size/color/font/direction |
 | `rectangle` / `ellipse` | 4 edges + 4 corners | Per-handle dimension cap vs anchor edge; `MIN/MAX_SHAPE_SIZE_PCT`; derives `left`/`top` from new dim on left/top handles | Drag-drawn; `ENSURE_MINIMUM_SIZE` on release |
@@ -73,17 +73,17 @@ The `type === 'line'` / `!isLine` / `isShape` / `symbol||signature` branching in
 | `signature` | 4 corners | Center-anchored, aspect-ratio-locked; `MAX_SHAPE_SIZE_PCT` ceiling (freeform ink, not a checkbox-sized mark) | Click-place (or dialog if none active) |
 | `line` | `line-start` / `line-end` endpoint handles | Move the dragged endpoint only (no bbox); `MIN_LINE_LENGTH_PCT` reset on release | Drag-drawn from a point |
 
-Geometry constants all live in [`signGeometry.js`](../../src/constants/signGeometry.js); the registry
+Geometry constants all live in [`signGeometry.js`](../src/constants/signGeometry.js); the registry
 consumes them, it does not re-define them.
 
 ### 1d. The two element models are not the same shape (the E4.4 reconciliation)
 
-- **Sign** uses the [`editorModel.ts`](../../src/editor/model/editorModel.ts) union keyed on `type`
+- **Sign** uses the [`editorModel.ts`](../src/editor/model/editorModel.ts) union keyed on `type`
   (`whiteout`, `rectangle`, …).
 - **Redact** stores `{ id, pageIndex, left, top, width, height, style, color }` where
   **`style` ∈ `blackout | blur | whiteout`** — a *different discriminant field*. `RedactBox.jsx`
   passes a rendering-only `type: 'whiteout'` shim so it can reuse `ElementToolbar`/clone, and
-  `cloneWhiteoutElement` strips it back out ([`PdfRedactTool.jsx:389`](../../src/components/PdfRedactTool.jsx)).
+  `cloneWhiteoutElement` strips it back out ([`PdfRedactTool.jsx:389`](../src/components/PdfRedactTool.jsx)).
 
 E4.4 must decide the unified model: most likely **fold Redact's `blackout`/`blur`/`whiteout` into the
 `type` union** as first-class element types (each with its own registry entry), retiring the `style`
@@ -91,19 +91,19 @@ field and the shim. Redact whiteout then literally *is* the Sign `whiteout` type
 
 ### 1e. The workspace substrate duplicated between the two tools
 
-Both [`PdfSignTool.jsx`](../../src/components/PdfSignTool.jsx) and
-[`PdfRedactTool.jsx`](../../src/components/PdfRedactTool.jsx) independently implement:
+Both [`PdfSignTool.jsx`](../src/components/PdfSignTool.jsx) and
+[`PdfRedactTool.jsx`](../src/components/PdfRedactTool.jsx) independently implement:
 
 - **PDF load** with a monotonic `loadIdRef` race guard, a `loadStartedRef` first-wins claim, a 20s
   hang timeout, and draft-restore reconciliation (see the long comments around `loadPdf`).
-- **Draft persistence** via [`useDraftPersistence.js`](../../src/lib/useDraftPersistence.js) (Sign also had
+- **Draft persistence** via [`useDraftPersistence.js`](../src/lib/useDraftPersistence.js) (Sign also had
   its own `useSignDraftPersistence.js` at the time of this audit; E4.4 converged both onto the shared
-  [`useEditorDraftPersistence.js`](../../src/editor/workspace/useEditorDraftPersistence.js)).
+  [`useEditorDraftPersistence.js`](../src/editor/workspace/useEditorDraftPersistence.js)).
 - **Fullscreen** (real + `pseudo-fullscreen` fallback) and **Escape precedence** while a modal is open.
-- **Undo history** ([`actionHistory.ts`](../../src/editor/model/actionHistory.ts),
-  [`useHistoryShortcuts.js`](../../src/lib/history/useHistoryShortcuts.js), `UndoHistoryModal`).
+- **Undo history** ([`actionHistory.ts`](../src/editor/model/actionHistory.ts),
+  [`useHistoryShortcuts.js`](../src/lib/history/useHistoryShortcuts.js), `UndoHistoryModal`).
 - **Download / continue-editing / start-over** flow and URL revocation.
-- **Native share** of the baked PDF via [`usePdfShare.js`](../../src/lib/usePdfShare.js) (added on `main`
+- **Native share** of the baked PDF via [`usePdfShare.js`](../src/lib/usePdfShare.js) (added on `main`
   in `e2ab13b`, after this epic was scoped). This one is **already shared** — a single hook
   (`{ canSharePdf, shareReady, prepare, clearPrepared, sharePrepared, download, downloadPrepared }`)
   used by Sign (`SignToolbar`/`PdfWorkspace`), Redact (`RedactToolbar`), and the other tools alike.
@@ -117,7 +117,7 @@ Both [`PdfSignTool.jsx`](../../src/components/PdfSignTool.jsx) and
   re-implementing it inside the substrate.
 
 Redact keeps its element list in local `useState`; Sign keeps it in the `SignToolContext` reducer
-([`SignToolContext.jsx`](../../src/components/SignTool/SignToolContext.jsx)). Convergence needs one
+([`SignToolContext.jsx`](../src/components/SignTool/SignToolContext.jsx)). Convergence needs one
 substrate that is agnostic to how the element list is stored.
 
 ---
@@ -169,7 +169,7 @@ pointerdown and `registry[el.type].render(...)` for the body; it no longer conta
 
 **Dependency enforcement (ARCH-11).** The current, explicit import matrix and the narrow renderer /
 workspace-hook transition seams are maintained in
-[editor-module-boundaries-plan.md](./editor-module-boundaries-plan.md). Run
+[editor-module-boundaries-plan.md](./archive/editor-module-boundaries-plan.md). Run
 `npm run test:editor-dependency-directions`; CI resolves production static imports and rejects a
 reversed layer dependency. The registry renderer remains a documented Preact adapter seam rather than
 a reason to move files mechanically.

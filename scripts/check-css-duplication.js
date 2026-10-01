@@ -117,9 +117,10 @@ const distDir = path.join(__dirname, '..', 'dist');
 // the content family's own mean by three bytes, and this number by 0.
 //
 // Two facts about how distinct rule bytes get computed, unrelated to page
-// count but still true: `.github/skills/`'s rule tables are excluded from
-// Tailwind's scan by an `@source not` rule in global.css, so they cannot
-// inflate this number with classes no page uses. Tailwind's `/*! tailwindcss
+// count but still true: each page family compiles only the files its entry
+// sheet lists with `@source`, so nothing outside src/ (the design skill that
+// once sat under .github/skills/ is now a local install) can inflate this
+// number with classes no page uses. Tailwind's `/*! tailwindcss
 // ... */` banner comment sits glued to `@layer properties`'s prelude, which
 // is why `stripComments()` exists below - without it the whole properties
 // layer parses as one dead leaf rule.

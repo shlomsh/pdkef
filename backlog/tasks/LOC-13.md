@@ -106,8 +106,8 @@ against a paid reviewer and a schema extension. Recommendation to Shlomi: hold u
 read (2026-11-06) and LOC-12 (2026-11-12), and grow the English base first, since localization
 multiplies what the English pages already win. **Decision (Shlomi, 2026-09-12): hold.** The same-day
 ranking in LOC-11 put Indonesian ([LOC-14](LOC-14.md)) ahead of Spanish as the in-language candidate,
-and the image-to-target-size tool (SEO-19) ahead of both. This ticket unblocks when LOC-14 has run and
-LOC-12 has re-read the countries; if Spanish is still the best door then, the page is built as scoped
+and the image-to-target-size tool (SEO-19) ahead of both. This ticket unblocks when LOC-17 (the Indonesian read) and SEO-40 (the November reads, which
+now hold LOC-12's country re-read) are in; if Spanish is still the best door then, the page is built as scoped
 above, on the SEP 1 MB hook, and covers the photo limit as well as the PDF limit.
 
 ## Term and slug come from the data, not from this ticket

@@ -547,7 +547,7 @@ export const tools = [
     // rendering before a file is even picked, the page with a file open is
     // taller than a laptop viewport, and on a phone the Compress button sat
     // ~550px below the fold. Folding the hero once a file is open is what
-    // brings the action back on screen (see docs/archive/view-density-control-spec.md 4.7).
+    // brings the action back on screen (see docs/view-density-control-spec.md 4.7).
     condenseOnLoad: true,
     icon: Shrink,
     gridTitle: 'Compress PDF',
@@ -596,7 +596,7 @@ export const tools = [
     href: '/compress-image/',
     // Same reasoning as compress: the target-size panel renders before a file
     // is even picked, so the hero folds once one is open or the Compress
-    // button sits below the fold on a phone (docs/archive/view-density-control-spec.md 4.7).
+    // button sits below the fold on a phone (docs/view-density-control-spec.md 4.7).
     condenseOnLoad: true,
     icon: ImageMinus,
     gridTitle: 'Compress Image',
@@ -643,7 +643,7 @@ export const tools = [
     slug: 'unlock',
     href: '/unlock/',
     // Same reasoning as compress: one short options card, nothing to gain by
-    // folding the hero (see docs/archive/view-density-control-spec.md 4.7).
+    // folding the hero (see docs/view-density-control-spec.md 4.7).
     condenseOnLoad: false,
     icon: FileLock2,
     gridTitle: 'Protect & Unlock',
