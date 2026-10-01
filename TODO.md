@@ -160,6 +160,8 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | QUAL-14 | P3 | [QUAL-14](backlog/tasks/QUAL-14.md) · Citron stroke on the Hebrew pages: a Hebrew on-device phrase for the tool subheads and the closing heading |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
 | QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
+| QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The IRS 1040 saved-file check test finishes inside its timeout under a full run |
+| QUAL-18 | P3 | [QUAL-18](backlog/tasks/QUAL-18.md) · npm install in a fresh worktree leaves package-lock.json unchanged |
 | SITE-40 | P3 | [SITE-40](backlog/tasks/SITE-40.md) · Redact's toolbar packs 4+4+2 once 'Compress it' appears |
 | SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
 
@@ -477,6 +479,13 @@ See [BACKLOG.md](BACKLOG.md) for the generated status view.
 | RED-37 | P2 | [RED-37](backlog/tasks/RED-37.md) · Redact speaks one vocabulary, and every removal gets the undo chip |
 | RED-38 | P2 | [RED-38](backlog/tasks/RED-38.md) · Find: Cover all waits for every page, one Find control, 44px targets |
 | RED-39 | P2 | [RED-39](backlog/tasks/RED-39.md) · Redact recovers: a failed load offers another file, a new file starts clean |
+| RED-40 | P2 | [RED-40](backlog/tasks/RED-40.md) · Redact remembers the whiteout colour and blur strength per document, like Sign |
+| RED-41 | P3 | [RED-41](backlog/tasks/RED-41.md) · The box toolbar says Duplicate and Delete, in Sign and Redact |
+| RED-42 | P3 | [RED-42](backlog/tasks/RED-42.md) · Keep Blur on / Keep Whiteout on is hidden while a brush is armed |
+| RED-43 | P2 | [RED-43](backlog/tasks/RED-43.md) · A box can be reached and removed with the keyboard |
+| RED-44 | P3 | [RED-44](backlog/tasks/RED-44.md) · The saved-file check's buttons are 44px touch targets |
+| RED-45 | P3 | [RED-45](backlog/tasks/RED-45.md) · A restored document says its boxes are back |
+| RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for |
 
 
 ## Migrated context and history
