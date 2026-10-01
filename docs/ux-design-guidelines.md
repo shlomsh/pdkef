@@ -5,9 +5,9 @@ The app-wide guideline for how a PDkef tool looks, behaves and gets reviewed. Fi
 were made and measured; every later tool review adds to it here rather than in its own notes. It is
 kept so the next tool review (Edit PDF Pages is the obvious next one, then Compress, Image to PDF;
 Split is sketched, see §15) starts from what we already settled instead of rediscovering it. The Merge-specific spec is
-[merge-direction-a-spec.md](./merge-direction-a-spec.md), the sketch is
-[merge-direction-a-sketch.html](./merge-direction-a-sketch.html), and the review that drove the
-second pass is [merge-review-2026-09-13.md](./merge-review-2026-09-13.md). Cross-tool hand-offs are
+[merge-direction-a-spec.md](./archive/merge-direction-a-spec.md), the sketch is
+[merge-direction-a-sketch.html](./archive/merge-direction-a-sketch.html), and the review that drove the
+second pass is [merge-review-2026-09-13.md](./archive/merge-review-2026-09-13.md). Cross-tool hand-offs are
 also a standing preference of the owner's; see the last section.
 
 The goal these serve, in Shlomi's words: an experience good enough that people return and recommend

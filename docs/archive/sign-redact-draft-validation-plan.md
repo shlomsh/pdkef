@@ -1,7 +1,7 @@
 # Validate and version drafts at restore
 
 > Execution plan for backlog item **SIGN-11** ("Versioned, validated shared persistence") on
-> [TODO.md](../TODO.md). Design standard: [CLAUDE.md](../CLAUDE.md) "Draft persistence feature"
+> [TODO.md](../../TODO.md). Design standard: [CLAUDE.md](../../CLAUDE.md) "Draft persistence feature"
 > (Architecture section) and the privacy invariants (no PDF content in diagnostics). This plan covers
 > the validate-on-restore + schema-version + migrate slice of SIGN-11 only — see "Out of scope" below
 > for what of SIGN-11 stays open after this lands. **Landed 2026-09-02** — see SIGN-11's task file for
