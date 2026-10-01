@@ -6,9 +6,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Robustness and debt
-
-- [ARCH-32](backlog/tasks/ARCH-32.md) P2 · e2e selected by file-level reachability: a src/editor/ change runs the pages that import it (in progress)
+_Nothing is up next._
 
 ## Waiting, by date
 
