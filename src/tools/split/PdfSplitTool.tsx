@@ -296,7 +296,7 @@ export default function PdfSplitTool({
         try {
           await loadingTask.destroy();
         } catch {
-          // An abandoned task failing to release is nothing the person can act on.
+          // expected: an abandoned task failing to release is nothing the person can act on
         }
       }
     }
@@ -467,7 +467,7 @@ export default function PdfSplitTool({
       run.settle();
       navigate('/compress/');
     } catch {
-      // A stale failure must not touch the new file's UI.
+      // expected: saveHandoff reports its own failure; a stale failure must not touch the new file UI
       if (!run.isCurrent()) return;
       setHandoffFailed(true);
       setHandoffBusy(false);
