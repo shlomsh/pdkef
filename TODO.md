@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-29](backlog/tasks/RED-29.md) P1 · Delete finds what a page draws inside a Form XObject (in progress)
-
 ### Sign: finish fill mode
 
 - [SNG-21](backlog/tasks/SNG-21.md) P2 · Fill mode's pinch-zoom e2e runs on CI's Linux Chromium too
