@@ -104,3 +104,29 @@ describe('a third source that finds something is folded in by declared precedenc
     expect(withStub.cells).not.toContainEqual(disputedCell);
   });
 });
+
+describe('sources that resolve out of order are still folded in `sources` array order', () => {
+  const region = { pageIndex: 0, left: 10, top: 10, width: 20, height: 5 };
+  /** A stub reporting one checkbox on the shared rectangle, resolving after `delayMs`. */
+  const checkboxStub = (name, delayMs) => ({
+    name,
+    async detect(_page, context) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return {
+        combs: [],
+        checkboxes: context.pageIndex === 0 ? [{ ...region, tag: name }] : [],
+        cells: [],
+      };
+    },
+  });
+
+  it.each([
+    ['slow first, fast second', [checkboxStub('slow', 40), checkboxStub('fast', 0)], 'slow'],
+    ['fast first, slow second', [checkboxStub('fast', 0), checkboxStub('slow', 40)], 'fast'],
+  ])('%s: the earlier source in the array wins the same-kind tie', async (_label, stubs, winner) => {
+    const doc = await buildDocument({});
+    const found = await detectFormFields(doc, { textRuns: textRunsFor(doc), sources: [...DEFAULT_SOURCES, ...stubs] });
+    expect(found.checkboxes).toHaveLength(1);
+    expect(found.checkboxes[0]).toMatchObject({ tag: winner });
+  });
+});

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Reconciles what each detection source found into one set of fields, from
  * declared data rather than hard-coded rules (ARCH-24 step B).
@@ -46,6 +47,17 @@
 const CLAIM_IOU = 0.3;
 const CLAIM_CONTAINMENT = 0.6;
 
+/**
+ * @typedef {import('./fieldTypes.ts').PercentBox} PercentBox
+ * @typedef {import('./fieldTypes.ts').FieldRegion} FieldRegion
+ * @typedef {import('./fieldTypes.ts').CombRegion} CombRegion
+ * @typedef {import('./fieldTypes.ts').DetectedCell} DetectedCell
+ */
+
+/**
+ * @param {PercentBox} a
+ * @param {PercentBox} b
+ */
 function overlap(a, b) {
   const iw = Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left));
   const ih = Math.max(0, Math.min(a.top + a.height, b.top + b.height) - Math.max(a.top, b.top));
@@ -78,11 +90,17 @@ function overlap(a, b) {
  * comparing a printed box against a carved strip the moment a second source
  * grows one is the kind of asymmetry nothing would report.
  */
+/** @param {FieldRegion} region */
 function claimExtent(region) {
   return region.enclosure ?? region;
 }
 
-/** Whether `region` overlaps none of `claimedBy`, by the printed-box rule above. */
+/**
+ * Whether `region` overlaps none of `claimedBy`, by the printed-box rule above.
+ *
+ * @param {FieldRegion} region
+ * @param {FieldRegion[]} claimedBy
+ */
 function unclaimed(region, claimedBy) {
   return !claimedBy.some((other) => overlap(claimExtent(region), claimExtent(other)));
 }
@@ -93,13 +111,15 @@ function unclaimed(region, claimedBy) {
  * claim; `null` when none does. Exported so a comb that no cell encloses can
  * be told apart by exactly the rule `absorbWritable` uses (`combTitleLine.js`).
  *
- * @param {object} region
- * @param {Array} cells
- * @returns {object|null}
+ * @template {FieldRegion} T
+ * @param {FieldRegion} region
+ * @param {T[]} cells
+ * @returns {T|null}
  */
 export function tightestEnclosingCell(region, cells) {
   const enclosing = cells.filter((cell) => overlap(claimExtent(cell), claimExtent(region)));
   if (enclosing.length === 0) return null;
+  /** @param {T} c */
   const area = (c) => claimExtent(c).width * claimExtent(c).height;
   return enclosing.reduce((best, c) => (area(c) < area(best) ? c : best));
 }
@@ -111,9 +131,9 @@ export function tightestEnclosingCell(region, cells) {
  * stays fixed rather than becoming data. A boxed comb, or one that already
  * carries `writable`, is returned unchanged. Never mutates its input.
  *
- * @param {Array} combs
- * @param {Array} cells
- * @returns {Array} `combs`, some with a new `writable` property
+ * @param {CombRegion[]} combs
+ * @param {FieldRegion[]} cells
+ * @returns {CombRegion[]} `combs`, some with a new `writable` property
  */
 function absorbWritable(combs, cells) {
   return combs.map((comb) => {
@@ -152,10 +172,10 @@ export const KIND_PRECEDENCE = Object.freeze(['combs', 'checkboxes', 'cells']);
  * against themselves - what `reconcileFields` used to do alone, for `ink`
  * only, before this existed.
  *
- * @param {Record<string, Array>} accepted one entry per kind in `kindPrecedence`
- * @param {Record<string, Array>} source one source's regions, same shape
- * @param {string[]} kindPrecedence
- * @returns {Record<string, Array>}
+ * @param {Record<string, FieldRegion[]>} accepted one entry per kind in `kindPrecedence`
+ * @param {Record<string, FieldRegion[]>} source one source's regions, same shape
+ * @param {readonly string[]} kindPrecedence
+ * @returns {Record<string, FieldRegion[]>}
  */
 function fold(accepted, source, kindPrecedence) {
   const next = { ...accepted };
@@ -217,13 +237,15 @@ function fold(accepted, source, kindPrecedence) {
  * source name") and demonstrated end to end through `detectFormFields` in
  * `corpus/thirdSourceContract.test.js`.
  *
- * @param {Record<string, {combs: Array, checkboxes: Array, cells: Array}>} sourceResults
+ * @template {FieldRegion} Cell the cell type the sources report; it comes back unchanged
+ * @param {Record<string, {combs: CombRegion[], checkboxes: FieldRegion[], cells: Cell[]}>} sourceResults
  * @param {{sourceOrder?: readonly string[], kindPrecedence?: readonly string[]}} [options]
- * @returns {{combs: Array, checkboxes: Array, cells: Array}}
+ * @returns {{combs: CombRegion[], checkboxes: FieldRegion[], cells: Cell[]}}
  */
 export function reconcile(sourceResults, { sourceOrder = SOURCE_ORDER, kindPrecedence = KIND_PRECEDENCE } = {}) {
   const unknown = Object.keys(sourceResults).filter((name) => !sourceOrder.includes(name));
   const order = [...sourceOrder, ...unknown];
+  /** @type {Record<string, FieldRegion[]>} */
   let accepted = Object.fromEntries(kindPrecedence.map((kind) => [kind, []]));
   for (const name of order) {
     const source = sourceResults[name];
@@ -231,5 +253,5 @@ export function reconcile(sourceResults, { sourceOrder = SOURCE_ORDER, kindPrece
     const withWritable = { ...source, combs: absorbWritable(source.combs ?? [], source.cells ?? []) };
     accepted = fold(accepted, withWritable, kindPrecedence);
   }
-  return accepted;
+  return /** @type {{combs: CombRegion[], checkboxes: FieldRegion[], cells: Cell[]}} */ (accepted);
 }

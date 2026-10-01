@@ -503,8 +503,8 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
     case 'EXPORT_PROGRESS':
       return state.document.progress === action.progress ? state : withDocument(state, { progress: action.progress });
     case 'EXPORT_SAVED':
-      // The bytes are kept before they are delivered (download or share), as
-      // they always were: a delivery that throws still leaves them for the hand-off.
+      // The bytes are kept before they are delivered (download or share) so the
+      // hand-off has them; EXPORT_FAILED drops them again if delivery throws.
       return withFinish(state, { exportedForHandoff: action.saved });
     case 'EXPORT_DELIVERED':
       return {
@@ -513,8 +513,10 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
         view: { ...state.view, announcement: action.announcement },
       };
     case 'EXPORT_FAILED':
+      // RED-50: a failure never leaves a saved state behind, whichever step failed.
       return {
         ...state,
+        finish: state.finish.exportedForHandoff === null ? state.finish : { ...state.finish, exportedForHandoff: null },
         document: { ...state.document, status: 'editing', errorDetail: action.detail },
         view: { ...state.view, announcement: action.announcement },
       };

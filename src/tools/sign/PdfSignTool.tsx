@@ -23,7 +23,7 @@ import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
 import useCoarsePointer from '../../editor-ui/hooks/useCoarsePointer.ts';
 import { isFillMode } from './fill/fillMode.ts';
-import { viewportContent } from './fill/viewportZoomLock.ts';
+import { viewportContent, zoomsOnFocus } from './fill/viewportZoomLock.ts';
 import { freeSlotKey } from './fill/fillSlots.ts';
 import { FillContext, FILL_OFF, type FillContextValue } from './fill/FillContext.tsx';
 import { useFillFocus } from './fill/useFillFocus.ts';
@@ -174,7 +174,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // tap focuses a field. `maximum-scale=1` stops that zoom-on-focus, while iOS
   // still honours the person's own pinch (measured 2026-09-26: iOS 26
   // Simulator in Safari, and Shlomi's iPhone in Chrome). Fill mode only, at
-  // runtime, so production's static viewport meta is untouched.
+  // runtime, on iOS only, so production's static viewport meta is untouched.
   //
   // Zoomed in, iOS re-zooms every focused field to its own 16px level, so
   // `viewportContent` holds the limits at the person's pinch instead
@@ -182,7 +182,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // 'resize' fires through the gesture, and the meta is rewritten only after
   // it goes quiet.
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (!enabled || !zoomsOnFocus(navigator)) return undefined;
     const meta = document.querySelector('meta[name="viewport"]');
     const original = meta?.getAttribute('content') ?? '';
     let pinching = false;

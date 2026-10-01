@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 55 live: 6 up next, 21 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 54 live: 5 up next, 21 then, 19 waiting, 9 parked.
 
 ## Redact: finish removal
 
@@ -13,12 +13,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | RED-46 | P2 | [RED-46](backlog/tasks/RED-46.md) · The Redact page speaks the tool's words, without losing what people search for | Waiting on 2026-10-08. Needs Shlomi: The 2026-10-08 Search Console export of /redact/ queries (filter for flatten, text layer, permanent, white out, remove text, metadata, erase) |
-
-### Parked
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| RED-50 | P3 | [RED-50](backlog/tasks/RED-50.md) · A download that fails after the file is made says so, not "Saved" |  |
 
 ## Sign: finish fill mode
 
@@ -50,12 +44,6 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 Every detected spot is a stop in fill mode, so false positives reach people directly. One fix at a time, since each re-records the baselines.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| FORM-25 | P2 | [FORM-25](backlog/tasks/FORM-25.md) · Detection's contract is type-checked, not only documented |  |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -76,6 +64,7 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 | FORM-06 | P3 | [FORM-06](backlog/tasks/FORM-06.md) · Spike: measure Tesseract heb on the two evidence forms before building any scanned path |  |
 | FORM-08 | P3 | [FORM-08](backlog/tasks/FORM-08.md) · Re-evaluate pdf-inspector: the MIT crate grew the positioned API the wasm build still hides |  |
 | FORM-15 | P3 | [FORM-15](backlog/tasks/FORM-15.md) · 1040 amount boxes the form leaves blank read as fields |  |
+| FORM-29 | P3 | [FORM-29](backlog/tasks/FORM-29.md) · The detector's cell, line and widget readers are type-checked |  |
 
 ## Robustness and debt
 
@@ -119,7 +108,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is |  |
+| SEO-21 | P3 | [SEO-21](backlog/tasks/SEO-21.md) · Flatten PDF: one shared flattener for forms and annotations, then a tool page that says which kind it is | In progress |
 
 ### Then, in order
 
@@ -172,9 +161,9 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 8 done, 0 retired
+- Redact: finish removal: 9 done, 0 retired
 - Sign: finish fill mode: 0 done, 1 retired
-- Form detector accuracy: 1 done, 0 retired
+- Form detector accuracy: 2 done, 0 retired
 - Robustness and debt: 3 done, 0 retired
 - Search and languages: 1 done, 0 retired
 - Polish: 2 done, 0 retired

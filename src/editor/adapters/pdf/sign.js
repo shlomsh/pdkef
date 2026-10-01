@@ -16,7 +16,7 @@ import { getElementDefinition } from '../../registry/index.ts';
 import { findUnrepresentableCharacters } from '../../text/textCoverage.js';
 import { baselineOffsetEmFromMetrics, embeddedFontFile, resolveTypography } from '../../text/fonts.js';
 import { HELVETICA_BASELINE_OFFSET_EM, DEFAULT_LINE_HEIGHT_EM } from '../../../constants/signGeometry.js';
-import { hasFillableAcroForm } from './pdfObjects.js';
+import { flattenDoc } from './flatten.js';
 
 /**
  * Thrown by signPdf's coverage pre-pass (docs/hebrew-text-shaping-export.md,
@@ -45,23 +45,7 @@ export class FontUnavailableError extends Error {
   }
 }
 
-/**
- * Thrown when a source PDF's AcroForm exists but pdf-lib's `form.flatten()`
- * throws on it (MOBI-02). Flattening bakes each widget's current appearance
- * into its page and removes the form, which is the export policy for any
- * document that carries one - see the policy note above `signPdf`. A
- * document this cannot be done to safely must fail the whole export rather
- * than silently fall back to drawing over the still-live, empty fields:
- * that silent fallback is the exact defect MOBI-02 exists to fix, so it is
- * not an acceptable failure mode to land in by accident.
- */
-export class FormFlattenError extends Error {
-  constructor(cause) {
-    super(`Could not flatten the source PDF's form fields: ${cause?.message ?? cause}`);
-    this.name = 'FormFlattenError';
-    this.cause = cause;
-  }
-}
+export { FormFlattenError } from './flatten.js';
 
 // The coverage policy - which elements get judged, which of their characters
 // actually reach the page, and which font each resolves to - lives in
@@ -176,25 +160,14 @@ export async function signPdf(file, elements, onProgress) {
   const { characters: missingCharacters, pageNumbers } = await findUnrepresentableCharacters(elements, loadCustomFont);
   if (missingCharacters.length > 0) throw new UnrepresentableTextError(missingCharacters, pageNumbers);
 
-  // Flatten before drawing any element, not after: pdf-lib's flatten() bakes
-  // each widget's appearance by *appending* content-stream operators to its
-  // page (the same `page.pushOperators` this file uses below for its own
-  // elements), so flattening first is what keeps PDkef's own content on top
-  // of the flattened field rather than under it - flattening after the draw
-  // loop would reproduce the exact "empty box on top of the answer" defect
-  // this exists to fix. `hasFillableAcroForm` is the cheap catalog-only
-  // check (see its own comment for why it never calls `getForm()` on a
-  // document with no form); calling `getForm()` here, only once a form is
-  // confirmed to exist, is what actually strips any XFA data as flatten's
-  // documented side effect - accepted because a flattened document has no
-  // further use for it either way.
-  if (hasFillableAcroForm(pdfDoc)) {
-    try {
-      pdfDoc.getForm().flatten();
-    } catch (error) {
-      throw new FormFlattenError(error);
-    }
-  }
+  // Flatten before drawing any element, not after: the flattener appends each
+  // annotation's appearance to its page (the same `page.pushOperators` this
+  // file uses below for its own elements), so flattening first keeps PDkef's
+  // own content on top of the flattened field rather than under it -
+  // flattening after the draw loop would reproduce the "empty box on top of
+  // the answer" defect (MOBI-02). It is inert on a document with no
+  // annotations and never calls `getForm()`, which would strip XFA data.
+  flattenDoc(pdfDoc);
 
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];

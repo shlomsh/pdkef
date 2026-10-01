@@ -28,7 +28,7 @@
   line-clamp: 2;
   overflow: hidden;
 }
-.sub { font-size: 0.73rem; color: var(--color-muted); }
+.sub { font-size: 0.73rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 767px) {
   .document { min-height: 132px; gap: 3px; padding: 4px 2px; }
   .list { gap: 16px 8px; }
