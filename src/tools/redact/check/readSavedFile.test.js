@@ -93,6 +93,10 @@ describe('readSavedFile', () => {
       const field = result.places.find((place) => place.kind === 'field');
       expect(field).toMatchObject({ kind: 'field', text: 'field-secret-value', pageIndex: 0 });
 
+      // The field's name is reported too, marked as not removable.
+      const fieldName = result.places.find((place) => place.kind === 'field' && place.removable === false);
+      expect(fieldName).toMatchObject({ text: 'secret.field', pageIndex: 0, removable: false });
+
       const link = result.places.find((place) => place.kind === 'link');
       expect(link).toMatchObject({ kind: 'link', text: 'https://example.com/secret-path', pageIndex: 0 });
 

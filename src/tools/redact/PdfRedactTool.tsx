@@ -33,6 +33,7 @@ import type { RedactElement } from './redactElements.ts';
 import EditorPageHeader from '../../editor-ui/EditorPageHeader.tsx';
 import FindBar, { PRESET_LABELS } from './FindBar.tsx';
 import SavedFileCheck from './SavedFileCheck.tsx';
+import { ALREADY_GONE, removedMessage, type InPlaceFinding } from './check/checkCopy.ts';
 import useSavedFileCheck from './useSavedFileCheck.ts';
 import { deletedTerms } from './check/deletedTerms.ts';
 import { uncoveredMatches } from './find/findMatches.ts';
@@ -113,6 +114,7 @@ const UNDO_WINDOW_MS = 5000;
 interface RedactUndoAction {
   message: string;
   entryId: string;
+  extra?: { label: string; onSelect: () => void };
 }
 
 export default function PdfRedactTool() {
@@ -638,10 +640,10 @@ export default function PdfRedactTool() {
   // Shared by deleteElement and clearPage (finding #3) - both are complete
   // atomic commands by the time this runs, so this only has to surface what
   // already happened, not perform it.
-  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>) => {
+  const registerUndo = (message: string, entry: ActionHistoryEntry<RedactElement>, extra?: { label: string; onSelect: () => void }) => {
     setAnnouncement(`${message}.`);
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoAction({ message, entryId: entry.id });
+    setUndoAction({ message, entryId: entry.id, extra });
     undoTimerRef.current = setTimeout(() => setUndoAction(null), UNDO_WINDOW_MS);
   };
 
@@ -888,6 +890,43 @@ export default function PdfRedactTool() {
     redactMatches(uncoveredMatches(pages, term.finder, checkBoxes, find.measure));
   };
 
+  // RED-25: Remove it. Bytes in, bytes out (check/removePlace.ts); the new
+  // file replaces the saved one under the same name, downloads again, and the
+  // saved-file check re-runs on it because `exportedForHandoff` changed.
+  const [removing, setRemoving] = useState(false);
+  const [removedNote, setRemovedNote] = useState<string | null>(null);
+  const removeFromCheck = async (finding: InPlaceFinding) => {
+    if (removing || savedCheck.state.status !== 'done' || !exportedForHandoff) return;
+    const place = savedCheck.state.outcome.context.saved.places[finding.placeIndex];
+    if (!place) return;
+    const { blob, name } = exportedForHandoff;
+    setRemoving(true);
+    try {
+      const { removePlace, PlaceNotFoundError } = await import('./check/removePlace.ts');
+      try {
+        const bytes = await removePlace(new Uint8Array(await blob.arrayBuffer()), place);
+        const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+        clearPrepared();
+        setExportedForHandoff({ blob: next, name });
+        download(next, name);
+        setRemovedNote(removedMessage(place));
+        setAnnouncement(removedMessage(place));
+      } catch (error) {
+        if (!(error instanceof PlaceNotFoundError)) throw error;
+        // Nothing changed; a fresh blob object makes the check read it again.
+        setExportedForHandoff({ blob: new Blob([blob], { type: blob.type }), name });
+        setRemovedNote(ALREADY_GONE);
+        setAnnouncement(ALREADY_GONE);
+      }
+    } catch (error) {
+      console.error(error);
+      setRemovedNote(null);
+      setAnnouncement("I couldn't remove that. Your saved file is unchanged.");
+    } finally {
+      setRemoving(false);
+    }
+  };
+
   const handleSavePdf = async (exportAction = 'download') => {
     if (!file) return;
     if (elements.length === 0) {
@@ -896,6 +935,7 @@ export default function PdfRedactTool() {
     }
 
     setErrorDetail(null);
+    setRemovedNote(null);
     setExportCancelled(false);
     setStatus('redacting');
     setProgress(0);
@@ -1078,7 +1118,14 @@ export default function PdfRedactTool() {
             onRedo={redoLast}
             canRedo={redoHistory.length > 0}
             exporting={status === 'redacting'}
-            undoAction={undoAction}
+            undoAction={undoAction && {
+              message: undoAction.message,
+              extra: undoAction.extra && {
+                label: undoAction.extra.label,
+                // Pressing it spends the chip, like Undo; the action it runs may register its own.
+                onSelect: () => { const run = undoAction.extra!.onSelect; clearUndoChip(); run(); },
+              },
+            }}
             onUndoAction={runUndoChip}
             statusMessage={finishStatusText(finishFacts)}
             peeking={peekAll}
@@ -1288,7 +1335,7 @@ export default function PdfRedactTool() {
                 {errorDetail}
               </ErrorMessage>
             )}
-            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} />
+            <SavedFileCheck state={savedCheck.state} onSearch={savedCheck.search} onCover={coverFromCheck} onRemove={removeFromCheck} removing={removing} note={removedNote} />
           </RedactFinish>
         </div>
       )}

@@ -51,6 +51,9 @@ export interface SavedPlace {
   text: string;
   /** Set for page-bound places (a field, a comment). */
   pageIndex?: number;
+  /** False for a place Remove it cannot take out alone (a form field's name).
+   * Absent means removable. */
+  removable?: boolean;
 }
 
 /** What `readSavedFile` reads from the saved bytes. */
@@ -69,8 +72,10 @@ export type Finding =
   | { kind: 'visible-in-picture'; pageIndex: number }
   /** Found in a saved page's text. */
   | { kind: 'in-text'; pageIndex: number }
-  /** Found in a place outside page text. */
-  | { kind: 'in-place'; place: PlaceKind; pageIndex?: number };
+  /** Found in a place outside page text. `placeIndex` is that place's index in
+   * `SavedFile.places`, and `text` its text, so a caller can hand the place
+   * back unchanged (to `removePlace`). */
+  | { kind: 'in-place'; place: PlaceKind; pageIndex?: number; text: string; placeIndex: number; removable?: boolean };
 
 export interface TermResult {
   term: CheckTerm;
