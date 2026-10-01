@@ -31,7 +31,7 @@ import {
   setCurrentEntry, readCurrentEntryId,
 } from '../../../lib/drafts/draftStore.js';
 import { planForFile } from '../mergePlan.ts';
-import { flushBeforeUpdateReload } from '../../../lib/appUpdate/updateHolds.ts';
+import { flushBeforeUpdateReload, isUpdateHeld } from '../../../lib/appUpdate/updateHolds.ts';
 
 function Harness({ apiRef, options }) {
   apiRef.current = useMergeDraft(options);
@@ -329,6 +329,32 @@ describe('useMergeDraft', () => {
 
     expect(apiRef.current.draftSaveState).toBe('error');
     expect(await loadDraft('merge')).toBeNull();
+  });
+
+  it('holds an update only while a save has failed, and releases once a later save succeeds (MEM-10)', async () => {
+    const huge = baseEntry(1, 'huge.pdf', 1);
+    vi.spyOn(huge.file, 'arrayBuffer').mockResolvedValue({ byteLength: MERGE_DRAFT_MAX_BYTES + 1 });
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ entries: [huge], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('error');
+    expect(isUpdateHeld()).toBe(true);
+
+    const small = baseEntry(2, 'small.pdf', 1);
+    act(() => {
+      render(<Harness apiRef={apiRef} options={baseOptions({ entries: [small], plan: planForFile(2, 1), autosaveDebounceMs: 40 })} />, container);
+    });
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
+  });
+
+  it('does not hold an update while saves succeed (MEM-10)', async () => {
+    const apiRef = { current: null };
+    await mount(apiRef, baseOptions({ entries: [baseEntry(1, 'a.pdf', 1)], plan: planForFile(1, 1), autosaveDebounceMs: 40 }));
+    await flushDebounce(150);
+    expect(apiRef.current.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
   });
 
   it('keeps a new revision "pending" while an older write is still resolving, and the stale completion cannot regress it', async () => {

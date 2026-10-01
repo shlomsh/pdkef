@@ -25,7 +25,7 @@ export const CHECK_AFTER_MS = 30 * 60 * 1000;
 export const CHECK_EVERY_MS = 60 * 60 * 1000;
 export const STATUS_TIMEOUT_MS = 2000;
 export const TAB_CLOSED_RECHECK_MS = 1000;
-export const LEAVING_RESET_MS = 3000;
+export const LEAVING_RESET_MS = 1000;
 export const RECHECK_SHOWN_MS = 5000;
 export const REFRESH_EVERY_MS = 60 * 1000;
 
@@ -64,6 +64,7 @@ interface WorkerLike {
   addEventListener?(type: string, listener: () => void): void;
 }
 interface RegistrationLike {
+  active?: WorkerLike | null;
   waiting: WorkerLike | null;
   installing: WorkerLike | null;
   update(): Promise<unknown>;
@@ -192,6 +193,9 @@ export async function startAppUpdates(deps: AppUpdateDeps): Promise<void> {
   }
   if (!registered) return;
   const reg = registered;
+  // Uncontrolled beside an active worker (a hard reload): not a first visit,
+  // so the next claim is an update this tab must reload for.
+  if (reg.active) controlled = true;
 
   // One question to the waiting worker; null when it does not answer in time.
   function ask(worker: WorkerLike, message: unknown, timeoutMs: number): Promise<StatusReply | null> {

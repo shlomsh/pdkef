@@ -123,6 +123,15 @@ async function dispatchActivate(worker) {
   return Promise.all(waits);
 }
 
+// Waits for every waitUntil, including ones registered while earlier ones run.
+async function awaitAll(waits) {
+  for (let done = 0; done < waits.length;) {
+    const upTo = waits.length;
+    await Promise.all(waits.slice(done, upTo));
+    done = upTo;
+  }
+}
+
 async function dispatchMessage(worker, data) {
   const waits = [];
   let reply;
@@ -131,7 +140,7 @@ async function dispatchMessage(worker, data) {
     ports: [{ postMessage: (value) => { reply = value; } }],
     waitUntil: (promise) => waits.push(Promise.resolve(promise)),
   });
-  await Promise.all(waits);
+  await awaitAll(waits);
   return reply;
 }
 
@@ -532,6 +541,25 @@ async function withSilentTimeouts(start) {
   }
 }
 
+// A worker with no readiness marker and a three-URL manifest, '/' and '/sign/' already cached.
+// `failing` lists pathnames that answer 503. Returns the worker and its fetched pathnames.
+function buildIncompleteWorker(source, windows, failing = []) {
+  const fetched = [];
+  const fetchImpl = vi.fn(async (request) => {
+    const url = requestUrl(request);
+    if (url.endsWith('/precache-manifest.json')) return new Response(JSON.stringify({ urls: ['/', '/sign/', '/_astro/app.js'] }));
+    const pathname = new URL(url).pathname;
+    fetched.push(pathname);
+    return failing.includes(pathname) ? new Response('no', { status: 503 }) : new Response('asset');
+  });
+  const worker = createWorker(fetchImpl, ['pdkef-previous'], createFakeIndexedDB(), source);
+  worker.self.clients.matchAll = vi.fn(async () => windows);
+  worker.entries.set('https://pdkef.test/', new Response('home'));
+  worker.entries.set('https://pdkef.test/sign/', new Response('sign'));
+  return { worker, fetched };
+}
+const PRECACHE_MARKER = 'https://pdkef.test/__pdkef/precache-complete/';
+
 // MEM-10: skipWaiting() runs only on the active worker's message, after every tab answered.
 describe.each([['source', workerSource], ['minified source', minifiedWorkerSource]])('skip-waiting message (%s)', (_label, source) => {
   const SKIP = 'pdkef:skip-waiting';
@@ -607,6 +635,39 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     expect(order).toEqual(['reply', 'skipWaiting']);
   });
 
+  it('while not ready and online, replies not-ready and fetches only the missing URLs, then marks complete', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, [fakeWindow('a')]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: false, ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(fetched).toEqual(['/_astro/app.js']);
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(true);
+    expect(worker.self.skipWaiting).not.toHaveBeenCalled();
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 1, busy: 0, silent: 0 });
+  });
+
+  it('writes no marker while a URL still fails', async () => {
+    const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+    await dispatchMessage(worker, { type: SKIP });
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+    expect((await dispatchMessage(worker, { type: SKIP })).ready).toBe(false);
+  });
+
+  it('fetches nothing while offline', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, []);
+    worker.self.navigator.onLine = false;
+    await dispatchMessage(worker, { type: SKIP });
+    expect(fetched).toEqual([]);
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+  });
+
+  it('does not ask or count windows whose path is not a page (sitemap, robots)', async () => {
+    const sitemap = fakeWindow('s', 'busy', 'https://pdkef.test/sitemap.xml');
+    const robots = fakeWindow('r', 'busy', 'https://pdkef.test/robots.txt');
+    const worker = build([fakeWindow('a'), sitemap, robots]);
+    expect(await dispatchMessage(worker, { type: SKIP })).toEqual({ ok: true, ready: true, windows: 1, busy: 0, silent: 0 });
+    expect(sitemap.postMessage).not.toHaveBeenCalled();
+    expect(robots.postMessage).not.toHaveBeenCalled();
+  });
+
   it('never skips waiting for a font-pack message', async () => {
     const worker = build([fakeWindow('a')]);
     await dispatchMessage(worker, { type: 'pdkef:font-pack-status' });
@@ -657,7 +718,7 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
       ports: [{ postMessage: (value) => { reply = value; } }],
       waitUntil: (promise) => waits.push(Promise.resolve(promise)),
     });
-    await Promise.all(waits);
+    await awaitAll(waits);
     return reply;
   };
 
@@ -677,6 +738,33 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const a = fakeWindow('a');
     expect(await dispatchStatus(build([a], false), 'me')).toEqual({ ready: false, windows: 0, busy: 0, silent: 0 });
     expect(a.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('while not ready and online, completes the precache in the background and then reports ready', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, [fakeWindow('a')]);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: false, windows: 0, busy: 0, silent: 0 });
+    expect(fetched).toEqual(['/_astro/app.js']);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: true, windows: 1, busy: 0, silent: 0 });
+  });
+
+  it('leaves the build not ready while a URL still fails', async () => {
+    const { worker } = buildIncompleteWorker(source, [], ['/_astro/app.js']);
+    await dispatchStatus(worker, 'me');
+    expect(worker.entries.has(PRECACHE_MARKER)).toBe(false);
+  });
+
+  it('fetches nothing for the missing URLs while offline', async () => {
+    const { worker, fetched } = buildIncompleteWorker(source, []);
+    worker.self.navigator.onLine = false;
+    await dispatchStatus(worker, 'me');
+    expect(fetched).toEqual([]);
+  });
+
+  it('does not ask or count non-page windows', async () => {
+    const sitemap = fakeWindow('s', 'busy', 'https://pdkef.test/sitemap.xml');
+    const worker = build([fakeWindow('a'), sitemap, fakeWindow('r', 'busy', 'https://pdkef.test/robots.txt')]);
+    expect(await dispatchStatus(worker, 'me')).toEqual({ ready: true, windows: 1, busy: 0, silent: 0 });
+    expect(sitemap.postMessage).not.toHaveBeenCalled();
   });
 
   it('is not ready offline, and asks no window', async () => {
@@ -735,6 +823,28 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
     const { response } = await dispatchFetch(worker, nav);
     expect(postMessage).toHaveBeenCalledTimes(1);
     expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('posts nothing to the waiting worker while offline, and serves the cached page', async () => {
+    const { worker, postMessage } = build();
+    worker.self.navigator.onLine = false;
+    const { response } = await dispatchFetch(worker, nav);
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(await response.text()).toBe('cached sign page');
+  });
+
+  it('after a reply with unanswered tabs, a second navigation does not ask again', async () => {
+    const { worker, postMessage } = build({ answer: { ok: false, ready: true, windows: 1, busy: 0, silent: 1 } });
+    await dispatchFetch(worker, nav);
+    await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('after a reply with only busy tabs, a second navigation asks again', async () => {
+    const { worker, postMessage } = build({ answer: { ok: false, ready: true, windows: 1, busy: 1, silent: 0 } });
+    await dispatchFetch(worker, nav);
+    await dispatchFetch(worker, nav);
+    expect(postMessage).toHaveBeenCalledTimes(2);
   });
 
 });

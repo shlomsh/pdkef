@@ -10,7 +10,7 @@ import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { useDraftPersistence } from './useDraftPersistence.js';
 import { DRAFT_SCHEMA_VERSION } from './draftPolicy.js';
-import { flushBeforeUpdateReload } from '../appUpdate/updateHolds.ts';
+import { flushBeforeUpdateReload, isUpdateHeld } from '../appUpdate/updateHolds.ts';
 
 // A storage write can fail (quota, private browsing, a closed IndexedDB
 // connection) without throwing - draftStore.saveDraft resolves `false` rather
@@ -151,6 +151,35 @@ describe('useDraftPersistence - save outcome reporting', () => {
     await flushDebounceAndMicrotasks();
 
     expect(apiRef.current.result.draftSaveState).toBe('error');
+  });
+
+  it('holds an update only while a save has failed (MEM-10)', async () => {
+    saveDraft.mockResolvedValue(true);
+    const props = baseProps();
+    act(() => {
+      render(<Harness apiRef={apiRef} props={props} />, container);
+    });
+    expect(isUpdateHeld()).toBe(false);
+    renderFirstEdit(apiRef, props, container);
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
+
+    saveDraft.mockResolvedValue(false);
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'second-edit' }] }} />, container);
+    });
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('error');
+    expect(isUpdateHeld()).toBe(true);
+
+    saveDraft.mockResolvedValue(true);
+    act(() => {
+      render(<Harness apiRef={apiRef} props={{ ...props, isDirty: true, elements: [{ id: 'third-edit' }] }} />, container);
+    });
+    await flushDebounceAndMicrotasks();
+    expect(apiRef.current.result.draftSaveState).toBe('saved');
+    expect(isUpdateHeld()).toBe(false);
   });
 
   it('never persists or claims "saved" outside editing status', async () => {
