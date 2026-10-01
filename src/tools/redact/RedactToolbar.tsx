@@ -64,6 +64,7 @@ export default function RedactToolbar({
   undoAction = null,
   onUndoAction,
   showWelcomeTip = true,
+  restoredNote = false,
   brushControls = null,
   brushMode = false,
   findOpen = false,
@@ -109,6 +110,8 @@ export default function RedactToolbar({
   /** A restored document is already in progress, so omit the newcomer-only
    * idle tip until the person selects a tool. */
   showWelcomeTip?: boolean;
+  /** RED-45: true while a reopened document's work is untouched. */
+  restoredNote?: boolean;
   /** RED-02: whether the find row is open, and the row itself. It renders
    * inside this sticky card, under the buttons, so it stays in reach while
    * the pages scroll. */
@@ -186,7 +189,9 @@ export default function RedactToolbar({
           showKeepOn={!brushArmed}
           // QUAL-10: restored work is not a newcomer's first visit, so it gets
           // no tip; the empty idle row still holds the stack's reserved height.
-          idle={showWelcomeTip ? 'Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.' : ''}
+          idle={showWelcomeTip
+            ? 'Tip: pick a tool. A box covers what is under it; Delete takes text or an image out of the file.'
+            : restoredNote ? 'Your changes from last time are back. Undo still works.' : ''}
           reserveCopies={[...Object.values(TOOL_COPY), ...Object.values(BRUSH_COPY)]}
           // Finding #3: one slot, and the undo chip wins it - matching
           // PdfMergeTool.tsx's own `undoAction ? <chip/> : <otherHint/>`. While

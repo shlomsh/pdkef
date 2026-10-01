@@ -12,9 +12,10 @@ describe('RedactToolbar returning-work status', () => {
     container = document.createElement('div');
   });
 
-  function mount({ activeStyle = null, brushMode = false, showWelcomeTip = true, undoAction = null, statusMessage }: {
+  function mount({ activeStyle = null, brushMode = false, restoredNote = false, showWelcomeTip = true, undoAction = null, statusMessage }: {
     activeStyle?: 'delete' | 'blackout' | 'whiteout' | 'blur' | null;
     brushMode?: boolean;
+    restoredNote?: boolean;
     showWelcomeTip?: boolean;
     undoAction?: { message: string } | null;
     statusMessage?: string;
@@ -25,6 +26,7 @@ describe('RedactToolbar returning-work status', () => {
         <RedactToolbar
           activeStyle={activeStyle}
           brushMode={brushMode}
+          restoredNote={restoredNote}
           toolLocked={false}
           setTool={vi.fn()}
           setAnnouncement={vi.fn()}
@@ -83,6 +85,13 @@ describe('RedactToolbar returning-work status', () => {
     const keep = container.querySelector<HTMLButtonElement>('[role="switch"]');
     expect(keep?.textContent).toContain('Keep Blackout on');
     expect(keep?.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('RED-45: reopened work says it is back; a fresh file and an edited one do not', () => {
+    mount({ showWelcomeTip: false, restoredNote: true });
+    expect(container.textContent).toContain('Your changes from last time are back.');
+    mount({ showWelcomeTip: false, restoredNote: false });
+    expect(container.textContent).not.toContain('from last time');
   });
 
   it('RED-42: an armed brush shows its hint and no keep-on switch; box mode keeps it', () => {
