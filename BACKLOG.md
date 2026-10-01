@@ -211,7 +211,6 @@ _None._
 | ID | Priority | Task |
 | --- | --- | --- |
 | QUAL-17 | P2 | [QUAL-17](backlog/tasks/QUAL-17.md) · The IRS 1040 saved-file check test finishes inside its timeout under a full run |
-| QUAL-18 | P3 | [QUAL-18](backlog/tasks/QUAL-18.md) · npm install in a fresh worktree leaves package-lock.json unchanged |
 
 ### Blocked
 
@@ -232,6 +231,7 @@ _None._
 | QUAL-13 | P2 | [QUAL-13](backlog/tasks/QUAL-13.md) · Mint and paper reach: the closing panel, the tool page stage and the editor toolbar |
 | QUAL-15 | P2 | [QUAL-15](backlog/tasks/QUAL-15.md) · The citron stroke leaves the tool H1s and marks the subhead's on-device closer |
 | QUAL-16 | P3 | [QUAL-16](backlog/tasks/QUAL-16.md) · The home hero's first screen overlaps itself in a short desktop window |
+| QUAL-18 | P3 | [QUAL-18](backlog/tasks/QUAL-18.md) · npm install in a fresh worktree leaves package-lock.json unchanged |
 | SITE-41 | P2 | [SITE-41](backlog/tasks/SITE-41.md) · Redact: a blur strength picker on the blur box toolbar |
 
 ### Retired
