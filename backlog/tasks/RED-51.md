@@ -61,4 +61,5 @@ into Redact. Arrow-key moves on whiteout-only pages were found broken (page size
 and handed to their own task. A fresh review then tightened it: the eyedropper takes only page pixels and
 only the primary button, a click no longer re-samples, a custom colour is one undo step, the brush and the
 box each arm their own pipette, the swatch's tick picks its ink by contrast, and the phone pill stays on
-top in pseudo full screen.
+top in pseudo full screen, and so does the loupe (both go through one `overlayHost()`, so it follows a full screen
+that starts while the eyedropper is armed).
