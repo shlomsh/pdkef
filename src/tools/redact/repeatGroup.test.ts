@@ -44,6 +44,14 @@ describe('repeatGroup', () => {
     ]);
   });
 
+  it('a colour mode change reaches the siblings', () => {
+    const els = [box('a', 0), box('b', 1, { repeatGroupId: 'a' })];
+    expect(groupChanges(els, 'a', { colorMode: 'auto' } as Partial<GroupableElement>)).toEqual([
+      { id: 'a', changes: { colorMode: 'auto' } },
+      { id: 'b', changes: { colorMode: 'auto' } },
+    ]);
+  });
+
   it('a change with no shared field touches only the box itself', () => {
     const els = [box('a', 0), box('b', 1, { repeatGroupId: 'a' })];
     expect(groupChanges(els, 'b', { repeatGroupId: 'fresh' })).toEqual([{ id: 'b', changes: { repeatGroupId: 'fresh' } }]);

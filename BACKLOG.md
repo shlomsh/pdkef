@@ -132,7 +132,7 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 9 done, 0 retired
+- Redact: finish removal: 11 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
 - Robustness and debt: 13 done, 3 retired

@@ -21,10 +21,11 @@ export interface GroupableElement {
   height: number;
   color?: string;
   strength?: unknown;
+  colorMode?: unknown;
 }
 
 /** Fields an edit to one linked box applies to every box in its group. */
-export const SHARED_FIELDS: readonly (keyof GroupableElement)[] = ['left', 'top', 'width', 'height', 'color', 'strength'];
+export const SHARED_FIELDS: readonly (keyof GroupableElement)[] = ['left', 'top', 'width', 'height', 'color', 'strength', 'colorMode'];
 
 export function groupKey(element: GroupableElement): string {
   const key = element.repeatGroupId;

@@ -2,7 +2,7 @@ import { cloneElement } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import sheetStyles from './FontSheet.module.css';
 import { FONT_OPTIONS, computeFontOptions, FontOptionsList } from './FontOptionsList.tsx';
-import type { SignMessages } from '../editor/registry/messages';
+import type { SignMessages } from '../../../editor/registry/messages';
 
 /**
  * SNG-17: `useFillFocus.ts` (fill mode's focus session tracker) keeps the

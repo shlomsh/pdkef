@@ -414,6 +414,27 @@ describe('redactPdf: brush strokes', () => {
     expect(arc.fillStyle).toBe('#dddddd');
   });
 
+  it('paints a whiteout box in its stored colour with no stroke, on a flattened page', async () => {
+    const { blob } = await redactPdf(getFixtureFile('num-5.pdf'), [
+      { id: 'w', type: 'whiteout', pageIndex: 0, left: 10, top: 20, width: 30, height: 10, color: '#f7f1de', colorMode: 'auto' },
+    ]);
+    const page = calls.find((c) => c.op === 'encode').canvas;
+    const { width: W, height: H } = page;
+    const fill = calls.find((c) => c.op === 'fillRect' && c.canvas === page && c.fillStyle === '#f7f1de');
+    expect(fill).toBeTruthy();
+    const [x, y, w, h] = fill.args;
+    expect(x).toBeCloseTo(0.1 * W);
+    expect(y).toBeCloseTo(0.2 * H);
+    expect(w).toBeCloseTo(0.3 * W);
+    expect(h).toBeCloseTo(0.1 * H);
+    expect(calls.filter((c) => c.op === 'strokeRect')).toHaveLength(0);
+    expect(calls.filter((c) => c.op === 'stroke' && (c.strokeStyle === '#f7f1de' || c.fillStyle === '#f7f1de'))).toHaveLength(0);
+    // Flattened: the covered page is one picture with no text layer.
+    const details = await getPdfDocDetails(blob);
+    expect(details.pageTexts[0]).toBe('');
+    expect(details.pageTexts[1]).toBe('12');
+  });
+
   it('paints a whiteout stroke again after a blur, so a solid always ends on top', async () => {
     await redactPdf(getFixtureFile('num-5.pdf'), [
       whiteoutStroke(),
