@@ -136,6 +136,24 @@ vi.mock('./check/removePlace.ts', () => ({
   PlaceNotFoundError: class PlaceNotFoundError extends Error {},
 }));
 
+// RED-51: jsdom cannot read a page, so the ring sampler is steered per test.
+// The default is null (what jsdom gives today); the recorder is a plain
+// function so vi.restoreAllMocks() in this file's afterEach cannot wipe it.
+const pageSampler = vi.hoisted(() => ({
+  impl: (() => null) as (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => string | null,
+  calls: [] as Array<{ canvas: HTMLCanvasElement | null | undefined; box: { left: number; top: number; width: number; height: number } }>,
+}));
+vi.mock('./pageSampling.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./pageSampling.ts')>();
+  return {
+    ...actual,
+    sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
+      pageSampler.calls.push({ canvas, box });
+      return pageSampler.impl(canvas, box);
+    },
+  };
+});
+
 // RED-51: sets the selected box's colour through its toolbar's colour input.
 async function setSelectedBoxColor(color: string) {
   const input = query<HTMLInputElement>(document.body, '[data-editor-actions] input[type="color"]');
@@ -230,6 +248,185 @@ describe('PdfRedactTool UI flow', () => {
     } finally {
       localStorage.clear();
     }
+  });
+
+  describe('RED-51: whiteout follows the page', () => {
+    const CREAM = '#f7f1de';
+    const BLUE = '#deebf7';
+    const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
+    // A drawn box sits at top 20%; the drag below moves it to 30%.
+    const byGeometry = (_canvas: unknown, box: { top: number }) => (box.top < 20.5 ? CREAM : BLUE);
+
+    beforeEach(() => {
+      pageSampler.calls.length = 0;
+      pageSampler.impl = byGeometry;
+    });
+    afterEach(() => {
+      pageSampler.impl = () => null;
+      pageSampler.calls.length = 0;
+      localStorage.clear();
+    });
+
+    const surfaces = () => Array.from(container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
+    const surfaceColor = () => required(surfaces()[0], 'whiteout surface').style.backgroundColor;
+    const autoPressed = () => query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-auto]').getAttribute('aria-pressed');
+    const announced = () => required(container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'announcement region').textContent;
+
+    async function selectBox(box: HTMLElement): Promise<void> {
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+    async function drawWhiteoutAndSelect(): Promise<HTMLElement> {
+      const drawArea = await loadFileAndGetDrawArea();
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 200, 200, 500);
+      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      return drawArea;
+    }
+    // Drags the box body by (50, 100) px: 10% right, 10% down on the 500x1000 draw area.
+    async function nudgeDown(): Promise<void> {
+      const box = query<HTMLElement>(container, `.${REDACT_BOX}`);
+      await act(async () => { box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 100, bubbles: true })); });
+      await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
+    }
+    async function undo(): Promise<void> {
+      await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })); });
+    }
+    async function pressAuto(): Promise<void> {
+      const auto = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-auto]');
+      await act(async () => { auto.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    }
+    function mockPageCount(numPages: number) {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: Promise.resolve({
+          numPages,
+          getPage: vi.fn(() => Promise.resolve({
+            getViewport: () => ({ width: 612, height: 792 }),
+            render: () => ({ promise: Promise.resolve() }),
+          })),
+        }),
+      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+    }
+
+    it('a drawn whiteout is auto and takes the colour sampled from its own page', async () => {
+      await drawWhiteoutAndSelect();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(autoPressed()).toBe('true');
+      const pageCanvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+      const drawCall = required(pageSampler.calls[0], 'the draw-time sample');
+      expect(drawCall.canvas).toBe(pageCanvas);
+      expect(drawCall.box.left).toBeCloseTo(10);
+      expect(drawCall.box.top).toBeCloseTo(20);
+    });
+
+    it('moving an auto whiteout re-samples it, and one Undo restores the position and the colour together', async () => {
+      await drawWhiteoutAndSelect();
+      const topBefore = parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top);
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb(BLUE));
+      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeGreaterThan(topBefore);
+
+      await undo();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(parseFloat(query<HTMLElement>(container, `.${REDACT_BOX}`).style.top)).toBeCloseTo(topBefore);
+      expect(announced()).toContain('Undid: Moved whiteout box');
+      expect(announced()).not.toContain('color');
+    });
+
+    it('a picked colour makes the box custom: a later move keeps it and never asks the sampler', async () => {
+      await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#123456');
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(autoPressed()).toBe('false');
+
+      pageSampler.calls.length = 0;
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(pageSampler.calls).toHaveLength(0);
+    });
+
+    it('Auto after a custom colour follows the page again, and one Undo brings the custom colour back', async () => {
+      await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#123456');
+      // Style edits within half a second fold into one step (and a custom-then-Auto fold is no change at all).
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 550)); });
+      await pressAuto();
+      expect(surfaceColor()).toBe(rgb(CREAM));
+      expect(autoPressed()).toBe('true');
+
+      await undo();
+      expect(surfaceColor()).toBe(rgb('#123456'));
+      expect(autoPressed()).toBe('false');
+    });
+
+    it('the eyedropper on a selected whiteout takes a page pixel as a custom colour, keeps the box selected and disarms', async () => {
+      await drawWhiteoutAndSelect();
+      const canvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+      canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
+      canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
+
+      const eyedropper = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      await act(async () => { eyedropper.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(eyedropper.getAttribute('aria-pressed')).toBe('true');
+
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      // The click that follows a mouse pick must not deselect the box.
+      await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+
+      expect(surfaceColor()).toBe(rgb('#0a141e'));
+      expect(autoPressed()).toBe('false');
+      expect(container.querySelector('[data-editor-actions]')).not.toBeNull();
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('a restored whiteout without a colour mode (an old draft) keeps its colour when moved, and is never sampled', async () => {
+      vi.mocked(loadDraft).mockResolvedValueOnce({
+        fileName: 'restored.pdf',
+        fileType: 'application/pdf',
+        fileBytes: new TextEncoder().encode('%PDF-1.4').buffer,
+        elements: [{ id: 'old-1', pageIndex: 0, type: 'whiteout', left: 10, top: 20, width: 30, height: 30, color: '#abcdef' }],
+        extra: { actionHistory: [] },
+      } as never);
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      await settleUntil('the restored whiteout', () => container.querySelector(`.${REDACT_BOX}`) !== null);
+      await selectBox(query<HTMLElement>(container, `.${REDACT_BOX}`));
+      expect(surfaceColor()).toBe(rgb('#abcdef'));
+
+      pageSampler.calls.length = 0;
+      await nudgeDown();
+      expect(surfaceColor()).toBe(rgb('#abcdef'));
+      expect(pageSampler.calls).toHaveLength(0);
+    });
+
+    it('a duplicate of an auto whiteout is sampled at its own position', async () => {
+      await drawWhiteoutAndSelect();
+      // Only the original's exact spot reads cream; anywhere else reads blue.
+      pageSampler.impl = (_canvas, box) => (Math.abs(box.top - 20) < 0.01 && Math.abs(box.left - 10) < 0.01 ? CREAM : BLUE);
+      const duplicate = query<HTMLButtonElement>(container, '[data-editor-actions] button[title="Duplicate"]');
+      await act(async () => { duplicate.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      const colors = surfaces().map((el) => el.style.backgroundColor);
+      expect(colors).toEqual([rgb(CREAM), rgb(BLUE)]);
+    });
+
+    it('Every page on an auto whiteout samples each copy on its own page', async () => {
+      mockPageCount(3);
+      await drawWhiteoutAndSelect();
+      const pageColors = [CREAM, BLUE, '#e0f0e0'];
+      const canvases = Array.from(container.querySelectorAll<HTMLCanvasElement>('[data-editor-page-card] canvas'));
+      expect(canvases).toHaveLength(3);
+      pageSampler.impl = (canvas) => pageColors[canvases.indexOf(canvas as HTMLCanvasElement)] ?? null;
+
+      const repeat = query<HTMLButtonElement>(container, '[data-editor-actions] [data-editor-repeat-every-page]');
+      await act(async () => { repeat.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+      const cards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
+      const copyColors = cards.slice(1).map((card) => query<HTMLElement>(card, '.redact-surface--whiteout').style.backgroundColor);
+      expect(copyColors).toEqual([rgb(BLUE), rgb('#e0f0e0')]);
+    });
   });
 
   describe('RED-40: whiteout colour and blur strength are per-document style', () => {
