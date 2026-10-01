@@ -258,7 +258,7 @@ export function useMergeDraft({
     const write = Promise.resolve()
       .then(() => saveDraft(TOOL, record))
       .then((saved) => saved === true)
-      .catch((e) => { reportError('drafts', e); return false; })
+      .catch((e) => { reportError('drafts', e, 'save_merge_draft'); return false; })
       .then((saved) => {
         // A prior snapshot may finish writing after a newer one has already
         // started; it stays stored as a best-effort older revision, but must

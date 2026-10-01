@@ -170,7 +170,7 @@ export function useDraftPersistence({
     const write = Promise.resolve()
       .then(() => saveDraft(tool, record))
       .then((saved) => saved === true)
-      .catch((e) => { reportError('drafts', e); return false; })
+      .catch((e) => { reportError('drafts', e, 'autosave_draft'); return false; })
       .then((saved) => {
         // A prior file or edit may have completed after this write started.
         // It remains stored as a best-effort older revision, but must not make
