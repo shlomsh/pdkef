@@ -1,7 +1,8 @@
 /**
  * The text a person deleted becomes `CheckTerm`s too, so the check of a
  * Delete-only download looks for what was taken out, the same way it looks
- * for what a box covers. Pure: it reads the delete marks' own previews.
+ * for what a box covers. Pure: it reads the delete marks' own previews, which
+ * come from the glyph read (RED-16), so Hebrew is already in reading order.
  */
 import { termFinder } from '../find/finders.ts';
 import { MIN_COVERED_CHARS } from './coveredTerms.ts';

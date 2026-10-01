@@ -61,7 +61,9 @@ describe('useDeletableObjects', () => {
     await flush();
 
     expect(apiRef.current.length).toBeGreaterThan(0);
-    expect(apiRef.current[0].preview).toBe('HELLO');
+    // The scan finds the run and its box; what it says is read separately (RED-16).
+    expect(apiRef.current[0].kind).toBe('text');
+    expect(apiRef.current[0].preview).toBeUndefined();
   });
 
   it('does not scan without a file, even if bytes are present', () => {
@@ -109,12 +111,12 @@ describe('useDeletableObjects', () => {
       render(<Harness apiRef={apiRef} file={fileA} bytes={bytesA} />, container);
     });
     await flush();
-    expect(apiRef.current[0].preview).toBe('HELLO');
+    expect(apiRef.current[0].bbox.width).toBeCloseTo(5 * 12 * 0.5, 5);
 
     act(() => {
       render(<Harness apiRef={apiRef} file={fileB} bytes={bytesB} />, container);
     });
     await flush();
-    expect(apiRef.current[0].preview).toBe('SECOND');
+    expect(apiRef.current[0].bbox.width).toBeCloseTo(6 * 12 * 0.5, 5);
   });
 });

@@ -712,9 +712,17 @@ describe('PdfRedactTool UI flow', () => {
         const { extractPageObjects } = await import('../../editor/adapters/pdf/pdfObjects.js');
         const { PDFDocument } = await import('@cantoo/pdf-lib');
         const outBytes = new Uint8Array(await exportedBlob.arrayBuffer());
-        const doc = await PDFDocument.load(outBytes);
-        const { objects } = extractPageObjects(doc.getPage(0), 0);
-        expect(objects.map((o) => o.preview)).not.toContain('1');
+        // RED-16: previews come from the glyph read, not the parser, so read
+        // them the way the island does. The source has the "1" (the control
+        // that keeps this from passing vacuously); the export does not.
+        const { withPreviews } = await import('../../editor/adapters/pdf/objectPreviews.test-helper.js');
+        const previewsOf = async (bytes: Uint8Array) => {
+          const doc = await PDFDocument.load(bytes);
+          const { objects } = extractPageObjects(doc.getPage(0), 0);
+          return (await withPreviews(bytes, objects)).map((o: { preview?: string }) => o.preview);
+        };
+        expect(await previewsOf(new Uint8Array(fs.readFileSync(fixturePath)))).toContain('1');
+        expect(await previewsOf(outBytes)).not.toContain('1');
       } finally {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;
