@@ -49,12 +49,16 @@ export function mapFrame(mapJson, line, col) {
 
 export function parseArgs(argv) {
   let max = 40;
+  // Deployed builds come from main; --from walks another ref, like a local
+  // branch carrying a build that was never deployed.
+  let from = 'origin/main';
   const frames = [];
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--max') max = Number(argv[++i]);
+    else if (argv[i] === '--from') from = argv[++i] ?? from;
     else frames.push(argv[i]);
   }
-  return { frames, max: Number.isInteger(max) && max > 0 ? max : 40 };
+  return { frames, max: Number.isInteger(max) && max > 0 ? max : 40, from };
 }
 
 // Parses every raw frame; one bad frame fails the lot with a one-line message.
@@ -73,15 +77,15 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
 function main() {
-  const { frames: raws, max } = parseArgs(process.argv.slice(2));
+  const { frames: raws, max, from } = parseArgs(process.argv.slice(2));
   const parsed = parseFrames(raws);
   if (parsed.error) {
-    console.error(`errors:resolve: ${parsed.error} (usage: npm run errors:resolve -- <chunk.js:line:col>... [--max 40])`);
+    console.error(`errors:resolve: ${parsed.error} (usage: npm run errors:resolve -- <chunk.js:line:col>... [--max 40] [--from origin/main])`);
     process.exit(2);
   }
   const frames = parsed.frames;
   const frame = frames[0];
-  const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), 'origin/main').split('\n').filter(Boolean);
+  const shas = git(root, 'rev-list', '--first-parent', '-n', String(max), from).split('\n').filter(Boolean);
   const tmp = path.join(mkdtempSync(path.join(tmpdir(), 'errors-resolve-')), 'wt');
   let added = false;
   const cleanup = () => {
@@ -132,7 +136,7 @@ function main() {
     cleanup();
   }
   if (!found) {
-    console.error(`no build in the last ${shas.length} first-parent commits of origin/main emitted ${frame.chunk}`);
+    console.error(`no build in the last ${shas.length} first-parent commits of ${from} emitted ${frame.chunk}`);
     process.exit(1);
   }
 }

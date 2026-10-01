@@ -35,11 +35,12 @@ describe('mapFrame', () => {
 
 describe('parseArgs', () => {
   it('reads --max', () => {
-    expect(parseArgs(['a.js:1:2', '--max', '3'])).toEqual({ frames: ['a.js:1:2'], max: 3 });
+    expect(parseArgs(['a.js:1:2', '--max', '3'])).toEqual({ frames: ['a.js:1:2'], max: 3, from: 'origin/main' });
+    expect(parseArgs(['--from', 'drill', 'a.js:1:2']).from).toBe('drill');
     expect(parseArgs(['a.js:1:2']).max).toBe(40);
   });
   it('collects several frames with --max anywhere', () => {
-    expect(parseArgs(['a.js:1:2', '--max', '5', 'b.js:3:4', 'c.js:5:6'])).toEqual({ frames: ['a.js:1:2', 'b.js:3:4', 'c.js:5:6'], max: 5 });
+    expect(parseArgs(['a.js:1:2', '--max', '5', 'b.js:3:4', 'c.js:5:6'])).toEqual({ frames: ['a.js:1:2', 'b.js:3:4', 'c.js:5:6'], max: 5, from: 'origin/main' });
     expect(parseArgs(['--max', '2', 'a.js:1:2', 'b.js:3:4']).frames).toHaveLength(2);
   });
 });
