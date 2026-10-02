@@ -174,6 +174,27 @@ Defects depend on the kind of image rewritten, not on file count, so the check s
 1-2 rendered before and after at 40 dpi: no defect (worst 4x4 tile mean difference 7.5 of 255, flag at
 25). The same rule applies to every later re-check: only files a change can affect, 3 per new kind.
 
+**2026-10-02, re-measure after ICC, SMask and owner-only support** (stop rule: only the 192 rows those
+changes can affect; the other 130 keep their earlier result). No crashes or load errors. Across the
+192 rows, Recommended saves 171.3 MB of 288.9 MB (59%), up from 22.8 MB (8%); the four largest scans
+(8 to 37.5 MB, ICC-profiled) went from 0% to 96-97%. All 322 rows, median (p25 to p75) where smaller,
+[gained nothing]:
+
+| Kind (count) | Extreme | Recommended | High Quality |
+| --- | --- | --- | --- |
+| Scan-like (67) | 77% (74-94) [7] | 56% (43-82) [7] | 22% (10-67) [15] |
+| Mixed (128) | 40% (27-55) [23] | 30% (20-46) [29] | 20% (5-38) [35] |
+| Text-heavy (63) | 15% (11-24) [36] | 14% (10-24) [36] | 12% (9-24) [38] |
+| No images (64) | untouched | untouched | untouched |
+
+Of the 15 protected files, the 10 owner-password-only ones now compress: they still open without a
+password, keep their page count and report the same permissions in pdf.js as the original. The 5
+that need a real password come back untouched. Pixel check, colour, 3 largest per new kind: the
+owner-only rows were clean (worst tile 20); the 3 ICC rows and 3 SMask rows tripped the worst-tile flag
+(mean difference under 6 of 255, worst tile 26 to 67) and were inspected side by side. Colours,
+orientation, transparency and layout match; the excess is edge detail lost to downsampling, not a
+defect. The copy quotes none of these numbers; they are private files and the KPI spec holds the floors.
+
 Found in review and fixed: pdf-lib's Flate decoder ignores `/DecodeParms`, so a PNG-predicted image
 would have decoded sheared, and a `/Decode` array would have been dropped un-applied (an inverted
 image). `analyzePdf` reports `predictor` and `hasDecode`; `planImageRewrite` keeps both kinds.

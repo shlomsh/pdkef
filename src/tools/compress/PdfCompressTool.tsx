@@ -625,7 +625,7 @@ export default function PdfCompressTool({
       {hasFiles && status === 'done' && (downloadUrl || passthrough) && (
         <>
           <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
             <div class={styles['stats-grid']}>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.originalSize}</span>
