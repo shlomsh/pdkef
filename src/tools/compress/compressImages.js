@@ -79,6 +79,10 @@ export async function encodeImageOnCanvas({ image, stream, target, quality, deco
   }
 }
 
+/**
+ * @param {File} file
+ * @param {{ maxLongSidePx: number, quality: number, onProgress?: (p: number) => void, encodeImage?: typeof encodeImageOnCanvas }} options
+ */
 export async function compressPdfImages(
   file,
   { maxLongSidePx, quality, onProgress, encodeImage = encodeImageOnCanvas },
@@ -152,6 +156,10 @@ export const TARGET_IMAGE_LADDER = [
   { maxLongSidePx: 600, quality: 0.2 },
 ];
 
+/**
+ * @param {File} file
+ * @param {{ targetKB: number, onProgress?: (p: number) => void, encodeImage?: typeof encodeImageOnCanvas }} options
+ */
 export async function compressPdfImagesToTarget(file, { targetKB, onProgress, encodeImage }) {
   const beforeBytes = file.size;
   const targetBytes = Math.max(1, Math.round(targetKB * 1024));

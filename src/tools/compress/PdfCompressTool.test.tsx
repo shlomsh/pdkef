@@ -6,6 +6,7 @@ import PdfCompressTool from './PdfCompressTool.tsx';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
+import * as imagesLib from './compressImages.js';
 import * as thumbnailsLib from '../../lib/thumbnails.js';
 import styles from './PdfCompressTool.module.css';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -56,6 +57,36 @@ vi.mock('pdfjs-dist', () => {
   };
 });
 
+vi.mock('./compressImages.js', () => ({
+  IMAGE_LEVELS: {
+    high: { maxLongSidePx: 1000, quality: 0.4 },
+    medium: { maxLongSidePx: 1600, quality: 0.6 },
+    low: { maxLongSidePx: 2400, quality: 0.8 },
+  },
+  compressPdfImages: vi.fn(),
+  compressPdfImagesToTarget: vi.fn(),
+}));
+
+function imagesResult(overrides = {}) {
+  return {
+    blob: new Blob(['%PDF-1.4-images'], { type: 'application/pdf' }),
+    beforeBytes: 100000,
+    afterBytes: 15,
+    rewritten: 1,
+    reason: 'smaller',
+    ...overrides,
+  };
+}
+
+// The "Turn pages into pictures" switch: off by default, so every test that
+// exercises the page-rendering engine ticks it first.
+async function tickFlatten(root) {
+  const box = root.querySelector(`.${styles['flatten-switch']} input[type="checkbox"]`);
+  await act(async () => {
+    box.click();
+  });
+}
+
 vi.mock('./compress.js', () => {
   return {
     compressPdf: vi.fn(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 })),
@@ -98,6 +129,8 @@ describe('PdfCompressTool UI flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     compressImageLib.compressImageToTarget.mockImplementation(() => Promise.resolve(makeImageResult()));
+    imagesLib.compressPdfImages.mockImplementation(() => Promise.resolve(imagesResult()));
+    imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: true })));
     // Restored explicitly, not left to vi.restoreAllMocks(): a test further
     // down that overrides these with a deferred implementation (to hold a run
     // in flight) would otherwise leave every later test's compress/preview
@@ -197,6 +230,7 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
 
     // Click compression button
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     expect(button).not.toBeNull();
     expect(button.textContent).toContain('Compress PDF');
@@ -270,6 +304,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:comparetesturl');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -357,6 +392,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:stale-run');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -425,6 +461,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:preview-test');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -514,6 +551,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:label-test');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -568,6 +606,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:targeturl');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -804,6 +843,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:pdfpassthrough');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -848,6 +888,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmall');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -903,6 +944,7 @@ describe('PdfCompressTool UI flow', () => {
     const originalCreateObjectURL = window.URL.createObjectURL;
     window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmalltarget');
 
+    await tickFlatten(container);
     const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
     await act(async () => {
       button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -995,6 +1037,127 @@ describe('PdfCompressTool UI flow', () => {
 
       // B has an image, A's (image-free) result must not leak onto it.
       expect(container.textContent).not.toContain(NOTE);
+    });
+  });
+
+  describe('images only by default, pages into pictures by switch', () => {
+    async function loadPdf(name = 'doc.pdf', size = 100000) {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfCompressTool />, container);
+      });
+      const file = makePdfFile(name, size);
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [file]);
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      window.URL.createObjectURL = vi.fn(() => 'blob:images');
+      return file;
+    }
+
+    async function clickCompress() {
+      await act(async () => {
+        container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+    }
+
+    async function pickTarget() {
+      const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Target Size'));
+      await act(async () => {
+        card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+    }
+
+    it('Recommended calls compressPdfImages with the medium level and never compressPdf', async () => {
+      const file = await loadPdf();
+      await clickCompress();
+      expect(imagesLib.compressPdfImages).toHaveBeenCalledWith(file, expect.objectContaining({ maxLongSidePx: 1600, quality: 0.6 }));
+      expect(compressLib.compressPdf).not.toHaveBeenCalled();
+      expect(container.querySelector(`.${styles['compression-stats']}`).textContent).toContain('Only the images were made smaller');
+    });
+
+    it('ticking the switch calls compressPdf and not compressPdfImages', async () => {
+      await loadPdf();
+      await tickFlatten(container);
+      await clickCompress();
+      expect(compressLib.compressPdf).toHaveBeenCalled();
+      expect(imagesLib.compressPdfImages).not.toHaveBeenCalled();
+    });
+
+    it('Target Size without the switch calls compressPdfImagesToTarget with targetKB', async () => {
+      const file = await loadPdf();
+      await pickTarget();
+      await clickCompress();
+      expect(imagesLib.compressPdfImagesToTarget).toHaveBeenCalledWith(file, expect.objectContaining({ targetKB: 100 }));
+      expect(compressLib.compressPdfToTarget).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['no-images', 'There are no images in this PDF'],
+      ['no-gain', 'already compact, so making them smaller saved nothing'],
+      ['encrypted', "protected against changes, so its images can't be recompressed"],
+    ])('reason %s shows its notice and says the PDF is unchanged', async (reason, text) => {
+      imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason })));
+      await loadPdf('same.pdf', 11_000);
+      await clickCompress();
+      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      expect(stats.textContent).toContain(text);
+      expect(stats.textContent).toContain('Already as small as it gets');
+      expect(stats.textContent).toContain('None, original kept');
+      expect(stats.textContent).not.toContain('As images');
+      const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+      expect(downloadBtn.textContent).toContain('Download PDF');
+      expect(downloadBtn.getAttribute('download')).toBe('same.pdf');
+      expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+    });
+
+    it('reason under-target shows the untouched notice and is not "already as small as it gets"', async () => {
+      imagesLib.compressPdfImagesToTarget.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, metTarget: true, rewritten: 0, reason: 'under-target' })));
+      await loadPdf('tiny.pdf', 20_000);
+      await pickTarget();
+      await clickCompress();
+      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      expect(stats.textContent).toContain('so the file is untouched');
+      expect(stats.textContent).not.toContain('Already as small as it gets');
+    });
+
+    it('a target missed on the image path names both sizes and drops "Closest achievable"', async () => {
+      imagesLib.compressPdfImagesToTarget.mockImplementation(() => Promise.resolve(imagesResult({ metTarget: false })));
+      await loadPdf('big.pdf', 5_000_000);
+      await pickTarget();
+      await clickCompress();
+      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      expect(stats.textContent).toContain('Only the images were made smaller');
+      expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes. Reaching 100 KB would mean turning the pages into pictures');
+      expect(stats.textContent).not.toContain('Closest achievable');
+    });
+
+    it('has no switch for an image file', async () => {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => {
+        render(<PdfCompressTool />, container);
+      });
+      await act(async () => {
+        setInputFiles(container.querySelector('input[type="file"]'), [makeImageFile('photo.jpg', 100000)]);
+      });
+      expect(container.querySelector(`.${styles['flatten-switch']}`)).toBeNull();
+    });
+
+    it('toggling the switch after a result clears it, back to the Compress button', async () => {
+      await loadPdf();
+      await clickCompress();
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      await tickFlatten(container);
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(container.querySelector(`.${styles['compression-stats']}`)).toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).textContent).toContain('Compress PDF');
     });
   });
 

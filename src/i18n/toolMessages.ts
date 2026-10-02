@@ -506,6 +506,13 @@ export interface CompressMessages {
   alreadySmallDownloadLabel: string;
   alreadySmallShareLabel: string;
   alreadySmallComplete: string;
+  flattenLabel: string;
+  flattenHint: string;
+  imagesNotice: string;
+  imagesTargetMissedNotice: string;
+  imagesNoImagesNotice: string;
+  imagesNoGainNotice: string;
+  imagesEncryptedNotice: string;
   imageDownloadLabel: string;
   imageShareLabel: string;
   imageLoaded: string;
@@ -604,6 +611,13 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallDownloadLabel: 'Download PDF',
   alreadySmallShareLabel: 'Share PDF',
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
+  flattenLabel: 'Turn pages into pictures',
+  flattenHint: 'The smallest size for scans. Text stops being selectable, links stop working, and small text gets softer.',
+  imagesNotice: 'Only the images were made smaller. Text, links and drawings are exactly as they were.',
+  imagesTargetMissedNotice: 'Shrinking the images got this PDF to {size}. Reaching {target} would mean turning the pages into pictures, with the switch above.',
+  imagesNoImagesNotice: 'There are no images in this PDF, so there was nothing to make smaller. Your original is unchanged.',
+  imagesNoGainNotice: 'The images in this PDF are already compact, so making them smaller saved nothing. Your original is unchanged.',
+  imagesEncryptedNotice: "This PDF is protected against changes, so its images can't be recompressed in place. Your original is unchanged. Turning the pages into pictures still works, with the switch above.",
   imageDownloadLabel: 'Download Compressed Image',
   imageShareLabel: 'Share Compressed Image',
   imageLoaded: 'File "{name}" loaded. Set a target size and compress.',
@@ -716,6 +730,13 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallDownloadLabel: 'הורדת PDF',
   alreadySmallShareLabel: 'שיתוף PDF',
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
+  flattenLabel: 'להפוך עמודים לתמונות',
+  flattenHint: 'הגודל הקטן ביותר לסריקות. אי אפשר יהיה לסמן טקסט, קישורים יפסיקו לעבוד, וטקסט קטן ייראה פחות חד.',
+  imagesNotice: 'רק התמונות הוקטנו. הטקסט, הקישורים והשרטוטים נשארו בדיוק כמו שהיו.',
+  imagesTargetMissedNotice: 'הקטנת התמונות הביאה את ה-PDF ל-{size}. כדי להגיע ל-{target} צריך להפוך את העמודים לתמונות, עם המתג למעלה.',
+  imagesNoImagesNotice: 'אין תמונות ב-PDF הזה, אז לא היה מה להקטין. הקובץ המקורי לא השתנה.',
+  imagesNoGainNotice: 'התמונות ב-PDF הזה כבר קומפקטיות, אז הקטנה שלהן לא חסכה כלום. הקובץ המקורי לא השתנה.',
+  imagesEncryptedNotice: 'ה-PDF הזה מוגן מפני שינויים, אז אי אפשר לכווץ את התמונות שבו במקום. הקובץ המקורי לא השתנה. אפשר עדיין להפוך את העמודים לתמונות, עם המתג למעלה.',
   imageDownloadLabel: 'הורדת תמונה מכווצת',
   imageShareLabel: 'שיתוף תמונה מכווצת',
   imageLoaded: 'הקובץ "{name}" נטען. קבעו גודל יעד וכווצו.',
