@@ -805,6 +805,12 @@ describe('PdfCompressTool UI flow', () => {
     const passthroughStats = container.querySelector(`.${styles['compression-stats']}`);
     expect(passthroughStats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
     expect(passthroughStats.textContent).not.toContain('once compressed, the output is a JPEG');
+    expect(passthroughStats.textContent).toContain('Already under your target');
+    expect(passthroughStats.textContent).toContain('1600 × 1200');
+    expect(passthroughStats.textContent).not.toContain('Compressed Size');
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
+    expect(passthroughStats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });
@@ -858,6 +864,10 @@ describe('PdfCompressTool UI flow', () => {
     expect(stats).not.toBeNull();
     expect(stats.textContent).toContain('so the file is untouched: same file, same format, nothing re-encoded');
     expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
+    expect(stats.textContent).toContain('Already under your target');
+    expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
 
     expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
     expect(container.querySelector(`.${styles['compare-panel']}`)).toBeNull();
@@ -906,10 +916,9 @@ describe('PdfCompressTool UI flow', () => {
     expect(stats.textContent).not.toContain('Successfully Compressed');
     expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
 
-    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
-    expect(downloadBtn.textContent).toContain('Download PDF');
-    expect(downloadBtn.textContent).not.toContain('Compressed');
-    expect(downloadBtn.getAttribute('download')).toBe('small_form.pdf');
+    expect(stats.textContent).not.toContain('Compressed Size');
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
     expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
 
     window.URL.createObjectURL = originalCreateObjectURL;
@@ -959,6 +968,7 @@ describe('PdfCompressTool UI flow', () => {
     expect(stats.textContent).toContain("can't be reached this way");
     expect(stats.textContent).toContain('As images');
     expect(stats.textContent).not.toContain('Closest achievable');
+    expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
 
     window.URL.createObjectURL = originalCreateObjectURL;
   });
@@ -995,6 +1005,7 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.textContent).toContain(NOTE);
       expect(container.textContent).toContain('This PDF is text and drawings, with no images in it');
       expect(container.querySelector('[role="note"]')).not.toBeNull();
+      expect(container.querySelector('[role="note"]').className).toContain(styles['honest-note']);
       expect(container.querySelectorAll(`.${styles['compress-card']}`).length).toBeGreaterThan(0);
       expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).not.toBeNull();
     });
@@ -1111,9 +1122,11 @@ describe('PdfCompressTool UI flow', () => {
       expect(stats.textContent).toContain('Already as small as it gets');
       expect(stats.textContent).toContain('None, original kept');
       expect(stats.textContent).not.toContain('As images');
-      const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
-      expect(downloadBtn.textContent).toContain('Download PDF');
-      expect(downloadBtn.getAttribute('download')).toBe('same.pdf');
+      expect(stats.textContent).not.toContain('Compressed Size');
+      expect(stats.textContent).toContain('Original Size');
+      expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
       expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
     });
 
@@ -1125,6 +1138,33 @@ describe('PdfCompressTool UI flow', () => {
       const stats = container.querySelector(`.${styles['compression-stats']}`);
       expect(stats.textContent).toContain('so the file is untouched');
       expect(stats.textContent).not.toContain('Already as small as it gets');
+      expect(stats.textContent).toContain('Already under your target');
+      expect(stats.querySelector(`.${styles['honest-note']}`)).not.toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
+    });
+
+    it('a smaller result still has Download and Share, and its notice stays a plain warning', async () => {
+      const nativeShare = mockNativeFileShare();
+      await loadPdf();
+      await clickCompress();
+      const stats = container.querySelector(`.${styles['compression-stats']}`);
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).not.toBeNull();
+      expect(stats.querySelector(`.${styles['honest-note']}`)).toBeNull();
+      expect(stats.querySelector(`.${styles['compress-warning']}`)).not.toBeNull();
+      nativeShare.restore();
+    });
+
+    it('after a passthrough, picking another level brings the Compress button back', async () => {
+      imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason: 'no-gain' })));
+      await loadPdf('same.pdf', 11_000);
+      await clickCompress();
+      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`)).toBeNull();
+      const card = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => !c.className.includes(styles['is-selected']));
+      await act(async () => {
+        card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      });
+      expect(container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).textContent).toContain('Compress PDF');
     });
 
     it('a target missed on the image path names both sizes and drops "Closest achievable"', async () => {
