@@ -205,6 +205,40 @@ describe('analyzePdf on the compress fixtures', () => {
     expect(a.images.find((i) => i.isMask).hasDecode).toBe(true);
   });
 
+  it('reports components for Device and ICCBased colour spaces', async () => {
+    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    const images = analyzePdf(doc, { totalBytes: bytes.length }).images;
+    expect(images[0].components).toBe(3);
+    const scan = await PDFDocument.load(fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'scan.pdf')));
+    expect(analyzePdf(scan, { totalBytes: 1 }).images[0].components).toBe(1);
+
+    const [num, gen] = images[1].ref.split(' ').map(Number);
+    const { dict } = doc.context.lookup(PDFRef.of(num, gen));
+    for (const n of [3, 4]) {
+      const icc = doc.context.register(doc.context.stream(new Uint8Array(4), { N: n }));
+      dict.set(PDFName.of('ColorSpace'), doc.context.obj([PDFName.of('ICCBased'), icc]));
+      const image = analyzePdf(doc, { totalBytes: bytes.length }).images[1];
+      expect(image.colorSpace).toBe('ICCBased');
+      expect(image.components).toBe(n);
+    }
+    dict.set(PDFName.of('ColorSpace'), doc.context.obj([PDFName.of('Indexed')]));
+    expect(analyzePdf(doc, { totalBytes: bytes.length }).images[1].components).toBeNull();
+  });
+
+  it('reports whether an SMask carries a /Matte', async () => {
+    const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
+    const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+    const find = () => analyzePdf(doc, { totalBytes: bytes.length }).images;
+    expect(find().every((i) => i.smaskHasMatte === false)).toBe(true);
+    const image = find().find((i) => i.hasSMask);
+    const [num, gen] = image.ref.split(' ').map(Number);
+    const smaskRef = doc.context.lookup(PDFRef.of(num, gen)).dict.get(PDFName.of('SMask'));
+    doc.context.lookup(smaskRef).dict.set(PDFName.of('Matte'), doc.context.obj([0, 0, 0]));
+    expect(find().find((i) => i.hasSMask).smaskHasMatte).toBe(true);
+    expect(find().filter((i) => i.smaskHasMatte)).toHaveLength(1);
+  });
+
   it('reports a Flate predictor and a /Decode array', async () => {
     const bytes = fs.readFileSync(path.resolve(__dirname, '__fixtures__', 'mixed.pdf'));
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });

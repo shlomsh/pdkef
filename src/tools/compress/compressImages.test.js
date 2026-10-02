@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFRef, PDFString } from '@cantoo/pdf-lib';
 import { analyzePdf } from './analyzePdf.js';
 import {
   compressPdfImages,
@@ -29,9 +29,13 @@ const base = {
   height: 100,
   predictor: null,
   hasDecode: false,
+  components: 3,
+  smaskHasMatte: false,
 };
 
 const fakeEncoder = vi.fn(async () => jpeg1x1());
+// Smaller than any fixture image, even the flat-colour 200x200 one (the rewrite never parses the body).
+const tinyEncoder = async () => new Uint8Array(16);
 
 async function analyze(blob) {
   const doc = await PDFDocument.load(new Uint8Array(await blob.arrayBuffer()), { updateMetadata: false });
@@ -43,13 +47,20 @@ describe('planImageRewrite', () => {
   it('re-encodes DCT and Flate RGB/Gray images', () => {
     expect(planImageRewrite(base)).toBe('reencode');
     expect(planImageRewrite({ ...base, filters: ['FlateDecode'] })).toBe('reencode');
-    expect(planImageRewrite({ ...base, colorSpace: 'DeviceGray' })).toBe('reencode');
+    expect(planImageRewrite({ ...base, colorSpace: 'DeviceGray', components: 1 })).toBe('reencode');
+  });
+  it('re-encodes ICCBased 1 and 3 component images, and images with a plain SMask', () => {
+    expect(planImageRewrite({ ...base, colorSpace: 'ICCBased', components: 3 })).toBe('reencode');
+    expect(planImageRewrite({ ...base, colorSpace: 'ICCBased', components: 1 })).toBe('reencode');
+    expect(planImageRewrite({ ...base, hasSMask: true })).toBe('reencode');
   });
   it('keeps each unsupported case', () => {
     expect(planImageRewrite({ ...base, isMask: true })).toBe('keep');
-    expect(planImageRewrite({ ...base, hasSMask: true })).toBe('keep');
     expect(planImageRewrite({ ...base, bitsPerComponent: 1 })).toBe('keep');
-    expect(planImageRewrite({ ...base, colorSpace: 'ICCBased' })).toBe('keep');
+    expect(planImageRewrite({ ...base, colorSpace: 'ICCBased', components: 4 })).toBe('keep');
+    expect(planImageRewrite({ ...base, colorSpace: 'Indexed', components: null })).toBe('keep');
+    expect(planImageRewrite({ ...base, colorSpace: 'DeviceCMYK', components: null })).toBe('keep');
+    expect(planImageRewrite({ ...base, smaskHasMatte: true, hasSMask: true })).toBe('keep');
     expect(planImageRewrite({ ...base, filters: ['JPXDecode'] })).toBe('keep');
     expect(planImageRewrite({ ...base, filters: ['FlateDecode', 'DCTDecode'] })).toBe('keep');
     expect(planImageRewrite({ ...base, width: 60, height: 60 })).toBe('keep');
@@ -80,11 +91,11 @@ describe('compressPdfImages', () => {
     const result = await compressPdfImages(file, {
       maxLongSidePx: 1000,
       quality: 0.7,
-      encodeImage: fakeEncoder,
+      encodeImage: tinyEncoder,
     });
     expect(result.reason).toBe('smaller');
     expect(result.blob).not.toBe(file);
-    expect(result.rewritten).toBe(2);
+    expect(result.rewritten).toBe(3);
     expect(result.beforeBytes).toBe(file.size);
     expect(result.afterBytes).toBe(result.blob.size);
     console.log(`mixed.pdf: ${result.beforeBytes} -> ${result.afterBytes} bytes`);
@@ -98,11 +109,82 @@ describe('compressPdfImages', () => {
     expect(rewritten.map((i) => [i.width, i.height]).sort()).toEqual([[1000, 750], [800, 600]]);
     expect(report.images.filter((i) => i.hasSMask)).toHaveLength(1);
 
+    // The transparent image is re-encoded, but its mask stream is the same, untouched one.
+    const before = (await analyze(file)).report.images;
+    const smaskOf = (d, img) => d.context.lookup(PDFRef.of(...img.ref.split(' ').map(Number))).dict.get(PDFName.of('SMask'));
+    const beforeDoc = (await analyze(file)).doc;
+    const transBefore = before.find((i) => i.hasSMask);
+    const transAfter = report.images.find((i) => i.hasSMask);
+    expect(transAfter.filters).toEqual(['DCTDecode']);
+    const maskRef = smaskOf(beforeDoc, transBefore);
+    expect(smaskOf(doc, transAfter).toString()).toBe(maskRef.toString());
+    const maskBefore = before.find((i) => i.ref === maskRef.toString());
+    const maskAfter = report.images.find((i) => i.ref === maskRef.toString());
+    expect(maskAfter.isMask).toBe(true);
+    expect(maskAfter.filters).toEqual(maskBefore.filters);
+    expect(maskAfter.bytes).toBe(maskBefore.bytes);
+
     const annots = doc.getPage(0).node.Annots();
     expect(annots.size()).toBe(1);
     const annot = doc.context.lookup(annots.get(0));
     const action = doc.context.lookup(annot.get(PDFName.of('A')));
     expect(String(action.get(PDFName.of('URI')) instanceof PDFString ? action.get(PDFName.of('URI')).decodeText() : '')).toBe('https://example.com/');
+  });
+
+  describe('colour spaces and masks', () => {
+    // Loads a fixture, lets `edit(doc, images)` change it, and hands back a real file.
+    const edited = async (name, edit) => {
+      const { doc, report } = await analyze(fixture(name));
+      const ref = (img) => PDFRef.of(...img.ref.split(' ').map(Number));
+      await edit(doc, report.images, ref);
+      const bytes = await doc.save({ useObjectStreams: false });
+      return new File([bytes], name, { type: 'application/pdf' });
+    };
+    const setIcc = (doc, dict, n) => {
+      const icc = doc.context.register(doc.context.stream(new Uint8Array(4), { N: n }));
+      const cs = doc.context.obj([PDFName.of('ICCBased'), icc]);
+      dict.set(PDFName.of('ColorSpace'), cs);
+      return icc.toString();
+    };
+    const run = (file) => compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: tinyEncoder });
+
+    it('re-encodes an ICCBased RGB image and keeps its profile', async () => {
+      let iccRef;
+      const file = await edited('mixed.pdf', (doc, images, ref) => {
+        iccRef = setIcc(doc, doc.context.lookup(ref(images[1])).dict, 3);
+      });
+      const result = await run(file);
+      expect(result.rewritten).toBe(3);
+      const { doc, report } = await analyze(result.blob);
+      const flate = report.images.find((i) => i.width === 800);
+      expect(flate.filters).toEqual(['DCTDecode']);
+      expect(flate.colorSpace).toBe('ICCBased');
+      expect(flate.components).toBe(3);
+      const cs = doc.context.lookup(PDFRef.of(...flate.ref.split(' ').map(Number))).dict.get(PDFName.of('ColorSpace'));
+      expect(doc.context.lookup(cs).get(1).toString()).toBe(iccRef);
+    });
+
+    it('re-encodes an ICCBased gray image as DeviceRGB', async () => {
+      const file = await edited('scan.pdf', (doc, images, ref) => {
+        setIcc(doc, doc.context.lookup(ref(images[0])).dict, 1);
+      });
+      const result = await run(file);
+      expect(result.rewritten).toBe(2);
+      const { report } = await analyze(result.blob);
+      expect(report.images.every((i) => i.colorSpace === 'DeviceRGB' && i.components === 3)).toBe(true);
+    });
+
+    it('leaves an image alone when its SMask has a /Matte', async () => {
+      const file = await edited('mixed.pdf', (doc, images, ref) => {
+        const trans = images.find((i) => i.hasSMask);
+        const smask = doc.context.lookup(doc.context.lookup(ref(trans)).dict.get(PDFName.of('SMask')));
+        smask.dict.set(PDFName.of('Matte'), doc.context.obj([0, 0, 0]));
+      });
+      const result = await run(file);
+      expect(result.rewritten).toBe(2);
+      const { report } = await analyze(result.blob);
+      expect(report.images.find((i) => i.hasSMask).filters).toEqual(['FlateDecode']);
+    });
   });
 
   it('rewrites both scan pages', async () => {
@@ -201,7 +283,7 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.metTarget).toBe(true);
     expect(result.reason).toBe('smaller');
     expect(result.afterBytes).toBe(third);
-    const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800);
+    const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800 && w !== 200);
     expect(widths).toEqual([2000, 1600, 1000]);
   });
 
