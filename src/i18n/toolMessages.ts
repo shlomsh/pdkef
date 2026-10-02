@@ -504,6 +504,11 @@ export interface CompressMessages {
   compareAfterLabel: string;
   compareCaptionImage: string;
   compareCaptionPdf: string;
+  /** ENC-08: the protected-file state (src/shell/NeedsUnlock.tsx), shown for a PDF that needs a password. */
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
 }
 
 const englishCompressMessages: CompressMessages = {
@@ -583,6 +588,10 @@ const englishCompressMessages: CompressMessages = {
   compareAfterLabel: 'Compressed',
   compareCaptionImage: 'Drag to compare the original and the compressed image.',
   compareCaptionPdf: 'Drag to compare page 1. The rest of the document compresses the same way.',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can compress it.',
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
 };
 
 /**
@@ -680,6 +689,10 @@ const hebrewCompressMessages: CompressMessages = {
   compareAfterLabel: 'מכווץ',
   compareCaptionImage: 'גררו כדי להשוות בין התמונה המקורית לתמונה המכווצת.',
   compareCaptionPdf: 'גררו כדי להשוות את עמוד 1. שאר המסמך מכווץ באותו אופן.',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לכווץ אותו.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
 };
 
 const compressMessages: Partial<Record<DocumentationLocaleId, CompressMessages>> = {
@@ -905,6 +918,12 @@ const englishSignMessages: SignMessages = {
   pastedElement: 'Pasted cloned element.',
   writingSignaturesIntoPdf: 'Writing signatures and text layers into PDF...',
   signingStoppedLabel: 'Signing stopped.',
+  protectedNeedsPasswordTitle: 'This PDF has a password',
+  protectedNeedsPasswordBody: 'Unlock opens it on your device, then you can sign it.',
+  protectedOwnerOnlyTitle: 'This PDF is protected',
+  protectedOwnerOnlyBody: "It opens without a password, but Sign can't change it as it is. Unlock takes the protection off on your device, then you can sign it.",
+  protectedUnlockIt: 'Unlock it',
+  protectedHandoffFailed: "Couldn't open Unlock with this file. Open Unlock and choose it there.",
   signedPdfReadyToShare: 'Your signed PDF is ready to share.',
   pdfSignedDownloadStarted: 'PDF signed successfully. Download started.',
   downloadStarted: 'Download started.',
@@ -1139,6 +1158,12 @@ const hebrewSignMessages: SignMessages = {
   pastedElement: 'הרכיב המשוכפל הודבק.',
   writingSignaturesIntoPdf: 'כותבים את החתימות ושכבות הטקסט לתוך ה-PDF...',
   signingStoppedLabel: 'החתימה נעצרה.',
+  protectedNeedsPasswordTitle: 'לקובץ ה-PDF הזה יש סיסמה',
+  protectedNeedsPasswordBody: 'הסרת הנעילה פותחת אותו במכשיר שלכם, ואז אפשר לחתום עליו.',
+  protectedOwnerOnlyTitle: 'קובץ ה-PDF הזה מוגן',
+  protectedOwnerOnlyBody: 'הוא נפתח בלי סיסמה, אבל אי אפשר לחתום עליו כמו שהוא. הסרת הנעילה מורידה את ההגנה במכשיר שלכם, ואז אפשר לחתום עליו.',
+  protectedUnlockIt: 'הסרת נעילה',
+  protectedHandoffFailed: 'לא הצלחנו לפתוח את הקובץ בכלי הסרת הנעילה. פתחו את הכלי ובחרו אותו שם.',
   signedPdfReadyToShare: 'ה-PDF החתום שלכם מוכן לשיתוף.',
   pdfSignedDownloadStarted: 'ה-PDF נחתם בהצלחה. ההורדה החלה.',
   downloadStarted: 'ההורדה החלה.',

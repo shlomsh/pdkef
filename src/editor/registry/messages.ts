@@ -257,6 +257,13 @@ export interface SignMessages {
   pastedElement: string;
   writingSignaturesIntoPdf: string;
   signingStoppedLabel: string;
+  /** ENC-07: the protected-file state (src/shell/NeedsUnlock.tsx) in place of the editor. */
+  protectedNeedsPasswordTitle: string;
+  protectedNeedsPasswordBody: string;
+  protectedOwnerOnlyTitle: string;
+  protectedOwnerOnlyBody: string;
+  protectedUnlockIt: string;
+  protectedHandoffFailed: string;
   signedPdfReadyToShare: string;
   pdfSignedDownloadStarted: string;
   downloadStarted: string;
