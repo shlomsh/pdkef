@@ -79,6 +79,13 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(container.querySelector('[role="status"].sr-only').textContent).toBe('This PDF has a password');
   });
 
+  it('shows exactly one Replace button for a file that needs a password', async () => {
+    mount();
+    await pick(fixtureFile('needs-password'));
+
+    expect(buttons().filter((text) => text.includes('Replace'))).toHaveLength(1);
+  });
+
   it('never compresses a small file that needs a password', async () => {
     mount();
     await pick(fixtureFile('needs-password'));

@@ -25,28 +25,21 @@
   gap: 0.5rem;
 }
 
-.unlock-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  min-height: 44px;
-  padding: 0.5rem 0.9rem;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
+/* Colours only: shape, size and type come from the shell's .action chip so this sits
+   beside Replace as its twin. The tag selector outranks .action regardless of sheet order. */
+button.lead {
   color: var(--color-primary-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.unlock-button:hover:not(:disabled) {
   background: var(--color-primary-soft);
+  border-color: var(--color-primary);
 }
 
-.unlock-button:disabled {
+button.lead:hover:not(:disabled) {
+  color: var(--color-surface);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+button.lead:disabled {
   opacity: 0.6;
   cursor: default;
 }
