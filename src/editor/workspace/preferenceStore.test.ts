@@ -394,4 +394,42 @@ describe('recent whiteout colours (RED-53)', () => {
       spy.mockRestore();
     }
   });
+
+  it('keeps every pick in memory when setItem throws with a stored list (the review case)', () => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    try {
+      const b = rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope });
+      expect(b).toEqual(['#bbbbbb', '#aaaaaa']);
+      const c = rememberRecentWhiteoutColor('#cccccc', b, { userScope: scope });
+      expect(c).toEqual(['#cccccc', '#bbbbbb', '#aaaaaa']);
+      expect(rememberRecentWhiteoutColor('#dddddd', c, { userScope: scope })).toEqual(['#dddddd', '#cccccc', '#bbbbbb']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('storage wins when it works: another tab\'s pick merges in and is stored', () => {
+    const current = ['#aaaaaa'];
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#789abc'] })); // another tab wrote after this tab read
+    expect(rememberRecentWhiteoutColor('#cccccc', current, { userScope: scope })).toEqual(['#cccccc', '#789abc']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#cccccc', '#789abc']);
+  });
+
+  it('respects a cleared record: old colours do not come back while writes succeed', () => {
+    localStorage.removeItem(key);
+    expect(rememberRecentWhiteoutColor('#cccccc', ['#aaaaaa', '#bbbbbb'], { userScope: scope })).toEqual(['#cccccc']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#cccccc']);
+  });
+
+  it('falls back to current when getItem throws, and does not write', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    const set = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      expect(rememberRecentWhiteoutColor('#cccccc', ['#aaaaaa'], { userScope: scope })).toEqual(['#cccccc', '#aaaaaa']);
+      expect(set).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore(); set.mockRestore();
+    }
+  });
 });

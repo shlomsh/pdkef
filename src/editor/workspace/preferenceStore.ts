@@ -392,18 +392,27 @@ export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): 
   return readStoredRecentWhiteoutColors(options) ?? [];
 }
 
+/** Writes the list; false when there is no scope or the write throws. */
+function writeRecentWhiteoutColors(list: readonly string[], options: EditorPreferenceOptions): boolean {
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return false;
+    localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: list }));
+    return true;
+  // expected: quota or blocked storage, the caller keeps the list in memory
+  } catch { return false; }
+}
+
 /**
- * Adds a colour to the STORED list (another tab may have added its own since mount) and writes it; `current`
- * is the base only when storage cannot be read. Returns the new list whatever the write does.
+ * Adds a colour and returns the new list, which becomes the caller's state. The write's outcome decides the
+ * base: when storage is readable and the write lands, storage is the truth (another tab's picks merge in, a
+ * cleared record stays cleared); otherwise this tab's `current` is the truth, so nothing is lost to a failing write.
  */
 export function rememberRecentWhiteoutColor(color: string, current: readonly string[], options: EditorPreferenceOptions = {}): string[] {
-  // an empty stored list with a non-empty `current` means earlier writes failed (setItem blocked), so memory is the truth
   const stored = readStoredRecentWhiteoutColors(options);
-  const next = withRecentColor(stored && stored.length > 0 ? stored : current, color);
-  try {
-    const scope = getEditorUserScope(options);
-    if (scope) localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: next }));
-  // expected: quota or blocked storage, the list stays in memory
-  } catch { /* best effort */ }
-  return next;
+  if (stored !== null) {
+    const next = withRecentColor(stored, color);
+    if (writeRecentWhiteoutColors(next, options)) return next;
+  }
+  // storage unusable: this tab's memory is the truth
+  return withRecentColor(current, color);
 }
