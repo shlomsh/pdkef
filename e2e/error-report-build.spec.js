@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// DEBT-34: a crash report names the commit its page was built from, so
+// DEBT-35: a crash report names the commit its page was built from, so
 // `errors:resolve --build <sha>` rebuilds one commit instead of searching forty.
 // The commit is stamped into the built HTML as <meta name="pdkef-build"> after the
 // build id is hashed (scripts/generate-precache-manifest.mjs) and read back by the

@@ -1,5 +1,5 @@
 ---
-id: "DEBT-34"
+id: "DEBT-35"
 title: "A crash report names its commit, and the reader labels each frame, so a production crash reads without a slow search"
 status: "done"
 priority: "P2"
@@ -7,7 +7,7 @@ epic: "robustness"
 depends_on: ["DEBT-31"]
 ---
 
-# DEBT-34 · A crash report names its commit, and the reader labels each frame
+# DEBT-35 · A crash report names its commit, and the reader labels each frame
 
 *Filed 2026-10-02, from the first digest week.* `npm run errors:resolve` maps a reported frame
 (`chunk.hash.js:line:col`) to source by rebuilding origin/main commits, newest first, about 7 s each,
@@ -100,7 +100,7 @@ Step 2, after "run the `npm run errors:resolve -- <frames>` line the reader prin
 > The reader now prints, per fingerprint, the `build` (the 7-character commit the page was built
 > from), a label per frame (vendor or ours, and the first of ours), a stale-tab note, and a resolve
 > command that already ends in `--build <sha>`: run it as printed, it is one build (about 15 s). A row
-> that says `build unknown (older tab)` came from a tab older than DEBT-34: its command searches
+> that says `build unknown (older tab)` came from a tab older than DEBT-35: its command searches
 > history as before and can take minutes or find nothing, which itself says the tab is old.
 
 Step 3, in the DEBT-30 and ENC-02 items, replace "check which commit `errors:resolve` says the build
