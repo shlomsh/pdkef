@@ -438,7 +438,10 @@ export default function PdfRedactTool() {
     const presetElements = preset.elements || [];
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus: setLoadStatus, setAnnouncement,
-      onNeedsUnlock: setNeedsUnlock,
+      onNeedsUnlock: (kind) => {
+        setNeedsUnlock(kind);
+        setAnnouncement(kind === 'needs-password' ? 'This PDF has a password. Unlock opens it.' : 'This PDF is protected. Unlock takes the protection off.');
+      },
       initialize: () => {
         setNeedsUnlock(null);
         renderedPageNumbersRef.current = new Set();
