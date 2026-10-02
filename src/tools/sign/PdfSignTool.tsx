@@ -924,8 +924,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       return;
     }
 
-    download(signedBlob, filename);
     recordAction('download');
+    download(signedBlob, filename);
     setStatus('editing');
     setAnnouncement(t.pdfSignedDownloadStarted);
   });
@@ -939,8 +939,8 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     }
 
     runExport((signedBlob, filename) => {
-      download(signedBlob, filename);
       recordAction('download');
+      download(signedBlob, filename);
       setStatus('editing');
       setAnnouncement(t.pdfSignedDownloadStarted);
     });
