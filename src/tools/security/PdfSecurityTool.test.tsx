@@ -375,20 +375,23 @@ describe('PdfSecurityTool', () => {
         container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
-      nativeShare.restore();
+      return nativeShare;
     }
 
     it('leads back to Redact: Continue in Redact first, a quiet download, nothing else', async () => {
-      await unlockFromRedact(vi.fn());
+      const nativeShare = await unlockFromRedact(vi.fn());
       const text = container.textContent;
       expect(buttonByText('Continue in Redact')).not.toBeUndefined();
       expect(text.indexOf('Continue in Redact')).toBeLessThan(text.indexOf('Download'));
       const download = container.querySelector('a[download]');
       expect(download.getAttribute('download')).toBe('form_unlocked.pdf');
       expect(download.classList.contains(pdfToolStyles['download-button'])).toBe(false);
-      expect(buttonByText('Share')).toBeUndefined();
+      const share = buttonByText('Share');
+      expect(share).not.toBeUndefined();
+      expect(download.parentElement.contains(share)).toBe(true);
       expect(buttonByText('Sign it')).toBeUndefined();
       expect(buttonByText('Redact it')).toBeUndefined();
+      nativeShare.restore();
     });
 
     it.each([['sign', 'Continue in Sign', '/sign/'], ['compress', 'Continue in Compress', '/compress/']])('leads back to whichever tool sent it (%s)', async (from, label, href) => {
@@ -489,11 +492,38 @@ describe('PdfSecurityTool', () => {
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
     });
 
-    it('Share sits in one row with Redact it and Sign it', async () => {
+    it('Share sits right after Download, outside the row that holds only Redact it and Sign it', async () => {
       const nativeShare = mockNativeFileShare();
       await unlockDone(vi.fn());
+      const share = buttonByText('Share');
+      const download = container.querySelector(`a.${pdfToolStyles['download-button']}`);
       const row = buttonByText('Redact it').parentElement;
-      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Share', 'Redact it', 'Sign it']);
+      expect(row.contains(share)).toBe(false);
+      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Redact it', 'Sign it']);
+      expect(download.compareDocumentPosition(share) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(download.nextElementSibling === share || download.nextElementSibling?.contains(share)).toBe(true);
+      nativeShare.restore();
+    });
+
+    it('protect done shows Download and Share, and no next-tool actions', async () => {
+      const nativeShare = mockNativeFileShare();
+      probeEncryption.mockResolvedValue('open');
+      securityLib.protectPdf.mockResolvedValue(new Blob(['p'], { type: 'application/pdf' }));
+      mount();
+      await loadFile();
+      const passwordInput = container.querySelector('input[type="password"]');
+      await act(async () => {
+        passwordInput.value = 'secret';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      expect(container.querySelector(`a.${pdfToolStyles['download-button']}`)).not.toBeNull();
+      expect(buttonByText('Share')).not.toBeUndefined();
+      expect(buttonByText('Redact it')).toBeUndefined();
+      expect(buttonByText('Sign it')).toBeUndefined();
       nativeShare.restore();
     });
 
