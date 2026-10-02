@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { PDFDocument } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFString, PDFHexString } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
@@ -148,5 +148,34 @@ describe('security.js', () => {
     expect(error).toBeInstanceOf(UnreadablePdfError);
     expect(error).not.toBeInstanceOf(WrongPasswordError);
     expect(error.message).toBe('This file could not be unlocked. It may be damaged.');
+  });
+
+  async function protectedWith(entries) {
+    const file = getFixtureFile();
+    const doc = await PDFDocument.load(new Uint8Array(await file.arrayBuffer()));
+    entries(doc);
+    const withExtra = new File([await doc.save()], 'extra.pdf', { type: 'application/pdf' });
+    const blob = await protectPdf(withExtra, 'pw');
+    return { blob, bytes: Buffer.from(await blob.arrayBuffer()).toString('latin1') };
+  }
+
+  it('encrypts strings inside a stream dictionary and decrypts them on unlock', async () => {
+    const { blob, bytes } = await protectedWith((doc) => {
+      const ref = doc.context.register(doc.context.flateStream('x', { Foo: PDFString.of('hello') }));
+      doc.catalog.set(PDFName.of('TestStream'), ref);
+    });
+    expect(bytes).not.toContain('(hello)');
+    const unlocked = await unlockPdf(new File([blob], 'p.pdf', { type: 'application/pdf' }), 'pw');
+    const reloaded = await PDFDocument.load(new Uint8Array(await unlocked.arrayBuffer()));
+    const stream = reloaded.catalog.lookup(PDFName.of('TestStream'));
+    expect(stream.dict.lookup(PDFName.of('Foo')).decodeText()).toBe('hello');
+  });
+
+  it('leaves a signature dictionary /Contents unencrypted', async () => {
+    const { bytes } = await protectedWith((doc) => {
+      const ref = doc.context.register(doc.context.obj({ Type: 'Sig', Contents: PDFHexString.of('00aabbcc') }));
+      doc.catalog.set(PDFName.of('TestSig'), ref);
+    });
+    expect(bytes.toLowerCase()).toContain('<00aabbcc>');
   });
 });

@@ -44,10 +44,10 @@ index 6a62f0c..48be16b 100644
                  // contents have already been extracted and registered individually by
                  // PDFObjectStreamParser. Re-serialising the raw container would produce
 diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
-index e8d6035..9942f98 100644
+index e8d6035..5472fb8 100644
 --- a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
 +++ b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
-@@ -13,6 +13,21 @@ const snapshot_1 = require("../../api/snapshot");
+@@ -13,6 +13,27 @@ const snapshot_1 = require("../../api/snapshot");
  const PDFNumber_1 = tslib_1.__importDefault(require("../objects/PDFNumber"));
  const PDFName_1 = tslib_1.__importDefault(require("../objects/PDFName"));
  const PDFRawStream_1 = tslib_1.__importDefault(require("../objects/PDFRawStream"));
@@ -57,9 +57,15 @@ index e8d6035..9942f98 100644
 +const PDFHexString_1 = tslib_1.__importDefault(require("../objects/PDFHexString"));
 +// Every string in an object written outside an object stream is encrypted on its
 +// own (ISO 32000 7.6.2), however deep it sits in nested dictionaries and arrays.
++// A stream's dictionary is covered too; a signature dictionary's /Contents is exempt.
++const isExempt = (container, key) => container instanceof PDFDict_1.default &&
++    container.get(PDFName_1.default.of('Type')) === PDFName_1.default.of('Sig') &&
++    key === PDFName_1.default.of('Contents');
 +const encryptStrings = (container, encryptFn) => {
 +    const entries = container instanceof PDFDict_1.default ? container.entries() : container.asArray().entries();
 +    for (const [key, value] of entries) {
++        if (isExempt(container, key))
++            continue;
 +        if (value instanceof PDFString_1.default || value instanceof PDFHexString_1.default)
 +            container.set(key, PDFHexString_1.default.fromBytes(encryptFn(value.asBytes())));
 +        else if (value instanceof PDFDict_1.default || value instanceof PDFArray_1.default)
@@ -69,22 +75,22 @@ index e8d6035..9942f98 100644
  class PDFWriter {
      constructor(context, objectsPerTick, snapshot) {
          this.parsedObjects = 0;
-@@ -205,12 +220,14 @@ class PDFWriter {
+@@ -205,12 +226,16 @@ class PDFWriter {
          });
      }
      encrypt(ref, object, security) {
--        if (object instanceof PDFStream_1.default) {
--            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
--            const unencryptedContents = object.getContents();
--            const encryptedContents = encryptFn(unencryptedContents);
--            object.updateContents(encryptedContents);
--        }
 +        // The encryption dictionary itself is never encrypted.
 +        if (ref === this.context.trailerInfo.Encrypt)
 +            return;
 +        const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
-+        if (object instanceof PDFStream_1.default)
+         if (object instanceof PDFStream_1.default) {
+-            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
+-            const unencryptedContents = object.getContents();
+-            const encryptedContents = encryptFn(unencryptedContents);
+-            object.updateContents(encryptedContents);
 +            object.updateContents(encryptFn(object.getContents()));
++            encryptStrings(object.dict, encryptFn);
+         }
 +        else if (object instanceof PDFDict_1.default || object instanceof PDFArray_1.default)
 +            encryptStrings(object, encryptFn);
      }
@@ -144,10 +150,10 @@ index 1a45ba9..0643846 100644
                  // contents have already been extracted and registered individually by
                  // PDFObjectStreamParser. Re-serialising the raw container would produce
 diff --git a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
-index da76863..bb3816f 100644
+index da76863..3422894 100644
 --- a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
 +++ b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
-@@ -11,6 +11,21 @@ import { DefaultDocumentSnapshot, defaultDocumentSnapshot, } from '../../api/sna
+@@ -11,6 +11,27 @@ import { DefaultDocumentSnapshot, defaultDocumentSnapshot, } from '../../api/sna
  import PDFNumber from '../objects/PDFNumber.js';
  import PDFName from '../objects/PDFName.js';
  import PDFRawStream from '../objects/PDFRawStream.js';
@@ -157,9 +163,15 @@ index da76863..bb3816f 100644
 +import PDFHexString from '../objects/PDFHexString.js';
 +// Every string in an object written outside an object stream is encrypted on its
 +// own (ISO 32000 7.6.2), however deep it sits in nested dictionaries and arrays.
++// A stream's dictionary is covered too; a signature dictionary's /Contents is exempt.
++const isExempt = (container, key) => container instanceof PDFDict &&
++    container.get(PDFName.of('Type')) === PDFName.of('Sig') &&
++    key === PDFName.of('Contents');
 +const encryptStrings = (container, encryptFn) => {
 +    const entries = container instanceof PDFDict ? container.entries() : container.asArray().entries();
 +    for (const [key, value] of entries) {
++        if (isExempt(container, key))
++            continue;
 +        if (value instanceof PDFString || value instanceof PDFHexString)
 +            container.set(key, PDFHexString.fromBytes(encryptFn(value.asBytes())));
 +        else if (value instanceof PDFDict || value instanceof PDFArray)
@@ -169,22 +181,22 @@ index da76863..bb3816f 100644
  class PDFWriter {
      constructor(context, objectsPerTick, snapshot) {
          this.parsedObjects = 0;
-@@ -203,12 +218,14 @@ class PDFWriter {
+@@ -203,12 +224,16 @@ class PDFWriter {
          });
      }
      encrypt(ref, object, security) {
--        if (object instanceof PDFStream) {
--            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
--            const unencryptedContents = object.getContents();
--            const encryptedContents = encryptFn(unencryptedContents);
--            object.updateContents(encryptedContents);
--        }
 +        // The encryption dictionary itself is never encrypted.
 +        if (ref === this.context.trailerInfo.Encrypt)
 +            return;
 +        const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
-+        if (object instanceof PDFStream)
+         if (object instanceof PDFStream) {
+-            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
+-            const unencryptedContents = object.getContents();
+-            const encryptedContents = encryptFn(unencryptedContents);
+-            object.updateContents(encryptedContents);
 +            object.updateContents(encryptFn(object.getContents()));
++            encryptStrings(object.dict, encryptFn);
+         }
 +        else if (object instanceof PDFDict || object instanceof PDFArray)
 +            encryptStrings(object, encryptFn);
      }
