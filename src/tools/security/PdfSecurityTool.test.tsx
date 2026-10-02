@@ -518,7 +518,7 @@ describe('PdfSecurityTool', () => {
 
   it('records add and export by name only; the password never reaches the trail', async () => {
     resetActionTrailForTests();
-    securityLib.isPdfEncrypted.mockResolvedValue(false);
+    probeEncryption.mockResolvedValue('open');
     securityLib.protectPdf.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }));
     window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
     mount();
