@@ -1,10 +1,12 @@
+import 'preact/compat';
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import BlurStrengthSlider, { DEFAULT_TICK_PERCENT } from './BlurStrengthSlider.tsx';
+import BlurStrengthSlider from './BlurStrengthSlider.tsx';
+import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { renderRedactionSurface } from '../../editor/registry/redactionSurface.ts';
 
-const labels = { title: 'Blur strength', lighter: 'Lighter', stronger: 'Stronger', defaultTick: 'Default blur' };
+const labels = { title: 'Blur strength', lighter: 'Lighter', stronger: 'Stronger' };
 let host: HTMLElement | null = null;
 
 afterEach(() => {
@@ -26,7 +28,7 @@ function mount(onChange: (s: number) => void, value?: unknown) {
   host.appendChild(box);
   const slot = document.createElement('div');
   host.appendChild(slot);
-  render(<BlurStrengthSlider elementId="b1" value={value} onChange={onChange} labels={labels} />, slot);
+  act(() => { render(<BlurStrengthSlider elementId="b1" value={value} onChange={onChange} labels={labels} />, slot); });
   return { surface, input: slot.querySelector<HTMLInputElement>('[data-editor-blur-strength-input]')! };
 }
 
@@ -37,9 +39,24 @@ describe('BlurStrengthSlider', () => {
     expect(input.max).toBe('0.55');
     expect(input.step).toBe('0.01');
     expect(input.value).toBe('0.5');
-    expect(host!.textContent).toContain('Lighter');
-    expect(host!.textContent).toContain('Stronger');
-    expect(DEFAULT_TICK_PERCENT).toBeCloseTo(50);
+  });
+
+  it('has no heading text and no tick, only two titled marks', () => {
+    mount(() => {});
+    expect(host!.textContent).toBe('');
+    expect(host!.querySelector('[data-editor-blur-strength-tick]')).toBeNull();
+    expect(host!.querySelector('[data-editor-blur-strength-light]')!.getAttribute('title')).toBe('Lighter');
+    expect(host!.querySelector('[data-editor-blur-strength-strong]')!.getAttribute('title')).toBe('Stronger');
+  });
+
+  it('double-click resets to the default with exactly one onChange', async () => {
+    const onChange = vi.fn();
+    const { input, surface } = mount(onChange, 0.5);
+    await act(async () => { input.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); });
+    expect(input.value).toBe('0.3');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(DEFAULT_BLUR_STRENGTH);
+    expect(surface.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH} * 100cqh))`);
   });
 
   it('paints the box live during the drag and commits once on release, snapped', async () => {

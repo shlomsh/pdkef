@@ -1,4 +1,4 @@
-import { useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
+import { useReducer, useRef, useEffect, useCallback, useState } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
@@ -9,7 +9,7 @@ import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
-import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getEditorPreference, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
@@ -192,6 +192,10 @@ export default function PdfRedactTool() {
     dispatch({ type: 'COLOR_CHOSEN', color });
     rememberAppStyle({ whiteoutColor: color });
   };
+
+  // RED-53: the last custom colours, offered on a whiteout's toolbar. Only a
+  // deliberate pick is recorded, never an automatic sample or a brush drag step.
+  const [recentColors, setRecentColors] = useState(() => getRecentWhiteoutColors());
 
   const rememberBlurStrength = (strength: BlurStrength) => {
     dispatch({ type: 'BLUR_STRENGTH_CHOSEN', strength });
@@ -668,8 +672,13 @@ export default function PdfRedactTool() {
   const pickColor = (id: string, color: string) => {
     updateElement(id, { color, colorMode: 'custom' });
     rememberColor(color);
+    setRecentColors(rememberRecentWhiteoutColor(color));
   };
   const matchPage = (id: string) => updateElement(id, { colorMode: 'auto' });
+  const pickBrushColor = (color: string) => {
+    rememberColor(color);
+    setRecentColors(rememberRecentWhiteoutColor(color));
+  };
 
   // Two pipettes, one active at a time: the brush's, or the selected whiteout's.
   const selectedEl = elements.find((el) => el.id === selectedBoxId);
@@ -677,7 +686,7 @@ export default function PdfRedactTool() {
   const selectedWhiteoutId = selectedEl && (selectedEl.type === 'whiteout' || selectedEl.type === 'whiteoutStroke') ? selectedEl.id : null;
   useEyedropper(
     (eyedropping === 'brush' && hasBrushTarget) || (eyedropping === 'box' && selectedWhiteoutId !== null),
-    (color) => (eyedropping === 'box' && selectedWhiteoutId !== null ? pickColor(selectedWhiteoutId, color) : rememberColor(color)),
+    (color) => (eyedropping === 'box' && selectedWhiteoutId !== null ? pickColor(selectedWhiteoutId, color) : pickBrushColor(color)),
     () => dispatch({ type: 'EYEDROPPER_STOPPED' }),
   );
   useEffect(() => {
@@ -1081,6 +1090,7 @@ export default function PdfRedactTool() {
                         onHoverLeave={() => dispatch({ type: 'BOX_UNHOVERED', id: el.id })}
                         onDelete={deleteElement}
                         onPickColor={pickColor}
+                        recentColors={recentColors}
                         onMatchPage={matchPage}
                         eyedropping={eyedropping === 'box'}
                         onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'box' })}
