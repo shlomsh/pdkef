@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
-- [DEBT-31](backlog/tasks/DEBT-31.md) P2 · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred (in progress)
 
 ## Waiting, by date
 

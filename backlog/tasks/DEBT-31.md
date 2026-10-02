@@ -4,7 +4,6 @@ title: "Error reports carry the last few UI actions, so a crash's trigger is rea
 status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "now"
 depends_on: ["DEBT-27"]
 ---
 
