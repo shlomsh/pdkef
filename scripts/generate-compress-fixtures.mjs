@@ -165,11 +165,11 @@ async function mixed() {
 
   const aBuf = photo(2000, 1500, 7, 8);
   const jpgA = await sharp(aBuf, { raw: { width: 2000, height: 1500, channels: 3 } }).jpeg({ quality: 92 }).toBuffer();
-  page.drawImage(await doc.embedJpg(jpgA), { x: 56, y: 400, width: 300, height: 225 });
+  page.drawImage(await doc.embedJpg(jpgA), { x: 56, y: 300, width: 300, height: 225 });
 
   const bBuf = photo(800, 600, 11, 2);
   const pngB = await sharp(bBuf, { raw: { width: 800, height: 600, channels: 3 } }).png().toBuffer();
-  page.drawImage(await doc.embedPng(pngB), { x: 340, y: 160, width: 240, height: 180 });
+  page.drawImage(await doc.embedPng(pngB), { x: 340, y: 60, width: 240, height: 180 });
 
   const cBuf = Buffer.alloc(200 * 200 * 4);
   for (let y = 0; y < 200; y++) {
@@ -180,7 +180,7 @@ async function mixed() {
     }
   }
   const pngC = await sharp(cBuf, { raw: { width: 200, height: 200, channels: 4 } }).png().toBuffer();
-  page.drawImage(await doc.embedPng(pngC), { x: 56, y: 280, width: 72, height: 72 });
+  page.drawImage(await doc.embedPng(pngC), { x: 56, y: 180, width: 72, height: 72 });
 
   const w = font.widthOfTextAtSize(linkText, 10);
   const annot = doc.context.obj({
