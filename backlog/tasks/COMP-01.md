@@ -195,6 +195,28 @@ owner-only rows were clean (worst tile 20); the 3 ICC rows and 3 SMask rows trip
 orientation, transparency and layout match; the excess is edge detail lost to downsampling, not a
 defect. The copy quotes none of these numbers; they are private files and the KPI spec holds the floors.
 
+**2026-10-02, the guide pages' numbers** (`/pdf-wont-compress-to-100kb/`, `/id/kompres-pdf-di-bawah-1-mb/`).
+Their old tables came from the rasterising engine and their files were never recorded, so the set is
+now `scripts/generate-compress-guide-scans.mjs`: one generated phone-style form (RGB JPEG q85, about
+410 KB a page, fresh seeded grain per page), at 1, 2, 5, 10, 20 and 40 pages. Measured through the
+real UI (Chromium, dev server), default mode, after the bisection change; body text judged by eye at
+150 dpi:
+
+| Pages | 100 KB | 200 KB | 1 MB |
+| --- | --- | --- | --- |
+| 1 | 97 KB, crisp | 200 KB | untouched (under target) |
+| 2 | 98 KB, clear | 193 KB, clear | untouched |
+| 5 | 99.8 KB, readable, softer | 197 KB, clear | 999 KB |
+| 10 | missed: 118 KB, body unreadable (pictures mode 101 KB, also unreadable) | 199 KB, readable, soft | 1,023.5 KB, crisp |
+| 20 | missed: 235 KB | missed: 235 KB | 982 KB, clear |
+| 40 | missed: 470 KB | missed: 470 KB | 953 KB, readable, a little soft |
+
+The first run showed Target Size walking only the five ladder rungs: 5 pages at 100 KB came back at
+59 KB with soft text because the rung above was 174 KB. It now bisects four times between the first
+rung that fits and the one above (973eb88a). The ladder's floor is about 11.7 KB a page, so 10+ pages
+miss 100 KB and say so. Pictures mode misses targets by 0.5 to 3% on multi-page scans, pre-existing on
+main; split to its own session.
+
 Found in review and fixed: pdf-lib's Flate decoder ignores `/DecodeParms`, so a PNG-predicted image
 would have decoded sheared, and a `/Decode` array would have been dropped un-applied (an inverted
 image). `analyzePdf` reports `predictor` and `hasDecode`; `planImageRewrite` keeps both kinds.
