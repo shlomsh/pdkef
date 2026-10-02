@@ -187,6 +187,7 @@ describe('selectUnitTests: each blind-spot widen rule fires', () => {
     const candidates = [
       'src/lib/__fixtures__/sample.pdf',
       'src/tools/sign/fields/__fixtures__/sample.pdf',
+      'src/tools/compress/__fixtures__/sample.pdf',
       'public/images/redaction-guide/sample.pdf',
       'src/tools/sign/fields/corpus/scoring/baselines.json',
       'scripts/spike/mobi-10/ground-truth/x.json',

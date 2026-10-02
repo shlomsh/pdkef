@@ -116,6 +116,12 @@ export const WIDEN_RULES = [
     ],
   },
   {
+    id: 'compress-fixtures',
+    reason: 'the COMP-01 corpus under src/tools/compress/__fixtures__/ is read by path, not imported',
+    match: (f) => f.startsWith('src/tools/compress/__fixtures__/'),
+    tests: ['src/tools/compress/analyzePdf.test.js'],
+  },
+  {
     id: 'sign-field-fixtures',
     reason: 'PDF fixtures read by path under src/tools/sign/fields/__fixtures__/',
     match: (f) => f.startsWith('src/tools/sign/fields/__fixtures__/'),
