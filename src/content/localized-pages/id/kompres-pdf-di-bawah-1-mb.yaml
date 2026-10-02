@@ -91,8 +91,7 @@ sections:
           halaman tetap tajam, dan empat puluh halaman masih terbaca dengan tulisan yang sedikit lebih
           lembut. Itu mencakup sebagian besar surat lamaran, ijazah, transkrip, dan surat keterangan.
           PDF hasil ketikan dibiarkan apa adanya: alat ini hanya mengecilkan gambar di dalam PDF, jadi
-          teks ketikan tidak pernah diubah menjadi gambar. Setiap pengujian di atas selesai dalam waktu
-          kurang dari sepuluh detik, langsung di perangkat, tanpa satu berkas pun yang diunggah ke mana
+          teks ketikan tidak pernah diubah menjadi gambar. Di laptop kami, setiap pengujian di atas selesai dalam waktu kurang dari sepuluh detik, langsung di perangkat, tanpa satu berkas pun yang diunggah ke mana
           pun.
       - kind: 'prose'
         text: >-
@@ -120,8 +119,7 @@ sections:
             berkas memang tidak akan pernah muat.
       - kind: 'prose'
         text: >-
-          Kalau kompresor bilang targetnya tidak tercapai, artinya gambar di dalam PDF sudah
-          dikecilkan sampai batasnya. Sakelar "Turn pages into pictures" bisa mengecilkan lebih jauh,
+          Kalau kompresor bilang targetnya tidak tercapai, artinya mengecilkan gambar di dalam PDF saja belum cukup. Sakelar "Turn pages into pictures" bisa mengecilkan lebih jauh,
           tapi teksnya jadi tidak bisa dipilih dan tulisan kecil makin kabur. Untuk scan yang panjang,
           memisahkan berkas biasanya pilihan yang lebih baik.
       - kind: 'prose'
@@ -198,7 +196,7 @@ faq:
       Pada empat puluh halaman tulisannya mulai sedikit lembut, tapi masih terbaca.
   - question: 'PDF saya jadi 1,1 MB setelah dikompres, sekarang bagaimana?'
     answer: >-
-      Artinya gambar di dalam PDF sudah dikecilkan sebisanya dan targetnya tetap tidak tercapai.
+      Artinya mengecilkan gambar di dalam PDF saja belum cukup untuk mencapai target.
       Pisahkan berkas menjadi beberapa bagian dan unggah hanya halaman yang diminta, atau nyalakan
       sakelar "Turn pages into pictures" kalau Anda tidak keberatan teksnya tidak bisa dipilih lagi.
   - question: 'Apakah pas foto masih diterima setelah dikompres?'
