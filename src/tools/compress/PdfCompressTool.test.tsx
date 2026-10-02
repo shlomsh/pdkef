@@ -1155,14 +1155,16 @@ describe('PdfCompressTool UI flow', () => {
     it.each([
       ['no-images', 'There are no images in this PDF'],
       ['no-gain', 'already compact, so making them smaller saved nothing'],
-      ['encrypted', "protected against changes, so its images can't be recompressed"],
+      ['encrypted', "This PDF is locked, so its images can't be recompressed here"],
     ])('reason %s shows its notice and says the PDF is unchanged', async (reason, text) => {
       imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason })));
       await loadPdf('same.pdf', 11_000);
       await clickCompress();
       const stats = container.querySelector(`.${styles['compression-stats']}`);
       expect(stats.textContent).toContain(text);
-      expect(stats.textContent).toContain('Already as small as it gets');
+      // A locked file was never tried, so it is not "as small as it gets".
+      const title = reason === 'encrypted' ? 'This PDF is locked' : 'Already as small as it gets';
+      expect(stats.querySelector(`.${styles['stats-title']}`).textContent).toBe(title);
       expect(stats.textContent).toContain('None, original kept');
       expect(stats.textContent).not.toContain('As images');
       expect(stats.textContent).not.toContain('Compressed Size');
