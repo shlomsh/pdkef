@@ -1,10 +1,9 @@
 ---
 id: "ENC-08"
 title: "Compress meets a protected PDF at the door and leads back after Unlock"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 order: 3
 depends_on: ["ENC-01"]
 ---
@@ -22,3 +21,7 @@ depends_on: ["ENC-01"]
 ## Acceptance
 - The round trip spec gains a Compress case: needs-password file in Compress, Unlock it, the password, Continue in Compress, Compress has `<name>_unlocked.pdf` ready to run.
 - Island tests per route: needs-password shows the state before the button exists; owner-only proceeds and the output is intact; a small needs-password file never comes back labelled compressed.
+
+## Result
+
+Shipped on `fix/unlock-done-state` (cd368332, dde738d2). Compress probes a picked PDF with `probeEncryption` at intake; `needs-password` shows `NeedsUnlock` with `from: 'compress'` in place of the options and the button, so a small protected file never comes back as "compressed". Owner-only files compress as before; images are never probed; any newer pick drops a probe in flight (review finding, test first). Island tests: `PdfCompressTool.protected.test.tsx`; round trip: `e2e/handoff/encrypted-roundtrip-compress.spec.js`. Checked at 1280 and 375.
