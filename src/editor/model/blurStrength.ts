@@ -34,8 +34,10 @@
 // RED-54: Shlomi (2026-10-02): the middle of the slider was already a flat grey
 // wash and the top end was fog, but a blur is meant to stay a blur - a solid
 // patch is what Whiteout is for. Swept on real text (one- and three-line
-// boxes), the range that still reads as smeared text is about 0.06-0.24, so
-// that is what the slider offers, with the default exactly in the middle. The
+// boxes), the range that still reads as smeared text is about 0.08-0.28, so
+// that is what the slider offers, with the default exactly in the middle. (0.06-0.24
+// shipped first; the default of 0.15 left a one-line box a little too legible, so
+// the whole range moved up one notch.) The
 // stored-data clamp (BLUR_MIN..BLUR_MAX) is untouched: a draft or a box saved
 // at 0.4 keeps rendering and exporting at 0.4, never weaker than it was drawn.
 
@@ -46,11 +48,11 @@ export const BLUR_MIN = 0.05;
 export const BLUR_MAX = 0.55;
 
 /** What the slider offers: the range where a blur still looks like a blur. */
-export const BLUR_SLIDER_MIN = 0.06;
-export const BLUR_SLIDER_MAX = 0.24;
+export const BLUR_SLIDER_MIN = 0.08;
+export const BLUR_SLIDER_MAX = 0.28;
 
 /** What a new box starts at, and what the slider's reset returns: the middle of the slider. */
-export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.15;
+export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.18;
 
 /** What a blur box saved without a strength (before RED-30) resolves as; it never moves, so old files export unchanged. */
 export const UNSET_BLUR_STRENGTH: BlurStrength = 0.3;
