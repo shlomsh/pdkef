@@ -64,6 +64,7 @@ vi.mock('pdfjs-dist', () => {
     getDocument: vi.fn(() => ({
       promise: Promise.resolve({
         numPages: 2,
+        getPermissions: vi.fn(async () => null),
         getPage: vi.fn(() => Promise.resolve({
           getViewport: () => ({ width: 612, height: 792 }),
           render: () => ({ promise: Promise.resolve() })

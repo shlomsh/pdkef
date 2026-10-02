@@ -7,6 +7,7 @@ import type {
 } from '../../editor/model/editorModel.ts';
 import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { englishSignMessages, formatMessage, signElementTypeLabel, type ShellMessages, type SignMessages } from '../../i18n/toolMessages';
 import { SignToolProvider, useDocumentStyle, useSignTool } from './components/SignToolContext.tsx';
 import { SavedSignaturesContext } from './components/SavedSignaturesContext.tsx';
@@ -135,6 +136,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const [dialogOpen, setDialogOpen] = useState(false);
   const [signatureToDelete, setSignatureToDelete] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  // ENC-07: a protected PDF is a precondition, not a failure. Set by the load gate (or the export
+  // belt) and shown as NeedsUnlock (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
+  const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
   const { canSharePdf, shareReady, prepare, clearPrepared, download, downloadPrepared, sharePrepared } = usePdfShare();
 
   // Every setting a person chooses while filling (colour, font, size,
@@ -459,7 +463,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
         restoredTemplate: t.pdfRestoredTemplate,
         loadedTemplate: t.pdfLoadedTemplate,
       },
+      onNeedsUnlock: (kind) => {
+        setNeedsUnlock(kind);
+        setAnnouncement(kind === 'needs-password' ? t.protectedNeedsPasswordTitle : t.protectedOwnerOnlyTitle);
+      },
       initialize: () => {
+        setNeedsUnlock(null);
         setFile(selected);
         setPdfDocument(null);
         setNumPages(0);
@@ -907,6 +916,15 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       reportToolLifecycleEvent('tool_operation_failed', 'sign');
       console.error(err);
       setStatus('editing');
+      // ENC-07: the load gate should have caught a protected file, so this is reported above (a gate
+      // miss), but the person gets the way on rather than a retry that can never work.
+      const name = Reflect.get(Object(err), 'name');
+      const message = String(Reflect.get(Object(err), 'message') ?? '');
+      if (name === 'EncryptedPDFError' || message.includes('is encrypted')) {
+        setNeedsUnlock('owner-restricted');
+        setAnnouncement(t.protectedOwnerOnlyTitle);
+        return;
+      }
       const detail = describeSignFailure(err, t);
       setErrorDetail(detail);
       setAnnouncement(`${t.signingStoppedLabel} ${detail}`);
@@ -1007,7 +1025,24 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       // shared me a form over WhatsApp/Mail" case actually lands.
       showIosFilesHint
     >
-      {hasFiles && status !== 'loading' && (
+      {needsUnlock && (
+        <NeedsUnlock
+          kind={needsUnlock}
+          file={file}
+          bytes={sourceBytes}
+          from="sign"
+          toolName="Sign"
+          verb="sign"
+          messages={{
+            title: needsUnlock === 'needs-password' ? t.protectedNeedsPasswordTitle : t.protectedOwnerOnlyTitle,
+            body: needsUnlock === 'needs-password' ? t.protectedNeedsPasswordBody : t.protectedOwnerOnlyBody,
+            unlockIt: t.protectedUnlockIt,
+            handoffFailed: t.protectedHandoffFailed,
+          }}
+        />
+      )}
+
+      {!needsUnlock && hasFiles && status !== 'loading' && (
           <SavedSignaturesContext.Provider
             value={{ savedSignatures, activeSignature, setActiveSignature, onDeleteSavedSignature: deleteSavedSignature }}
           >
