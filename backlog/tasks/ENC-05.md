@@ -1,27 +1,24 @@
 ---
 id: "ENC-05"
-title: "Sign meets a protected PDF the same way Redact does"
+title: "Redact meets a protected PDF with one quiet state, not a dead Save"
 status: "open"
-priority: "P2"
-epic: "robustness"
-horizon: "next"
-order: 5
-depends_on: ["ENC-04"]
+priority: "P1"
+epic: "redact"
+horizon: "now"
+order: 1
+depends_on: ["ENC-01", "ENC-02"]
 ---
 
-# ENC-05 · Sign meets a protected PDF the same way Redact does
+# ENC-05 · Redact meets a protected PDF with one quiet state, not a dead Save
 
-*Plan section 4.* Sign shares `loadPdf` with Redact, so ENC-04 gives it the outcome. Here: its UI. Today an
-owner-only file opens in Sign and its export adapters throw `EncryptedPDFError` (`sign.js:112`,
-`flatten.js:251`, read and run), and a needs-password file shows the alert "Signing stopped. The PDF may
-be password-protected" (`PdfWorkspace.tsx:778-787`).
+*Plan sections 1 and 4. Lands with ENC-01, ENC-02 and ENC-08.* The origin of the plan: two `EncryptedPDFError` reports (`list_objects`, `export`) and "Could not export the PDF. Your edits are still here. Try again." (`PdfRedactTool.tsx:849`), which can never succeed on a protected file.
 
 ## Brief
-- Render `NeedsUnlock` for the `needs-unlock` outcome in place of the alert, and keep the alert for a
-  damaged file. Handle the File Handling `launchQueue` entry (`PdfSignTool.tsx:614-628`) and Share Target
-  hand-offs, which both reach `loadPdf`.
-- Sign passes no `analyticsStatus`, so nothing else changes in lifecycle counting.
+- `src/editor/workspace/loadPdf.ts`, shared with Sign: classify the load. The pdf.js rejection lands in the generic `catch (error)` at `:145`; a `PasswordException` there, and a resolved document whose `getPermissions()` is not `null`, become a distinct outcome, `needs-unlock`, not a failure: no `clearDraft()` (`:111-120`: on the restored path it drops the work of whichever entry the pointer names), no `cacheRecentFile` (`PdfRedactTool.tsx:460-464`), no `FILE_LOAD_FAILED`.
+- Redact: `initialize()` sets `file` and the bytes before pdf.js answers, which is why `useDeletableObjects` (called from `src/tools/redact/useDeleteTool.ts:59`, effect in `useDeletableObjects.js:26-48`) fires `list_objects` on a file about to be refused. Gate it, and `useDeletePreviews.ts`, on the document having opened.
+- Show `NeedsUnlock` in the place of the editor, replacing the load-error body with the plain Unlock link (`PdfRedactTool.tsx:1202-1223`) for the protected cases; a damaged file keeps that screen.
+- Receiving the unlocked file needs no change: `beforeRestore` already takes the hand-off.
 
 ## Acceptance
-- Island test with the ENC-01 fixtures: both kinds show the state, the editor never mounts, no recent is
-  cached. Verified on a phone-width viewport, since Sign is phone-first.
+- Island test (`PdfRedactTool.test.tsx`): an owner-only fixture shows the state, never mounts the editor, never calls `PDFDocument.load` on the protected bytes, and sends no `tool_operation_failed`. A restored or handed-off protected file reaches the same state and leaves the pointer's draft alone.
+- Verified in a real browser at 1280 and 375, with a Hebrew-named file.

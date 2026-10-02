@@ -1,29 +1,20 @@
 ---
 id: "ENC-11"
-title: "The protected-PDF state has its Hebrew strings"
+title: "PDF to Image meets a protected PDF at the door and can take a file back"
 status: "open"
-priority: "P3"
-epic: "search-and-languages"
-horizon: "later"
-order: 5
-depends_on: ["ENC-02"]
-needs: "A decision on whether to add Hebrew strings for tools that have no /he/ page"
+priority: "P2"
+epic: "robustness"
+horizon: "next"
+order: 6
+depends_on: ["ENC-01", "ENC-02"]
 ---
 
-# ENC-11 · The protected-PDF state has its Hebrew strings
+# ENC-11 · PDF to Image meets a protected PDF at the door and can take a file back
 
-*Plan section 7, open decision 5.* Redact and Unlock are not localized islands: neither is in
-`LOCALIZED_TOOL_ISLANDS` (`src/i18n/localizedTools.ts`), and there is no `/he/redact/` or `/he/unlock/`,
-so the gate's strings reach `/he/` only where Merge, Compress and Sign already take shell messages.
+*Plan section 4.* PDF to Image parses on Convert (`toImage.js:95`), so a needs-password file is rejected late with generic copy (`PdfToImageTool.tsx:277-279`). An owner-only file renders fine (pdf.js only, run).
 
 ## Brief
-- Add the keys to `ShellMessages` with English and Hebrew values (`englishShellMessages`,
-  `hebrewShellMessages`, `src/i18n/toolMessages.ts`), written in the voice guide and read by Shlomi.
-  `BasePdfTool` falls back to English for a missing override, but TypeScript is the only parity guard for
-  the shell catalogue (the parity test covers the Sign catalogue only), so add that test here.
-- The file name inside the sentence is isolated (`<bdi>`), per guidelines section 9; test with a Hebrew
-  name in an RTL shell (`e2e/localized/rtl-shell.spec.js` pattern).
-- Hold if the Hebrew programme (`docs/i18n-status/`) says no new Hebrew surface before its next read.
+- Probe at intake for `needs-password`; show `NeedsUnlock`. Add a hand-off receiver (the tool has none) using its key from the ENC-02 map.
 
 ## Acceptance
-- The Hebrew catalogue has exactly the English keys; the state mirrors under `dir="rtl"`.
+- Island test: needs-password shows the state, owner-only converts, a handed-off file opens.

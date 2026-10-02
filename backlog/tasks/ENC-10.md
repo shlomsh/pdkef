@@ -1,30 +1,22 @@
 ---
 id: "ENC-10"
-title: "The round trip and the intake of every tool are tested against a real protected file"
+title: "Compress and Compress Image meet a protected PDF at the door, not at the button"
 status: "open"
-priority: "P1"
+priority: "P2"
 epic: "robustness"
 horizon: "next"
-order: 9
-depends_on: ["ENC-03", "ENC-04", "ENC-06"]
+order: 5
+depends_on: ["ENC-01", "ENC-02"]
 ---
 
-# ENC-10 · The round trip and the intake of every tool are tested against a real protected file
+# ENC-10 · Compress and Compress Image meet a protected PDF at the door, not at the button
 
-*Plan section 8.* No spec exercised a protected file because the repo had none; this is the pair that
-would have caught the original report and the blank outputs.
+*Plan section 4.* Compress parses the file only when the person presses the main button (`compress.js:59`, `:200`), so a needs-password file is accepted, previewed as a generic glyph and rejected later with "may be password-protected or corrupted". An owner-only file works (pdf.js only, output intact, run), so it proceeds; the probe reports `owner-restricted` and the tool lets it through.
 
 ## Brief
-- `e2e/handoff/encrypted-roundtrip.spec.js` (it visits two tools' routes, so it lives in `e2e/handoff/`,
-  not under a tool folder; module-boundaries rule 7): owner-only file in Redact shows the state and sends no
-  `tool_operation_failed` beacon; Unlock it; Unlock arrives with the file and no password field;
-  Continue in Redact; the editor mounts; draw a box; Save; the download opens in pdf.js with the box's
-  text gone. Then Back from Unlock with the bfcache flags `back-navigation.spec.js` uses (the gate's
-  control works again), a needs-password file with a wrong password, and reload on Unlock (file gone,
-  Continue still offered once it is picked again). Chromium only; webkit's list is untouched.
-- `src/test/cross-tool/encryptedIntake.test.*`: every tool's intake against needs-password, owner-only and
-  plain, so a new intake path cannot skip the gate.
-- Run `npm run check:e2e` before landing; use an unusual `PLAYWRIGHT_PORT`.
+- Probe at intake in `handleFilesAdded` for `needs-password` only; show `NeedsUnlock`. Compress Image is the same component; its return route is `/compress-image/` (ENC-02 map). Compress already has a receiver (`useHandoffIntake`).
+- A file already under the target size is returned untouched at `compress.js:192-194`, before any parse, so a small needs-password file "compresses" to itself. Probe before that return.
+- Keep the generic "may be password-protected or corrupted" body for a genuinely damaged file.
 
 ## Acceptance
-- Both go red on `main` before ENC-04 and ENC-06, and green after (run them red first).
+- Island tests per route: needs-password shows the state before the button exists; owner-only proceeds and the output is intact; a small needs-password file never comes back labelled compressed.

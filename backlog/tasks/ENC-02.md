@@ -11,27 +11,15 @@ depends_on: ["ENC-01"]
 
 # ENC-02 · One quiet state with one action, shared by every tool that cannot read a protected PDF
 
-*Plan section 3 and 5.* The shell piece and the hand-off helper. No tool is wired here; ENC-04, 05, 06 and
-07 do that.
+*Plan sections 3 to 5. Lands with ENC-01, ENC-05 and ENC-08.* The shell piece and the hand-off helper. No tool is wired here.
 
 ## Brief
-
-- `src/shell/NeedsUnlock.tsx`: props `kind` (`needs-password` | `owner-restricted`), the tool, the file.
-  Renders a heading, one sentence and one action, **Unlock it**, with the Unlock icon; the shell's Replace
-  stays as the way to choose another file. No modal, no banner, no failure words. Draft copy is in the
-  plan, section 5; check every claim against the code before it ships (it may say "Redact can't change it as
-  it is", not "restricted").
-- `src/lib/unlockHandoff.ts`: `sendToUnlock(tool, {fileName, bytes})` wraps `saveHandoff('unlock', ...)`
-  then navigates to `/unlock/?from=<tool>`; `from` is matched against a closed list of tool slugs. The return
-  (`returnFromUnlock`) is `saveHandoff(<tool>, ...)` with the original file name, then a navigation to the
-  tool. Both lazy-import `draftStore`. The busy flag is `useNavigatingAway`; a failed save shows the
-  existing "Could not hand this off" wording, not a dead button.
-- Until ENC-03 lands, the action may be a plain link to `/unlock/`, as Merge's and Redact's already are.
-- English strings in `ShellMessages` (`src/i18n/toolMessages.ts`); Hebrew is ENC-11.
+- `src/shell/NeedsUnlock.tsx`: props `kind` (`needs-password` | `owner-restricted`), the tool, the file. Heading, one sentence, one action, **Unlock it**, with the Unlock icon; the shell's Replace stays as the way to choose another file. No modal, no banner, no failure words. Draft copy is in the plan, section 5, written so it promises nothing the flow does not do ("Then you can carry on in Redact", not "straight back"); check every claim against the code.
+- `src/lib/unlockHandoff.ts`: `sendToUnlock(tool, {fileName, bytes})` wraps `saveHandoff('unlock', ...)` then navigates to `/unlock/?from=<slug>`. One map from a registry slug (`src/data/tools.js`) to `{route, handoffKey}` is the closed list `from` may name and settles the awkward cases (`compress-image` at `/compress-image/` sharing Compress's component; `edit-pdf` is the `edit-pages` folder). Lazy-import `draftStore`. The busy flag is `useNavigatingAway`.
+- A failed save shows a new shell string such as "Couldn't open Unlock with this file. Open Unlock and choose it there." Redact's own "Download it instead" (`RedactFinish.tsx:73`) does not fit a protected file.
+- Strings go in `ShellMessages` in **both** English and Hebrew in the same change: `hebrewShellMessages` is typed `ShellMessages`, so English-only keys fail `typecheck`. The Hebrew is a first draft, read in ENC-18.
+- Until ENC-03 and ENC-04 land, the action may be a plain link to `/unlock/`, as Merge's and Redact's already are.
 
 ## Acceptance
-- jsdom tests: both kinds render with the right copy; the action saves the hand-off and then navigates; a
-  failed save shows the failure line and re-enables the control; the busy flag clears on a persisted
-  `pageshow` (`npm run test:navigating-away` passes).
-- `from` outside the closed list is ignored by the helper and by the validator Unlock will use.
-- Two consumers exist for the lib module before the epic closes (rule 9).
+- jsdom tests: both kinds render with the right copy; the action saves the hand-off, then navigates; a failed save shows the failure line and re-enables the control; the busy flag clears on a persisted `pageshow` (`npm run test:navigating-away` passes).
+- A slug outside the map is ignored by the helper and by the validator Unlock will use.
