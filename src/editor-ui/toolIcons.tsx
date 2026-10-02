@@ -5,25 +5,36 @@
  * EditorPageHeader) stop maintaining separate copies of the same markup.
  */
 
-/* The "blank slot": a top line, corner marks where the middle bar was, a
- * bottom line - the same line-of-text grammar as Blur and Blackout, where
- * the middle bar is painted over and blank. Redact and Sign render the
- * identical icon so the same tool looks the same in both editors. */
+/* One scaffold for the three cover tools: a top line, a middle band, a bottom
+ * line - a line of text with something over it. Blur, Blackout and Whiteout
+ * vary only the band (soft, solid, hollow), so the row reads as three results
+ * of the same act. Redact and Sign render the identical Whiteout so the same
+ * tool looks the same in both editors. */
 export function WhiteoutIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="4" y1="5" x2="15" y2="5" stroke-width="2" />
-      <path d="M3 11.5V9.5h2.5M18.5 9.5H21v2M21 12.5v2h-2.5M5.5 14.5H3v-2" stroke-width="1.6" />
-      <line x1="4" y1="19" x2="12" y2="19" stroke-width="2" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="5" x2="15" y2="5" />
+      <rect x="3" y="9.5" width="18" height="5" rx="1" />
+      <line x1="4" y1="19" x2="12" y2="19" />
     </svg>
   );
 }
 
-/* A droplet: Blur softens what is under the box. */
+/* Blackout's bar, softened: the band is drawn with a real Gaussian blur, which
+ * is what the tool does to the page. The filter region is padded so the blur is
+ * not clipped at the band's edge; the id is fixed because every instance
+ * defines the same filter. */
 export function BlurToolIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 2c4 5 7 8.5 7 12.5a7 7 0 1 1-14 0C5 10.5 8 7 12 2Z" />
+      <defs>
+        <filter id="pdkef-blur-icon" x="-25%" y="-80%" width="150%" height="260%">
+          <feGaussianBlur stdDeviation="1.4" />
+        </filter>
+      </defs>
+      <line x1="4" y1="5" x2="15" y2="5" />
+      <rect x="4" y="9.5" width="16" height="5" rx="1" fill="currentColor" stroke="none" filter="url(#pdkef-blur-icon)" />
+      <line x1="4" y1="19" x2="12" y2="19" />
     </svg>
   );
 }
@@ -31,10 +42,10 @@ export function BlurToolIcon({ size = 18 }: { size?: number }) {
 /* A solid bar over a line of text: Blackout hides what is under the box. */
 export function BlackoutToolIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="4" y1="5" x2="15" y2="5" stroke-width="2" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="5" x2="15" y2="5" />
       <rect x="3" y="9.5" width="18" height="5" rx="1" fill="currentColor" stroke="none" />
-      <line x1="4" y1="19" x2="12" y2="19" stroke-width="2" />
+      <line x1="4" y1="19" x2="12" y2="19" />
     </svg>
   );
 }

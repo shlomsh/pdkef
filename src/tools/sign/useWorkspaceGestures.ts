@@ -1,5 +1,6 @@
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import type { GestureEvent } from '../../lib/gestures/controller.ts';
 import { createElementId } from '../../editor/model/ids.ts';
 import {
@@ -369,6 +370,7 @@ export default function useWorkspaceGestures({
       dispatch({ type: 'DELETE_ELEMENT', payload: existingCheckboxMark.id });
       dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
       dispatch({ type: 'DISARM_TOOL' });
+      recordAction('delete_mark');
       logAction(
         'delete',
         'DELETE_ELEMENT',
@@ -419,6 +421,7 @@ export default function useWorkspaceGestures({
     }
 
     dispatch({ type: 'ADD_ELEMENT', payload: placed });
+    recordAction('place_mark');
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: id });
     // One placement per arming, so the next click on empty page area falls
     // through to the workspace's deselect handler instead of making a second
@@ -561,6 +564,7 @@ export default function useWorkspaceGestures({
       );
 
       dispatch({ type: 'DISARM_TOOL' });
+      recordAction('place_mark');
 
       if (tool === 'whiteout') {
         logAction('add', 'ADD_WHITEOUT', pageIndex, t.addedWhiteoutDescription, [captureAddedElement(finalElement, nextElementIndex)]);

@@ -14,6 +14,7 @@ import docStyles from './components/MergeDocument.module.css';
 import downloadStyles from './components/DownloadElement.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 function makePdfFile(name, { type = 'application/pdf', size = 8 } = {}) {
   return new File(['%PDF-1.4'.padEnd(size, ' ')], name, { type });
@@ -83,6 +84,7 @@ describe('PdfMergeTool UI flow', () => {
   let originalScrollTo;
 
   beforeEach(() => {
+    resetActionTrailForTests();
     pageCounts.clear();
     localStorage.clear();
     draftProbe.props = null;
@@ -908,6 +910,17 @@ describe('PdfMergeTool UI flow', () => {
     } finally {
       window.removeEventListener('error', onError);
     }
+  });
+
+  it('records what the person did, in order, through Clear all and adding again (DEBT-31)', async () => {
+    mount();
+    await loadFiles(['a.pdf', 'b.pdf']);
+    const clearTrigger = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Clear all');
+    await act(async () => clearTrigger.click());
+    const clearButtons = Array.from(container.querySelectorAll('button')).filter((b) => b.textContent.trim() === 'Clear all');
+    await act(async () => clearButtons.at(-1).click());
+    await loadFiles(['c.pdf', 'd.pdf']);
+    expect(recentActions()).toEqual(['add_files', 'clear_all', 'add_files']);
   });
 
   it('keeps whole-file drag enabled after pages are rearranged and regroups on drop', async () => {

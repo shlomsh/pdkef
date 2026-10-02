@@ -23,6 +23,7 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
 }));
 
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 vi.mock('./security.js', () => ({
   unlockPdf: vi.fn(),
@@ -513,5 +514,25 @@ describe('PdfSecurityTool', () => {
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
       expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
     });
+  });
+
+  it('records add and export by name only; the password never reaches the trail', async () => {
+    resetActionTrailForTests();
+    securityLib.isPdfEncrypted.mockResolvedValue(false);
+    securityLib.protectPdf.mockResolvedValue(new Blob(['x'], { type: 'application/pdf' }));
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    mount();
+    await loadFile('private_name.pdf');
+    const input = container.querySelector('#security-password');
+    await act(async () => {
+      input.value = 'hunter2-secret';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(recentActions()).toEqual(['add_files', 'export']);
+    expect(JSON.stringify(recentActions())).not.toMatch(/hunter2|private_name/);
   });
 });

@@ -17,6 +17,7 @@ import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 interface EditPage {
   pageNumber: number;
@@ -81,6 +82,7 @@ export default function PdfEditPagesTool() {
           return { ...current, pages: next };
         });
         resetOutput();
+        recordAction('reorder');
         setAnnouncement(`Page moved from position ${(evt.oldIndex as number) + 1} to ${(evt.newIndex as number) + 1}.`);
       },
     });
@@ -98,6 +100,7 @@ export default function PdfEditPagesTool() {
     const pdfs = Array.from(fileList).filter((f) => f.type === 'application/pdf');
     if (pdfs.length === 0) return;
     const selectedFile = pdfs[0];
+    recordAction(file ? 'replace_file' : 'add_files');
 
     setFile(selectedFile);
     setStatus('loading-file');
@@ -149,7 +152,7 @@ export default function PdfEditPagesTool() {
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     }
-  }, [reset, amend]);
+  }, [reset, amend, file]);
 
   const togglePage = useCallback((pageNum: number) => {
     commit((current: EditState) => {
@@ -161,6 +164,7 @@ export default function PdfEditPagesTool() {
       }
       const willRemove = next.has(pageNum);
       setAnnouncement(`Page ${pageNum} marked to be ${willRemove ? 'removed' : 'kept'}.`);
+      if (willRemove) recordAction('delete_page');
       return { ...current, removedPageNums: next };
     });
     resetOutput();
@@ -172,6 +176,7 @@ export default function PdfEditPagesTool() {
       current.removedPageNums.size === 0 ? current : { ...current, removedPageNums: new Set() }
     ));
     resetOutput();
+    recordAction('select_pages');
     setAnnouncement('Marked all pages to be kept.');
   }, [commit, removedPageNums]);
 
@@ -182,6 +187,7 @@ export default function PdfEditPagesTool() {
       return current.removedPageNums.size === all.size ? current : { ...current, removedPageNums: all };
     });
     resetOutput();
+    recordAction('select_pages');
     setAnnouncement('Marked all pages to be removed.');
   }, [commit, pages.length, removedPageNums]);
 
@@ -192,6 +198,7 @@ export default function PdfEditPagesTool() {
       return { ...current, rotations: { ...current.rotations, [pageNum]: nextRot } };
     });
     resetOutput();
+    recordAction('rotate');
     setAnnouncement(`Page ${pageNum} rotated ${direction}.`);
   }, [commit]);
 
@@ -206,6 +213,7 @@ export default function PdfEditPagesTool() {
       return { ...current, removedPageNums: next };
     });
     resetOutput();
+    recordAction('select_pages');
     setAnnouncement('Inverted page selections.');
   }, [commit]);
 
@@ -213,6 +221,7 @@ export default function PdfEditPagesTool() {
     if (!canUndo) return;
     undo();
     resetOutput();
+    recordAction('undo');
     setAnnouncement('Undid last change.');
   }, [undo, canUndo]);
 
@@ -220,6 +229,7 @@ export default function PdfEditPagesTool() {
     if (!canRedo) return;
     redo();
     resetOutput();
+    recordAction('redo');
     setAnnouncement('Redid last change.');
   }, [redo, canRedo]);
 
@@ -236,6 +246,7 @@ export default function PdfEditPagesTool() {
 
   const handleApplyChanges = async () => {
     if (!file || removedPageNums.size === pages.length) return;
+    recordAction('export');
     setStatus('processing');
     setProgress(0);
     try {
@@ -261,6 +272,7 @@ export default function PdfEditPagesTool() {
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement('Modified PDF shared successfully.');
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your modified PDF is still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
@@ -322,6 +334,7 @@ export default function PdfEditPagesTool() {
                     onChange={(e) => {
                       setAddPageNumbers((e.target as HTMLInputElement).checked);
                       resetOutput();
+                      recordAction('change_setting');
                     }}
                   />
                   <span>Add page numbers</span>
@@ -455,6 +468,7 @@ export default function PdfEditPagesTool() {
                   <DownloadButton
                     href={downloadUrl}
                     download={`${file.name.replace(/\.pdf$/i, '')}_modified.pdf`}
+                    onClick={() => recordAction('download')}
                   />
                   <PdfShareButton visible={shareReady} onShare={handleShare} />
                 </>

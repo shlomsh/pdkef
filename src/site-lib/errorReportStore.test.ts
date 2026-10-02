@@ -23,6 +23,7 @@ const report = {
   installed: false,
   sw: true,
   age: 'under_1m',
+  actions: [],
 } as const;
 
 describe('engineBucket', () => {
@@ -57,12 +58,30 @@ describe('commands', () => {
         'HSET',
         'errors:sample:2026-10-01',
         'drafts|TypeError|Tool.abc123.js:10:5|export|ios-26',
-        JSON.stringify({ stack: report.stack, step: 'export', tool: '/sign/', installed: false, sw: true, age: 'under_1m', engine: 'ios-26' }),
+        JSON.stringify({ stack: report.stack, step: 'export', tool: '/sign/', installed: false, sw: true, age: 'under_1m', actions: [], engine: 'ios-26' }),
       ],
       ['EXPIRE', 'errors:sample:2026-10-01', 7776000],
     ]);
     expect(reportCommands(report, 'ios-26', '2026-10-01')).toHaveLength(5);
     expect(DAILY_CAP).toBe(1000);
+  });
+});
+
+describe('actions in the sample', () => {
+  const actions = ['add_files', 'clear_all', 'add_files'] as const;
+  const fieldOf = (cmds: readonly (readonly unknown[])[], name: string) => cmds.filter((c) => c[0] === name);
+
+  it('stores the actions exactly, oldest first', () => {
+    const [hset] = fieldOf(countCommands({ ...report, actions }, 'ios-26', '2026-10-01'), 'HSET');
+    expect(JSON.parse(hset[3] as string).actions).toEqual(['add_files', 'clear_all', 'add_files']);
+  });
+
+  it('shares one count field and one sample field across different actions', () => {
+    const a = countCommands({ ...report, actions: ['add_files'] }, 'ios-26', '2026-10-01');
+    const b = countCommands({ ...report, actions }, 'ios-26', '2026-10-01');
+    expect(fieldOf(a, 'HINCRBY')[0][2]).toBe(fieldOf(b, 'HINCRBY')[0][2]);
+    expect(fieldOf(a, 'HSET')[0][2]).toBe(fieldOf(b, 'HSET')[0][2]);
+    expect(fieldOf(a, 'HSET')[0][3]).not.toBe(fieldOf(b, 'HSET')[0][3]);
   });
 });
 

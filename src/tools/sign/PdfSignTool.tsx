@@ -19,6 +19,7 @@ import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { DEFAULT_INK_COLOR, DEFAULT_START_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
+import { recordAction } from '../../lib/actionTrail.ts';
 import useFormFieldRegions from './useFormFieldRegions.ts';
 import useFieldNavigation from './useFieldNavigation.ts';
 import useCoarsePointer from './useCoarsePointer.ts';
@@ -330,6 +331,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   }, [file, documentRevision, clearPrepared]);
 
   const toggleFullscreen = () => {
+    recordAction('fullscreen');
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
       return;
@@ -361,6 +363,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (actionHistory.length === 0) return;
     const lastAction = actionHistory[0];
     dispatch({ type: 'UNDO' });
+    recordAction('undo');
     setAnnouncement(formatMessage(t.undidActionTemplate, { description: lastAction.description }));
   };
 
@@ -371,6 +374,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     if (redoHistory.length === 0) return;
     const nextAction = redoHistory[0];
     dispatch({ type: 'REDO' });
+    recordAction('redo');
     setAnnouncement(formatMessage(t.redidActionTemplate, { description: nextAction.description }));
   };
   useHistoryShortcuts(undoLast, redoLast);
@@ -528,7 +532,9 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // same way a manual pick always has (see useEditorDraftPersistence.ts).
   const loadFreshFile = async (selected: File) => {
     loadStartedRef.current = true;
+    const replacing = file !== null;
     const bytes = await selected.arrayBuffer();
+    recordAction(replacing ? 'replace_file' : 'add_files');
     await loadPdf(selected, bytes);
   };
 
@@ -669,10 +675,12 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   // Add signature element from modal
   const handleAddSignatureElement = (dataUrl: string, aspectRatio: number) => {
     const { signature: newSig, persisted } = saveNewSignature(dataUrl, aspectRatio);
+    recordAction('draw');
     setActiveSignature(newSig);
     dispatch({ type: 'SET_TOOL', payload: 'signature' });
     
     const placement = tempPlacement || { pageIndex: 0, left: 40, top: 40 };
+    recordAction('place_mark');
     placeSignatureAt(dataUrl, aspectRatio, placement.pageIndex, placement.left, placement.top);
     // The dialog both creates and places the signature, so that counts as the
     // tool's one placement - same as a click-placement on the page overlay.
@@ -689,6 +697,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
     const el = elements.find(e => e.id === id);
     const snapshots = captureElementSnapshots(elements, (element) => element.id === id);
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
+    recordAction('delete_mark');
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
     setAnnouncement(t.removedElement);
@@ -866,6 +875,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       setProgress(0);
       setAnnouncement(t.writingSignaturesIntoPdf);
       reportToolLifecycleEvent('tool_operation_started', 'sign');
+      recordAction('export');
     }
     const exportStartedAt = performance.now();
     // beaconMaintenanceTransport sends only in production builds (the gate is in sendBeacon).
@@ -914,6 +924,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
       return;
     }
 
+    recordAction('download');
     download(signedBlob, filename);
     setStatus('editing');
     setAnnouncement(t.pdfSignedDownloadStarted);
@@ -922,11 +933,13 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const handleDownloadPdf = () => {
     setErrorDetail(null);
     if (downloadPrepared()) {
+      recordAction('download');
       setAnnouncement(t.downloadStarted);
       return;
     }
 
     runExport((signedBlob, filename) => {
+      recordAction('download');
       download(signedBlob, filename);
       setStatus('editing');
       setAnnouncement(t.pdfSignedDownloadStarted);
@@ -936,6 +949,7 @@ function PdfSignToolInner({ shellMessages, messages }: { shellMessages?: Partial
   const handleSharePdf = async () => {
     const result = await sharePrepared();
     if (result.status === 'shared') {
+      recordAction('share');
       setAnnouncement(t.pdfSignedSuccessfully);
     } else if (result.status === 'canceled') {
       setAnnouncement(t.sharingCanceledStillReady);

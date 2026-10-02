@@ -12,6 +12,7 @@ import toolShellStyles from '../../shell/ToolShell.module.css';
 import pdfToolStyles from '../../shell/PdfTool.module.css';
 import { mockNativeFileShare } from '../../test/mockFileShare.js';
 import { setInputFiles } from '../../test/setInputFiles.js';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 function makePdfFile(name, size = 1000) {
   const file = new File(['%PDF-1.4'], name, { type: 'application/pdf' });
@@ -836,5 +837,32 @@ describe('PdfCompressTool UI flow', () => {
     expect(container.querySelector(`.${dropzoneStyles.dropzone}`)).not.toBeNull();
     expect(compressLib.compressPdf).not.toHaveBeenCalled();
     expect(compressImageLib.compressImageToTarget).not.toHaveBeenCalled();
+  });
+
+  it('records what the person did, by name only, in order', async () => {
+    resetActionTrailForTests();
+    window.URL.createObjectURL = vi.fn(() => 'blob:testurl');
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+    await act(async () => {
+      setInputFiles(container.querySelector('input[type="file"]'), [makePdfFile('secret_name.pdf', 100000)]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const extremeCard = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Extreme Compression'));
+    await act(async () => {
+      extremeCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(recentActions()).toEqual(['add_files', 'change_setting', 'export']);
   });
 });
