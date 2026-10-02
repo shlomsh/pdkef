@@ -14,9 +14,8 @@ interface Variant {
 interface Props {
   labels?: FooterMessages;
   /** LOC-02: tool pages pass their published editions here so the switcher
-   * renders in the footer, where the incumbents put it. Guides keep their own
-   * switcher above the hero (ContentPageLayout.astro) and never pass this, so
-   * it stays a no-op there - see DocumentationLanguageSelector, which already
+   * renders in the footer, where the incumbents put it. Guides pass theirs too
+   * (ContentPageLayout.astro); the static pages pass nothing and the selector
    * renders nothing for fewer than two available editions. */
   variants?: Variant[];
   locale?: string;
