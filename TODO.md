@@ -9,7 +9,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-34](backlog/tasks/DEBT-34.md) P1 · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer (in progress)
-- [DEBT-38](backlog/tasks/DEBT-38.md) P3 · A browser too old for pdf.js is told so once it adds a file (in progress)
 
 ## Waiting, by date
 
