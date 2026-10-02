@@ -44,7 +44,13 @@ const tools = [
   {
     name: 'Compress',
     path: '/compress',
-    file: { name: 'source.pdf', mimeType: 'application/pdf', bufferFn: makePdfBuffer },
+    // A blank page has no images, so Compress rightly hands it back with no
+    // download (COMP-01); mixed.pdf has photos to shrink.
+    file: {
+      name: 'source.pdf',
+      mimeType: 'application/pdf',
+      bufferFn: async () => fs.readFileSync(path.join(__dirname, '../src/tools/compress/__fixtures__/mixed.pdf')),
+    },
     actionName: 'Compress PDF',
     downloadName: 'Download Compressed PDF',
     // Not exact (SEO-25 "button anchor", 2026-09-12): DownloadButton's
