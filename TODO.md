@@ -9,6 +9,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 ### Robustness and debt
 
 - [DEBT-34](backlog/tasks/DEBT-34.md) P1 · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer (in progress)
+- [DEBT-36](backlog/tasks/DEBT-36.md) P2 · The daily error read sorts reports into regression, old tab and new, and shows what is new and what is rising (in progress)
 
 ## Waiting, by date
 

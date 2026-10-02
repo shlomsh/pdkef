@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 9 then, 20 waiting, 14 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 2 up next, 9 then, 20 waiting, 14 parked.
 
 ## Redact: finish removal
 
@@ -55,6 +55,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-34 | P1 | [DEBT-34](backlog/tasks/DEBT-34.md) · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer | In progress |
+| DEBT-36 | P2 | [DEBT-36](backlog/tasks/DEBT-36.md) · The daily error read sorts reports into regression, old tab and new, and shows what is new and what is rising | In progress |
 
 ### Then, in order
 
