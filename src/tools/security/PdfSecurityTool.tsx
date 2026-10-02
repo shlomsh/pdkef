@@ -348,7 +348,7 @@ function ContinueButton({ tool, disabled, onClick }: { tool: ReturnTool; disable
     ref.current?.focus({ preventScroll: true });
   }, []);
   return (
-    <button ref={ref} type="button" class={pdfToolStyles['download-button']} disabled={disabled} onClick={onClick}>
+    <button ref={ref} type="button" class={`${pdfToolStyles['download-button']} ${styles['continue-button']}`} disabled={disabled} onClick={onClick}>
       <Icon size={20} aria-hidden="true" />
       <span class={pdfToolStyles['download-button-label']}>Continue in {name}</span>
     </button>
