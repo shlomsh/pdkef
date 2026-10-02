@@ -13,8 +13,7 @@ import RedactBoxToolbar from './RedactBoxToolbar.tsx';
  * which fires on every drag step. Code that assumed `onChange` meant "released" or
  * "picker closed" shipped twice. The fix is useNativeChange(ref, cb), which listens to
  * the real `change` event. This file guards both the behaviour and Redact's own source
- * (everything under src/tools/redact). The shared src/editor-ui/ColorPicker.tsx, which
- * the brush menu and Sign use, still has the pattern and is its own ticket (DEBT-33).
+ * (src/tools/redact, src/tools/sign and the shared src/editor-ui).
  */
 
 let host: HTMLDivElement | null = null;
@@ -110,7 +109,7 @@ describe('static scan: no onChange on range or colour inputs', () => {
     expect(findCompatOnChangeInputs(clean)).toEqual([]);
   });
 
-  it('no non-test .tsx anywhere under src/tools/redact uses it', () => {
+  it('no non-test .tsx under redact, sign or editor-ui uses it', () => {
     const offenders: string[] = [];
     const walk = (dir: string) => { // vitest runs from the repo root
       for (const entry of readdirSync(dir, { withFileTypes: true }) as { name: string; isDirectory(): boolean }[]) {
@@ -122,10 +121,10 @@ describe('static scan: no onChange on range or colour inputs', () => {
         }
       }
     };
-    walk('src/tools/redact');
+    for (const root of ['src/tools/redact', 'src/tools/sign', 'src/editor-ui']) walk(root);
     expect(
       offenders,
-      `preact/compat turns onChange on range/color inputs into the per-drag-step input event. Use useNativeChange (src/tools/redact/useNativeChange.ts) instead.\n${offenders.join('\n')}`,
+      `preact/compat turns onChange on range/color inputs into the per-drag-step input event. Use useNativeChange (src/editor-ui/useNativeChange.ts) instead.\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 });

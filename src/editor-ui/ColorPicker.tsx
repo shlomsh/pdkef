@@ -1,4 +1,6 @@
+import { useRef } from 'preact/hooks';
 import styles from './EditorControls.module.css';
+import { useNativeChange } from './useNativeChange.ts';
 
 // A handful of common ink colors, plus a native picker for anything else
 const PRESET_COLORS = ['#000000', '#d8342b', '#1463ff', '#1a8f54', '#112d4e', '#ffffff'];
@@ -10,6 +12,9 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
   title?: string;
   defaultColor?: string;
 }) {
+  // One commit per choice: compat turns a JSX onChange into the per-drag-step `input` event.
+  const colorInput = useRef<HTMLInputElement>(null);
+  useNativeChange(colorInput, (el) => onChange(el.value));
   return (
     <div className={styles['color-picker']}>
       {PRESET_COLORS.map((c) => (
@@ -34,7 +39,7 @@ export default function ColorPicker({ value, onChange, onClose, title, defaultCo
         type="color"
         className={styles['color-input']}
         value={value || defaultColor}
-        onChange={(e) => onChange((e.target as HTMLInputElement).value)}
+        ref={colorInput}
         title={title}
       />
     </div>

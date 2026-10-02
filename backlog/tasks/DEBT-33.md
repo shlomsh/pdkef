@@ -1,10 +1,9 @@
 ---
 id: "DEBT-33"
 title: "The shared colour picker commits on every drag step under preact/compat"
-status: "open"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 

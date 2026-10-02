@@ -438,7 +438,8 @@ export default function SignatureDialog({
                   max="6"
                   step="0.5"
                   value={penThickness}
-                  onChange={(e) => rememberPenThickness(parseFloat((e.target as HTMLInputElement).value))}
+                  // onInput on purpose: the pen width follows the drag live (a preference, no undo history)
+                  onInput={(e) => rememberPenThickness(parseFloat((e.target as HTMLInputElement).value))}
                 />
               </div>
             </div>

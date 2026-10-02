@@ -3,7 +3,7 @@ import { useRef } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { useNativeChange } from './useNativeChange.ts';
-import { paintWhiteoutColor, renderRedactionSurface } from '../../editor/registry/redactionSurface.ts';
+import { paintWhiteoutColor, renderRedactionSurface } from '../editor/registry/redactionSurface.ts';
 
 describe('useNativeChange', () => {
   function mount(onChange: (el: HTMLInputElement) => void) {

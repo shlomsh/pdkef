@@ -8,7 +8,7 @@ import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { englishSignMessages as t, formatMessage } from '../../i18n/toolMessages';
 import type { RedactBoxElement, RedactStrokeElement } from './redactElements.ts';
 import { swatchInk } from './swatchInk.ts';
-import { useNativeChange } from './useNativeChange.ts';
+import { useNativeChange } from '../../editor-ui/useNativeChange.ts';
 import styles from './RedactBoxToolbar.module.css';
 
 export interface RedactBoxToolbarProps {
