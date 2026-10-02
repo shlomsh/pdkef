@@ -134,3 +134,54 @@ export async function compressPdfImages(
     reason: 'smaller',
   };
 }
+
+// The three levels, as image targets. Keys are the island's existing level ids:
+// 'high' is the card titled "Extreme Compression", 'medium' "Recommended", 'low' "High Quality".
+export const IMAGE_LEVELS = {
+  high: { maxLongSidePx: 1000, quality: 0.4 },
+  medium: { maxLongSidePx: 1600, quality: 0.6 },
+  low: { maxLongSidePx: 2400, quality: 0.8 },
+};
+
+// Tried in order, best quality first, for Target Size.
+export const TARGET_IMAGE_LADDER = [
+  { maxLongSidePx: 2400, quality: 0.8 },
+  { maxLongSidePx: 1600, quality: 0.6 },
+  { maxLongSidePx: 1000, quality: 0.4 },
+  { maxLongSidePx: 800, quality: 0.3 },
+  { maxLongSidePx: 600, quality: 0.2 },
+];
+
+export async function compressPdfImagesToTarget(file, { targetKB, onProgress, encodeImage }) {
+  const beforeBytes = file.size;
+  const targetBytes = Math.max(1, Math.round(targetKB * 1024));
+  const unchanged = (reason, metTarget) => ({
+    blob: file, metTarget, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason,
+  });
+  if (beforeBytes <= targetBytes) {
+    onProgress?.(1);
+    return unchanged('under-target', true);
+  }
+
+  let smallest = null;
+  for (let i = 0; i < TARGET_IMAGE_LADDER.length; i += 1) {
+    const result = await compressPdfImages(file, {
+      ...TARGET_IMAGE_LADDER[i],
+      ...(encodeImage ? { encodeImage } : {}),
+      onProgress: (p) => onProgress?.((i + p) / TARGET_IMAGE_LADDER.length),
+    });
+    // No rung can change a file with no images or one that is encrypted.
+    if (result.reason === 'no-images' || result.reason === 'encrypted') {
+      onProgress?.(1);
+      return { ...result, metTarget: false };
+    }
+    if (result.reason !== 'smaller') continue;
+    if (result.afterBytes <= targetBytes) {
+      onProgress?.(1);
+      return { ...result, metTarget: true };
+    }
+    if (!smallest || result.afterBytes < smallest.afterBytes) smallest = result;
+  }
+  onProgress?.(1);
+  return smallest ? { ...smallest, metTarget: false } : unchanged('no-gain', false);
+}
