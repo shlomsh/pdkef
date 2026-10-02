@@ -1,10 +1,9 @@
 ---
 id: "QUAL-20"
 title: "The home demo's scroll-progress e2e fails under a full 4-worker run"
-status: "open"
+status: "done"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
 depends_on: []
 ---
 
@@ -30,4 +29,28 @@ itself, then the property) instead of polling only the property. No retries and 
 
 ## Acceptance
 
-- Three consecutive full `npm run test:e2e:product` runs pass with this spec included.
+- [x] Three consecutive full `npm run test:e2e:product` runs pass with this spec included.
+
+## Done (2026-10-02)
+
+**Root cause (test timing only, product code unchanged).** `ScrollDriver.tsx` ties `--p-track` to the
+scroll position only for `SCRUB_HOLD_MS` (1.8s) after a scroll event; after that autoplay walks the value
+away (sign at 0.81 reads 1 about five seconds later and stays there). The old `expectProgress` sampled
+from the test process, so a worker stalled for roughly five seconds between `scrollTo` and its first
+sample saw autoplay's value, 1, for the whole 10s. Reproduced deterministically with a 6s stall injected
+before the first poll (old helper failed 3/3). A second way to miss: a `scrollTo` to the spot the page
+already sits at (scroll restoration after a reload) fires no scroll event, so the driver never scrubs
+(4 of 10 reloads under CPU throttling).
+
+**Fix.** `scrollStory` (`e2e/demo/heroDemoHelpers.js`) scrolls and observes inside one `page.evaluate`: it
+scrolls, waits two animation frames (the driver's handler runs in a rAF), checks `scrollY` against the
+target and `--p-track` against the fraction (the same 0.005 tolerance), and steps one pixel off and back
+to give the driver a scroll event when it did not follow, recomputing the target each pass, up to 8s. No
+retries, no wider tolerance, no longer timeout.
+
+**Verified.** The original failure never recurred organically under load, so the proof is the mechanism
+plus the acceptance: the 6s-stall repro passes; the spec passes 40/40 with `--repeat-each=40 --workers=4`
+beside CPU burners; three consecutive full `npm run test:e2e:product` runs pass (302 chromium and webkit
+tests, 5 perf, each run). One earlier attempt at the three runs failed in eight unrelated specs that
+each hung 15 minutes or more while the machine's load average was above 20; the demo spec passed in that
+run too, and the three consecutive runs were repeated on a quiet machine.

@@ -82,7 +82,8 @@ export function followsPage(el: { type: string; colorMode?: ColorMode }): boolea
 }
 
 /** The extra `{ color }` an edit needs so an auto whiteout keeps matching the
- * page: only when it moved, resized or just became auto. `sample` reads the page. */
+ * page: only when it really moved, resized or just became auto (a click commits an
+ * unchanged `{ left, top }`, which is not an edit). `sample` reads the page. */
 export function autoColorChanges<T extends { type: string; pageIndex: number; color?: string; colorMode?: ColorMode } & PercentBox>(
   element: T,
   changes: Partial<T>,
@@ -90,7 +91,7 @@ export function autoColorChanges<T extends { type: string; pageIndex: number; co
 ): Partial<T> {
   const next = { ...element, ...changes };
   if (!followsPage(next)) return {};
-  const geometry = (['left', 'top', 'width', 'height'] as const).some((k) => Object.prototype.hasOwnProperty.call(changes, k));
+  const geometry = (['left', 'top', 'width', 'height'] as const).some((k) => k in changes && changes[k] !== element[k]);
   if (!geometry && changes.colorMode !== 'auto') return {};
   const color = sample(next.pageIndex, { left: next.left, top: next.top, width: next.width, height: next.height });
   if (color === null || color === next.color) return {};

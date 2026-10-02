@@ -32,10 +32,6 @@ function startEdgeOfBox(box: PercentBox, direction: TextDirection): number {
     : box.left;
 }
 
-function centreY(field: TypableField): number {
-  return centreYOfBox(field.region);
-}
-
 /**
  * Page, then row, then the start edge (right to left on an RTL page). Fill
  * mode's `fillOrder` (SNG-15) sorts through this too, so a form's slots and
@@ -189,7 +185,7 @@ export function fieldPosition(
   }
   // On no field: after every field whose centre is above it.
   const after = order.filter((field) => field.region.pageIndex < element.pageIndex
-    || (field.region.pageIndex === element.pageIndex && centreY(field) < element.top)).length;
+    || (field.region.pageIndex === element.pageIndex && centreYOfBox(field.region) < element.top)).length;
   return {
     index: null,
     next: after <= last ? after : null,

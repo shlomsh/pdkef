@@ -58,4 +58,8 @@ follows the page onto another tint and one Undo restores both its place and colo
 is that colour edge to edge, and the whiteout pill is one 54px row at 375, 390 and 402px. Rule 9 moved
 `ElementToolbar`, the font and thickness pickers and `useCoarsePointer` into Sign and `BlurStrengthSlider`
 into Redact. Arrow-key moves on whiteout-only pages were found broken (page sizes load only with a blur)
-and handed to their own task.
+and handed to their own task. A fresh review then tightened it: the eyedropper takes only page pixels and
+only the primary button, a click no longer re-samples, a custom colour is one undo step, the brush and the
+box each arm their own pipette, the swatch's tick picks its ink by contrast, and the phone pill stays on
+top in pseudo full screen, and so does the loupe (both go through one `overlayHost()`, so it follows a full screen
+that starts while the eyedropper is armed).

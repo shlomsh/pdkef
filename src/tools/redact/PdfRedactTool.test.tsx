@@ -25,7 +25,6 @@ import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preference
 declare const __dirname: string;
 
 const REDACT_BOX = redactStyles['redact-box'];
-const REDACT_BOX_RESIZER = redactStyles['redact-box-resizer'];
 
 function required<T>(value: T | null | undefined, description: string): T {
   if (value == null) throw new Error(`Expected ${description}`);
@@ -390,6 +389,63 @@ describe('PdfRedactTool UI flow', () => {
       expect(autoPressed()).toBe('false');
       expect(container.querySelector('[data-editor-actions]')).not.toBeNull();
       expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
+    });
+
+    describe('two pipettes', () => {
+      const boxPipette = () => query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      const brushPipette = () => query<HTMLButtonElement>(container, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
+      const click = async (el: HTMLElement) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
+      const brushSwatch = () => query<HTMLElement>(container, '[aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
+      async function selectedBoxAndBrushArmed() {
+        await drawWhiteoutAndSelect();
+        const canvas = query<HTMLCanvasElement>(container, '[data-editor-page-card] canvas');
+        canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
+        canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
+        await armTool('Whiteout');
+        const brushSegment = required(Array.from(container.querySelectorAll<HTMLButtonElement>('[data-brush-controls] [role="radio"]')).find((b) => b.textContent === 'Brush'), 'Brush segment');
+        await act(async () => { brushSegment.click(); });
+        const before = brushSwatch();
+        return { canvas, before };
+      }
+      async function pick(canvas: HTMLCanvasElement) {
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+        await act(async () => { canvas.dispatchEvent(new MouseEvent('click', { clientX: 60, clientY: 40, bubbles: true, cancelable: true })); });
+      }
+
+      it('with a box selected and the brush armed, the box pipette arms only itself and picks into the box', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        await click(boxPipette());
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(rgb('#0a141e'));
+        expect(autoPressed()).toBe('false');
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('false');
+        // pickColor also remembers the colour as the default (existing behaviour), so the brush follows it.
+        expect(before).toBe('#ffffff');
+      });
+
+      it('the brush pipette picks into the brush and leaves the box colour', async () => {
+        const { canvas, before } = await selectedBoxAndBrushArmed();
+        const boxColor = surfaceColor();
+        await click(brushPipette());
+        expect(brushPipette().getAttribute('aria-pressed')).toBe('true');
+        expect(boxPipette().getAttribute('aria-pressed')).toBe('false');
+        await pick(canvas);
+        expect(surfaceColor()).toBe(boxColor);
+        expect(brushSwatch()).not.toBe(before);
+      });
+    });
+
+    it('the workspace carries data-pseudo-fullscreen only while pseudo full screen is on', async () => {
+      await loadFileAndGetDrawArea();
+      const workspace = () => query<HTMLElement>(container, '[data-redact-workspace-ready]');
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
+      const toggle = (label: string) => required(container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"], button[title="${label}"]`), label);
+      await act(async () => { toggle('Full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(true);
+      await act(async () => { toggle('Exit full screen').click(); });
+      expect(workspace().hasAttribute('data-pseudo-fullscreen')).toBe(false);
     });
 
     it('a restored whiteout without a colour mode (an old draft) keeps its colour when moved, and is never sampled', async () => {
@@ -1510,7 +1566,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1543,7 +1598,6 @@ describe('PdfRedactTool UI flow', () => {
       const box = container.querySelector(`.${REDACT_BOX}`);
       expect(box).not.toBeNull();
       expect(box.querySelector('[data-editor-actions]')).toBeNull();
-      expect(box.querySelector(`.${REDACT_BOX_RESIZER}`)).toBeNull();
 
       await act(async () => {
         box.dispatchEvent(new MouseEvent('mousedown', { clientX: 0, clientY: 0, bubbles: true }));
@@ -1809,6 +1863,48 @@ describe('PdfRedactTool UI flow', () => {
     return required(Array.from(container.querySelectorAll<HTMLButtonElement>(`.${toolbarStyles.toolbar} button`))
       .find((b) => b.textContent.includes(label)), `${label} tool button`);
   }
+
+  // RED-52: RED-43's keyboard move needs the page size in points, which the
+  // island only read when a blur box, a blur stroke or a brush was around. Arm
+  // neither Blur nor a brush here: the bug only shows when neither is around.
+  describe('RED-52: arrow keys move a whiteout or blackout box on a document with no blur', () => {
+    for (const label of ['Whiteout', 'Blackout']) {
+      it(`${label}: one ArrowDown press moves it one point and one undo puts it back`, async () => {
+        const drawArea = await loadFileWithoutArming();
+        await armTool(label);
+        await drawBox(drawArea, 50, 200, 200, 500);
+
+        const findBox = () => required(
+          container.querySelector<HTMLElement>(`[role="group"][aria-label="${label} box"]`),
+          `${label} box`
+        );
+        // The island starts reading page sizes when the first box appears, and
+        // the mocked pdf.js answers with settled promises: one task later the
+        // read has landed, as it has long before a person reaches for a key.
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+        // Reach it the way a keyboard user does: focus, then Enter selects.
+        await act(async () => {
+          findBox().focus();
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        });
+        expect(findBox().className).toContain(redactStyles.selected);
+
+        const before = parseFloat(findBox().style.top);
+        await act(async () => {
+          findBox().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+        });
+        // One point on the mocked 792-point page.
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before + (1 / 792) * 100, 4);
+
+        await act(async () => {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+        });
+        expect(parseFloat(findBox().style.top)).toBeCloseTo(before, 4);
+      });
+    }
+  });
 
   // The mobile scroll fix itself (see the touchAction comment in
   // PdfRedactTool.tsx's page-wrapper style, and CLAUDE.md's "Sign editor

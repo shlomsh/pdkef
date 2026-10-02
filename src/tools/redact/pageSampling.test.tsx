@@ -67,12 +67,20 @@ describe('eyedropper', () => {
     expect(getImageData).toHaveBeenCalledWith(100, 200, 1, 1);
   });
 
-  function mountDropper() {
-    const { canvas } = stubCanvas([1, 2, 3]);
+  function pageCard(canvas: HTMLCanvasElement) {
     const card = document.createElement('div');
     card.setAttribute('data-editor-page-card', '');
-    card.appendChild(canvas);
+    const area = document.createElement('div');
+    area.className = 'redact-draw-area';
+    area.appendChild(canvas);
+    card.appendChild(area);
     document.body.appendChild(card);
+    return { card, area };
+  }
+
+  function mountDropper() {
+    const { canvas } = stubCanvas([1, 2, 3]);
+    const { card, area } = pageCard(canvas);
     const onPick = vi.fn();
     const onDone = vi.fn();
     const pageHandler = vi.fn();
@@ -81,7 +89,7 @@ describe('eyedropper', () => {
     function Host() { useEyedropper(true, onPick, onDone); return null; }
     act(() => render(<Host />, host));
     const cleanup = () => { act(() => render(null, host)); card.remove(); };
-    return { canvas, onPick, onDone, pageHandler, cleanup };
+    return { canvas, card, area, onPick, onDone, pageHandler, cleanup };
   }
 
   it('the next press on a page sets the colour and is not a stroke', () => {
@@ -93,7 +101,7 @@ describe('eyedropper', () => {
     cleanup();
   });
 
-  it('swallows the click that follows a mouse pick, but only briefly', () => {
+  it('swallows the click that follows a mouse pick, but not one after its mouseup', () => {
     vi.useFakeTimers();
     const { canvas, cleanup } = mountDropper();
     const docClick = vi.fn();
@@ -103,11 +111,72 @@ describe('eyedropper', () => {
     expect(docClick).not.toHaveBeenCalled();
 
     canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 120, bubbles: true, cancelable: true }));
-    vi.advanceTimersByTime(601);
+    canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    vi.advanceTimersByTime(1);
     canvas.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     expect(docClick).toHaveBeenCalledTimes(1);
     document.removeEventListener('click', docClick);
     cleanup();
+  });
+
+  it('a long press still swallows its own click', () => {
+    vi.useFakeTimers();
+    const { canvas, cleanup } = mountDropper();
+    const docClick = vi.fn();
+    document.addEventListener('click', docClick);
+    canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: 60, clientY: 120, bubbles: true, cancelable: true }));
+    vi.advanceTimersByTime(900);
+    canvas.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    canvas.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(docClick).not.toHaveBeenCalled();
+    document.removeEventListener('click', docClick);
+    cleanup();
+  });
+
+  it('a right-button press neither picks nor arms a swallow', () => {
+    const { canvas, onPick, onDone, cleanup } = mountDropper();
+    const docClick = vi.fn();
+    document.addEventListener('click', docClick);
+    const down = new MouseEvent('mousedown', { button: 2, clientX: 60, clientY: 120, bubbles: true, cancelable: true });
+    canvas.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(false);
+    expect(onPick).not.toHaveBeenCalled();
+    expect(onDone).not.toHaveBeenCalled();
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(docClick).toHaveBeenCalledTimes(1);
+    document.removeEventListener('click', docClick);
+    cleanup();
+  });
+
+  describe('chrome inside the page is left alone', () => {
+    function chromeCase(where: 'actions' | 'resizer' | 'header') {
+      const m = mountDropper();
+      const holder = document.createElement('div');
+      if (where === 'actions') holder.setAttribute('data-editor-actions', '');
+      if (where === 'resizer') holder.setAttribute('data-editor-resizer', '');
+      const button = document.createElement('button');
+      holder.appendChild(button);
+      if (where === 'header') m.card.insertBefore(holder, m.area);
+      else m.area.appendChild(holder);
+      const onClick = vi.fn();
+      button.addEventListener('click', onClick);
+      return { ...m, button, onClick };
+    }
+
+    for (const where of ['actions', 'resizer', 'header'] as const) {
+      it(`a press on a ${where} button is not a pick and its click arrives`, () => {
+        const { button, onClick, onPick, onDone, cleanup } = chromeCase(where);
+        const down = new MouseEvent('mousedown', { clientX: 60, clientY: 120, bubbles: true, cancelable: true });
+        button.dispatchEvent(down);
+        button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+        expect(down.defaultPrevented).toBe(false);
+        expect(onPick).not.toHaveBeenCalled();
+        expect(onDone).not.toHaveBeenCalled();
+        expect(onClick).toHaveBeenCalledTimes(1);
+        cleanup();
+      });
+    }
   });
 
   describe('loupe', () => {
@@ -143,6 +212,38 @@ describe('eyedropper', () => {
       cleanup();
     });
 
+    it('the loupe lives in the pseudo full screen element, else in body', () => {
+      const host = document.createElement('div');
+      host.setAttribute('data-pseudo-fullscreen', '');
+      document.body.appendChild(host);
+      const a = mountDropper();
+      a.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.parentElement).toBe(host);
+      a.cleanup();
+      host.remove();
+      const b = mountDropper();
+      b.canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.parentElement).toBe(document.body);
+      b.cleanup();
+    });
+
+    it('hovering the selected box pill hides the loupe', () => {
+      const { canvas, area, cleanup } = mountDropper();
+      const pill = document.createElement('div');
+      pill.setAttribute('data-editor-actions', '');
+      const button = document.createElement('button');
+      pill.appendChild(button);
+      area.appendChild(pill);
+      canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      flush();
+      expect(loupeEl()?.style.display).not.toBe('none');
+      button.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
+      expect(loupeEl()?.style.display).toBe('none');
+      cleanup();
+    });
+
     it('touch shows the loupe without picking, follows the slide, and picks on lift', () => {
       const { canvas, onPick, onDone, cleanup } = mountDropper();
       const start = touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]);
@@ -165,10 +266,7 @@ describe('eyedropper', () => {
 
     it('a re-render with new callbacks mid-touch keeps the loupe and the gesture, and uses the latest callbacks', () => {
       const { canvas } = stubCanvas([9, 8, 7]);
-      const card = document.createElement('div');
-      card.setAttribute('data-editor-page-card', '');
-      card.appendChild(canvas);
-      document.body.appendChild(card);
+      const { card } = pageCard(canvas);
       const host = document.createElement('div');
       const first = { pick: vi.fn(), done: vi.fn() };
       const latest = { pick: vi.fn(), done: vi.fn() };

@@ -1,3 +1,4 @@
+import { overlayHost } from './overlayHost.ts';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { ComponentChildren, RefObject } from 'preact';
@@ -24,7 +25,7 @@ export function useCoarsePointer(): boolean {
   return coarse;
 }
 
-/** The element to portal into: the fullscreen one when there is one, else body. */
+/** The element to portal into: see overlayHost. Re-read on each render and on fullscreenchange. */
 function useHost(): HTMLElement {
   const [, bump] = useState(0);
   useEffect(() => {
@@ -32,12 +33,12 @@ function useHost(): HTMLElement {
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
-  return (document.fullscreenElement as HTMLElement | null) ?? document.body;
+  return overlayHost();
 }
 
 /**
  * The selected box's controls as a light pill fixed to the bottom of the
- * viewport (portalled to the fullscreen element, else document.body). Mounted
+ * viewport (portalled to the overlay host: the fullscreen element, else the pseudo full screen workspace, else document.body). Mounted
  * only while the box is selected, so on mount it scrolls the box minimally
  * into view if the bar would cover its bottom edge.
  */
