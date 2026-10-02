@@ -1,10 +1,10 @@
 ---
 id: "SNG-09"
 title: "Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document"
-status: "in_progress"
+status: "open"
 priority: "P1"
 epic: "sign-fill-mode"
-horizon: "next"
+horizon: "later"
 order: 1
 depends_on: []
 ---
@@ -153,6 +153,26 @@ the corpus nor `baselines.json`). `rasterInk.js` exports `otsuThreshold`, `estim
 `inkFromRaster` assumes a whole raster plus page size in points, so a window needs its own pxPerPoint. Its
 OCR spike also found that Tesseract reads ruled-line fragments as `|` and `[`, so any later OCR needs the
 rules masked first.
+
+## 2026-10-02 parked open, and what "no model" means here
+
+Shlomi doubted a no-model snap can give good engineering results. The honest read:
+
+- **"Research" was two things.** The online research (done, above) only answered whether a model is worth
+  its cost for this job; it said no for now. It did not prove a classical snap works. That is what the corpus
+  is for, and the function is not built, so SNG-09 has no accuracy number yet.
+- **What classical can do.** Finding a ruled line or box in a small pixel window is geometry, not
+  recognition, and it is the part classical image code does well on a clean or moderate scan. Evidence in
+  this repo: FORM-07's `rasterInk` found every checkbox (16 of 16) and 41 of 48 rules on a real 1970 scan
+  with no model, at 97% precision. It is weak on faint, dotted, broken and comb rules, and on a rule that
+  touches text.
+- **Why it can still be safe.** The function declines when unsure and the tap then lands exactly where it
+  does today, so a miss costs nothing and only a wrong snap hurts. The bar is precision, not recall.
+- **When a model comes back.** If the scored corpus shows the 95% precision (lower bound) unreachable
+  because of faint, dotted or comb rules, the next step is a spike on a roughly 1 MB line-segmentation net
+  (not OCR) judged on the same corpus. Until then no model.
+- **Why it is parked.** The remaining work (more documents, boxes, the function, the ratchet, the hook) is a
+  real build, so SNG-09 returns to `open` / `later` and the corpus stays on main for whoever picks it up.
 
 ## 2026-10-01 progress: the corpus is built, the function is not
 

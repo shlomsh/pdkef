@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 1 up next, 16 then, 19 waiting, 7 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 0 up next, 16 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -18,12 +18,6 @@ Find covers exactly what it matched, Delete reaches every object, and the saved-
 
 Fill mode is the default since SNG-19. Close the test gaps, then desktop parity, then retire the old editor.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -37,6 +31,7 @@ Fill mode is the default since SNG-19. Close the test gaps, then desktop parity,
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| SNG-09 | P1 | [SNG-09](backlog/tasks/SNG-09.md) · Every mark lands neatly: at the fingertip, text sits on the line, a tick centres in its box, a circle wraps the word, a strike runs through it; local, declining when unsure, on every document |  |
 | SNG-12 | P3 | [SNG-12](backlog/tasks/SNG-12.md) · The model step (postponed): a model the person connects reads the form, and a document that clears 90/90/85 unlocks asking its questions |  |
 
 ## Form detector accuracy
