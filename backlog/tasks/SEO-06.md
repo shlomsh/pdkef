@@ -241,3 +241,40 @@ Week 4 gate is not readable from it. The Not-indexed export with its reason cate
 *2026-09-17, later:* Shlomi re-requested `/blur-vs-blackout-vs-delete-pdf/` (first request 09-10).
 Dated in `docs/seo-last-crawled.json`. If it lands within a day like the 09-11 batch did, the nine were
 never fetched; if it does not, the Not-indexed export is the next question.
+
+## Status 2026-10-02: the nine are still uncrawled, and six newer URLs joined them
+
+Shlomi's Not-indexed list now shows 15 URLs with `Last crawled: N/A` (never fetched, almost certainly
+"Discovered - currently not indexed"; the category label itself was not in the paste): the original nine
+(`/blur-vs-blackout-vs-delete-pdf/`, `/edit-pdf/`, `/image-to-pdf/`, `/install-pdf-app/`,
+`/offline-pdf-form-filler/`, `/open-source-pdf-editor/`, `/pdf-to-image/`,
+`/permanently-delete-text-from-pdf/`, `/sign-pdf-no-signup/`) plus `/pdf-wont-compress-to-100kb/`,
+`/sign-pdf-in-your-language/`, `/id/kompres-pdf-di-bawah-1-mb/` and the `/he/` editions of
+`install-pdf-app`, `open-source-pdf-editor` and `sign-pdf-no-signup`. The Week 4 gate in the findings doc
+("none of the nine crawled: stop adding URLs") is met five days before its read date, and URLs were added
+after it should have applied.
+
+Checked on the live site the same day, nothing found on our side:
+
+- All 15 return 200, carry a self-referencing canonical, no `noindex`, no `X-Robots-Tag`; `robots.txt` is
+  `Allow: /` plus the sitemap line; all 15 are in the sitemap.
+- A Googlebot user agent gets byte-identical HTML, and a conditional request returns 304.
+- Internal links are not the lever: `/edit-pdf/`, `/image-to-pdf/` and `/pdf-to-image/` each have 36
+  inbound links, the same as `/split/` and `/unlock/`, which were crawled. The niche pages have 1 to 5.
+- Indexing requests did not move them: `/blur-vs-blackout-vs-delete-pdf/` (09-10, 09-17),
+  `/pdf-wont-compress-to-100kb/` (09-11, 09-12) and the Indonesian page (09-13, 09-17) were each requested
+  twice and are still uncrawled, while `/compress-image/` and `/photo-and-signature-size-for-forms/` were
+  crawled the day after their requests. So the request lever, bought once per URL, did not work here.
+- Vercel request logs carry no user agent, so they cannot say whether Googlebot ever asked.
+
+Read: a three-month-old domain with essentially no referring links, where Google declines to spend crawl
+on pages it predicts add little. That is authority, which is SEO-03, not anything in the HTML.
+
+One real defect found on the way and fixed (`e9debad9`): every edit to `src/data/tools.js` re-dated all
+the tool pages in the sitemap (seven commits on 2026-09-28 left eleven pages on one stamp), and a `lastmod`
+that moves without the page changing is one Google learns to ignore. A tool is now dated by the history of
+its own entry (`gitToolEntryLastModifiedIso`). Not the cause of the uncrawled 15.
+
+For the 2026-10-08 read: the Not-indexed category label for these URLs, and Search Console Settings ->
+Crawl stats -> By URL, which shows whether Googlebot requested any of the 15 at all. No new URLs until one
+of the 15 is crawled.
