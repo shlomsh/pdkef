@@ -1,10 +1,9 @@
 ---
 id: "DEBT-37"
 title: "A CLI production deploy carries the commit stamp, so its crash reports are not unverifiable"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
 depends_on: ["DEBT-35", "DEBT-36"]
 ---
 
@@ -27,8 +26,14 @@ deploys unless a person runs it.
 
 ## Acceptance
 
-- [ ] The argument list and the refusals are pure and unit-tested, red first.
-- [ ] `npm run deploy:prod -- --dry-run` prints the exact command, with the stamp, from a clean tree.
-- [ ] A Vercel build given that variable stamps its pages (`astro.config`/`generate-precache-manifest`
+- [x] The argument list and the refusals are pure and unit-tested, red first.
+- [x] `npm run deploy:prod -- --dry-run` prints the exact command, with the stamp, from a clean tree.
+- [x] A Vercel build given that variable stamps its pages (`astro.config`/`generate-precache-manifest`
       already read it; checked by building with the same variable).
-- [ ] The rule that tells an agent to hand over the `--force` command names this script instead.
+- [x] The rule names this script (`.claude/rules/csp-scripts-pwa.md`, beside the stamping rule). The
+      `--force` command also lives in Shlomi's memory notes, updated to match.
+
+## Not checked
+
+A dashboard Redeploy: whether it keeps `VERCEL_GIT_COMMIT_SHA` was not tested, so the rule does not claim it.
+The script itself was only dry-run here, never a real deploy.
