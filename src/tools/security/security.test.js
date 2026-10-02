@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
-import { PDFDocument, PDFName, PDFString, PDFHexString } from '@cantoo/pdf-lib';
+import { PDFDocument, PDFName, PDFString, PDFHexString, PDFInvalidObject } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
@@ -148,6 +148,8 @@ describe('security.js', () => {
     expect(error).toBeInstanceOf(UnreadablePdfError);
     expect(error).not.toBeInstanceOf(WrongPasswordError);
     expect(error.message).toBe('This file could not be unlocked. It may be damaged.');
+    // The report names what pdf-lib threw, not this wrapper (DEBT-34).
+    expect(error.cause).toBeInstanceOf(Error);
   });
 
   async function protectedWith(entries) {
@@ -177,5 +179,50 @@ describe('security.js', () => {
       doc.catalog.set(PDFName.of('TestSig'), ref);
     });
     expect(bytes.toLowerCase()).toContain('<00aabbcc>');
+  });
+
+  // DEBT-34: Vitest runs on Node, where `Buffer` exists, so a library patch that calls it passes every
+  // test here and throws `ReferenceError: Buffer is not defined` in a browser (Unlock, reported
+  // 2026-10-02). A document keeps a `PDFInvalidObject` for any object pdf-lib could not parse, and the
+  // stream writer inspects those on a full save. These tests take `Buffer` away for exactly that save.
+  async function withoutBuffer(run) {
+    const saved = globalThis.Buffer;
+    delete globalThis.Buffer;
+    try {
+      return await run();
+    } finally {
+      globalThis.Buffer = saved;
+    }
+  }
+
+  function unparseableObject(doc) {
+    doc.context.assign(doc.context.nextRef(), PDFInvalidObject.of(new TextEncoder().encode('<< /Foo [ ) >>')));
+  }
+
+  it.each([
+    ['with object streams', true],
+    ['without object streams', false],
+  ])('unlocks a file holding an object pdf-lib cannot parse, where there is no Buffer (%s)', async (_label, useObjectStreams) => {
+    const doc = await PDFDocument.create();
+    doc.addPage();
+    unparseableObject(doc);
+    doc.encrypt({ userPassword: 'pw', ownerPassword: 'pw' });
+    const file = new File([await doc.save({ useObjectStreams })], 'bad-object.pdf', { type: 'application/pdf' });
+
+    const unlocked = await withoutBuffer(() => unlockPdf(file, 'pw'));
+
+    expect((await readWithPdfjs(new Uint8Array(await unlocked.arrayBuffer()))).pages).toHaveLength(1);
+    expect(await probe(new File([unlocked], 'u.pdf'))).toBe('open');
+  });
+
+  it('protects a file holding an object pdf-lib cannot parse, where there is no Buffer', async () => {
+    const doc = await PDFDocument.create();
+    doc.addPage();
+    unparseableObject(doc);
+    const file = new File([await doc.save()], 'bad-object.pdf', { type: 'application/pdf' });
+
+    const protectedBlob = await withoutBuffer(() => protectPdf(file, 'pw'));
+
+    expect(await probe(new File([protectedBlob], 'p.pdf'))).toBe('needs-password');
   });
 });
