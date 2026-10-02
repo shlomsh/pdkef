@@ -33,3 +33,12 @@ Two bugs in `@cantoo/pdf-lib` 2.11.1, fixed in `patches/@cantoo+pdf-lib+2.11.1.p
   Thai form. `PDFWriter.encrypt` now encrypts every nested string (`encryptStrings`), and a decrypted
   string comes back as a hex string, which cannot break parsing.
 The existing XRef `PDFInvalidObject` workaround in the same patch is now redundant but harmless.
+
+## Review follow-ups (2026-10-02)
+- Strings in stream dictionaries are encrypted too, and a signature dictionary's /Contents is left
+  alone (ISO 32000 7.6.2); both guarded in `security.test.js`.
+- Known and accepted: `PDFWriter.encrypt` mutates objects in place, so saving one encrypted
+  PDFDocument twice re-encrypts it. Streams behaved this way before the patch; `protectPdf` saves once.
+- Deploy 5dcae5ea failed on Vercel: its cached node_modules carried the old patch, and the new patch
+  would not apply on top. A no-cache production deploy shipped it. `installCommand: "npm ci"` in
+  vercel.json would prevent a repeat; Shlomi's call.
