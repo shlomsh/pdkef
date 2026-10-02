@@ -190,6 +190,40 @@ describe('RedactBoxToolbar live colour preview', () => {
     expect(onPickColor).toHaveBeenCalledWith('#123456');
   });
 
+  it('a re-render while a pick is pending keeps the pick, the paint and the commit', () => {
+    const fill = withSurface();
+    const { host: h, onPickColor, ...fns } = mount(whiteout);
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    fire(input, 'input', '#123456');
+    act(() => {
+      render(<RedactBoxToolbar element={whiteout} eyedropping={false} onPickColor={onPickColor} {...fns} />, h);
+    });
+    expect(input.value).toBe('#123456');
+    expect(fill.style.backgroundColor).toBe('rgb(18, 52, 86)');
+    fire(input, 'change');
+    expect(onPickColor).toHaveBeenCalledTimes(1);
+    expect(onPickColor).toHaveBeenCalledWith('#123456');
+  });
+
+  it('input, blur, change with no render between commits once', () => {
+    withSurface();
+    const { host: h, onPickColor } = mount(whiteout);
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    fire(input, 'input', '#123456');
+    fire(input, 'blur');
+    fire(input, 'change');
+    expect(onPickColor).toHaveBeenCalledTimes(1);
+  });
+
+  it('the input follows a changed committed colour when nothing is pending', () => {
+    const { host: h, onPickColor, ...fns } = mount(whiteout);
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    act(() => {
+      render(<RedactBoxToolbar element={{ ...whiteout, color: '#abcdef' }} eyedropping={false} onPickColor={onPickColor} {...fns} />, h);
+    });
+    expect(input.value).toBe('#abcdef');
+  });
+
   it('settling back on the original colour commits nothing and repaints it', () => {
     const fill = withSurface();
     const { host: h, onPickColor } = mount(whiteout);

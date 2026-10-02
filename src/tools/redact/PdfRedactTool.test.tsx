@@ -500,16 +500,25 @@ describe('PdfRedactTool UI flow', () => {
       expect(getRecentWhiteoutColors()).toEqual([]);
       await setSelectedBoxColor('#112233');
       expect(getRecentWhiteoutColors()).toEqual(['#112233']);
-      const recent = Array.from(container.querySelectorAll('[data-redact-color-recent]'));
-      if (recent.length > 0) expect(recent.map((el) => el.getAttribute('data-redact-color-recent') ?? el.getAttribute('aria-label') ?? el.textContent).join(' ').toLowerCase()).toContain('112233');
     });
 
-    it('RED-53: a remount reads the stored list', async () => {
-      rememberRecentWhiteoutColor('#abcdef');
+    it('RED-53: a mount reads the stored list into an auto whiteout toolbar', async () => {
+      rememberRecentWhiteoutColor('#abcdef', []);
       await drawWhiteoutAndSelect();
-      expect(getRecentWhiteoutColors()).toEqual(['#abcdef']);
+      expect(autoPressed()).toBe('true');
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#abcdef"]')).not.toBeNull();
+    });
+
+    it('RED-53: a pick on one box is offered as a recent colour on another auto box', async () => {
+      const drawArea = await drawWhiteoutAndSelect();
       await setSelectedBoxColor('#112233');
-      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 600, 200, 800);
+      const boxes = Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      expect(boxes).toHaveLength(2);
+      await selectBox(required(boxes[1], 'second box'));
+      expect(autoPressed()).toBe('true');
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#112233"]')).not.toBeNull();
     });
   });
 

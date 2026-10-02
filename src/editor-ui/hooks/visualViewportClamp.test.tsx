@@ -241,6 +241,44 @@ describe('visualViewportClamp', () => {
     expect(after.top).toBeCloseTo(60 + 4, 5);
   });
 
+  it('mainAxisGap on a top placement: the pill, after the host lifts it by the gap, still clears the strip', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
+    const scenario: Scenario = {
+      x: 20, y: 30, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 80 },
+      referenceViewportRect: { left: 20, top: 80, width: 20, height: 10 },
+    };
+    const result = runClamp(scenario, { getExcludedRect: () => ({ bottom: 60 }) as DOMRect, mainAxisGap: 16 });
+    const after = visibleRect(scenario, scenario.x, result.y!, 1);
+    expect(after.top - 16).toBeGreaterThanOrEqual(60 + 4 - 1e-6);
+    expect(after.top - 16).toBeCloseTo(60 + 4, 5);
+  });
+
+  it('mainAxisGap on a bottom placement: the pill, after the host pushes it down, stays above the bottom limit', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 300 });
+    const scenario: Scenario = {
+      x: 20, y: 260, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 200 },
+      referenceViewportRect: { left: 20, top: 200, width: 20, height: 10 },
+      placement: 'bottom',
+    };
+    const result = runClamp(scenario, { mainAxisGap: 16 });
+    const after = visibleRect(scenario, scenario.x, result.y!, 1);
+    expect(after.bottom + 16).toBeCloseTo(300 - 4, 5);
+  });
+
+  it('mainAxisGap omitted gives the same result as 0 (unchanged behaviour)', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
+    const scenario: Scenario = {
+      x: 20, y: 30, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 80 },
+      referenceViewportRect: { left: 20, top: 80, width: 20, height: 10 },
+    };
+    const excl = () => ({ bottom: 60 }) as DOMRect;
+    expect(runClamp(scenario, { getExcludedRect: excl })).toEqual(runClamp(scenario, { getExcludedRect: excl, mainAxisGap: 0 }));
+    expect(runClamp(scenario, { getExcludedRect: excl }).y).toBeCloseTo(64, 5);
+  });
+
   it('leaves the sticky-strip check alone once the bar already clears it', () => {
     installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
     const scenario: Scenario = {
