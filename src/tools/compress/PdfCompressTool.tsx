@@ -402,8 +402,11 @@ export default function PdfCompressTool({
         // needed. See the toggle's render check below for why that matters.
         setPassthrough(result.blob === activeFile);
         compressedBlobRef.current = result.blob;
-        setDownloadBlob(result.blob);
-        prepareFiles([{ blob: result.blob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
+        // A passthrough has nothing to download: the output is the input.
+        if (result.blob !== activeFile) {
+          setDownloadBlob(result.blob);
+          prepareFiles([{ blob: result.blob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
+        }
         setStatus('done');
         setAnnouncement(result.metTarget ? t.imageComplete : t.missedTarget);
         // Open by default (SEO-25, 2026-09-12) - except a passthrough result,
@@ -433,12 +436,10 @@ export default function PdfCompressTool({
         setPassthrough(isPassthrough);
         setUnchanged(isUnchanged);
         compressedBlobRef.current = imageBlob;
-        setDownloadBlob(imageBlob);
-        prepareFiles([{
-          blob: imageBlob,
-          filename: isUnchanged ? activeFile.name : deriveDownloadName(activeFile.name, resultType),
-          type: resultType,
-        }]);
+        if (!isPassthrough) {
+          setDownloadBlob(imageBlob);
+          prepareFiles([{ blob: imageBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
+        }
         setStatus('done');
         setAnnouncement(isUnchanged ? t.alreadySmallComplete : t.complete);
         if (!isPassthrough) {
@@ -490,12 +491,10 @@ export default function PdfCompressTool({
       setPassthrough(isPassthrough);
       setUnchanged(isUnchanged);
       compressedBlobRef.current = compressedBlob;
-      setDownloadBlob(compressedBlob);
-      prepareFiles([{
-        blob: compressedBlob,
-        filename: isUnchanged ? activeFile.name : deriveDownloadName(activeFile.name, resultType),
-        type: resultType,
-      }]);
+      if (!isPassthrough) {
+        setDownloadBlob(compressedBlob);
+        prepareFiles([{ blob: compressedBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
+      }
       setStatus('done');
       setAnnouncement(isUnchanged ? t.alreadySmallComplete : t.complete);
       // Open by default (SEO-25, 2026-09-12): see openCompare's comment.
@@ -577,16 +576,16 @@ export default function PdfCompressTool({
           collide with the wrapper's. Nothing above this wrapper (the option
           cards, the target panel) is touched by any of this. */}
       <div class={styles['result-action']}>
-        {hasFiles && status === 'done' && downloadUrl ? (
+        {hasFiles && status === 'done' && passthrough ? null : hasFiles && status === 'done' && downloadUrl ? (
           <>
             <DownloadButton
               href={downloadUrl}
-              download={unchanged ? file!.name : deriveDownloadName(file!.name, outputType)}
-              label={unchanged ? t.alreadySmallDownloadLabel : kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
+              download={deriveDownloadName(file!.name, outputType)}
+              label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
               detail={downloadDetail}
               onClick={() => recordAction('download')}
             />
-            <PdfShareButton visible={shareReady} onShare={handleShare} label={unchanged ? t.alreadySmallShareLabel : kind === 'image' ? t.imageShareLabel : t.shareLabel} />
+            <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
           </>
         ) : hasFiles ? (
           status !== 'done' && (
@@ -619,25 +618,36 @@ export default function PdfCompressTool({
       {/* Everything below here renders under the button row (see the wrapper
           above): the stats card, the notice, and the compare toggle/panel.
           The card grows downward; nothing above the buttons moves. */}
-      {hasFiles && status === 'done' && downloadUrl && (
+      {hasFiles && status === 'done' && (downloadUrl || passthrough) && (
         <>
           <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{unchanged ? t.alreadySmallTitle : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <p class={styles['stats-title']}>{unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
             <div class={styles['stats-grid']}>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.originalSize}</span>
                 <span class={styles['metric-val']}>{formatBytes(file!.size)}</span>
               </div>
-              <div class={styles['metric-item']}>
-                <span class={styles['metric-label']}>{unchanged && rasterBytes != null ? t.asImagesSize : t.compressedSize}</span>
-                <span class={styles['metric-val']}>{formatBytes(unchanged && rasterBytes != null ? rasterBytes : (compressedSize as number))}</span>
-              </div>
-              <div class={styles['metric-item']}>
-                <span class={styles['metric-label']}>{t.spaceSaved}</span>
-                <span class={styles['metric-saving']}>
-                  {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : unchanged ? t.keptOriginal : t.noReduction}
-                </span>
-              </div>
+              {passthrough ? (
+                rasterBytes != null && (
+                  <div class={styles['metric-item']}>
+                    <span class={styles['metric-label']}>{t.asImagesSize}</span>
+                    <span class={styles['metric-val']}>{formatBytes(rasterBytes)}</span>
+                  </div>
+                )
+              ) : (
+                <div class={styles['metric-item']}>
+                  <span class={styles['metric-label']}>{t.compressedSize}</span>
+                  <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
+                </div>
+              )}
+              {(!passthrough || unchanged) && (
+                <div class={styles['metric-item']}>
+                  <span class={styles['metric-label']}>{t.spaceSaved}</span>
+                  <span class={styles['metric-saving']}>
+                    {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : unchanged ? t.keptOriginal : t.noReduction}
+                  </span>
+                </div>
+              )}
               {kind === 'image' && dimensions && (
                 <>
                   <div class={styles['metric-item']}>
@@ -662,7 +672,7 @@ export default function PdfCompressTool({
               </p>
             )}
 
-            <p class={styles['compress-warning']}>
+            <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>
               {imageReason !== null
                 ? imageNotices[imageReason as keyof typeof imageNotices]
                 : unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
@@ -815,7 +825,7 @@ export default function PdfCompressTool({
         ) : (
           <>
           {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length === 0 && (
-            <p class={styles['compress-warning']} role="note">
+            <p class={styles['honest-note']} role="note">
               <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
             </p>
           )}

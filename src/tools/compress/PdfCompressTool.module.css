@@ -319,6 +319,19 @@
   margin-top: 0.5rem;
 }
 
+/* The honest notes (nothing to shrink, already small, under target): styled
+   like the file dropzone so they stand out from the green around them. */
+.honest-note {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-paper);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-top: 0.5rem;
+}
+
 /* Before/after preview toggle (SEO-25) - see CompareSlider.tsx for the
    gesture itself. Styled as a quiet secondary action, not another button
    competing with Download: it's an optional check, not the next step. */

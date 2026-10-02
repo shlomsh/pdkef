@@ -496,6 +496,8 @@ export interface CompressMessages {
   passthroughNotice: string;
   /** A PDF that re-rendering would only make bigger: handed back untouched. */
   alreadySmallTitle: string;
+  underTargetTitle: string;
+  imageUnderTargetTitle: string;
   alreadySmallNotice: string;
   alreadySmallTargetNotice: string;
   noImagesTitle: string;
@@ -503,8 +505,6 @@ export interface CompressMessages {
   noImagesBodyDrawing: string;
   asImagesSize: string;
   keptOriginal: string;
-  alreadySmallDownloadLabel: string;
-  alreadySmallShareLabel: string;
   alreadySmallComplete: string;
   flattenLabel: string;
   flattenHint: string;
@@ -601,6 +601,8 @@ const englishCompressMessages: CompressMessages = {
   formatNotice: 'Notice: once compressed, the output is a JPEG. A transparent PNG background is filled in white, and re-encoding drops EXIF metadata, including location. A screenshot or scan of text can show visible JPEG artefacts, especially at a small target.',
   passthroughNotice: 'Already under the target, so the file is untouched: same file, same format, nothing re-encoded.',
   alreadySmallTitle: 'Already as small as it gets',
+  underTargetTitle: 'Already under your target',
+  imageUnderTargetTitle: 'Already under your target',
   alreadySmallNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so there was nothing to gain. I've kept your original as it is, text and links included.",
   alreadySmallTargetNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so {target} can't be reached this way. I've kept your original as it is, text and links included.",
   noImagesTitle: 'Nothing here to shrink.',
@@ -608,8 +610,6 @@ const englishCompressMessages: CompressMessages = {
   noImagesBodyDrawing: 'This PDF is drawings, with no images in it, which is already the compact way to store a page. The only way to make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness.',
   asImagesSize: 'As images',
   keptOriginal: 'None, original kept',
-  alreadySmallDownloadLabel: 'Download PDF',
-  alreadySmallShareLabel: 'Share PDF',
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
   flattenLabel: 'Turn pages into pictures',
   flattenHint: 'The smallest size for scans. Text stops being selectable, links stop working, and small text gets softer.',
@@ -720,6 +720,8 @@ const hebrewCompressMessages: CompressMessages = {
   formatNotice: 'שימו לב: לאחר הכיווץ הפלט הוא JPEG. רקע שקוף בקובץ PNG יתמלא בלבן, וקידוד מחדש מוחק נתוני EXIF, כולל מיקום. צילום מסך או סריקה של טקסט עלולים להראות עיוותי JPEG גלויים, בעיקר בגודל יעד קטן.',
   passthroughNotice: 'הקובץ כבר קטן מהיעד, אז השארנו אותו כמו שהוא: אותו קובץ, אותו פורמט, בלי קידוד מחדש.',
   alreadySmallTitle: 'הקובץ כבר קטן ככל האפשר',
+  underTargetTitle: 'כבר מתחת ליעד שלכם',
+  imageUnderTargetTitle: 'כבר מתחת ליעד שלכם',
   alreadySmallNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז לא היה מה להרוויח. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   alreadySmallTargetNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז אי אפשר להגיע ל-{target} בדרך הזו. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   noImagesTitle: 'אין כאן מה לכווץ.',
@@ -727,8 +729,6 @@ const hebrewCompressMessages: CompressMessages = {
   noImagesBodyDrawing: 'ה-PDF הזה בנוי משרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות.',
   asImagesSize: 'כתמונות',
   keptOriginal: 'אין, המקור נשמר',
-  alreadySmallDownloadLabel: 'הורדת PDF',
-  alreadySmallShareLabel: 'שיתוף PDF',
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
   flattenLabel: 'להפוך עמודים לתמונות',
   flattenHint: 'הגודל הקטן ביותר לסריקות. אי אפשר יהיה לסמן טקסט, קישורים יפסיקו לעבוד, וטקסט קטן ייראה פחות חד.',
