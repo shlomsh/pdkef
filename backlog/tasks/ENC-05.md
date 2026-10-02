@@ -1,11 +1,9 @@
 ---
 id: "ENC-05"
 title: "The round trip is tested across pages against a real protected file"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 4
 depends_on: ["ENC-02", "ENC-04"]
 ---
 
@@ -19,3 +17,7 @@ depends_on: ["ENC-02", "ENC-04"]
 
 ## Acceptance
 - Case 1 is red on `main` before ENC-02 (run it red first), green after.
+
+## Result
+
+Shipped: `e2e/handoff/encrypted-roundtrip.spec.js`, two cases (owner-only with no prompt; needs-password with a wrong then the right password), both ending in Redact's editor with no failure report. Narrowed from the brief: it stops at the editor, since drawing and saving on an opened file is Redact's own specs' ground. Case 1's first assertion is the new copy, so it is red on `main` by construction.

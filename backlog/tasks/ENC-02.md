@@ -1,11 +1,9 @@
 ---
 id: "ENC-02"
 title: "Redact meets a protected PDF with one quiet state, not an exception"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "redact"
-horizon: "now"
-order: 1
 depends_on: ["ENC-01"]
 ---
 
@@ -23,3 +21,7 @@ depends_on: ["ENC-01"]
 ## Acceptance
 - Island test (`PdfRedactTool.test.tsx`): an owner-only fixture shows the state, never mounts the editor, never calls `PDFDocument.load` on the protected bytes, sends no `tool_operation_failed`; "Unlock it" saves the hand-off and navigates; a failed save shows the line. A restored or handed-off protected file reaches the same state and leaves the pointer's draft alone.
 - Reviewed in a real browser at 1280 and 375, with a Hebrew-named file.
+
+## Result
+
+Shipped in `2877afd2`. `loadPdf` takes an optional `onNeedsUnlock`, so a protected file is an outcome (no failure, no report, draft untouched) and Sign loads as before. Redact shows `NeedsUnlock` with Unlock it and Replace; the two pdf-lib readers wait for pdf.js to open the file; the export catch keeps `reportError` (a gate miss) but never offers a Try again. Checked at 1280 and 375. Not done: a Hebrew-named file review, and an island test for the export-catch belt.

@@ -2,17 +2,11 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 50 live: 6 up next, 10 then, 19 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 1 up next, 10 then, 19 waiting, 15 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
-
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| ENC-02 | P1 | [ENC-02](backlog/tasks/ENC-02.md) · Redact meets a protected PDF with one quiet state, not an exception |  |
 
 ### Waiting
 
@@ -60,10 +54,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ENC-01 | P1 | [ENC-01](backlog/tasks/ENC-01.md) · One classifier says whether a PDF needs a password, is only protected, or is open |  |
-| ENC-03 | P1 | [ENC-03](backlog/tasks/ENC-03.md) · Unlock takes a file from another tool and opens an owner-only file with no password |  |
-| ENC-04 | P1 | [ENC-04](backlog/tasks/ENC-04.md) · Unlock's done state offers Redact it and Sign it |  |
-| ENC-05 | P1 | [ENC-05](backlog/tasks/ENC-05.md) · The round trip is tested across pages against a real protected file |  |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
 
 ### Then, in order
@@ -152,10 +142,10 @@ Small, independent, good for a spare hour.
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 11 done, 0 retired
+- Redact: finish removal: 12 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 15 done, 3 retired
+- Robustness and debt: 19 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired
