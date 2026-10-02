@@ -22,21 +22,6 @@ describe('security.js', () => {
     return new Blob([encryptedBytes], { type: 'application/pdf' });
   }
 
-  async function extractTextFromPdfBlob(blob) {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    const loadingTask = pdfjs.getDocument({
-      data: bytes,
-      useWorkerFetch: false,
-      isEvalSupported: false,
-    });
-    const pdf = await loadingTask.promise;
-    const page = await pdf.getPage(1);
-    const textContent = await page.getTextContent();
-    const text = textContent.items.map(item => item.str).join('').trim();
-    await loadingTask.destroy();
-    return text;
-  }
-
   // Everything a reader shows: page text, the title and the form fields' names and values.
   async function readWithPdfjs(bytes, password) {
     const loadingTask = pdfjs.getDocument({ data: new Uint8Array(bytes).slice(), password, useWorkerFetch: false, isEvalSupported: false });
@@ -72,8 +57,8 @@ describe('security.js', () => {
 
     // Now unlock and assert the text survives
     const unlockedBlob = await unlockPdf(protectedFile, 'newpass');
-    const text = await extractTextFromPdfBlob(unlockedBlob);
-    expect(text).toBe('1');
+    const { pages } = await readWithPdfjs(new Uint8Array(await unlockedBlob.arrayBuffer()));
+    expect(pages[0]).toBe('1');
   });
 
   // What a person sees: lock a file, unlock it with the same password, and
@@ -129,8 +114,8 @@ describe('security.js', () => {
     const unlockedFile = new File([unlockedBlob], 'unlocked.pdf', { type: 'application/pdf' });
     expect(await probe(unlockedFile)).toBe('open');
 
-    const text = await extractTextFromPdfBlob(unlockedBlob);
-    expect(text).toBe('1');
+    const { pages } = await readWithPdfjs(new Uint8Array(await unlockedBlob.arrayBuffer()));
+    expect(pages[0]).toBe('1');
   });
 
   it('fails to unlock an encrypted PDF with wrong password', async () => {
