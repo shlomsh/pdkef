@@ -296,6 +296,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                     <Download size={16} aria-hidden="true" />
                     Download unlocked PDF
                   </a>
+                  <PdfShareButton visible={shareReady} onShare={handleShare} label="Share" className={styles['handoff-button']} />
                 </div>
               </>
             ) : (
@@ -306,21 +307,17 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                   label={`Download ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
                   onClick={() => recordAction('download')}
                 />
-                {(shareReady || (mode === 'unlock' && outputBytes)) && (
+                <PdfShareButton visible={shareReady} onShare={handleShare} label="Share" />
+                {mode === 'unlock' && outputBytes && (
                   <div class={styles['handoff-row']}>
-                    <PdfShareButton visible={shareReady} onShare={handleShare} label="Share" className={styles['handoff-button']} />
-                    {mode === 'unlock' && outputBytes && (
-                      <>
-                        <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('redact')}>
-                          <Eraser size={16} aria-hidden="true" />
-                          Redact it
-                        </button>
-                        <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('sign')}>
-                          <FileSignature size={16} aria-hidden="true" />
-                          Sign it
-                        </button>
-                      </>
-                    )}
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('redact')}>
+                      <Eraser size={16} aria-hidden="true" />
+                      Redact it
+                    </button>
+                    <button type="button" class={styles['handoff-button']} disabled={handoffBusy} onClick={() => handOff('sign')}>
+                      <FileSignature size={16} aria-hidden="true" />
+                      Sign it
+                    </button>
                   </div>
                 )}
               </>
