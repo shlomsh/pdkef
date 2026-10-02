@@ -1,10 +1,15 @@
-// Prints the anonymous error counts (DEBT-17): npm run errors:read -- [--days 7]
+// Prints the anonymous error counts (DEBT-17): npm run errors:read -- [--days 7] [--history 14]
+// --days is the window the tables count; --history (default 14, never less than --days) is how far back
+// first-seen and the per-tool baseline look (DEBT-36). The output leads with "Needs attention".
 // Env comes from process.env, else .env.local (written by `vercel env pull`).
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
+import { fingerprintHistory, parseDayReplies, sliceWindow, toolRates } from './errors-insights.mjs';
+import { validateRegistry } from './errors-known.mjs';
+import { renderTriage, triage } from './errors-triage.mjs';
 
 // The one git door for the stale-tab note: repo root, short timeout; failures are caught by the caller.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -59,7 +64,9 @@ if (!url || !token) {
 
 const i = process.argv.indexOf('--days');
 const days = Math.max(1, Number(i > -1 ? process.argv[i + 1] : 7) || 7);
-const keys = Array.from({ length: days }, (_, n) =>
+const h = process.argv.indexOf('--history');
+const history = Math.max(days, Number(h > -1 ? process.argv[h + 1] : 14) || 14);
+const allKeys = Array.from({ length: history }, (_, n) =>
   new Date(Date.now() - n * 864e5).toISOString().slice(0, 10),
 );
 
@@ -67,11 +74,11 @@ const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify([
-    ...keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
-    ...keys.map((d) => ['HGETALL', `events:${d}`]),
-    ...keys.map((d) => ['HGETALL', `usage:${d}`]),
-    ...keys.map((d) => ['GET', `errors:total:${d}`]),
-    ...keys.map((d) => ['GET', `usage:total:${d}`]),
+    ...allKeys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
+    ...allKeys.map((d) => ['HGETALL', `events:${d}`]),
+    ...allKeys.map((d) => ['HGETALL', `usage:${d}`]),
+    ...allKeys.map((d) => ['GET', `errors:total:${d}`]),
+    ...allKeys.map((d) => ['GET', `usage:total:${d}`]),
   ]),
 });
 if (!res.ok) {
@@ -83,7 +90,11 @@ if (!res.ok) {
 // in pairs per day: counts, then samples (newest day first, so the first sample seen wins).
 const rows = new Map();
 const samples = new Map();
-const replies = await res.json();
+const fetched = await res.json();
+// Everything below the tables reads the window only; first-seen and the baseline read all `history` days.
+const perDay = parseDayReplies(fetched, allKeys);
+const keys = allKeys.slice(0, days);
+const replies = sliceWindow(fetched, history, days);
 const eventReplies = replies.slice(keys.length * 2, keys.length * 3);
 const usageReplies = replies.slice(keys.length * 3, keys.length * 4);
 const errorTotals = replies.slice(keys.length * 4, keys.length * 5).map((r) => Number(r?.result) || 0);
@@ -98,9 +109,35 @@ replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   }
 });
 const table = [...rows].sort((a, b) => b[1] - a[1]);
+
+// The verdict first (DEBT-36): what needs attention, then the known old tabs. Builds are looked up in git, so
+// bring origin up to date first; offline or failing, the verdicts degrade to "unverifiable", never an error.
+try {
+  execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repoRoot, timeout: 20000, stdio: 'ignore' });
+} catch {
+  // expected: offline or no remote; verdicts that need git then say they could not tell
+}
+let knownItems = [];
+try {
+  knownItems = JSON.parse(readFileSync(path.join(repoRoot, 'docs/error-known-items.json'), 'utf8'));
+  const problems = validateRegistry(knownItems);
+  if (problems.length) {
+    console.log(`docs/error-known-items.json is invalid, treating every report as new: ${problems.join('; ')}`);
+    knownItems = [];
+  }
+} catch (error) {
+  console.log(`docs/error-known-items.json could not be read (${error.message}); treating every report as new`);
+}
+const verdicts = triage({ table, samples, history: fingerprintHistory(perDay, days), entries: knownItems, run: runGit });
+for (const line of renderTriage(verdicts, toolRates(perDay, days))) console.log(line);
+console.log(`(window ${days} day${days === 1 ? '' : 's'}, history ${history}; newest UTC day first, today is partial)\n`);
+const verdictByField = new Map([...verdicts.needs, ...verdicts.known].map((item) => [item.field, item.verdict]));
+
 console.log('count | area | name | frame | step | engine');
 for (const [field, count] of table) {
   console.log(`${count} | ${field.split('|').join(' | ')}`);
+  const verdict = verdictByField.get(field);
+  if (verdict) console.log(`    verdict: ${verdict.category} (${verdict.reason})${verdict.ticket ? ` ${verdict.ticket}` : ''}`);
   let sample = null;
   try {
     sample = JSON.parse(samples.get(field) ?? 'null');
