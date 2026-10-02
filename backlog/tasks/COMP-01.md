@@ -122,14 +122,32 @@ reported as such. A number the copy quotes is one this test asserts.
 
 ## Acceptance
 
-- [ ] Step 0 landed: a file that would grow is handed back unchanged, and the card says so (2026-10-02, this worktree).
-- [ ] `analyzePdf` is pure, unit-tested on the four fixtures, and the island only reads its result.
-- [ ] A text-only PDF is told, before any level is picked, that there is nothing to shrink without flattening.
-- [ ] A compressed PDF keeps its text selectable and its links; checked by a unit test that extracts text from the output.
+- [x] Step 0: a file that would grow is handed back unchanged, and the card says so with both sizes ("As images" against the original).
+- [x] `analyzePdf` is pure, unit-tested on the four fixtures, and the island only reads its result (loaded with `import()`).
+- [x] A text-only PDF is told, before any level is picked, that there is nothing to shrink without flattening (checked on the reporter's own file in a real browser, 2026-10-02).
+- [x] A compressed PDF keeps its text and its links: `compressImages.test.js` re-analyses the output of `mixed.pdf` (text present, one URI annotation).
 - [ ] Levels and Target Size act on images only; flatten is a separate, labelled switch.
 - [ ] The compare slider renders both sides at the same scale and labels what changed.
 - [ ] The KPI test holds the floors above and the copy quotes nothing beyond them.
 - [ ] `check:push` green; the compress e2e specs updated for the new flow.
+
+## Progress notes
+
+**2026-10-02, real-browser run of `compressPdfImages`** (Chromium, the canvas encoder, not a fake):
+
+| Fixture | Smallest (1000 px, q 0.4) | Recommended (1600 px, q 0.6) | High (2400 px, q 0.8) |
+| --- | --- | --- | --- |
+| `mixed.pdf` 1,213,742 B | 23,674 B (98%) | 42,460 B (97%) | 125,467 B (90%) |
+| `scan.pdf` 599,924 B | 131,132 B (78%) | 246,930 B (59%) | 374,403 B (38%) |
+| `text-only.pdf`, reporter's file | untouched, `no-images` | untouched | untouched |
+
+Text, the link and the transparent image survived, and the rendered pages were identical by eye. Under
+80 ms each. The synthetic photos compress far better than real ones (smooth gradients), so these are
+not numbers for the copy; step 6 needs real-world images in the corpus before any range is quoted.
+
+Found in review and fixed: pdf-lib's Flate decoder ignores `/DecodeParms`, so a PNG-predicted image
+would have decoded sheared, and a `/Decode` array would have been dropped un-applied (an inverted
+image). `analyzePdf` reports `predictor` and `hasDecode`; `planImageRewrite` keeps both kinds.
 
 ## Not in scope
 
