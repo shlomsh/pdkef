@@ -10,7 +10,7 @@ import { PDFJS_WASM_URL } from './pdfjsWasm.js';
 
 let pdfjsLib;
 
-async function getPdfjs() {
+export async function getPdfjs() {
   if (!pdfjsLib) {
     pdfjsLib = await import('pdfjs-dist');
     pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
