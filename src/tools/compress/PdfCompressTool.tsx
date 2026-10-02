@@ -370,6 +370,14 @@ export default function PdfCompressTool({
       const { PDFDocument } = await getPdfLib();
       totalBytes = bytes.byteLength;
       doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+      if (doc.isEncrypted) {
+        // A restricted PDF opens with an empty password; read it that way so text detection sees plaintext, not ciphertext.
+        try {
+          doc = await PDFDocument.load(bytes, { password: '', updateMetadata: false });
+        } catch {
+          // expected: a file that needs a real password is the person's file; keep the first read
+        }
+      }
     } catch {
       // expected: a PDF pdf-lib can't parse just gets no analysis note
       return;
@@ -508,7 +516,11 @@ export default function PdfCompressTool({
           prepareFiles([{ blob: imageBlob, filename: deriveDownloadName(activeFile.name, resultType), type: resultType }]);
         }
         setStatus('done');
-        setAnnouncement(isUnchanged ? t.alreadySmallComplete : t.complete);
+        setAnnouncement(
+          result.reason === 'encrypted' ? t.lockedTitle
+            : result.reason === 'unsupported' ? t.unsupportedTitle
+              : isUnchanged ? t.alreadySmallComplete : t.complete,
+        );
         if (!isPassthrough) {
           setCompareOpen(true);
           openCompare();
@@ -630,6 +642,7 @@ export default function PdfCompressTool({
     'no-images': t.imagesNoImagesNotice,
     'no-gain': t.imagesNoGainNotice,
     encrypted: t.imagesEncryptedNotice,
+    unsupported: t.imagesUnsupportedNotice,
     'under-target': t.passthroughNotice,
   };
 
@@ -688,7 +701,7 @@ export default function PdfCompressTool({
       {hasFiles && status === 'done' && (downloadUrl || passthrough) && (
         <>
           <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : imageReason === 'unsupported' ? t.unsupportedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
             <div class={styles['stats-grid']}>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.originalSize}</span>

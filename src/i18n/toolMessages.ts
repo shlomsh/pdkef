@@ -498,6 +498,7 @@ export interface CompressMessages {
   alreadySmallTitle: string;
   /** The image path could not open the PDF without its password. */
   lockedTitle: string;
+  unsupportedTitle: string;
   underTargetTitle: string;
   imageUnderTargetTitle: string;
   alreadySmallNotice: string;
@@ -518,6 +519,7 @@ export interface CompressMessages {
   imagesTargetMissedNotice: string;
   imagesNoImagesNotice: string;
   imagesNoGainNotice: string;
+  imagesUnsupportedNotice: string;
   imagesEncryptedNotice: string;
   imageDownloadLabel: string;
   imageShareLabel: string;
@@ -610,6 +612,7 @@ const englishCompressMessages: CompressMessages = {
   passthroughNotice: 'Already under the target, so the file is untouched: same file, same format, nothing re-encoded.',
   alreadySmallTitle: 'Already as small as it gets',
   lockedTitle: 'This PDF is locked',
+  unsupportedTitle: 'Left as it was',
   underTargetTitle: 'Already under your target',
   imageUnderTargetTitle: 'Already under your target',
   alreadySmallNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so there was nothing to gain. I've kept your original as it is, text and links included.",
@@ -619,17 +622,18 @@ const englishCompressMessages: CompressMessages = {
   imageShareScanNote: 'Images are {share} of this PDF, and they are the part that can get smaller.',
   imageShareLowNote: 'Most of this PDF is text and drawings. Its images are {share} of the file, so shrinking them can save at most about that much.',
   lessThanOnePercent: 'less than 1%',
-  noImagesBodyText: 'This PDF is text and drawings, with no images in it, which is already the compact way to store a page. The only way to make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness and selectable text.',
-  noImagesBodyDrawing: 'This PDF is drawings, with no images in it, which is already the compact way to store a page. The only way to make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness.',
+  noImagesBodyText: 'This PDF is text and drawings, with no images in it, which is already the compact way to store a page. The only way this tool can make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness and selectable text.',
+  noImagesBodyDrawing: 'This PDF is drawings, with no images in it, which is already the compact way to store a page. The only way this tool can make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness.',
   asImagesSize: 'As images',
   keptOriginal: 'None, original kept',
   alreadySmallComplete: 'This PDF is already as small as it gets, so it is unchanged.',
   flattenLabel: 'Turn pages into pictures',
   flattenHint: 'The smallest size for scans. Text stops being selectable, links stop working, and small text gets softer.',
   imagesNotice: 'Only the images were made smaller. Text, links and drawings are exactly as they were.',
-  imagesTargetMissedNotice: 'Shrinking the images got this PDF to {size}. Reaching {target} would mean turning the pages into pictures, with the switch above.',
+  imagesTargetMissedNotice: 'Shrinking the images got this PDF to {size}, above your {target} target. Turning the pages into pictures, with the switch above, can go smaller.',
   imagesNoImagesNotice: 'There are no images in this PDF, so there was nothing to make smaller. Your original is unchanged.',
   imagesNoGainNotice: 'The images in this PDF are already compact, so making them smaller saved nothing. Your original is unchanged.',
+  imagesUnsupportedNotice: "The images in this PDF are stored in a way I can't recompress, so nothing was changed. Turning the pages into pictures still works, with the switch above.",
   imagesEncryptedNotice: "This PDF is locked, so its images can't be recompressed here. Your original is unchanged. If you have its password, unlock it first, then compress it.",
   imageDownloadLabel: 'Download Compressed Image',
   imageShareLabel: 'Share Compressed Image',
@@ -736,6 +740,7 @@ const hebrewCompressMessages: CompressMessages = {
   passthroughNotice: 'הקובץ כבר קטן מהיעד, אז השארנו אותו כמו שהוא: אותו קובץ, אותו פורמט, בלי קידוד מחדש.',
   alreadySmallTitle: 'הקובץ כבר קטן ככל האפשר',
   lockedTitle: 'ה-PDF הזה נעול',
+  unsupportedTitle: 'הקובץ נשאר כמו שהוא',
   underTargetTitle: 'כבר מתחת ליעד שלכם',
   imageUnderTargetTitle: 'כבר מתחת ליעד שלכם',
   alreadySmallNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז לא היה מה להרוויח. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
@@ -745,17 +750,18 @@ const hebrewCompressMessages: CompressMessages = {
   imageShareScanNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון.',
   imageShareLowNote: 'רוב ה-PDF הזה הוא טקסט ושרטוטים. התמונות הן {share} מהקובץ, כך שהקטנה שלהן יכולה לחסוך לכל היותר בערך כך.',
   lessThanOnePercent: 'פחות מ-1%',
-  noImagesBodyText: 'ה-PDF הזה בנוי מטקסט ומשרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות ובאפשרות לסמן טקסט.',
-  noImagesBodyDrawing: 'ה-PDF הזה בנוי משרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות.',
+  noImagesBodyText: 'ה-PDF הזה בנוי מטקסט ומשרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה שבה הכלי הזה יכול להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות ובאפשרות לסמן טקסט.',
+  noImagesBodyDrawing: 'ה-PDF הזה בנוי משרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה שבה הכלי הזה יכול להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות.',
   asImagesSize: 'כתמונות',
   keptOriginal: 'אין, המקור נשמר',
   alreadySmallComplete: 'ה-PDF הזה כבר קטן ככל האפשר, אז הוא נשאר ללא שינוי.',
   flattenLabel: 'להפוך עמודים לתמונות',
   flattenHint: 'הגודל הקטן ביותר לסריקות. אי אפשר יהיה לסמן טקסט, קישורים יפסיקו לעבוד, וטקסט קטן ייראה פחות חד.',
   imagesNotice: 'רק התמונות הוקטנו. הטקסט, הקישורים והשרטוטים נשארו בדיוק כמו שהיו.',
-  imagesTargetMissedNotice: 'הקטנת התמונות הביאה את ה-PDF ל-{size}. כדי להגיע ל-{target} צריך להפוך את העמודים לתמונות, עם המתג למעלה.',
+  imagesTargetMissedNotice: 'הקטנת התמונות הביאה את ה-PDF ל-{size}, מעל היעד של {target}. הפיכת העמודים לתמונות, עם המתג למעלה, יכולה להקטין עוד.',
   imagesNoImagesNotice: 'אין תמונות ב-PDF הזה, אז לא היה מה להקטין. הקובץ המקורי לא השתנה.',
   imagesNoGainNotice: 'התמונות ב-PDF הזה כבר קומפקטיות, אז הקטנה שלהן לא חסכה כלום. הקובץ המקורי לא השתנה.',
+  imagesUnsupportedNotice: 'התמונות ב-PDF הזה שמורות בצורה שאנחנו לא יכולים לדחוס מחדש, אז שום דבר לא השתנה. אפשר עדיין להפוך את העמודים לתמונות, עם המתג למעלה.',
   imagesEncryptedNotice: 'ה-PDF הזה נעול, ולכן אי אפשר לדחוס כאן את התמונות שבו. הקובץ המקורי לא השתנה. אם יש לכם את הסיסמה, בטלו קודם את הנעילה ואז כווצו אותו.',
   imageDownloadLabel: 'הורדת תמונה מכווצת',
   imageShareLabel: 'שיתוף תמונה מכווצת',

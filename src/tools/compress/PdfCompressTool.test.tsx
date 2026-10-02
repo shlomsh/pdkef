@@ -1189,6 +1189,30 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.textContent).not.toContain(NOTE);
     });
 
+    it('re-reads an encrypted PDF with an empty password so text detection sees plaintext', async () => {
+      const pdfLib = await import('../../lib/pdfLib.js');
+      const load = vi.fn()
+        .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
+        .mockResolvedValueOnce({ isEncrypted: false, tag: 'plain' });
+      pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
+      mountTool();
+      await addPdf('restricted.pdf');
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(load.mock.calls[1][1]).toEqual({ password: '', updateMetadata: false });
+      expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'plain' });
+    });
+
+    it('keeps the first read when the empty-password re-read throws', async () => {
+      const pdfLib = await import('../../lib/pdfLib.js');
+      const load = vi.fn()
+        .mockResolvedValueOnce({ isEncrypted: true, tag: 'cipher' })
+        .mockRejectedValueOnce(new Error('password'));
+      pdfLib.getPdfLib.mockImplementationOnce(() => Promise.resolve({ PDFDocument: { load } }));
+      mountTool();
+      await addPdf('locked.pdf');
+      expect(analyzePdfLib.analyzePdf.mock.calls.at(-1)[0]).toMatchObject({ tag: 'cipher' });
+    });
+
     it('drops an analysis that lands after a newer file was added', async () => {
       let resolveA;
       // B's analysis runs first (A's is held), so B takes the one-shot answer.
@@ -1274,6 +1298,7 @@ describe('PdfCompressTool UI flow', () => {
       ['no-images', 'There are no images in this PDF'],
       ['no-gain', 'already compact, so making them smaller saved nothing'],
       ['encrypted', "This PDF is locked, so its images can't be recompressed here"],
+      ['unsupported', "stored in a way I can't recompress, so nothing was changed"],
     ])('reason %s shows its notice and says the PDF is unchanged', async (reason, text) => {
       imagesLib.compressPdfImages.mockImplementation((f) => Promise.resolve(imagesResult({ blob: f, afterBytes: f.size, rewritten: 0, reason })));
       await loadPdf('same.pdf', 11_000);
@@ -1281,7 +1306,7 @@ describe('PdfCompressTool UI flow', () => {
       const stats = container.querySelector(`.${styles['compression-stats']}`);
       expect(stats.textContent).toContain(text);
       // A locked file was never tried, so it is not "as small as it gets".
-      const title = reason === 'encrypted' ? 'This PDF is locked' : 'Already as small as it gets';
+      const title = reason === 'encrypted' ? 'This PDF is locked' : reason === 'unsupported' ? 'Left as it was' : 'Already as small as it gets';
       expect(stats.querySelector(`.${styles['stats-title']}`).textContent).toBe(title);
       expect(stats.textContent).toContain('None, original kept');
       expect(stats.textContent).not.toContain('As images');
@@ -1291,6 +1316,9 @@ describe('PdfCompressTool UI flow', () => {
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).toBeNull();
       expect(container.querySelector(`.${pdfToolStyles['pdf-share-button']}`)).toBeNull();
       expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+      // The screen reader hears what the card title says.
+      const live = container.querySelector('[role="status"].sr-only').textContent;
+      if (reason === 'encrypted' || reason === 'unsupported') expect(live).toBe(title);
     });
 
     it('reason under-target shows the untouched notice and is not "already as small as it gets"', async () => {
@@ -1337,7 +1365,7 @@ describe('PdfCompressTool UI flow', () => {
       await clickCompress();
       const stats = container.querySelector(`.${styles['compression-stats']}`);
       expect(stats.textContent).toContain('Only the images were made smaller');
-      expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes. Reaching 100 KB would mean turning the pages into pictures');
+      expect(stats.textContent).toContain('Shrinking the images got this PDF to 15 Bytes, above your 100 KB target. Turning the pages into pictures, with the switch above, can go smaller.');
       expect(stats.textContent).not.toContain('Closest achievable');
     });
 

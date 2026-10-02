@@ -31,8 +31,7 @@ sections:
         text: >-
           Here is why. A scan is a picture of each page, so to reach a small target PDkef makes
           those pictures smaller. It steps down from images up to 2400 pixels on their long side at
-          high JPEG quality to 600 pixels at low quality, then narrows in between the last two
-          steps to keep the sharpest result that still fits. A typed PDF has no pictures to shrink:
+          high JPEG quality to 600 pixels at low quality, then fine-tunes between the first step that fits and the one above it, to keep the sharpest result that still fits. A typed PDF has no pictures to shrink:
           its text is left exactly as it is, and if the file is already under the target it is kept
           byte for byte. When even the smallest step is too big, the tool says so, and a switch
           called Turn pages into pictures can go further, at the cost of selectable text.
@@ -49,7 +48,7 @@ sections:
           - ['One typed page (native PDF text)', '2.9 KB', 'Kept unchanged, already under target', 'Yes, perfectly, it was never touched']
           - ['One scanned page', '410 KB', '97 KB, 76% smaller', 'Yes, crisp and fully legible']
           - ['Five scanned pages', '2.0 MB', '99.8 KB total, 95% smaller', 'Yes, readable, with visibly softer text']
-          - ['Ten scanned pages', '4.0 MB', '118 KB, target missed; 101 KB with pages turned into pictures, still just over', 'Headings legible, body paragraphs not']
+          - ['Ten scanned pages', '4.0 MB', '118 KB, target missed; 95 KB with pages turned into pictures', 'Headings legible, body paragraphs not']
       - kind: 'prose'
         text: >-
           The typed page never needed compressing at all: native PDF text is already tiny, and
@@ -66,7 +65,7 @@ sections:
         text: >-
           Ten pages at 100KB leaves about 10KB per page. Shrinking the images took the ten-page
           scan to 118KB, about 12KB a page, and the tool said plainly that the target was missed.
-          Turning the pages into pictures got it to 101KB, still just over. In both, the form's
+          Turning the pages into pictures got it under, to 95KB. In both, the form's
           title and headings stayed legible and the body paragraphs did not. That is the
           arithmetic, not a bug in the tool: a portal asking for 100KB across ten pages is asking
           for something that may not stay readable, whichever compressor you use. The same ten
@@ -151,14 +150,14 @@ faq:
     answer: >-
       A 100KB target is split across every page. Ten pages leaves roughly 10KB per page once
       container overhead is subtracted. In PDkef's own test, a ten-page scan reached 118KB by
-      shrinking its images and 101KB with the pages turned into pictures, and in both the headings
+      shrinking its images and 95KB with the pages turned into pictures, and in both the headings
       stayed legible while the body paragraphs did not. At 200KB the same ten pages fit with every
       line readable.
   - question: 'How many pages can actually fit in 100KB and stay readable?'
     answer: >-
       In PDkef's own measured test, one scanned page compressed to 100KB stayed crisp, two pages
       stayed clear, and five pages sharing the same 100KB stayed readable with visibly softer
-      text. Ten pages did not fit. Your own document depends on font size and how much text is on
+      text. Ten pages fit only with the pages turned into pictures, and then the body text was unreadable. Your own document depends on font size and how much text is on
       each page, so treat five as a rough ceiling rather than a guarantee.
   - question: 'Does compressing a PDF to 100KB remove the selectable text?'
     answer: >-
