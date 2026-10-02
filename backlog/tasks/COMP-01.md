@@ -55,8 +55,8 @@ this worktree, 2026-10-02.
 
 ### 1. A pure analysis of what the file is made of
 
-`src/tools/compress/analyzePdf.js`: `analyzePdf(bytes) → { pages, totalBytes, images: [{ ref, width,
-height, filter, bytes, hasSMask, colorSpace }], imageBytes, hasText }`. Walks the pdf-lib context's
+`src/tools/compress/analyzePdf.js`: `analyzePdf(pdfDoc, { totalBytes }) → { pageCount, totalBytes, images: [{ ref, width, height,
+bitsPerComponent, colorSpace, filters, bytes, hasSMask, isMask }], imageBytes, imageShare, hasText }`. Walks the pdf-lib context's
 indirect objects, no rendering. Pure, unit-tested on the corpus below, never re-derived by the UX
 (the same bar as form detection: `test:detection-purity` style, swappable, KPI-guarded).
 
@@ -114,7 +114,7 @@ below. No range claim that the KPI test does not hold. Hebrew follows in `toolMe
 
 ### 7. Corpus and KPI
 
-`src/lib/__fixtures__/compress/`: `text-only.pdf` (this form, redrawn fictional), `scan.pdf` (one
+`src/tools/compress/__fixtures__/`, built by `scripts/generate-compress-fixtures.mjs`: `text-only.pdf` (a fictional form), `scan.pdf` (one
 JPEG page), `mixed.pdf` (text plus two photos), `vector-drawing.pdf`. One unit test records the
 ratio per fixture per level and holds a floor: scan at Recommended at least 40% smaller; mixed at
 least 25% smaller with text bytes unchanged; text-only and vector-drawing returned untouched and
