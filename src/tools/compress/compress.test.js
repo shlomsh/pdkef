@@ -11,6 +11,26 @@ vi.mock('pdfjs-dist', async () => {
 
 const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 
+// jsdom has no canvas: pdf.js renders into a context that swallows every call.
+function stubGetContext() {
+  const baseContext = {
+    canvas: this,
+    fillStyle: '',
+    strokeStyle: '',
+  };
+  return new Proxy(baseContext, {
+    get(target, prop) {
+      if (prop in target) {
+        return target[prop];
+      }
+      if (prop === 'getTransform') {
+        return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+      }
+      return vi.fn();
+    },
+  });
+}
+
 describe('compressPdf library integration with real fixtures', () => {
   let originalToBlob;
   let originalGetContext;
@@ -35,25 +55,7 @@ describe('compressPdf library integration with real fixtures', () => {
       callback(new Blob([bytes], { type: type || 'image/jpeg' }));
     };
 
-    HTMLCanvasElement.prototype.getContext = function getContext() {
-      const canvasEl = this;
-      const baseContext = {
-        canvas: canvasEl,
-        fillStyle: '',
-        strokeStyle: '',
-      };
-      return new Proxy(baseContext, {
-        get(target, prop) {
-          if (prop in target) {
-            return target[prop];
-          }
-          if (prop === 'getTransform') {
-            return () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
-          }
-          return vi.fn();
-        },
-      });
-    };
+    HTMLCanvasElement.prototype.getContext = stubGetContext;
   });
 
   afterAll(() => {
@@ -133,5 +135,105 @@ describe('pickStartScaleIndex', () => {
   it('falls back to the lowest tier when even that exceeds the cap', () => {
     const absurdArea = A4_AREA * 100000;
     expect(pickStartScaleIndex(SCALES, absurdArea)).toBe(SCALES.length - 1);
+  });
+});
+
+describe('compressPdfToTarget meets a target the lowest step can reach', () => {
+  let originalToBlob;
+  let originalGetContext;
+  let scan;
+
+  // A JPEG pdf-lib accepts, with the canvas's real dimensions in its SOF
+  // header and padded with comment segments to exactly `size` bytes, so the
+  // PDF container around it is the real one.
+  function fakeJpeg(width, height, size) {
+    const base = Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
+    const sof = base.findIndex((b, i) => b === 0xff && base[i + 1] === 0xc0);
+    const view = new DataView(base.buffer);
+    view.setUint16(sof + 5, height);
+    view.setUint16(sof + 7, width);
+    const segments = [base.subarray(0, 2)];
+    let padding = size - base.length;
+    while (padding > 0) {
+      const segmentLength = Math.max(4, Math.min(padding, 65537));
+      const segment = new Uint8Array(segmentLength);
+      segment.set([0xff, 0xfe, (segmentLength - 2) >> 8, (segmentLength - 2) & 0xff]);
+      segments.push(segment);
+      padding -= segmentLength;
+    }
+    segments.push(base.subarray(2));
+    return new Blob(segments, { type: 'image/jpeg' });
+  }
+
+  // Size grows with pixel count and with quality, like a real encoder. The
+  // quality term is kept gentle so the search's last step lands within a few
+  // hundred bytes of its budget: a budget that leaves out the PDF's own bytes
+  // then overshoots every time, not only on the targets where it lands close.
+  const BYTES_PER_PIXEL_AT_ZERO_QUALITY = 0.1;
+  function fakeJpegSize(width, height, quality) {
+    return Math.round(width * height * BYTES_PER_PIXEL_AT_ZERO_QUALITY * (1 + quality / 4));
+  }
+
+  beforeAll(() => {
+    originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.toBlob = function toBlob(callback, _type, quality) {
+      callback(fakeJpeg(this.width, this.height, fakeJpegSize(this.width, this.height, quality)));
+    };
+    HTMLCanvasElement.prototype.getContext = stubGetContext;
+  });
+
+  beforeAll(async () => {
+    scan = await scannedLookingPdf(PAGES);
+  });
+
+  afterAll(() => {
+    HTMLCanvasElement.prototype.toBlob = originalToBlob;
+    HTMLCanvasElement.prototype.getContext = originalGetContext;
+  });
+
+  // Ten blank A4 pages plus an attachment, so the input is bigger than every
+  // target below and the search really runs.
+  async function scannedLookingPdf(pageCount) {
+    const { PDFDocument } = await import('@cantoo/pdf-lib');
+    const doc = await PDFDocument.create();
+    for (let i = 0; i < pageCount; i += 1) doc.addPage([595.28, 841.89]);
+    const noise = new Uint8Array(1024 * 1024);
+    let seed = 0x9e3779b9;
+    for (let i = 0; i < noise.length; i += 1) {
+      seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; // xorshift32, incompressible
+      noise[i] = seed & 0xff;
+    }
+    await doc.attach(noise, 'noise.bin');
+    return new File([await doc.save()], 'scan.pdf', { type: 'application/pdf' });
+  }
+
+  const PAGES = 10;
+  // At the ladder's lowest step (0.5, so 297 x 420 px per A4 page) the pages
+  // alone run from ~123 KB at the lowest quality to ~150 KB at the highest,
+  // and the next step up starts at ~209 KB: so every target here is reachable
+  // only at the lowest step, with room to spare for the PDF around the pages.
+  const pagesBytes = (width, height, quality) => PAGES * fakeJpegSize(width, height, quality);
+  const LOWEST_STEP_FLOOR_BYTES = pagesBytes(297, 420, 0.05);
+
+  it.each([135, 142, 150])('meets %i KB for a 10-page scan', async (targetKB) => {
+    expect(LOWEST_STEP_FLOOR_BYTES + 8 * 1024).toBeLessThan(targetKB * 1024);
+    expect(pagesBytes(386, 547, 0.05)).toBeGreaterThan(targetKB * 1024);
+    expect(scan.size).toBeGreaterThan(targetKB * 1024);
+
+    const result = await compressPdfToTarget(scan, { targetKB });
+
+    expect(result.blob.size).toBeLessThanOrEqual(targetKB * 1024);
+    expect(result.metTarget).toBe(true);
+  });
+
+  it('reports a miss when even the lowest step cannot fit', async () => {
+    const targetKB = 100;
+    expect(LOWEST_STEP_FLOOR_BYTES).toBeGreaterThan(targetKB * 1024);
+
+    const result = await compressPdfToTarget(scan, { targetKB });
+
+    expect(result.blob.size).toBeGreaterThan(targetKB * 1024);
+    expect(result.metTarget).toBe(false);
   });
 });

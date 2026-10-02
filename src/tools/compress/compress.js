@@ -123,10 +123,34 @@ export const QUALITY_SEARCH_STEPS = 6;
 // stop searching and ship the best-effort result found so far rather than
 // let the tab hang.
 export const MAX_SEARCH_MS = 20000;
-// Conservative per-page allowance for PDF container overhead (page object,
-// xref entries, etc.) so the byte-budget search doesn't overshoot the
-// caller's target once the pages are actually assembled into a PDF.
-const PDF_OVERHEAD_BYTES_PER_PAGE = 300;
+// The smallest valid JPEG (1x1). Assembling the output PDF around one of
+// these per page measures the container's own bytes (catalog, page objects,
+// image dictionaries, content streams, xref) before anything is rendered, so
+// the search's budget is the target minus what the PDF really adds. A flat
+// guess of 300 B a page undercounted it by ~570 B fixed plus ~215 B a page
+// and missed reachable targets by up to 3%.
+const PLACEHOLDER_JPEG = Uint8Array.from(
+  atob('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q=='),
+  (c) => c.charCodeAt(0),
+);
+// The real pages carry longer numbers than the placeholder's (image width,
+// height and stream length, wider xref offsets): measured at 7 to 15 B a
+// page across 1 to 100 pages and up to 2 MB a page.
+const PDF_OVERHEAD_ALLOWANCE_PER_PAGE = 32;
+
+async function addJpegPage(pdfDoc, jpegBytes, nativeViewport) {
+  const img = await pdfDoc.embedJpg(jpegBytes);
+  const page = pdfDoc.addPage([nativeViewport.width, nativeViewport.height]);
+  page.drawImage(img, { x: 0, y: 0, width: nativeViewport.width, height: nativeViewport.height });
+}
+
+async function measurePdfOverhead(PDFDocument, nativeViewports) {
+  const pdfDoc = await PDFDocument.create();
+  for (const viewport of nativeViewports) await addJpegPage(pdfDoc, PLACEHOLDER_JPEG, viewport);
+  const placeholderPdf = await pdfDoc.save();
+  const pages = nativeViewports.length;
+  return placeholderPdf.length - pages * PLACEHOLDER_JPEG.length + pages * PDF_OVERHEAD_ALLOWANCE_PER_PAGE;
+}
 
 function sumBlobSizes(blobs) {
   return blobs.reduce((sum, blob) => sum + blob.size, 0);
@@ -202,7 +226,6 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
 
   try {
     const totalPages = pdf.numPages;
-    const pageBudget = Math.max(1, targetBytes - totalPages * PDF_OVERHEAD_BYTES_PER_PAGE);
     const deadline = Date.now() + MAX_SEARCH_MS;
 
     // One pass to collect every page's native (scale-1) viewport, cheap
@@ -217,6 +240,8 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
       nativeViewports.push(nativeViewport);
       totalAreaAtScale1 += nativeViewport.width * nativeViewport.height;
     }
+
+    const pageBudget = Math.max(1, targetBytes - (await measurePdfOverhead(PDFDocument, nativeViewports)));
 
     const startScaleIndex = pickStartScaleIndex(TARGET_SCALE_LADDER, totalAreaAtScale1);
     const scales = TARGET_SCALE_LADDER.slice(startScaleIndex);
@@ -267,10 +292,7 @@ export async function compressPdfToTarget(file, { targetKB, onProgress } = {}) {
     const pdfDoc = await PDFDocument.create();
     for (let i = 0; i < best.handle.length; i += 1) {
       const imgBytes = await best.encoded.blobs[i].arrayBuffer();
-      const img = await pdfDoc.embedJpg(imgBytes);
-      const viewport = best.handle[i].nativeViewport;
-      const newPage = pdfDoc.addPage([viewport.width, viewport.height]);
-      newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+      await addJpegPage(pdfDoc, imgBytes, best.handle[i].nativeViewport);
       // The blob is already embedded - release this page's raw pixels now
       // rather than holding the whole tier until the loop finishes.
       best.handle[i].canvas.width = 0;
