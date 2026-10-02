@@ -380,7 +380,9 @@ function readStoredRecentWhiteoutColors(options: EditorPreferenceOptions): strin
   try {
     const scope = getEditorUserScope(options); if (!scope) return null;
     const raw = localStorage.getItem(recentWhiteoutColorsKey(scope)); if (raw === null) return [];
-    const parsed: unknown = JSON.parse(raw);
+    let parsed: unknown;
+    // expected: a corrupt record is readable storage holding nothing usable, so the next pick rewrites it
+    try { parsed = JSON.parse(raw); } catch { return []; }
     if (!isObject(parsed) || parsed.schemaVersion !== RECENT_WHITEOUT_COLORS_VERSION || !Array.isArray(parsed.colors)) return [];
     return parsed.colors.filter((c): c is string => typeof c === 'string' && HEX_COLOR.test(c)).slice(0, 3);
   // expected: blocked storage means unreadable

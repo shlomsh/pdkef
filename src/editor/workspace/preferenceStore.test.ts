@@ -422,6 +422,13 @@ describe('recent whiteout colours (RED-53)', () => {
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#cccccc']);
   });
 
+  it('rewrites a corrupt record on the next pick, so picks persist again', () => {
+    localStorage.setItem('pdf-toolkit:recent-whiteout-colors:v1:local-browser-profile', 'not json');
+    expect(rememberRecentWhiteoutColor('#111111', [])).toEqual(['#111111']);
+    expect(rememberRecentWhiteoutColor('#222222', ['#111111'])).toEqual(['#222222', '#111111']);
+    expect(getRecentWhiteoutColors()).toEqual(['#222222', '#111111']);
+  });
+
   it('falls back to current when getItem throws, and does not write', () => {
     const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
     const set = vi.spyOn(Storage.prototype, 'setItem');
