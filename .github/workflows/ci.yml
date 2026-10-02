@@ -57,6 +57,12 @@ on:
 # other job isn't waiting on an `npm ci` most runs don't need to narrow
 # anything from. `scope` only adds a `base` output (the resolved base sha)
 # for the consuming jobs to reuse, so all of them agree on the same diff.
+# DEBT-34: every build here is stamped with the commit, exactly like a Vercel build, so the build
+# guards run on what ships and e2e/error-report-build.spec.js (which reads this variable) fails if
+# a stamped build ever stops carrying the tag. Workflow-level, not per step: five jobs build.
+env:
+  VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+
 jobs:
   # Everything that needs no build: source guards, the unit suite, typecheck.
   checks:
@@ -231,10 +237,6 @@ jobs:
       run: npm ci
 
     - name: Build
-      # DEBT-34: the same stamping a Vercel build gets, so the build guards and
-      # e2e/error-report-build.spec.js run against a build that carries a commit.
-      env:
-        VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
       run: npm run build
 
     - name: Verify CSP hashes
@@ -302,10 +304,6 @@ jobs:
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Build
-      # DEBT-34: the same stamping a Vercel build gets, so the build guards and
-      # e2e/error-report-build.spec.js run against a build that carries a commit.
-      env:
-        VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
       run: npm run build
 
     - name: Resolve Playwright version

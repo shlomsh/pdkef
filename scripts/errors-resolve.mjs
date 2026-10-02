@@ -95,23 +95,33 @@ export function parseArgs(argv) {
 // `git(...args)` is injected so this stays pure.
 export function candidateShas({ build, from, max }, git) {
   if (!build) return { shas: git('rev-list', '--first-parent', '-n', String(max), from).split('\n').filter(Boolean) };
-  const resolve = () => { try { return git('rev-parse', '--verify', `${build}^{commit}`) || null; } catch { return null; } };
+  let ambiguous = false;
+  const resolve = () => {
+    try {
+      return git('rev-parse', '--verify', `${build}^{commit}`) || null;
+    } catch (error) {
+      ambiguous = /ambiguous/i.test(String(error?.message ?? error));
+      return null;
+    }
+  };
   let sha = resolve();
-  if (!sha) {
+  if (!sha && !ambiguous) {
     try { git('fetch', 'origin'); } catch {}
     sha = resolve();
   }
-  return sha ? { shas: [sha] } : { error: `commit ${build} is not in this repository (git fetch origin?)` };
+  if (sha) return { shas: [sha] };
+  return { error: ambiguous ? `commit ${build} is ambiguous, give more characters` : `commit ${build} is not in this repository (git fetch origin?)` };
 }
 
-export function buildMissMessage(sha, missing) {
+export function buildMissMessage(sha, missing, built = true) {
+  if (!built) return `the build of ${sha.slice(0, 8)} failed, so its chunks could not be compared; build that commit by hand to see why`;
   return `commit ${sha.slice(0, 8)} did not emit ${missing.join(', ')}: this report did not come from ${sha.slice(0, 8)}, or the build is not reproducible; try without --build`;
 }
 
 // Builds each commit in turn until one emits every frame's chunk, then decodes. All I/O is in `deps`:
 // checkout(sha), build() -> boolean, readEmitted() -> chunk names, readMap(chunk) -> map json | null,
 // readSource(chunk, source) -> text | null, subject(sha), log(line) for progress.
-// Returns { found, lines, nearest, last }: nearest is the first partial match, last the final commit tried.
+// Returns { found, lines, nearest, last }: nearest is the first partial match, last the final commit tried (with whether its build succeeded).
 export function searchCommits(shas, frames, deps) {
   const log = deps.log ?? (() => {});
   const chunks = new Set(frames.map((f) => f.chunk));
@@ -126,7 +136,7 @@ export function searchCommits(shas, frames, deps) {
     const hit = match?.all === true;
     const partial = match && !hit && match.missing.length < chunks.size;
     if (partial && !nearest) nearest = { sha, missing: match.missing };
-    last = { sha, missing: match ? match.missing : [...chunks] };
+    last = { sha, missing: match ? match.missing : [...chunks], built };
     log(`[${i + 1}/${shas.length}] ${sha.slice(0, 8)} ${hit ? 'HIT' : partial ? `partial (missing ${match.missing.length})` : built ? 'no match' : 'build failed'} (${((Date.now() - t0) / 1000).toFixed(0)}s)`);
     if (!hit) continue;
     const lines = [`${sha.slice(0, 8)} ${deps.subject(sha)}`];
@@ -229,7 +239,7 @@ function main() {
     return;
   }
   if (build) {
-    console.error(`errors:resolve: ${buildMissMessage(result.last.sha, result.last.missing)}`);
+    console.error(`errors:resolve: ${buildMissMessage(result.last.sha, result.last.missing, result.last.built)}`);
   } else {
     console.error(`no build in the last ${shas.length} first-parent commits of ${from} emitted every chunk of this report`);
     if (result.nearest) console.error(`nearest: ${result.nearest.sha.slice(0, 8)} had some of them but not ${result.nearest.missing.join(', ')}. The report likely came from a build older than the window; try --max higher.`);

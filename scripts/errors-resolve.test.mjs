@@ -93,6 +93,14 @@ describe('candidateShas', () => {
     expect(calls.filter((c) => c[0] === 'fetch')).toHaveLength(1);
     expect(calls.filter((c) => c[0] === 'rev-parse')).toHaveLength(2);
   });
+  it('says an ambiguous short sha is ambiguous, without a pointless fetch', () => {
+    const calls = [];
+    const git = (...args) => { calls.push(args); throw new Error('error: short object ID abcdef1 is ambiguous'); };
+    const r = candidateShas({ build: 'abcdef1', from: 'origin/main', max: 40 }, git);
+    expect(r.error).toContain('abcdef1 is ambiguous');
+    expect(r.error).toContain('more characters');
+    expect(calls.filter((c) => c[0] === 'fetch')).toHaveLength(0);
+  });
   it('without --build keeps the first-parent list and respects max', () => {
     const calls = [];
     const git = (...args) => { calls.push(args); return 'a1\nb2\n\nc3'; };
@@ -136,6 +144,15 @@ describe('single-commit path with a mocked build', () => {
     expect(msg).toContain(sha.slice(0, 8));
     expect(msg).toContain('PdfMergeTool.C4ILDZF-.js');
     expect(msg).toContain('try without --build');
+    expect(msg).not.toContain('\n');
+  });
+  it('a build that fails is said to have failed, not to be missing chunks', () => {
+    const deps = { ...mkDeps([]), build: () => false };
+    const r = searchCommits([sha], frames, deps);
+    expect(r.found).toBe(false);
+    const msg = buildMissMessage(sha, r.last.missing, r.last.built);
+    expect(msg).toContain('build of abcdef10 failed');
+    expect(msg).not.toContain('did not emit');
     expect(msg).not.toContain('\n');
   });
 });
