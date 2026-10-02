@@ -1,6 +1,6 @@
 import { useRef } from 'preact/hooks';
 import {
-  BLUR_MAX, BLUR_MIN, DEFAULT_BLUR_STRENGTH, resolveBlurStrength, snapBlurStrength,
+  BLUR_SLIDER_MAX, BLUR_SLIDER_MIN, DEFAULT_BLUR_STRENGTH, resolveBlurStrength, snapBlurStrength,
 } from '../../editor/model/blurStrength.ts';
 import { paintBlurStrength } from '../../editor/registry/redactionSurface.ts';
 import { useNativeChange } from '../../editor-ui/useNativeChange.ts';
@@ -40,24 +40,27 @@ export default function BlurStrengthSlider({
   return (
     <div className={styles.slider} data-editor-blur-strength-slider>
       <span className={styles.light} title={labels.lighter} aria-hidden="true" data-editor-blur-strength-light />
-      <input
-        ref={ref}
-        type="range"
-        className={styles.input}
-        min={BLUR_MIN}
-        max={BLUR_MAX}
-        step={0.01}
-        value={current}
-        aria-label={labels.title}
-        data-editor-blur-strength-input
-        onInput={(e) => paint(e.currentTarget)}
-        onDblClick={(e) => {
-          const input = e.currentTarget;
-          input.value = String(DEFAULT_BLUR_STRENGTH);
-          paint(input);
-          onChange(read(input));
-        }}
-      />
+      <div className={styles.track}>
+        <span className={styles.notch} aria-hidden="true" data-editor-blur-strength-notch />
+        <input
+          ref={ref}
+          type="range"
+          className={styles.input}
+          min={BLUR_SLIDER_MIN}
+          max={BLUR_SLIDER_MAX}
+          step={0.01}
+          value={current}
+          aria-label={labels.title}
+          data-editor-blur-strength-input
+          onInput={(e) => paint(e.currentTarget)}
+          onDblClick={(e) => {
+            const input = e.currentTarget;
+            input.value = String(DEFAULT_BLUR_STRENGTH);
+            paint(input);
+            onChange(read(input));
+          }}
+        />
+      </div>
       <span className={styles.strong} title={labels.stronger} aria-hidden="true" data-editor-blur-strength-strong />
     </div>
   );

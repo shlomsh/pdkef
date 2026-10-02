@@ -194,7 +194,7 @@ describe('redactPdf library integration with real fixtures', () => {
   // full-height (100%) box is 500px tall and a half-height (50%) box is
   // 250px tall. blurStrength.ts's factors (light 0.3, medium 0.4, strong 0.5)
   // apply to the box's own height, not the page's.
-  it('blurs at DEFAULT_BLUR_STRENGTH (0.3) when a blur box carries no strength', async () => {
+  it('blurs at UNSET_BLUR_STRENGTH (0.3) when a blur box carries no strength, so an old file exports as it did', async () => {
     const file = getFixtureFile('num-5.pdf');
     await redactPdf(file, [
       { id: 'r1', type: 'blur', pageIndex: 3, left: 0, top: 0, width: 100, height: 100 },
