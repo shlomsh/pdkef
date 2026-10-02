@@ -133,6 +133,18 @@ describe('PdfCompressTool with a protected PDF', () => {
     expect(compressButton()).toBeDefined();
   });
 
+  it('drops a probe result that lands after a newer image pick', async () => {
+    let release;
+    probeEncryption.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    mount();
+    await pick(fixtureFile('needs-password'));
+    // An image is never probed, so it starts no run of its own; the pick itself has to drop the old one.
+    await pick(new File(['fake-image-bytes'], 'photo.jpg', { type: 'image/jpeg' }));
+    await act(async () => { release('needs-password'); await new Promise((resolve) => setTimeout(resolve, 50)); });
+
+    expect(container.querySelector('[data-needs-unlock]')).toBeNull();
+  });
+
   it('falls back to the normal state when the probe throws', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     probeEncryption.mockRejectedValueOnce(new Error('pdfjs failed'));

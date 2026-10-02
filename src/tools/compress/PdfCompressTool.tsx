@@ -264,6 +264,7 @@ export default function PdfCompressTool({
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
       setNeedsUnlockBytes(null);
+      encryptionCheck.invalidate();
       if (deriveFileKind(next) === 'pdf') void checkEncryption(next);
     }
   };
