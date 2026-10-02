@@ -52,6 +52,27 @@ export function paintBlurStrength(root: ParentNode, elementId: string, strength:
   return true;
 }
 
+/**
+ * RED-53: the colour picker's live paint, the same contract as
+ * paintBlurStrength. While the native picker is open, a whiteout box's fill
+ * (or a whiteout stroke's line) is rewritten straight in the DOM; the one
+ * commit when it closes re-renders the same colour. Returns whether anything
+ * was painted.
+ */
+export function paintWhiteoutColor(root: ParentNode, elementId: string, color: string): boolean {
+  const box = Array.from(root.querySelectorAll<HTMLElement>('[data-redact-box-id]'))
+    .find((node) => node.dataset.redactBoxId === elementId);
+  const fill = box?.querySelector<HTMLElement>('.redact-surface--whiteout');
+  if (fill) {
+    fill.style.backgroundColor = color;
+    return true;
+  }
+  const line = box?.querySelector('.redact-surface--whiteoutStroke path');
+  if (!line) return false;
+  line.setAttribute('stroke', color);
+  return true;
+}
+
 function blurLayer(strength?: BlurStrength, boxHeightPt?: number) {
   const filter = blurFilter(strength, boxHeightPt);
   return h('div', {

@@ -1,10 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   EDITOR_PREFERENCE_RECORD_VERSION,
   getAppStyle,
   getEditorPreference,
   getEditorUserScope,
+  getRecentWhiteoutColors,
   getSavedSignatures,
+  rememberRecentWhiteoutColor,
+  withRecentColor,
   rememberAppStyle,
   setEditorPreference,
   setSavedSignatures,
@@ -331,5 +334,109 @@ describe('editor workspace preferences', () => {
       expect(getAppStyle({ userScope: 'person-a' })).toEqual({ color: '#aaaaaa' });
       expect(getAppStyle({ userScope: 'person-b' })).toEqual({ color: '#bbbbbb' });
     });
+  });
+});
+
+describe('recent whiteout colours (RED-53)', () => {
+  beforeEach(() => { localStorage.clear(); });
+  afterEach(() => { localStorage.clear(); });
+  const key = `pdf-toolkit:recent-whiteout-colors:v1:${encodeURIComponent(scope)}`;
+
+  it('withRecentColor lowercases, puts first, dedupes and caps', () => {
+    expect(withRecentColor(['#111111', '#222222', '#333333'], '#ABCDEF')).toEqual(['#abcdef', '#111111', '#222222']);
+    expect(withRecentColor(['#111111', '#222222'], '#222222')).toEqual(['#222222', '#111111']);
+    expect(withRecentColor(['#111111', '#222222'], '#222222'.toUpperCase())).toEqual(['#222222', '#111111']);
+    expect(withRecentColor(['#111111'], 'red')).toEqual(['#111111']);
+    expect(withRecentColor(['#111111'], '#fff')).toEqual(['#111111']);
+    expect(withRecentColor([], '#123456', 1)).toEqual(['#123456']);
+  });
+
+  it('remembers colours across reads, most recent first, capped at three', () => {
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    let list: string[] = [];
+    for (const c of ['#111111', '#222222', '#333333', '#444444']) list = rememberRecentWhiteoutColor(c, getRecentWhiteoutColors({ userScope: scope }), { userScope: scope });
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#444444', '#333333', '#222222']);
+    expect(JSON.parse(localStorage.getItem(key) as string).schemaVersion).toBe(1);
+  });
+
+  it('returns [] for a corrupt or wrong-version record and ignores invalid colours', () => {
+    localStorage.setItem(key, 'not json');
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 2, colors: ['#111111'] }));
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#111111', 'blue', 5] }));
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#111111']);
+    expect(rememberRecentWhiteoutColor('nope', ['#111111'], { userScope: scope })).toEqual(['#111111']);
+  });
+
+  it('builds on the stored list, not a stale in-memory one (second tab)', () => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
+    expect(rememberRecentWhiteoutColor('#bbbbbb', [], { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+  });
+
+  it('falls back to the in-memory list when storage cannot be read', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    try {
+      expect(rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('keeps growing the in-memory list when storage throws', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    try {
+      const first = rememberRecentWhiteoutColor('#aaaaaa', [], { userScope: scope });
+      expect(first).toEqual(['#aaaaaa']);
+      expect(rememberRecentWhiteoutColor('#bbbbbb', first, { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('keeps every pick in memory when setItem throws with a stored list (the review case)', () => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    try {
+      const b = rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope });
+      expect(b).toEqual(['#bbbbbb', '#aaaaaa']);
+      const c = rememberRecentWhiteoutColor('#cccccc', b, { userScope: scope });
+      expect(c).toEqual(['#cccccc', '#bbbbbb', '#aaaaaa']);
+      expect(rememberRecentWhiteoutColor('#dddddd', c, { userScope: scope })).toEqual(['#dddddd', '#cccccc', '#bbbbbb']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('storage wins when it works: another tab\'s pick merges in and is stored', () => {
+    const current = ['#aaaaaa'];
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#789abc'] })); // another tab wrote after this tab read
+    expect(rememberRecentWhiteoutColor('#cccccc', current, { userScope: scope })).toEqual(['#cccccc', '#789abc']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#cccccc', '#789abc']);
+  });
+
+  it('respects a cleared record: old colours do not come back while writes succeed', () => {
+    localStorage.removeItem(key);
+    expect(rememberRecentWhiteoutColor('#cccccc', ['#aaaaaa', '#bbbbbb'], { userScope: scope })).toEqual(['#cccccc']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#cccccc']);
+  });
+
+  it('rewrites a corrupt record on the next pick, so picks persist again', () => {
+    localStorage.setItem('pdf-toolkit:recent-whiteout-colors:v1:local-browser-profile', 'not json');
+    expect(rememberRecentWhiteoutColor('#111111', [])).toEqual(['#111111']);
+    expect(rememberRecentWhiteoutColor('#222222', ['#111111'])).toEqual(['#222222', '#111111']);
+    expect(getRecentWhiteoutColors()).toEqual(['#222222', '#111111']);
+  });
+
+  it('falls back to current when getItem throws, and does not write', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    const set = vi.spyOn(Storage.prototype, 'setItem');
+    try {
+      expect(rememberRecentWhiteoutColor('#cccccc', ['#aaaaaa'], { userScope: scope })).toEqual(['#cccccc', '#aaaaaa']);
+      expect(set).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore(); set.mockRestore();
+    }
   });
 });

@@ -186,7 +186,6 @@ export interface SignMessages {
   whiteoutColorTitle: string;
   blurStrengthTitle: string;
   blurStrengthLighter: string;
-  blurStrengthDefault: string;
   blurStrengthStronger: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;

@@ -1,5 +1,6 @@
-import { Check, Pipette } from 'lucide-preact';
+import { Check, CopyPlus, Layers, Pipette } from 'lucide-preact';
 import { useEffect, useRef } from 'preact/hooks';
+import { paintWhiteoutColor } from '../../editor/registry/redactionSurface.ts';
 import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import { TrashIcon } from '../../editor-ui/toolIcons.tsx';
@@ -7,6 +8,7 @@ import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { englishSignMessages as t, formatMessage } from '../../i18n/toolMessages';
 import type { RedactBoxElement, RedactStrokeElement } from './redactElements.ts';
 import { swatchInk } from './swatchInk.ts';
+import { useNativeChange } from './useNativeChange.ts';
 import styles from './RedactBoxToolbar.module.css';
 
 export interface RedactBoxToolbarProps {
@@ -24,16 +26,28 @@ export interface RedactBoxToolbarProps {
   onRemoveGroup?: () => void;
   findSetSize?: number;
   onRemoveFindSet?: () => void;
+  /** Most recent first, '#rrggbb'. */
+  recentColors?: readonly string[];
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
 
-const pagesIcon = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="6" y="2" width="14" height="16" rx="2" />
-    <path d="M4 6v14a2 2 0 0 0 2 2h12" />
-  </svg>
-);
+const MAX_RECENTS = 3;
+
+/** The current colour first (when the box is not auto), then the recents: lowercase, deduped, at most three. */
+export function shownRecents(current: string | null, recents: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of [...(current && HEX.test(current) ? [current] : []), ...recents]) {
+    const hex = c.toLowerCase();
+    if (!HEX.test(hex) || seen.has(hex)) continue;
+    seen.add(hex);
+    out.push(hex);
+  }
+  return out.slice(0, MAX_RECENTS);
+}
+
+const pagesIcon = <Layers size={18} />;
 
 /**
  * RED-51: the groups inside the selected box's pill. A fragment, so the pill
@@ -42,33 +56,62 @@ const pagesIcon = (
 export default function RedactBoxToolbar({
   element, eyedropping, onToggleEyedropper, onMatchPage, onPickColor, onChangeStrength,
   onDuplicate, onDelete, onRepeatOnEveryPage, repeatGroupSize, onUnlinkFromGroup,
-  onRemoveGroup, findSetSize, onRemoveFindSet,
+  onRemoveGroup, findSetSize, onRemoveFindSet, recentColors = [],
 }: RedactBoxToolbarProps) {
   const isWhiteout = element.type === 'whiteout' || element.type === 'whiteoutStroke';
   const isBlur = element.type === 'blur' || element.type === 'blurStroke';
   const auto = isWhiteout && (element as { colorMode?: string }).colorMode === 'auto';
   const color = isWhiteout ? String((element as { color?: unknown }).color ?? '') : '';
   const hex = HEX.test(color) ? color : '#ffffff';
-  const ink = swatchInk(hex);
 
-  // Listen for the native `change` (fires once, when the picker closes). preact/compat maps
-  // onChange to `input`, which fires on every drag step and split one pick into several undo steps.
+  // The picker previews live: `input` only paints the box's DOM (no state, no undo step). The
+  // pick commits once, from the native `change` (preact/compat rewrites onChange to `input`, which
+  // fires on every drag step). `blur` and unmount settle a pick whose `change` never arrived, e.g.
+  // the box is deselected as the picker closes. A pick equal to the committed colour commits
+  // nothing and undoes the preview paint.
   const colorInput = useRef<HTMLInputElement>(null);
   const pickRef = useRef(onPickColor);
   pickRef.current = onPickColor;
+  const committed = useRef(hex);
+  committed.current = hex;
+  const pending = useRef(false);
+  const reconcile = (el: HTMLInputElement) => {
+    if (el.value.toLowerCase() !== committed.current.toLowerCase()) {
+      pickRef.current(el.value);
+      // A blur then a change with no render between must not commit twice.
+      committed.current = el.value.toLowerCase();
+    } else paintWhiteoutColor(document, element.id, committed.current);
+    pending.current = false;
+  };
+  const reconcileRef = useRef(reconcile);
+  reconcileRef.current = reconcile;
+  useNativeChange(colorInput, (el) => reconcileRef.current(el), [isWhiteout]);
   useEffect(() => {
     const el = colorInput.current;
     if (!el) return undefined;
-    const onNativeChange = () => pickRef.current(el.value);
-    el.addEventListener('change', onNativeChange);
-    return () => el.removeEventListener('change', onNativeChange);
+    const onBlur = () => { if (pending.current) reconcileRef.current(el); };
+    el.addEventListener('blur', onBlur);
+    return () => {
+      el.removeEventListener('blur', onBlur);
+      if (pending.current) reconcileRef.current(el);
+    };
   }, [isWhiteout]);
+  // Uncontrolled: a parent re-render while the native picker is open must not re-assert the
+  // committed colour over a pick in flight. The input follows the committed colour only when idle.
+  useEffect(() => {
+    if (colorInput.current && !pending.current) colorInput.current.value = hex;
+  }, [hex, isWhiteout]);
+  const previewColor = (e: Event) => {
+    paintWhiteoutColor(document, element.id, (e.currentTarget as HTMLInputElement).value);
+    pending.current = true;
+  };
+  const recents = isWhiteout ? shownRecents(auto ? null : color, recentColors) : [];
 
   const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
   const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
   const inFindSet = findSetSize !== undefined && findSetSize >= 2 && !!onRemoveFindSet;
   const hasDeleteScope = (linked && onRemoveGroup) || inFindSet;
-  const trashIcon = <TrashIcon strokeWidth={2.5} rounded={false} />;
+  const trashIcon = <TrashIcon size={18} strokeWidth={2} rounded={false} />;
   const wide = `${styles.button} ${styles.buttonWide}`;
   const dangerClass = `${styles.button} ${styles.danger}`;
 
@@ -97,23 +140,37 @@ export default function RedactBoxToolbar({
           >
             <Pipette size={18} />
           </button>
+          {recents.map((c) => {
+            const pressed = !auto && c === color.toLowerCase();
+            return (
+              <button
+                key={c}
+                type="button"
+                className={styles.recent}
+                data-redact-color-recent={c}
+                aria-pressed={pressed}
+                aria-label={`Use ${c}`}
+                title={c}
+                onClick={() => onPickColor(c)}
+              >
+                <span className={styles.recentFace} ref={(el) => { if (el) el.style.setProperty('--swatch', c); }}>
+                  {pressed && (
+                    <span className={swatchInk(c) === 'dark' ? styles.inkDark : styles.inkLight}>
+                      <Check size={14} strokeWidth={3} />
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
           <label className={styles.custom} data-redact-color-custom title="Choose any colour">
             <span className={styles.wheel} />
-            {!auto && (
-              <span
-                className={`${styles.swatch} ${ink === 'dark' ? styles.inkDark : styles.inkLight}`}
-                data-redact-color-swatch
-                ref={(el) => { if (el) el.style.setProperty('--swatch', hex); }}
-              >
-                <Check size={14} strokeWidth={3} />
-              </span>
-            )}
             <input
               type="color"
               className={styles.native}
               aria-label="Choose any colour"
-              value={hex}
               ref={colorInput}
+              onInput={previewColor}
             />
           </label>
         </div>
@@ -124,16 +181,13 @@ export default function RedactBoxToolbar({
             elementId={element.id}
             value={(element as { strength?: unknown }).strength}
             onChange={(strength) => onChangeStrength(strength)}
-            labels={{ title: t.blurStrengthTitle, lighter: t.blurStrengthLighter, stronger: t.blurStrengthStronger, defaultTick: t.blurStrengthDefault }}
+            labels={{ title: t.blurStrengthTitle, lighter: t.blurStrengthLighter, stronger: t.blurStrengthStronger }}
           />
         </div>
       )}
       <div className={styles.group}>
-        <button type="button" className={styles.button} onClick={() => onDuplicate()} title={t.duplicateElementTitle}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-          </svg>
+        <button type="button" className={wide} onClick={() => onDuplicate()} title={t.duplicateElementTitle}>
+          <CopyPlus size={18} /><span className={styles.label}>{t.duplicateElementTitle}</span>
         </button>
         {linked ? (
           <ToolbarMenu

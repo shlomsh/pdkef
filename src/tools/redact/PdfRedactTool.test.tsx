@@ -21,7 +21,7 @@ import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.t
 import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.js';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
-import { getAppStyle, rememberAppStyle } from '../../editor/workspace/preferenceStore.ts';
+import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
 
 declare const __dirname: string;
 
@@ -437,6 +437,12 @@ describe('PdfRedactTool UI flow', () => {
         await pick(canvas);
         expect(surfaceColor()).toBe(boxColor);
         expect(brushSwatch()).not.toBe(before);
+        // RED-53: the brush pick is remembered and offered as a recent tile on an auto whiteout.
+        expect(getRecentWhiteoutColors()).toEqual(['#0a141e']);
+        await click(boxPipette());
+        await pressAuto();
+        expect(autoPressed()).toBe('true');
+        expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#0a141e"]')).not.toBeNull();
       });
     });
 
@@ -497,6 +503,45 @@ describe('PdfRedactTool UI flow', () => {
       const cards = Array.from(container.querySelectorAll('[data-editor-page-card]'));
       const copyColors = cards.slice(1).map((card) => query<HTMLElement>(card, '.redact-surface--whiteout').style.backgroundColor);
       expect(copyColors).toEqual([rgb(BLUE), rgb('#e0f0e0')]);
+    });
+
+    // RED-53: the toolbar offers the last custom colours, remembered across documents.
+    it('RED-53: a custom pick is remembered; Auto and a move are not', async () => {
+      await drawWhiteoutAndSelect();
+      expect(getRecentWhiteoutColors()).toEqual([]);
+      await pressAuto();
+      await nudgeDown();
+      expect(getRecentWhiteoutColors()).toEqual([]);
+      await setSelectedBoxColor('#112233');
+      expect(getRecentWhiteoutColors()).toEqual(['#112233']);
+    });
+
+    it('RED-53: a mount reads the stored list into an auto whiteout toolbar', async () => {
+      rememberRecentWhiteoutColor('#abcdef', []);
+      await drawWhiteoutAndSelect();
+      expect(autoPressed()).toBe('true');
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#abcdef"]')).not.toBeNull();
+    });
+
+    it('RED-53: a pick merges another tab\'s stored colour and the toolbar shows both', async () => {
+      await drawWhiteoutAndSelect();
+      rememberRecentWhiteoutColor('#abcdef', []); // another tab writes after this one mounted
+      await setSelectedBoxColor('#112233');
+      const tiles = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-actions] [data-redact-color-recent]'));
+      expect(tiles.map((t) => t.getAttribute('data-redact-color-recent'))).toEqual(['#112233', '#abcdef']);
+      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
+    });
+
+    it('RED-53: a pick on one box is offered as a recent colour on another auto box', async () => {
+      const drawArea = await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#112233');
+      await armTool('Whiteout');
+      await drawBox(drawArea, 50, 600, 200, 800);
+      const boxes = Array.from(container.querySelectorAll<HTMLElement>(`.${REDACT_BOX}`));
+      expect(boxes).toHaveLength(2);
+      await selectBox(required(boxes[1], 'second box'));
+      expect(autoPressed()).toBe('true');
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#112233"]')).not.toBeNull();
     });
   });
 
