@@ -64,4 +64,75 @@ describe('loadPdf lifecycle', () => {
     expect(task.destroy).toHaveBeenCalledOnce();
     expect(document.destroy).toHaveBeenCalledOnce();
   });
+
+  describe('onNeedsUnlock', () => {
+    const passwordError = Object.assign(new Error('No password given'), { name: 'PasswordException' });
+
+    it('a password-protected file reaches the callback and nothing else', async () => {
+      const task = { promise: Promise.reject(passwordError), destroy: vi.fn() };
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
+      const onNeedsUnlock = vi.fn();
+      const config = options({ restored: true, onNeedsUnlock });
+
+      await loadPdf(config);
+
+      expect(onNeedsUnlock).toHaveBeenCalledExactlyOnceWith('needs-password');
+      expect(config.onDocument).not.toHaveBeenCalled();
+      expect(config.clearDraft).not.toHaveBeenCalled();
+      expect(config.setStatus).not.toHaveBeenCalledWith('error');
+      expect(config.setStatus).not.toHaveBeenCalledWith('editing');
+      expect(task.destroy).toHaveBeenCalledOnce();
+    });
+
+    it('a file that opens but carries permissions is owner-restricted, and its document is released', async () => {
+      const document = { numPages: 1, getPermissions: vi.fn(async () => []), destroy: vi.fn() };
+      const task = { promise: Promise.resolve(document), destroy: vi.fn() };
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => task) } as any);
+      const onNeedsUnlock = vi.fn();
+      const config = options({ onNeedsUnlock });
+
+      await loadPdf(config);
+
+      expect(onNeedsUnlock).toHaveBeenCalledExactlyOnceWith('owner-restricted');
+      expect(config.onDocument).not.toHaveBeenCalled();
+      expect(config.setStatus).not.toHaveBeenCalledWith('editing');
+      expect(document.destroy).toHaveBeenCalledOnce();
+    });
+
+    it('an unprotected file loads as always, callback or not', async () => {
+      const document = { numPages: 1, getPermissions: vi.fn(async () => null), destroy: vi.fn() };
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.resolve(document), destroy: vi.fn() })) } as any);
+      const onNeedsUnlock = vi.fn();
+      const config = options({ onNeedsUnlock });
+
+      await loadPdf(config);
+
+      expect(onNeedsUnlock).not.toHaveBeenCalled();
+      expect(config.onDocument).toHaveBeenCalledOnce();
+      expect(config.setStatus).toHaveBeenLastCalledWith('editing');
+    });
+
+    it('without a callback a password file still fails exactly as before', async () => {
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.reject(passwordError), destroy: vi.fn() })) } as any);
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const config = options({ restored: true });
+
+      await loadPdf(config);
+
+      expect(config.clearDraft).toHaveBeenCalledOnce();
+      expect(config.setStatus).toHaveBeenLastCalledWith('error');
+    });
+
+    it('an error that is not a password stays a failure even with a callback', async () => {
+      vi.mocked(getPdfjs).mockResolvedValue({ getDocument: vi.fn(() => ({ promise: Promise.reject(new Error('boom')), destroy: vi.fn() })) } as any);
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      const onNeedsUnlock = vi.fn();
+      const config = options({ onNeedsUnlock });
+
+      await loadPdf(config);
+
+      expect(onNeedsUnlock).not.toHaveBeenCalled();
+      expect(config.setStatus).toHaveBeenLastCalledWith('error');
+    });
+  });
 });
