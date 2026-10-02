@@ -106,6 +106,11 @@ export default function PdfCompressTool({
   const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean } | null>(null);
   const analysisTokenRef = useRef(0);
   const [rasterBytes, setRasterBytes] = useState<number | null>(null);
+  // COMP-01: by default only the images are recompressed and every page stays as it is; true turns
+  // the pages into pictures (compress.js). Survives a new file, like the level.
+  const [flatten, setFlatten] = useState(false);
+  // Why the image-only path did what it did; null on the flatten path and before a result.
+  const [imageReason, setImageReason] = useState<string | null>(null);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
   const kind = deriveFileKind(file);
@@ -181,6 +186,7 @@ export default function PdfCompressTool({
     setPassthrough(false);
     setUnchanged(false);
     setRasterBytes(null);
+    setImageReason(null);
   };
 
   // Builds the before/after pair for the CompareSlider. PDF: renders page 1
@@ -346,6 +352,12 @@ export default function PdfCompressTool({
     recordAction('change_setting');
   };
 
+  const handleFlattenChange = (next: boolean) => {
+    setFlatten(next);
+    resetOutput();
+    recordAction('change_setting');
+  };
+
   const handleTargetKBChange = (nextTargetKB: number) => {
     setTargetKB(Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1);
     resetOutput();
@@ -397,6 +409,39 @@ export default function PdfCompressTool({
         // Open by default (SEO-25, 2026-09-12) - except a passthrough result,
         // which never gets a toggle at all (see the render check below).
         if (result.blob !== activeFile) {
+          setCompareOpen(true);
+          openCompare();
+        }
+        return;
+      }
+
+      if (!flatten) {
+        const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./compressImages.js');
+        const result: { blob: Blob; metTarget?: boolean; reason: string } = level === 'target'
+          ? await compressPdfImagesToTarget(activeFile, { targetKB, onProgress: setProgress })
+          : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[level as 'high' | 'medium' | 'low'], onProgress: setProgress });
+        if (runToken !== runTokenRef.current) return;
+        const imageBlob = result.blob;
+        const resultType = imageBlob.type || 'application/pdf';
+        const isPassthrough = imageBlob === activeFile;
+        const isUnchanged = isPassthrough && result.reason !== 'under-target';
+        setCompressedSize(imageBlob.size);
+        setRasterBytes(null);
+        setMetTarget(result.metTarget ?? true);
+        setImageReason(result.reason);
+        setOutputType(resultType);
+        setPassthrough(isPassthrough);
+        setUnchanged(isUnchanged);
+        compressedBlobRef.current = imageBlob;
+        setDownloadBlob(imageBlob);
+        prepareFiles([{
+          blob: imageBlob,
+          filename: isUnchanged ? activeFile.name : deriveDownloadName(activeFile.name, resultType),
+          type: resultType,
+        }]);
+        setStatus('done');
+        setAnnouncement(isUnchanged ? t.alreadySmallComplete : t.complete);
+        if (!isPassthrough) {
           setCompareOpen(true);
           openCompare();
         }
@@ -514,6 +559,14 @@ export default function PdfCompressTool({
       })
     : '';
 
+  const imageNotices = {
+    smaller: t.imagesNotice,
+    'no-images': t.imagesNoImagesNotice,
+    'no-gain': t.imagesNoGainNotice,
+    encrypted: t.imagesEncryptedNotice,
+    'under-target': t.passthroughNotice,
+  };
+
   const actionAndResults = (
     <>
       {/* Button anchor (SEO-25, 2026-09-12): one wrapper for the whole
@@ -603,15 +656,22 @@ export default function PdfCompressTool({
                 photo's target only ever comes from the image panel, a PDF's
                 only from the Target Size card, so the two conditions never
                 overlap. */}
-            {!unchanged && !metTarget && (kind === 'image' || level === 'target') && (
+            {imageReason === null && !unchanged && !metTarget && (kind === 'image' || level === 'target') && (
               <p class={styles['compress-warning']}>
                 {formatMessage(kind === 'image' ? t.imageClosestAchievable : t.closestAchievable, { size: formatBytes(targetKB * 1024) })}
               </p>
             )}
 
             <p class={styles['compress-warning']}>
-              {unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
+              {imageReason !== null
+                ? imageNotices[imageReason as keyof typeof imageNotices]
+                : unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
             </p>
+            {imageReason === 'smaller' && level === 'target' && !metTarget && (
+              <p class={styles['compress-warning']}>
+                {formatMessage(t.imagesTargetMissedNotice, { size: formatBytes(compressedSize as number), target: formatBytes(targetKB * 1024) })}
+              </p>
+            )}
 
             {/* Open by default as soon as a result exists (see openCompare
                 and handleCompress) - a visitor sees whether the notice above
@@ -880,6 +940,12 @@ export default function PdfCompressTool({
               )}
             </div>
           </div>
+          {kind === 'pdf' && (
+            <label class={styles['flatten-switch']}>
+              <input type="checkbox" checked={flatten} onChange={(e) => handleFlattenChange(e.currentTarget.checked)} />
+              <span><strong>{t.flattenLabel}</strong> {t.flattenHint}</span>
+            </label>
+          )}
           </>
         )}
 
