@@ -648,6 +648,7 @@ export default function PdfCompressTool({
           from="compress"
           toolName="Compress"
           verb="compress"
+          replace={false}
           messages={{
             title: t.protectedNeedsPasswordTitle,
             body: t.protectedNeedsPasswordBody,

@@ -3,6 +3,7 @@ import { FileLock2 } from 'lucide-preact';
 import { FileActions } from './ToolShell.tsx';
 import pdfToolStyles from './PdfTool.module.css';
 import { useNavigatingAway } from '../lib/useNavigatingAway.ts';
+import shellStyles from './ToolShell.module.css';
 import styles from './NeedsUnlock.module.css';
 
 export type NeedsUnlockKind = 'needs-password' | 'owner-restricted';
@@ -39,8 +40,9 @@ function englishCopy(kind: NeedsUnlockKind, toolName: string, verb: string): Nee
  * `from` is the sending tool's key ('redact', 'sign', 'compress'), `toolName` its name in a sentence
  * ("Redact can't change it") and `verb` what the person came to do ("then you can redact it").
  * `messages` replaces the English copy whole, for a localized page.
+ * `replace` is false when the tool's file card already shows Replace.
  */
-export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, messages }: {
+export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, messages, replace = true }: {
   kind: NeedsUnlockKind;
   file: File | null;
   bytes: ArrayBuffer | null;
@@ -48,6 +50,7 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
   toolName: string;
   verb: string;
   messages?: NeedsUnlockMessages;
+  replace?: boolean;
 }) {
   const [busy, setBusy] = useNavigatingAway();
   const [failed, setFailed] = useState(false);
@@ -75,11 +78,11 @@ export default function NeedsUnlock({ kind, file, bytes, from, toolName, verb, m
       <h2 class={styles.title}>{title}</h2>
       <p class={styles.body}>{body}</p>
       <div class={styles.actions}>
-        <button type="button" class={styles['unlock-button']} disabled={busy} onClick={() => { void unlock(); }}>
-          <FileLock2 size={16} aria-hidden="true" />
+        <button type="button" class={`${shellStyles.action} ${styles.lead}`} disabled={busy} onClick={() => { void unlock(); }}>
+          <FileLock2 size={12} stroke-width={1.5} aria-hidden="true" />
           {unlockIt}
         </button>
-        <FileActions />
+        {replace && <FileActions />}
       </div>
       {failed && (
         <p class={pdfToolStyles['hint-message']} role="status">
