@@ -65,18 +65,22 @@ indirect objects, no rendering. Pure, unit-tested on the corpus below, never re-
 Once a file is added, before any level is picked:
 
 - No images: "This PDF is text and drawings, with no images in it. There is nothing here to make
-  smaller without turning the pages into pictures." The level cards are not shown as the next step;
-  the explicit flatten option (step 5) is, with its cost stated next to it.
+  smaller without turning the pages into pictures." The cards stay (they also set the flatten
+  switch's resolution); the switch is right below them with its cost stated. *As built: Shlomi saw
+  and kept this layout, with the note in the dropzone's colours (2026-10-02).*
 - Images carry under ~20% of the bytes: "Most of this file is text and drawings; the images are
   {share}. Shrinking them can save at most about {ceiling}." Shown as the ceiling, not as a promise.
 - Otherwise the cards, with the image share named.
 
 After a run: the exact bytes before and after. When nothing was gained the original is handed back
-and the card says so; "PDF Successfully Compressed!" never appears unless the file is smaller.
+and the card says so; "PDF Successfully Compressed!" never appears unless the file is smaller, and
+there is no Download or Share at all when the output is the input (Shlomi, 2026-10-02: "there is
+nothing to download so you shouldn't state or allow that").
 
 ### 3. The structural compressor
 
-`compressPdfImages(file, { maxLongSidePx, quality, onProgress })` in `compress.js`:
+`compressPdfImages(file, { maxLongSidePx, quality, onProgress })` in `compressImages.js` (its own
+module, so the rasterising engine in `compress.js` stays untouched behind the switch):
 
 - For each image XObject from step 1, `planImageRewrite(image)` decides `'jpeg'` (DCTDecode, or
   FlateDecode 8-bit DeviceRGB/DeviceGray), `'keep'` (SMask, JPX, CCITT, indexed, CMYK JPEG, anything
@@ -97,8 +101,10 @@ and the card says so; "PDF Successfully Compressed!" never appears unless the fi
 | Recommended | 1600 px | 0.6 |
 | High Quality | 2400 px | 0.8 |
 
-Target Size reuses `targetSizeSearch.js` with the decoded images as the handle and the whole saved
-document as the measured size, so the FAQ's "one search behaviour" still holds for both tools.
+*As built:* Target Size walks `TARGET_IMAGE_LADDER` (five long-side/quality rungs, best first) through
+`compressPdfImagesToTarget` and returns the first rung under target, else the smallest, else the
+original. Simpler than reusing `targetSizeSearch.js`, whose handle is a rendered page; the FAQ's
+wording is revisited in step 6.
 
 ### 5. Flatten pages to images, explicit and last
 
@@ -115,8 +121,9 @@ below. No range claim that the KPI test does not hold. Hebrew follows in `toolMe
 ### 7. Corpus and KPI
 
 `src/tools/compress/__fixtures__/`, built by `scripts/generate-compress-fixtures.mjs`: `text-only.pdf` (a fictional form), `scan.pdf` (one
-JPEG page), `mixed.pdf` (text plus two photos), `vector-drawing.pdf`. One unit test records the
-ratio per fixture per level and holds a floor: scan at Recommended at least 40% smaller; mixed at
+JPEG page), `mixed.pdf` (text plus two photos), `vector-drawing.pdf`. *As built:* the floors need the
+real canvas encoder, so they live in a Playwright spec, `src/tools/compress/e2e/compress-kpi.spec.js`,
+not a unit test. It holds: scan at Recommended at least 40% smaller; mixed at
 least 25% smaller with text bytes unchanged; text-only and vector-drawing returned untouched and
 reported as such. A number the copy quotes is one this test asserts.
 
@@ -126,7 +133,7 @@ reported as such. A number the copy quotes is one this test asserts.
 - [x] `analyzePdf` is pure, unit-tested on the four fixtures, and the island only reads its result (loaded with `import()`).
 - [x] A text-only PDF is told, before any level is picked, that there is nothing to shrink without flattening (checked on the reporter's own file in a real browser, 2026-10-02).
 - [x] A compressed PDF keeps its text and its links: `compressImages.test.js` re-analyses the output of `mixed.pdf` (text present, one URI annotation).
-- [ ] Levels and Target Size act on images only; flatten is a separate, labelled switch.
+- [x] Levels and Target Size act on images only; flatten is a separate, labelled switch ("Turn pages into pictures", off by default).
 - [ ] The compare slider renders both sides at the same scale and labels what changed.
 - [ ] The KPI test holds the floors above and the copy quotes nothing beyond them.
 - [ ] `check:push` green; the compress e2e specs updated for the new flow.
