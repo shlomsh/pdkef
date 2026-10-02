@@ -23,7 +23,7 @@ index 1128a45..9326cb3 100644
              contents = transform.decryptBytes(contents);
          }
 diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
-index 6a62f0c..48be16b 100644
+index 6a62f0c..1ca5820 100644
 --- a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
 +++ b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
 @@ -54,6 +54,16 @@ class PDFStreamWriter extends PDFWriter_1.default {
@@ -37,7 +37,7 @@ index 6a62f0c..48be16b 100644
 +                // a full rewrite the same way the well-formed case above is dropped.
 +                if (!incremental &&
 +                    object instanceof PDFInvalidObject_1.default &&
-+                    /\/Type\s*\/XRef\b/.test(Buffer.from(object.data.subarray(0, 512)).toString('latin1'))) {
++                    /\/Type\s*\/XRef\b/.test(new TextDecoder('latin1').decode(object.data.subarray(0, 512)))) {
 +                    continue;
 +                }
                  // Source ObjStm containers must be skipped on full saves: their
@@ -121,7 +121,7 @@ index 2818a5b..01014fc 100644
              contents = transform.decryptBytes(contents);
          }
 diff --git a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
-index 1a45ba9..0643846 100644
+index 1a45ba9..9177732 100644
 --- a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
 +++ b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
 @@ -52,6 +52,24 @@ class PDFStreamWriter extends PDFWriter {
@@ -143,7 +143,7 @@ index 1a45ba9..0643846 100644
 +                // uses for the well-formed case) and drop it the same way.
 +                if (!incremental &&
 +                    object instanceof PDFInvalidObject &&
-+                    /\/Type\s*\/XRef\b/.test(Buffer.from(object.data.subarray(0, 512)).toString('latin1'))) {
++                    /\/Type\s*\/XRef\b/.test(new TextDecoder('latin1').decode(object.data.subarray(0, 512)))) {
 +                    continue;
 +                }
                  // Source ObjStm containers must be skipped on full saves: their

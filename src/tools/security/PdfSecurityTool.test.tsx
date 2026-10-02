@@ -23,13 +23,23 @@ vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => ({
 }));
 
 vi.mock('../../lib/pdfEncryption.ts', () => ({ probeEncryption: vi.fn() }));
+
+const { lifecycleSpy, reportErrorSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn(), reportErrorSpy: vi.fn() }));
+vi.mock('../../lib/productAnalytics.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportToolLifecycleEvent: lifecycleSpy,
+}));
+vi.mock('../../lib/errorReport.ts', async (importOriginal) => ({
+  ...(await importOriginal()),
+  reportError: reportErrorSpy,
+}));
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 
 vi.mock('./security.js', () => ({
   unlockPdf: vi.fn(),
   protectPdf: vi.fn(),
   UnreadablePdfError: class UnreadablePdfError extends Error {
-    constructor() { super('unreadable'); this.name = 'UnreadablePdfError'; }
+    constructor(cause) { super('unreadable', { cause }); this.name = 'UnreadablePdfError'; }
   },
   WrongPasswordError: class WrongPasswordError extends Error {
     constructor() { super('Incorrect password'); this.name = 'WrongPasswordError'; }
@@ -283,6 +293,60 @@ describe('PdfSecurityTool', () => {
 
     expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
     expect(container.textContent).not.toContain('The password may be incorrect.');
+  });
+
+  // DEBT-34: the logs must tell our defects from a person's file or a mistyped password.
+  async function submitPassword(value) {
+    const passwordInput = container.querySelector('input[type="password"]');
+    await act(async () => {
+      passwordInput.value = value;
+      passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => {
+      container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+  }
+
+  it('does not count a wrong password as a failed operation', async () => {
+    probeEncryption.mockResolvedValue('needs-password');
+    securityLib.unlockPdf.mockRejectedValue(new securityLib.WrongPasswordError());
+    mount();
+    await loadFile();
+    await submitPassword('wrong');
+    await submitPassword('wrong again');
+
+    expect(container.textContent).toContain('The password may be incorrect.');
+    expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'unlock');
+    expect(reportErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('counts a failure that is not the password as failed, and does not blame the file for our own error', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    probeEncryption.mockResolvedValue('needs-password');
+    const ours = new ReferenceError('x is not defined');
+    securityLib.unlockPdf.mockRejectedValue(ours);
+    mount();
+    await loadFile();
+    await submitPassword('right');
+
+    expect(container.textContent).toContain('Something went wrong while unlocking this file. Please try again.');
+    expect(container.textContent).not.toContain('It may be damaged.');
+    expect(lifecycleSpy).toHaveBeenCalledWith('tool_operation_failed', 'unlock');
+    expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', ours, 'unlock');
+  });
+
+  it('reports what made a file unreadable, not the wrapper that says so', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    probeEncryption.mockResolvedValue('needs-password');
+    const cause = new TypeError('inside the library');
+    securityLib.unlockPdf.mockRejectedValue(new securityLib.UnreadablePdfError(cause));
+    mount();
+    await loadFile();
+    await submitPassword('whatever');
+
+    expect(container.textContent).toContain('This file could not be unlocked. It may be damaged.');
+    expect(reportErrorSpy).toHaveBeenCalledWith('pdf_tool_run', cause, 'unlock');
   });
 
   describe('Unlock with the real fixtures', () => {

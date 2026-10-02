@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Download, Eraser, FileSignature, Shrink } from 'lucide-preact';
-import { protectPdf, unlockPdf, WrongPasswordError } from './security.js';
+import { protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
@@ -33,6 +33,8 @@ const outputFileName = (name: string, mode: string) => `${name.replace(/\.pdf$/i
 
 const WRONG_PASSWORD = 'The password may be incorrect.';
 const DAMAGED = 'This file could not be unlocked. It may be damaged.';
+// Not the file's fault: the unlock itself threw something other than a password or a read error.
+const UNLOCK_FAILED = 'Something went wrong while unlocking this file. Please try again.';
 const PROTECT_FAILED = 'The file might already be encrypted or corrupted.';
 
 export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) => { window.location.href = href; } }: {
@@ -104,17 +106,18 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
       // Same rule on the way out: a failure for a file nobody is looking at
       // any more must not put the loaded one into an error state.
       if (!run.isCurrent()) return;
-      if (!(err instanceof WrongPasswordError)) reportError('pdf_tool_run', err, sourceMode);
+      const wrongPassword = err instanceof WrongPasswordError;
+      // A file that would not open wraps what pdf-lib threw; report that, it is the frame that says where.
+      if (!wrongPassword) reportError('pdf_tool_run', err instanceof UnreadablePdfError && err.cause instanceof Error ? err.cause : err, sourceMode);
       run.settle();
       setStatus('error');
-      const wrongPassword = err instanceof WrongPasswordError;
-      setErrorText(sourceMode !== 'unlock' ? PROTECT_FAILED : wrongPassword ? WRONG_PASSWORD : DAMAGED);
+      setErrorText(sourceMode !== 'unlock' ? PROTECT_FAILED : wrongPassword ? WRONG_PASSWORD : err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED);
       if (wrongPassword) {
         setAnnouncement('Incorrect password.');
         passwordRef.current?.focus();
         passwordRef.current?.select();
       } else {
-        setAnnouncement(sourceMode === 'unlock' ? DAMAGED : err.message || 'An error occurred.');
+        setAnnouncement(sourceMode === 'unlock' ? (err instanceof UnreadablePdfError ? DAMAGED : UNLOCK_FAILED) : err.message || 'An error occurred.');
       }
     }
   };
@@ -228,7 +231,8 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     <BasePdfTool
       hasFiles={hasFiles}
       analyticsTool={mode === 'protect' ? 'protect' : mode === 'unlock' ? 'unlock' : undefined}
-      analyticsStatus={status}
+      // A mistyped password is the form working, not an operation that failed: it stays out of the failure count.
+      analyticsStatus={status === 'error' && errorText === WRONG_PASSWORD ? 'needs_password' : status}
       onFilesAdded={(files: FileList | File[]) => handleFilesAdded(files)}
       multiple={false}
       emptyStateMessage={intent === 'unlock' ? 'Drop PDF here to unlock' : 'Drop PDF here to protect'}
