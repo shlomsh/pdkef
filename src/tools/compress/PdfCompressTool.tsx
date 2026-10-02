@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
@@ -15,6 +15,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
+import { comparePreviewWidth } from './compareSize.js';
 import { usePdfShare } from '../../lib/usePdfShare.js';
 import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
@@ -135,6 +136,14 @@ export default function PdfCompressTool({
   const [compareOpen, setCompareOpen] = useState(false);
   const [comparePreviews, setComparePreviews] = useState<{ before: string; after: string } | null>(null);
   const [compareStatus, setCompareStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  // Full screen view (COMP-01): a modal dialog holding the same slider at the
+  // viewport's width. The PDF path re-renders both sides larger on first open
+  // and caches them for the current result; the image path reuses the inline
+  // object URLs, which are already full resolution.
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [fullscreenPreviews, setFullscreenPreviews] = useState<{ before: string; after: string } | null>(null);
+  const [fullscreenStatus, setFullscreenStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const fullscreenDialogRef = useRef<HTMLDialogElement | null>(null);
   // True when either compressor's passthrough rule fired (the file was
   // already under target, so the "compressed" blob is literally the input
   // File, both bytes and reference) - compressImageToTarget on the image
@@ -164,6 +173,9 @@ export default function PdfCompressTool({
       compareImageUrlsRef.current = null;
     }
     setComparePreviews(null);
+    setFullscreenOpen(false);
+    setFullscreenPreviews(null);
+    setFullscreenStatus('idle');
   };
 
   // Bumped on every change that invalidates an in-flight run (new file,
@@ -246,12 +258,13 @@ export default function PdfCompressTool({
     // drop, a Replace pick, or a level/target change), the run below is for
     // a file that's already gone - see runTokenRef's comment above.
     const runToken = runTokenRef.current;
+    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, 768);
     setCompareStatus('loading');
     try {
       const { renderComparePreview } = await import('../../lib/thumbnails.js');
       const [before, after] = await Promise.all([
-        renderComparePreview(activeFile),
-        renderComparePreview(activeBlob),
+        renderComparePreview(activeFile, width),
+        renderComparePreview(activeBlob, width),
       ]);
       if (runToken !== runTokenRef.current) return;
       setComparePreviews({ before, after });
@@ -264,9 +277,59 @@ export default function PdfCompressTool({
     }
   };
 
+  const openFullscreen = async () => {
+    if (!file || !compressedBlobRef.current) return;
+    setFullscreenOpen(true);
+    if (fullscreenPreviews || fullscreenStatus === 'loading') return;
+    if (kind === 'image') {
+      if (comparePreviews) setFullscreenPreviews(comparePreviews);
+      return;
+    }
+    const activeFile = file;
+    const activeBlob = compressedBlobRef.current;
+    const runToken = runTokenRef.current;
+    const width = comparePreviewWidth(window.innerWidth, window.devicePixelRatio || 1, window.innerWidth);
+    setFullscreenStatus('loading');
+    try {
+      const { renderComparePreview } = await import('../../lib/thumbnails.js');
+      const [before, after] = await Promise.all([
+        renderComparePreview(activeFile, width),
+        renderComparePreview(activeBlob, width),
+      ]);
+      if (runToken !== runTokenRef.current) return;
+      setFullscreenPreviews({ before, after });
+      setFullscreenStatus('idle');
+    } catch (err) {
+      if (runToken !== runTokenRef.current) return;
+      reportError('pdf_render', err, 'render_compare_preview');
+      console.error(err);
+      setFullscreenStatus('error');
+    }
+  };
+
+  // showModal() puts the dialog in the top layer, so it shows over a real
+  // fullscreen element (a plain `open` attribute would not). jsdom has no
+  // dialog implementation, hence the fallbacks (same as ConfirmDialog).
+  useEffect(() => {
+    const dialog = fullscreenDialogRef.current;
+    if (!dialog || !fullscreenOpen || dialog.open) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.open = true;
+  }, [fullscreenOpen]);
+
+  const closeFullscreen = () => {
+    const dialog = fullscreenDialogRef.current;
+    if (dialog?.open) {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.open = false;
+    }
+    setFullscreenOpen(false);
+  };
+
   const handleToggleCompare = () => {
     if (compareOpen) {
       setCompareOpen(false);
+      setFullscreenOpen(false);
       return;
     }
     setCompareOpen(true);
@@ -700,14 +763,59 @@ export default function PdfCompressTool({
                 the same bytes, which is noise rather than a comparison. */}
             {!passthrough && (
               <>
-                <button
-                  type="button"
-                  class={styles['compare-toggle-button']}
-                  onClick={handleToggleCompare}
-                  aria-expanded={compareOpen}
-                >
-                  {compareOpen ? t.compareHide : t.compareShow}
-                </button>
+                <div class={styles['compare-actions']}>
+                  <button
+                    type="button"
+                    class={styles['compare-toggle-button']}
+                    onClick={handleToggleCompare}
+                    aria-expanded={compareOpen}
+                  >
+                    {compareOpen ? t.compareHide : t.compareShow}
+                  </button>
+                  {compareOpen && comparePreviews && (
+                    <button type="button" class={styles['compare-toggle-button']} onClick={openFullscreen}>
+                      {t.compareFullscreenLabel}
+                    </button>
+                  )}
+                </div>
+
+                {fullscreenOpen && (
+                  <dialog
+                    ref={fullscreenDialogRef}
+                    class={styles['compare-fullscreen']}
+                    aria-label={t.compareFullscreenLabel}
+                    onClose={() => setFullscreenOpen(false)}
+                  >
+                    <div class={styles['compare-fullscreen-header']}>
+                      <p class={styles['compare-caption']}>
+                        {kind === 'image' ? t.compareCaptionImage : t.compareCaptionPdf}
+                      </p>
+                      <button type="button" class={styles['compare-toggle-button']} onClick={closeFullscreen}>
+                        {t.compareCloseLabel}
+                      </button>
+                    </div>
+                    <div class={styles['compare-fullscreen-body']}>
+                      {fullscreenStatus === 'loading' && (
+                        <>
+                          <div class={styles['compare-skeleton']} aria-hidden="true" />
+                          <p class={styles['compare-status']} aria-live="polite">{t.compareRendering}</p>
+                        </>
+                      )}
+                      {fullscreenStatus === 'error' && (
+                        <p class={styles['compare-status']}>{t.compareRenderFailed}</p>
+                      )}
+                      {fullscreenPreviews && (
+                        <CompareSlider
+                          fill
+                          beforeSrc={fullscreenPreviews.before}
+                          afterSrc={fullscreenPreviews.after}
+                          beforeLabel={t.compareBeforeLabel}
+                          afterLabel={t.compareAfterLabel}
+                        />
+                      )}
+                    </div>
+                  </dialog>
+                )}
 
                 {compareOpen && (
                   <div class={styles['compare-panel']}>

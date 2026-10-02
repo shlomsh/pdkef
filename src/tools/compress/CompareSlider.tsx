@@ -7,6 +7,8 @@ interface CompareSliderProps {
   afterSrc: string;
   beforeLabel?: string;
   afterLabel?: string;
+  /** Full width, no cap, and vertical swipes scroll the page behind it. */
+  fill?: boolean;
 }
 
 function getClientX(event: any): number {
@@ -30,6 +32,7 @@ export default function CompareSlider({
   afterSrc,
   beforeLabel = 'Original',
   afterLabel = 'Compressed',
+  fill = false,
 }: CompareSliderProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState(50);
@@ -50,7 +53,11 @@ export default function CompareSlider({
   const handleStart = (event: any) => {
     const container = containerRef.current;
     if (!container) return;
-    if (event.cancelable) event.preventDefault();
+    // In fill mode a touch must stay free to scroll the dialog (touch-action:
+    // pan-y): a vertical swipe makes the browser fire touchcancel, which the
+    // controller turns into cancel() below and the handle goes back where it
+    // was. Mouse presses are still prevented (no text selection / image drag).
+    if (event.cancelable && !(fill && event.touches)) event.preventDefault();
     const rect = container.getBoundingClientRect();
     const committedAtStart = position;
 
@@ -92,7 +99,7 @@ export default function CompareSlider({
   };
 
   return (
-    <div ref={containerRef} class={styles['compare-slider']} style={{ '--reveal': `${position}%` } as any}>
+    <div ref={containerRef} class={fill ? `${styles['compare-slider']} ${styles['compare-fill']}` : styles['compare-slider']} style={{ '--reveal': `${position}%` } as any}>
       <img class={styles['compare-image']} src={beforeSrc} alt={`${beforeLabel} - page 1`} draggable={false} />
       <div class={styles['compare-after']}>
         <img class={styles['compare-image']} src={afterSrc} alt={`${afterLabel} - page 1`} draggable={false} />

@@ -5,7 +5,7 @@
   --reveal: 50%;
   position: relative;
   width: 100%;
-  max-width: 32rem;
+  max-width: 48rem;
   margin: 0 auto;
   border-radius: var(--radius);
   overflow: hidden;
@@ -92,4 +92,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Full screen dialog (COMP-01): no width cap, and vertical swipes scroll the
+   dialog body while horizontal drags still move the handle. */
+.compare-fill {
+  max-width: none;
+  touch-action: pan-y;
 }

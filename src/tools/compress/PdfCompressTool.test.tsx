@@ -815,6 +815,108 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
+  async function compressPdfToResult(name) {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile(name, 200000)]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    window.URL.createObjectURL = vi.fn(() => 'blob:fullscreentest');
+    await tickFlatten(container);
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+  }
+
+  const findButton = (label) =>
+    Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === label);
+
+  it('opens the comparison full screen in a modal dialog, re-rendering at the viewport width once, and closes it again', async () => {
+    const showModal = vi.fn(function () { this.open = true; });
+    const close = vi.fn(function () { this.open = false; });
+    HTMLDialogElement.prototype.showModal = showModal;
+    HTMLDialogElement.prototype.close = close;
+
+    await compressPdfToResult('fullscreen.pdf');
+    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(2);
+    expect(container.querySelector(`.${styles['compare-fullscreen']}`)).toBeNull();
+
+    const fullScreen = findButton('Full screen');
+    expect(fullScreen).toBeTruthy();
+
+    await act(async () => {
+      fullScreen.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    const dialog = container.querySelector(`.${styles['compare-fullscreen']}`);
+    expect(dialog).not.toBeNull();
+    expect(showModal).toHaveBeenCalledTimes(1);
+    expect(dialog.querySelector('[role="slider"]')).not.toBeNull();
+    // Two inline renders plus two at the full screen width.
+    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(4);
+    expect(thumbnailsLib.renderComparePreview.mock.calls[2][1]).toBeGreaterThanOrEqual(900);
+
+    const closeButton = Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Close');
+    await act(async () => {
+      closeButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(close).toHaveBeenCalled();
+    expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).toBeNull();
+
+    // Re-opening reuses the cached full screen renders.
+    await act(async () => {
+      findButton('Full screen').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(thumbnailsLib.renderComparePreview).toHaveBeenCalledTimes(4);
+    expect(container.querySelector(`.${styles['compare-fullscreen']} [role="slider"]`)).not.toBeNull();
+  });
+
+  it('offers no Full screen button for a passthrough result', async () => {
+    compressLib.compressPdfToTarget.mockImplementation((passthroughFile) =>
+      Promise.resolve({ blob: passthroughFile, metTarget: true, rasterBytes: null }),
+    );
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('already_small.pdf', 20_000)]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const targetCard = Array.from(container.querySelectorAll(`.${styles['compress-card']}`)).find((c) => c.textContent.includes('Target Size'));
+    await act(async () => {
+      targetCard.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    window.URL.createObjectURL = vi.fn(() => 'blob:pdfpassthrough2');
+    await tickFlatten(container);
+    await act(async () => {
+      container.querySelector(`.${pdfToolStyles['tool-primary-action']}`).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(container.querySelector(`.${styles['compression-stats']}`)).not.toBeNull();
+    expect(findButton('Full screen')).toBeUndefined();
+  });
+
   it('renders passthroughNotice, not rasterizeNotice, and no compare toggle for a PDF target-mode passthrough result', async () => {
     // compressPdfToTarget's own passthrough rule (src/tools/compress/compress.js,
     // "Already under target" near line 146) returns the input File itself as
