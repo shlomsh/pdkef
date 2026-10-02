@@ -3545,7 +3545,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
     }
 
-    const state = () => container.querySelector<HTMLElement>('[data-redact-needs-unlock]');
+    const state = () => container.querySelector<HTMLElement>('[data-needs-unlock]');
     const unlockButton = () => required(
       Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes('Unlock it')),
       'the Unlock it button',

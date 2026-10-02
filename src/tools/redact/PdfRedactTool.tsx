@@ -57,7 +57,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './RedactFinish.tsx';
-import NeedsUnlock, { type NeedsUnlockKind } from './NeedsUnlock.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from '../../shell/NeedsUnlock.tsx';
 import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
 import { redactedFileName } from './redactFileName.ts';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -355,7 +355,7 @@ export default function PdfRedactTool() {
   const renderedPageNumbersRef = useRef(new Set<number>());
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
   // ENC-02: a protected PDF is not a failed load. It gets one quiet state in place of the editor
-  // (NeedsUnlock.tsx), reset whenever a new file is chosen.
+  // (src/shell/NeedsUnlock.tsx), reset whenever a new file is chosen.
   const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
@@ -1002,7 +1002,7 @@ export default function PdfRedactTool() {
           Workspace.module.css's fade-in on .workspace, which softens the real
           jump from nothing to a loaded document instead). */}
 
-      {needsUnlock && <NeedsUnlock kind={needsUnlock} file={file} bytes={fileBytesRef.current} />}
+      {needsUnlock && <NeedsUnlock kind={needsUnlock} file={file} bytes={fileBytesRef.current} from="redact" toolName="Redact" verb="redact" />}
 
       {!needsUnlock && (status === 'editing' || status === 'redacting') && pdfDocument && (
         <div
