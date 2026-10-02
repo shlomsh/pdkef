@@ -65,6 +65,7 @@ export async function probeEncryption(
     const doc = await task.promise;
     outcome = { opened: true, permissions: await doc.getPermissions() };
   } catch (error) {
+    // expected: the failure is the answer, classifyPdfOpen names it or rethrows what it does not know
     outcome = { opened: false, error };
   }
   // expected: a task that already failed has nothing left to release

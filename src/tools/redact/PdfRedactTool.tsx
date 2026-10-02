@@ -1,4 +1,4 @@
-import { useReducer, useRef, useEffect, useCallback } from 'preact/hooks';
+import { useReducer, useRef, useEffect, useCallback, useState } from 'preact/hooks';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
@@ -56,6 +56,7 @@ import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { FileActions } from '../../shell/ToolShell.tsx';
 import RedactFinish from './RedactFinish.tsx';
+import NeedsUnlock, { type NeedsUnlockKind } from './NeedsUnlock.tsx';
 import { finishStatusText, type FinishFacts, type FinishPhase } from './finishState.ts';
 import { redactedFileName } from './redactFileName.ts';
 import workspaceStyles from '../../editor-ui/Workspace.module.css';
@@ -345,6 +346,9 @@ export default function PdfRedactTool() {
   // path and this is not a layout contract shared with Merge.
   const renderedPageNumbersRef = useRef(new Set<number>());
   const fileBytesRef = useRef<ArrayBuffer | null>(null);
+  // ENC-02: a protected PDF is not a failed load. It gets one quiet state in place of the editor
+  // (NeedsUnlock.tsx), reset whenever a new file is chosen.
+  const [needsUnlock, setNeedsUnlock] = useState<NeedsUnlockKind | null>(null);
   const loadIdRef = useRef(0);
   const loadControllerRef = useRef<import('../../editor/workspace/loadPdf.ts').PdfLoadController | null>(null);
   // Whichever of {manual file pick, draft restore} happens first (in call order) wins
@@ -434,7 +438,9 @@ export default function PdfRedactTool() {
     const presetElements = preset.elements || [];
     await loadEditorPdf({
       file: selected, bytes, restored, loadIdRef, loadControllerRef, clearDraft, setStatus: setLoadStatus, setAnnouncement,
+      onNeedsUnlock: setNeedsUnlock,
       initialize: () => {
+        setNeedsUnlock(null);
         renderedPageNumbersRef.current = new Set();
         deleteTool.clearLifts(); // a lift from the last file must never show over this one
         // RED-39: a new file starts clean - no tool armed, nothing selected, Find
@@ -836,6 +842,16 @@ export default function PdfRedactTool() {
     } catch (err) {
       reportError('redact', err, 'export');
       console.error(err);
+      // ENC-02: the load gate should have caught a protected file, so this is reported above (a gate
+      // miss), but the person gets the way on rather than a Try again that can never work.
+      const name = Reflect.get(Object(err), 'name');
+      const message = String(Reflect.get(Object(err), 'message') ?? '');
+      if (run.isCurrent() && (name === 'EncryptedPDFError' || message.includes('is encrypted'))) {
+        run.settle();
+        setNeedsUnlock('owner-restricted');
+        dispatch({ type: 'EXPORT_FAILED', detail: '', announcement: 'This PDF is protected.' });
+        return;
+      }
       // A failure nobody is waiting for any more: the invalidation effect has
       // already put the editor back, and reporting it would blame the user's
       // current boxes for a run they replaced.
@@ -948,7 +964,9 @@ export default function PdfRedactTool() {
           Workspace.module.css's fade-in on .workspace, which softens the real
           jump from nothing to a loaded document instead). */}
 
-      {(status === 'editing' || status === 'redacting') && pdfDocument && (
+      {needsUnlock && <NeedsUnlock kind={needsUnlock} file={file} bytes={fileBytesRef.current} />}
+
+      {!needsUnlock && (status === 'editing' || status === 'redacting') && pdfDocument && (
         <div
           className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'redacting' ? ` ${workspaceStyles['is-processing']}` : ''}`}
           ref={workspaceRef}
@@ -1199,7 +1217,7 @@ export default function PdfRedactTool() {
       )}
 
       {/* Error */}
-      {status === 'error' && (
+      {status === 'error' && !needsUnlock && (
         <ErrorMessage title="This PDF didn't open." fullWidth>
           <LoadErrorBody />
         </ErrorMessage>

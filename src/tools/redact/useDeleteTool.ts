@@ -49,6 +49,8 @@ export interface UseDeleteToolResult {
 export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolResult {
   const { elements, file, fileBytes, pdfDocument, pageWrapperRefs, add, announce, disarmTool, readPreviews = true } = deps;
 
+  // ENC-02: both pdf-lib readers wait for pdf.js to have opened the document, so a protected file
+  // (which pdf-lib refuses) never reaches PDFDocument.load.
   // What the Delete tool can offer to click on: images and text runs the PDF
   // itself stores as a single object, found by parsing the source file's own
   // content streams (not what's on the page after any edits this session has
@@ -56,11 +58,11 @@ export default function useDeleteTool(deps: UseDeleteToolDeps): UseDeleteToolRes
   // RED-16: each text object carries the words pdf.js reads in its box, so the
   // hover label, the mark's preview and the saved-file check's deleted term all
   // say what the page shows, Hebrew in reading order.
-  const deletableObjects: DeletablePdfObject[] = useObjectPreviews(pdfDocument, useDeletableObjects(file, fileBytes), readPreviews);
+  const deletableObjects: DeletablePdfObject[] = useObjectPreviews(pdfDocument, useDeletableObjects(file, pdfDocument ? fileBytes : null), readPreviews);
   // RED-13: a page with Delete marks renders from the same rewritten content
   // the download writes, so the deleted text/image disappears on screen
   // rather than only being outlined.
-  const deletePreviews = useDeletePreviews(fileBytes, elements);
+  const deletePreviews = useDeletePreviews(pdfDocument ? fileBytes : null, elements);
   const [lifts, setLifts] = useState<Lift[]>([]);
   const markedForDeletionIds = useMemo(
     () => new Set<string>(elements.flatMap((element) => (
