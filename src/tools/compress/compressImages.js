@@ -188,7 +188,19 @@ export const TARGET_IMAGE_LADDER = [
   { maxLongSidePx: 600, quality: 0.2 },
 ];
 
+const BISECT_STEPS = 4;
+
+// A rung t of the way from a to b (t = 0 is a, t = 1 is b).
+export function lerpRung(a, b, t) {
+  return {
+    maxLongSidePx: Math.round(a.maxLongSidePx + (b.maxLongSidePx - a.maxLongSidePx) * t),
+    quality: Math.round((a.quality + (b.quality - a.quality) * t) * 100) / 100,
+  };
+}
+
 /**
+ * Walks the ladder to the first rung under target, then bisects between it and the rung above
+ * so the result uses most of the budget instead of landing far under it.
  * @param {File} file
  * @param {{ targetKB: number, onProgress?: (p: number) => void, encodeImage?: typeof encodeImageOnCanvas }} options
  */
@@ -203,13 +215,17 @@ export async function compressPdfImagesToTarget(file, { targetKB, onProgress, en
     return unchanged('under-target', true);
   }
 
+  const slots = TARGET_IMAGE_LADDER.length + BISECT_STEPS;
+  const run = (rung, slot) =>
+    compressPdfImages(file, {
+      ...rung,
+      ...(encodeImage ? { encodeImage } : {}),
+      onProgress: (p) => onProgress?.((slot + p) / slots),
+    });
+
   let smallest = null;
   for (let i = 0; i < TARGET_IMAGE_LADDER.length; i += 1) {
-    const result = await compressPdfImages(file, {
-      ...TARGET_IMAGE_LADDER[i],
-      ...(encodeImage ? { encodeImage } : {}),
-      onProgress: (p) => onProgress?.((i + p) / TARGET_IMAGE_LADDER.length),
-    });
+    const result = await run(TARGET_IMAGE_LADDER[i], i);
     // No rung can change a file with no images or one that is encrypted.
     if (result.reason === 'no-images' || result.reason === 'encrypted') {
       onProgress?.(1);
@@ -217,8 +233,26 @@ export async function compressPdfImagesToTarget(file, { targetKB, onProgress, en
     }
     if (result.reason !== 'smaller') continue;
     if (result.afterBytes <= targetBytes) {
+      let best = result;
+      if (i > 0) {
+        let lo = 0;
+        let hi = 1;
+        for (let step = 0; step < BISECT_STEPS; step += 1) {
+          const mid = (lo + hi) / 2;
+          const trial = await run(
+            lerpRung(TARGET_IMAGE_LADDER[i - 1], TARGET_IMAGE_LADDER[i], mid),
+            TARGET_IMAGE_LADDER.length + step,
+          );
+          if (trial.reason === 'smaller' && trial.afterBytes <= targetBytes) {
+            best = trial;
+            hi = mid;
+          } else {
+            lo = mid;
+          }
+        }
+      }
       onProgress?.(1);
-      return { ...result, metTarget: true };
+      return { ...best, metTarget: true };
     }
     if (!smallest || result.afterBytes < smallest.afterBytes) smallest = result;
   }

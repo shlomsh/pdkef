@@ -7,6 +7,7 @@ import {
   compressPdfImages,
   compressPdfImagesToTarget,
   IMAGE_LEVELS,
+  lerpRung,
   planImageRewrite,
   TARGET_IMAGE_LADDER,
   targetDimensions,
@@ -285,7 +286,8 @@ describe('compressPdfImagesToTarget', () => {
     expect(result.reason).toBe('smaller');
     expect(result.afterBytes).toBe(third);
     const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800 && w !== 200);
-    expect(widths).toEqual([2000, 1600, 1000]);
+    // The walk stops at the third rung; bisection calls follow it.
+    expect(widths.slice(0, 3)).toEqual([2000, 1600, 1000]);
   });
 
   it('returns the smallest result when nothing meets the target', async () => {
@@ -314,6 +316,67 @@ describe('compressPdfImagesToTarget', () => {
     });
     expect(seen.at(-1)).toBe(1);
     expect(seen.every((p, i) => i === 0 || p >= seen[i - 1])).toBe(true);
+  });
+});
+
+describe('compressPdfImagesToTarget bisection between rungs', () => {
+  // Bytes grow with both the target width and the quality.
+  const sizedQ = () =>
+    vi.fn(async ({ target, quality }) => new Uint8Array(Math.round(target.width * 5 * (1 + quality))));
+  const afterBytesAt = async (rung) =>
+    (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sizedQ() })).afterBytes;
+  const between = async () => {
+    const over = await afterBytesAt(TARGET_IMAGE_LADDER[1]);
+    const under = await afterBytesAt(TARGET_IMAGE_LADDER[2]);
+    expect(under).toBeLessThan(over);
+    return { over, under, targetBytes: Math.round((over + under) / 2) };
+  };
+
+  it('uses more of the budget than the lower rung when the target falls between rungs', async () => {
+    const { under, targetBytes } = await between();
+    const result = await compressPdfImagesToTarget(fixture('mixed.pdf'), {
+      targetKB: targetBytes / 1024,
+      encodeImage: sizedQ(),
+    });
+    expect(result.metTarget).toBe(true);
+    expect(result.reason).toBe('smaller');
+    expect(result.afterBytes).toBeLessThanOrEqual(targetBytes);
+    expect(result.afterBytes).toBeGreaterThan(under);
+  });
+
+  it('does not bisect when the best rung already fits', async () => {
+    const file = fixture('mixed.pdf');
+    const best = await afterBytesAt(TARGET_IMAGE_LADDER[0]);
+    const encode = sizedQ();
+    const result = await compressPdfImagesToTarget(file, { targetKB: best / 1024, encodeImage: encode });
+    expect(result.metTarget).toBe(true);
+    expect(result.afterBytes).toBe(best);
+    const single = sizedQ();
+    await compressPdfImages(file, { ...TARGET_IMAGE_LADDER[0], encodeImage: single });
+    expect(encode.mock.calls.length).toBe(single.mock.calls.length);
+  });
+
+  it('reports non-decreasing progress ending at 1 on the bisect path', async () => {
+    const { targetBytes } = await between();
+    const seen = [];
+    await compressPdfImagesToTarget(fixture('mixed.pdf'), {
+      targetKB: targetBytes / 1024,
+      encodeImage: sizedQ(),
+      onProgress: (p) => seen.push(p),
+    });
+    expect(seen.length).toBeGreaterThan(1);
+    expect(seen.at(-1)).toBe(1);
+    expect(seen.every((p, i) => i === 0 || p >= seen[i - 1])).toBe(true);
+  });
+});
+
+describe('lerpRung', () => {
+  const a = { maxLongSidePx: 1600, quality: 0.6 };
+  const b = { maxLongSidePx: 1000, quality: 0.4 };
+  it('interpolates size and quality', () => {
+    expect(lerpRung(a, b, 0)).toEqual(a);
+    expect(lerpRung(a, b, 0.5)).toEqual({ maxLongSidePx: 1300, quality: 0.5 });
+    expect(lerpRung(a, b, 1)).toEqual(b);
   });
 });
 
