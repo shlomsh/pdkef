@@ -63,6 +63,30 @@ describe('BasePdfTool', () => {
     });
   }
 
+  describe('old browser notice', () => {
+    const OLD_CHROME = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36';
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('stays off the empty page, so an old browser can still read it', () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
+      mount({ hasFiles: false, onFilesAdded: vi.fn() });
+      expect(container.textContent).not.toContain('needs Chrome 122');
+    });
+
+    it('appears once a file is added, naming the version to update to', () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME });
+      mount({ hasFiles: true, onFilesAdded: vi.fn() });
+      expect(container.textContent).toContain('needs Chrome 122 or newer');
+    });
+
+    it('does not appear in a current browser', () => {
+      vi.stubGlobal('navigator', { ...navigator, userAgent: OLD_CHROME.replace('109', '143') });
+      mount({ hasFiles: true, onFilesAdded: vi.fn() });
+      expect(container.textContent).not.toContain('or newer to open PDFs');
+    });
+  });
+
   it('renders initial state without files', () => {
     mount({ hasFiles: false, onFilesAdded: vi.fn() });
     expect(container.textContent).toContain('Drop PDFs here');

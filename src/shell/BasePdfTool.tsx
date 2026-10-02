@@ -6,6 +6,7 @@ import dialogStyles from './Dialog.module.css';
 import ConfirmDialog from './ConfirmDialog.tsx';
 import DropzoneEmptyState from './DropzoneEmptyState.tsx';
 import ToolShell, { FileActions, ToolShellContext } from './ToolShell.tsx';
+import { unsupportedBrowser, type UnsupportedBrowser } from '../lib/browserSupport.ts';
 import { installUncaughtErrorReporting } from '../lib/errorReport.ts';
 import { reportToolLifecycleEvent, type AnalyticsTool } from '../lib/productAnalytics.ts';
 import { dropHasDirectory, filesFromDataTransfer, filesFromPaste } from './dropFiles.js';
@@ -162,6 +163,14 @@ export default function BasePdfTool({
 
   useEffect(() => {
     installUncaughtErrorReporting();
+  }, []);
+
+  // Null on the server and on the first client render (no navigator to read),
+  // so hydration matches. It is only shown once a file is added: an old
+  // browser can still read the page, it is the PDF library that cannot run.
+  const [oldBrowser, setOldBrowser] = useState<UnsupportedBrowser | null>(null);
+  useEffect(() => {
+    setOldBrowser(unsupportedBrowser(typeof navigator === 'undefined' ? undefined : navigator));
   }, []);
 
   // This is intentionally based on a tool's coarse public state, never its
@@ -413,6 +422,12 @@ export default function BasePdfTool({
           </svg>
           <p>{multiple ? sm.dropToAddMore : sm.dropToReplace}</p>
         </div>
+      )}
+
+      {hasFiles && oldBrowser && (
+        <p class={styles['old-browser-notice']} role="status">
+          {formatMessage(sm.oldBrowserNotice, { browser: oldBrowser.browser, version: String(oldBrowser.minimum) })}
+        </p>
       )}
 
       {children}
