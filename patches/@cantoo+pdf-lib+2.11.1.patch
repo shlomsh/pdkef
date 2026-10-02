@@ -1,3 +1,27 @@
+diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/parser/PDFObjectParser.js b/node_modules/@cantoo/pdf-lib/cjs/core/parser/PDFObjectParser.js
+index 1128a45..9326cb3 100644
+--- a/node_modules/@cantoo/pdf-lib/cjs/core/parser/PDFObjectParser.js
++++ b/node_modules/@cantoo/pdf-lib/cjs/core/parser/PDFObjectParser.js
+@@ -112,7 +112,8 @@ class PDFObjectParser extends BaseParser_1.default {
+                 if (this.cryptoFactory && ref) {
+                     const transformer = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+                     const decrypted = transformer.decryptBytes(PDFString_1.default.of(actualValue).asBytes());
+-                    actualValue = (0, utils_1.arrayAsString)(decrypted);
++                    // Decrypted bytes are arbitrary: as a literal string an unescaped paren or backslash breaks the next parse.
++                    return PDFHexString_1.default.fromBytes(decrypted);
+                 }
+                 // Remove the outer parens so they aren't part of the contents
+                 return PDFString_1.default.of(actualValue);
+@@ -203,7 +204,8 @@ class PDFObjectParser extends BaseParser_1.default {
+             end = this.findEndOfStreamFallback(startPos);
+         }
+         let contents = this.bytes.slice(start, end);
+-        if (this.cryptoFactory && ref) {
++        // A cross-reference stream is never encrypted (ISO 32000 7.5.8.2).
++        if (this.cryptoFactory && ref && dict.get(PDFName_1.default.of('Type')) !== PDFName_1.default.of('XRef')) {
+             const transform = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+             contents = transform.decryptBytes(contents);
+         }
 diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
 index 6a62f0c..48be16b 100644
 --- a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFStreamWriter.js
@@ -19,6 +43,77 @@ index 6a62f0c..48be16b 100644
                  // Source ObjStm containers must be skipped on full saves: their
                  // contents have already been extracted and registered individually by
                  // PDFObjectStreamParser. Re-serialising the raw container would produce
+diff --git a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
+index e8d6035..9942f98 100644
+--- a/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
++++ b/node_modules/@cantoo/pdf-lib/cjs/core/writers/PDFWriter.js
+@@ -13,6 +13,21 @@ const snapshot_1 = require("../../api/snapshot");
+ const PDFNumber_1 = tslib_1.__importDefault(require("../objects/PDFNumber"));
+ const PDFName_1 = tslib_1.__importDefault(require("../objects/PDFName"));
+ const PDFRawStream_1 = tslib_1.__importDefault(require("../objects/PDFRawStream"));
++const PDFDict_1 = tslib_1.__importDefault(require("../objects/PDFDict"));
++const PDFArray_1 = tslib_1.__importDefault(require("../objects/PDFArray"));
++const PDFString_1 = tslib_1.__importDefault(require("../objects/PDFString"));
++const PDFHexString_1 = tslib_1.__importDefault(require("../objects/PDFHexString"));
++// Every string in an object written outside an object stream is encrypted on its
++// own (ISO 32000 7.6.2), however deep it sits in nested dictionaries and arrays.
++const encryptStrings = (container, encryptFn) => {
++    const entries = container instanceof PDFDict_1.default ? container.entries() : container.asArray().entries();
++    for (const [key, value] of entries) {
++        if (value instanceof PDFString_1.default || value instanceof PDFHexString_1.default)
++            container.set(key, PDFHexString_1.default.fromBytes(encryptFn(value.asBytes())));
++        else if (value instanceof PDFDict_1.default || value instanceof PDFArray_1.default)
++            encryptStrings(value, encryptFn);
++    }
++};
+ class PDFWriter {
+     constructor(context, objectsPerTick, snapshot) {
+         this.parsedObjects = 0;
+@@ -205,12 +220,14 @@ class PDFWriter {
+         });
+     }
+     encrypt(ref, object, security) {
+-        if (object instanceof PDFStream_1.default) {
+-            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
+-            const unencryptedContents = object.getContents();
+-            const encryptedContents = encryptFn(unencryptedContents);
+-            object.updateContents(encryptedContents);
+-        }
++        // The encryption dictionary itself is never encrypted.
++        if (ref === this.context.trailerInfo.Encrypt)
++            return;
++        const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
++        if (object instanceof PDFStream_1.default)
++            object.updateContents(encryptFn(object.getContents()));
++        else if (object instanceof PDFDict_1.default || object instanceof PDFArray_1.default)
++            encryptStrings(object, encryptFn);
+     }
+     shouldSkipCopiedObjectStream(object) {
+         return (object instanceof PDFRawStream_1.default &&
+diff --git a/node_modules/@cantoo/pdf-lib/es/core/parser/PDFObjectParser.js b/node_modules/@cantoo/pdf-lib/es/core/parser/PDFObjectParser.js
+index 2818a5b..01014fc 100644
+--- a/node_modules/@cantoo/pdf-lib/es/core/parser/PDFObjectParser.js
++++ b/node_modules/@cantoo/pdf-lib/es/core/parser/PDFObjectParser.js
+@@ -109,7 +109,8 @@ class PDFObjectParser extends BaseParser {
+                 if (this.cryptoFactory && ref) {
+                     const transformer = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+                     const decrypted = transformer.decryptBytes(PDFString.of(actualValue).asBytes());
+-                    actualValue = arrayAsString(decrypted);
++                    // Decrypted bytes are arbitrary: as a literal string an unescaped paren or backslash breaks the next parse.
++                    return PDFHexString.fromBytes(decrypted);
+                 }
+                 // Remove the outer parens so they aren't part of the contents
+                 return PDFString.of(actualValue);
+@@ -200,7 +201,8 @@ class PDFObjectParser extends BaseParser {
+             end = this.findEndOfStreamFallback(startPos);
+         }
+         let contents = this.bytes.slice(start, end);
+-        if (this.cryptoFactory && ref) {
++        // A cross-reference stream is never encrypted (ISO 32000 7.5.8.2).
++        if (this.cryptoFactory && ref && dict.get(PDFName.of('Type')) !== PDFName.of('XRef')) {
+             const transform = this.cryptoFactory.createCipherTransform(ref.objectNumber, ref.generationNumber);
+             contents = transform.decryptBytes(contents);
+         }
 diff --git a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
 index 1a45ba9..0643846 100644
 --- a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFStreamWriter.js
@@ -48,3 +143,50 @@ index 1a45ba9..0643846 100644
                  // Source ObjStm containers must be skipped on full saves: their
                  // contents have already been extracted and registered individually by
                  // PDFObjectStreamParser. Re-serialising the raw container would produce
+diff --git a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
+index da76863..bb3816f 100644
+--- a/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
++++ b/node_modules/@cantoo/pdf-lib/es/core/writers/PDFWriter.js
+@@ -11,6 +11,21 @@ import { DefaultDocumentSnapshot, defaultDocumentSnapshot, } from '../../api/sna
+ import PDFNumber from '../objects/PDFNumber.js';
+ import PDFName from '../objects/PDFName.js';
+ import PDFRawStream from '../objects/PDFRawStream.js';
++import PDFDict from '../objects/PDFDict.js';
++import PDFArray from '../objects/PDFArray.js';
++import PDFString from '../objects/PDFString.js';
++import PDFHexString from '../objects/PDFHexString.js';
++// Every string in an object written outside an object stream is encrypted on its
++// own (ISO 32000 7.6.2), however deep it sits in nested dictionaries and arrays.
++const encryptStrings = (container, encryptFn) => {
++    const entries = container instanceof PDFDict ? container.entries() : container.asArray().entries();
++    for (const [key, value] of entries) {
++        if (value instanceof PDFString || value instanceof PDFHexString)
++            container.set(key, PDFHexString.fromBytes(encryptFn(value.asBytes())));
++        else if (value instanceof PDFDict || value instanceof PDFArray)
++            encryptStrings(value, encryptFn);
++    }
++};
+ class PDFWriter {
+     constructor(context, objectsPerTick, snapshot) {
+         this.parsedObjects = 0;
+@@ -203,12 +218,14 @@ class PDFWriter {
+         });
+     }
+     encrypt(ref, object, security) {
+-        if (object instanceof PDFStream) {
+-            const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
+-            const unencryptedContents = object.getContents();
+-            const encryptedContents = encryptFn(unencryptedContents);
+-            object.updateContents(encryptedContents);
+-        }
++        // The encryption dictionary itself is never encrypted.
++        if (ref === this.context.trailerInfo.Encrypt)
++            return;
++        const encryptFn = security.getEncryptFn(ref.objectNumber, ref.generationNumber);
++        if (object instanceof PDFStream)
++            object.updateContents(encryptFn(object.getContents()));
++        else if (object instanceof PDFDict || object instanceof PDFArray)
++            encryptStrings(object, encryptFn);
+     }
+     shouldSkipCopiedObjectStream(object) {
+         return (object instanceof PDFRawStream &&

@@ -37,6 +37,23 @@ describe('security.js', () => {
     return text;
   }
 
+  // Everything a reader shows: page text, the title and the form fields' names and values.
+  async function readWithPdfjs(bytes, password) {
+    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(bytes).slice(), password, useWorkerFetch: false, isEvalSupported: false });
+    const pdf = await loadingTask.promise;
+    const pages = [];
+    const fields = {};
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const page = await pdf.getPage(n);
+      pages.push((await page.getTextContent()).items.map((item) => item.str).join(' ').trim());
+      const annotations = await page.getAnnotations();
+      for (const a of annotations) if (a.fieldName) fields[a.fieldName] = a.fieldValue;
+    }
+    const { info } = await pdf.getMetadata();
+    await loadingTask.destroy();
+    return { pages, title: info.Title, fields };
+  }
+
   const legacyPdfjs = () => pdfjs;
   const probe = (file) => file.arrayBuffer().then((bytes) => probeEncryption(bytes, legacyPdfjs));
   function encryptedFixture(name) {
@@ -58,6 +75,42 @@ describe('security.js', () => {
     const text = await extractTextFromPdfBlob(unlockedBlob);
     expect(text).toBe('1');
   });
+
+  // What a person sees: lock a file, unlock it with the same password, and
+  // the result opens elsewhere with every page, its text, its title and its
+  // form fields intact. Read with pdf.js, not pdf-lib, so the writer is never
+  // also the judge. A file saved without object streams leaves strings as
+  // top-level objects, which is where both directions go wrong.
+  it.each([
+    ['with object streams', true],
+    ['without object streams', false],
+  ])('a protected file unlocks with the same password into the same document (%s)', async (_, useObjectStreams) => {
+    const doc = await PDFDocument.load(await getFixtureFile('three-page-header.pdf').arrayBuffer());
+    doc.setTitle('Quarterly report');
+    const field = doc.getForm().createTextField('full_name');
+    field.setText('Dana Levi');
+    field.addToPage(doc.getPage(0), { x: 40, y: 40, width: 200, height: 20 });
+    const original = await doc.save({ useObjectStreams });
+
+    const protectedFile = new File([await protectPdf(new File([original], 'a.pdf'), 'test123')], 'a_protected.pdf');
+    const unlocked = new Uint8Array(await (await unlockPdf(protectedFile, 'test123')).arrayBuffer());
+
+    const before = await readWithPdfjs(original);
+    expect(before.fields).toEqual({ full_name: 'Dana Levi' });
+    expect(await readWithPdfjs(unlocked)).toEqual(before);
+  });
+
+  // A real government form (xref and object streams, 5 pages): its unlocked
+  // copy would not open at all. The bytes are the Sign corpus's, read in place.
+  it('a real form protected and unlocked with the same password still opens, page for page', async () => {
+    const formPath = path.resolve(__dirname, '../sign/fields/corpus/scoring/forms/thai-pnd90-2565.pdf');
+    const original = fs.readFileSync(formPath);
+
+    const protectedFile = new File([await protectPdf(new File([original], 'form.pdf'), 'test123')], 'form_protected.pdf');
+    const unlocked = new Uint8Array(await (await unlockPdf(protectedFile, 'test123')).arrayBuffer());
+
+    expect(await readWithPdfjs(unlocked)).toEqual(await readWithPdfjs(original));
+  }, 30000);
 
   it('fails to protect an already encrypted PDF', async () => {
     const blob = await createEncryptedPdfBlob('secret');
