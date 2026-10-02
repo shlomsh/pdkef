@@ -38,6 +38,7 @@ const LEGACY_SIGNATURES_KEY = 'pdf-toolkit:signatures';
 const RECORD_KEY_PREFIX = 'pdf-toolkit:editor-preferences:v1:';
 const SIGNATURE_LIBRARY_KEY_PREFIX = 'pdf-toolkit:saved-signatures:v1:';
 const APP_STYLE_KEY_PREFIX = 'pdf-toolkit:app-style:v1:';
+const RECENT_WHITEOUT_COLORS_KEY_PREFIX = 'pdf-toolkit:recent-whiteout-colors:v1:';
 /** Increment only when the persisted app-wide style record shape changes. */
 export const APP_STYLE_RECORD_VERSION = 1;
 const TAB_ID_KEY = 'pdf-toolkit:editor-preferences-tab-id';
@@ -182,6 +183,7 @@ export function getEditorUserScope(options: EditorPreferenceOptions = {}): strin
 function recordKey(scope: string): string { return `${RECORD_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function appStyleKey(scope: string): string { return `${APP_STYLE_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function signatureLibraryKey(scope: string): string { return `${SIGNATURE_LIBRARY_KEY_PREFIX}${encodeURIComponent(scope)}`; }
+function recentWhiteoutColorsKey(scope: string): string { return `${RECENT_WHITEOUT_COLORS_KEY_PREFIX}${encodeURIComponent(scope)}`; }
 function getTabId(): string {
   try {
     const existing = sessionStorage.getItem(TAB_ID_KEY); if (existing) return existing;
@@ -360,4 +362,59 @@ export function rememberAppStyle(patch: Partial<DocumentStyle>, options: EditorP
     return true;
   // expected: quota or blocked storage returns false
   } catch { return false; }
+}
+
+// RED-53: the last few custom whiteout colours, remembered across documents.
+const HEX_COLOR = /^#[0-9a-f]{6}$/;
+const RECENT_WHITEOUT_COLORS_VERSION = 1;
+
+/** Puts a '#rrggbb' colour first (lowercased), dedupes, caps at max. Anything else is ignored. */
+export function withRecentColor(list: readonly string[], color: string, max = 3): string[] {
+  const next = typeof color === 'string' ? color.toLowerCase() : '';
+  const rest = list.filter((c) => c !== next);
+  return (HEX_COLOR.test(next) ? [next, ...rest] : rest).slice(0, max);
+}
+
+/** The stored list, or null when storage cannot be read (no scope, blocked, throwing). A missing or unusable record is [] (readable). */
+function readStoredRecentWhiteoutColors(options: EditorPreferenceOptions): string[] | null {
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return null;
+    const raw = localStorage.getItem(recentWhiteoutColorsKey(scope)); if (raw === null) return [];
+    let parsed: unknown;
+    // expected: a corrupt record is readable storage holding nothing usable, so the next pick rewrites it
+    try { parsed = JSON.parse(raw); } catch { return []; }
+    if (!isObject(parsed) || parsed.schemaVersion !== RECENT_WHITEOUT_COLORS_VERSION || !Array.isArray(parsed.colors)) return [];
+    return parsed.colors.filter((c): c is string => typeof c === 'string' && HEX_COLOR.test(c)).slice(0, 3);
+  // expected: blocked storage means unreadable
+  } catch { return null; }
+}
+
+/** The remembered custom whiteout colours, most recent first. [] on any problem. */
+export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): string[] {
+  return readStoredRecentWhiteoutColors(options) ?? [];
+}
+
+/** Writes the list; false when there is no scope or the write throws. */
+function writeRecentWhiteoutColors(list: readonly string[], options: EditorPreferenceOptions): boolean {
+  try {
+    const scope = getEditorUserScope(options); if (!scope) return false;
+    localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: list }));
+    return true;
+  // expected: quota or blocked storage, the caller keeps the list in memory
+  } catch { return false; }
+}
+
+/**
+ * Adds a colour and returns the new list, which becomes the caller's state. The write's outcome decides the
+ * base: when storage is readable and the write lands, storage is the truth (another tab's picks merge in, a
+ * cleared record stays cleared); otherwise this tab's `current` is the truth, so nothing is lost to a failing write.
+ */
+export function rememberRecentWhiteoutColor(color: string, current: readonly string[], options: EditorPreferenceOptions = {}): string[] {
+  const stored = readStoredRecentWhiteoutColors(options);
+  if (stored !== null) {
+    const next = withRecentColor(stored, color);
+    if (writeRecentWhiteoutColors(next, options)) return next;
+  }
+  // storage unusable: this tab's memory is the truth
+  return withRecentColor(current, color);
 }

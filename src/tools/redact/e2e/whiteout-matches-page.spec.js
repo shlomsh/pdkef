@@ -293,11 +293,16 @@ test.describe('Whiteout matches the page (RED-51)', () => {
     await expect(bar).toBeVisible();
     await expectFillCloseTo(whiteout, BLUE, 2, 'eyedropper sets the blue');
     await expect(auto).toHaveAttribute('aria-pressed', 'false');
-    await expect(bar.locator('[data-redact-color-swatch]')).toBeVisible();
+    // RED-53: the picked colour is now the first recent swatch, shown as chosen.
+    await expect(bar.locator('[data-redact-color-recent][aria-pressed="true"]')).toBeVisible();
 
     await auto.click();
     await expect(auto).toHaveAttribute('aria-pressed', 'true');
     await expectFillCloseTo(whiteout, CREAM, 2, 'Auto samples the cream page again');
+    // RED-53: back on Auto the box shows no colour of its own, so this tile is the
+    // remembered list reaching the toolbar: the eyedropper's pick, one tap away.
+    await expect(bar.locator('[data-redact-color-recent]')).toHaveCount(1);
+    await expect(bar.locator('[data-redact-color-recent]')).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('exports the patch in the matched colour with no stroke', async ({ page }) => {

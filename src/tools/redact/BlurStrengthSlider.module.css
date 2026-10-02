@@ -1,7 +1,6 @@
-.slider { display: flex; flex-direction: column; gap: 0; padding: 0 .35rem; min-width: 180px; color: inherit; }
-.label { font-size: .7rem; font-weight: 500; line-height: 1; opacity: .85; }
-.row { display: flex; align-items: center; gap: .4rem; }
-.end { font-size: .7rem; white-space: nowrap; opacity: .85; }
-.track { position: relative; flex: 1; min-width: 90px; display: flex; align-items: center; }
-.tick { position: absolute; top: 50%; width: 2px; height: 14px; transform: translate(-50%, -50%); background: currentColor; opacity: .7; border-radius: 1px; pointer-events: none; }
-.input { position: relative; width: 100%; height: 44px; margin: 0; background: transparent; accent-color: var(--color-primary); cursor: pointer; touch-action: pan-y; }
+/* padding-inline (44 - 18) / 2: the first mark starts where a toolbar icon would. */
+.slider { display: flex; align-items: center; gap: .5rem; height: 44px; padding-inline: 13px; min-width: 168px; color: inherit; }
+.light, .strong { flex: none; border-radius: 50%; background: var(--color-muted); }
+.light { width: 8px; height: 8px; filter: blur(0.5px); }
+.strong { width: 14px; height: 14px; filter: blur(2px); }
+.input { flex: 1; min-width: 96px; width: 112px; height: 44px; margin: 0; background: transparent; accent-color: var(--color-primary); cursor: pointer; touch-action: pan-y; }

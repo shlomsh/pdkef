@@ -125,6 +125,7 @@ export default function visualViewportClamp({
   margin = VISUAL_VIEWPORT_CLAMP_MARGIN_PX,
   getExcludedRect,
   counterScaled = true,
+  mainAxisGap = 0,
 }: {
   margin?: number;
   getExcludedRect?: () => DOMRect | null;
@@ -138,6 +139,16 @@ export default function visualViewportClamp({
    * size, with no origin-corner adjustment (scale treated as 1).
    */
   counterScaled?: boolean;
+  /**
+   * Visible px the host adds AFTER Floating UI positions the bar, along the
+   * placement's main axis (RedactBox re-adds its box gap as a scale-corrected
+   * CSS translateY: up for `top-*`, down for `bottom-*`). Floating UI's own
+   * `y` does not include it, so the vertical clamp evaluates the box where it
+   * will actually appear, `gap / scale` layout px further out, and returns the
+   * correction that puts that final visible box inside the bounds. Default 0
+   * is the plain, Sign-compatible behaviour.
+   */
+  mainAxisGap?: number;
 } = {}): Middleware {
   return {
     name: 'visualViewportClamp',
@@ -166,7 +177,10 @@ export default function visualViewportClamp({
       // file header on why this is not simply `{ x, y, visibleWidth,
       // visibleHeight }`.
       const left = x + deltaX + origin.x * (layoutWidth - visibleWidth);
-      const top = y + deltaY + origin.y * (layoutHeight - visibleHeight);
+      const sign = placement.startsWith('bottom') ? 1 : placement.startsWith('top') ? -1 : 0;
+      const gapY = (sign * mainAxisGap) / scale;
+      // Where the box will actually appear, after the host's own gap.
+      const top = y + deltaY + origin.y * (layoutHeight - visibleHeight) + gapY;
 
       // MOBI-17 (follow-up, measured on real iOS Safari): the visible slice's
       // origin comes from `visibleViewportOrigin`, never `offsetTop`/

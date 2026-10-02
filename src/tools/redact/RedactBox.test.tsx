@@ -96,6 +96,25 @@ describe('RedactBox touch behaviour', () => {
   });
 });
 
+describe('RedactBox floating toolbar gap (RED-53)', () => {
+  it('the pill sits 16px above the box, so the top handles can be grabbed', () => {
+    mockPointer(false);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const wrapper = document.createElement('div');
+    act(() => render(
+      <RedactBox el={EL} isSelected={true} onSelect={() => {}} onChange={() => {}}
+        getPageWrapper={() => wrapper} onHoverEnter={() => {}} onHoverLeave={() => {}} onDelete={() => {}}
+        onPickColor={() => {}} onMatchPage={() => {}} eyedropping={false} onToggleEyedropper={() => {}} onChangeStrength={() => {}} onDuplicate={() => {}} />,
+      container,
+    ));
+    const pill = container.querySelector('[data-editor-actions]') as HTMLElement;
+    expect(pill.style.transform).toContain('16px');
+    act(() => render(null, container));
+    container.remove();
+  });
+});
+
 describe('RedactBox keyboard (RED-43)', () => {
   it('is focusable, named, and routes keys to the existing callbacks', () => {
     mockPointer(false);

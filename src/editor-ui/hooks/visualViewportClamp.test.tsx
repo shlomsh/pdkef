@@ -241,6 +241,74 @@ describe('visualViewportClamp', () => {
     expect(after.top).toBeCloseTo(60 + 4, 5);
   });
 
+  it('mainAxisGap on a top placement: the pill, after the host lifts it by the gap, still clears the strip', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
+    const scenario: Scenario = {
+      x: 20, y: 30, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 80 },
+      referenceViewportRect: { left: 20, top: 80, width: 20, height: 10 },
+    };
+    const result = runClamp(scenario, { getExcludedRect: () => ({ bottom: 60 }) as DOMRect, mainAxisGap: 16 });
+    const after = visibleRect(scenario, scenario.x, result.y!, 1);
+    expect(after.top - 16).toBeGreaterThanOrEqual(60 + 4 - 1e-6);
+    expect(after.top - 16).toBeCloseTo(60 + 4, 5);
+  });
+
+  it('mainAxisGap on a bottom placement: the pill, after the host pushes it down, stays above the bottom limit', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 300 });
+    const scenario: Scenario = {
+      x: 20, y: 260, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 200 },
+      referenceViewportRect: { left: 20, top: 200, width: 20, height: 10 },
+      placement: 'bottom',
+    };
+    const result = runClamp(scenario, { mainAxisGap: 16 });
+    const after = visibleRect(scenario, scenario.x, result.y!, 1);
+    expect(after.bottom + 16).toBeCloseTo(300 - 4, 5);
+  });
+
+  it('mainAxisGap at scale 2 (pinch zoom) on a top placement: the host adds gap / scale = 8 layout px, not 16 or 32', () => {
+    installVisualViewport({ scale: 2, offsetLeft: 0, offsetTop: 0, width: 220, height: 450 });
+    const scenario: Scenario = {
+      x: 20, y: 30, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 80 },
+      referenceViewportRect: { left: 20, top: 80, width: 20, height: 10 },
+    };
+    const result = runClamp(scenario, { getExcludedRect: () => ({ bottom: 60 }) as DOMRect, mainAxisGap: 16 });
+    // visible height 40 / 2 = 20, anchored at the bottom edge (origin y = 1), so the visible top
+    // sits at y + 20; the host then lifts it 16 / 2 = 8. Want y + 20 - 8 = 60 + 4, so y = 52.
+    expect(result.y).toBeCloseTo(52, 5);
+    const after = visibleRect(scenario, scenario.x, result.y!, 2);
+    expect(after.top - 8).toBeCloseTo(64, 5);
+  });
+
+  it('mainAxisGap at scale 2 on a bottom placement: the host pushes it down 8 layout px', () => {
+    installVisualViewport({ scale: 2, offsetLeft: 0, offsetTop: 0, width: 220, height: 150 });
+    const scenario: Scenario = {
+      x: 20, y: 200, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 200 },
+      referenceViewportRect: { left: 20, top: 200, width: 20, height: 10 },
+      placement: 'bottom',
+    };
+    const result = runClamp(scenario, { mainAxisGap: 16 });
+    // visible height 20, origin y = 0, so the visible top sits at y; plus the host's 8 below it.
+    // Want y + 8 + 20 = 150 - 4, so y = 118.
+    expect(result.y).toBeCloseTo(118, 5);
+  });
+
+  it('mainAxisGap omitted gives the same result as 0 (unchanged behaviour)', () => {
+    installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
+    const scenario: Scenario = {
+      x: 20, y: 30, floatingWidth: 100, floatingHeight: 40,
+      referenceRect: { x: 20, y: 80 },
+      referenceViewportRect: { left: 20, top: 80, width: 20, height: 10 },
+    };
+    const excl = () => ({ bottom: 60 }) as DOMRect;
+    // Pre-change behaviour, hard-coded: the bar is pulled down to excluded.bottom (60) + margin (4).
+    expect(runClamp(scenario, { getExcludedRect: excl })).toEqual({ x: 20, y: 64 });
+    expect(runClamp(scenario, { getExcludedRect: excl }).y).toBeCloseTo(64, 5);
+  });
+
   it('leaves the sticky-strip check alone once the bar already clears it', () => {
     installVisualViewport({ scale: 1, offsetLeft: 0, offsetTop: 0, width: 440, height: 900 });
     const scenario: Scenario = {

@@ -633,7 +633,7 @@ export default function SignToolbar({
               className={`${styles.button}${selectedTool === 'whiteout' ? ` ${styles.active}` : ''}${selectedTool === 'whiteout' && toolLocked ? ` ${styles.locked}` : ''}`}
               onClick={armTool('whiteout')}
             >
-              <WhiteoutIcon />
+              <WhiteoutIcon strokeWidth={2.5} />
               <span className={styles.label}>{t.whiteoutButton}</span>
             </button>
           </ArmHint>
