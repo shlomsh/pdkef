@@ -2,8 +2,8 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 
 export class SecurityError extends Error {
-  constructor(message) {
-    super(message);
+  constructor(message, options) {
+    super(message, options);
     this.name = 'SecurityError';
   }
 }
@@ -16,9 +16,10 @@ export class WrongPasswordError extends SecurityError {
 }
 
 // The file would not open for a reason other than its password: damaged, or not a PDF.
+// `cause` is what pdf-lib threw: the report names that, since this wrapper says nothing about where it broke.
 export class UnreadablePdfError extends SecurityError {
-  constructor() {
-    super('This file could not be unlocked. It may be damaged.');
+  constructor(cause) {
+    super('This file could not be unlocked. It may be damaged.', { cause });
     this.name = 'UnreadablePdfError';
   }
 }
@@ -38,7 +39,7 @@ export async function unlockPdf(file, password) {
   try {
     pdfDoc = await PDFDocument.load(bytes, { password });
   } catch (err) {
-    throw isPasswordFailure(err) ? new WrongPasswordError() : new UnreadablePdfError();
+    throw isPasswordFailure(err) ? new WrongPasswordError() : new UnreadablePdfError(err);
   }
 
   const unlockedBytes = await pdfDoc.save();
