@@ -75,3 +75,10 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* ContinueButton is a <button> wearing the shared link-styled download class:
+   drop the UA border and font family, keep the class's size and weight. */
+.continue-button {
+  border: 0;
+  font-family: inherit;
+}
