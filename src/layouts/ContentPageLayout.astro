@@ -10,7 +10,6 @@ import AppBar from '../components/AppBar.astro';
 import ToolFaqCard from '../components/ToolFaqCard.astro';
 import ToolCrossLinks from '../components/ToolCrossLinks.astro';
 import Footer from '../components/Footer.astro';
-import DocumentationLanguageSelector from '../components/DocumentationLanguageSelector.astro';
 import LocalePackRequest from '../components/LocalePackRequest.astro';
 import type { DocumentationShellMessages } from '../i18n/documentationMessages';
 import { isPublishedEditionLink } from '../i18n/localizedTools';
@@ -125,8 +124,6 @@ const ctaIsEnglishFallback = !isPublishedEditionLink(primaryCta.href, locale, ed
     )}
   </header>
 
-  <DocumentationLanguageSelector variants={variants} currentLocale={locale} label={messages.language} />
-
   <main>
     <slot />
   </main>
@@ -148,7 +145,7 @@ const ctaIsEnglishFallback = !isPublishedEditionLink(primaryCta.href, locale, ed
 
   <ToolCrossLinks currentSlug="" />
 
-  <Footer labels={messages} />
+  <Footer variants={variants} locale={locale} labels={messages} />
 
   {locale !== 'en' && <LocalePackRequest locale={locale as any} />}
 </BaseLayout>
