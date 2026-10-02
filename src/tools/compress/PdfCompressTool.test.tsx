@@ -814,6 +814,52 @@ describe('PdfCompressTool UI flow', () => {
     window.URL.createObjectURL = originalCreateObjectURL;
   });
 
+  it('says a PDF is already as small as it gets, instead of "Successfully Compressed", when a level hands the input back', async () => {
+    // compressPdf returns the input File itself when a re-rendered copy would
+    // be bigger (a small vector PDF) - the same reference check as passthrough.
+    compressLib.compressPdf.mockImplementation((inputFile) => Promise.resolve(inputFile));
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => {
+      render(<PdfCompressTool />, container);
+    });
+
+    const input = container.querySelector('input[type="file"]');
+    const file = makePdfFile('small_form.pdf', 11_000);
+    await act(async () => {
+      setInputFiles(input, [file]);
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const originalCreateObjectURL = window.URL.createObjectURL;
+    window.URL.createObjectURL = vi.fn(() => 'blob:alreadysmall');
+
+    const button = container.querySelector(`.${pdfToolStyles['tool-primary-action']}`);
+    await act(async () => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    const stats = container.querySelector(`.${styles['compression-stats']}`);
+    expect(stats.textContent).toContain('Already as small as it gets');
+    expect(stats.textContent).toContain('would come out bigger');
+    expect(stats.textContent).not.toContain('Successfully Compressed');
+    expect(stats.textContent).not.toContain('Compression rasterizes PDF pages');
+
+    const downloadBtn = container.querySelector(`.${pdfToolStyles['download-button']}`);
+    expect(downloadBtn.textContent).toContain('Download PDF');
+    expect(downloadBtn.textContent).not.toContain('Compressed');
+    expect(downloadBtn.getAttribute('download')).toBe('small_form.pdf');
+    expect(container.querySelector(`.${styles['compare-toggle-button']}`)).toBeNull();
+
+    window.URL.createObjectURL = originalCreateObjectURL;
+  });
+
   it('rejects a file that is not a PDF, JPG or PNG', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

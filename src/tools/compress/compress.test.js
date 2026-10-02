@@ -98,6 +98,25 @@ describe('compressPdf library integration with real fixtures', () => {
     expect(pageCount).toBe(5);
   });
 
+  it('hands back the original file when re-rendering would not make it smaller', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const toBlob = HTMLCanvasElement.prototype.toBlob;
+    // Every page encodes to more bytes than the whole input - the shape of a
+    // small vector PDF, where a rasterised copy is always the bigger file.
+    HTMLCanvasElement.prototype.toBlob = function bigBlob(callback, type) {
+      const jpeg = Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
+      callback(new Blob([jpeg, new Uint8Array(file.size * 2)], { type: type || 'image/jpeg' }));
+    };
+    try {
+      expect(await compressPdf(file, { level: 'medium' })).toBe(file);
+      const result = await compressPdfToTarget(file, { targetKB: 1 });
+      expect(result.blob).toBe(file);
+      expect(result.metTarget).toBe(false);
+    } finally {
+      HTMLCanvasElement.prototype.toBlob = toBlob;
+    }
+  });
+
   it('compresses num-5.pdf to a target size', async () => {
     const file = getFixtureFile('num-5.pdf');
     // Set targetKB to a low value to trigger compression search logic
