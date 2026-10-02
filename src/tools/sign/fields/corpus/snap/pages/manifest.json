@@ -1,0 +1,52 @@
+[
+ {
+  "id": "health-declaration-2021",
+  "form": "health-declaration-2021.pdf",
+  "page": 1,
+  "width": 1654,
+  "height": 2339,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 595.32,
+  "pageHeightPts": 841.92
+ },
+ {
+  "id": "income-tax-101-2024",
+  "form": "income-tax-101-2024.pdf",
+  "page": 1,
+  "width": 1654,
+  "height": 2339,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 595.275,
+  "pageHeightPts": 841.89
+ },
+ {
+  "id": "irs-1040-2024",
+  "form": "irs-1040-2024.pdf",
+  "page": 1,
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ },
+ {
+  "id": "thai-sso-1-10",
+  "form": "thai-sso-1-10.pdf",
+  "page": 1,
+  "width": 2339,
+  "height": 1654,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 841.92,
+  "pageHeightPts": 595.32
+ },
+ {
+  "id": "uscis-i9-2025-01-20",
+  "form": "uscis-i9-2025-01-20.pdf",
+  "page": 1,
+  "width": 1700,
+  "height": 2200,
+  "pxPerPoint": 2.7777777777777777,
+  "pageWidthPts": 612,
+  "pageHeightPts": 792
+ }
+]

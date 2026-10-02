@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { minifyServiceWorker } from './minifyServiceWorker.mjs';
 
 const workerSource = fs.readFileSync(path.join(process.cwd(), 'public/sw.js'), 'utf8');
+// The CRITICAL_VERSION this repo ships (MEM-13). Tests derive "plain" and "critical" builds from
+// it, so bumping it for a real fix needs no test edit.
+const SHIPPED_CRITICAL = Number(/const CRITICAL_VERSION = (\d+);/.exec(workerSource)[1]);
 const minifiedWorkerSource = minifyServiceWorker(workerSource);
 
 function requestUrl(request) {
@@ -51,7 +54,7 @@ function createFakeIndexedDB() {
   return indexedDB;
 }
 
-function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource, criticalVersion = 0) {
+function createWorker(fetchImpl = vi.fn(), cacheKeys = ['pdkef-previous'], indexedDBImpl = createFakeIndexedDB(), source = workerSource, criticalVersion = SHIPPED_CRITICAL) {
   const listeners = new Map();
   const currentCacheKey = `pdkef-c${criticalVersion}-__BUILD_ID__`;
   const cacheNames = new Set(cacheKeys);
@@ -853,9 +856,13 @@ describe.each([['source', workerSource], ['minified source', minifiedWorkerSourc
 
 // MEM-13: a build that bumped CRITICAL_VERSION takes over on its own, once every tab is ready.
 // The critical sources are the same code with the constant raised, as a deploy that bumped it.
+const bumpedSource = workerSource.replace(
+  `const CRITICAL_VERSION = ${SHIPPED_CRITICAL};`,
+  `const CRITICAL_VERSION = ${SHIPPED_CRITICAL + 1};`,
+);
 const criticalSources = [
-  ['source', workerSource.replace('const CRITICAL_VERSION = 0;', 'const CRITICAL_VERSION = 1;'), workerSource],
-  ['minified source', minifyServiceWorker(workerSource.replace('const CRITICAL_VERSION = 0;', 'const CRITICAL_VERSION = 1;')), minifiedWorkerSource],
+  ['source', bumpedSource, workerSource],
+  ['minified source', minifyServiceWorker(bumpedSource), minifiedWorkerSource],
 ];
 
 describe.each(criticalSources)('critical version (%s)', (_label, criticalSource, plainSource) => {
@@ -899,7 +906,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
     };
     return window;
   };
-  const build = ({ windows = [], waiting = true, marker = true, source = criticalSource, version = 1, keys = ['pdkef-previous'] } = {}) => {
+  const build = ({ windows = [], waiting = true, marker = true, source = criticalSource, version = SHIPPED_CRITICAL + 1, keys = [`pdkef-c${SHIPPED_CRITICAL}-previous`] } = {}) => {
     const worker = createWorker(vi.fn(async () => new Response('x')), keys, createFakeIndexedDB(), source, version);
     worker.self.clients.matchAll = vi.fn(async () => windows);
     if (marker) worker.entries.set('https://pdkef.test/__pdkef/precache-complete/', new Response('ok'));
@@ -1010,9 +1017,9 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
 
   it('does nothing for a build that is not critical over the one cached', async () => {
     const a = criticalWindow('a');
-    const equal = build({ windows: [a], keys: ['pdkef-c1-previous'] });
+    const equal = build({ windows: [a], keys: [`pdkef-c${SHIPPED_CRITICAL + 1}-previous`] });
     await runCheck(equal);
-    const same = build({ windows: [a], source: plainSource, version: 0 });
+    const same = build({ windows: [a], source: plainSource, version: SHIPPED_CRITICAL });
     await runCheck(same);
     expect(a.postMessage).not.toHaveBeenCalled();
     expect(equal.self.skipWaiting).not.toHaveBeenCalled();
@@ -1075,7 +1082,7 @@ describe.each(criticalSources)('critical version (%s)', (_label, criticalSource,
 
   it('never runs for a build at the shipped critical version, on install or on a check', async () => {
     const a = criticalWindow('a');
-    const worker = build({ windows: [a], source: plainSource, version: 0 });
+    const worker = build({ windows: [a], source: plainSource, version: SHIPPED_CRITICAL });
     worker.fetchImpl.mockImplementation(manifestResponder(['/', '/sign/']));
     await dispatchInstall(worker);
     await runCheck(worker);

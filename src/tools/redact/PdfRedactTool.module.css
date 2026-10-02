@@ -1,33 +1,3 @@
-/* Redact box resize control stays hidden until the box is hovered (desktop)
-   or actively touched/dragged (mobile, via the .active class set in
-   PdfRedactTool.jsx's activeBoxId state), otherwise a page with several
-   redaction boxes is cluttered with resize handles at rest. The delete
-   affordance used to live here too (a Redact-only inline red cross, hidden
-   the same way); it is gone in favour of the shared floating toolbar every
-   type now renders on selection (RedactBox.tsx, RedactBoxToolbar.tsx) - one
-   selection chrome, not a hover-only one that also disagreed on icon, colour
-   and position with the other two types. */
-.redact-box .redact-box-resizer {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.redact-box.active .redact-box-resizer,
-.redact-box.selected .redact-box-resizer {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* RED-35: hover reveals handles for fine pointers only; on touch they show
-   when the box is selected (rule above). */
-@media (hover: hover) {
-  .redact-box:hover .redact-box-resizer {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
 /* RED-51: whiteout is correction fluid. No border at rest or on hover: a
    transparent 1px border used to inset the fill and leave a sliver of the
    page around it. Selection draws an outline, which takes no space, so the

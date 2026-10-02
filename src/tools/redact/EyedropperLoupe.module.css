@@ -67,13 +67,14 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text) 35%, transparent);
 }
 
-/* Over a page the loupe is the pointer: its boxed centre cell is the pixel a
-   click takes, so the system cursor would only hide it. !important because the
-   page wrapper and the boxes set their cursor inline (same as PageStrip's
-   grabbing cursor). */
+/* Over the page surface the loupe is the pointer: its boxed centre cell is the
+   pixel a click takes, so the system cursor would only hide it. The selected
+   box's pill and resize handles are not the page (they keep their cursor and
+   their clicks). !important because the page wrapper and the boxes set their
+   cursor inline (same as PageStrip's grabbing cursor). */
 @media (hover: hover) {
-  :global(html[data-redact-eyedropping]) :global([data-editor-page-card]),
-  :global(html[data-redact-eyedropping]) :global([data-editor-page-card]) * {
+  :global(html[data-redact-eyedropping]) :global(.redact-draw-area),
+  :global(html[data-redact-eyedropping]) :global(.redact-draw-area) :not(:global([data-editor-actions]), :global([data-editor-resizer]), :global([data-editor-actions]) *, :global([data-editor-resizer]) *) {
     cursor: none !important;
   }
 }

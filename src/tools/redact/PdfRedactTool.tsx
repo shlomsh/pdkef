@@ -22,7 +22,7 @@ import BrushControls, { brushStyleOf, resolveBrush, type BrushSettings } from '.
 import { useEyedropper, sampleRingColor } from './pageSampling.ts';
 import { autoColorChanges, type PercentBox } from './pageColor.ts';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
-import usePageSizesPt from './usePageSizesPt.ts';
+import usePageSizesPt, { needsPageSizes } from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
 import DeleteLift from './DeleteLift.tsx';
 import DeleteMarquee from './DeleteMarquee.tsx';
@@ -691,19 +691,18 @@ export default function PdfRedactTool() {
   };
   const matchPage = (id: string) => updateElement(id, { colorMode: 'auto' });
 
-  // One eyedropper for whichever whiteout is in hand: the brush, or the selected box.
+  // Two pipettes, one active at a time: the brush's, or the selected whiteout's.
   const selectedEl = elements.find((el) => el.id === selectedBoxId);
-  const eyedropperTarget = brushKind === 'whiteout'
-    ? 'brush'
-    : selectedEl && (selectedEl.type === 'whiteout' || selectedEl.type === 'whiteoutStroke') ? selectedEl.id : null;
+  const hasBrushTarget = brushKind === 'whiteout';
+  const selectedWhiteoutId = selectedEl && (selectedEl.type === 'whiteout' || selectedEl.type === 'whiteoutStroke') ? selectedEl.id : null;
   useEyedropper(
-    eyedropping && eyedropperTarget !== null,
-    (color) => (eyedropperTarget && eyedropperTarget !== 'brush' ? pickColor(eyedropperTarget, color) : rememberColor(color)),
+    (eyedropping === 'brush' && hasBrushTarget) || (eyedropping === 'box' && selectedWhiteoutId !== null),
+    (color) => (eyedropping === 'box' && selectedWhiteoutId !== null ? pickColor(selectedWhiteoutId, color) : rememberColor(color)),
     () => dispatch({ type: 'EYEDROPPER_STOPPED' }),
   );
   useEffect(() => {
     dispatch({ type: 'EYEDROPPER_STOPPED' });
-  }, [eyedropperTarget]);
+  }, [hasBrushTarget, selectedWhiteoutId]);
 
   // Passed to RedactBoxToolbar for blur boxes: applies the strength and
   // remembers it, as pickColor above does for a whiteout's chosen colour.
@@ -716,7 +715,9 @@ export default function PdfRedactTool() {
   // the match covers) is added as one history entry, so one Undo takes back
   // a whole "Redact all".
   const find = useFind(pdfDocument, numPages, elements);
-  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, elements.some((el) => el.type === 'blur' || el.type === 'blurStroke') || brushKind !== null);
+  // RED-52: reading sizes only for blur left whiteout and blackout boxes deaf
+  // to the arrow keys; needsPageSizes names everything that needs them.
+  const pageSizesPt = usePageSizesPt(pdfDocument, numPages, needsPageSizes(elements, brushKind !== null));
 
   // RED-17: what Find looked for on this document, so the check of the saved
   // file looks for it too (a preset finds every email, not just the boxed ones).
@@ -977,6 +978,7 @@ export default function PdfRedactTool() {
         <div
           className={`${workspaceStyles.workspace}${isPseudoFullscreen ? ` ${workspaceStyles['pseudo-fullscreen']}` : ''}${status === 'redacting' ? ` ${workspaceStyles['is-processing']}` : ''}`}
           ref={workspaceRef}
+          data-pseudo-fullscreen={isPseudoFullscreen || undefined}
           aria-busy={status === 'redacting'}
           data-redact-workspace-ready={numPages > 0 && sizedPageCount === numPages ? 'true' : 'false'}
         >
@@ -1019,8 +1021,8 @@ export default function PdfRedactTool() {
                 onSettings={(next) => { changeBrush(next); recordAction('change_setting'); }}
                 color={activeColor}
                 onColor={(color) => { rememberColor(color); recordAction('change_setting'); }}
-                eyedropping={eyedropping}
-                onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED' })}
+                eyedropping={eyedropping === 'brush'}
+                onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
               />
             )}
             brushMode={brushKind !== null}
@@ -1098,7 +1100,6 @@ export default function PdfRedactTool() {
                         key={el.id}
                         el={el}
                         isSelected={el.id === selectedBoxId}
-                        isActiveHover={el.id === activeBoxId}
                         onSelect={(id: string) => dispatch({ type: 'BOX_SELECTED', id })}
                         onChange={updateElement}
                         getPageWrapper={() => pageWrapperRefs.current[el.pageIndex]}
@@ -1107,8 +1108,8 @@ export default function PdfRedactTool() {
                         onDelete={deleteElement}
                         onPickColor={pickColor}
                         onMatchPage={matchPage}
-                        eyedropping={eyedropping}
-                        onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED' })}
+                        eyedropping={eyedropping === 'box'}
+                        onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'box' })}
                         onChangeStrength={changeBlurStrength}
                         onDuplicate={duplicateElement}
                         onRepeatOnEveryPage={canRepeat ? repeatOnEveryPage : undefined}

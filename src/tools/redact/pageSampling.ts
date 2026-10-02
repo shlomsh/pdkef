@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
+import { overlayHost } from './overlayHost.ts';
 import { createLoupe } from './eyedropperLoupe.ts';
 import { boxPixelRect, medianColor, ringStrips, type PercentBox } from './pageColor.ts';
 
@@ -22,21 +23,37 @@ export function sampleCanvasColor(canvas: HTMLCanvasElement, clientX: number, cl
 
 /** The Redact island deselects a selected box on a document click on blank page
  * area, and a box's eyedropper pick must keep it selected, so the click that
- * follows a mouse pick is swallowed. It outlives the effect (onDone flips
- * `active`) and is dropped after 600 ms if it never came. On touch,
- * preventDefault on touchstart already suppresses the click. */
+ * follows a primary-button pick is swallowed. It outlives the effect (onDone
+ * flips `active`) and is dropped when it swallows the click, or after the next
+ * mouseup plus a tick (a press that never produces a click). No fixed timer, so
+ * a long press still swallows its own click and no later click is ever eaten.
+ * On touch, preventDefault on touchstart already suppresses the click. */
 function swallowNextClick() {
   const onClick = (e: Event) => {
     e.preventDefault();
     e.stopPropagation();
     cleanup();
   };
-  const timer = setTimeout(() => cleanup(), 600);
+  const onUp = () => {
+    window.removeEventListener('mouseup', onUp, true);
+    setTimeout(cleanup, 0);
+  };
   function cleanup() {
-    clearTimeout(timer);
     window.removeEventListener('click', onClick, true);
+    window.removeEventListener('mouseup', onUp, true);
   }
   window.addEventListener('click', onClick, true);
+  window.addEventListener('mouseup', onUp, true);
+}
+
+/** The page surface under an event target: the page wrapper, minus the selected
+ * box's pill and resize handles and anything outside it (page header, toolbar).
+ * Null means "not the page": the event is left completely alone. */
+function pageSurfaceOf(target: EventTarget | null): Element | null {
+  const el = target as Element | null;
+  if (!el?.closest) return null;
+  if (el.closest('[data-editor-actions], [data-editor-resizer]')) return null;
+  return el.closest('.redact-draw-area');
 }
 
 /** The ring's width in CSS px, converted to canvas px by the canvas's own
@@ -82,24 +99,23 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
   doneRef.current = onDone;
   useEffect(() => {
     if (!active) return undefined;
-    const loupe = createLoupe(document.fullscreenElement ?? document.body);
+    const loupe = createLoupe(overlayHost);
     document.documentElement.setAttribute('data-redact-eyedropping', '');
-    const cardOf = (target: EventTarget | null) => (target as Element | null)?.closest?.('[data-editor-page-card]') ?? null;
-    const canvasOf = (card: Element | null) => card?.querySelector<HTMLCanvasElement>('canvas') ?? null;
+    const canvasOf = (surface: Element | null) => surface?.querySelector<HTMLCanvasElement>('canvas') ?? null;
     let tracked: { id: number; canvas: HTMLCanvasElement | null; x: number; y: number } | null = null;
 
     const onMouseMove = (e: MouseEvent) => {
-      const canvas = canvasOf(cardOf(e.target));
+      const canvas = canvasOf(pageSurfaceOf(e.target));
       if (canvas) loupe.update(canvas, e.clientX, e.clientY, false);
       else loupe.hide();
     };
     const onMouseDown = (e: MouseEvent) => {
       // The eyedropper button and the rest of the chrome keep working.
-      const card = cardOf(e.target);
-      if (!card) return;
+      const surface = pageSurfaceOf(e.target);
+      if (!surface || e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
-      const canvas = canvasOf(card);
+      const canvas = canvasOf(surface);
       const color = canvas ? sampleCanvasColor(canvas, e.clientX, e.clientY) : null;
       swallowNextClick();
       if (color) pickRef.current(color);
@@ -112,13 +128,13 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
         loupe.hide();
         return;
       }
-      const card = cardOf(e.target);
-      if (!card) return;
+      const surface = pageSurfaceOf(e.target);
+      if (!surface) return;
       e.preventDefault();
       e.stopPropagation();
       const t = e.changedTouches[0];
       if (!t) return;
-      const canvas = canvasOf(card);
+      const canvas = canvasOf(surface);
       tracked = { id: t.identifier, canvas, x: t.clientX, y: t.clientY };
       if (canvas) loupe.update(canvas, t.clientX, t.clientY, true);
     };

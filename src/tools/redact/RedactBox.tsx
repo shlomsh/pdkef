@@ -51,7 +51,6 @@ const ELEMENT_RENDERERS = createElementRenderers({});
 export default function RedactBox({
   el,
   isSelected,
-  isActiveHover,
   onSelect,
   onChange,
   getPageWrapper,
@@ -76,7 +75,6 @@ export default function RedactBox({
 }: {
   el: any;
   isSelected: boolean;
-  isActiveHover: boolean;
   onSelect: (id: string) => void;
   onChange: (id: string, patch: any) => void;
   getPageWrapper: (...args: any[]) => any;
@@ -101,7 +99,9 @@ export default function RedactBox({
   /** RED-11: how many boxes are in this box's find set, `el` included. */
   findSetSize?: number;
   onRemoveFindSet?: () => void;
-  /** RED-24: the page's height in points, for the blur box's on-screen radius. */
+  /** The page's size in points: a blur's on-screen radius (RED-24), a stroke's
+   * round brush (RED-32) and a box's arrow-key move (RED-43). Until it is
+   * known, the arrow keys leave a box where it is. */
   pageWidthPoints?: number;
   pageHeightPoints?: number;
   /** RED-31: view state only - every box shows what is under it. */
@@ -195,7 +195,6 @@ export default function RedactBox({
   // the same controls (whiteout colour, blur strength).
   const isStroke = el.type === 'blurStroke' || el.type === 'whiteoutStroke';
   const isWhiteout = el.type === 'whiteout' || el.type === 'whiteoutStroke';
-  const hasShapeHandles = !isStroke;
   // RED-43: keyboard access. Key handling is boxKeys.ts's pure function; this
   // only dispatches to the callbacks a click, the delete button and a drag
   // release already use. Keys from the floating toolbar's controls are ignored.
@@ -234,9 +233,8 @@ export default function RedactBox({
   const className = [
     styles['redact-box'],
     isWhiteout && styles['redact-box--whiteout'],
-    isActiveHover && styles.active,
     isSelected && styles.selected,
-    hasShapeHandles && elementStyles.shape,
+    !isStroke && elementStyles.shape,
   ].filter(Boolean).join(' ');
 
   const toolbar = (
@@ -267,7 +265,7 @@ export default function RedactBox({
         }
       }}
       className={className}
-      data-editor-shape={hasShapeHandles || undefined}
+      data-editor-shape={!isStroke || undefined}
       data-peeking={peekAll || undefined}
       data-redact-box-id={el.id}
       tabIndex={0}
@@ -298,32 +296,11 @@ export default function RedactBox({
       }}
     >
       <div className={styles['redact-surface-host']}>{surface}</div>
-      {isStroke ? null : hasShapeHandles ? (
+      {isStroke ? null : (
         <ElementResizers
           element={el}
           isActive={isSelected}
           onResizeStart={(e: any, handle: any) => handleResizeStart(e, handle)}
-        />
-      ) : (
-        <div
-          className={styles['redact-box-resizer']}
-          onMouseDown={(e) => handleResizeStart(e)}
-          onTouchStart={(e) => handleResizeStart(e)}
-          title="Drag to resize"
-          style={{
-            position: 'absolute',
-            bottom: '-6px',
-            right: '-6px',
-            width: '14px',
-            height: '14px',
-            background: 'var(--color-primary)',
-            border: '2px solid var(--color-surface)',
-            borderRadius: '50%',
-            cursor: 'se-resize',
-            touchAction: 'none',
-            boxShadow: 'var(--shadow-sm)',
-            zIndex: 11
-          }}
         />
       )}
       {isSelected && coarsePointer && (

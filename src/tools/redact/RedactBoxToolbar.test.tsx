@@ -60,7 +60,20 @@ describe('RedactBoxToolbar whiteout colour group', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    expect(onPickColor).toHaveBeenCalledTimes(1);
     expect(onPickColor).toHaveBeenCalledWith('#123456');
+  });
+
+  it('input events alone (a picker drag) never call onPickColor', () => {
+    const { host: h, onPickColor } = mount(whiteout);
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    act(() => {
+      input.value = '#111111';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.value = '#222222';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    expect(onPickColor).not.toHaveBeenCalled();
   });
 
   it('shows the swatch with a check only when not auto, with --swatch set', () => {

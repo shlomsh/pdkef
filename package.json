@@ -47,6 +47,7 @@
     "sync:pdfjs-wasm": "node scripts/sync-pdfjs-wasm.mjs",
     "check:fast": "node scripts/check-fast.mjs",
     "check:push": "node scripts/check-push.mjs",
+    "check:e2e": "node scripts/check-push.mjs --e2e",
     "gate:ios": "node scripts/ios-gate/run.mjs",
     "check:backlog": "node scripts/generate-backlog.mjs --check",
     "check:guidance": "node scripts/check-guidance-budget.js",

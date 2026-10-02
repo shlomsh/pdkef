@@ -541,13 +541,14 @@ export function runUnit({ explicitBase, explicitHead } = {}) {
   return runUnitByImpact(unitScope);
 }
 
-export function runE2eProduct(scope) {
+// `projects` lets check:e2e run chromium only locally; CI and test:e2e keep both.
+export function runE2eProduct(scope, projects = ['chromium', 'webkit']) {
   if (!scope.everything && !scope.e2e_paths) {
     console.error('affected-scope: no tool/site-e2e project affected; skipping product e2e.');
     return 0;
   }
   const paths = scope.everything ? [] : scope.e2e_paths.split(' ').filter(Boolean);
-  const result = spawnSync('npx', ['playwright', 'test', '--project=chromium', '--project=webkit', '--pass-with-no-tests', ...paths], { stdio: 'inherit', cwd: ROOT });
+  const result = spawnSync('npx', ['playwright', 'test', ...projects.map((p) => `--project=${p}`), '--pass-with-no-tests', ...paths], { stdio: 'inherit', cwd: ROOT });
   return result.status ?? 1;
 }
 

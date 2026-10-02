@@ -1,4 +1,5 @@
 import { Check, Pipette } from 'lucide-preact';
+import { useEffect, useRef } from 'preact/hooks';
 import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import { TrashIcon } from '../../editor-ui/toolIcons.tsx';
@@ -50,6 +51,19 @@ export default function RedactBoxToolbar({
   const hex = HEX.test(color) ? color : '#ffffff';
   const ink = swatchInk(hex);
 
+  // Listen for the native `change` (fires once, when the picker closes). preact/compat maps
+  // onChange to `input`, which fires on every drag step and split one pick into several undo steps.
+  const colorInput = useRef<HTMLInputElement>(null);
+  const pickRef = useRef(onPickColor);
+  pickRef.current = onPickColor;
+  useEffect(() => {
+    const el = colorInput.current;
+    if (!el) return undefined;
+    const onNativeChange = () => pickRef.current(el.value);
+    el.addEventListener('change', onNativeChange);
+    return () => el.removeEventListener('change', onNativeChange);
+  }, [isWhiteout]);
+
   const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
   const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
   const inFindSet = findSetSize !== undefined && findSetSize >= 2 && !!onRemoveFindSet;
@@ -99,7 +113,7 @@ export default function RedactBoxToolbar({
               className={styles.native}
               aria-label="Choose any colour"
               value={hex}
-              onChange={(e) => onPickColor((e.currentTarget as HTMLInputElement).value)}
+              ref={colorInput}
             />
           </label>
         </div>
