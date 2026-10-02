@@ -67,6 +67,10 @@ interface PdfCompressToolProps {
   emptyStateMessage?: string;
 }
 
+export function formatShare(share: number, lessThanOnePercent = englishCompressMessages.lessThanOnePercent): string {
+  return share < 0.01 ? lessThanOnePercent : `${Math.round(share * 100)}%`;
+}
+
 export default function PdfCompressTool({
   messages: messagesProp,
   shellMessages,
@@ -103,7 +107,7 @@ export default function PdfCompressTool({
   const encryptionCheck = useLatestRun();
   // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
   // before any click that there is nothing to shrink. Never gates anything else.
-  const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean } | null>(null);
+  const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number } | null>(null);
   const analysisTokenRef = useRef(0);
   const [rasterBytes, setRasterBytes] = useState<number | null>(null);
   // COMP-01: by default only the images are recompressed and every page stays as it is; true turns
@@ -827,6 +831,13 @@ export default function PdfCompressTool({
           {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length === 0 && (
             <p class={styles['honest-note']} role="note">
               <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
+            </p>
+          )}
+          {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length > 0 && !flatten && (
+            <p class={styles[analysis.imageShare < 0.2 ? 'honest-note' : 'compress-warning']} role="note">
+              {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : t.imageShareNote, {
+                share: formatShare(analysis.imageShare, t.lessThanOnePercent),
+              })}
             </p>
           )}
           <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
