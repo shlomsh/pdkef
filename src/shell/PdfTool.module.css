@@ -17,6 +17,10 @@
      The file bar's nowrap filename makes that min-content the full file name,
      which blows the card past the viewport on mobile instead of ellipsizing. */
   min-width: 0;
+  /* Full width at every size: #app is a row flex container, so without this the
+     card sized to its widest child. Unlock/Protect's children are all narrow (a
+     capped form, one line), and its phone card shrank to 219-249px. */
+  width: 100%;
   max-width: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -65,13 +69,10 @@
   }
 }
 
-/* BasePdfTool is a centered flex item inside #app at desktop sizes. Preserve
-   the full-width contract that existed before this wrapper moved out of the
-   global stylesheet: without an explicit width, it shrink-wraps to its
-   dropzone and leaves an empty right-hand region. */
+/* `flex-shrink: 0` from 768px up: the card keeps its full width beside the desktop
+   hero rather than yielding to a wide sibling. */
 @media (min-width: 768px) {
   .tool-card {
-    width: 100%;
     flex-shrink: 0;
   }
 }
