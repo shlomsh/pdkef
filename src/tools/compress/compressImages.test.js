@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName, PDFRef, PDFString } from '@cantoo/pdf-lib';
 import { analyzePdf } from './analyzePdf.js';
+import { permissionsFromP } from './pdfPermissions.js';
 import {
   compressPdfImages,
   compressPdfImagesToTarget,
@@ -313,5 +314,68 @@ describe('compressPdfImagesToTarget', () => {
     });
     expect(seen.at(-1)).toBe(1);
     expect(seen.every((p, i) => i === 0 || p >= seen[i - 1])).toBe(true);
+  });
+});
+
+describe('compressPdfImages on encrypted files', () => {
+  const perms = {
+    printing: 'highResolution',
+    copying: false,
+    modifying: false,
+    annotating: false,
+    fillingForms: false,
+    contentAccessibility: true,
+    documentAssembly: false,
+  };
+  const encryptedScan = async (userPassword) => {
+    const doc = await PDFDocument.load(readFileSync(new URL('./__fixtures__/scan.pdf', import.meta.url)));
+    doc.encrypt({ userPassword, ownerPassword: 'x', permissions: perms });
+    return new File([await doc.save()], 'enc.pdf', { type: 'application/pdf' });
+  };
+  const opts = (encodeImage) => ({ maxLongSidePx: 1000, quality: 0.7, encodeImage });
+
+  it('compresses an owner-only file and re-applies its permissions', async () => {
+    const result = await compressPdfImages(await encryptedScan(''), opts(fakeEncoder));
+    expect(result.reason).toBe('smaller');
+    expect(result.rewritten).toBe(2);
+    const out = new Uint8Array(await result.blob.arrayBuffer());
+    await expect(PDFDocument.load(out, { updateMetadata: false })).rejects.toThrow(/encrypted/i);
+    await PDFDocument.load(out, { password: '', updateMetadata: false });
+    // Decrypting drops /Encrypt from the trailer, so read the raw dict.
+    const raw = await PDFDocument.load(out, { ignoreEncryption: true, updateMetadata: false });
+    const enc = raw.context.lookup(raw.context.trailerInfo.Encrypt);
+    expect(permissionsFromP(enc.get(PDFName.of('P')).asNumber())).toEqual(perms);
+  });
+
+  it('hands back a file that needs a password untouched', async () => {
+    const file = await encryptedScan('secret');
+    const encoder = vi.fn(async () => jpeg1x1());
+    const result = await compressPdfImages(file, opts(encoder));
+    expect(result.reason).toBe('encrypted');
+    expect(result.blob).toBe(file);
+    expect(encoder).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a public-key handler', (enc) => enc.set(PDFName.of('Filter'), PDFName.of('Adobe.PubSec'))],
+    ['an Encrypt dict with no /P', (enc) => enc.delete(PDFName.of('P'))],
+  ])('hands back %s untouched, without throwing', async (_, edit) => {
+    const raw = await PDFDocument.load(new Uint8Array(await (await encryptedScan('')).arrayBuffer()), {
+      ignoreEncryption: true,
+      updateMetadata: false,
+    });
+    edit(raw.context.lookup(raw.context.trailerInfo.Encrypt));
+    const file = new File([await raw.save({ useObjectStreams: false })], 'odd.pdf', { type: 'application/pdf' });
+    const encoder = vi.fn(async () => jpeg1x1());
+    const result = await compressPdfImages(file, opts(encoder));
+    expect(result.reason).toBe('encrypted');
+    expect(result.blob).toBe(file);
+    expect(encoder).not.toHaveBeenCalled();
+  });
+
+  it('leaves an unencrypted file unencrypted', async () => {
+    const result = await compressPdfImages(fixture('scan.pdf'), opts(fakeEncoder));
+    const doc = await PDFDocument.load(new Uint8Array(await result.blob.arrayBuffer()), { updateMetadata: false });
+    expect(doc.isEncrypted).toBe(false);
   });
 });

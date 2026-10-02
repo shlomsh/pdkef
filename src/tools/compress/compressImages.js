@@ -2,6 +2,8 @@
 // untouched, and only the embedded images are recompressed in place (COMP-01).
 import { getPdfLib } from '../../lib/pdfLib.js';
 import { canvasToBlob } from './compress.js';
+import { permissionsFromP, randomOwnerPassword } from './pdfPermissions.js';
+import { stripExif } from './jpegBytes.js';
 
 const MIN_PIXELS = 64 * 64;
 const sameFilters = (filters, name) => filters.length === 1 && filters[0] === name;
@@ -41,7 +43,8 @@ export async function encodeImageOnCanvas({ image, stream, target, quality, deco
     let drawable;
     if (image.filters[0] === 'DCTDecode') {
       // No colour management: the PDF's own colour space stays on the output, so converting here would apply it twice.
-      drawable = await createImageBitmap(new Blob([stream.getContents()], { type: 'image/jpeg' }), {
+      // EXIF orientation is applied by the browser but ignored by PDF viewers, so it goes first.
+      drawable = await createImageBitmap(new Blob([stripExif(stream.getContents())], { type: 'image/jpeg' }), {
         colorSpaceConversion: 'none',
       });
     } else {
@@ -94,12 +97,29 @@ export async function compressPdfImages(
   const beforeBytes = file.size;
   const untouched = (reason) => ({ blob: file, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason });
 
-  const { PDFDocument, PDFName, PDFRef, PDFRawStream, decodePDFRawStream } = await getPdfLib();
+  const { PDFDocument, PDFName, PDFRef, PDFRawStream, PDFDict, PDFNumber, decodePDFRawStream } = await getPdfLib();
   const { analyzePdf } = await import('./analyzePdf.js');
 
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-  if (doc.isEncrypted) return untouched('encrypted');
+  let doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+  const wasEncrypted = doc.isEncrypted;
+  let permissions = null;
+  if (wasEncrypted) {
+    // Most encrypted PDFs are owner-password-only: they open with an empty password and only restrict editing.
+    // Only the Standard handler with a readable /P can be carried across; anything else stays as it is.
+    const encrypt = doc.context.lookup(doc.context.trailerInfo.Encrypt);
+    const handler = encrypt instanceof PDFDict ? encrypt.get(PDFName.of('Filter')) : null;
+    const p = encrypt instanceof PDFDict ? doc.context.lookup(encrypt.get(PDFName.of('P'))) : null;
+    if (handler !== PDFName.of('Standard') || !(p instanceof PDFNumber)) return untouched('encrypted');
+    permissions = permissionsFromP(p.asNumber());
+    try {
+      doc = await PDFDocument.load(bytes, { password: '', updateMetadata: false });
+    } catch (err) {
+      // Same wording check as security.js: a file that needs a real password goes back untouched.
+      if (/password/i.test(err?.message ?? '')) return untouched('encrypted');
+      throw err;
+    }
+  }
 
   const { images } = analyzePdf(doc, { totalBytes: beforeBytes });
   if (images.length === 0) return untouched('no-images');
@@ -135,6 +155,9 @@ export async function compressPdfImages(
     onProgress?.((i + 1) / planned.length);
   }
 
+  // Compressing must not quietly strip a file's restrictions: re-apply the same permissions
+  // (empty user password, a fresh random owner password).
+  if (wasEncrypted) doc.encrypt({ userPassword: '', ownerPassword: randomOwnerPassword(), permissions });
   const saved = await doc.save({ useObjectStreams: true });
   const afterBytes = saved.byteLength;
   // A re-save with nothing replaced can still shrink a file (object streams); that is not our gain.
