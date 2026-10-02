@@ -1,4 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { useLatestRun } from '../../lib/useLatestRun.ts';
+import NeedsUnlock from '../../shell/NeedsUnlock.tsx';
 import { compressPdf, compressPdfToTarget } from './compress.js';
 import { compressImageToTarget } from './compressImage.js';
 import { deriveFileKind } from '../../lib/fileKind.js';
@@ -93,6 +96,10 @@ export default function PdfCompressTool({
   const [dimensions, setDimensions] = useState<{ width: number; height: number; originalWidth: number; originalHeight: number } | null>(null);
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
   const [announcement, setAnnouncement] = useState('');
+  // ENC-08: the bytes of a PDF that needs a password. Set means the options and the Compress button give
+  // way to NeedsUnlock (src/shell/NeedsUnlock.tsx); every new pick clears it before the check runs again.
+  const [needsUnlockBytes, setNeedsUnlockBytes] = useState<ArrayBuffer | null>(null);
+  const encryptionCheck = useLatestRun();
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
   const kind = deriveFileKind(file);
@@ -256,6 +263,29 @@ export default function PdfCompressTool({
       resetOutput();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
       recordAction('add_files');
+      setNeedsUnlockBytes(null);
+      if (deriveFileKind(next) === 'pdf') void checkEncryption(next);
+    }
+  };
+
+  // A password-protected PDF is a precondition, not a failure: it is parked for Unlock instead of failing
+  // later with generic copy (a small one would even come back untouched as "compressed"). Only
+  // 'needs-password' is gated; an owner-password-only file compresses correctly. A newer pick wins.
+  const checkEncryption = async (pdf: File) => {
+    const run = encryptionCheck.begin();
+    try {
+      const bytes = await pdf.arrayBuffer();
+      const protection = await probeEncryption(bytes);
+      if (!run.isCurrent()) return;
+      run.settle();
+      if (protection !== 'needs-password') return;
+      setNeedsUnlockBytes(bytes);
+      setAnnouncement(t.protectedNeedsPasswordTitle);
+    } catch (err) {
+      console.error(err);
+      if (!run.isCurrent()) return;
+      run.settle();
+      reportError('pdf_tool_run', err, 'check_encryption');
     }
   };
 
@@ -609,6 +639,22 @@ export default function PdfCompressTool({
           carries over the moment one is dropped in. Image mode replaces this
           whole grid with the standalone Target Size panel, since there is no
           quality-level choice to make for a photo. */}
+      {needsUnlockBytes ? (
+        <NeedsUnlock
+          kind="needs-password"
+          file={file}
+          bytes={needsUnlockBytes}
+          from="compress"
+          toolName="Compress"
+          verb="compress"
+          messages={{
+            title: t.protectedNeedsPasswordTitle,
+            body: t.protectedNeedsPasswordBody,
+            unlockIt: t.protectedUnlockIt,
+            handoffFailed: t.protectedHandoffFailed,
+          }}
+        />
+      ) : (
       <div class={isImageMode ? styles['image-target-panel'] : undefined}>
         {isImageMode ? (
           <div class={styles['target-size-panel']}>
@@ -765,6 +811,7 @@ export default function PdfCompressTool({
 
         {actionAndResults}
       </div>
+      )}
 
       <p class="sr-only" role="status" aria-live="polite">
         {announcement}
