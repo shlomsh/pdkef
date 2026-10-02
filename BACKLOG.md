@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 39 live: 2 up next, 10 then, 19 waiting, 8 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 40 live: 2 up next, 11 then, 19 waiting, 8 parked.
 
 ## Redact: finish removal
 
@@ -68,6 +68,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 | DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
+| DEBT-33 | P3 | [DEBT-33](backlog/tasks/DEBT-33.md) · The shared colour picker commits on every drag step under preact/compat |  |
 
 ### Waiting
 

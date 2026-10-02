@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   EDITOR_PREFERENCE_RECORD_VERSION,
   getAppStyle,
@@ -353,7 +353,8 @@ describe('recent whiteout colours (RED-53)', () => {
 
   it('remembers colours across reads, most recent first, capped at three', () => {
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
-    for (const c of ['#111111', '#222222', '#333333', '#444444']) rememberRecentWhiteoutColor(c, { userScope: scope });
+    let list: string[] = [];
+    for (const c of ['#111111', '#222222', '#333333', '#444444']) list = rememberRecentWhiteoutColor(c, getRecentWhiteoutColors({ userScope: scope }), { userScope: scope });
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#444444', '#333333', '#222222']);
     expect(JSON.parse(localStorage.getItem(key) as string).schemaVersion).toBe(1);
   });
@@ -365,6 +366,17 @@ describe('recent whiteout colours (RED-53)', () => {
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual([]);
     localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#111111', 'blue', 5] }));
     expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#111111']);
-    expect(rememberRecentWhiteoutColor('nope', { userScope: scope })).toEqual(['#111111']);
+    expect(rememberRecentWhiteoutColor('nope', ['#111111'], { userScope: scope })).toEqual(['#111111']);
+  });
+
+  it('keeps growing the in-memory list when storage throws', () => {
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+    try {
+      const first = rememberRecentWhiteoutColor('#aaaaaa', [], { userScope: scope });
+      expect(first).toEqual(['#aaaaaa']);
+      expect(rememberRecentWhiteoutColor('#bbbbbb', first, { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

@@ -27,12 +27,13 @@ away.
 - The blur bar is one row, the same height as the blackout and whiteout bars, with every control on one
   centre line. The slider's ends are shown by a small and a large blur mark, not words, and its accessible
   name is still "Blur strength". No default tick.
-- Duplicate and Every page have clearly different icons. Where there is room (the desktop pill) both carry
-  a text label; on the phone bar they are icon-only with aria-labels and titles, and the whiteout bar stays
-  one row at 375, 390 and 402px.
+- Duplicate and Every page have clearly different icons. Where there is room (768px and wider) both carry
+  a text label; narrower they are icon-only with titles, and every bar is one row at 375, 390 and 402px
+  (a whiteout with three recent colours wraps its two groups whole).
+- The pill never runs off the window: a narrow window with a mouse keeps every control on screen.
 - Blackout, blur and whiteout bars share one right side: Duplicate, Every page, divider, Delete.
 - The desktop pill leaves a clear gap above the box, so every top handle can be grabbed.
-- While the native picker is open, the box and the swatch follow the colour live; the pick lands as one
+- While the native picker is open, the box follows the colour live; the pick lands as one
   undo step, and it still lands if the box is deselected as the picker closes.
 - The whiteout bar offers the last three custom colours (eyedropper or picker, never an automatic
   sample), most recent first, one tap each, remembered across documents.

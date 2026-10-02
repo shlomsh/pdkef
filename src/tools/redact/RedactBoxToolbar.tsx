@@ -76,8 +76,11 @@ export default function RedactBoxToolbar({
   committed.current = hex;
   const pending = useRef(false);
   const reconcile = (el: HTMLInputElement) => {
-    if (el.value.toLowerCase() !== committed.current.toLowerCase()) pickRef.current(el.value);
-    else paintWhiteoutColor(document, element.id, committed.current);
+    if (el.value.toLowerCase() !== committed.current.toLowerCase()) {
+      pickRef.current(el.value);
+      // A blur then a change with no render between must not commit twice.
+      committed.current = el.value.toLowerCase();
+    } else paintWhiteoutColor(document, element.id, committed.current);
     pending.current = false;
   };
   const reconcileRef = useRef(reconcile);
@@ -93,6 +96,11 @@ export default function RedactBoxToolbar({
       if (pending.current) reconcileRef.current(el);
     };
   }, [isWhiteout]);
+  // Uncontrolled: a parent re-render while the native picker is open must not re-assert the
+  // committed colour over a pick in flight. The input follows the committed colour only when idle.
+  useEffect(() => {
+    if (colorInput.current && !pending.current) colorInput.current.value = hex;
+  }, [hex, isWhiteout]);
   const previewColor = (e: Event) => {
     paintWhiteoutColor(document, element.id, (e.currentTarget as HTMLInputElement).value);
     pending.current = true;
@@ -161,7 +169,6 @@ export default function RedactBoxToolbar({
               type="color"
               className={styles.native}
               aria-label="Choose any colour"
-              value={hex}
               ref={colorInput}
               onInput={previewColor}
             />

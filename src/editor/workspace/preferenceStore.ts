@@ -387,9 +387,9 @@ export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): 
   } catch { return []; }
 }
 
-/** Adds a colour to the remembered list and writes it; returns the new list (kept in memory if the write fails). */
-export function rememberRecentWhiteoutColor(color: string, options: EditorPreferenceOptions = {}): string[] {
-  const next = withRecentColor(getRecentWhiteoutColors(options), color);
+/** Adds a colour to `current` and writes it; returns the new list whatever the write does (the caller keeps it in memory). */
+export function rememberRecentWhiteoutColor(color: string, current: readonly string[], options: EditorPreferenceOptions = {}): string[] {
+  const next = withRecentColor(current, color);
   try {
     const scope = getEditorUserScope(options);
     if (scope) localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: next }));

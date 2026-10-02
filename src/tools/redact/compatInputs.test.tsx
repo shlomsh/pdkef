@@ -12,7 +12,9 @@ import RedactBoxToolbar from './RedactBoxToolbar.tsx';
  * For range and colour inputs compat rewrites a JSX `onChange` to the `input` event,
  * which fires on every drag step. Code that assumed `onChange` meant "released" or
  * "picker closed" shipped twice. The fix is useNativeChange(ref, cb), which listens to
- * the real `change` event. This file guards both the behaviour and the source.
+ * the real `change` event. This file guards both the behaviour and Redact's own source
+ * (everything under src/tools/redact). The shared src/editor-ui/ColorPicker.tsx, which
+ * the brush menu and Sign use, still has the pattern and is its own ticket (DEBT-33).
  */
 
 let host: HTMLDivElement | null = null;
@@ -108,14 +110,19 @@ describe('static scan: no onChange on range or colour inputs', () => {
     expect(findCompatOnChangeInputs(clean)).toEqual([]);
   });
 
-  it('no non-test .tsx under src/tools/redact uses it', () => {
-    const dir = 'src/tools/redact/'; // vitest runs from the repo root
+  it('no non-test .tsx anywhere under src/tools/redact uses it', () => {
     const offenders: string[] = [];
-    for (const f of readdirSync(dir) as string[]) {
-      if (!f.endsWith('.tsx') || /\.test\.tsx$/.test(f)) continue;
-      const hits = findCompatOnChangeInputs(readFileSync(dir + f, 'utf8'));
-      if (hits.length) offenders.push(`${f}: ${hits.length} range/color <input> with onChange`);
-    }
+    const walk = (dir: string) => { // vitest runs from the repo root
+      for (const entry of readdirSync(dir, { withFileTypes: true }) as { name: string; isDirectory(): boolean }[]) {
+        const path = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(path);
+        else if (entry.name.endsWith('.tsx') && !entry.name.endsWith('.test.tsx')) {
+          const hits = findCompatOnChangeInputs(readFileSync(path, 'utf8'));
+          if (hits.length) offenders.push(`${path}: ${hits.length} range/color <input> with onChange`);
+        }
+      }
+    };
+    walk('src/tools/redact');
     expect(
       offenders,
       `preact/compat turns onChange on range/color inputs into the per-drag-step input event. Use useNativeChange (src/tools/redact/useNativeChange.ts) instead.\n${offenders.join('\n')}`,

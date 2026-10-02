@@ -128,15 +128,18 @@ export default function RedactBox({
       // correction below follows the resolved `placement` instead of being
       // fixed to "up".
       offset(0),
-      flip({ fallbackPlacements: ['bottom'] }),
+      flip({ fallbackPlacements: ['bottom'], padding: BOX_TOOLBAR_GAP }),
       shift({ padding: TOOLBAR_FLOATING_OFFSET }),
       // MOBI-17: the missing containment check - see DraggableWrapper.tsx's
       // own comment beside its `visualViewportClamp` call, and
       // visualViewportClamp.ts's header, for the full reasoning. `flip()`
       // above already handles "does not fit above the box" by trying
       // 'bottom'; this handles "the whole page is zoomed and panned so
-      // neither placement is currently visible".
-      visualViewportClamp({ getExcludedRect: getStickyToolShellRect }),
+      // neither placement is currently visible". `mainAxisGap` tells it about
+      // the CSS gap added after positioning (and flip's padding reserves room
+      // for it), so the pill's final rect, not the offset(0) one, is what
+      // stays below the sticky shell and above the bottom edge.
+      visualViewportClamp({ getExcludedRect: getStickyToolShellRect, mainAxisGap: BOX_TOOLBAR_GAP }),
     ]
   });
   // MOBI-17: same publisher DraggableWrapper.tsx uses, ref-counted across

@@ -672,12 +672,12 @@ export default function PdfRedactTool() {
   const pickColor = (id: string, color: string) => {
     updateElement(id, { color, colorMode: 'custom' });
     rememberColor(color);
-    setRecentColors(rememberRecentWhiteoutColor(color));
+    setRecentColors(rememberRecentWhiteoutColor(color, recentColors));
   };
   const matchPage = (id: string) => updateElement(id, { colorMode: 'auto' });
   const pickBrushColor = (color: string) => {
     rememberColor(color);
-    setRecentColors(rememberRecentWhiteoutColor(color));
+    setRecentColors(rememberRecentWhiteoutColor(color, recentColors));
   };
 
   // Two pipettes, one active at a time: the brush's, or the selected whiteout's.
