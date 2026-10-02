@@ -2,7 +2,7 @@
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import PdfCompressTool from './PdfCompressTool.tsx';
+import PdfCompressTool, { formatShare } from './PdfCompressTool.tsx';
 import * as compressLib from './compress.js';
 import * as analyzePdfLib from './analyzePdf.js';
 import * as compressImageLib from './compressImage.js';
@@ -102,7 +102,7 @@ vi.mock('./compress.js', () => {
 
 // analyzePdf statically imports pdf-lib; the island loads it dynamically.
 vi.mock('./analyzePdf.js', () => ({
-  analyzePdf: vi.fn(() => ({ images: [{}], hasText: true })),
+  analyzePdf: vi.fn(() => ({ images: [{}], hasText: true, imageShare: 0.9 })),
 }));
 vi.mock('../../lib/pdfLib.js', () => ({
   getPdfLib: vi.fn(() => Promise.resolve({ PDFDocument: { load: vi.fn(() => Promise.resolve({})) } })),
@@ -136,7 +136,7 @@ describe('PdfCompressTool UI flow', () => {
     // in flight) would otherwise leave every later test's compress/preview
     // calls returning undefined instead of a Blob/data URL.
     compressLib.compressPdf.mockImplementation(() => Promise.resolve({ blob: new Blob(['%PDF-1.4-compressed'], { type: 'application/pdf' }), rasterBytes: 500 }));
-    analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true }));
+    analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
     thumbnailsLib.renderComparePreview.mockImplementation((fileOrBlob) =>
       Promise.resolve(`data:image/png;base64,${fileOrBlob instanceof File ? 'before' : 'after'}`),
     );
@@ -997,6 +997,49 @@ describe('PdfCompressTool UI flow', () => {
       });
     }
 
+    it('formatShare rounds to a whole percent and floors tiny shares', () => {
+      expect(formatShare(0.004)).toBe('less than 1%');
+      expect(formatShare(0.126)).toBe('13%');
+      expect(formatShare(0.994)).toBe('99%');
+    });
+
+    it('a mostly-image PDF gets the warning-styled share note', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
+      mountTool();
+      await addPdf('pics.pdf');
+      const note = container.querySelector('[role="note"]');
+      expect(note.textContent).toContain('Images are 90% of this PDF');
+      expect(note.className).toContain(styles['compress-warning']);
+    });
+
+    it('a mostly-text PDF gets the quiet share note', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.12 }));
+      mountTool();
+      await addPdf('mixed.pdf');
+      const note = container.querySelector('[role="note"]');
+      expect(note.textContent).toContain('Its images are 12% of the file');
+      expect(note.className).toContain(styles['honest-note']);
+    });
+
+    it('the pages-to-pictures switch hides the share note and unticking brings it back', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
+      mountTool();
+      await addPdf('pics.pdf');
+      await tickFlatten(container);
+      expect(container.textContent).not.toContain('Images are 90% of this PDF');
+      await tickFlatten(container);
+      expect(container.textContent).toContain('Images are 90% of this PDF');
+    });
+
+    it('a PDF with no images shows only the nothing-to-shrink note', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true, imageShare: 0 }));
+      mountTool();
+      await addPdf('text_only.pdf');
+      expect(container.querySelectorAll('[role="note"]').length).toBe(1);
+      expect(container.textContent).not.toContain('of this PDF');
+      expect(container.textContent).not.toContain('of the file');
+    });
+
     it('says so before any click for a PDF with text and no images, and keeps the cards and button', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [], hasText: true }));
       mountTool();
@@ -1021,7 +1064,7 @@ describe('PdfCompressTool UI flow', () => {
     });
 
     it('shows no note when the PDF has an image', async () => {
-      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true }));
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       mountTool();
       await addPdf('photo.pdf');
 
@@ -1039,7 +1082,7 @@ describe('PdfCompressTool UI flow', () => {
       mountTool();
       await addPdf('a.pdf');
       // A's analysis is still pending; B arrives and is analysed (images present).
-      analyzePdfLib.analyzePdf.mockImplementationOnce(() => ({ images: [{}], hasText: true }));
+      analyzePdfLib.analyzePdf.mockImplementationOnce(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
       await addPdf('b.pdf');
       await act(async () => {
         resolveA({ PDFDocument: { load: () => Promise.resolve({}) } });
