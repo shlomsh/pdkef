@@ -6,10 +6,6 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [RED-53](backlog/tasks/RED-53.md) P2 · Redact's box toolbar is one calm row: blur on a single line, Duplicate labelled, a clear gap above the box (in progress)
-
 ### Robustness and debt
 
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
