@@ -20,6 +20,7 @@ import type { SavedSignature } from '../../editor/model/savedSignature.ts';
 import type { PageGeometry } from '../../editor/geometry/coords.ts';
 import { getElementDefinition } from '../../editor/registry/index.ts';
 import { ensureMinimumElementSize } from '../../editor/geometry/minimumSize.ts';
+import { samplePageColor } from './whiteoutPageColor.ts';
 import {
   cellRegionAt,
   checkboxRegionAt,
@@ -538,10 +539,6 @@ export default function useWorkspaceGestures({
       },
       commit: (patch) => {
       gestureCancelRef.current = null;
-      if (patch) {
-        dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: patch } });
-      }
-
       const dimensions = getDimensions(container);
       const minimumSizeContext = {
         tool,
@@ -550,6 +547,20 @@ export default function useWorkspaceGestures({
         startLeftPercent,
         startTopPercent,
       };
+      const placed = (patch ? { ...newEl, ...patch } : newEl) as EditorElement;
+      let finalElement = ensureMinimumElementSize(placed, minimumSizeContext);
+      // A new whiteout takes the page colour around its final box and keeps
+      // following it until the person picks one. The sample is never carried.
+      let commitPatch: Partial<EditorElement> | null = patch ?? null;
+      if (finalElement.type === 'whiteout') {
+        const { left, top, width, height } = finalElement;
+        const color = samplePageColor(pageIndex, { left, top, width, height }) ?? initialWhiteoutColor;
+        commitPatch = { ...commitPatch, color, colorMode: 'auto' } as Partial<EditorElement>;
+        finalElement = { ...finalElement, color, colorMode: 'auto' };
+      }
+      if (commitPatch) {
+        dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: commitPatch } });
+      }
       dispatch({
         type: 'ENSURE_MINIMUM_SIZE',
         payload: {
@@ -557,11 +568,6 @@ export default function useWorkspaceGestures({
           ...minimumSizeContext,
         },
       });
-
-      const finalElement = ensureMinimumElementSize(
-        (patch ? { ...newEl, ...patch } : newEl) as EditorElement,
-        minimumSizeContext,
-      );
 
       dispatch({ type: 'DISARM_TOOL' });
       recordAction('place_mark');

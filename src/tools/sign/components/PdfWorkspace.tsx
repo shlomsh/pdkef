@@ -12,7 +12,9 @@ import LineNode from './nodes/LineNode.tsx';
 import SignatureNode from './nodes/SignatureNode.tsx';
 import SymbolNode from './nodes/SymbolNode.tsx';
 import WhiteoutNode from './nodes/WhiteoutNode.tsx';
-import type { EditorElement, EditorElementPatch, TextElement } from '../../../editor/model/editorModel.ts';
+import { autoColorChanges, followsPage } from '../../../editor-ui/whiteout/pageColor.ts';
+import { samplePageColor } from '../whiteoutPageColor.ts';
+import type { EditorElement, EditorElementPatch, TextElement, WhiteoutElement } from '../../../editor/model/editorModel.ts';
 import { createElementId } from '../../../editor/model/ids.ts';
 import { orderTypableFields } from '../../../editor/text/fieldOrder.ts';
 import { useDocumentStyle, useSignTool } from './SignToolContext.tsx';
@@ -361,10 +363,14 @@ export default function PdfWorkspace({
         }),
       }
       : changes;
-    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: patch } });
+    // An auto whiteout re-samples the page when it moves or resizes, or when Auto is
+    // tapped: the colour joins this same update, so it is one history entry.
+    const followed = element ? autoColorChanges(element as WhiteoutElement, patch as Partial<WhiteoutElement>, samplePageColor) : {};
+    const withColor = { ...patch, ...followed };
+    dispatch({ type: 'UPDATE_ELEMENT', payload: { id, changes: withColor } });
     const entry = element && createUpdateEntry(
       element,
-      patch as Partial<EditorElement>,
+      withColor as Partial<EditorElement>,
       (kind) => signUpdateDescription(t, kind, element.type),
       editingElementId === id ? editSession : undefined,
     );
@@ -423,7 +429,10 @@ export default function PdfWorkspace({
 
   const makeOnDelete = useCallback((id: string) => () => deleteElement(id), [deleteElement]);
 
-  const cloneElement = useCallback((cloneInfo: EditorElement) => {
+  const cloneElement = useCallback((original: EditorElement) => {
+    // A copy of an auto whiteout sits somewhere else on the page, so it matches what is there.
+    const sampled = original.type === 'whiteout' && followsPage(original) ? samplePageColor(original.pageIndex, original) : null;
+    const cloneInfo = sampled ? { ...original, color: sampled } : original;
     dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
     logAction('add', 'DUPLICATE_ELEMENT', cloneInfo.pageIndex, formatMessage(t.duplicatedElementDescriptionTemplate, { label: signElementTypeLabel(t, cloneInfo.type) }), [captureAddedElement(cloneInfo, elements.length)]);
@@ -703,6 +712,7 @@ export default function PdfWorkspace({
                   />
                   <div
                     ref={(el) => { pageWrapperRefs.current[pageIdx] = el; }}
+                    data-sign-page-surface={pageIdx}
                     className={workspaceStyles['page-wrapper']}
                     style={{ aspectRatio: `${size.width} / ${size.height}` }}
                   >

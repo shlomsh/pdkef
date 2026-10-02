@@ -359,3 +359,26 @@ describe('ElementToolbar date field controls', () => {
     expect(cycle).toBeFalsy();
   });
 });
+
+describe('ElementToolbar whiteout colour group', () => {
+  const mountToolbar = (element: any) => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    act(() => render(<ElementToolbar element={element} onChange={() => {}} onClone={() => {}} onDelete={() => {}} />, host));
+    return host;
+  };
+  afterEach(() => { document.body.innerHTML = ''; });
+
+  it('offers Auto, the eyedropper and the colour input for a whiteout, in place of the single picker', () => {
+    const host = mountToolbar({ id: 'w', type: 'whiteout', color: '#ffffff', colorMode: 'auto' });
+    expect(host.querySelector('[role="group"][aria-label="Whiteout colour"]')).not.toBeNull();
+    expect(host.querySelector('[data-redact-color-auto]')).not.toBeNull();
+    expect(host.querySelector('[data-redact-color-eyedropper]')).not.toBeNull();
+    expect(host.querySelector('button[title="Whiteout colour"]')).toBeNull();
+  });
+
+  it('does not show the group for other element types', () => {
+    const host = mountToolbar({ id: 'r', type: 'rectangle', color: '#1463ff' });
+    expect(host.querySelector('[data-redact-color-auto]')).toBeNull();
+  });
+});

@@ -49,11 +49,11 @@ function swallowNextClick() {
 /** The page surface under an event target: the page wrapper, minus the selected
  * box's pill and resize handles and anything outside it (page header, toolbar).
  * Null means "not the page": the event is left completely alone. */
-function pageSurfaceOf(target: EventTarget | null): Element | null {
+function pageSurfaceOf(target: EventTarget | null, surfaceSelector: string): Element | null {
   const el = target as Element | null;
   if (!el?.closest) return null;
   if (el.closest('[data-editor-actions], [data-editor-resizer]')) return null;
-  return el.closest('.redact-draw-area');
+  return el.closest(surfaceSelector);
 }
 
 /** The ring's width in CSS px, converted to canvas px by the canvas's own
@@ -90,13 +90,15 @@ export function sampleRingColor(canvas: HTMLCanvasElement | null | undefined, bo
  * lift: the loupe rides above the finger and the lift picks; a second finger or a
  * cancel hides it and stays armed. Esc cancels. Handlers write the DOM only (the
  * loupe's transform), never Preact state, per the gesture golden rule. */
-export function useEyedropper(active: boolean, onPick: (color: string) => void, onDone: () => void) {
+export function useEyedropper(active: boolean, onPick: (color: string) => void, onDone: () => void, surfaceSelector: string) {
   // Callers pass new closures each render; depending on them would re-run the effect
   // mid-touch, destroy the loupe and drop the tracked gesture. Read the latest instead.
   const pickRef = useRef(onPick);
   const doneRef = useRef(onDone);
   pickRef.current = onPick;
   doneRef.current = onDone;
+  const selectorRef = useRef(surfaceSelector);
+  selectorRef.current = surfaceSelector;
   useEffect(() => {
     if (!active) return undefined;
     const loupe = createLoupe(overlayHost);
@@ -105,13 +107,13 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
     let tracked: { id: number; canvas: HTMLCanvasElement | null; x: number; y: number } | null = null;
 
     const onMouseMove = (e: MouseEvent) => {
-      const canvas = canvasOf(pageSurfaceOf(e.target));
+      const canvas = canvasOf(pageSurfaceOf(e.target, selectorRef.current));
       if (canvas) loupe.update(canvas, e.clientX, e.clientY, false);
       else loupe.hide();
     };
     const onMouseDown = (e: MouseEvent) => {
       // The eyedropper button and the rest of the chrome keep working.
-      const surface = pageSurfaceOf(e.target);
+      const surface = pageSurfaceOf(e.target, selectorRef.current);
       if (!surface || e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
@@ -128,7 +130,7 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
         loupe.hide();
         return;
       }
-      const surface = pageSurfaceOf(e.target);
+      const surface = pageSurfaceOf(e.target, selectorRef.current);
       if (!surface) return;
       e.preventDefault();
       e.stopPropagation();

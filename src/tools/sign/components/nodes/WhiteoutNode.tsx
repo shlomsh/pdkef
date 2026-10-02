@@ -6,7 +6,7 @@ import type { ElementNodeProps } from '../nodeProps.ts';
 export default function WhiteoutNode({ element, isActive, onResizeStart, messages }: ElementNodeProps<WhiteoutElement>) {
   return (
     <>
-      <div style={{ width: '100%', height: '100%', backgroundColor: element.color || DEFAULT_WHITEOUT_COLOR }} />
+      <div data-whiteout-fill style={{ width: '100%', height: '100%', backgroundColor: element.color || DEFAULT_WHITEOUT_COLOR }} />
       <ElementResizers
         element={element}
         isActive={isActive}

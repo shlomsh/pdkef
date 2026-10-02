@@ -86,7 +86,7 @@ describe('eyedropper', () => {
     const pageHandler = vi.fn();
     card.addEventListener('mousedown', pageHandler);
     const host = document.createElement('div');
-    function Host() { useEyedropper(true, onPick, onDone); return null; }
+    function Host() { useEyedropper(true, onPick, onDone, '.redact-draw-area'); return null; }
     act(() => render(<Host />, host));
     const cleanup = () => { act(() => render(null, host)); card.remove(); };
     return { canvas, card, area, onPick, onDone, pageHandler, cleanup };
@@ -270,7 +270,7 @@ describe('eyedropper', () => {
       const host = document.createElement('div');
       const first = { pick: vi.fn(), done: vi.fn() };
       const latest = { pick: vi.fn(), done: vi.fn() };
-      function Host({ cb }: { cb: typeof first }) { useEyedropper(true, (c) => cb.pick(c), () => cb.done()); return null; }
+      function Host({ cb }: { cb: typeof first }) { useEyedropper(true, (c) => cb.pick(c), () => cb.done(), '.redact-draw-area'); return null; }
       act(() => render(<Host cb={first} />, host));
       canvas.dispatchEvent(touchEvent('touchstart', [{ id: 1, x: 60, y: 120 }]));
       flush();

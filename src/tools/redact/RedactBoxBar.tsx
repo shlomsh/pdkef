@@ -1,4 +1,4 @@
-import { overlayHost } from './overlayHost.ts';
+import { overlayHost } from '../../editor-ui/whiteout/overlayHost.ts';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { createPortal } from 'preact/compat';
 import type { ComponentChildren, RefObject } from 'preact';

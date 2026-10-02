@@ -19,8 +19,8 @@ import usePeekAll from './usePeekAll.ts';
 import BrushLayer, { type CommittedStroke } from './BrushLayer.tsx';
 import { resolveWhiteoutColor, resolveRedactBlurStrength } from './redactStyle.ts';
 import BrushControls, { brushStyleOf, resolveBrush, type BrushSettings } from './BrushControls.tsx';
-import { useEyedropper, sampleRingColor } from './pageSampling.ts';
-import { autoColorChanges, type PercentBox } from './pageColor.ts';
+import { useEyedropper, sampleRingColor } from '../../editor-ui/whiteout/pageSampling.ts';
+import { autoColorChanges, type PercentBox } from '../../editor-ui/whiteout/pageColor.ts';
 import { checkBoxesFromElements } from './check/checkBoxes.ts';
 import usePageSizesPt, { needsPageSizes } from './usePageSizesPt.ts';
 import DeletableObjectOverlay from './DeletableObjectOverlay.tsx';
@@ -717,6 +717,7 @@ export default function PdfRedactTool() {
     (eyedropping === 'brush' && hasBrushTarget) || (eyedropping === 'box' && selectedWhiteoutId !== null),
     (color) => (eyedropping === 'box' && selectedWhiteoutId !== null ? pickColor(selectedWhiteoutId, color) : pickBrushColor(color)),
     () => dispatch({ type: 'EYEDROPPER_STOPPED' }),
+    '.redact-draw-area',
   );
   useEffect(() => {
     dispatch({ type: 'EYEDROPPER_STOPPED' });

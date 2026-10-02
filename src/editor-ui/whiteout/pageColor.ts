@@ -1,4 +1,4 @@
-import type { ColorMode } from './redactElements.ts';
+import type { ColorMode } from '../../editor/model/editorModel.ts';
 
 // RED-51: the "auto" whiteout colour is the median of a thin ring of page
 // pixels just outside the box. Pure maths here; the canvas reads live in

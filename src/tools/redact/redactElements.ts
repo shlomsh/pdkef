@@ -1,4 +1,4 @@
-import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, RedactToolType } from '../../editor/model/editorModel.ts';
+import type { WhiteoutElement, BlackoutElement, BlurElement, BlurStrokeElement, WhiteoutStrokeElement, RedactToolType, ColorMode } from '../../editor/model/editorModel.ts';
 import type { DeleteElement } from '../../editor/registry/draftValidation.ts';
 
 /**
@@ -18,7 +18,7 @@ export interface Links {
  * the person chose. Absent means custom, so a draft saved before RED-51 keeps
  * its colour. Not "fill mode": that already names Sign's form-filling UX.
  */
-export type ColorMode = 'auto' | 'custom';
+export type { ColorMode };
 
 export interface ColorModeField {
   colorMode?: ColorMode;

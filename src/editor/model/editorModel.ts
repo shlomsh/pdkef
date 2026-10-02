@@ -200,8 +200,12 @@ export interface SignatureElement extends ElementBase, BoxGeometry {
 }
 
 /** An opaque fill box that covers underlying content (Redact reuses this). */
+export type ColorMode = 'auto' | 'custom';
+
 export interface WhiteoutElement extends ElementBase, BoxGeometry {
   type: 'whiteout';
+  /** 'auto' follows the page colour around the box; absent or 'custom' keeps the chosen colour. */
+  colorMode?: ColorMode;
 }
 
 /** Opaque destructive-redaction box, flattened by redact.js on export. */

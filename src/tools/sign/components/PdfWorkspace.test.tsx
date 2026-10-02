@@ -4,6 +4,8 @@ import { useReducer } from 'preact/hooks';
 import { act } from 'preact/test-utils';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import PdfWorkspace from './PdfWorkspace.tsx';
+import { rememberRecentWhiteoutColor } from '../../../editor/workspace/preferenceStore.ts';
+import { samplePageColor } from '../whiteoutPageColor.ts';
 import workspaceStyles from '../../../editor-ui/Workspace.module.css';
 import pageHeaderStyles from '../../../editor-ui/EditorPageHeader.module.css';
 import { createPageGeometry } from '../../../editor/geometry/coords.js';
@@ -160,6 +162,11 @@ function StatefulWorkspace({ initialState, stateRef, props = {}, savedSignatures
 function mountStatefulWorkspace(options: StatefulWorkspaceOptions): HTMLDivElement {
   return mount(<StatefulWorkspace {...options} />);
 }
+
+vi.mock('../whiteoutPageColor.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../whiteoutPageColor.ts')>()),
+  samplePageColor: vi.fn(() => null),
+}));
 
 describe('PdfWorkspace Component', () => {
   let host: HTMLDivElement | null = null;
@@ -596,6 +603,52 @@ describe('PdfWorkspace Component', () => {
     expect(added).toMatchObject({
       type: 'whiteout',
       color: '#ffffff'
+    });
+  });
+
+  describe('whiteout follows the page', () => {
+    const whiteout = (over: Record<string, unknown> = {}) => ({
+      id: 'w1', type: 'whiteout', pageIndex: 0, left: 10, top: 10, width: 20, height: 10, color: '#336699', colorMode: 'custom', ...over,
+    }) as unknown as SignToolState['elements'][number];
+    const mountActive = (el: SignToolState['elements'][number]) => {
+      const stateRef = { current: testState() };
+      host = mountStatefulWorkspace({ initialState: testState({ elements: [el], activeElementId: el.id }), stateRef });
+      return stateRef;
+    };
+    const click = (selector: string) => act(() => { required(host!.querySelector<HTMLElement>(selector), selector).click(); });
+
+    it('marks each page surface with its index, for the page sampler and the eyedropper', () => {
+      host = mountWorkspace({ state: testState() });
+      expect(host.querySelector(`.${workspaceStyles['page-wrapper']}`)?.getAttribute('data-sign-page-surface')).toBe('0');
+    });
+
+    it('Auto restores following the page: the sampled colour joins the same single history entry, nothing is carried', () => {
+      vi.mocked(samplePageColor).mockReturnValue('#f0e0d0');
+      const stateRef = mountActive(whiteout());
+      click('[data-redact-color-auto]');
+      expect(stateRef.current.elements[0]).toMatchObject({ colorMode: 'auto', color: '#f0e0d0' });
+      expect(stateRef.current.actionHistory).toHaveLength(1);
+      expect(stateRef.current.carried.whiteoutColor).toBeUndefined();
+    });
+
+    it('a custom pick turns following off and carries the colour for the next whiteout', () => {
+      localStorage.clear();
+      rememberRecentWhiteoutColor('#112233', []);
+      const stateRef = mountActive(whiteout({ colorMode: 'auto', color: '#ffffff' }));
+      click('[data-redact-color-recent="#112233"]');
+      expect(stateRef.current.elements[0]).toMatchObject({ colorMode: 'custom', color: '#112233' });
+      expect(stateRef.current.carried.whiteoutColor).toBe('#112233');
+    });
+
+    it('Duplicate of an auto whiteout samples the page at the copy\'s spot; a custom copy keeps its colour', () => {
+      vi.mocked(samplePageColor).mockReturnValue('#aabbcc');
+      let stateRef = mountActive(whiteout({ colorMode: 'auto', color: '#ffffff' }));
+      click('button[title="Duplicate"]');
+      expect(stateRef.current.elements[1]).toMatchObject({ colorMode: 'auto', color: '#aabbcc', left: 14, top: 14 });
+      act(() => render(null, host!)); host!.remove(); host = null;
+      stateRef = mountActive(whiteout());
+      click('button[title="Duplicate"]');
+      expect(stateRef.current.elements[1].color).toBe('#336699');
     });
   });
 
