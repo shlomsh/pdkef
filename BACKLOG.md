@@ -2,11 +2,17 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 38 live: 1 up next, 9 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 49 live: 4 up next, 16 then, 19 waiting, 10 parked.
 
 ## Redact: finish removal
 
 Find covers exactly what it matched, Delete reaches every object, and the saved-file check can remove what it finds.
+
+### Then, in order
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ENC-04 | P1 | [ENC-04](backlog/tasks/ENC-04.md) · Redact meets a protected PDF with one quiet state, not a dead Save |  |
 
 ### Waiting
 
@@ -54,6 +60,9 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ENC-01 | P1 | [ENC-01](backlog/tasks/ENC-01.md) · One classifier says whether a PDF needs a password, is only protected, or is open |  |
+| ENC-02 | P1 | [ENC-02](backlog/tasks/ENC-02.md) · One quiet state with one action, shared by every tool that cannot read a protected PDF |  |
+| ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
 
 ### Then, in order
@@ -61,6 +70,12 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
+| ENC-03 | P1 | [ENC-03](backlog/tasks/ENC-03.md) · Unlock opens an owner-only file with no password, takes a file from another tool, and sends it back |  |
+| ENC-05 | P2 | [ENC-05](backlog/tasks/ENC-05.md) · Sign meets a protected PDF the same way Redact does |  |
+| ENC-07 | P2 | [ENC-07](backlog/tasks/ENC-07.md) · Compress and PDF to Image meet a protected PDF at the door, not at the button |  |
+| ENC-08 | P2 | [ENC-08](backlog/tasks/ENC-08.md) · Merge tells a protected file from an unreadable one, and takes it back unlocked |  |
+| ENC-09 | P2 | [ENC-09](backlog/tasks/ENC-09.md) · The daily read counts protected files as a funnel, not as failures |  |
+| ENC-10 | P1 | [ENC-10](backlog/tasks/ENC-10.md) · The round trip and the intake of every tool are tested against a real protected file |  |
 | DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
 
 ### Waiting
@@ -112,6 +127,7 @@ Mostly waiting on dated Search Console reads. Two small things can ship now.
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · The protected-PDF state has its Hebrew strings | Needs Shlomi: A decision on whether to add Hebrew strings for tools that have no /he/ page |
 | DEMO-11 | P3 | [DEMO-11](backlog/tasks/DEMO-11.md) · The O on the Hebrew home page |  |
 | SEO-16 | P3 | [SEO-16](backlog/tasks/SEO-16.md) · Positioning review: Merge, Split and Protect & Unlock |  |
 
