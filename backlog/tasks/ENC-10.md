@@ -1,22 +1,21 @@
 ---
 id: "ENC-10"
-title: "Compress and Compress Image meet a protected PDF at the door, not at the button"
+title: "The daily read counts protected files as a funnel"
 status: "open"
-priority: "P2"
+priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 3
-depends_on: ["ENC-01", "ENC-02"]
+horizon: "later"
+order: 4
+depends_on: ["ENC-02"]
 ---
 
-# ENC-10 · Compress and Compress Image meet a protected PDF at the door, not at the button
+# ENC-10 · The daily read counts protected files as a funnel
 
-*Plan section 4.* Compress parses the file only when the person presses the main button (`compress.js:59`, `:200`), so a needs-password file is accepted, previewed as a generic glyph and rejected later with "may be password-protected or corrupted". An owner-only file works (pdf.js only, output intact, run), so it proceeds; the probe reports `owner-restricted` and the tool lets it through.
+*Plan section 6.* `failed` carries no reason. ENC-02 already stops a protected file reaching `failed`; this makes the funnel visible.
 
 ## Brief
-- Probe at intake in `handleFilesAdded` for `needs-password` only; show `NeedsUnlock`. Compress Image is the same component; its return route is `/compress-image/` (ENC-02 map). Compress already has a receiver (`useHandoffIntake`).
-- A file already under the target size is returned untouched at `compress.js:192-194`, before any parse, so a small needs-password file "compresses" to itself. Probe before that return.
-- Keep the generic "may be password-protected or corrupted" body for a genuinely damaged file.
+- Two anonymous events, no new fields: `tool_needed_unlock` (the state showed, once per file) and `tool_returned_unlocked` (Unlock's Redact it / Sign it was used; counted under the receiving tool, so it needs a marker, such as `?unlocked=1` stripped with `history.replaceState`). Add to `TOOL_LIFECYCLE_EVENTS` (the schema stays import-free: `src/site-lib/functionImports.test.js`).
+- `scripts/errors-read.mjs`: `sumUsage` hardcodes four columns and skips an unlisted event silently; add the columns and `ready / (accepted - needed unlock)`, labelled. Update `usageEventSchema.test.ts` (4 events and 44 combinations become 6 and 66), the docs that say "four lifecycle events" (`ANALYTICS.md`, `docs/maintenance-telemetry.md`), Redact's `lifecycleSpy` expectations, and the scheduled-task prompt's definitions.
 
 ## Acceptance
-- Island tests per route: needs-password shows the state before the button exists; owner-only proceeds and the output is intact; a small needs-password file never comes back labelled compressed.
+- A digest run prints the new columns; the state emits `tool_needed_unlock` once and never `tool_operation_failed`.

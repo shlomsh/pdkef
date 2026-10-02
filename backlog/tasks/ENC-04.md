@@ -1,25 +1,22 @@
 ---
 id: "ENC-04"
-title: "Unlock sends the unlocked file back to the tool that asked"
+title: "Unlock's done state offers Redact it and Sign it"
 status: "open"
 priority: "P1"
 epic: "robustness"
 horizon: "now"
-order: 4
+order: 3
 depends_on: ["ENC-03"]
 ---
 
-# ENC-04 · Unlock sends the unlocked file back to the tool that asked
+# ENC-04 · Unlock's done state offers Redact it and Sign it
 
-*Plan section 3.* The return half of the round trip.
+*Plan section 3; guidelines section 13 already lists Unlock to Sign as a candidate.* Unlock's done state is Download and Share only (`PdfSecurityTool.tsx:197-210`).
 
 ## Brief
-- When Unlock finishes and `from` is valid, write the result into the shared memory space as that tool's current file: `cacheRecentFile(<handoffKey>, {fileName: '<name>_unlocked.pdf', fileType: 'application/pdf', fileBytes})` (`draftStore.js:427-470`: it creates an entry keyed by the unlocked bytes and sets the tool's pointer; nothing else is replaced). That is what makes a crash, a reload or Back between Unlock finishing and the tap resume with the unlocked file: Redact's `onRestore` loads the entry (`loadDraft` returns an entry with no work on it).
-- The done state keeps Download and Share, then one quiet verb with that tool's icon, "Continue in <Tool>", never in front of Download. It only navigates, to the route from the ENC-02 map with `?unlocked=1` (the marker ENC-14 counts, then strips). The busy flag is `useNavigatingAway`. No return hand-off record.
-- Without `from`, the done state is unchanged. The name is `<name>_unlocked.pdf` either way; the original is never modified, replaced or stored.
-- Exception: `from=merge`. Merge's entries are keyed by a set of files, so writing one file there would replace the set the person has open. Merge keeps a short-lived hand-off for its return (ENC-13).
-- If the memory-space write fails (storage blocked or full), keep Download usable and offer Continue through a hand-off instead; say nothing alarming.
+- Two quiet buttons after Download and Share, "Redact it" and "Sign it", each with the target tool's icon, copied from Redact's row (`RedactFinish.tsx:55-76`: a handoff row, a `useNavigatingAway` busy flag, a failure line). Each calls `saveHandoff('<tool>', {fileName: '<name>_unlocked.pdf', fileType: 'application/pdf', fileBytes})` then navigates to `/redact/` or `/sign/`; their `beforeRestore` receivers already take it. Always shown after an unlock, not only when the person came from Redact. Never in front of Download.
+- Unlock must keep the output bytes (not only the object URL) to hand over.
+- Tools may not import each other (module-boundaries rule 1), so the row is written in the Unlock folder; ENC-12 folds the copies into one.
 
 ## Acceptance
-- Unit: after Unlock finishes with `from=redact`, `loadDraft('redact')` returns the unlocked file named `<name>_unlocked.pdf` and the previous entry is untouched; `from=edit-pdf` and `from=compress-image` use their keys and routes; an unknown slug offers nothing. The saved bytes equal what Download gives, and `getPermissions()` on them is `null`.
-- Reviewed at 1280 and 375: the Continue verb is quiet and the Download path is unchanged.
+- Unit: each button saves the hand-off with the unlocked bytes under `<name>_unlocked.pdf` and navigates; a failed save shows the line and re-enables the button; the busy flag clears on a persisted `pageshow`. Reviewed at 1280 and 375.

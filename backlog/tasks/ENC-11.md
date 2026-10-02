@@ -1,20 +1,20 @@
 ---
 id: "ENC-11"
-title: "PDF to Image meets a protected PDF at the door and can take a file back"
+title: "Every tool's intake is tested against a real protected file in one table"
 status: "open"
-priority: "P2"
+priority: "P3"
 epic: "robustness"
-horizon: "next"
-order: 4
-depends_on: ["ENC-01", "ENC-02"]
+horizon: "later"
+order: 5
+depends_on: ["ENC-06", "ENC-08"]
 ---
 
-# ENC-11 · PDF to Image meets a protected PDF at the door and can take a file back
+# ENC-11 · Every tool's intake is tested against a real protected file in one table
 
-*Plan section 4.* PDF to Image parses on Convert (`toImage.js:95`), so a needs-password file is rejected late with generic copy (`PdfToImageTool.tsx:277-279`). An owner-only file renders fine (pdf.js only, run).
+*Plan section 8.* The test that would have caught Split's and Edit Pages' blank output.
 
 ## Brief
-- Probe at intake for `needs-password`; show `NeedsUnlock`. Add a hand-off receiver (the tool has none) using its key from the ENC-02 map.
+- `src/test/cross-tool/encryptedIntake.test.*`: each tool's intake against needs-password, owner-only and plain; protected inputs reach the state and never produce an output file. One row per tool, so a tool added later has to add its row.
 
 ## Acceptance
-- Island test: needs-password shows the state, owner-only converts, a handed-off file opens.
+- Goes red if any listed tool's intake is reverted to `ignoreEncryption` with no gate.

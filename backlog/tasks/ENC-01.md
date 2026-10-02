@@ -11,7 +11,7 @@ depends_on: []
 
 # ENC-01 · One classifier says whether a PDF needs a password, is only protected, or is open
 
-*Part of the protected-PDF plan, [docs/encrypted-pdf-unlock-handoff.md](../../docs/encrypted-pdf-unlock-handoff.md), section 2. Wave 1, the Redact flow: lands with ENC-02 to ENC-05 and ENC-07, because module-boundaries rule 9 needs two consumers per module.*
+*Part of the protected-PDF plan, [docs/encrypted-pdf-unlock-handoff.md](../../docs/encrypted-pdf-unlock-handoff.md), section 2. Lands as one slice with ENC-02 to ENC-05; its two consumers are Redact's `loadPdf` and Unlock (module-boundaries rule 9).*
 Today four places decide "encrypted" four ways (pdf-lib `isEncrypted` in Merge and Unlock, pdf.js errors in Sign, Redact, Split and Compress, nothing in Edit Pages) and none can tell a file that needs a password from one that only has an owner password. Owner-only files open in pdf.js and then break or, worse, produce blank output.
 
 ## Brief
