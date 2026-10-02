@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { PDFDocument, PDFName, PDFString } from '@cantoo/pdf-lib';
 import { analyzePdf } from './analyzePdf.js';
-import { compressPdfImages, planImageRewrite, targetDimensions } from './compressImages.js';
+import {
+  compressPdfImages,
+  compressPdfImagesToTarget,
+  IMAGE_LEVELS,
+  planImageRewrite,
+  TARGET_IMAGE_LADDER,
+  targetDimensions,
+} from './compressImages.js';
 
 const JPEG_1X1_BASE64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
 const jpeg1x1 = () => Uint8Array.from(atob(JPEG_1X1_BASE64), (c) => c.charCodeAt(0));
@@ -142,5 +149,87 @@ describe('compressPdfImages', () => {
     await compressPdfImages(fixture('mixed.pdf'), { maxLongSidePx: 1000, quality: 0.7, encodeImage: encode });
     const call = encode.mock.calls.map(([arg]) => arg).find((arg) => arg.image.width === 2000);
     expect(call.target).toEqual({ width: 1000, height: 750 });
+  });
+});
+
+describe('IMAGE_LEVELS', () => {
+  it('has the three levels the cards quote', () => {
+    expect(IMAGE_LEVELS).toEqual({
+      high: { maxLongSidePx: 1000, quality: 0.4 },
+      medium: { maxLongSidePx: 1600, quality: 0.6 },
+      low: { maxLongSidePx: 2400, quality: 0.8 },
+    });
+  });
+});
+
+describe('compressPdfImagesToTarget', () => {
+  // Output size follows the target width, so each rung is smaller than the last.
+  // Any Uint8Array works: the rewrite never parses the JPEG body.
+  const sized = () => vi.fn(async ({ target }) => new Uint8Array(target.width * 5));
+  const afterBytesAt = async (rung) =>
+    (await compressPdfImages(fixture('mixed.pdf'), { ...rung, encodeImage: sized() })).afterBytes;
+
+  it('hands back a file already under target without loading it', async () => {
+    const file = fixture('mixed.pdf');
+    const encode = sized();
+    const result = await compressPdfImagesToTarget(file, { targetKB: file.size, encodeImage: encode });
+    expect(result.reason).toBe('under-target');
+    expect(result.metTarget).toBe(true);
+    expect(result.blob).toBe(file);
+    expect(encode).not.toHaveBeenCalled();
+  });
+
+  it('stops at once when there are no images', async () => {
+    const file = fixture('text-only.pdf');
+    const encode = sized();
+    const result = await compressPdfImagesToTarget(file, { targetKB: 1, encodeImage: encode });
+    expect(result.reason).toBe('no-images');
+    expect(result.metTarget).toBe(false);
+    expect(result.blob).toBe(file);
+    expect(encode).not.toHaveBeenCalled();
+  });
+
+  it('takes the first rung that meets the target', async () => {
+    const third = await afterBytesAt(TARGET_IMAGE_LADDER[2]);
+    const second = await afterBytesAt(TARGET_IMAGE_LADDER[1]);
+    expect(third).toBeLessThan(second);
+    const encode = sized();
+    const result = await compressPdfImagesToTarget(fixture('mixed.pdf'), {
+      targetKB: third / 1024,
+      encodeImage: encode,
+    });
+    expect(result.metTarget).toBe(true);
+    expect(result.reason).toBe('smaller');
+    expect(result.afterBytes).toBe(third);
+    const widths = encode.mock.calls.map(([arg]) => arg.target.width).filter((w) => w !== 800);
+    expect(widths).toEqual([2000, 1600, 1000]);
+  });
+
+  it('returns the smallest result when nothing meets the target', async () => {
+    const smallest = await afterBytesAt(TARGET_IMAGE_LADDER[TARGET_IMAGE_LADDER.length - 1]);
+    const result = await compressPdfImagesToTarget(fixture('mixed.pdf'), { targetKB: 1, encodeImage: sized() });
+    expect(result.metTarget).toBe(false);
+    expect(result.reason).toBe('smaller');
+    expect(result.afterBytes).toBe(smallest);
+  });
+
+  it('reports no-gain when the encoder never helps', async () => {
+    const file = fixture('mixed.pdf');
+    const result = await compressPdfImagesToTarget(file, { targetKB: 1, encodeImage: async () => null });
+    expect(result.reason).toBe('no-gain');
+    expect(result.metTarget).toBe(false);
+    expect(result.blob).toBe(file);
+    expect(result.afterBytes).toBe(file.size);
+  });
+
+  it('reports progress that ends at 1 and never goes back', async () => {
+    const seen = [];
+    await compressPdfImagesToTarget(fixture('mixed.pdf'), {
+      targetKB: 1,
+      encodeImage: sized(),
+      onProgress: (p) => seen.push(p),
+    });
+    expect(seen.at(-1)).toBe(1);
+    expect(seen.every((p, i) => i === 0 || p >= seen[i - 1])).toBe(true);
   });
 });
