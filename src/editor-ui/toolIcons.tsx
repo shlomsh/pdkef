@@ -8,11 +8,11 @@
 /* One scaffold for the three cover tools: a top line, a middle band, a bottom
  * line - a line of text with something over it. Blur, Blackout and Whiteout
  * vary only the band (soft, solid, hollow), so the row reads as three results
- * of the same act. Redact and Sign render the identical Whiteout so the same
- * tool looks the same in both editors. */
-export function WhiteoutIcon({ size = 18 }: { size?: number }) {
+ * of the same act. Redact and Sign render the same Whiteout; Sign passes the
+ * heavier stroke its own toolbar icons use, since there it stands alone. */
+export function WhiteoutIcon({ size = 18, strokeWidth = 2 }: { size?: number; strokeWidth?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round">
       <line x1="4" y1="5" x2="15" y2="5" />
       <rect x="3" y="9.5" width="18" height="5" rx="1" />
       <line x1="4" y1="19" x2="12" y2="19" />
