@@ -504,6 +504,7 @@ export interface CompressMessages {
   alreadySmallTargetNotice: string;
   noImagesTitle: string;
   imageShareNote: string;
+  imageShareScanNote: string;
   imageShareLowNote: string;
   lessThanOnePercent: string;
   noImagesBodyText: string;
@@ -613,6 +614,7 @@ const englishCompressMessages: CompressMessages = {
   alreadySmallTargetNotice: "Turned into images, this PDF came to {raster}, more than the {original} it is now, so {target} can't be reached this way. I've kept your original as it is, text and links included.",
   noImagesTitle: 'Nothing here to shrink.',
   imageShareNote: 'Images are {share} of this PDF, and they are the part that can get smaller. Text and drawings stay exactly as they are.',
+  imageShareScanNote: 'Images are {share} of this PDF, and they are the part that can get smaller.',
   imageShareLowNote: 'Most of this PDF is text and drawings. Its images are {share} of the file, so shrinking them can save at most about that much.',
   lessThanOnePercent: 'less than 1%',
   noImagesBodyText: 'This PDF is text and drawings, with no images in it, which is already the compact way to store a page. The only way to make it smaller is to turn each page into a picture, and that can come out bigger, and always loses sharpness and selectable text.',
@@ -736,6 +738,7 @@ const hebrewCompressMessages: CompressMessages = {
   alreadySmallTargetNotice: 'כשהפכנו את העמודים לתמונות, ה-PDF יצא {raster}, יותר מה-{original} שלו עכשיו, אז אי אפשר להגיע ל-{target} בדרך הזו. השארנו את הקובץ המקורי כמו שהוא, כולל טקסט וקישורים.',
   noImagesTitle: 'אין כאן מה לכווץ.',
   imageShareNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון. הטקסט והשרטוטים נשארים בדיוק כמו שהם.',
+  imageShareScanNote: 'התמונות הן {share} מה-PDF הזה, והן החלק שיכול לקטון.',
   imageShareLowNote: 'רוב ה-PDF הזה הוא טקסט ושרטוטים. התמונות הן {share} מהקובץ, כך שהקטנה שלהן יכולה לחסוך לכל היותר בערך כך.',
   lessThanOnePercent: 'פחות מ-1%',
   noImagesBodyText: 'ה-PDF הזה בנוי מטקסט ומשרטוטים, בלי תמונות, וזו כבר הדרך הקומפקטית לשמור עמוד. הדרך היחידה להקטין אותו היא להפוך כל עמוד לתמונה, וזה יכול לצאת גדול יותר, ותמיד פוגע בחדות ובאפשרות לסמן טקסט.',

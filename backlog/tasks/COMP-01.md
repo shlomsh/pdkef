@@ -134,7 +134,7 @@ reported as such. A number the copy quotes is one this test asserts.
 - [x] A text-only PDF is told, before any level is picked, that there is nothing to shrink without flattening (checked on the reporter's own file in a real browser, 2026-10-02).
 - [x] A compressed PDF keeps its text and its links: `compressImages.test.js` re-analyses the output of `mixed.pdf` (text present, one URI annotation).
 - [x] Levels and Target Size act on images only; flatten is a separate, labelled switch ("Turn pages into pictures", off by default).
-- [ ] The compare slider renders both sides at the same scale and labels what changed.
+- [x] The compare slider renders both sides at the same scale and labels what changed. *As built:* both sides go through one `renderComparePreview` at the same page size (the image path never changes page geometry), labelled Original / Compressed, with the notice below naming what changed ("Only the images were made smaller..."); `compare-preview.spec.js` runs on `mixed.pdf`.
 - [ ] The KPI test holds the floors above and the copy quotes nothing beyond them.
 - [ ] `check:push` green; the compress e2e specs updated for the new flow.
 

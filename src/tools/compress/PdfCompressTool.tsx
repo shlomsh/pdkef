@@ -835,7 +835,7 @@ export default function PdfCompressTool({
           )}
           {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length > 0 && !flatten && (
             <p class={styles[analysis.imageShare < 0.2 ? 'honest-note' : 'compress-warning']} role="note">
-              {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : t.imageShareNote, {
+              {formatMessage(analysis.imageShare < 0.2 ? t.imageShareLowNote : analysis.hasText ? t.imageShareNote : t.imageShareScanNote, {
                 share: formatShare(analysis.imageShare, t.lessThanOnePercent),
               })}
             </p>
