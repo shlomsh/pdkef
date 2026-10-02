@@ -1,11 +1,9 @@
 ---
 id: "ENC-01"
 title: "One classifier says whether a PDF needs a password, is only protected, or is open"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 1
 depends_on: []
 ---
 
@@ -23,3 +21,7 @@ Today four places decide "encrypted" four ways (pdf-lib `isEncrypted` in Merge a
 ## Acceptance
 - Unit tests classify every fixture as named; the pure function is also tested over stubbed outcomes, including `FormatError`.
 - A catch in the probe carries `// expected:` or reports, per `test:swallowed-errors`.
+
+## Result
+
+Shipped in `5d14f869`: `src/lib/pdfEncryption.ts` (`probeEncryption`, `classifyPdfOpen`), four AES-256 fixtures with `make-fixtures.py`, 8 unit tests under Node. Consumers: Redact's `loadPdf` and Unlock.

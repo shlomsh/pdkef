@@ -6,16 +6,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
-### Redact: finish removal
-
-- [ENC-02](backlog/tasks/ENC-02.md) P1 · Redact meets a protected PDF with one quiet state, not an exception
-
 ### Robustness and debt
 
-- [ENC-01](backlog/tasks/ENC-01.md) P1 · One classifier says whether a PDF needs a password, is only protected, or is open
-- [ENC-03](backlog/tasks/ENC-03.md) P1 · Unlock takes a file from another tool and opens an owner-only file with no password
-- [ENC-04](backlog/tasks/ENC-04.md) P1 · Unlock's done state offers Redact it and Sign it
-- [ENC-05](backlog/tasks/ENC-05.md) P1 · The round trip is tested across pages against a real protected file
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
 
 ## Waiting, by date

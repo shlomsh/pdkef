@@ -1,11 +1,9 @@
 ---
 id: "ENC-04"
 title: "Unlock's done state offers Redact it and Sign it"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 3
 depends_on: ["ENC-03"]
 ---
 
@@ -20,3 +18,7 @@ depends_on: ["ENC-03"]
 
 ## Acceptance
 - Unit: each button saves the hand-off with the unlocked bytes under `<name>_unlocked.pdf` and navigates; a failed save shows the line and re-enables the button; the busy flag clears on a persisted `pageshow`. Reviewed at 1280 and 375.
+
+## Result
+
+Shipped in `2877afd2`. After Download and Share, an unlocked file offers Redact it and Sign it; each parks `<name>_unlocked.pdf` with `saveHandoff` and navigates, and a failed save shows one line and re-enables the buttons.

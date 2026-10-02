@@ -1,11 +1,9 @@
 ---
 id: "ENC-03"
 title: "Unlock takes a file from another tool and opens an owner-only file with no password"
-status: "open"
+status: "done"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 2
 depends_on: ["ENC-01"]
 ---
 
@@ -21,3 +19,7 @@ depends_on: ["ENC-01"]
 ## Acceptance
 - Unit: an owner-only fixture unlocks with no input; a needs-password fixture still shows the field; a wrong password and a damaged file give different messages; a handed-off file loads.
 - Arriving from Redact, Unlock opens with the file already loaded and no empty-tool flash; reviewed at 1280 and 375.
+
+## Result
+
+Shipped in `2877afd2`. Unlock receives the hand-off, classifies with the ENC-01 probe, opens an owner-only file with no password field ("No password needed. This takes the protection off."), and tells a wrong password from a damaged file. `isPdfEncrypted` is removed. Checked at 1280 and 375.
