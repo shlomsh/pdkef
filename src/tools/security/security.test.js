@@ -3,7 +3,8 @@ import path from 'path';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from '@cantoo/pdf-lib';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { isPdfEncrypted, unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
+import { probeEncryption } from '../../lib/pdfEncryption.ts';
+import { unlockPdf, protectPdf, WrongPasswordError, SecurityError, UnreadablePdfError } from './security.js';
 
 describe('security.js', () => {
   function getFixtureFile(name = 'num-1.pdf') {
@@ -36,29 +37,12 @@ describe('security.js', () => {
     return text;
   }
 
-  it('detects an unencrypted PDF', async () => {
-    const file = getFixtureFile();
-    const isEnc = await isPdfEncrypted(file);
-    expect(isEnc).toBe(false);
-  });
-
-  it('detects an encrypted PDF', async () => {
-    const blob = await createEncryptedPdfBlob('secret');
-    const file = new File([blob], 'test.pdf', { type: 'application/pdf' });
-    const isEnc = await isPdfEncrypted(file);
-    expect(isEnc).toBe(true);
-  });
-
-  it('rejects with UnreadablePdfError for bytes that are not a PDF', async () => {
-    const file = new File([new Uint8Array([1, 2, 3, 4])], 'junk.pdf', { type: 'application/pdf' });
-    await expect(isPdfEncrypted(file)).rejects.toThrow(UnreadablePdfError);
-  });
-
-  it('rejects with UnreadablePdfError when the file cannot be read', async () => {
-    const file = new File(['x'], 'gone.pdf', { type: 'application/pdf' });
-    file.arrayBuffer = () => Promise.reject(new Error('NotReadableError'));
-    await expect(isPdfEncrypted(file)).rejects.toThrow(UnreadablePdfError);
-  });
+  const legacyPdfjs = () => pdfjs;
+  const probe = (file) => file.arrayBuffer().then((bytes) => probeEncryption(bytes, legacyPdfjs));
+  function encryptedFixture(name) {
+    const buffer = fs.readFileSync(path.resolve(__dirname, '../../lib/__fixtures__/encrypted', `${name}.pdf`));
+    return new File([buffer], `${name}.pdf`, { type: 'application/pdf' });
+  }
 
   it('protects an unencrypted PDF and text survives round trip', async () => {
     const file = getFixtureFile();
@@ -67,8 +51,7 @@ describe('security.js', () => {
     expect(protectedBlob).toBeInstanceOf(Blob);
 
     const protectedFile = new File([protectedBlob], 'protected.pdf', { type: 'application/pdf' });
-    const isEnc = await isPdfEncrypted(protectedFile);
-    expect(isEnc).toBe(true);
+    expect(await probe(protectedFile)).toBe('needs-password');
 
     // Now unlock and assert the text survives
     const unlockedBlob = await unlockPdf(protectedFile, 'newpass');
@@ -91,8 +74,7 @@ describe('security.js', () => {
     expect(unlockedBlob).toBeInstanceOf(Blob);
 
     const unlockedFile = new File([unlockedBlob], 'unlocked.pdf', { type: 'application/pdf' });
-    const isEnc = await isPdfEncrypted(unlockedFile);
-    expect(isEnc).toBe(false);
+    expect(await probe(unlockedFile)).toBe('open');
 
     const text = await extractTextFromPdfBlob(unlockedBlob);
     expect(text).toBe('1');
@@ -103,5 +85,30 @@ describe('security.js', () => {
     const file = new File([blob], 'test.pdf', { type: 'application/pdf' });
     
     await expect(unlockPdf(file, 'wrong')).rejects.toThrow(WrongPasswordError);
+  });
+
+  it('unlocks an owner-password-only file with an empty password', async () => {
+    const file = encryptedFixture('owner-only');
+    expect(await probe(file)).toBe('owner-restricted');
+
+    const unlocked = await unlockPdf(file, '');
+    expect(await probe(new File([unlocked], 'u.pdf'))).toBe('open');
+  });
+
+  it('unlocks the needs-password fixture with its password and not without', async () => {
+    const file = encryptedFixture('needs-password');
+    const unlocked = await unlockPdf(file, 'u');
+    expect(await probe(new File([unlocked], 'u.pdf'))).toBe('open');
+
+    await expect(unlockPdf(file, 'wrong')).rejects.toThrow(WrongPasswordError);
+    await expect(unlockPdf(file, '')).rejects.toThrow(WrongPasswordError);
+  });
+
+  it('tells a damaged file from a wrong password', async () => {
+    const junk = new File([new Uint8Array([1, 2, 3, 4])], 'junk.pdf', { type: 'application/pdf' });
+    const error = await unlockPdf(junk, 'anything').catch((err) => err);
+    expect(error).toBeInstanceOf(UnreadablePdfError);
+    expect(error).not.toBeInstanceOf(WrongPasswordError);
+    expect(error.message).toBe('This file could not be unlocked. It may be damaged.');
   });
 });

@@ -18,7 +18,8 @@ import usePageTexts, { type PageTextsState } from './usePageTexts.ts';
 import { buildPageText } from './find/pageText.ts';
 import { createPageGeometry } from '../../editor/geometry/coords.ts';
 import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
-import { loadDraft } from '../../lib/drafts/draftStore.js';
+import { loadDraft, saveHandoff } from '../../lib/drafts/draftStore.js';
+import { PDFDocument } from '@cantoo/pdf-lib';
 import { DEFAULT_BLUR_STRENGTH } from '../../editor/model/blurStrength.ts';
 import { getAppStyle, rememberAppStyle, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
 
@@ -53,7 +54,7 @@ async function settleUntil(description: string, ready: () => boolean, limit = 50
 // RED-40: restored-draft tests hand loadDraft a record; every other test gets the real one.
 vi.mock('../../lib/drafts/draftStore.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/drafts/draftStore.js')>();
-  return { ...actual, loadDraft: vi.fn(actual.loadDraft) };
+  return { ...actual, loadDraft: vi.fn(actual.loadDraft), saveHandoff: vi.fn(actual.saveHandoff) };
 });
 
 const { lifecycleSpy } = vi.hoisted(() => ({ lifecycleSpy: vi.fn() }));
@@ -105,6 +106,7 @@ vi.mock('pdfjs-dist', () => {
     getDocument: vi.fn(() => ({
       promise: Promise.resolve({
         numPages: 2,
+        getPermissions: vi.fn(async () => null),
         getPage: vi.fn(() => Promise.resolve({
           getViewport: () => ({ width: 612, height: 792 }),
           render: () => ({ promise: Promise.resolve() })
@@ -312,6 +314,7 @@ describe('PdfRedactTool UI flow', () => {
       vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
         promise: Promise.resolve({
           numPages,
+          getPermissions: vi.fn(async () => null),
           getPage: vi.fn(() => Promise.resolve({
             getViewport: () => ({ width: 612, height: 792 }),
             render: () => ({ promise: Promise.resolve() }),
@@ -2363,6 +2366,7 @@ describe('PdfRedactTool UI flow', () => {
       vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
         promise: Promise.resolve({
           numPages,
+          getPermissions: vi.fn(async () => null),
           getPage: vi.fn(() => Promise.resolve({
             getViewport: () => ({ width: 612, height: 792 }),
             render: () => ({ promise: Promise.resolve() }),
@@ -3446,6 +3450,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => {
           resolveReplacementDocument({
             numPages: 2,
+            getPermissions: vi.fn(async () => null),
             getPage: vi.fn(() => Promise.resolve({
               getViewport: () => ({ width: 612, height: 792 }),
               render: () => ({ promise: Promise.resolve() }),
@@ -3510,6 +3515,100 @@ describe('PdfRedactTool UI flow', () => {
         window.URL.createObjectURL = originalCreateObjectURL;
         window.URL.revokeObjectURL = originalRevokeObjectURL;
       }
+    });
+  });
+
+  // ENC-02: a protected PDF is one quiet state, not an exception.
+  describe('a protected PDF (ENC-02)', () => {
+    const fixture = (name: string) => new File(
+      [fs.readFileSync(`${__dirname}/../../lib/__fixtures__/encrypted/${name}`)],
+      `${name}`,
+      { type: 'application/pdf' },
+    );
+    const NEEDS_PASSWORD_TITLE = 'This PDF has a password';
+    const PROTECTED_TITLE = 'This PDF is protected';
+
+    function mockProtection(kind: 'needs-password' | 'owner-restricted') {
+      vi.mocked(pdfjsDist.getDocument).mockImplementationOnce(() => ({
+        promise: kind === 'needs-password'
+          ? Promise.reject(Object.assign(new Error('No password given'), { name: 'PasswordException' }))
+          : Promise.resolve({ numPages: 1, getPermissions: vi.fn(async () => []), destroy: vi.fn() }),
+        destroy: vi.fn(),
+      }) as unknown as ReturnType<typeof pdfjsDist.getDocument>);
+    }
+
+    async function pick(file: File) {
+      container = document.createElement('div');
+      document.body.appendChild(container);
+      act(() => { render(<PdfRedactTool />, container); });
+      await act(async () => { setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [file]); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    }
+
+    const state = () => container.querySelector<HTMLElement>('[data-redact-needs-unlock]');
+    const unlockButton = () => required(
+      Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.includes('Unlock it')),
+      'the Unlock it button',
+    );
+
+    it.each([
+      ['owner-only.pdf', 'owner-restricted', PROTECTED_TITLE, "It opens without a password, but Redact can't change it as it is. Unlock takes the protection off on your device, then you can redact it."],
+      ['needs-password.pdf', 'needs-password', NEEDS_PASSWORD_TITLE, 'Unlock opens it on your device, then you can redact it.'],
+    ] as const)('%s shows the state and never reaches the editor, pdf-lib or the failure count', async (name, kind, title, body) => {
+      const load = vi.spyOn(PDFDocument, 'load');
+      mockProtection(kind);
+      await pick(fixture(name));
+
+      const shown = required(state(), 'the needs-unlock state');
+      expect(shown.querySelector('h2')?.textContent).toBe(title);
+      expect(shown.querySelector('p')?.textContent).toBe(body);
+      expect(container.querySelector(`.${workspaceStyles.workspace}`)).toBeNull();
+      expect(container.textContent).not.toContain("This PDF didn't open");
+      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+      expect(load).not.toHaveBeenCalled();
+      // The shell's Replace is the other way on.
+      expect(container.textContent).toContain('Replace');
+    });
+
+    it('Unlock it parks the file for Unlock, then navigates there', async () => {
+      mockProtection('owner-restricted');
+      vi.mocked(saveHandoff).mockResolvedValueOnce(true);
+      await pick(fixture('owner-only.pdf'));
+      const location = { href: '/redact/' };
+      vi.stubGlobal('location', location);
+      try {
+        await act(async () => { unlockButton().click(); });
+        await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
+        expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({
+          fileName: 'owner-only.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
+        }));
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it('a failed save says so quietly and leaves the button usable', async () => {
+      mockProtection('needs-password');
+      vi.mocked(saveHandoff).mockResolvedValueOnce(false);
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      await pick(fixture('needs-password.pdf'));
+      await act(async () => { unlockButton().click(); });
+      await settleUntil('the failure line', () => (state()?.textContent ?? '').includes("Couldn't open Unlock with this file. Open Unlock and choose it there."));
+      expect(unlockButton().disabled).toBe(false);
+      expect(lifecycleSpy).not.toHaveBeenCalledWith('tool_operation_failed', 'redact');
+    });
+
+    it('choosing another file clears the state', async () => {
+      mockProtection('needs-password');
+      await pick(fixture('needs-password.pdf'));
+      expect(state()).not.toBeNull();
+      await act(async () => { setInputFiles(query<HTMLInputElement>(container, 'input[type="file"]'), [makePdfFile('plain.pdf')]); });
+      // Replacing a loaded file is confirmed first (MEM-03, BasePdfTool).
+      const confirmReplace = required(Array.from(container.querySelectorAll<HTMLButtonElement>('dialog button'))
+        .find((button) => button.textContent?.trim() === 'Replace file'), 'Replace file button');
+      await act(async () => { confirmReplace.click(); });
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+      expect(state()).toBeNull();
     });
   });
 });

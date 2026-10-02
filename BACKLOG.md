@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 37 live: 1 up next, 8 then, 19 waiting, 9 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 9 then, 19 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -60,6 +60,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
 
 ### Waiting
@@ -72,6 +73,11 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| ENC-07 | P3 | [ENC-07](backlog/tasks/ENC-07.md) · Sign shows the protected state instead of its alert |  |
+| ENC-08 | P3 | [ENC-08](backlog/tasks/ENC-08.md) · Compress, Compress Image and PDF to Image meet a protected PDF at the door |  |
+| ENC-09 | P3 | [ENC-09](backlog/tasks/ENC-09.md) · Merge tells a protected file from an unreadable one, and takes the unlocked file back |  |
+| ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
+| ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |
 | MEM-12 | P3 | [MEM-12](backlog/tasks/MEM-12.md) · An alert when people are stuck on an old build |  |
 | MOBI-08 | P3 | [MOBI-08](backlog/tasks/MOBI-08.md) · Offer install at the moment it pays off, not in a card about working offline |  |
 
@@ -125,14 +131,20 @@ Small, independent, good for a spare hour.
 | QUAL-04 | P3 | [QUAL-04](backlog/tasks/QUAL-04.md) · --color-border-strong is 2.07:1 on white and 1.80:1 on the primary tint, under the 3:1 boundary guideline |  |
 | SIGN-20 | P3 | [SIGN-20](backlog/tasks/SIGN-20.md) · The per-script pixel guards are close to blind to a cluster whose ink is right and whose advance is wrong |  |
 
+### Parked
+
+| ID | P | Task | Note |
+| --- | --- | --- | --- |
+| ENC-12 | P3 | [ENC-12](backlog/tasks/ENC-12.md) · One hand-off row, not four copies |  |
+
 # Closed work
 
 Done and retired tickets are not listed. Their files stay in [backlog/tasks/](backlog/tasks/) as the record.
 
-- Redact: finish removal: 12 done, 0 retired
+- Redact: finish removal: 13 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 17 done, 3 retired
+- Robustness and debt: 21 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

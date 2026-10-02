@@ -15,31 +15,19 @@ export class WrongPasswordError extends SecurityError {
   }
 }
 
-// The file could not be read at all: the bytes were unreachable or are not a PDF.
+// The file would not open for a reason other than its password: damaged, or not a PDF.
 export class UnreadablePdfError extends SecurityError {
   constructor() {
-    super('This PDF could not be read. It may be damaged.');
+    super('This file could not be unlocked. It may be damaged.');
     this.name = 'UnreadablePdfError';
   }
 }
 
-// Checks if a PDF is encrypted. Throws UnreadablePdfError when the file cannot
-// be read or parsed (even with ignoreEncryption), so the caller can say so
-// instead of offering a form that can only fail.
-export async function isPdfEncrypted(file) {
-  // Outside the try below, whose catch means "this file is unreadable": a
-  // failure to load pdf-lib itself is not the file's fault and propagates.
-  const { PDFDocument } = await getPdfLib();
-  try {
-    const bytes = await file.arrayBuffer();
-    const pdfDoc = await PDFDocument.load(bytes, { ignoreEncryption: true });
-    return pdfDoc.isEncrypted;
-  } catch (err) {
-    throw new UnreadablePdfError();
-  }
-}
+// pdf-lib's own wording for a bad password ('Password incorrect', or 'NEEDS PASSWORD' for an empty one).
+const isPasswordFailure = (err) => /password/i.test(err?.message ?? '');
 
 // Decrypts a password-protected PDF and returns an unencrypted copy as a Blob.
+// An owner-password-only file opens with an empty password.
 export async function unlockPdf(file, password) {
   const bytes = await file.arrayBuffer();
   // Outside the try below, whose catch means "wrong password": a failure to
@@ -50,7 +38,7 @@ export async function unlockPdf(file, password) {
   try {
     pdfDoc = await PDFDocument.load(bytes, { password });
   } catch (err) {
-    throw new WrongPasswordError();
+    throw isPasswordFailure(err) ? new WrongPasswordError() : new UnreadablePdfError();
   }
 
   const unlockedBytes = await pdfDoc.save();
