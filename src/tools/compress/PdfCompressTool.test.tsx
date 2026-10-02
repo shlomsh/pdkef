@@ -1012,6 +1012,22 @@ describe('PdfCompressTool UI flow', () => {
       expect(note.className).toContain(styles['compress-warning']);
     });
 
+    it('a text-bearing PDF says text and drawings stay as they are', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.9 }));
+      mountTool();
+      await addPdf('pics.pdf');
+      expect(container.querySelector('[role="note"]').textContent).toContain('Text and drawings stay exactly as they are');
+    });
+
+    it('a pure scan does not talk about text and drawings', async () => {
+      analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: false, imageShare: 1 }));
+      mountTool();
+      await addPdf('scan.pdf');
+      const note = container.querySelector('[role="note"]');
+      expect(note.textContent).toContain('Images are 100% of this PDF');
+      expect(note.textContent).not.toContain('Text and drawings');
+    });
+
     it('a mostly-text PDF gets the quiet share note', async () => {
       analyzePdfLib.analyzePdf.mockImplementation(() => ({ images: [{}], hasText: true, imageShare: 0.12 }));
       mountTool();
