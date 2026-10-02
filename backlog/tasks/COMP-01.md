@@ -145,6 +145,28 @@ Text, the link and the transparent image survived, and the rendered pages were i
 80 ms each. The synthetic photos compress far better than real ones (smooth gradients), so these are
 not numbers for the copy; step 6 needs real-world images in the corpus before any range is quoted.
 
+**2026-10-02, 322 real PDFs** (Shlomi's Downloads, measured locally in Chromium with the real canvas
+encoder, never committed; files referred to by index only). No load errors, no crashes, about 1 s at
+most per file. Savings where the result was smaller, median (p25 to p75):
+
+| Kind (count) | Smallest | Recommended | High Quality | Gained nothing at Recommended |
+| --- | --- | --- | --- | --- |
+| Scan-like, images >= 80%, no text (67) | 81% (72-87) | 55% (37-69) | 36% (31-57) | 35, plus 10 protected |
+| Mixed (128) | 36% (16-58) | 23% (13-38) | 13% (5-22) | 72 |
+| Text-heavy, images < 20% (63) | 20% (16-26) | 19% (14-26) | 24% (10-25) | 50 |
+| No images (64) | untouched | untouched | untouched | all |
+
+Why so many gained nothing: the keep rules skipped the two biggest real-world image kinds, ICCBased
+colour spaces (the largest scans, up to 37.5 MB, gained 0%) and images with an /SMask (about 570
+images in 130 files). Support for both is the next change; 15 files are protected against editing
+(owner password), handled separately.
+
+**Correctness check, with a stop rule** (Shlomi, 2026-10-02: "a stop criteria must be available").
+Defects depend on the kind of image rewritten, not on file count, so the check samples by kind: at most
+3 files per combination of rewritten kinds, 24 at most, stop at 3 defects. 19 files over 7 kinds, page
+1-2 rendered before and after at 40 dpi: no defect (worst 4x4 tile mean difference 7.5 of 255, flag at
+25). The same rule applies to every later re-check: only files a change can affect, 3 per new kind.
+
 Found in review and fixed: pdf-lib's Flate decoder ignores `/DecodeParms`, so a PNG-predicted image
 would have decoded sheared, and a `/Decode` array would have been dropped un-applied (an inverted
 image). `analyzePdf` reports `predictor` and `hasDecode`; `planImageRewrite` keeps both kinds.
