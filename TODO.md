@@ -8,6 +8,7 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ### Robustness and debt
 
+- [COMP-01](backlog/tasks/COMP-01.md) P1 · Compress keeps the page and shrinks only its images, and says plainly when there is nothing to gain (in progress)
 - [DEBT-34](backlog/tasks/DEBT-34.md) P1 · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer (in progress)
 
 ## Waiting, by date
