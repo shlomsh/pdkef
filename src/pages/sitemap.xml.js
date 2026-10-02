@@ -18,7 +18,12 @@ import { documentationPath, documentationHomePath, getDocumentationLocale } from
 import { getLocalizedToolVariants } from '../i18n/localizedTools';
 import { getLocalizedHomeVariants } from '../i18n/localizedHome';
 import { localizedPageId } from '../i18n/documentation';
-import { lastModifiedFor as lastmodFor, documentationSourceFiles } from '../site-lib/gitLastModified.js';
+import {
+  lastModifiedFor as lastmodFor,
+  documentationSourceFiles,
+  gitFileLastModifiedIso,
+  gitToolEntryLastModifiedIso,
+} from '../site-lib/gitLastModified.js';
 
 const FALLBACK_SITE = 'https://pdkef.com';
 
@@ -30,13 +35,19 @@ const FALLBACK_SITE = 'https://pdkef.com';
 // hand-maintained, so it cannot drift out of sync with what actually changed.
 // A URL whose date is unknowable (a shallow clone - see gitLastModified.js's
 // header comment) carries no <lastmod> element at all, rather than a faked one.
-// Tool pages map to their own `src/pages/<slug>.astro` plus the shared
-// `src/data/tools.js` registry every tool's copy (title, FAQ, steps) actually
-// lives in - so editing any tool's entry bumps every tool page's lastmod,
-// which slightly overstates freshness for the others but never understates
-// it, and there is no per-tool file to point at instead without splitting
-// that registry apart. Content pages share `src/pages/[contentPage].astro`
-// the same way.
+// Tool pages map to their own `src/pages/<slug>.astro` plus that tool's own
+// entry in the shared `src/data/tools.js` registry, dated by the history of
+// the entry's lines alone (gitToolEntryLastModifiedIso). Dating by the whole
+// registry file used to re-stamp every tool page on any one tool's edit,
+// which taught Google to ignore the field. If the entry cannot be dated
+// (a dirty tree moved its lines), the whole file's date stands in, which
+// overstates freshness but never understates it.
+
+function toolLastmod(slug) {
+  const entry = gitToolEntryLastModifiedIso(slug) ?? gitFileLastModifiedIso('src/data/tools.js');
+  const page = gitFileLastModifiedIso(`src/pages/${slug}.astro`);
+  return [entry, page].filter(Boolean).sort().at(-1) ?? null;
+}
 
 function contentPageSlug(page) {
   return page.href.replace(/^\/|\/$/g, '');
@@ -115,7 +126,7 @@ export async function GET({ site }) {
       loc: `${base}${tool.href}`,
       changefreq: tool.sitemapChangefreq,
       priority: tool.sitemapPriority,
-      lastmod: lastmodFor([`src/pages/${tool.slug}.astro`, 'src/data/tools.js']),
+      lastmod: toolLastmod(tool.slug),
       alternates: toolAlternates(tool.slug),
     })),
     ...publishedToolEditions.map((variant) => ({
