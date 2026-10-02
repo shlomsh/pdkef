@@ -11,7 +11,7 @@ depends_on: ["ENC-01", "ENC-02"]
 
 # ENC-05 · Redact meets a protected PDF with one quiet state, not a dead Save
 
-*Plan sections 1 and 4. Lands with ENC-01, ENC-02 and ENC-08.* The origin of the plan: two `EncryptedPDFError` reports (`list_objects`, `export`) and "Could not export the PDF. Your edits are still here. Try again." (`PdfRedactTool.tsx:849`), which can never succeed on a protected file.
+*Plan sections 1 and 4. Wave 1: the Redact flow, first.* The origin of the plan: two `EncryptedPDFError` reports (`list_objects`, `export`) and "Could not export the PDF. Your edits are still here. Try again." (`PdfRedactTool.tsx:849`), which can never succeed on a protected file.
 
 ## Brief
 - `src/editor/workspace/loadPdf.ts`, shared with Sign: classify the load. The pdf.js rejection lands in the generic `catch (error)` at `:145`; a `PasswordException` there, and a resolved document whose `getPermissions()` is not `null`, become a distinct outcome, `needs-unlock`, not a failure: no `clearDraft()` (`:111-120`: on the restored path it drops the work of whichever entry the pointer names), no `cacheRecentFile` (`PdfRedactTool.tsx:460-464`), no `FILE_LOAD_FAILED`.

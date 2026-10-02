@@ -5,7 +5,7 @@ status: "open"
 priority: "P1"
 epic: "robustness"
 horizon: "next"
-order: 4
+order: 2
 depends_on: ["ENC-01", "ENC-02"]
 ---
 
