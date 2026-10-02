@@ -2,6 +2,7 @@ import { getPdfjs } from '../adapters/pdf/pdfjsLoader.js';
 import { PDFJS_WASM_URL } from '../../lib/pdfjsWasm.js';
 import type { PDFDocumentLoadingTask, PDFDocumentProxy } from 'pdfjs-dist';
 import { reportError } from '../../lib/errorReport.ts';
+import { classifyPdfOpen } from '../../lib/pdfEncryption.ts';
 
 type LoadStatus = 'loading' | 'editing' | 'error';
 
@@ -46,6 +47,12 @@ export interface PdfLoadOptions {
   setStatus: (status: LoadStatus) => void;
   setAnnouncement: (message: string) => void;
   messages?: PdfLoadMessages;
+  /**
+   * A protected PDF (needs a password, or opens but carries an owner password) is not a failed load:
+   * a tool that passes this gets the kind and nothing else happens - no `fail`, no draft cleared, no
+   * report, no `onDocument`. A tool that passes none (Sign) loads exactly as before.
+   */
+  onNeedsUnlock?: (kind: 'needs-password' | 'owner-restricted') => void;
 }
 
 export interface PdfLoadController {
@@ -80,6 +87,7 @@ export async function loadPdf({
   setStatus,
   setAnnouncement,
   messages,
+  onNeedsUnlock,
 }: PdfLoadOptions) {
   const t: Required<PdfLoadMessages> = { ...englishPdfLoadMessages, ...messages };
   // A replacement is an ownership transfer: make the old load unable to write
@@ -133,6 +141,14 @@ export async function loadPdf({
       disposePdfHandle(document);
       return;
     }
+    if (onNeedsUnlock) {
+      const protection = classifyPdfOpen({ opened: true, permissions: await document.getPermissions() });
+      if (!isCurrent()) return;
+      if (protection === 'owner-restricted') {
+        onNeedsUnlock(protection);
+        return;
+      }
+    }
     await onDocument(document, isCurrent);
     if (!isCurrent()) return;
     completed = true;
@@ -144,6 +160,10 @@ export async function loadPdf({
     );
   } catch (error) {
     if (!isCurrent()) return;
+    if (onNeedsUnlock && Reflect.get(Object(error), 'name') === 'PasswordException') {
+      onNeedsUnlock(classifyPdfOpen({ opened: false, error }) as 'needs-password');
+      return;
+    }
     reportError('pdf_render', error, 'load_document');
     console.error(error);
     fail(t.loadFailed);
