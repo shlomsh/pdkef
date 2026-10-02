@@ -8,6 +8,7 @@ import { openThumbnailSource } from '../../../lib/thumbnails.js';
 import { formatMessage, type MergeMessages } from '../../../i18n/toolMessages';
 import type { PreviewTarget } from './PagePreviewDialog.tsx';
 import { reportError } from '../../../lib/errorReport.ts';
+import { recordAction } from '../../../lib/actionTrail.ts';
 
 export interface StripFile {
   id: number;
@@ -324,6 +325,7 @@ export default function PageStrip({
         const { oldIndex, newIndex } = evt;
         const snapshot = planRef.current;
         onPlanChange((current) => moveEntry(current, oldIndex, newIndex));
+        recordAction('reorder');
         announce(formatMessage(t.pageMoved, { position: newIndex + 1, total: planRef.current.length }));
         onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: newIndex + 1 }), () => onPlanChange(() => snapshot));
       },
@@ -347,6 +349,7 @@ export default function PageStrip({
   const rotate = useCallback((key: string, position: number) => {
     const snapshot = planRef.current;
     onPlanChange((current) => rotateEntry(current, key, 90));
+    recordAction('rotate');
     const before = planRef.current.find((p) => p.key === key)?.rotation ?? 0;
     announce(formatMessage(t.pageRotated, { number: position, degrees: (before + 90) % 360 }));
     onRegisterUndo?.(formatMessage(t.pageRotatedUndo, { number: position }), () => onPlanChange(() => snapshot));
@@ -360,6 +363,7 @@ export default function PageStrip({
       const live = current.find((p) => p.key === key);
       return live ? updateEntry(current, key, { skipped: !live.skipped }) : current;
     });
+    recordAction('hide_page');
     announce(formatMessage(entry.skipped ? t.pageIncluded : t.pageSkipped, { number: position }));
     if (!entry.skipped) {
       onRegisterUndo?.(formatMessage(t.pageSkippedUndo, { number: position }), () => onPlanChange(() => snapshot));
@@ -372,6 +376,7 @@ export default function PageStrip({
     const snapshot = planRef.current;
     focusKey.current = planRef.current[index].key;
     onPlanChange((current) => moveEntry(current, index, target));
+    recordAction('reorder');
     announce(formatMessage(t.pageMoved, { position: target + 1, total: planRef.current.length }));
     onRegisterUndo?.(formatMessage(t.pageMovedUndo, { number: target + 1 }), () => onPlanChange(() => snapshot));
   }, [onPlanChange, announce, t.pageMoved, t.pageMovedUndo, onRegisterUndo]);

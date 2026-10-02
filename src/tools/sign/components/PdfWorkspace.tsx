@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect, useMemo } from 'preact/hooks';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import { PAGE_WIDTH_DEFAULT_PTS, PAGE_HEIGHT_DEFAULT_PTS, DEFAULT_COLOR_BLUE, DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE_PT } from '../../../constants/signGeometry.js';
 import PdfPageCanvas from '../../../editor-ui/PdfPageCanvas.tsx';
+import { recordAction } from '../../../lib/actionTrail.ts';
 import EditorPageHeader from '../../../editor-ui/EditorPageHeader.tsx';
 import DraggableWrapper from './DraggableWrapper.tsx';
 import { createElementRenderers } from '../../../editor/registry/renderers.ts';
@@ -113,6 +114,18 @@ const ELEMENT_RENDERERS = createElementRenderers({
   signature: SignatureNode,
   whiteout: WhiteoutNode,
 });
+
+/**
+ * Which action an element patch is, by its keys alone (DEBT-31): a position-only patch is a move, a
+ * size or line-endpoint patch a resize, anything else (text, font, colour, format) an edit.
+ */
+const MOVE_KEYS = new Set(['left', 'top']);
+function editActionOf(fields: object): 'move_mark' | 'resize_mark' | 'edit_mark' {
+  const keys = Object.keys(fields);
+  if (keys.length > 0 && keys.every((k) => MOVE_KEYS.has(k))) return 'move_mark';
+  if (keys.some((k) => k === 'width' || k === 'height' || k === 'x2' || k === 'y2')) return 'resize_mark';
+  return 'edit_mark';
+}
 
 export default function PdfWorkspace({
   status,
@@ -311,6 +324,7 @@ export default function PdfWorkspace({
     if (style.fontSize === undefined) dispatch({ type: 'SET_CARRIED', payload: { fontSize: element.fontSize } });
     dispatch({ type: 'ADD_ELEMENT', payload: element });
     logAction('add', 'ADD_TEXT', slot.pageIndex, t.addedTextBoxDescription, [captureAddedElement(element, elements.length)]);
+    recordAction('fill_field');
   }, [slotElementBase, style, dispatch, logAction, t, elements.length]);
 
   // --- Stable element mutation callbacks (hoisted out of the map loop) ---
@@ -363,6 +377,7 @@ export default function PdfWorkspace({
     dispatch({ type: 'DELETE_ELEMENT', payload: id });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: null });
     if (el) logAction('delete', 'DELETE_ELEMENT', el.pageIndex, formatMessage(t.deletedElementDescriptionTemplate, { label: signElementTypeLabel(t, el.type) }), snapshots);
+    recordAction('delete_mark');
     setAnnouncement(t.removedElement);
   }, [dispatch, setAnnouncement, elements, logAction, t]);
 
@@ -390,6 +405,7 @@ export default function PdfWorkspace({
     // carries. SIGN-35: the same explicit change also writes the app-wide
     // style, so a new document starts from it too - see chooseStyle.ts.
     if (element) chooseStyle(element, fields, dispatch);
+    recordAction(editActionOf(fields));
   }, [updateElement, elements, dispatch]);
 
   const makeOnSelect = useCallback((id: string) => (e: Event) => {
@@ -411,6 +427,7 @@ export default function PdfWorkspace({
     dispatch({ type: 'ADD_ELEMENT', payload: cloneInfo });
     dispatch({ type: 'SET_ACTIVE_ELEMENT_ID', payload: cloneInfo.id });
     logAction('add', 'DUPLICATE_ELEMENT', cloneInfo.pageIndex, formatMessage(t.duplicatedElementDescriptionTemplate, { label: signElementTypeLabel(t, cloneInfo.type) }), [captureAddedElement(cloneInfo, elements.length)]);
+    recordAction('place_mark');
   }, [dispatch, elements.length, logAction, t]);
 
   const deactivateAll = useCallback(() => {
@@ -598,6 +615,7 @@ export default function PdfWorkspace({
       formatMessage(removed.length === 1 ? t.clearedPageDescriptionOne : t.clearedPageDescriptionOther, { count: removed.length, page: pageIndex + 1 }),
       snapshots
     );
+    recordAction('delete_mark');
     setAnnouncement(formatMessage(t.clearedPageAnnouncementTemplate, { page: pageIndex + 1 }));
   }, [elements, dispatch, logAction, setAnnouncement, t]);
 

@@ -21,6 +21,7 @@ import type { FieldNavigation } from '../useFieldNavigation.ts';
 import type { FormDetectionState } from '../useFormFieldRegions.ts';
 import styles from '../../../editor-ui/SignToolbar.module.css';
 import controlStyles from '../../../editor-ui/EditorControls.module.css';
+import { recordAction } from '../../../lib/actionTrail.ts';
 
 // The tools that live behind the Shapes button, so its pressed/locked state and
 // its lock target read from one list instead of three copies of the same array.
@@ -238,6 +239,7 @@ export default function SignToolbar({
     setShowSigDropdown(false);
     setAnnouncement(formatMessage(t.signToolActive, { action: TOOL_COPY.signature.action }));
     noteArmed('signature');
+    recordAction('arm_tool');
   };
 
   const setSelectedTool = (tool: SignToolType | null) => {
@@ -263,6 +265,7 @@ export default function SignToolbar({
       if (next) {
         setAnnouncement(formatMessage(t.toolActive, { button: TOOL_COPY[next].button, action: TOOL_COPY[next].action }));
         noteArmed(next);
+        recordAction('arm_tool');
       }
     },
     lock: (tool: string) => {
@@ -301,6 +304,7 @@ export default function SignToolbar({
     // has to key off the button ("shapes"), not whichever shape happens to be
     // chosen - see the Shapes button's ArmHint below.
     noteArmed('shapes');
+    recordAction('arm_tool');
   };
 
   // Shapes locks from its own button rather than from a menu item, because a

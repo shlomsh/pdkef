@@ -47,6 +47,7 @@ import {
   type ShellMessages,
 } from '../../i18n/toolMessages';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 // MERGE-11 (2026-09-13, Shlomi's rejection of the bordered-input look): the
 // output name is a WYSIWYG span, not a button-plus-input pair. Firefox does
@@ -467,6 +468,7 @@ export default function PdfMergeTool({
     if (!action) return;
     clearUndo();
     action.perform();
+    recordAction('undo');
   }, [undoAction, clearUndo]);
 
   // Drag-to-reorder in the rail: SortableJS owns the DOM order during a drag;
@@ -482,6 +484,7 @@ export default function PdfMergeTool({
       return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
     });
     setSortMode('added');
+    recordAction('reorder');
   }, []);
 
   useEffect(() => {
@@ -703,6 +706,7 @@ export default function PdfMergeTool({
       for (const entry of newEntries) pendingPlanIndexRef.current.set(entry.id, planIndex);
     }
     insertEntries(newEntries, atIndex);
+    recordAction('add_files');
     setAnnouncement(
       newEntries.length === 1 ? t.filesAddedOne : formatMessage(t.filesAddedMany, { count: newEntries.length }),
     );
@@ -733,6 +737,7 @@ export default function PdfMergeTool({
       setAnnouncement(formatMessage(t.fileRemoved, { name: entry.file.name }));
       return { entries: current.entries.filter((e) => e.id !== id), plan: removeFile(current.plan, id) };
     });
+    recordAction('remove_file');
   }, [t.fileRemoved, t.removedUndo, t.filesAddedOne, registerUndo, inspectEntry]);
 
   useEffect(() => () => {
@@ -772,6 +777,7 @@ export default function PdfMergeTool({
     setIsRenamingOutputName(false);
     void clearDraftRef.current?.();
     setAnnouncement(t.cleared);
+    recordAction('clear_all');
   }, [clearPrepared, clearUndo, t.cleared]);
 
   const reorderEntries = useCallback((next: FileEntry[], message: string) => {
@@ -791,6 +797,7 @@ export default function PdfMergeTool({
       return { entries: next, plan: regroupPlan(current.plan, next.map((e) => e.id)) };
     });
     setSortMode('added');
+    recordAction('reorder');
   }, [t.fileMovedTo]);
 
   const onRowKeyDown = useCallback(
@@ -822,11 +829,13 @@ export default function PdfMergeTool({
               ? [...entries].reverse()
               : [...entries].sort((a, b) => a.id - b.id);
     reorderEntries(sorted, t.filesReordered);
+    recordAction('sort');
   }, [entries, reorderEntries, t.filesReordered]);
 
   const resetPageOrder = useCallback(() => {
     setModel((current) => ({ entries: current.entries, plan: regroupPlan(current.plan, current.entries.map((e) => e.id)) }));
     setAnnouncement(t.filesReordered);
+    recordAction('sort');
   }, [t.filesReordered]);
 
   const onPlanChange = useCallback((update: (current: PlanEntry[]) => PlanEntry[]) => {
@@ -837,6 +846,7 @@ export default function PdfMergeTool({
     const next = (event.target as HTMLInputElement).checked;
     setAddPageNumbers(next);
     rememberOptions({ addPageNumbers: next });
+    recordAction('change_setting');
   }, []);
 
   // MERGE-11 (Shlomi's WYSIWYG rebuild, 2026-09-13): the name span becomes
@@ -893,6 +903,7 @@ export default function PdfMergeTool({
     setCustomOutputName(sanitized.length > 0 ? sanitized : null);
     setIsRenamingOutputName(false);
     nameRemountKeyRef.current += 1;
+    recordAction('change_setting');
   }, []);
 
   const cancelOutputNameRename = useCallback(() => {
@@ -1127,6 +1138,7 @@ export default function PdfMergeTool({
     setTap('merging');
     setDownloadedOnce(true);
     setAnnouncement(t.mergedReady);
+    recordAction('download');
   }, [t.mergedReady]);
 
   const onPreparingTap = useCallback(() => {
@@ -1142,6 +1154,7 @@ export default function PdfMergeTool({
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement(t.sharedSuccessfully);
     else if (result.status === 'canceled') setAnnouncement(t.sharingCanceled);
     else if (result.status === 'error') setAnnouncement(t.shareError);

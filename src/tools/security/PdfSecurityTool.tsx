@@ -1,6 +1,7 @@
 import { useRef, useState } from 'preact/hooks';
 import { isPdfEncrypted, protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError, SecurityError } from './security.js';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';
@@ -49,6 +50,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
     resetOutput();
     setMode(null);
     setReadError(null);
+    recordAction('add_files');
     setAnnouncement(`Checking file "${selectedFile.name}"...`);
 
     const run = fileRun.begin();
@@ -91,7 +93,8 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     if (!file || !password || !mode) return;
-    
+    recordAction('export');
+
     setStatus('processing');
     setAnnouncement(mode === 'unlock' ? 'Unlocking PDF…' : 'Protecting PDF…');
 
@@ -135,6 +138,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement(`${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF shared successfully.`);
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
@@ -200,6 +204,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
                 href={downloadUrl}
                 download={`${file.name.replace(/\.pdf$/i, '')}_${mode}ed.pdf`}
                 label={`Download ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
+                onClick={() => recordAction('download')}
               />
               <PdfShareButton
                 visible={shareReady}

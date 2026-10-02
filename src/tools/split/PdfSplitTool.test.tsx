@@ -1,7 +1,8 @@
 // @ts-nocheck - renamed from .jsx, not yet typed; see TODO.md 'Type the interactive shell'
 import { render } from 'preact';
 import { act } from 'preact/test-utils';
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
+import { recentActions, resetActionTrailForTests } from '../../lib/actionTrail.ts';
 import PdfSplitTool from './PdfSplitTool.tsx';
 import { pageNumbersToRangeString } from './split.js';
 import dropzoneStyles from '../../shell/Dropzone.module.css';
@@ -57,6 +58,10 @@ vi.mock('pdfjs-dist', () => {
 
 describe('PdfSplitTool UI flow', () => {
   let container;
+
+  beforeEach(() => {
+    resetActionTrailForTests();
+  });
 
   afterEach(() => {
     if (container) {
@@ -226,6 +231,24 @@ describe('PdfSplitTool UI flow', () => {
     // Share is visible now, before the primary control has ever been tapped.
     expect(findShareButton()).not.toBeUndefined();
     nativeShare.restore();
+  });
+
+  it('records add, select, rotate and undo in order (DEBT-31)', async () => {
+    URL.createObjectURL = vi.fn(() => 'blob:fake-url');
+    URL.revokeObjectURL = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    act(() => render(<PdfSplitTool />, container));
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      setInputFiles(input, [makePdfFile('test.pdf')]);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const cell = container.querySelectorAll(`.${styles.cell}`)[1];
+    await act(async () => cell.click());
+    await act(async () => cell.querySelector(`.${styles['rotate-btn']}`).click());
+    await act(async () => container.querySelector(`.${styles['undo-chip']} button`).click());
+    expect(recentActions()).toEqual(['add_files', 'select_pages', 'rotate', 'undo']);
   });
 
   it('rotating a cell never toggles it, and Undo reverts the rotation', async () => {
