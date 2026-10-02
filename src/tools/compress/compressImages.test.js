@@ -127,6 +127,27 @@ describe('compressPdfImages', () => {
       getPages.mockRestore();
     }
   });
+  it('reports the bytes of the images it left as they were', async () => {
+    const file = fixture('mixed.pdf');
+    const before = (await analyze(file)).report.images;
+    const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: tinyEncoder });
+    expect(result.rewritten).toBe(3);
+    const kept = before.filter((image) => planImageRewrite(image) !== 'reencode');
+    expect(kept).toHaveLength(1);
+    expect(result.keptBytes).toBe(kept[0].bytes);
+    const none = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: async () => null });
+    expect(none.keptBytes).toBe(before.reduce((sum, image) => sum + image.bytes, 0));
+  });
+
+  it('does not count an image that was re-encoded but came out no smaller as kept', async () => {
+    const file = fixture('mixed.pdf');
+    const big = async ({ image }) => new Uint8Array(image.bytes + 10);
+    const result = await compressPdfImages(file, { maxLongSidePx: 1000, quality: 0.7, encodeImage: big });
+    const before = (await analyze(file)).report.images;
+    expect(result.keptBytes).toBe(before.filter((image) => planImageRewrite(image) !== 'reencode').reduce((sum, image) => sum + image.bytes, 0));
+    expect(result.imageBytes).toBe(before.reduce((sum, image) => sum + image.bytes, 0));
+  });
+
   it('rewrites the photos of mixed.pdf and leaves the page alone', async () => {
     const file = fixture('mixed.pdf');
     const result = await compressPdfImages(file, {

@@ -25,6 +25,9 @@ import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
+// Wording only: below this saving the result card says so plainly. The file is still offered (COMP-01).
+const SLIGHT_GAIN_PERCENT = 5;
+
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
 // the photo half of application portals, which commonly cap a photo at
@@ -108,7 +111,7 @@ export default function PdfCompressTool({
   const encryptionCheck = useLatestRun();
   // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
   // before any click that there is nothing to shrink. Never gates anything else.
-  const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number } | null>(null);
+  const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean; imageShare: number; pageCount: number } | null>(null);
   const analysisTokenRef = useRef(0);
   const [rasterBytes, setRasterBytes] = useState<number | null>(null);
   // COMP-01: by default only the images are recompressed and every page stays as it is; true turns
@@ -116,6 +119,9 @@ export default function PdfCompressTool({
   const [flatten, setFlatten] = useState(false);
   // Why the image-only path did what it did; null on the flatten path and before a result.
   const [imageReason, setImageReason] = useState<string | null>(null);
+  // Bytes of images the image path left as they were (compressPdfImages' keptBytes).
+  const [keptBytes, setKeptBytes] = useState(0);
+  const [resultImageBytes, setResultImageBytes] = useState(0);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
   const kind = deriveFileKind(file);
@@ -203,6 +209,8 @@ export default function PdfCompressTool({
     setUnchanged(false);
     setRasterBytes(null);
     setImageReason(null);
+    setKeptBytes(0);
+    setResultImageBytes(0);
   };
 
   // Builds the before/after pair for the CompareSlider. PDF: renders page 1
@@ -495,7 +503,7 @@ export default function PdfCompressTool({
 
       if (!flatten) {
         const { compressPdfImages, compressPdfImagesToTarget, IMAGE_LEVELS } = await import('./compressImages.js');
-        const result: { blob: Blob; metTarget?: boolean; reason: string } = level === 'target'
+        const result: { blob: Blob; metTarget?: boolean; reason: string; keptBytes?: number; imageBytes?: number } = level === 'target'
           ? await compressPdfImagesToTarget(activeFile, { targetKB, onProgress: setProgress })
           : await compressPdfImages(activeFile, { ...IMAGE_LEVELS[level as 'high' | 'medium' | 'low'], onProgress: setProgress });
         if (runToken !== runTokenRef.current) return;
@@ -507,6 +515,8 @@ export default function PdfCompressTool({
         setRasterBytes(null);
         setMetTarget(result.metTarget ?? true);
         setImageReason(result.reason);
+        setKeptBytes(result.keptBytes ?? 0);
+        setResultImageBytes(result.imageBytes ?? 0);
         setOutputType(resultType);
         setPassthrough(isPassthrough);
         setUnchanged(isUnchanged);
@@ -637,14 +647,32 @@ export default function PdfCompressTool({
       })
     : '';
 
+  const slightGain = kind === 'pdf' && !passthrough && level !== 'target' && compressedSize != null
+    && file != null && compressedSize < file.size && savingsPercent < SLIGHT_GAIN_PERCENT;
+  let slightGainNotice = '';
+  if (slightGain && imageReason === 'smaller') {
+    const saving = savingsPercent >= 1 ? `${savingsPercent}%` : t.lessThanOnePercent;
+    if (keptBytes > resultImageBytes / 2) {
+      slightGainNotice = formatMessage(t.slightGainKeptNotice, { saving });
+    } else {
+      slightGainNotice = formatMessage(t.slightGainCompactNotice, { saving })
+        + (level !== 'high' ? ` ${t.slightGainExtremeHint}` : '');
+    }
+  }
+
   const imageNotices = {
-    smaller: t.imagesNotice,
     'no-images': t.imagesNoImagesNotice,
     'no-gain': t.imagesNoGainNotice,
     encrypted: t.imagesEncryptedNotice,
     unsupported: t.imagesUnsupportedNotice,
     'under-target': t.passthroughNotice,
   };
+
+  const resultNotice = imageReason === 'smaller'
+    ? slightGainNotice
+    : imageReason !== null
+      ? imageNotices[imageReason as keyof typeof imageNotices]
+      : unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice;
 
   const actionAndResults = (
     <>
@@ -701,7 +729,7 @@ export default function PdfCompressTool({
       {hasFiles && status === 'done' && (downloadUrl || passthrough) && (
         <>
           <div class={styles['compression-stats']}>
-            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : imageReason === 'unsupported' ? t.unsupportedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
+            <p class={styles['stats-title']}>{imageReason === 'encrypted' ? t.lockedTitle : imageReason === 'unsupported' ? t.unsupportedTitle : unchanged ? t.alreadySmallTitle : passthrough ? (kind === 'image' ? t.imageUnderTargetTitle : t.underTargetTitle) : slightGain ? t.slightGainTitle : kind === 'image' ? t.imageSuccessTitle : t.successTitle}</p>
             <div class={styles['stats-grid']}>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.originalSize}</span>
@@ -752,11 +780,9 @@ export default function PdfCompressTool({
               </p>
             )}
 
-            <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>
-              {imageReason !== null
-                ? imageNotices[imageReason as keyof typeof imageNotices]
-                : unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
-            </p>
+            {resultNotice && (
+              <p class={styles[passthrough ? 'honest-note' : 'compress-warning']}>{resultNotice}</p>
+            )}
             {imageReason === 'smaller' && level === 'target' && !metTarget && (
               <p class={styles['compress-warning']}>
                 {formatMessage(t.imagesTargetMissedNotice, { size: formatBytes(compressedSize as number), target: formatBytes(targetKB * 1024) })}
@@ -801,7 +827,7 @@ export default function PdfCompressTool({
                   >
                     <div class={styles['compare-fullscreen-header']}>
                       <p class={styles['compare-caption']}>
-                        {kind === 'image' ? t.compareCaptionImage : t.compareCaptionPdf}
+                        {kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf}
                       </p>
                       <button type="button" class={styles['compare-toggle-button']} onClick={closeFullscreen}>
                         {t.compareCloseLabel}
@@ -856,7 +882,7 @@ export default function PdfCompressTool({
                           afterLabel={t.compareAfterLabel}
                         />
                         <p class={styles['compare-caption']}>
-                          {kind === 'image' ? t.compareCaptionImage : t.compareCaptionPdf}
+                          {kind === 'image' ? t.compareCaptionImage : analysis?.pageCount === 1 ? t.compareCaptionPdfSingle : t.compareCaptionPdf}
                         </p>
                       </>
                     )}
