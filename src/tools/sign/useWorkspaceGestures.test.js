@@ -16,6 +16,10 @@ import useWorkspaceGestures from './useWorkspaceGestures.js';
 import { DEFAULT_SYMBOL_WIDTH_PCT } from '../../constants/signGeometry.js';
 import { formatDate, toIsoDateString } from '../../editor/text/dateFormat.ts';
 import { startGesture } from '../../lib/gestures/controller.ts';
+import { samplePageColor } from './whiteoutPageColor.ts';
+
+// The node environment has no document to read the page canvas from.
+vi.mock('./whiteoutPageColor.ts', () => ({ samplePageColor: vi.fn(() => null) }));
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -597,6 +601,49 @@ describe('useWorkspaceGestures – drag-drawn shape remembered settings', () => 
     expect(firstAddElement(dispatch)).toMatchObject({
       type: 'whiteout',
       color: '#ffffff',
+    });
+  });
+
+  describe('whiteout takes the page colour', () => {
+    const drawWhiteout = (hookOverrides = {}) => {
+      const hook = makeHook({ selectedTool: 'whiteout', ...hookOverrides });
+      hook.handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
+      listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
+      listeners.mouseup();
+      return hook;
+    };
+    const committed = (dispatch) => dispatch.mock.calls.map(([a]) => a).find((a) => a.type === 'UPDATE_ELEMENT');
+
+    it('commits colorMode auto with the colour sampled around the final box', () => {
+      samplePageColor.mockReturnValueOnce('#f4ecd8');
+      const logAction = vi.fn();
+      const { dispatch } = drawWhiteout({ logAction });
+      expect(samplePageColor).toHaveBeenLastCalledWith(0, { left: 10, top: 10, width: 20, height: 30 });
+      expect(committed(dispatch).payload.changes).toMatchObject({ color: '#f4ecd8', colorMode: 'auto' });
+      // the history snapshot agrees with the committed element
+      expect(logAction.mock.calls.at(-1)[4][0].element).toMatchObject({ color: '#f4ecd8', colorMode: 'auto' });
+    });
+
+    it('falls back to the carried whiteout colour when the page cannot be read, still auto', () => {
+      samplePageColor.mockReturnValueOnce(null);
+      const { dispatch } = drawWhiteout({ initialWhiteoutColor: '#eeeeee' });
+      expect(committed(dispatch).payload.changes).toMatchObject({ color: '#eeeeee', colorMode: 'auto' });
+    });
+
+    it('never carries the sampled colour', () => {
+      samplePageColor.mockReturnValueOnce('#f4ecd8');
+      const { dispatch } = drawWhiteout();
+      expect(dispatch.mock.calls.some(([a]) => a.type === 'SET_CARRIED' || a.type === 'SET_APP_STYLE')).toBe(false);
+    });
+
+    it('does not sample for other drag tools', () => {
+      samplePageColor.mockClear();
+      const { dispatch, handleOverlayPointerDown } = makeHook({ selectedTool: 'rectangle' });
+      handleOverlayPointerDown(makeMouseDownEvent(100, 100, overlay), 0);
+      listeners.mousemove(makeMouseDownEvent(300, 400, overlay));
+      listeners.mouseup();
+      expect(samplePageColor).not.toHaveBeenCalled();
+      expect(committed(dispatch).payload.changes.colorMode).toBeUndefined();
     });
   });
 

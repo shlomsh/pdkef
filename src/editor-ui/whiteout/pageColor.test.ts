@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { ColorMode } from './redactElements.ts';
+import type { ColorMode } from '../../editor/model/editorModel.ts';
 import { autoColorChanges, boxPixelRect, followsPage, medianColor, ringStrips } from './pageColor.ts';
 
 const px = (r: number, g: number, b: number, a = 255, n = 1) => Array.from({ length: n }, () => [r, g, b, a]).flat();

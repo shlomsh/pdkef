@@ -1,5 +1,4 @@
-import { Check, CopyPlus, Layers, Pipette } from 'lucide-preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { CopyPlus, Layers } from 'lucide-preact';
 import { paintWhiteoutColor } from '../../editor/registry/redactionSurface.ts';
 import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
@@ -7,8 +6,7 @@ import { TrashIcon } from '../../editor-ui/toolIcons.tsx';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
 import { englishSignMessages as t, formatMessage } from '../../i18n/toolMessages';
 import type { RedactBoxElement, RedactStrokeElement } from './redactElements.ts';
-import { swatchInk } from './swatchInk.ts';
-import { useNativeChange } from '../../editor-ui/useNativeChange.ts';
+import WhiteoutColorGroup, { shownRecents } from '../../editor-ui/whiteout/WhiteoutColorGroup.tsx';
 import styles from './RedactBoxToolbar.module.css';
 
 export interface RedactBoxToolbarProps {
@@ -30,22 +28,7 @@ export interface RedactBoxToolbarProps {
   recentColors?: readonly string[];
 }
 
-const HEX = /^#[0-9a-f]{6}$/i;
-
-const MAX_RECENTS = 3;
-
-/** The current colour first (when the box is not auto), then the recents: lowercase, deduped, at most three. */
-export function shownRecents(current: string | null, recents: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const c of [...(current && HEX.test(current) ? [current] : []), ...recents]) {
-    const hex = c.toLowerCase();
-    if (!HEX.test(hex) || seen.has(hex)) continue;
-    seen.add(hex);
-    out.push(hex);
-  }
-  return out.slice(0, MAX_RECENTS);
-}
+export { shownRecents };
 
 const pagesIcon = <Layers size={18} />;
 
@@ -62,50 +45,6 @@ export default function RedactBoxToolbar({
   const isBlur = element.type === 'blur' || element.type === 'blurStroke';
   const auto = isWhiteout && (element as { colorMode?: string }).colorMode === 'auto';
   const color = isWhiteout ? String((element as { color?: unknown }).color ?? '') : '';
-  const hex = HEX.test(color) ? color : '#ffffff';
-
-  // The picker previews live: `input` only paints the box's DOM (no state, no undo step). The
-  // pick commits once, from the native `change` (preact/compat rewrites onChange to `input`, which
-  // fires on every drag step). `blur` and unmount settle a pick whose `change` never arrived, e.g.
-  // the box is deselected as the picker closes. A pick equal to the committed colour commits
-  // nothing and undoes the preview paint.
-  const colorInput = useRef<HTMLInputElement>(null);
-  const pickRef = useRef(onPickColor);
-  pickRef.current = onPickColor;
-  const committed = useRef(hex);
-  committed.current = hex;
-  const pending = useRef(false);
-  const reconcile = (el: HTMLInputElement) => {
-    if (el.value.toLowerCase() !== committed.current.toLowerCase()) {
-      pickRef.current(el.value);
-      // A blur then a change with no render between must not commit twice.
-      committed.current = el.value.toLowerCase();
-    } else paintWhiteoutColor(document, element.id, committed.current);
-    pending.current = false;
-  };
-  const reconcileRef = useRef(reconcile);
-  reconcileRef.current = reconcile;
-  useNativeChange(colorInput, (el) => reconcileRef.current(el), [isWhiteout]);
-  useEffect(() => {
-    const el = colorInput.current;
-    if (!el) return undefined;
-    const onBlur = () => { if (pending.current) reconcileRef.current(el); };
-    el.addEventListener('blur', onBlur);
-    return () => {
-      el.removeEventListener('blur', onBlur);
-      if (pending.current) reconcileRef.current(el);
-    };
-  }, [isWhiteout]);
-  // Uncontrolled: a parent re-render while the native picker is open must not re-assert the
-  // committed colour over a pick in flight. The input follows the committed colour only when idle.
-  useEffect(() => {
-    if (colorInput.current && !pending.current) colorInput.current.value = hex;
-  }, [hex, isWhiteout]);
-  const previewColor = (e: Event) => {
-    paintWhiteoutColor(document, element.id, (e.currentTarget as HTMLInputElement).value);
-    pending.current = true;
-  };
-  const recents = isWhiteout ? shownRecents(auto ? null : color, recentColors) : [];
 
   const linked = repeatGroupSize !== undefined && repeatGroupSize >= 2;
   const groupLabel = linked ? formatMessage(t.repeatGroupTitleTemplate, { n: repeatGroupSize }) : '';
@@ -118,62 +57,17 @@ export default function RedactBoxToolbar({
   return (
     <>
       {isWhiteout && (
-        <div className={styles.group} role="group" aria-label="Whiteout colour">
-          <button
-            type="button"
-            className={styles.auto}
-            data-redact-color-auto
-            aria-pressed={auto}
-            title="Match the page around the box"
-            onClick={onMatchPage}
-          >
-            <span className={styles.autoFace}>Auto</span>
-          </button>
-          <button
-            type="button"
-            className={styles.eyedropper}
-            data-redact-color-eyedropper
-            aria-pressed={eyedropping}
-            aria-label="Pick a colour from the page"
-            title="Pick a colour from the page"
-            onClick={onToggleEyedropper}
-          >
-            <Pipette size={18} />
-          </button>
-          {recents.map((c) => {
-            const pressed = !auto && c === color.toLowerCase();
-            return (
-              <button
-                key={c}
-                type="button"
-                className={styles.recent}
-                data-redact-color-recent={c}
-                aria-pressed={pressed}
-                aria-label={`Use ${c}`}
-                title={c}
-                onClick={() => onPickColor(c)}
-              >
-                <span className={styles.recentFace} ref={(el) => { if (el) el.style.setProperty('--swatch', c); }}>
-                  {pressed && (
-                    <span className={swatchInk(c) === 'dark' ? styles.inkDark : styles.inkLight}>
-                      <Check size={14} strokeWidth={3} />
-                    </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
-          <label className={styles.custom} data-redact-color-custom title="Choose any colour">
-            <span className={styles.wheel} />
-            <input
-              type="color"
-              className={styles.native}
-              aria-label="Choose any colour"
-              ref={colorInput}
-              onInput={previewColor}
-            />
-          </label>
-        </div>
+        <WhiteoutColorGroup
+          elementId={element.id}
+          color={color}
+          auto={auto}
+          eyedropping={eyedropping}
+          recentColors={recentColors}
+          onToggleEyedropper={onToggleEyedropper}
+          onMatchPage={onMatchPage}
+          onPickColor={onPickColor}
+          paintPreview={(c) => paintWhiteoutColor(document, element.id, c)}
+        />
       )}
       {isBlur && (
         <div className={styles.group}>

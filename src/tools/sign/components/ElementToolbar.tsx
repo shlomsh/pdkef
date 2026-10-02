@@ -2,6 +2,7 @@ import { useId } from 'preact/hooks';
 import { PilcrowLeft, PilcrowRight, TextAlignCenter, TextAlignEnd, TextAlignStart } from 'lucide-preact';
 import { TrashIcon } from '../../../editor-ui/toolIcons.tsx';
 import ColorPickerMenu from '../../../editor-ui/ColorPickerMenu.tsx';
+import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import FontPickerMenu from './FontPickerMenu.tsx';
 import ThicknessPickerMenu from './ThicknessPickerMenu.tsx';
 import { getEffectiveTextDirection, getTextAlign } from '../../../lib/signHelpers.js';
@@ -362,12 +363,7 @@ export default function ElementToolbar({
       )}
       {element.type === 'whiteout' && (
         <>
-          <ColorPickerMenu
-            value={element.color}
-            onChange={(color: string) => onChange({ color })}
-            title={t.whiteoutColorTitle}
-            defaultColor="#ffffff"
-          />
+          <WhiteoutColorControls element={element} onChange={onChange} />
           <div className={styles.divider} />
         </>
       )}

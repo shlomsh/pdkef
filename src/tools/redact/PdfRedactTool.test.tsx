@@ -151,8 +151,8 @@ const pageSampler = vi.hoisted(() => ({
   impl: (() => null) as (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => string | null,
   calls: [] as Array<{ canvas: HTMLCanvasElement | null | undefined; box: { left: number; top: number; width: number; height: number } }>,
 }));
-vi.mock('./pageSampling.ts', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./pageSampling.ts')>();
+vi.mock('../../editor-ui/whiteout/pageSampling.ts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../editor-ui/whiteout/pageSampling.ts')>();
   return {
     ...actual,
     sampleRingColor: (canvas: HTMLCanvasElement | null | undefined, box: { left: number; top: number; width: number; height: number }) => {
