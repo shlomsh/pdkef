@@ -15,6 +15,7 @@ depends_on: ["ENC-01"]
 
 ## Brief
 - Classify at intake (Split: `loadDocumentAndThumbnails`, `PdfSplitTool.tsx:229-236`; Edit Pages: `handleFilesAdded` before the pdf-lib load at `PdfEditPagesTool.tsx:118`) and show a quiet state with "Unlock it" (promote the Redact state to `src/shell` here, now that it has a second consumer). Edit Pages has no hand-off receiver, so add one.
+- The promoted state takes the sending tool's key and parks the file with `from` set to it. The detour contract (2026-10-02, Shlomi's QA): the tool that meets a protected file parks it for Unlock with `from: '<its key>'`; Unlock's done state then leads with "Continue in <tool>" and a quiet download, and hands the unlocked file back (`RETURN_TO` in `PdfSecurityTool.tsx`, guideline 13). Add `split` and `edit-pages` to `RETURN_TO` here, with their receivers.
 - Refuse to write: `splitPdf` and `editPages` throw when `doc.isEncrypted`, as `mergePdfs` already does (`merge.js:214`).
 - Split's status overwrite found in the same read: after a pdf.js load failure the prepare effect (`:164-169`) sets 'ready' on an empty page list, so a failure shows an empty grid and no message (read, high confidence, not run).
 

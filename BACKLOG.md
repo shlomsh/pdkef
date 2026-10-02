@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 9 then, 19 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 11 then, 19 waiting, 13 parked.
 
 ## Redact: finish removal
 
@@ -62,6 +62,8 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
+| ENC-07 | P2 | [ENC-07](backlog/tasks/ENC-07.md) · Sign shows the protected state instead of its alert |  |
+| ENC-08 | P2 | [ENC-08](backlog/tasks/ENC-08.md) · Compress, Compress Image and PDF to Image meet a protected PDF at the door |  |
 
 ### Waiting
 
@@ -73,8 +75,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
-| ENC-07 | P3 | [ENC-07](backlog/tasks/ENC-07.md) · Sign shows the protected state instead of its alert |  |
-| ENC-08 | P3 | [ENC-08](backlog/tasks/ENC-08.md) · Compress, Compress Image and PDF to Image meet a protected PDF at the door |  |
 | ENC-09 | P3 | [ENC-09](backlog/tasks/ENC-09.md) · Merge tells a protected file from an unreadable one, and takes the unlocked file back |  |
 | ENC-10 | P3 | [ENC-10](backlog/tasks/ENC-10.md) · The daily read counts protected files as a funnel |  |
 | ENC-11 | P3 | [ENC-11](backlog/tasks/ENC-11.md) · Every tool's intake is tested against a real protected file in one table |  |

@@ -16,11 +16,14 @@ import { takeHandoff } from './drafts/draftStore.js';
  * draftStore.js), and already returns null when IndexedDB is unavailable, so
  * there is nothing to special-case here for that.
  *
+ * `from` is the sending tool, when its record names one (Redact does, so Unlock can lead the person
+ * back once the file is open). A receiver that has no use for it ignores the second argument.
+ *
  * Runs once per mount (`[tool]` deps only, via the `onFile` ref below) - a
  * result that resolves after unmount is dropped rather than calling a
  * callback whose owner is already gone.
  */
-export function useHandoffIntake(tool: string, onFile: (file: File) => void): void {
+export function useHandoffIntake(tool: string, onFile: (file: File, from?: string) => void): void {
   // Keeping only the latest `onFile` in a ref, rather than in the effect's
   // dependency array, is what lets the effect depend on `[tool]` alone -
   // otherwise a tool that recreates its callback every render (as both
@@ -35,11 +38,11 @@ export function useHandoffIntake(tool: string, onFile: (file: File) => void): vo
 
     takeHandoff(tool).then((value) => {
       if (cancelled || !value) return;
-      const record = value as { fileName: string; fileType?: string; fileBytes: ArrayBuffer };
+      const record = value as { fileName: string; fileType?: string; fileBytes: ArrayBuffer; from?: string };
       const file = new File([record.fileBytes], record.fileName, {
         type: record.fileType || 'application/pdf',
       });
-      onFileRef.current(file);
+      onFileRef.current(file, record.from);
     });
 
     return () => {

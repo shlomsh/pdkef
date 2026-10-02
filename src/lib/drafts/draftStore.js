@@ -191,7 +191,11 @@ const handoffKey = (tool) => `handoff:${tool}`;
  * one file, never Merge's multi-file entry shape.
  *
  * @param {string} tool - 'sign' | 'redact' | 'compress' | 'split' (the target tool's key)
- * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer }} record
+ * `from` names the sending tool when the hand-off is a detour the person will come back from:
+ * Redact sends a protected file to Unlock with `from: 'redact'`, and Unlock leads back there
+ * (docs/ux-design-guidelines.md section 13). Receivers that do not use it ignore it.
+ *
+ * @param {{ fileName: string, fileType?: string, fileBytes: ArrayBuffer, from?: string }} record
  * @returns {Promise<boolean>} true if written
  */
 export async function saveHandoff(tool, record) {

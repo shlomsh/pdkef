@@ -213,8 +213,8 @@ describe('PdfSecurityTool', () => {
 
     expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), 'secret');
     expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('test_unlocked.pdf');
-    const shareButton = container.querySelector(`.${pdfToolStyles['pdf-share-button']}`);
-    expect(shareButton).not.toBeNull();
+    const shareButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === 'Share');
+    expect(shareButton).not.toBeUndefined();
     await act(async () => shareButton.click());
     expect(nativeShare.share.mock.calls[0][0].files[0].name).toBe('test_unlocked.pdf');
     nativeShare.restore();
@@ -318,7 +318,7 @@ describe('PdfSecurityTool', () => {
 
       expect(securityLib.unlockPdf).toHaveBeenCalledWith(expect.any(File), '');
       expect(container.querySelector('input[type="password"]')).toBeNull();
-      expect(container.textContent).toContain('No password needed. This takes the protection off.');
+      expect(container.textContent).toContain('No password needed. The protection is off.');
       expect(container.querySelector(`.${pdfToolStyles['download-button']}`).getAttribute('download')).toBe('owner-only_unlocked.pdf');
     });
 
@@ -351,6 +351,77 @@ describe('PdfSecurityTool', () => {
       const legacyPdfjs = () => import('pdfjs-dist/legacy/build/pdf.mjs');
       const realProbe = (await vi.importActual('../../lib/pdfEncryption.ts')).probeEncryption;
       expect(await realProbe(await blob.arrayBuffer(), legacyPdfjs)).toBe('open');
+    });
+  });
+
+  describe('a file Redact sent here', () => {
+    const buttonByText = (text) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent.trim() === text);
+
+    async function unlockFromRedact(navigate) {
+      probeEncryption.mockResolvedValue('needs-password');
+      securityLib.unlockPdf.mockResolvedValue(new Blob(['unlocked-bytes'], { type: 'application/pdf' }));
+      takeHandoffMock.mockResolvedValue({
+        fileName: 'form.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1, 2, 3]).buffer, from: 'redact',
+      });
+      const nativeShare = mockNativeFileShare();
+      mount({ navigate });
+      await flush();
+      const passwordInput = container.querySelector('input[type="password"]');
+      await act(async () => {
+        passwordInput.value = 'secret';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      nativeShare.restore();
+    }
+
+    it('leads back to Redact: Continue in Redact first, a quiet download, nothing else', async () => {
+      await unlockFromRedact(vi.fn());
+      const text = container.textContent;
+      expect(buttonByText('Continue in Redact')).not.toBeUndefined();
+      expect(text.indexOf('Continue in Redact')).toBeLessThan(text.indexOf('Download'));
+      const download = container.querySelector('a[download]');
+      expect(download.getAttribute('download')).toBe('form_unlocked.pdf');
+      expect(download.classList.contains(pdfToolStyles['download-button'])).toBe(false);
+      expect(buttonByText('Share')).toBeUndefined();
+      expect(buttonByText('Sign it')).toBeUndefined();
+      expect(buttonByText('Redact it')).toBeUndefined();
+    });
+
+    it.each([['sign', 'Continue in Sign', '/sign/'], ['compress', 'Continue in Compress', '/compress/']])('leads back to whichever tool sent it (%s)', async (from, label, href) => {
+      probeEncryption.mockResolvedValue('owner-restricted');
+      securityLib.unlockPdf.mockResolvedValue(new Blob(['u'], { type: 'application/pdf' }));
+      takeHandoffMock.mockResolvedValue({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1]).buffer, from });
+      const navigate = vi.fn();
+      mount({ navigate });
+      await flush();
+      await act(async () => { buttonByText(label).click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
+      expect(saveHandoffMock.mock.calls[0][0]).toBe(from);
+      expect(navigate).toHaveBeenCalledWith(href);
+    });
+
+    it('ignores a sender it does not know and shows the ordinary next steps', async () => {
+      probeEncryption.mockResolvedValue('owner-restricted');
+      securityLib.unlockPdf.mockResolvedValue(new Blob(['u'], { type: 'application/pdf' }));
+      takeHandoffMock.mockResolvedValue({ fileName: 'a.pdf', fileType: 'application/pdf', fileBytes: new Uint8Array([1]).buffer, from: 'nowhere' });
+      mount({ navigate: vi.fn() });
+      await flush();
+      expect(Array.from(container.querySelectorAll('button')).some((b) => b.textContent.startsWith('Continue in'))).toBe(false);
+      expect(buttonByText('Redact it')).not.toBeUndefined();
+    });
+
+    it('Continue in Redact hands the unlocked file back and goes there', async () => {
+      const navigate = vi.fn();
+      await unlockFromRedact(navigate);
+      await act(async () => { buttonByText('Continue in Redact').click(); await new Promise((resolve) => setTimeout(resolve, 20)); });
+      const [tool, record] = saveHandoffMock.mock.calls[0];
+      expect(tool).toBe('redact');
+      expect(record.fileName).toBe('form_unlocked.pdf');
+      expect(new TextDecoder().decode(record.fileBytes)).toBe('unlocked-bytes');
+      expect(navigate).toHaveBeenCalledWith('/redact/');
     });
   });
 
@@ -390,6 +461,41 @@ describe('PdfSecurityTool', () => {
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
     }
+
+    it('the finished unlock replaces the form: the Unlock button becomes the Download', async () => {
+      await unlockDone(vi.fn());
+      expect(container.querySelector('form')).toBeNull();
+      expect(container.querySelector('input[type="password"]')).toBeNull();
+      expect(buttonByText('Unlock PDF')).toBeUndefined();
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+    });
+
+    it('protect keeps its password as the setting and swaps only the button for Download', async () => {
+      probeEncryption.mockResolvedValue('open');
+      securityLib.protectPdf.mockResolvedValue(new Blob(['p'], { type: 'application/pdf' }));
+      mount();
+      await loadFile();
+      const passwordInput = container.querySelector('input[type="password"]');
+      await act(async () => {
+        passwordInput.value = 'secret';
+        passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => {
+        container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+      expect(container.querySelector('input[type="password"]')).not.toBeNull();
+      expect(buttonByText('Protect PDF')).toBeUndefined();
+      expect(container.querySelector(`.${pdfToolStyles['download-button']}`)).not.toBeNull();
+    });
+
+    it('Share sits in one row with Redact it and Sign it', async () => {
+      const nativeShare = mockNativeFileShare();
+      await unlockDone(vi.fn());
+      const row = buttonByText('Redact it').parentElement;
+      expect(Array.from(row.querySelectorAll('button')).map((b) => b.textContent.trim())).toEqual(['Share', 'Redact it', 'Sign it']);
+      nativeShare.restore();
+    });
 
     it('puts Redact it and Sign it after Download, never before', async () => {
       await unlockDone(vi.fn());

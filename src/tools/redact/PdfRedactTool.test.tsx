@@ -3580,7 +3580,7 @@ describe('PdfRedactTool UI flow', () => {
         await act(async () => { unlockButton().click(); });
         await settleUntil('the hand-off to Unlock', () => location.href === '/unlock/');
         expect(saveHandoff).toHaveBeenCalledWith('unlock', expect.objectContaining({
-          fileName: 'owner-only.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer),
+          fileName: 'owner-only.pdf', fileType: 'application/pdf', fileBytes: expect.any(ArrayBuffer), from: 'redact',
         }));
       } finally {
         vi.unstubAllGlobals();

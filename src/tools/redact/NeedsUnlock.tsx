@@ -35,7 +35,7 @@ export default function NeedsUnlock({ kind, file, bytes }: { kind: NeedsUnlockKi
     setFailed(false);
     try {
       const { saveHandoff } = await import('../../lib/drafts/draftStore.js');
-      const saved = await saveHandoff('unlock', { fileName: file.name, fileType: 'application/pdf', fileBytes: bytes });
+      const saved = await saveHandoff('unlock', { fileName: file.name, fileType: 'application/pdf', fileBytes: bytes, from: 'redact' });
       if (!saved) throw new Error('handoff');
       window.location.href = '/unlock/';
     } catch (err) {
