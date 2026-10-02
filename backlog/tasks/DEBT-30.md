@@ -1,11 +1,11 @@
 ---
 id: "DEBT-30"
 title: "Merge destroys its Sortable twice and throws, caught in production by the error loop"
-status: "in_progress"
+status: "blocked"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
 depends_on: ["DEBT-27"]
+waiting_on: "Real traffic on the fixed build, then one errors:read"
 ---
 
 # DEBT-30 · Merge destroys its Sortable twice and throws, caught in production by the error loop

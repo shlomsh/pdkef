@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 1 up next, 9 then, 19 waiting, 14 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 43 live: 0 up next, 9 then, 20 waiting, 14 parked.
 
 ## Redact: finish removal
 
@@ -50,12 +50,6 @@ Every detected spot is a stop in fill mode, so false positives reach people dire
 
 Production errors you can see, small tools that clean up after themselves, and drafts whose limits people can see.
 
-### Up next
-
-| ID | P | Task | Note |
-| --- | --- | --- | --- |
-| DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | In progress |
-
 ### Then, in order
 
 | ID | P | Task | Note |
@@ -67,6 +61,7 @@ Production errors you can see, small tools that clean up after themselves, and d
 
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
+| DEBT-30 | P1 | [DEBT-30](backlog/tasks/DEBT-30.md) · Merge destroys its Sortable twice and throws, caught in production by the error loop | Waiting on Real traffic on the fixed build, then one errors:read |
 | MOBI-01 | P1 | [MOBI-01](backlog/tasks/MOBI-01.md) · Verify the Android share-sheet round trip on real hardware | Waiting on An Android phone. Needs Shlomi: Half an hour with an Android phone |
 
 ### Parked
