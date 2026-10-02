@@ -13,6 +13,8 @@ const sameFilters = (filters, name) => filters.length === 1 && filters[0] === na
 // both are kept as they are rather than re-encoded wrongly.
 export function planImageRewrite(image) {
   if (image.isMask || image.smaskHasMatte) return 'keep';
+  // A colour-key /Mask matches exact sample values, which JPEG re-encoding no longer reproduces.
+  if (image.hasColorKeyMask) return 'keep';
   if (image.predictor !== null || image.hasDecode) return 'keep';
   if (image.bitsPerComponent !== 8) return 'keep';
   if (!['DeviceRGB', 'DeviceGray', 'ICCBased'].includes(image.colorSpace)) return 'keep';
@@ -47,6 +49,11 @@ export async function encodeImageOnCanvas({ image, stream, target, quality, deco
       drawable = await createImageBitmap(new Blob([stripExif(stream.getContents())], { type: 'image/jpeg' }), {
         colorSpaceConversion: 'none',
       });
+      // A real size that differs from the PDF's dict (or an EXIF rotation that survived) would be stretched.
+      if (drawable.width !== image.width || drawable.height !== image.height) {
+        drawable.close?.();
+        return null;
+      }
     } else {
       const samples = decodeRaw(stream).decode();
       const perPixel = image.components;
@@ -98,7 +105,7 @@ export async function compressPdfImages(
   const untouched = (reason) => ({ blob: file, beforeBytes, afterBytes: beforeBytes, rewritten: 0, reason });
 
   const { PDFDocument, PDFName, PDFRef, PDFRawStream, PDFDict, PDFNumber, decodePDFRawStream } = await getPdfLib();
-  const { analyzePdf } = await import('./analyzePdf.js');
+  const { analyzePdfImages } = await import('./analyzePdf.js');
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   let doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
@@ -121,7 +128,7 @@ export async function compressPdfImages(
     }
   }
 
-  const { images } = analyzePdf(doc, { totalBytes: beforeBytes });
+  const images = analyzePdfImages(doc);
   if (images.length === 0) return untouched('no-images');
 
   const planned = images.filter((image) => planImageRewrite(image) === 'reencode');
@@ -155,13 +162,16 @@ export async function compressPdfImages(
     onProgress?.((i + 1) / planned.length);
   }
 
+  // Nothing replaced: skip re-encryption and the save altogether.
+  if (rewritten === 0) return untouched(planned.length === 0 ? 'unsupported' : 'no-gain');
+
   // Compressing must not quietly strip a file's restrictions: re-apply the same permissions
   // (empty user password, a fresh random owner password).
   if (wasEncrypted) doc.encrypt({ userPassword: '', ownerPassword: randomOwnerPassword(), permissions });
   const saved = await doc.save({ useObjectStreams: true });
   const afterBytes = saved.byteLength;
   // A re-save with nothing replaced can still shrink a file (object streams); that is not our gain.
-  if (rewritten === 0 || afterBytes >= beforeBytes) return untouched('no-gain');
+  if (afterBytes >= beforeBytes) return untouched('no-gain');
   return {
     blob: new Blob([saved], { type: 'application/pdf' }),
     beforeBytes,
@@ -226,8 +236,8 @@ export async function compressPdfImagesToTarget(file, { targetKB, onProgress, en
   let smallest = null;
   for (let i = 0; i < TARGET_IMAGE_LADDER.length; i += 1) {
     const result = await run(TARGET_IMAGE_LADDER[i], i);
-    // No rung can change a file with no images or one that is encrypted.
-    if (result.reason === 'no-images' || result.reason === 'encrypted') {
+    // No rung can change a file with no images, one that is encrypted, or one whose images are all kept.
+    if (result.reason === 'no-images' || result.reason === 'encrypted' || result.reason === 'unsupported') {
       onProgress?.(1);
       return { ...result, metTarget: false };
     }

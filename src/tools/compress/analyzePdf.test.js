@@ -3,7 +3,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { describe, expect, it } from 'vitest';
 import { PDFDocument, PDFName, PDFRef, StandardFonts, rgb } from '@cantoo/pdf-lib';
-import { analyzePdf } from './analyzePdf.js';
+import { analyzePdf, analyzePdfImages } from './analyzePdf.js';
 
 const JPEG_1X1_GRAY_B64 =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==';
@@ -98,6 +98,29 @@ describe('analyzePdf', () => {
     expect(a.imageBytes).toBe(jpg.length);
     expect(a.imageShare).toBeGreaterThan(0);
     expect(a.imageShare).toBeLessThanOrEqual(1);
+  });
+
+  it('flags an image whose /Mask is a colour-key array', async () => {
+    const jpg = Uint8Array.from(Buffer.from(JPEG_1X1_GRAY_B64, 'base64'));
+    const doc = await PDFDocument.create();
+    const keyed = await doc.embedJpg(jpg);
+    const plain = await doc.embedJpg(jpg);
+    await keyed.embed();
+    doc.context.lookup(keyed.ref).dict.set(PDFName.of('Mask'), doc.context.obj([250, 255, 250, 255, 250, 255]));
+    doc.addPage().drawImage(keyed, { x: 0, y: 0, width: 10, height: 10 });
+    doc.addPage().drawImage(plain, { x: 0, y: 0, width: 10, height: 10 });
+    const a = await analyze(doc);
+    expect(a.images.filter((i) => i.hasColorKeyMask)).toHaveLength(1);
+    expect(a.images.filter((i) => !i.hasColorKeyMask)).toHaveLength(1);
+  });
+
+  it('analyzePdfImages returns the same images without detecting text', async () => {
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    doc.addPage().drawText('Hello', { x: 20, y: 50, size: 12, font });
+    const { loaded } = await reload(doc);
+    const images = analyzePdfImages(loaded);
+    expect(images).toEqual(analyzePdf(loaded, { totalBytes: 1 }).images);
   });
 
   it('links a PNG with alpha to its soft mask', async () => {
