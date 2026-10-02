@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 
 /* ENC-05: a protected PDF is a precondition, not a failure. Redact shows one quiet state, "Unlock it"
-   parks the file as a hand-off and opens /unlock/ with it loaded, and Unlock's "Redact it" hands the
-   unlocked file back. It visits two tools' routes, so it lives here and not under a tool folder
+   parks the file as a hand-off and opens /unlock/ with it loaded, and Unlock leads with "Continue in
+   Redact", which hands the unlocked file back. It visits two tools' routes, so it lives here and not under a tool folder
    (module-boundaries rule 7). Fixtures: src/lib/__fixtures__/encrypted/ (AES-256, password "u" for
    needs-password; owner-only has an empty user password). */
 
@@ -43,9 +43,9 @@ test('an owner-only file in Redact goes to Unlock with no prompt and comes back 
   await page.waitForURL(/\/unlock\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(page.getByText('No password needed. This takes the protection off.')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('link', { name: /Download Unlocked PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
+  await expect(page.getByRole('link', { name: /Download unlocked PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
 
-  await page.getByRole('button', { name: 'Redact it' }).click();
+  await page.getByRole('button', { name: 'Continue in Redact' }).click();
   await page.waitForURL(/\/redact\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(page.locator('.redact-draw-area').first()).toBeVisible({ timeout: 10_000 });
@@ -74,9 +74,9 @@ test('a file that needs a password asks for it in Unlock, refuses a wrong one, a
 
   await password.fill('u');
   await page.getByRole('button', { name: 'Unlock PDF' }).click();
-  await expect(page.getByRole('link', { name: /Download Unlocked PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
+  await expect(page.getByRole('link', { name: /Download unlocked PDF/ })).toHaveAttribute('href', /^blob:/, { timeout: 10_000 });
 
-  await page.getByRole('button', { name: 'Redact it' }).click();
+  await page.getByRole('button', { name: 'Continue in Redact' }).click();
   await page.waitForURL(/\/redact\/?(?:\?.*)?$/);
   await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
   await expect(page.locator('.redact-draw-area').first()).toBeVisible({ timeout: 10_000 });

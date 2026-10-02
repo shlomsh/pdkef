@@ -141,8 +141,9 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
   `saveHandoff('<tool>', {fileName: '<name>_unlocked.pdf', ...})` then a navigation. The receivers already
   exist. The buttons are always there after an unlock, not only when the person came from Redact, which is
   what guidelines section 13 asks for (Unlock to Sign is already a listed candidate).
-- **No new concept.** No `?from=`, no return marker, no change to the hand-off record, no memory-space
-  write. There is no pair of hashes to reconcile: the unlocked file is a new file. (Found in review: an
+- **One small addition.** No `?from=` and no return marker; the hand-off record Redact writes carries
+  `from: 'redact'` (2026-10-02, after Shlomi's QA: a person sent over from Redact should be led back),
+  and Unlock's done state then leads with "Continue in Redact". There is no pair of hashes to reconcile: the unlocked file is a new file. (Found in review: an
   owner-only file can still reach Redact's recents, because the preview effect in `useDraftPersistence.js`
   caches once pdf.js renders it and does not wait for the gate. It is harmless: opening it from there
   meets the gate again.)

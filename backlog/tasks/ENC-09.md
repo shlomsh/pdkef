@@ -19,5 +19,7 @@ depends_on: ["ENC-01"]
 - Classify each entry with the ENC-01 classifier; keep the per-file card; make its Unlock link a hand-off.
 - Merge has no receiver, and it needs a different one: the set is already open, so the returned file goes into the slot the protected file held. Unlock's "Merge it" verb would use the same hand-off.
 
+- The detour contract (2026-10-02, Shlomi's QA): the tool that meets a protected file parks it for Unlock with `from: '<its key>'`; Unlock's done state then leads with "Continue in <tool>" and a quiet download, and hands the unlocked file back (`RETURN_TO` in `PdfSecurityTool.tsx`, guideline 13). For Merge the way back adds the unlocked file to the list it came from, not a fresh one; settle that here.
+
 ## Acceptance
 - Unit: a protected file with an encrypted Info dictionary shows the protected card, not "unreadable"; a round trip returns the file into the same slot with the rest of the set untouched.

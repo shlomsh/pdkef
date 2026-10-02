@@ -178,6 +178,14 @@ empty state that points at the sibling tool that solves it (an encrypted file li
 oversized draft to Compress). Candidates already visible: Split → Compress, Merge these; Unlock →
 Sign; Image to PDF → Merge; Compress → Sign; Sign → Compress for portals with size caps.
 
+A detour is the exception to "never in front of Download". When a tool sent the person here to clear
+an obstacle (Redact sending a protected file to Unlock), their job is still in the first tool, so the
+done state leads with the way back ("Continue in Redact") and keeps only a quiet download beside it:
+no Share, no other next steps. The hand-off record names the sender (`from`), so the detour shows
+only for a file that arrived that way; a file picked in the tool itself gets the ordinary done state.
+And the done state replaces the control that produced it: once Unlock has run, its password form goes,
+and Download stands where Unlock PDF was.
+
 ## 14. How we review
 
 - Measure in a real browser, at 1280 and 375, with getBoundingClientRect and getComputedStyle; a

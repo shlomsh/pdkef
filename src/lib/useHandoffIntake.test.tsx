@@ -56,6 +56,17 @@ describe('useHandoffIntake', () => {
     expect(file.size).toBe(4);
   });
 
+  it('passes on which tool sent the file, when the record says', async () => {
+    takeHandoffMock.mockResolvedValueOnce({ fileName: 'a.pdf', fileBytes: new Uint8Array([1]).buffer, from: 'redact' });
+    const onFile = vi.fn();
+    await act(async () => {
+      render(<Harness tool="unlock" onFile={onFile} />, container);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(onFile.mock.calls[0][1]).toBe('redact');
+  });
+
   it('defaults to application/pdf when the record carries no fileType', async () => {
     const bytes = new Uint8Array([1, 2]).buffer;
     takeHandoffMock.mockResolvedValueOnce({ fileName: 'merged.pdf', fileBytes: bytes });
