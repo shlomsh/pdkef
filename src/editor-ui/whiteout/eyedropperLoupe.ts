@@ -67,7 +67,7 @@ export function createLoupe(hostOf: () => Element): Loupe {
   const doc = hostOf().ownerDocument;
   const el = doc.createElement('div');
   el.className = cls(styles.loupe);
-  el.setAttribute('data-redact-eyedropper-loupe', '');
+  el.setAttribute('data-eyedropper-loupe', '');
   el.setAttribute('aria-hidden', 'true');
   const lens = doc.createElement('canvas');
   lens.className = cls(styles.lens);

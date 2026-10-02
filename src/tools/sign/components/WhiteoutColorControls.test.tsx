@@ -6,6 +6,7 @@ const eyedropper = vi.hoisted(() => ({ calls: [] as any[][] }));
 vi.mock('../../../editor-ui/whiteout/pageSampling.ts', () => ({
   useEyedropper: (...args: any[]) => { eyedropper.calls.push(args); },
 }));
+import { englishSignMessages } from '../../../i18n/toolMessages';
 import WhiteoutColorControls from './WhiteoutColorControls.tsx';
 import { getRecentWhiteoutColors } from '../../../editor/workspace/preferenceStore.ts';
 
@@ -14,31 +15,31 @@ beforeEach(() => { localStorage.clear(); eyedropper.calls = []; host = document.
 afterEach(() => { act(() => render(null, host)); host.remove(); });
 
 const element = (over: object = {}) => ({ id: 'w1', type: 'whiteout', color: '#ffffff', colorMode: 'auto', ...over });
-const mount = (el: any, onChange = vi.fn()) => { act(() => render(<WhiteoutColorControls element={el} onChange={onChange} />, host)); return onChange; };
+const mount = (el: any, onChange = vi.fn()) => { act(() => render(<WhiteoutColorControls element={el} onChange={onChange} messages={englishSignMessages} />, host)); return onChange; };
 const lastEyedropper = () => eyedropper.calls.at(-1)!;
 
 describe('WhiteoutColorControls', () => {
   it('shows the group with Auto pressed for an auto whiteout, not for a custom one', () => {
     mount(element());
     expect(host.querySelector('[role="group"]')).not.toBeNull();
-    expect(host.querySelector('[data-redact-color-auto]')?.getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('[data-whiteout-color-auto]')?.getAttribute('aria-pressed')).toBe('true');
     mount(element({ colorMode: 'custom', color: '#336699' }));
-    expect(host.querySelector('[data-redact-color-auto]')?.getAttribute('aria-pressed')).toBe('false');
+    expect(host.querySelector('[data-whiteout-color-auto]')?.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('Auto sends only the mode, so no colour can be carried', () => {
     const onChange = mount(element({ colorMode: 'custom', color: '#336699' }));
-    act(() => (host.querySelector('[data-redact-color-auto]') as HTMLElement).click());
+    act(() => (host.querySelector('[data-whiteout-color-auto]') as HTMLElement).click());
     expect(onChange).toHaveBeenCalledWith({ colorMode: 'auto' });
   });
 
   it('a pick sets custom mode with the colour and is remembered as a recent', () => {
     const onChange = mount(element({ colorMode: 'custom', color: '#336699' }));
-    expect(host.querySelector('[data-redact-color-recent="#336699"]')).not.toBeNull();
+    expect(host.querySelector('[data-whiteout-color-recent="#336699"]')).not.toBeNull();
     mount(element(), onChange);
-    expect(host.querySelector('[data-redact-color-recent]')).toBeNull();
+    expect(host.querySelector('[data-whiteout-color-recent]')).toBeNull();
     // the eyedropper is the pick path in jsdom: it hands over a colour
-    act(() => (host.querySelector('[data-redact-color-eyedropper]') as HTMLElement).click());
+    act(() => (host.querySelector('[data-whiteout-color-eyedropper]') as HTMLElement).click());
     expect(lastEyedropper()[0]).toBe(true);
     act(() => lastEyedropper()[1]('#abcdef'));
     expect(onChange).toHaveBeenCalledWith({ color: '#abcdef', colorMode: 'custom' });
@@ -49,7 +50,7 @@ describe('WhiteoutColorControls', () => {
     mount(element());
     expect(lastEyedropper()[0]).toBe(false);
     expect(lastEyedropper()[3]).toBe('[data-sign-page-surface]');
-    act(() => (host.querySelector('[data-redact-color-eyedropper]') as HTMLElement).click());
+    act(() => (host.querySelector('[data-whiteout-color-eyedropper]') as HTMLElement).click());
     expect(lastEyedropper()[0]).toBe(true);
     act(() => lastEyedropper()[2]());
     expect(lastEyedropper()[0]).toBe(false);

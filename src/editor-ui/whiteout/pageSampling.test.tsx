@@ -182,7 +182,7 @@ describe('eyedropper', () => {
   describe('loupe', () => {
     let frames: Array<() => void> = [];
     const flush = () => { const f = frames; frames = []; f.forEach((cb) => cb()); };
-    const loupeEl = () => document.querySelector<HTMLElement>('[data-redact-eyedropper-loupe]');
+    const loupeEl = () => document.querySelector<HTMLElement>('[data-eyedropper-loupe]');
     const hexText = () => loupeEl()?.querySelector('[data-loupe-hex]')?.textContent;
     const touchEvent = (type: string, touches: Array<{ id: number; x: number; y: number }>, changed = touches) => {
       const mk = (t: { id: number; x: number; y: number }) => ({ identifier: t.id, clientX: t.x, clientY: t.y });
@@ -206,7 +206,7 @@ describe('eyedropper', () => {
       expect(loupeEl()?.style.transform).toBe('translate(0px, 60px)');
       expect(loupeEl()?.style.display).not.toBe('none');
       expect(hexText()).toBe('#010203');
-      expect(document.documentElement.hasAttribute('data-redact-eyedropping')).toBe(true);
+      expect(document.documentElement.hasAttribute('data-eyedropping')).toBe(true);
       document.body.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
       expect(loupeEl()?.style.display).toBe('none');
       cleanup();
@@ -309,7 +309,7 @@ describe('eyedropper', () => {
       canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: 60, clientY: 120, bubbles: true }));
       cleanup();
       expect(loupeEl()).toBeNull();
-      expect(document.documentElement.hasAttribute('data-redact-eyedropping')).toBe(false);
+      expect(document.documentElement.hasAttribute('data-eyedropping')).toBe(false);
     });
   });
 });

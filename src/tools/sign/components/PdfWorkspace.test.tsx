@@ -625,7 +625,7 @@ describe('PdfWorkspace Component', () => {
     it('Auto restores following the page: the sampled colour joins the same single history entry, nothing is carried', () => {
       vi.mocked(samplePageColor).mockReturnValue('#f0e0d0');
       const stateRef = mountActive(whiteout());
-      click('[data-redact-color-auto]');
+      click('[data-whiteout-color-auto]');
       expect(stateRef.current.elements[0]).toMatchObject({ colorMode: 'auto', color: '#f0e0d0' });
       expect(stateRef.current.actionHistory).toHaveLength(1);
       expect(stateRef.current.carried.whiteoutColor).toBeUndefined();
@@ -635,7 +635,7 @@ describe('PdfWorkspace Component', () => {
       localStorage.clear();
       rememberRecentWhiteoutColor('#112233', []);
       const stateRef = mountActive(whiteout({ colorMode: 'auto', color: '#ffffff' }));
-      click('[data-redact-color-recent="#112233"]');
+      click('[data-whiteout-color-recent="#112233"]');
       expect(stateRef.current.elements[0]).toMatchObject({ colorMode: 'custom', color: '#112233' });
       expect(stateRef.current.carried.whiteoutColor).toBe('#112233');
     });

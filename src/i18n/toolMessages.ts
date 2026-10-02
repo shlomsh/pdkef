@@ -20,6 +20,18 @@
 import type { DocumentationLocaleId } from './documentationLocales';
 import type { ElementUpdateKind } from '../editor/model/updateKind.ts';
 
+/** The whiteout colour group's text from a message table (the shape of `WhiteoutColorLabels`). */
+export function whiteoutColorLabels(t: SignMessages) {
+  return {
+    group: t.whiteoutColorGroupLabel,
+    auto: t.whiteoutAutoLabel,
+    autoTitle: t.whiteoutAutoTitle,
+    pipette: t.whiteoutPipetteLabel,
+    useColorTemplate: t.whiteoutUseColorTemplate,
+    customColor: t.whiteoutCustomColorLabel,
+  };
+}
+
 export function formatMessage(template: string, params: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
 }
@@ -857,6 +869,12 @@ const englishSignMessages: SignMessages = {
   shapeColorTitle: 'Shape color',
   signatureColorTitle: 'Signature color',
   whiteoutColorTitle: 'Whiteout color',
+  whiteoutColorGroupLabel: 'Whiteout colour',
+  whiteoutAutoLabel: 'Auto',
+  whiteoutAutoTitle: 'Match the page around the box',
+  whiteoutPipetteLabel: 'Pick a colour from the page',
+  whiteoutUseColorTemplate: 'Use {color}',
+  whiteoutCustomColorLabel: 'Choose any colour',
   blurStrengthTitle: 'Blur strength',
   blurStrengthLighter: 'Lighter',
   blurStrengthStronger: 'Stronger',
@@ -1100,6 +1118,12 @@ const hebrewSignMessages: SignMessages = {
   shapeColorTitle: 'צבע הצורה',
   signatureColorTitle: 'צבע החתימה',
   whiteoutColorTitle: 'צבע הטיפקס',
+  whiteoutColorGroupLabel: 'צבע הטיפקס',
+  whiteoutAutoLabel: 'אוטומטי',
+  whiteoutAutoTitle: 'התאמה לדף סביב התיבה',
+  whiteoutPipetteLabel: 'בחירת צבע מהדף',
+  whiteoutUseColorTemplate: 'שימוש ב-{color}',
+  whiteoutCustomColorLabel: 'בחירת צבע אחר',
   blurStrengthTitle: 'עוצמת הטשטוש',
   blurStrengthLighter: 'קל יותר',
   blurStrengthStronger: 'חזק יותר',

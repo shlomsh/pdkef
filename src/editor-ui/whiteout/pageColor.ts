@@ -7,7 +7,7 @@ import type { ColorMode } from '../../editor/model/editorModel.ts';
 /** A rectangle in canvas pixels. */
 export interface PixelRect { x: number; y: number; width: number; height: number }
 
-/** A box in Redact's element unit: percent (0-100) of the page. */
+/** A box in the editor's element unit: percent (0-100) of the page. */
 export interface PercentBox { left: number; top: number; width: number; height: number }
 
 const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));

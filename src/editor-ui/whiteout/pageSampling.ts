@@ -21,7 +21,7 @@ export function sampleCanvasColor(canvas: HTMLCanvasElement, clientX: number, cl
   }
 }
 
-/** The Redact island deselects a selected box on a document click on blank page
+/** The tool island deselects a selected box on a document click on blank page
  * area, and a box's eyedropper pick must keep it selected, so the click that
  * follows a primary-button pick is swallowed. It outlives the effect (onDone
  * flips `active`) and is dropped when it swallows the click, or after the next
@@ -102,7 +102,7 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
   useEffect(() => {
     if (!active) return undefined;
     const loupe = createLoupe(overlayHost);
-    document.documentElement.setAttribute('data-redact-eyedropping', '');
+    document.documentElement.setAttribute('data-eyedropping', '');
     const canvasOf = (surface: Element | null) => surface?.querySelector<HTMLCanvasElement>('canvas') ?? null;
     let tracked: { id: number; canvas: HTMLCanvasElement | null; x: number; y: number } | null = null;
 
@@ -186,7 +186,7 @@ export function useEyedropper(active: boolean, onPick: (color: string) => void, 
       window.removeEventListener('touchcancel', onTouchCancel, true);
       window.removeEventListener('keydown', onKey, true);
       loupe.destroy();
-      document.documentElement.removeAttribute('data-redact-eyedropping');
+      document.documentElement.removeAttribute('data-eyedropping');
     };
   }, [active]);
 }

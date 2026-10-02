@@ -34,10 +34,10 @@ const click = async (el: Element | null) => { await act(async () => { (el as HTM
 describe('RedactBoxToolbar whiteout colour group', () => {
   it('shows Auto pressed only in auto mode and calls onMatchPage', async () => {
     const custom = mount(whiteout);
-    expect(custom.host.querySelector('[data-redact-color-auto]')!.getAttribute('aria-pressed')).toBe('false');
+    expect(custom.host.querySelector('[data-whiteout-color-auto]')!.getAttribute('aria-pressed')).toBe('false');
     act(() => render(null, custom.host)); custom.host.remove();
     const auto = mount({ ...whiteout, colorMode: 'auto' });
-    const btn = auto.host.querySelector('[data-redact-color-auto]');
+    const btn = auto.host.querySelector('[data-whiteout-color-auto]');
     expect(btn!.getAttribute('aria-pressed')).toBe('true');
     await click(btn);
     expect(auto.onMatchPage).toHaveBeenCalledTimes(1);
@@ -45,7 +45,7 @@ describe('RedactBoxToolbar whiteout colour group', () => {
 
   it('eyedropper aria-pressed follows the prop and click toggles it', async () => {
     const { host: h, onToggleEyedropper } = mount(whiteout, { eyedropping: true });
-    const btn = h.querySelector('[data-redact-color-eyedropper]');
+    const btn = h.querySelector('[data-whiteout-color-eyedropper]');
     expect(btn!.getAttribute('aria-pressed')).toBe('true');
     await click(btn);
     expect(onToggleEyedropper).toHaveBeenCalledTimes(1);
@@ -96,8 +96,8 @@ describe('RedactBoxToolbar whiteout colour group', () => {
 
   it('the wheel label has no swatch of its own', () => {
     const { host: h } = mount(whiteout);
-    expect(h.querySelector('[data-redact-color-swatch]')).toBeNull();
-    expect(h.querySelector('[data-redact-color-custom] svg')).toBeNull();
+    expect(h.querySelector('[data-whiteout-color-swatch]')).toBeNull();
+    expect(h.querySelector('[data-whiteout-color-custom] svg')).toBeNull();
   });
 
   it('Duplicate carries its visible label', () => {
@@ -109,16 +109,16 @@ describe('RedactBoxToolbar whiteout colour group', () => {
 
   it('renders the current colour first, then the recents, before the wheel', () => {
     const { host: h } = mount(whiteout, { recentColors: ['#111111', '#F7F1DE', '#222222', '#333333'] });
-    const hexes = Array.from(h.querySelectorAll('[data-redact-color-recent]')).map((b) => b.getAttribute('data-redact-color-recent'));
+    const hexes = Array.from(h.querySelectorAll('[data-whiteout-color-recent]')).map((b) => b.getAttribute('data-whiteout-color-recent'));
     expect(hexes).toEqual(['#f7f1de', '#111111', '#222222']);
     const group = h.querySelector('[role="group"]')!;
-    expect(group.lastElementChild).toBe(h.querySelector('[data-redact-color-custom]'));
+    expect(group.lastElementChild).toBe(h.querySelector('[data-whiteout-color-custom]'));
   });
 
   it('a recent is pressed only for the current colour and picks its hex on click', async () => {
     const { host: h, onPickColor } = mount(whiteout, { recentColors: ['#111111'] });
-    const current = h.querySelector('[data-redact-color-recent="#f7f1de"]')!;
-    const other = h.querySelector('[data-redact-color-recent="#111111"]')!;
+    const current = h.querySelector('[data-whiteout-color-recent="#f7f1de"]')!;
+    const other = h.querySelector('[data-whiteout-color-recent="#111111"]')!;
     expect(current.getAttribute('aria-pressed')).toBe('true');
     expect(current.querySelector('svg')).not.toBeNull();
     expect((current.firstElementChild as HTMLElement).style.getPropertyValue('--swatch')).toBe('#f7f1de');
@@ -130,8 +130,8 @@ describe('RedactBoxToolbar whiteout colour group', () => {
 
   it('in auto mode the colour is not shown as a recent and nothing is pressed', () => {
     const { host: h } = mount({ ...whiteout, colorMode: 'auto' }, { recentColors: ['#111111'] });
-    const all = Array.from(h.querySelectorAll('[data-redact-color-recent]'));
-    expect(all.map((b) => b.getAttribute('data-redact-color-recent'))).toEqual(['#111111']);
+    const all = Array.from(h.querySelectorAll('[data-whiteout-color-recent]'));
+    expect(all.map((b) => b.getAttribute('data-whiteout-color-recent'))).toEqual(['#111111']);
     expect(all[0].getAttribute('aria-pressed')).toBe('false');
   });
 
@@ -256,7 +256,7 @@ describe('RedactBoxToolbar other types', () => {
   it('blur shows the slider', () => {
     const { host: h } = mount({ ...base, type: 'blur' });
     expect(h.querySelector('[data-editor-blur-strength-slider]')).not.toBeNull();
-    expect(h.querySelector('[data-redact-color-auto]')).toBeNull();
+    expect(h.querySelector('[data-whiteout-color-auto]')).toBeNull();
   });
 
   it('a blur slider change commits through onChangeStrength', () => {

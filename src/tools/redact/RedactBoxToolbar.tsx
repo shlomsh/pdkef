@@ -4,7 +4,7 @@ import BlurStrengthSlider from './BlurStrengthSlider.tsx';
 import ToolbarMenu from '../../editor-ui/ToolbarMenu.tsx';
 import { TrashIcon } from '../../editor-ui/toolIcons.tsx';
 import type { BlurStrength } from '../../editor/model/blurStrength.ts';
-import { englishSignMessages as t, formatMessage } from '../../i18n/toolMessages';
+import { englishSignMessages as t, formatMessage, whiteoutColorLabels } from '../../i18n/toolMessages';
 import type { RedactBoxElement, RedactStrokeElement } from './redactElements.ts';
 import WhiteoutColorGroup, { shownRecents } from '../../editor-ui/whiteout/WhiteoutColorGroup.tsx';
 import styles from './RedactBoxToolbar.module.css';
@@ -58,7 +58,7 @@ export default function RedactBoxToolbar({
     <>
       {isWhiteout && (
         <WhiteoutColorGroup
-          elementId={element.id}
+          labels={whiteoutColorLabels(t)}
           color={color}
           auto={auto}
           eyedropping={eyedropping}

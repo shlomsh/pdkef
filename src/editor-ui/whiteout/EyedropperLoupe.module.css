@@ -73,8 +73,8 @@
    their clicks). !important because the page wrapper and the boxes set their
    cursor inline (same as PageStrip's grabbing cursor). */
 @media (hover: hover) {
-  :global(html[data-redact-eyedropping]) :global(.redact-draw-area),
-  :global(html[data-redact-eyedropping]) :global(.redact-draw-area) :not(:global([data-editor-actions]), :global([data-editor-resizer]), :global([data-editor-actions]) *, :global([data-editor-resizer]) *) {
+  :global(html[data-eyedropping]) :global([data-eyedropper-surface]),
+  :global(html[data-eyedropping]) :global([data-eyedropper-surface]) :not(:global([data-editor-actions]), :global([data-editor-resizer]), :global([data-editor-actions]) *, :global([data-editor-resizer]) *) {
     cursor: none !important;
   }
 }
