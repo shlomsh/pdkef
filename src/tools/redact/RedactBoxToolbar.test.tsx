@@ -65,6 +65,23 @@ describe('RedactBoxToolbar whiteout colour group', () => {
     expect(onPickColor).toHaveBeenCalledWith('#123456');
   });
 
+  it('a committed colour change while a pick is pending leaves the input and the pending pick alone', () => {
+    const { host: h, onPickColor, ...fns } = mount(whiteout);
+    const input = h.querySelector('input[type="color"]') as HTMLInputElement;
+    act(() => {
+      input.value = '#123456';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    // e.g. an auto re-sample from a move changes the committed colour mid-pick
+    act(() => {
+      render(<RedactBoxToolbar element={{ ...whiteout, color: '#abcdef' }} eyedropping={false} onPickColor={onPickColor} {...fns} />, h);
+    });
+    expect(input.value).toBe('#123456');
+    act(() => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(onPickColor).toHaveBeenCalledTimes(1);
+    expect(onPickColor).toHaveBeenCalledWith('#123456');
+  });
+
   it('input events alone (a picker drag) never call onPickColor', () => {
     const { host: h, onPickColor } = mount(whiteout);
     const input = h.querySelector('input[type="color"]') as HTMLInputElement;

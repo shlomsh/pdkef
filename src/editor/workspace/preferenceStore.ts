@@ -375,21 +375,31 @@ export function withRecentColor(list: readonly string[], color: string, max = 3)
   return (HEX_COLOR.test(next) ? [next, ...rest] : rest).slice(0, max);
 }
 
-/** The remembered custom whiteout colours, most recent first. [] on any problem. */
-export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): string[] {
+/** The stored list, or null when storage cannot be read (no scope, blocked, throwing). A missing or unusable record is [] (readable). */
+function readStoredRecentWhiteoutColors(options: EditorPreferenceOptions): string[] | null {
   try {
-    const scope = getEditorUserScope(options); if (!scope) return [];
+    const scope = getEditorUserScope(options); if (!scope) return null;
     const raw = localStorage.getItem(recentWhiteoutColorsKey(scope)); if (raw === null) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!isObject(parsed) || parsed.schemaVersion !== RECENT_WHITEOUT_COLORS_VERSION || !Array.isArray(parsed.colors)) return [];
     return parsed.colors.filter((c): c is string => typeof c === 'string' && HEX_COLOR.test(c)).slice(0, 3);
-  // expected: blocked storage or unparseable record returns []
-  } catch { return []; }
+  // expected: blocked storage means unreadable
+  } catch { return null; }
 }
 
-/** Adds a colour to `current` and writes it; returns the new list whatever the write does (the caller keeps it in memory). */
+/** The remembered custom whiteout colours, most recent first. [] on any problem. */
+export function getRecentWhiteoutColors(options: EditorPreferenceOptions = {}): string[] {
+  return readStoredRecentWhiteoutColors(options) ?? [];
+}
+
+/**
+ * Adds a colour to the STORED list (another tab may have added its own since mount) and writes it; `current`
+ * is the base only when storage cannot be read. Returns the new list whatever the write does.
+ */
 export function rememberRecentWhiteoutColor(color: string, current: readonly string[], options: EditorPreferenceOptions = {}): string[] {
-  const next = withRecentColor(current, color);
+  // an empty stored list with a non-empty `current` means earlier writes failed (setItem blocked), so memory is the truth
+  const stored = readStoredRecentWhiteoutColors(options);
+  const next = withRecentColor(stored && stored.length > 0 ? stored : current, color);
   try {
     const scope = getEditorUserScope(options);
     if (scope) localStorage.setItem(recentWhiteoutColorsKey(scope), JSON.stringify({ schemaVersion: RECENT_WHITEOUT_COLORS_VERSION, colors: next }));

@@ -369,6 +369,21 @@ describe('recent whiteout colours (RED-53)', () => {
     expect(rememberRecentWhiteoutColor('nope', ['#111111'], { userScope: scope })).toEqual(['#111111']);
   });
 
+  it('builds on the stored list, not a stale in-memory one (second tab)', () => {
+    localStorage.setItem(key, JSON.stringify({ schemaVersion: 1, colors: ['#aaaaaa'] }));
+    expect(rememberRecentWhiteoutColor('#bbbbbb', [], { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    expect(getRecentWhiteoutColors({ userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+  });
+
+  it('falls back to the in-memory list when storage cannot be read', () => {
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    try {
+      expect(rememberRecentWhiteoutColor('#bbbbbb', ['#aaaaaa'], { userScope: scope })).toEqual(['#bbbbbb', '#aaaaaa']);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('keeps growing the in-memory list when storage throws', () => {
     const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
     try {
