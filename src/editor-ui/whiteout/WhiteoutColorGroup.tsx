@@ -4,8 +4,19 @@ import { swatchInk } from './swatchInk.ts';
 import { useNativeChange } from '../useNativeChange.ts';
 import styles from './WhiteoutColorGroup.module.css';
 
+/** The group's visible and accessible text, supplied by the host so each edition shows its own language. */
+export interface WhiteoutColorLabels {
+  group: string;
+  auto: string;
+  autoTitle: string;
+  pipette: string;
+  /** Contains {color}. */
+  useColorTemplate: string;
+  customColor: string;
+}
+
 export interface WhiteoutColorGroupProps {
-  elementId: string;
+  labels: WhiteoutColorLabels;
   /** The whiteout's colour, '#rrggbb' (anything else reads as white). */
   color: string;
   /** True when the colour follows the page around the box. */
@@ -37,9 +48,9 @@ export function shownRecents(current: string | null, recents: readonly string[])
   return out.slice(0, MAX_RECENTS);
 }
 
-/** The "Whiteout colour" group: Auto, eyedropper, recent colours and a native colour input. */
+/** The whiteout colour group: Auto, eyedropper, recent colours and a native colour input. */
 export default function WhiteoutColorGroup({
-  color, auto, eyedropping, recentColors = [], onToggleEyedropper, onMatchPage, onPickColor, paintPreview,
+  labels, color, auto, eyedropping, recentColors = [], onToggleEyedropper, onMatchPage, onPickColor, paintPreview,
 }: WhiteoutColorGroupProps) {
   const hex = HEX.test(color) ? color : '#ffffff';
 
@@ -89,24 +100,24 @@ export default function WhiteoutColorGroup({
   const recents = shownRecents(auto ? null : color, recentColors);
 
   return (
-    <div className={styles.group} role="group" aria-label="Whiteout colour">
+    <div className={styles.group} role="group" aria-label={labels.group}>
       <button
         type="button"
         className={styles.auto}
-        data-redact-color-auto
+        data-whiteout-color-auto
         aria-pressed={auto}
-        title="Match the page around the box"
+        title={labels.autoTitle}
         onClick={onMatchPage}
       >
-        <span className={styles.autoFace}>Auto</span>
+        <span className={styles.autoFace}>{labels.auto}</span>
       </button>
       <button
         type="button"
         className={styles.eyedropper}
-        data-redact-color-eyedropper
+        data-whiteout-color-eyedropper
         aria-pressed={eyedropping}
-        aria-label="Pick a colour from the page"
-        title="Pick a colour from the page"
+        aria-label={labels.pipette}
+        title={labels.pipette}
         onClick={onToggleEyedropper}
       >
         <Pipette size={18} />
@@ -118,9 +129,9 @@ export default function WhiteoutColorGroup({
             key={c}
             type="button"
             className={styles.recent}
-            data-redact-color-recent={c}
+            data-whiteout-color-recent={c}
             aria-pressed={pressed}
-            aria-label={`Use ${c}`}
+            aria-label={labels.useColorTemplate.replace('{color}', c)}
             title={c}
             onClick={() => onPickColor(c)}
           >
@@ -134,12 +145,12 @@ export default function WhiteoutColorGroup({
           </button>
         );
       })}
-      <label className={styles.custom} data-redact-color-custom title="Choose any colour">
+      <label className={styles.custom} data-whiteout-color-custom title={labels.customColor}>
         <span className={styles.wheel} />
         <input
           type="color"
           className={styles.native}
-          aria-label="Choose any colour"
+          aria-label={labels.customColor}
           ref={colorInput}
           onInput={previewColor}
         />

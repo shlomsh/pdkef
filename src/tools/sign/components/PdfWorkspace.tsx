@@ -713,6 +713,7 @@ export default function PdfWorkspace({
                   <div
                     ref={(el) => { pageWrapperRefs.current[pageIdx] = el; }}
                     data-sign-page-surface={pageIdx}
+                    data-eyedropper-surface
                     className={workspaceStyles['page-wrapper']}
                     style={{ aspectRatio: `${size.width} / ${size.height}` }}
                   >

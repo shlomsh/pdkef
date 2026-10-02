@@ -1,4 +1,4 @@
-/* The "Whiteout colour" group, lifted out of Redact's box toolbar so Sign can reuse it.
+/* The whiteout colour group, shared by Sign and Redact.
    The pill that hosts it is the host's; this sheet owns only the group's own controls. */
 .group {
   display: flex;

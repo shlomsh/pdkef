@@ -10,7 +10,8 @@ import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
 import { redactionDrawingPreviewStyle, renderRedactionDrawingPreviewContent } from '../../editor/registry/redactionSurface.ts';
 import { useEditorDraftPersistence, type EditorDraftInitialState } from '../../editor/workspace/useEditorDraftPersistence.ts';
 import { isDraftElement } from '../../editor/registry/draftValidation.ts';
-import { getAppStyle, rememberAppStyle, getEditorPreference, getRecentWhiteoutColors, rememberRecentWhiteoutColor } from '../../editor/workspace/preferenceStore.ts';
+import { useRecentWhiteoutColors } from '../../editor-ui/whiteout/useRecentWhiteoutColors.ts';
+import { getAppStyle, rememberAppStyle, getEditorPreference } from '../../editor/workspace/preferenceStore.ts';
 import useDeleteTool from './useDeleteTool.ts';
 import useRedactCommands from './useRedactCommands.ts';
 import RedactToolbar from './RedactToolbar.tsx';
@@ -198,7 +199,7 @@ export default function PdfRedactTool() {
 
   // RED-53: the last custom colours, offered on a whiteout's toolbar. Only a
   // deliberate pick is recorded, never an automatic sample or a brush drag step.
-  const [recentColors, setRecentColors] = useState(() => getRecentWhiteoutColors());
+  const [recentColors, rememberRecentColor] = useRecentWhiteoutColors();
 
   const rememberBlurStrength = (strength: BlurStrength) => {
     dispatch({ type: 'BLUR_STRENGTH_CHOSEN', strength });
@@ -701,12 +702,12 @@ export default function PdfRedactTool() {
   const pickColor = (id: string, color: string) => {
     updateElement(id, { color, colorMode: 'custom' });
     rememberColor(color);
-    setRecentColors(rememberRecentWhiteoutColor(color, recentColors));
+    rememberRecentColor(color);
   };
   const matchPage = (id: string) => updateElement(id, { colorMode: 'auto' });
   const pickBrushColor = (color: string) => {
     rememberColor(color);
-    setRecentColors(rememberRecentWhiteoutColor(color, recentColors));
+    rememberRecentColor(color);
   };
 
   // Two pipettes, one active at a time: the brush's, or the selected whiteout's.
@@ -1093,6 +1094,7 @@ export default function PdfRedactTool() {
                 />
                 <div
                   className={`${workspaceStyles['page-wrapper']} redact-draw-area`}
+                  data-eyedropper-surface
                   ref={(el) => { pageWrapperRefs.current[i] = el; }}
                   onMouseDown={(e) => handlePointerDown(e, i)}
                   onTouchStart={(e) => handlePointerDown(e, i)}

@@ -363,7 +363,7 @@ export default function ElementToolbar({
       )}
       {element.type === 'whiteout' && (
         <>
-          <WhiteoutColorControls element={element} onChange={onChange} />
+          <WhiteoutColorControls element={element} onChange={onChange} messages={t} />
           <div className={styles.divider} />
         </>
       )}

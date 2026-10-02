@@ -24,6 +24,7 @@ src/editor-ui/   ElementResizers, ColorPicker*,
                  ArmHint, EditorToolStatus, EditorExportActions, EditorPageHeader, FullscreenButton,
                  ViewControl, UndoHistoryModal, PdfPageCanvas,
                  SignatureDialog                                       (shared by Sign and Redact)
+                 whiteout/ (the whiteout colour group, page sampler and eyedropper, shared by Sign and Redact)
 src/tools/<t>/   the island, its components, its lib modules, its unit tests, its e2e specs;
                  one folder per tool: merge, sign, redact, compress, split, edit-pages, to-image,
                  image-to-pdf, security (redact owns DeletableObjectOverlay/DeleteMark - see ARCH-17

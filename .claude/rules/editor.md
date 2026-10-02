@@ -55,6 +55,7 @@ retire with SNG-06.
   `check-editor-dependency-directions.mjs` fails if the `maxWidthFromRightGrowth`/
   `maxHeightFromBottomGrowth` names turn up in a second file (`check:fast`, not only CI, since DEBT-12
   moved this off a standalone `ci.yml` grep step).
+- `src/editor-ui/whiteout/` holds the Sign-and-Redact shared whiteout colour group, page sampler and eyedropper.
 - Editor `.sign-*`/`.sig-*` styles live in CSS Modules; `check-editor-global-css.js` holds
   `global.css` at zero editor selectors.
 - **Field detection is Sign-only and stays behind a dynamic `import()`.** Its five chunks

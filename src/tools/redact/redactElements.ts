@@ -12,12 +12,6 @@ export interface Links {
   findSetId?: string;
 }
 
-/**
- * RED-51: where a whiteout's colour comes from. 'auto' is matched to the page
- * around it and re-sampled whenever it moves or resizes; 'custom' is a colour
- * the person chose. Absent means custom, so a draft saved before RED-51 keeps
- * its colour. Not "fill mode": that already names Sign's form-filling UX.
- */
 export type { ColorMode };
 
 export interface ColorModeField {

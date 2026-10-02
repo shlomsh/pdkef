@@ -184,6 +184,13 @@ export interface SignMessages {
   shapeColorTitle: string;
   signatureColorTitle: string;
   whiteoutColorTitle: string;
+  whiteoutColorGroupLabel: string;
+  whiteoutAutoLabel: string;
+  whiteoutAutoTitle: string;
+  whiteoutPipetteLabel: string;
+  /** Contains {color}. */
+  whiteoutUseColorTemplate: string;
+  whiteoutCustomColorLabel: string;
   blurStrengthTitle: string;
   blurStrengthLighter: string;
   blurStrengthStronger: string;

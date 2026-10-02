@@ -54,7 +54,7 @@ test.describe('selected box pill fits the window (RED-53)', () => {
 
         const pill = box.locator('[data-editor-actions]');
         await expect(pill).toBeVisible();
-        await expect(pill.locator('[data-redact-color-recent]'), 'the three seeded recent colours are in the pill').toHaveCount(3);
+        await expect(pill.locator('[data-whiteout-color-recent]'), 'the three seeded recent colours are in the pill').toHaveCount(3);
         const p = await pill.boundingBox();
         expect(p.x).toBeGreaterThanOrEqual(0);
         expect(p.x + p.width).toBeLessThanOrEqual(width);

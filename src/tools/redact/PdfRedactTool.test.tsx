@@ -282,7 +282,7 @@ describe('PdfRedactTool UI flow', () => {
 
     const surfaces = () => Array.from(container.querySelectorAll<HTMLElement>('.redact-surface--whiteout'));
     const surfaceColor = () => required(surfaces()[0], 'whiteout surface').style.backgroundColor;
-    const autoPressed = () => query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-auto]').getAttribute('aria-pressed');
+    const autoPressed = () => query<HTMLElement>(container, '[data-editor-actions] [data-whiteout-color-auto]').getAttribute('aria-pressed');
     const announced = () => required(container.querySelector<HTMLElement>('.sr-only[aria-live="polite"]'), 'announcement region').textContent;
 
     async function selectBox(box: HTMLElement): Promise<void> {
@@ -307,7 +307,7 @@ describe('PdfRedactTool UI flow', () => {
       await act(async () => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true })); });
     }
     async function pressAuto(): Promise<void> {
-      const auto = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-auto]');
+      const auto = query<HTMLButtonElement>(container, '[data-editor-actions] [data-whiteout-color-auto]');
       await act(async () => { auto.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     }
     function mockPageCount(numPages: number) {
@@ -380,7 +380,7 @@ describe('PdfRedactTool UI flow', () => {
       canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 150, right: 300, bottom: 150, x: 0, y: 0, toJSON: () => {} });
       canvas.getContext = (() => ({ getImageData: () => ({ data: new Uint8ClampedArray([10, 20, 30, 255]) }) })) as never;
 
-      const eyedropper = query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      const eyedropper = query<HTMLButtonElement>(container, '[data-editor-actions] [data-whiteout-color-eyedropper]');
       await act(async () => { eyedropper.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       expect(eyedropper.getAttribute('aria-pressed')).toBe('true');
 
@@ -391,11 +391,11 @@ describe('PdfRedactTool UI flow', () => {
       expect(surfaceColor()).toBe(rgb('#0a141e'));
       expect(autoPressed()).toBe('false');
       expect(container.querySelector('[data-editor-actions]')).not.toBeNull();
-      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-whiteout-color-eyedropper]').getAttribute('aria-pressed')).toBe('false');
     });
 
     describe('two pipettes', () => {
-      const boxPipette = () => query<HTMLButtonElement>(container, '[data-editor-actions] [data-redact-color-eyedropper]');
+      const boxPipette = () => query<HTMLButtonElement>(container, '[data-editor-actions] [data-whiteout-color-eyedropper]');
       const brushPipette = () => query<HTMLButtonElement>(container, '[data-brush-controls] button[aria-label="Pick a colour from the page"]');
       const click = async (el: HTMLElement) => { await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); };
       const brushSwatch = () => query<HTMLElement>(container, '[aria-label="Whiteout colour"] button[aria-pressed="true"]').style.getPropertyValue('--swatch');
@@ -442,7 +442,7 @@ describe('PdfRedactTool UI flow', () => {
         await click(boxPipette());
         await pressAuto();
         expect(autoPressed()).toBe('true');
-        expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#0a141e"]')).not.toBeNull();
+        expect(query<HTMLElement>(container, '[data-editor-actions] [data-whiteout-color-recent="#0a141e"]')).not.toBeNull();
       });
     });
 
@@ -520,15 +520,15 @@ describe('PdfRedactTool UI flow', () => {
       rememberRecentWhiteoutColor('#abcdef', []);
       await drawWhiteoutAndSelect();
       expect(autoPressed()).toBe('true');
-      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#abcdef"]')).not.toBeNull();
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-whiteout-color-recent="#abcdef"]')).not.toBeNull();
     });
 
     it('RED-53: a pick merges another tab\'s stored colour and the toolbar shows both', async () => {
       await drawWhiteoutAndSelect();
       rememberRecentWhiteoutColor('#abcdef', []); // another tab writes after this one mounted
       await setSelectedBoxColor('#112233');
-      const tiles = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-actions] [data-redact-color-recent]'));
-      expect(tiles.map((t) => t.getAttribute('data-redact-color-recent'))).toEqual(['#112233', '#abcdef']);
+      const tiles = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-actions] [data-whiteout-color-recent]'));
+      expect(tiles.map((t) => t.getAttribute('data-whiteout-color-recent'))).toEqual(['#112233', '#abcdef']);
       expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
     });
 
@@ -541,7 +541,7 @@ describe('PdfRedactTool UI flow', () => {
       expect(boxes).toHaveLength(2);
       await selectBox(required(boxes[1], 'second box'));
       expect(autoPressed()).toBe('true');
-      expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#112233"]')).not.toBeNull();
+      expect(query<HTMLElement>(container, '[data-editor-actions] [data-whiteout-color-recent="#112233"]')).not.toBeNull();
     });
   });
 

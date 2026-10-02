@@ -199,9 +199,10 @@ export interface SignatureElement extends ElementBase, BoxGeometry {
   aspectRatio?: number;
 }
 
-/** An opaque fill box that covers underlying content (Redact reuses this). */
+/** Where a whiteout's colour comes from: 'auto' follows the page around the box, 'custom' keeps the chosen colour; absent means custom. */
 export type ColorMode = 'auto' | 'custom';
 
+/** An opaque fill box that covers underlying content (Redact reuses this). */
 export interface WhiteoutElement extends ElementBase, BoxGeometry {
   type: 'whiteout';
   /** 'auto' follows the page colour around the box; absent or 'custom' keeps the chosen colour. */
