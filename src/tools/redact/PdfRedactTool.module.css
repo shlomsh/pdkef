@@ -207,12 +207,19 @@
 }
 
 /* The Peek button is held down: a long press on a phone must not select its
-   label or open the callout. */
-.peek-button {
+   label or open the callout. iOS starts the selection on the label span and
+   icon, not on the button, so the rule covers the descendants explicitly;
+   touch-action none keeps a press from being taken over as a pan. */
+.peek-button,
+.peek-button * {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: manipulation;
+}
+
+.peek-button {
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .redact-surface-host {
