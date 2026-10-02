@@ -689,7 +689,7 @@ const hebrewCompressMessages: CompressMessages = {
   levelHighTag: 'הגודל הקטן ביותר',
   levelHighDesc: 'הקובץ הקטן ביותר. תמונות וסריקות מוקטנות הכי הרבה.',
   levelHighPros: 'החיסכון הגדול ביותר בסריקות ובקבצים עם הרבה תמונות',
-  levelHighCons: 'תמונות וסריקות נראות רכות בהגדלה',
+  levelHighCons: 'תמונות וסריקות נראות מטושטשות בהגדלה',
   levelMediumName: 'מומלץ',
   levelMediumTag: 'איכות טובה',
   levelMediumDesc: 'איזון טוב בין גודל לחדות ברוב המסמכים.',
