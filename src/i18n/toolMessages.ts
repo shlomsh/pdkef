@@ -537,6 +537,8 @@ export interface CompressMessages {
   compareHide: string;
   compareRendering: string;
   compareRenderFailed: string;
+  compareFullscreenLabel: string;
+  compareCloseLabel: string;
   compareBeforeLabel: string;
   compareAfterLabel: string;
   compareCaptionImage: string;
@@ -644,6 +646,8 @@ const englishCompressMessages: CompressMessages = {
   compareHide: 'Hide comparison',
   compareRendering: 'Rendering page 1 for comparison…',
   compareRenderFailed: "Couldn't render a preview for this file.",
+  compareFullscreenLabel: 'Full screen',
+  compareCloseLabel: 'Close',
   compareBeforeLabel: 'Original',
   compareAfterLabel: 'Compressed',
   compareCaptionImage: 'Drag to compare the original and the compressed image.',
@@ -768,6 +772,8 @@ const hebrewCompressMessages: CompressMessages = {
   compareHide: 'הסתרת ההשוואה',
   compareRendering: 'מעבדים את עמוד 1 להשוואה…',
   compareRenderFailed: 'לא הצלחנו להציג תצוגה מקדימה לקובץ הזה.',
+  compareFullscreenLabel: 'מסך מלא',
+  compareCloseLabel: 'סגירה',
   compareBeforeLabel: 'מקור',
   compareAfterLabel: 'מכווץ',
   compareCaptionImage: 'גררו כדי להשוות בין התמונה המקורית לתמונה המכווצת.',

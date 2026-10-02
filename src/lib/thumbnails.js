@@ -229,8 +229,8 @@ export function renderDraftPreview(file) {
  */
 export const COMPARE_PREVIEW_WIDTH = 900;
 
-export function renderComparePreview(fileOrBlob) {
-  return renderThumbnail(fileOrBlob, { width: COMPARE_PREVIEW_WIDTH, type: 'image/png' });
+export function renderComparePreview(fileOrBlob, width = COMPARE_PREVIEW_WIDTH) {
+  return renderThumbnail(fileOrBlob, { width, type: 'image/png' });
 }
 
 /**

@@ -90,4 +90,41 @@ test.describe('compress tool - before/after preview', () => {
     await page.mouse.up();
     await expect(handle).toHaveAttribute('aria-valuenow', /^(?!50$)\d+$/);
   });
+
+  test.describe('on a desktop viewport', () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test('the inline slider is wide enough to compare, and Full screen opens a wider one that Escape closes', async ({ page }) => {
+      await page.goto('/compress/');
+      await page.locator('astro-island[client="load"]:not([ssr])').first().waitFor();
+
+      const fileChooserPromise = page.waitForEvent('filechooser');
+      await page.getByText('Choose file', { exact: true }).click();
+      const fileChooser = await fileChooserPromise;
+      await fileChooser.setFiles({
+        name: 'compare-wide-fixture.pdf',
+        mimeType: 'application/pdf',
+        buffer: await makeMultiPagePdfBuffer(),
+      });
+
+      await page.getByRole('button', { name: 'Compress PDF' }).click();
+      await expect(page.getByText('PDF Successfully Compressed!')).toBeVisible({ timeout: 20_000 });
+
+      const inline = page.locator('[class*="compare-slider"]').first();
+      await expect(inline).toBeVisible({ timeout: 15_000 });
+      const inlineBox = await inline.boundingBox();
+      expect(inlineBox.width).toBeGreaterThan(700);
+
+      await page.getByRole('button', { name: 'Full screen' }).click();
+      const dialog = page.locator('dialog[open]', { has: page.locator('[role="slider"]') });
+      await expect(dialog).toBeVisible();
+      const slider = dialog.locator('[class*="compare-slider"]');
+      await expect(slider).toBeVisible({ timeout: 15_000 });
+      const fullBox = await slider.boundingBox();
+      expect(fullBox.width).toBeGreaterThan(1300);
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+    });
+  });
 });
