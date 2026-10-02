@@ -128,7 +128,10 @@ export default function RedactBox({
       // correction below follows the resolved `placement` instead of being
       // fixed to "up".
       offset(0),
-      flip({ fallbackPlacements: ['bottom'], padding: BOX_TOOLBAR_GAP }),
+      // Padding is vertical only: it reserves room for the CSS gap above/below.
+      // A bare number would apply to left/right too, flipping a wide box near
+      // the window's side edge to 'bottom' for no vertical reason.
+      flip({ fallbackPlacements: ['bottom'], padding: { top: BOX_TOOLBAR_GAP, bottom: BOX_TOOLBAR_GAP } }),
       shift({ padding: TOOLBAR_FLOATING_OFFSET }),
       // MOBI-17: the missing containment check - see DraggableWrapper.tsx's
       // own comment beside its `visualViewportClamp` call, and

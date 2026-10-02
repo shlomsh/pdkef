@@ -434,6 +434,12 @@ describe('PdfRedactTool UI flow', () => {
         await pick(canvas);
         expect(surfaceColor()).toBe(boxColor);
         expect(brushSwatch()).not.toBe(before);
+        // RED-53: the brush pick is remembered and offered as a recent tile on an auto whiteout.
+        expect(getRecentWhiteoutColors()).toEqual(['#0a141e']);
+        await click(boxPipette());
+        await pressAuto();
+        expect(autoPressed()).toBe('true');
+        expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#0a141e"]')).not.toBeNull();
       });
     });
 
@@ -512,6 +518,15 @@ describe('PdfRedactTool UI flow', () => {
       await drawWhiteoutAndSelect();
       expect(autoPressed()).toBe('true');
       expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#abcdef"]')).not.toBeNull();
+    });
+
+    it('RED-53: a pick lands on top of the stored list and the toolbar shows both', async () => {
+      rememberRecentWhiteoutColor('#abcdef', []);
+      await drawWhiteoutAndSelect();
+      await setSelectedBoxColor('#112233');
+      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
+      const tiles = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-actions] [data-redact-color-recent]'));
+      expect(tiles.map((t) => t.getAttribute('data-redact-color-recent'))).toEqual(['#112233', '#abcdef']);
     });
 
     it('RED-53: a pick on one box is offered as a recent colour on another auto box', async () => {
