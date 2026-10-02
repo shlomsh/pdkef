@@ -1,34 +1,22 @@
 ---
 id: "ENC-09"
-title: "The daily read counts protected files as a funnel, not as failures"
+title: "Edit Pages stops writing blank pages from a protected PDF and can take a file back"
 status: "open"
-priority: "P2"
+priority: "P1"
 epic: "robustness"
 horizon: "next"
-order: 8
-depends_on: ["ENC-02"]
+order: 4
+depends_on: ["ENC-01", "ENC-02"]
 ---
 
-# ENC-09 · The daily read counts protected files as a funnel, not as failures
+# ENC-09 · Edit Pages stops writing blank pages from a protected PDF and can take a file back
 
-*Plan section 6.* `failed` carries no reason, so today 11 Redact failures cannot be told from the
-encrypted case (one report per fingerprint, deduplicated per page load). With the gate, a protected file
-never reaches `failed`; this ticket makes that visible.
+*Plan section 4, run.* `editPages` (`editPages.js:25`) loads with `ignoreEncryption: true` and writes blank pages for both kinds of protected file. `getPageCount()` works on a protected file (`PdfEditPagesTool.tsx:118`), and thumbnails come from pdf.js, which decrypts an owner-only file, so the editor looks normal right up to the empty download.
 
 ## Brief
-- Two anonymous events, no new fields: `tool_needed_unlock` (the gate showed, once per file) and
-  `tool_returned_unlocked` (a file came back from Unlock; fired on a hand-off carrying the return marker).
-  Add to `TOOL_LIFECYCLE_EVENTS` after `tool_operation_failed`; wire the emits from `NeedsUnlock` and from
-  the receivers.
-- `scripts/errors-read.mjs`: `sumUsage` hardcodes four columns and skips an unlisted event silently; add
-  the two columns and `ready / (accepted - needed unlock)` beside `ready/accepted`, labelled.
-- Update `usageEventSchema.test.ts` (4 events and 44 combinations become 6 and 66), the docs that say "four
-  lifecycle events" (`ANALYTICS.md`, `docs/maintenance-telemetry.md`), Redact's `lifecycleSpy` expectations.
-- The definitions in the plan go into the digest output and into the scheduled-task prompt
-  (`~/.claude/scheduled-tasks/pdkef-daily-error-read/SKILL.md`, outside the repo; Shlomi owns it, see open
-  decision 6).
+- Probe in `handleFilesAdded` before the pdf-lib load and show `NeedsUnlock`.
+- Refuse in `editPages` when `doc.isEncrypted`, so a future intake path cannot reach a blank save.
+- Add a hand-off receiver (`useHandoffIntake` with the Edit Pages key from the ENC-02 map): the tool has none, so "Continue in Edit Pages" would have nowhere to land.
 
 ## Acceptance
-- `src/site-lib/functionImports.test.js` still passes (the schema stays import-free).
-- A digest run prints the new columns; an `EncryptedPDFError` report is described in the prompt as a gate
-  miss, not noise.
+- Unit: `editPages` cannot return a file for an encrypted input. Island tests: both kinds reach the state; a handed-off file opens.

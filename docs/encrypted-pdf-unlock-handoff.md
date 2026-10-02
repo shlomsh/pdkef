@@ -1,6 +1,6 @@
 # A protected PDF is a precondition: the Unlock round trip
 
-Design record and plan, written 2026-10-02. No code yet. Tickets: ENC-01 to ENC-11 (see
+Design record and plan, written 2026-10-02. No code yet. Tickets: ENC-01 to ENC-18 (see
 [the slicing](#7-slicing)). Idea: Shlomi. Evidence: production telemetry for 2026-10-01 and 10-02, plus
 runs against real encrypted fixtures made for this plan (marked **run**; everything else is **read**
 from the code, and anything neither is marked **inferred**).
@@ -15,8 +15,8 @@ action, **Unlock it**. That action parks the file in the existing one-shot hand-
 original name. Nothing leaves the device and nothing new is stored. The protected file is never added to
 recents, so there is no "pair" to reconcile: the unlocked file is simply a new file. Unlock learns to
 open an owner-password-only file without asking for a password (today it cannot). The same detector and
-the same component serve every tool that cannot read a protected file; Redact goes first, but Split and
-Edit Pages come ahead of the rest, because they are worse than Redact (section 4).
+the same component serve every tool that cannot read a protected file; Redact goes first, with Split, because
+Split and Edit Pages are worse than Redact (section 4).
 
 ## 1. What the evidence actually says
 
@@ -35,8 +35,8 @@ starts working. Then two `PDFDocument.load` calls without `ignoreEncryption` thr
   before pdf.js has even finished. It is swallowed, so Delete mode quietly has no targets.
 - `export`: `redactPdf` loads at `src/editor/adapters/pdf/redact.js:200` (or `deleteObjectsFromPdf` at
   `deleteObjects.js:36` when Delete marks exist), reached from `handleSavePdf`
-  (`PdfRedactTool.tsx:790-859`). The catch reports, counts `tool_operation_failed`, and says "Could not
-  export the PDF. Your edits are still here. Try again." (`:851`), which can never succeed.
+  (`PdfRedactTool.tsx:790-852`). The catch reports, counts `tool_operation_failed`, and says "Could not
+  export the PDF. Your edits are still here. Try again." (`:849`), which can never succeed.
 
 This matches the telemetry: `list_objects` under 10 seconds from a fresh load, `export` after minutes.
 That the two reported files were owner-only is **inferred**; the code path and the fixtures agree, the
@@ -93,14 +93,14 @@ pixels preserved, restrictions gone) and the wrong *question*, at 2 seconds a fi
 **Owner-only versus password-needed matters for the copy and for Unlock, not for the routing.** Both go
 to Unlock. A needs the password field; B does not need one at all. Today Unlock cannot open B: it detects
 "encrypted", shows the password field, disables the button while the field is empty
-(`PdfSecurityTool.tsx:179`), and any non-empty guess fails with "The password may be incorrect". The
+(`PdfSecurityTool.tsx:183`, and `handleSubmit` returns early at `:93`), and any non-empty guess fails with "The password may be incorrect". The
 underlying `unlockPdf(file, '')` works (run); only the form blocks it. That is a bug independent of this
 plan, and ENC-03 fixes it.
 
 One more finding, because it changes the detector's job: pdf.js and pdf-lib disagree about files whose
 Info dictionary is encrypted (pypdf, and in practice most encryptors, encrypt it). Merge's `inspectPdf`
 calls `getCreationDate()` outside its try and throws on the garbled string, so such a file shows as
-"unreadable" instead of "protected" (run, 3 of 4 variants; `merge.js:~88`, `PdfMergeTool.tsx:638`).
+"unreadable" instead of "protected" (run, 3 of 4 variants; `merge.js:75`, `PdfMergeTool.tsx:638`).
 
 ## 3. The round trip (question 3)
 
@@ -115,7 +115,7 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
   a saved draft; Compress and Split through `useHandoffIntake`. Unlock has no receiver.
 - Redact's locked-PDF error already links to `/unlock/` with a plain `<a>` that carries no file
   (`PdfRedactTool.tsx:1217-1221`). Merge does the same (`PdfMergeTool.tsx:1414-1427`).
-- Unlock's done state is Download and Share only (`PdfSecurityTool.tsx:199-212`); it names its output
+- Unlock's done state is Download and Share only (`PdfSecurityTool.tsx:197-210`); it names its output
   `<name>_unlocked.pdf`.
 - `useNavigatingAway` is required for any control disabled by a navigation it starts
   (`src/lib/useNavigatingAway.ts`, enforced by `npm run test:navigating-away`; e2e guard
@@ -143,7 +143,7 @@ open-redirect risk added.
 D is the real alternative and deserves its own sentence: it is cheaper to build, has no bfcache or
 reload problem, handles a wrong password inline, and needs no Playwright round trip. It is not what was
 asked for, and it duplicates a password prompt that Unlock already owns. It is kept swappable on purpose:
-the detector (ENC-01), the gate component's frame (ENC-02) and the telemetry (ENC-09) are the same under
+the detector (ENC-01), the gate component's frame (ENC-02) and the telemetry (ENC-14) are the same under
 either; only the component's action changes. See open decision 1.
 
 ### Behaviour, case by case (recommended design)
@@ -151,7 +151,7 @@ either; only the component's action changes. See open decision 1.
 - **The file never leaves the device.** Same IndexedDB record, same origin, same 5-minute life, read and
   deleted on arrival. No new `connect-src`, no URL carries a name or a byte.
 - **Identity across the unlock (the pair question).** The protected file is never stored: Redact and Sign
-  call `cacheRecentFile` only after pdf.js accepts a file (`PdfRedactTool.tsx:466-470`), and the gate
+  call `cacheRecentFile` only after pdf.js accepts a file (`PdfRedactTool.tsx:460-464`), and the gate
   runs before that. So the protected hash H1 has no entry, no per-tool work and no pointer; the unlocked
   bytes H2 arrive as a brand-new file and get a fresh entry, as any hand-off does. There is nothing to
   link, and nothing to lose. One exception is real: an owner-only file that an earlier build already
@@ -172,7 +172,7 @@ either; only the component's action changes. See open decision 1.
   memory only (it already holds app updates while a file is open, MEM-10).
 - **Wrong password.** Stays in Unlock, inline, field refocused (already built). ENC-03 stops it saying
   "the password may be incorrect" for a damaged file, which it does today because every load failure is
-  mapped to `WrongPasswordError` (`security.js:46-54`).
+  mapped to `WrongPasswordError` (`security.js:45-54`, and the wrong-password text is hard-coded at `PdfSecurityTool.tsx:193`).
 - **Returning with the unlocked file ready.** Unlock's done state gets one quiet verb with the tool's icon,
   "Continue in Redact", beside Download and Share, never in front of them (guidelines section 13). It
   calls `saveHandoff('redact', ...)` and navigates; Redact's existing `beforeRestore` receives it and the
@@ -191,31 +191,40 @@ render empty; "refuses" means an error shown.
 | Edit Pages | Page count works, thumbnails fail, export blank | **Silently blank output**; thumbnails render (pdf.js), so the editor looks normal | `handleFilesAdded`, via the intake probe |
 | Compress | pdf.js rejects at Compress, "may be password-protected" | Works (pdf.js render, output rebuilt from JPEGs, run: intact and unrestricted) | Intake probe. Also read: a file already under the target size is returned untouched at `compress.js:192-194`, so a small protected file "compresses" to itself |
 | PDF to Image | pdf.js rejects at Convert, generic copy | Works (renders) | None needed for B; A gets the gate |
-| Merge | Detects, per-file card, link to Unlock, the one complete handling today | Also refused as "encrypted" (`isEncrypted`) though pdf.js and `{password: ''}` handle it; some files show "unreadable" instead (Info dictionary) | Keeps its own per-file detection, swapped to the classifier (ENC-08) |
+| Merge | Detects, per-file card, link to Unlock, the one complete handling today | Also refused as "encrypted" (`isEncrypted`) though pdf.js and `{password: ''}` handle it; some files show "unreadable" instead (Info dictionary) | Keeps its own per-file detection, swapped to the classifier (ENC-12), plus a receiver (ENC-13) |
 | Image to PDF | n/a, PDFs are filtered out at intake | n/a | None |
 | Compress Image | Same component as Compress | same | as Compress |
 | Unlock / Protect | Works | Detected as encrypted but cannot be unlocked: empty password is unreachable | ENC-03 |
 
-So: **B is the dangerous case and A is the cosmetic one.** A never produces a wrong file (every tool
-either rejects it or, in Compress's small-file case, hands the input back); B produces blank files in
-two tools and a dead Save in two more.
+So: **B is the dangerous case and A is mostly cosmetic.** A is rejected by pdf.js everywhere except
+where a tool never opens it: Edit Pages writes a blank file from it too (page count works on a protected
+file, run), and Compress hands a small one back untouched. B produces blank files in two tools and a dead
+Save in two more.
 
 **Is there one shared mechanism?** Yes, in three small pieces, and the module rules allow it
-(`docs/module-boundaries.md`: a `lib` module and a `shell` module each need two consumers, and these have
-five or more):
+(`docs/module-boundaries.md` rule 9: a `lib` or `shell` module needs two consumers, with no allowlist, and
+these have five or more once wired):
 
 1. `src/lib/pdfEncryption.ts`: the classifier and probe (section 2).
 2. `src/lib/unlockHandoff.ts`: `sendToUnlock(tool, file)` and the return, thin wrappers over
-   `saveHandoff`, plus the closed list of tool slugs `from` may name.
+   `saveHandoff`, and one map from a registry slug (`src/data/tools.js`) to `{route, handoffKey}`. The map
+   is the closed list `from` may name, and it settles the cases where a slug and its receiver differ
+   (`compress-image` lives at `/compress-image/` and shares Compress's component; `edit-pdf` is the
+   `edit-pages` folder).
 3. `src/shell/NeedsUnlock.tsx`: the state, taking `kind` (`needs-password` | `owner-restricted`) and the
    tool, owning the `useNavigatingAway` flag and the failure line.
 
 Two intake seams, because files reach a tool two ways. Picks, drops and pastes go through
 `BasePdfTool.receiveFiles` (`BasePdfTool.tsx:216-230`), which is synchronous, so the probe belongs in each
-tool's `handleFilesAdded` (or one opt-in prop later; not worth it for five tools). Restores, hand-offs and
-Sign's `launchQueue` bypass it and call `loadPdf` directly, which is why Sign and Redact classify inside
-`loadPdf`. The gate must be a distinct `loadPdf` outcome: no `clearDraft`, no `cacheRecentFile`, no
-`list_objects`, no failure event.
+tool's `handleFilesAdded` (or one opt-in prop later; not worth it for five tools). Hand-offs into Split and
+Compress reach the same `handleFilesAdded` through `useHandoffIntake`, so that one probe covers them.
+Restores, hand-offs and Sign's `launchQueue` into Sign and Redact bypass it and call `loadPdf` directly,
+which is why those two classify inside `loadPdf`. The gate must be a distinct `loadPdf` outcome: no
+`clearDraft`, no `cacheRecentFile`, no `list_objects`, no failure event.
+
+**Every tool that offers "Unlock it" must be able to receive the file back.** Sign, Redact (`beforeRestore`),
+Split and Compress (`useHandoffIntake`) can today. Edit Pages and PDF to Image have no receiver, and Merge
+needs one that inserts into a set already open, so each ticket for those tools adds its receiver.
 
 ## 5. The precondition in the tool (question 2)
 
@@ -225,19 +234,23 @@ target tool's icon, so the verb is **Unlock it**, and "Choose another file" stay
 Draft copy, for Shlomi to read; ENC-02 checks every claim against the code. No em dashes.
 
 - needs-password, title: "This PDF has a password"
-  body: "Unlock opens it on your device and brings you straight back to Redact."
+  body: "Unlock opens it on your device. Then you can carry on in Redact."
   action: "Unlock it"
 - owner-restricted, title: "This PDF is protected"
   body: "It opens without a password, but Redact can't change it as it is. Unlock takes the protection off
-  on your device and brings you straight back."
+  on your device. Then you can carry on in Redact."
   action: "Unlock it"
 
 Notes on the copy. The body for owner-restricted claims only what was verified: pdf-lib refuses the file
 (run), and Unlock's empty-password path removes the protection (run). It does not say "restricted" or
-"can't be edited", because a file can carry an owner password with every permission allowed. The tool
-name is substituted, so Sign says "brings you straight back to Sign". On Unlock's side, arriving with a
-file from Redact in owner-only mode: no password field, one line ("No password needed. This takes the
-protection off."), one button, then the done state with "Continue in Redact".
+"can't be edited", because a file can carry an owner password with every permission allowed. It does not
+say "straight back" either: for a file that needs a password the person types it, presses Unlock, then
+presses "Continue in Redact", so the sentence promises only what is true. The tool name is substituted.
+On Unlock's side, arriving with a file from Redact in owner-only mode: no password field, one line ("No
+password needed. This takes the protection off."), one button, then the done state with "Continue in
+Redact". If the hand-off to Unlock fails, the line is a new shell string, for example "Couldn't open Unlock
+with this file. Open Unlock and choose it there." (Redact's existing "Download it instead" wording does not
+fit a protected file.)
 
 ## 6. Telemetry (question 5)
 
@@ -253,14 +266,18 @@ Two new events, both anonymous, both closed-list, no new fields:
 
 - `tool_needed_unlock` with `tool` = the tool that showed the gate. Fired once per file when the gate
   shows, not per render.
-- `tool_returned_unlocked` with `tool` = the tool that received the file back (fired on a hand-off that
-  carries the return marker, so it is not confused with an ordinary Merge to Sign hand-off).
+- `tool_returned_unlocked` with `tool` = the tool that received the file back. The hand-off record keeps
+  its three fields (`{fileName, fileType, fileBytes}`; a provenance field would need the service worker's
+  mirror of the schema to follow). The marker is instead `?unlocked=1` on the URL Unlock navigates to: the
+  receiving tool fires the event, then strips the parameter with `history.replaceState`, so a reload
+  does not count twice. The parameter carries nothing else, and an ordinary Merge to Sign hand-off never
+  has it.
 
 The funnel per tool is then needed, Unlock's own accepted and ready (already counted under `unlock`),
 returned. A person who abandons shows as needed with no returned.
 
 What the digest's definitions become, to go in `errors-read.mjs` output and in the scheduled-task prompt
-(that prompt lives in `~/.claude/scheduled-tasks/pdkef-daily-error-read/SKILL.md`, outside the repo; ENC-09
+(that prompt lives in `~/.claude/scheduled-tasks/pdkef-daily-error-read/SKILL.md`, outside the repo; ENC-15
 updates the wording and Shlomi owns the task):
 
 - **accepted**: a file is in the tool. Includes files that stopped at the gate.
@@ -275,28 +292,40 @@ updates the wording and Shlomi owns the task):
 
 ## 7. Slicing
 
-All in the `robustness` lane except ENC-04 (`redact`) and ENC-11 (`search-and-languages`), and nothing is
-`in_progress`. Each is one narrow
-brief for one Sonnet subagent: named files, one `check:fast`. The shape of the contracts is written first
-(ENC-01 and ENC-02 define them); the rest run in parallel against them.
+Eighteen tickets, each one narrow brief for one Sonnet subagent: named files, one `check:fast`. All in the
+`robustness` lane except ENC-05 and ENC-06 (`redact`) and ENC-18 (`search-and-languages`). Nothing is
+`in_progress`.
 
-| Ticket | What | Depends on | Notes |
-| --- | --- | --- | --- |
-| ENC-01 | The classifier and the fixtures. `src/lib/pdfEncryption.ts`, unit tests, checked-in tiny fixtures (A and B, AES-256, one with an encrypted Info dictionary; generated once with pypdf, plus pdf-lib generated ones in tests) | none | P1. Fixes the missing-fixture gap |
-| ENC-02 | `src/shell/NeedsUnlock.tsx`, `src/lib/unlockHandoff.ts`, shell messages (English; Hebrew in ENC-11), jsdom tests including the navigating-away flag | ENC-01 | P1. Until ENC-03, the action may be a plain link, as Merge's is today |
-| ENC-03 | Unlock: receive the hand-off, owner-only opens with no password field, "Continue in <tool>", damaged versus wrong password | ENC-02 | P1. Fixes "cannot unlock an owner-only file" by itself |
-| ENC-04 | Redact: gate in `loadPdf` as an outcome (no `clearDraft`, no recent, no `list_objects`), the component in place of the editor, the export catch shows the gate on `EncryptedPDFError` as a belt | ENC-01, ENC-02 | P1, `redact` lane |
-| ENC-05 | Sign: same `loadPdf` outcome, replace the alert copy | ENC-04 | P2, small |
-| ENC-06 | Split and Edit Pages: probe at intake, show the gate, stop the blank outputs; fix Split's status-overwrite so a load failure is visible | ENC-01, ENC-02 | P1: data integrity, silent |
-| ENC-07 | Compress and PDF to Image: gate at intake; Compress's under-target early return no longer hands back a protected file | ENC-01, ENC-02 | P2 |
-| ENC-08 | Merge: classify with the classifier, fix the `getCreationDate` misclassification, accept an unlocked file back into the set | ENC-01, ENC-03 | P2. Needs a receiver Merge lacks; may split |
-| ENC-09 | Telemetry: the two events, digest columns, new definitions, the docs and the scheduled-task wording | ENC-02 | P2 |
-| ENC-10 | Tests across pages: `e2e/handoff/encrypted-roundtrip.spec.js` | ENC-03, ENC-04 | P1. See section 8 |
-| ENC-11 | Hebrew: shell strings for the gate; Redact and Unlock are not localized islands today | ENC-02 | P3, waits on open decision 5 |
+**Landing constraint.** `test:module-boundaries` rule 9 has no allowlist and `check:fast` runs it, so a
+`lib` or `shell` module with fewer than two consumers fails. ENC-01 and ENC-02 are written first, as the
+contract, but they land **together with ENC-05 and ENC-08**, their first consumers (Redact and Split), as
+one first landing. They are not pushed alone.
 
-Suggested waves: **1** ENC-01 and ENC-02 (the contract, one lead-written, reviewed). **2** ENC-03, ENC-04,
-ENC-06 in parallel, disjoint files. **3** ENC-05, ENC-07, ENC-09, then ENC-10 to close. ENC-06 is first in
-priority order if capacity is short, because it stops wrong files being written; the round trip can follow.
+| Ticket | What | Depends on |
+| --- | --- | --- |
+| ENC-01 | The classifier and the fixtures: `src/lib/pdfEncryption.ts`, unit tests, tiny checked-in fixtures (needs-password and owner-only in AES-256, each also with an encrypted Info dictionary, plain, truncated; made once with pypdf, with the script beside them) | none |
+| ENC-02 | `NeedsUnlock`, `unlockHandoff` with the slug map, shell strings in English and Hebrew (the shell catalogue type requires both), jsdom tests | ENC-01 |
+| ENC-03 | Unlock: receive a hand-off, owner-only opens with no password field, wrong password versus damaged file | ENC-02 |
+| ENC-04 | Unlock sends the file back: "Continue in <Tool>", original name, the `?unlocked=1` marker | ENC-03 |
+| ENC-05 | Redact: the gate as a `loadPdf` outcome, gating `list_objects` and the delete previews on an opened document, the state in place of the editor | ENC-01, ENC-02 |
+| ENC-06 | Redact: the export catch shows the state on `EncryptedPDFError` as a belt, and the rule text is updated | ENC-05 |
+| ENC-07 | Sign: the same outcome, replace the alert | ENC-05 |
+| ENC-08 | Split: gate in `loadDocumentAndThumbnails`, stop the blank output, fix the status overwrite | ENC-01, ENC-02 |
+| ENC-09 | Edit Pages: probe at intake, refuse to export a protected file, add a receiver | ENC-01, ENC-02 |
+| ENC-10 | Compress and Compress Image: gate at intake, the under-target early return | ENC-01, ENC-02 |
+| ENC-11 | PDF to Image: gate at intake, add a receiver | ENC-01, ENC-02 |
+| ENC-12 | Merge: classify with the classifier, fix the `getCreationDate` misclassification | ENC-01 |
+| ENC-13 | Merge: a receiver that puts the unlocked file back in its slot | ENC-04, ENC-12 |
+| ENC-14 | Telemetry: the two events, digest columns, the docs, the island-test expectations | ENC-02, ENC-04 |
+| ENC-15 | The digest's definitions and the scheduled-task prompt | ENC-14 |
+| ENC-16 | The round-trip Playwright spec | ENC-04, ENC-05 |
+| ENC-17 | The cross-tool intake table test | ENC-05, ENC-07 to ENC-11 |
+| ENC-18 | Hebrew read-through, the RTL check and a parity test for the shell catalogue | ENC-02 |
+
+Waves. **1** ENC-01, ENC-02, written as the contract by the lead and reviewed; they land with ENC-05 and
+ENC-08. **2** in parallel on disjoint files: ENC-03, ENC-09, ENC-10, ENC-11, ENC-12. **3** ENC-04, ENC-06,
+ENC-07, ENC-13, ENC-14. **4** ENC-15, ENC-16, ENC-17, ENC-18. If capacity is short, ENC-08 and ENC-09 are the
+first to protect, because they stop wrong files being written; the round trip can follow.
 
 ## 8. Tests (question 6)
 
@@ -308,11 +337,10 @@ priority order if capacity is short, because it stops wrong files being written;
   or start `useDeletableObjects`.
 - `NeedsUnlock` (jsdom): both kinds render, the action saves the hand-off then navigates, the busy flag is
   `useNavigatingAway`, a failed save shows the failure line.
-- Each island test (`PdfRedactTool.test.tsx` has the lifecycle spy): a protected file emits
-  `tool_needed_unlock` and never `tool_operation_failed`.
-- A cross-tool table test in `src/test/cross-tool/`: every tool's intake against A, B and plain, so a
-  tool that adds an intake path later cannot skip the gate. That is the test that would have caught
-  Split's blank output.
+- Each island test (`PdfRedactTool.test.tsx` has the lifecycle spy): a protected file never emits
+  `tool_operation_failed`. Once ENC-14 lands the same tests also assert `tool_needed_unlock`.
+- A cross-tool table test in `src/test/cross-tool/` (ENC-17): every tool's intake against A, B and plain,
+  so a tool that adds an intake path later cannot skip the gate; Merge joins it with ENC-12. It is the test that would have caught Split's blank output.
 
 **Playwright, only what jsdom cannot show:** the round trip across pages, which the module rules say lives
 in `e2e/handoff/`, not under a tool folder (rule 7). One spec: B in Redact, gate shown and no
@@ -322,7 +350,7 @@ then Back from Unlock (with the bfcache flags `back-navigation.spec.js` uses), a
 and reload-mid-way cases for A. The e2e that would have caught the original bug is the first step of that
 spec: a Redact run on an owner-only fixture. The reason it was never written is that no encrypted fixture
 existed, and the guidelines' section 14 already warns that a fixture meant to fail must be checked to
-really fail (a pdf-lib "encrypted" fixture once did not). ENC-01 owns that, which is why it comes first.
+really fail (a pdf-lib "encrypted" fixture once did not). ENC-01 owns that, which is why it comes first, and ENC-16 is the spec.
 
 ## 9. Open decisions for Shlomi
 
@@ -333,11 +361,11 @@ really fail (a pdf-lib "encrypted" fixture once did not). ENC-01 owns that, whic
    field. Unlock would then remove protection that someone set with an owner password, which it does for
    a password-needed file today. Say if you would rather the tools decline those files and never offer it.
 3. **Returned file keeps its original name** (recommended), or is named `<name>_unlocked.pdf`?
-4. **Merge** needs a way to accept the file back into a set that is already open. Do it in this epic
-   (ENC-08 as written) or leave Merge on its static link until later?
-5. **Hebrew.** Redact and Unlock are not localized islands, so the gate's strings reach `/he/` only
-   through the shell messages, and there is no `/he/redact/` page. Add the strings anyway (ENC-11), or
-   hold until the Hebrew programme says otherwise?
+4. **Merge** needs a receiver that accepts the file back into a set that is already open (ENC-13). Do it in
+   this epic, or leave Merge on its static link until later (ENC-12 still fixes the wrong "unreadable")?
+5. **Hebrew.** Redact and Unlock are not localized islands and there is no `/he/redact/` page, but the shell
+   catalogue type requires both languages, so ENC-02 adds Hebrew strings with the English ones. They are a
+   first draft for you to read (ENC-18). Hold ENC-18 if the Hebrew programme says no new surface.
 6. **The daily read.** The new definitions go in the scheduled-task prompt, which is yours. OK for me to
    edit it, or you do?
 7. **Cost accepted?** The probe adds one worker pass (about 40 ms on 42 MB) in tools that did not parse

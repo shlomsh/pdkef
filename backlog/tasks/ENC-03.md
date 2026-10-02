@@ -1,36 +1,22 @@
 ---
 id: "ENC-03"
-title: "Unlock opens an owner-only file with no password, takes a file from another tool, and sends it back"
+title: "Unlock opens an owner-only file with no password and takes a file from another tool"
 status: "open"
 priority: "P1"
 epic: "robustness"
 horizon: "next"
-order: 3
+order: 1
 depends_on: ["ENC-02"]
 ---
 
-# ENC-03 · Unlock opens an owner-only file with no password, takes a file from another tool, and sends it back
+# ENC-03 · Unlock opens an owner-only file with no password and takes a file from another tool
 
-*Plan section 2 and 3.* Unlock today cannot open a file that only has an owner password: it detects
-"encrypted", shows the password field, and the button is disabled while the field is empty
-(`PdfSecurityTool.tsx:179`), so no input works. `unlockPdf(file, '')` does (run: intact, text and pixels
-preserved, permissions gone). Unlock also has no receiver for a hand-off and no way back.
+*Plan sections 2 and 3.* Unlock today cannot open a file that only has an owner password: it detects "encrypted", shows the password field, the submit button is disabled while the field is empty (`PdfSecurityTool.tsx:183`) and `handleSubmit` returns early without one (`:93`), so no input works. `unlockPdf(file, '')` does (run: intact, text and pixels preserved, permissions gone).
 
 ## Brief
-
-- Classify with the ENC-01 classifier. `owner-restricted` runs the empty-password unlock straight away: no
-  password field, one line ("No password needed. This takes the protection off."), one button.
-- Receive a hand-off on mount (`useHandoffIntake('unlock', ...)`, which feeds the tool's own
-  `handleFilesAdded`; mind its `application/pdf` filter) and read `?from=` against the closed list.
-- Done state: the existing Download and Share, then, when `from` is set and valid, one quiet verb with that
-  tool's icon, "Continue in <Tool>", which calls `returnFromUnlock` with the original file name. Never in
-  front of Download. Without `from`, the done state is unchanged.
-- Stop saying "The password may be incorrect" for a damaged file: `unlockPdf` maps every load failure to
-  `WrongPasswordError` (`security.js:46-54`). Tell wrong password from damaged.
-- Output name stays `<name>_unlocked.pdf` for the standalone download.
+- Classify with the ENC-01 classifier. `owner-restricted` runs the empty-password unlock straight away: no password field, one line ("No password needed. This takes the protection off."), one button. Both the disabled button and the `handleSubmit` guard change.
+- Receive a hand-off on mount (`useHandoffIntake('unlock', ...)`, which feeds the tool's own `handleFilesAdded`; mind its `application/pdf` filter) and read `?from=` against the map from ENC-02.
+- Wrong password versus damaged: `unlockPdf` maps every load failure to `WrongPasswordError` (`security.js:45-54`) and the text is hard-coded at `PdfSecurityTool.tsx:193` ("The password may be incorrect."). Tell them apart and say the right thing for each. (`isPdfEncrypted` already turns an unparsable file into "could not be read"; this is the other path.)
 
 ## Acceptance
-- Unit: an owner-only fixture unlocks with no input; a needs-password fixture still needs the field; a
-  wrong password and a damaged file give different messages; `from=redact` shows "Continue in Redact",
-  `from=evil` shows nothing extra.
-- The returned file is byte-for-byte what Download would have given, and `getPermissions()` on it is `null`.
+- Unit: an owner-only fixture unlocks with no input; a needs-password fixture still shows the field; a wrong password and a damaged file give different messages; an unknown `from` is ignored.

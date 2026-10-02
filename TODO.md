@@ -6,11 +6,15 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Up next
 
+### Redact: finish removal
+
+- [ENC-05](backlog/tasks/ENC-05.md) P1 · Redact meets a protected PDF with one quiet state, not a dead Save
+
 ### Robustness and debt
 
 - [ENC-01](backlog/tasks/ENC-01.md) P1 · One classifier says whether a PDF needs a password, is only protected, or is open
 - [ENC-02](backlog/tasks/ENC-02.md) P1 · One quiet state with one action, shared by every tool that cannot read a protected PDF
-- [ENC-06](backlog/tasks/ENC-06.md) P1 · Split and Edit Pages stop writing blank pages from a protected PDF
+- [ENC-08](backlog/tasks/ENC-08.md) P1 · Split stops writing blank pages from a protected PDF, and shows when a file did not load
 - [DEBT-30](backlog/tasks/DEBT-30.md) P1 · Merge destroys its Sortable twice and throws, caught in production by the error loop (in progress)
 
 ## Waiting, by date
@@ -37,7 +41,8 @@ What is next across the board. Every lane, with its full order, is in [BACKLOG.m
 
 ## Needs Shlomi
 
-- [ENC-11](backlog/tasks/ENC-11.md) · A decision on whether to add Hebrew strings for tools that have no /he/ page
+- [ENC-18](backlog/tasks/ENC-18.md) · A read of the Hebrew gate strings, and whether Hebrew surfaces may grow now
+- [ENC-15](backlog/tasks/ENC-15.md) · Say whether I may edit the daily-read scheduled-task prompt, or you do
 - [MOBI-01](backlog/tasks/MOBI-01.md) · Half an hour with an Android phone
 - [SEO-39](backlog/tasks/SEO-39.md) · The Search Console exports
 - [DEBT-31](backlog/tasks/DEBT-31.md) · The privacy-page sentence for action names in error reports
