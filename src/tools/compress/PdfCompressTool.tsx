@@ -20,6 +20,7 @@ import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
+import { getPdfLib } from '../../lib/pdfLib.js';
 import { reportError } from '../../lib/errorReport.ts';
 import { recordAction } from '../../lib/actionTrail.ts';
 
@@ -100,6 +101,11 @@ export default function PdfCompressTool({
   // way to NeedsUnlock (src/shell/NeedsUnlock.tsx); every new pick clears it before the check runs again.
   const [needsUnlockBytes, setNeedsUnlockBytes] = useState<ArrayBuffer | null>(null);
   const encryptionCheck = useLatestRun();
+  // COMP-01: what the PDF is made of (images, text), read once it is added so the tool can say
+  // before any click that there is nothing to shrink. Never gates anything else.
+  const [analysis, setAnalysis] = useState<{ images: unknown[]; hasText: boolean } | null>(null);
+  const analysisTokenRef = useRef(0);
+  const [rasterBytes, setRasterBytes] = useState<number | null>(null);
   const { shareReady, prepareFiles, clearPrepared, sharePrepared } = usePdfShare();
 
   const kind = deriveFileKind(file);
@@ -174,6 +180,7 @@ export default function PdfCompressTool({
     setCompareStatus('idle');
     setPassthrough(false);
     setUnchanged(false);
+    setRasterBytes(null);
   };
 
   // Builds the before/after pair for the CompareSlider. PDF: renders page 1
@@ -271,7 +278,36 @@ export default function PdfCompressTool({
       recordAction('add_files');
       setNeedsUnlockBytes(null);
       encryptionCheck.invalidate();
-      if (deriveFileKind(next) === 'pdf') void checkEncryption(next);
+      analysisTokenRef.current += 1;
+      setAnalysis(null);
+      if (deriveFileKind(next) === 'pdf') {
+        void checkEncryption(next);
+        void analyze(next);
+      }
+    }
+  };
+
+  // Reads the PDF's make-up for the "nothing to shrink" note. A newer file wins: a stale result is dropped.
+  const analyze = async (pdf: File) => {
+    const token = analysisTokenRef.current;
+    let doc;
+    let totalBytes = 0;
+    try {
+      const bytes = await pdf.arrayBuffer();
+      const { PDFDocument } = await getPdfLib();
+      totalBytes = bytes.byteLength;
+      doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    } catch {
+      // expected: a PDF pdf-lib can't parse just gets no analysis note
+      return;
+    }
+    try {
+      // Dynamic: analyzePdf.js pulls in pdf-lib, which must not ride in the first download (DEBT-20).
+      const { analyzePdf } = await import('./analyzePdf.js');
+      const result = analyzePdf(doc, { totalBytes });
+      if (token === analysisTokenRef.current) setAnalysis(result);
+    } catch (err) {
+      reportError('pdf_tool_run', err, 'analyze_pdf');
     }
   };
 
@@ -369,6 +405,7 @@ export default function PdfCompressTool({
 
       let compressedBlob: Blob;
       let didMeetTarget = true;
+      let resultRasterBytes: number | null = null;
 
       if (level === 'target') {
         const result = await compressPdfToTarget(activeFile, {
@@ -377,11 +414,14 @@ export default function PdfCompressTool({
         });
         compressedBlob = result.blob;
         didMeetTarget = result.metTarget;
+        resultRasterBytes = result.rasterBytes;
       } else {
-        compressedBlob = await compressPdf(activeFile, {
+        const result = await compressPdf(activeFile, {
           level,
           onProgress: setProgress,
         });
+        compressedBlob = result.blob;
+        resultRasterBytes = result.rasterBytes;
       }
 
       if (runToken !== runTokenRef.current) return;
@@ -389,6 +429,7 @@ export default function PdfCompressTool({
       const resultType = compressedBlob.type || 'application/pdf';
 
       setCompressedSize(compressedBlob.size);
+      setRasterBytes(resultRasterBytes);
       setMetTarget(didMeetTarget);
       setOutputType(resultType);
       // compressPdfToTarget's passthrough rule returns the input File itself
@@ -465,6 +506,14 @@ export default function PdfCompressTool({
         ? formatMessage(t.downloadDetailSmaller, { size: formatBytes(compressedSize), percent: savingsPercent })
         : formatBytes(compressedSize);
 
+  const unchangedNotice = unchanged && file
+    ? formatMessage(level === 'target' ? t.alreadySmallTargetNotice : t.alreadySmallNotice, {
+        raster: formatBytes(rasterBytes ?? 0),
+        original: formatBytes(file.size),
+        target: formatBytes(targetKB * 1024),
+      })
+    : '';
+
   const actionAndResults = (
     <>
       {/* Button anchor (SEO-25, 2026-09-12): one wrapper for the whole
@@ -527,13 +576,13 @@ export default function PdfCompressTool({
                 <span class={styles['metric-val']}>{formatBytes(file!.size)}</span>
               </div>
               <div class={styles['metric-item']}>
-                <span class={styles['metric-label']}>{t.compressedSize}</span>
-                <span class={styles['metric-val']}>{formatBytes(compressedSize as number)}</span>
+                <span class={styles['metric-label']}>{unchanged && rasterBytes != null ? t.asImagesSize : t.compressedSize}</span>
+                <span class={styles['metric-val']}>{formatBytes(unchanged && rasterBytes != null ? rasterBytes : (compressedSize as number))}</span>
               </div>
               <div class={styles['metric-item']}>
                 <span class={styles['metric-label']}>{t.spaceSaved}</span>
                 <span class={styles['metric-saving']}>
-                  {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : t.noReduction}
+                  {savingsPercent > 0 ? formatMessage(t.savedPercent, { percent: savingsPercent }) : unchanged ? t.keptOriginal : t.noReduction}
                 </span>
               </div>
               {kind === 'image' && dimensions && (
@@ -561,7 +610,7 @@ export default function PdfCompressTool({
             )}
 
             <p class={styles['compress-warning']}>
-              {unchanged ? t.alreadySmallNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
+              {unchanged ? unchangedNotice : passthrough ? t.passthroughNotice : kind === 'image' ? t.formatNotice : t.rasterizeNotice}
             </p>
 
             {/* Open by default as soon as a result exists (see openCompare
@@ -704,6 +753,12 @@ export default function PdfCompressTool({
             </div>
           </div>
         ) : (
+          <>
+          {kind === 'pdf' && !needsUnlockBytes && analysis && analysis.images.length === 0 && (
+            <p class={styles['compress-warning']} role="note">
+              <strong>{t.noImagesTitle}</strong> {analysis.hasText ? t.noImagesBodyText : t.noImagesBodyDrawing}
+            </p>
+          )}
           <div class={styles['compress-options']} role="radiogroup" aria-label={t.compressionOptionsLabel}>
             {COMPRESSION_LEVELS.map((opt) => (
               <div
@@ -825,6 +880,7 @@ export default function PdfCompressTool({
               )}
             </div>
           </div>
+          </>
         )}
 
         {actionAndResults}

@@ -82,16 +82,17 @@ describe('compressPdf library integration with real fixtures', () => {
 
   it('compresses num-5.pdf with medium preset and preserves 5 pages', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const compressedBlob = await compressPdf(file, { level: 'medium' });
+    const { blob: compressedBlob, rasterBytes } = await compressPdf(file, { level: 'medium' });
 
     expect(compressedBlob).toBeInstanceOf(Blob);
+    expect(rasterBytes).toBeGreaterThan(0);
     const pageCount = await getPdfPageCount(compressedBlob);
     expect(pageCount).toBe(5);
   });
 
   it('compresses num-5.pdf with high preset and preserves 5 pages', async () => {
     const file = getFixtureFile('num-5.pdf');
-    const compressedBlob = await compressPdf(file, { level: 'high' });
+    const { blob: compressedBlob } = await compressPdf(file, { level: 'high' });
 
     expect(compressedBlob).toBeInstanceOf(Blob);
     const pageCount = await getPdfPageCount(compressedBlob);
@@ -108,10 +109,13 @@ describe('compressPdf library integration with real fixtures', () => {
       callback(new Blob([jpeg, new Uint8Array(file.size * 2)], { type: type || 'image/jpeg' }));
     };
     try {
-      expect(await compressPdf(file, { level: 'medium' })).toBe(file);
+      const levelResult = await compressPdf(file, { level: 'medium' });
+      expect(levelResult.blob).toBe(file);
+      expect(levelResult.rasterBytes).toBeGreaterThan(file.size);
       const result = await compressPdfToTarget(file, { targetKB: 1 });
       expect(result.blob).toBe(file);
       expect(result.metTarget).toBe(false);
+      expect(result.rasterBytes).toBeGreaterThan(file.size);
     } finally {
       HTMLCanvasElement.prototype.toBlob = toBlob;
     }
@@ -123,8 +127,17 @@ describe('compressPdf library integration with real fixtures', () => {
     const result = await compressPdfToTarget(file, { targetKB: 1 });
 
     expect(result.blob).toBeInstanceOf(Blob);
+    expect(result.rasterBytes).toBeGreaterThan(0);
     const pageCount = await getPdfPageCount(result.blob);
     expect(pageCount).toBe(5);
+  });
+
+  it('reports no raster size when the file is already under the target', async () => {
+    const file = getFixtureFile('num-5.pdf');
+    const result = await compressPdfToTarget(file, { targetKB: 100000 });
+    expect(result.blob).toBe(file);
+    expect(result.metTarget).toBe(true);
+    expect(result.rasterBytes).toBeNull();
   });
 });
 
