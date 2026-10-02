@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 2 up next, 9 then, 20 waiting, 14 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 9 then, 20 waiting, 14 parked.
 
 ## Redact: finish removal
 
@@ -55,7 +55,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | ID | P | Task | Note |
 | --- | --- | --- | --- |
 | DEBT-34 | P1 | [DEBT-34](backlog/tasks/DEBT-34.md) · Unlock throws ReferenceError in the browser: our pdf-lib patch calls Node's Buffer | In progress |
-| DEBT-38 | P3 | [DEBT-38](backlog/tasks/DEBT-38.md) · A browser too old for pdf.js is told so once it adds a file | In progress |
 
 ### Then, in order
 
@@ -145,7 +144,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 13 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 27 done, 3 retired
+- Robustness and debt: 28 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

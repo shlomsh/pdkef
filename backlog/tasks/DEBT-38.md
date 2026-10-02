@@ -1,10 +1,9 @@
 ---
 id: "DEBT-38"
 title: "A browser too old for pdf.js is told so once it adds a file"
-status: "in_progress"
+status: "done"
 priority: "P3"
 epic: "robustness"
-horizon: "now"
 depends_on: []
 ---
 
@@ -25,8 +24,8 @@ is added. The page itself is never blocked.
 
 - [x] The judgement is pure and unit-tested.
 - [x] The notice is absent on the empty page and in a current browser, and present once a file is added.
-- [ ] The floors are checked against compatibility data (they were written from memory).
-- [ ] The Hebrew text is read by Shlomi.
+- [x] The floors match MDN browser-compat-data for the global `Iterator` constructor (Chrome and Edge 122, Firefox 131, Safari and iOS 18.4), checked 2026-10-02.
+- [x] The Hebrew text is read by Shlomi ("קבצי", corrected).
 
 ## Not checked
 
