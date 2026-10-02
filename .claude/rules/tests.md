@@ -18,6 +18,15 @@ Each tool's own tests live under `src/tools/<tool>/` and load that tool's own ru
 about the environments and scope those tests run in, and what a browser assertion can rely on across
 platforms, not their content.
 
+## Fixes are test-first
+
+A bug or a review finding starts as a failing test: reproduce it, run it and read the failure (it must
+fail for the stated reason), then change the code until it passes. A subagent's brief for a fix orders
+it the same way (test, red run, fix, green run) and asks for the red output in its report. Mutating the
+fix to watch the test go red is a backstop, not the method. RED-53's reviews found tests that could not
+fail (storage seeded before mount, a default compared with itself, a zoom fixed at 1), all written after
+the fix.
+
 ## Test environments and E2E scope
 
 Unit tests run under `node` (no jsdom) unless they match `DOM_TESTS` in `vitest.config.js`: any
