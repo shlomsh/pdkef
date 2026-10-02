@@ -275,6 +275,12 @@ the tool pages in the sitemap (seven commits on 2026-09-28 left eleven pages on 
 that moves without the page changing is one Google learns to ignore. A tool is now dated by the history of
 its own entry (`gitToolEntryLastModifiedIso`). Not the cause of the uncrawled 15.
 
-For the 2026-10-08 read: the Not-indexed category label for these URLs, and Search Console Settings ->
-Crawl stats -> By URL, which shows whether Googlebot requested any of the 15 at all. No new URLs until one
-of the 15 is crawled.
+**Confirmed the same evening with URL Inspection on `/edit-pdf/` (Shlomi's screenshots):** the category is
+"Discovered - currently not indexed", discovered through `sitemap.xml` with `/` as the referring page, and
+every crawl field is N/A. "Test live URL" (Google Inspection Tool, smartphone, 6:57 PM) says "URL is
+available to Google": crawl allowed, page fetch successful, indexing allowed, user-declared canonical
+`https://pdkef.com/edit-pdf/`. Google can fetch and index the page and has not chosen to, which is crawl
+priority, not a fault we can fix in the page. Inspection only, no indexing request made.
+
+For the 2026-10-08 read: Search Console Settings -> Crawl stats -> By URL, which shows whether Googlebot
+requested any of the 15 at all. No new URLs until one of the 15 is crawled.
