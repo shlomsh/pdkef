@@ -1,10 +1,9 @@
 ---
 id: "RED-53"
 title: "Redact's box toolbar is one calm row: blur on a single line, Duplicate labelled, a clear gap above the box"
-status: "in_progress"
+status: "done"
 priority: "P2"
 epic: "redact"
-horizon: "now"
 depends_on: []
 ---
 
@@ -64,3 +63,19 @@ away.
   style), recorded at deliberate picks only: the box picker, either eyedropper, a recent tap. Never an
   automatic sample, and never the brush's colour menu, which fires on every drag step.
 - The desktop pill sits 16px above the box (`BOX_TOOLBAR_GAP`), not the shared 8px.
+- Recent colours: when storage is readable and the write lands, storage is the truth (another tab's picks
+  merge in, a cleared record stays cleared, a corrupt record is rewritten); otherwise this tab's memory is.
+  Two rare cases are accepted rather than solved with timestamps: a pick made while writes fail is
+  dropped if a later write succeeds, and a record from a future schema version would be overwritten.
+
+## Result
+
+Shipped as decided above. Measured in Chromium at 1280 and WebKit at 375, 390 and 402px: every bar is one
+58px row with its controls on one centre line, the pill sits 16px above the box, and a whiteout with three
+recent colours wraps its two groups on a phone. With a mouse at 390, 560, 700, 820 and 1024px the pill
+stays inside the window with every control hittable (icons only under 768px, two rows at 390). Live
+preview, one undo step per pick, recents and the double-click reset were checked in the browser through
+the same events the native picker sends; the picker window itself cannot be driven by automation. A fresh
+review found a pick lost to a re-render mid-picker, recents that stopped growing without storage, and a
+clamp unaware of the 16px gap; all three are fixed and guarded. The shared colour picker, Sign's too, has
+the same compat pattern and is DEBT-33.
