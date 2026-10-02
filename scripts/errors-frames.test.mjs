@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { frameLabel, labelStack, staleVerdict, sampleLines } from './errors-frames.mjs';
+import { frameLabel, labelStack, sampleLines, sourceMap, staleVerdict } from './errors-frames.mjs';
 
 describe('frameLabel', () => {
   it.each([
@@ -25,6 +25,43 @@ describe('frameLabel', () => {
     expect(frameLabel('garbage')).toEqual({ module: null, vendor: false, label: 'garbage' });
     expect(frameLabel(undefined).vendor).toBe(false);
     expect(frameLabel(42).label).toBe('42');
+  });
+});
+
+describe('real chunk names from dist/_astro (a module with no source file under src/ is a library)', () => {
+  const sources = sourceMap([
+    'src/tools/merge/PdfMergeTool.tsx', 'src/editor/adapters/pdf/sign.js', 'src/layouts/BaseLayout.astro',
+    'src/tools/merge/FileList.module.css', 'src/pages/sign.astro', 'scripts/foo.mjs',
+  ].join('\n'));
+  it.each([
+    ['jsxRuntime.module.CvYDfTTB.js:1:5', 'preact (vendor)'],
+    ['preact.module.AbCdEfGh.js:1:5', 'preact (vendor)'],
+    ['signals.module.AbCdEfGh.js:1:5', 'preact (vendor)'],
+    ['preload-helper.AbCdEfGh.js:1:5', 'preload-helper (library)'],
+    ['rolldown-runtime.AbCdEfGh.js:1:5', 'rolldown-runtime (library)'],
+    ['client.AbCdEfGh.js:1:5', 'client (library)'],
+    ['eraser.D_UjLgtD.js:1:5', 'eraser (library)'],
+    ['file-pen-line.Cmu9p6cV.js:1:5', 'file-pen-line (library)'],
+  ])('%s is not ours', (raw, label) => {
+    const r = frameLabel(raw, sources);
+    expect(r.vendor).toBe(true);
+    expect(r.label).toBe(label);
+  });
+  it.each([
+    ['PdfMergeTool.C4ILDZF-.js:2:1', 'PdfMergeTool'],
+    ['sign.BZwc3-wN.js:1:1', 'sign'],
+    ['FileList.module.AbCdEfGh.js:1:1', 'FileList.module'],
+    ['BaseLayout.astro_astro_type_script_index_0_lang.DQ8nrrZb.js:1:1', 'BaseLayout.astro_astro_type_script_index_0_lang'],
+  ])('%s is ours', (raw, module) => {
+    expect(frameLabel(raw, sources)).toMatchObject({ module, vendor: false, label: module });
+  });
+  it('a stack of preact internals above our component names the component, not jsxRuntime', () => {
+    const r = labelStack(['jsxRuntime.module.CvYDfTTB.js:1:5', 'hooks.module.BlcUXMq4.js:1:9', 'PdfSignTool.XXXXXXXX.js:2:3'], sourceMap('src/tools/sign/PdfSignTool.tsx'));
+    expect(r.firstOurs).toEqual({ index: 2, module: 'PdfSignTool' });
+  });
+  it('without a file list it falls back to the vendor table alone', () => {
+    expect(frameLabel('eraser.D_UjLgtD.js:1:5')).toMatchObject({ vendor: false });
+    expect(frameLabel('jsxRuntime.module.CvYDfTTB.js:1:5')).toMatchObject({ vendor: true });
   });
 });
 
@@ -72,8 +109,31 @@ describe('staleVerdict', () => {
   });
 
   it('says stale when the module changed after the build', () => {
-    const run = fake({ ...base, 'merge-base': new Error('exit 1') });
+    const run = fake({ ...base, 'merge-base': Object.assign(new Error('exit 1'), { status: 1 }) });
     expect(staleVerdict(args(run))).toBe('likely a stale tab: PdfMergeTool changed after build abc1234 (3 commits behind origin/main)');
+  });
+
+  it.each([
+    ['git failed (exit 128)', Object.assign(new Error('fatal'), { status: 128 })],
+    ['the 5s timeout killed it', Object.assign(new Error('ETIMEDOUT'), { code: 'ETIMEDOUT', status: null })],
+    ['an error with no status', new Error('x')],
+  ])('prints nothing, not a stale verdict, when merge-base fails for another reason: %s', (_why, err) => {
+    expect(staleVerdict(args(fake({ ...base, 'merge-base': err })))).toBeNull();
+  });
+
+  it('does not call a docs or page edit a change to the chunk of the same name', () => {
+    // sign.js is the editor adapter chunk `sign`; src/pages/sign.astro is the marketing page.
+    const seen = [];
+    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'src/editor/adapters/pdf/sign.js\nsrc/pages/sign.astro\nscripts/fixtures/x/sign.js\n' })(a); };
+    staleVerdict({ module: 'sign', build: BUILD, run });
+    expect(seen.find((a) => a[0] === 'log')).toEqual(['log', '-1', '--format=%H', 'origin/main', '--', 'src/editor/adapters/pdf/sign.js']);
+  });
+
+  it('finds the .astro file behind an astro script chunk', () => {
+    const seen = [];
+    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'src/layouts/BaseLayout.astro\n' })(a); };
+    staleVerdict({ module: 'BaseLayout.astro_astro_type_script_index_0_lang', build: BUILD, run });
+    expect(seen.find((a) => a[0] === 'log')).toContain('src/layouts/BaseLayout.astro');
   });
 
   it('prints nothing when no file matches', () => {
@@ -95,10 +155,10 @@ describe('staleVerdict', () => {
 
   it('passes every matching file to git log when two share a basename', () => {
     const seen = [];
-    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'a/PdfMergeTool.tsx\nb/PdfMergeTool.js\nc/PdfMergeTool.css\n' })(a); };
+    const run = (a) => { seen.push(a); return fake({ ...base, 'ls-files': 'src/a/PdfMergeTool.tsx\nsrc/b/PdfMergeTool.js\nsrc/c/PdfMergeTool.css\nsrc/a/PdfMergeTool.test.tsx\n' })(a); };
     staleVerdict(args(run));
     const log = seen.find((a) => a[0] === 'log');
-    expect(log).toEqual(['log', '-1', '--format=%H', 'origin/main', '--', 'a/PdfMergeTool.tsx', 'b/PdfMergeTool.js']);
+    expect(log).toEqual(['log', '-1', '--format=%H', 'origin/main', '--', 'src/a/PdfMergeTool.tsx', 'src/b/PdfMergeTool.js', 'src/c/PdfMergeTool.css']);
   });
 
   it('omits the behind count if it fails', () => {

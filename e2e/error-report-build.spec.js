@@ -9,11 +9,16 @@ import { test, expect } from '@playwright/test';
 // against the preview server like the CSP smoke does.
 //
 // A build made without VERCEL_GIT_COMMIT_SHA has no tag and must send no `build`
-// at all; one made with it must send exactly the tag's seven characters. Run it
-// both ways before landing a change to the stamping:
+// at all; one made with it must send exactly the tag's seven characters. When this
+// run itself has the variable (CI sets it for every job, and so should anyone running
+// the spec on a stamped build) the tag is REQUIRED, so a stamped build that quietly
+// lost its tag fails instead of taking the "no commit" branch:
 //   VERCEL_GIT_COMMIT_SHA=$(printf 'a%.0s' {1..40}) npm run build
+//   VERCEL_GIT_COMMIT_SHA=$(printf 'a%.0s' {1..40}) npx playwright test e2e/error-report-build.spec.js
 
 const BUILD_SHAPE = /^[0-9a-f]{7}$/;
+const SHA = process.env.VERCEL_GIT_COMMIT_SHA ?? '';
+const EXPECTED = /^[0-9a-f]{7,40}$/.test(SHA) ? SHA.slice(0, 7) : null;
 
 test('a reported error carries the commit the page was built from, and only that', async ({ page }) => {
   await page.route('**/api/report', (route) => route.fulfill({ status: 204 }));
@@ -22,6 +27,7 @@ test('a reported error carries the commit the page was built from, and only that
   const tags = page.locator('meta[name="pdkef-build"]');
   const stamped = (await tags.count()) === 1 ? await tags.getAttribute('content') : null;
   if (stamped !== null) expect(stamped).toMatch(BUILD_SHAPE);
+  if (EXPECTED !== null) expect(stamped).toBe(EXPECTED);
 
   const beacon = page.waitForRequest((request) => new URL(request.url()).pathname === '/api/report');
   await page.evaluate(() => {

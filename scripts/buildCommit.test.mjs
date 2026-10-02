@@ -56,12 +56,12 @@ describe('stampBuildCommit', () => {
     expect(hasPlaceholder(stampBuildCommit(page(), 'abc1234'))).toBe(false);
     expect(hasPlaceholder('<script>"__BUILD_COMMIT__"</script>')).toBe(false);
   });
-  it('stamping with no commit is identical whatever the commit would have been', () => {
-    const a = stampBuildCommit(page(), '');
-    expect(stampBuildCommit(page(), '')).toBe(a);
-    expect(stampBuildCommit(stampBuildCommit(page(), 'abc1234'), 'def5678')).toBe(
-      stampBuildCommit(page(), 'abc1234'),
-    );
-    expect(stampBuildCommit(page(), 'abc1234').replace('abc1234', '__BUILD_COMMIT__')).toBe(page());
+  it('stamping is reversible, so the commit is the only difference between two stamped pages', () => {
+    const stamped = stampBuildCommit(page(), 'abc1234');
+    expect(stamped).not.toBe(page());
+    expect(stamped.replace('abc1234', '__BUILD_COMMIT__')).toBe(page());
+    expect(stampBuildCommit(page(), 'def5678').replace('def5678', 'abc1234')).toBe(stamped);
+    // The unstamped page differs from a stamped one by the tag and nothing else.
+    expect(stampBuildCommit(page(), '')).toBe(stamped.replace(/[ \t]*<meta name="pdkef-build"[^>]*>\r?\n?/, ''));
   });
 });
