@@ -2,7 +2,7 @@
 
 # Backlog
 
-The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 45 live: 1 up next, 10 then, 19 waiting, 15 parked.
+The canonical backlog is the task-file collection in [backlog/tasks/](backlog/tasks/). This view is generated and read-only. 44 live: 1 up next, 9 then, 19 waiting, 15 parked.
 
 ## Redact: finish removal
 
@@ -62,7 +62,6 @@ Production errors you can see, small tools that clean up after themselves, and d
 | --- | --- | --- | --- |
 | ENC-06 | P1 | [ENC-06](backlog/tasks/ENC-06.md) · Split and Edit Pages stop writing blank pages from a protected PDF |  |
 | UNDO-05 | P2 | [UNDO-05](backlog/tasks/UNDO-05.md) · Merge and Split share one undo chip, and Split's stops leaking |  |
-| DEBT-31 | P2 | [DEBT-31](backlog/tasks/DEBT-31.md) · Error reports carry the last few UI actions, so a crash's trigger is read, not inferred | Needs Shlomi: The privacy-page sentence for action names in error reports |
 
 ### Waiting
 
@@ -145,7 +144,7 @@ Done and retired tickets are not listed. Their files stay in [backlog/tasks/](ba
 - Redact: finish removal: 12 done, 0 retired
 - Sign: finish fill mode: 2 done, 1 retired
 - Form detector accuracy: 10 done, 1 retired
-- Robustness and debt: 19 done, 3 retired
+- Robustness and debt: 20 done, 3 retired
 - Search and languages: 3 done, 0 retired
 - Polish: 3 done, 0 retired
 - Sign tool architecture: 37 done, 1 retired

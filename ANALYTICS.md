@@ -88,8 +88,10 @@ name, the chain of positions in our own published JavaScript that led there (up
 to 8, file name and line number each), a short label our code gives the step it
 was doing (like `export`), the page's path (like `/sign/`, never a query or
 anything after it), whether PDkef is installed as an app, whether a service
-worker served the page, and roughly how long the page had been open (under 10
-seconds, under a minute, under 10 minutes, or longer). Never the error message,
+worker served the page, roughly how long the page had been open (under 10
+seconds, under a minute, under 10 minutes, or longer), and the last up to 10
+UI action names (DEBT-31) from a closed list, oldest first, kept in memory until
+an error is reported. Never the error message,
 anything from a document, a filename, text, an IP address, or an identifier.
 The server keeps daily counts of identical reports, plus the latest full
 example of each distinct error per day with a coarse browser family and
@@ -145,3 +147,4 @@ additions if their question remains unanswered:
 | 2026-10-01 | Add anonymous error reports to PDkef's own `/api/report` (DEBT-17), outside the analytics provider. | Defects on a person's device were invisible to us. A report names only the area, the error name and the position in our own code, so it can point at a line without touching a document. |
 | 2026-10-01 | Widen anonymous error reports (DEBT-27): the chain of positions in our code, a step label, the page path, installed, service worker and page age, and the latest full example of each distinct error per day. | A single position was too little to troubleshoot from. Every added field is a position in our own code, a closed list, a bucket or a flag; still never a message, a document, a filename, text, an IP address or an identifier. |
 | 2026-10-01 | Move the four lifecycle events from Vercel custom events to `/api/report` (DEBT-28). | Hobby never recorded custom events, so the funnel had never been seen; daily per-tool counts on our own address keep the same allowlist and add no browser detail. |
+| 2026-10-02 | Error reports carry the last 10 UI action names (DEBT-31). | A crash's trigger was inferred from code, not read from the report (the DEBT-30 Merge crash); closed list of names, no free text, in memory until an error is reported. |

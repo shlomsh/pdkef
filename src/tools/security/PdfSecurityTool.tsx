@@ -3,6 +3,7 @@ import { Eraser, FileSignature } from 'lucide-preact';
 import { protectPdf, unlockPdf, WrongPasswordError } from './security.js';
 import { probeEncryption } from '../../lib/pdfEncryption.ts';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';
@@ -116,6 +117,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
     setMode(null);
     setReadError(null);
     setNoPassword(false);
+    recordAction('add_files');
     setAnnouncement(`Checking file "${selectedFile.name}"...`);
 
     const run = fileRun.begin();
@@ -169,11 +171,13 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
   const handleSubmit = async (event: Event) => {
     event.preventDefault();
     if (!file || !password || !mode) return;
+    recordAction('export');
     await runSecurity(file, mode, password);
   };
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement(`${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF shared successfully.`);
     else if (result.status === 'canceled') setAnnouncement('Sharing canceled. Your PDF is still ready.');
     else if (result.status === 'error') setAnnouncement('Could not open the share sheet. Please try again.');
@@ -269,6 +273,7 @@ export default function PdfSecurityTool({ intent = 'unlock', navigate = (href) =
                 href={downloadUrl}
                 download={outputFileName(file.name, mode)}
                 label={`Download ${mode === 'unlock' ? 'Unlocked' : 'Protected'} PDF`}
+                onClick={() => recordAction('download')}
               />
               <PdfShareButton
                 visible={shareReady}

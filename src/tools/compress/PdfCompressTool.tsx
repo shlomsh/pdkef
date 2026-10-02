@@ -18,6 +18,7 @@ import { describeFile } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
 import { reportError } from '../../lib/errorReport.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 
 const TARGET_SIZE_PRESETS_KB = [100, 200, 500, 1024];
 // Lower than the PDF presets above: the image half of this tool's demand is
@@ -254,6 +255,7 @@ export default function PdfCompressTool({
       setFile(next);
       resetOutput();
       setAnnouncement(formatMessage(deriveFileKind(next) === 'image' ? t.imageLoaded : t.loaded, { name: next.name }));
+      recordAction('add_files');
     }
   };
 
@@ -268,11 +270,13 @@ export default function PdfCompressTool({
     if (nextLevel === level) return;
     setLevel(nextLevel);
     resetOutput();
+    recordAction('change_setting');
   };
 
   const handleTargetKBChange = (nextTargetKB: number) => {
     setTargetKB(Number.isFinite(nextTargetKB) && nextTargetKB > 0 ? nextTargetKB : 1);
     resetOutput();
+    recordAction('change_setting');
   };
 
   const handleCompress = async () => {
@@ -284,6 +288,7 @@ export default function PdfCompressTool({
     // 'done', so neither is confirmed first).
     const activeFile = file;
     const runToken = runTokenRef.current;
+    recordAction('export');
     setStatus('processing');
     setProgress(0);
     setAnnouncement(kind === 'image' ? t.imageStarting : t.starting);
@@ -378,6 +383,7 @@ export default function PdfCompressTool({
 
   const handleShare = async () => {
     const result = await sharePrepared();
+    if (result.status === 'shared') recordAction('share');
     if (result.status === 'shared') setAnnouncement(kind === 'image' ? t.imageSharedSuccessfully : t.sharedSuccessfully);
     else if (result.status === 'canceled') setAnnouncement(kind === 'image' ? t.imageSharingCanceled : t.sharingCanceled);
     else if (result.status === 'error') setAnnouncement(t.shareError);
@@ -429,6 +435,7 @@ export default function PdfCompressTool({
               download={deriveDownloadName(file!.name, outputType)}
               label={kind === 'image' ? t.imageDownloadLabel : t.downloadLabel}
               detail={downloadDetail}
+              onClick={() => recordAction('download')}
             />
             <PdfShareButton visible={shareReady} onShare={handleShare} label={kind === 'image' ? t.imageShareLabel : t.shareLabel} />
           </>

@@ -3,6 +3,7 @@ import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import PdfPageCanvas from '../../editor-ui/PdfPageCanvas.tsx';
 import { uniqueId, seedUniqueId } from '../../editor/model/ids.ts';
 import { loadPdf as loadEditorPdf } from '../../editor/workspace/loadPdf.ts';
+import { recordAction } from '../../lib/actionTrail.ts';
 import { cacheRecentFile } from '../../lib/drafts/draftStore.js';
 import { startGesture } from '../../lib/gestures/controller.ts';
 import usePdfCoordinates from '../../editor-ui/hooks/usePdfCoordinates.js';
@@ -174,6 +175,7 @@ export default function PdfRedactTool() {
   // tool, so disarming always clears it.
   const setTool = (tool: RedactToolType | null, locked = false) => {
     dispatch(tool ? { type: 'TOOL_ARMED', tool, locked } : { type: 'TOOL_DISARMED' });
+    if (tool) recordAction('arm_tool');
   };
 
   // Fired once a placement is committed. A locked tool ignores it and stays
@@ -319,6 +321,7 @@ export default function PdfRedactTool() {
   const toggleFullscreen = () => {
     if (isPseudoFullscreen) {
       dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: false });
+      recordAction('fullscreen');
       return;
     }
 
@@ -333,6 +336,7 @@ export default function PdfRedactTool() {
     } else {
       dispatch({ type: 'PSEUDO_FULLSCREEN_CHANGED', active: true });
     }
+    recordAction('fullscreen');
   };
 
   const pageWrapperRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -490,8 +494,10 @@ export default function PdfRedactTool() {
     // sees the claim and backs off instead of racing us.
     loadStartedRef.current = true;
 
+    const replacing = !!file;
     const selected = pdfs[0];
     const bytes = await selected.arrayBuffer();
+    recordAction(replacing ? 'replace_file' : 'add_files');
     await loadPdf(selected, bytes);
   };
 
@@ -565,6 +571,7 @@ export default function PdfRedactTool() {
           ...(type === 'blur' ? { strength: activeBlurStrength } : {}),
         };
         commands.add([element], { type: `ADD_${type.toUpperCase()}`, description: `Added ${type} box` });
+        recordAction('place_mark');
         setAnnouncement(`Added ${type} box.`);
         disarmTool();
       },
@@ -580,6 +587,7 @@ export default function PdfRedactTool() {
   const addStroke = (stroke: CommittedStroke) => {
     const word = stroke.type === 'blurStroke' ? 'blur' : 'whiteout';
     commands.add([stroke as RedactElement], { type: 'ADD_STROKE', description: `Painted a ${word} stroke` });
+    recordAction('place_mark');
     setAnnouncement(`Painted a ${word} stroke.`);
   };
 
@@ -630,6 +638,7 @@ export default function PdfRedactTool() {
     commands.remove(new Set([id]), {
       type: 'DELETE_ELEMENT', description: `Removed the ${el.type} box`, pageIndex: el.pageIndex, chipMessage: `Removed the ${el.type} box`,
     });
+    recordAction('delete_mark');
   };
 
   // RED-14: every edit that can fan out to a linked box's repeat group or
@@ -646,12 +655,22 @@ export default function PdfRedactTool() {
     select: (id) => dispatch({ type: 'BOX_SELECTED', id }),
     derive: (element, changes) => (isDeleteElement(element) ? {} : autoColorChanges(element, changes as Partial<typeof element>, samplePage)),
   });
-  const { updateElement, unlinkFromGroup, removeLinked, duplicateElement, repeatOnEveryPage, clearPage, clearPageOptions } = linkedBoxes;
+  const { unlinkFromGroup, clearPageOptions } = linkedBoxes;
+  // The trail names what the edit was: a patch that reaches width or height is a resize, one that
+  // only moves left/top is a move, anything else (colour, strength) a style edit. Names only.
+  const updateElement = (id: string, changes: Partial<RedactElement>) => {
+    linkedBoxes.updateElement(id, changes);
+    recordAction('width' in changes || 'height' in changes ? 'resize_mark' : 'left' in changes || 'top' in changes ? 'move_mark' : 'edit_mark');
+  };
+  const duplicateElement = (id: string) => { linkedBoxes.duplicateElement(id); recordAction('place_mark'); };
+  const repeatOnEveryPage = (id: string) => { linkedBoxes.repeatOnEveryPage(id); recordAction('place_mark'); };
+  const removeLinked = (id: string, kind: Parameters<typeof linkedBoxes.removeLinked>[1]) => { linkedBoxes.removeLinked(id, kind); recordAction('delete_mark'); };
+  const clearPage = (pageIndex: number) => { linkedBoxes.clearPage(pageIndex); recordAction('delete_mark'); };
 
   // Cmd/Ctrl+Z reverts the single newest command; the reducer reads the
   // current `past`, so two undo keydowns landing in the same task (key
   // auto-repeat) are two distinct reverts. Nothing to undo reverts nothing.
-  const undoLast = () => dispatch({ type: 'UNDO' });
+  const undoLast = () => { dispatch({ type: 'UNDO' }); if (actionHistory.length > 0) recordAction('undo'); };
 
   // The undo chip's own Undo button (finding #3): reverts the exact command
   // it named, by id, rather than "whatever is newest" - if another action
@@ -664,11 +683,12 @@ export default function PdfRedactTool() {
     const entryId = undoAction.entryId;
     clearUndoChip();
     dispatch({ type: 'UNDO', entryId });
+    recordAction('undo');
   };
 
   // Shift+Cmd/Ctrl+Z or Ctrl+Y: reapplies the single most recently undone
   // command, the exact mirror of undoLast.
-  const redoLast = () => dispatch({ type: 'REDO' });
+  const redoLast = () => { dispatch({ type: 'REDO' }); if (canRedoOf(state)) recordAction('redo'); };
 
   useHistoryShortcuts(undoLast, redoLast);
 
@@ -740,6 +760,7 @@ export default function PdfRedactTool() {
     // was for.
     const description = matches.length === 1 ? 'Covered 1 match' : `Covered ${matches.length} matches`;
     commands.add(additions, { type: 'FIND_AND_REDACT', description, undoChip: true });
+    recordAction('place_mark');
     setAnnouncement(`${description}.`);
     find.setCurrentId(nextId);
   };
@@ -778,6 +799,7 @@ export default function PdfRedactTool() {
         const next = new Blob([bytes as BlobPart], { type: 'application/pdf' });
         clearPrepared();
         dispatch({ type: 'EXPORT_SAVED', saved: { blob: next, name } });
+        recordAction('delete_mark');
         download(next, name);
         dispatch({ type: 'REMOVAL_NOTED', note: removedMessage(place) });
       } catch (error) {
@@ -808,6 +830,7 @@ export default function PdfRedactTool() {
       type: 'EXPORT_STARTED',
       announcement: hasBoxes ? 'Saving the redacted PDF…' : 'Deleting what you chose…',
     });
+    recordAction('export');
     reportToolLifecycleEvent('tool_operation_started', 'redact');
 
     // DEBT-18: everything this run is an export *of*, captured before the
@@ -838,6 +861,7 @@ export default function PdfRedactTool() {
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Your redacted PDF is ready to share.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
       } else {
+        recordAction('download');
         download(redactedBlob, filename);
         dispatch({ type: 'EXPORT_DELIVERED', announcement: 'Saved. Download started.' });
         reportToolLifecycleEvent('tool_result_ready', 'redact');
@@ -878,6 +902,7 @@ export default function PdfRedactTool() {
     dispatch({ type: 'EXPORT_ERROR_CLEARED' });
     if (downloadPrepared()) {
       setAnnouncement('Download started.');
+      recordAction('download');
       return;
     }
     handleSavePdf('download');
@@ -887,6 +912,7 @@ export default function PdfRedactTool() {
     const result = await sharePrepared();
     if (result.status === 'shared') {
       setAnnouncement('Shared.');
+      recordAction('share');
     } else if (result.status === 'canceled') {
       setAnnouncement('Sharing canceled. Your redacted PDF is still ready to share.');
     } else if (result.status === 'error') {
@@ -1013,9 +1039,9 @@ export default function PdfRedactTool() {
               <BrushControls
                 tool={activeStyle}
                 settings={brush}
-                onSettings={changeBrush}
+                onSettings={(next) => { changeBrush(next); recordAction('change_setting'); }}
                 color={activeColor}
-                onColor={rememberColor}
+                onColor={(color) => { rememberColor(color); recordAction('change_setting'); }}
                 eyedropping={eyedropping === 'brush'}
                 onToggleEyedropper={() => dispatch({ type: 'EYEDROPPER_TOGGLED', target: 'brush' })}
               />
@@ -1133,13 +1159,13 @@ export default function PdfRedactTool() {
                     <DeletableObjectOverlay
                       objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i)}
                       markedIds={deleteTool.markedForDeletionIds}
-                      onSelect={deleteTool.markObject}
+                      onSelect={(...args) => { deleteTool.markObject(...args); recordAction('delete_mark'); }}
                     />
                   )}
                   {activeStyle === 'delete' && (
                     <DeleteMarquee
                       objects={deleteTool.deletableObjects.filter((object) => object.pageIndex === i && !deleteTool.markedForDeletionIds.has(object.id))}
-                      onCommit={deleteTool.markObjects}
+                      onCommit={(...args) => { deleteTool.markObjects(...args); recordAction('delete_mark'); }}
                     />
                   )}
 

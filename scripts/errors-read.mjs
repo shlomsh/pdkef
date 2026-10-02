@@ -99,6 +99,7 @@ for (const [field, count] of table) {
   } catch {}
   if (!sample) continue;
   console.log(`    ${sample.step} · ${sample.tool} · ${sample.installed ? 'installed' : 'browser'}/${sample.sw ? 'sw' : 'no-sw'} · ${sample.age}`);
+  console.log(`    actions: ${Array.isArray(sample.actions) && sample.actions.length ? sample.actions.join(', ') : '(none)'}`);
   for (const frame of sample.stack ?? []) console.log(`    ${frame}`);
   console.log(`    npm run errors:resolve -- ${(sample.stack ?? []).join(' ')}`);
 }

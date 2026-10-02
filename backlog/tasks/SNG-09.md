@@ -35,6 +35,85 @@ snap, so **precision beats reach**.
 
 This runs on device, on the pixels pdf.js already rendered. There is no OCR and no model.
 
+## START HERE: handoff for the next agent (2026-10-02, main 1df1ad15)
+
+**State.** Open, parked for later. The *measuring instrument* is built and on main; the *thing it measures*
+is not. There is no `snapToPrintedLine`, no scorer script, no ratchet, no hook into placement, and so **no
+accuracy number exists for this ticket yet**. Do not quote one.
+
+**What is on main** (`src/tools/sign/fields/corpus/snap/`; its `README.md` is the contract, read it first):
+- `pages/` + `truth/`: five forms (health-declaration-2021, income-tax-101-2024, irs-1040-2024,
+  thai-sso-1-10, uscis-i9-2025-01-20), page 1 only, as 200 dpi gray rasters (`.gray.gz`, 1.07 MB) with the
+  printed horizontal rules as exact truth (21 to 56 per form, points, y down). `pageStore.js` loads them
+  (Node only; never import it from product code). Regenerate with `node scripts/snap-corpus/build-pages.mjs`,
+  which needs `pdftoppm` (dev time only, not in CI, so the rasters are committed).
+- `degrade.js`: seeded levels `clean | scan | fax | phone` at views `fit | native | zoom` (1.9, 2.78, 5.7 px
+  per point); returns the raster plus `mapPoint`/`unmapPoint` between the pristine page and the degraded one.
+- `sampleTaps.js`: seeded taps with an expectation. `scoreSnap.js`: `cutWindow`, `classify`,
+  `runSnapCorpus`; `MAX_SNAP_PX` = 57 canvas px (3 mm on a phone). `snapStats.js`: Clopper-Pearson lower
+  bound, cluster bootstrap, `summarise`. `prng.js`: the one seeded generator.
+- Run: `npx vitest run src/tools/sign/fields/corpus/snap/` (63 tests, about 2 s). Two controls prove the
+  scoring: declining everything scores no snaps; an oracle that reads the truth (the 4th `snap` argument,
+  tests only) scores 100% on clean pages and above 97% under skew. **Keep the oracle test green after any
+  change to the sampler or the scorer; it is what catches a corpus that disagrees with itself.**
+
+**Decisions already made. Do not relitigate without new evidence:**
+- Classical image code on one small pixel window, no OCR, no model (Shlomi, 2026-10-01; reasons and numbers
+  in the research section below). Precision beats reach: when unsure the function declines and the tap lands
+  exactly where it does today.
+- Three outcomes per tap (correct snap, wrong snap, declined). Snap precision = correct / (correct + wrong),
+  always reported beside the decline rate and the per-level, per-view split. Gate on the lower bound of a
+  one-sided 95% Clopper-Pearson interval, at least 30 documents, cluster bootstrap by document.
+- The expected target is the clearly nearest rule that covers the tap's x; if the runner-up is within 1.3x as
+  far, the case is `decline: ambiguous` and a snap there scores wrong. (The first version expected the
+  aimed-at rule and the oracle scored 76%, which is how this was found.)
+- Max snap distance about 3 mm, passed as `maxSnapPx` by the caller from the device's physical size. A
+  phone CSS px is about 0.16 mm and the device pixel ratio is 3. The window is the snap radius plus a margin
+  (241 x 163 canvas px in the corpus), not a fixed 240 x 96.
+- The function is pure and lives in `src/tools/sign/fields/` (see "Where it lives"). Reuse `rasterInk.js`
+  exports (`otsuThreshold`, `mergeCollinear`, `connectedComponents`, `letterHeight`); do not edit
+  `rasterInk.js`, FORM-06 or FORM-07, which belong to the parked form-detection work. The corpus built here is
+  the shared one and also serves FORM-07's "second and third scan" gap, so do not build a parallel one.
+
+**Gotchas already paid for:**
+- `inkFromRaster` assumes a whole page plus its size in points; a window needs its own `pxPerPoint`. Its
+  global skew search is unreliable on a 241 x 163 window; plan the shear search the research recommends
+  (about five angles within 0 to 3 degrees) instead of reusing it.
+- Fax degradation breaks a rule across its whole thickness by design (cuts are per connected rule block).
+  A single white pixel in a rule is salt speckle, not a break; tests count breaks of at least 2 px.
+- The `zoom` view rasters are about 16 MB each (3490 x 4510) and a `phone` degrade there takes about 1.3 s.
+  A full corpus run (5 forms x 4 levels x 3 views) has not been timed; unit tests use clean/native only.
+- Known truth defects: hyperlink underlines under text count as rules (the I-9 "Instructions" link);
+  two rules at nearly the same height make a tap ambiguous (conservative, not generous); two light-ink forms
+  (hmrc-sa100-2026, thai-pnd90-2565) were skipped because their rules are pale grey, a failure class that
+  should become its own level.
+- Boxes are in the contract (`kind: 'box'`) but truth is rules only, so no box has been scored.
+- Process: `npm install` per worktree; `npm run check:push` before a push; land by direct push only after
+  Shlomi confirms; a generated `BACKLOG.md` / `TODO.md` conflict on merge is resolved by taking main's and
+  running `npm run generate:backlog`.
+
+**Next, in order, each with its own check:**
+1. **Reach 30 documents.** Extend `build-pages.mjs` to every page of the five forms (about 12 documents,
+   about 2.5 MB), then add public-domain forms. Downloading needs Shlomi's yes. Done when `listPages()` has
+   at least 30 entries and the oracle test still passes.
+2. **Harden the truth.** Drop hyperlink underlines, add box truth, add a faint-ink level. Done when the
+   oracle is still 100% on clean pages and the new level has its own rows in the summary.
+3. **Write `snapToPrintedLine(window, tap, { maxSnapPx })`** to the contract in the corpus README: Sauvola
+   (integral image) on the window, gap-bridged horizontal run scan with a 0-3 degree shear search, nearest
+   valid run, a box only with a vertical pair, declining with a named reason. Register it in
+   `DETECTION_MODULES` and the canvas read in `FUNCTION_SHIMS` (`scripts/check-detection-purity.mjs`).
+4. **Score it.** Add `scripts/score-snap.mjs` printing precision with its lower bound, the decline rate and
+   the per-level, per-view rows, with a two-way ratchet in `snapBaselines.json` like `score-form.mjs`. First
+   read the numbers, then write them down. The target is a lower bound of at least 0.95 on `scan` at
+   `native`; `fax` and `phone` are reported and gated once their first numbers are read.
+5. **Hook it into placement** behind fill mode, with the 3 mm radius from the real screen, RTL growing
+   leftward, and the free-placement improvement on vector forms the acceptance lists. Measure the cost of
+   reading the canvas back on iOS (`getImageData` on a large canvas) inside a tap, and verify on the phone.
+6. **Calibrate on real scans.** 10 to 20 hand-labelled public-domain scans (US federal forms), a check on
+   the synthetic numbers and not the headline score.
+7. **Decision point.** If step 4 cannot reach the bound because of faint, dotted or comb rules, open a spike
+   on a roughly 1 MB line-segmentation net (not OCR) judged on this same corpus. Not before.
+
 ## A tick centres in its box: Zapf Dingbats checkboxes (done 2026-09-26)
 
 **Bug.** On form 101 all 67 checkbox regions come from the text-glyph path (`collectCheckboxGlyphs`,
@@ -90,13 +169,14 @@ on every side. Not yet checked on a phone.
 
 ## Acceptance
 
-- [ ] A scored fixture set of scans (form 101 printed and photographed, a Latin form, a skewed scan),
-  with taps sampled on and near real lines. The snap is correct at least 95% of the time when it snaps.
-  It declines rather than guesses. The same corpus approach as MOBI-13.
-- [ ] The snap never moves the box more than a small, stated distance from the tap.
+- [ ] A scored scan corpus of at least 30 documents (form 101, a Latin form and a skewed scan among them),
+  with taps sampled on and near real lines (the synthetic part is built, see START HERE). The snap is correct
+  at least 95% of the time when it snaps, as a lower bound, and declines rather than guesses.
+- [ ] The snap never moves the box more than a stated distance from the tap: 3 mm, in the contract and
+  checked by the scorer (`too-far` counts as wrong).
 - [ ] The same tap-local snap improves free placement on vector forms, on lines the detector missed.
-- [ ] A spike question is added to SNG-03: the cost of reading back the canvas pixels on iOS
-  (`getImageData` on a large canvas) inside a tap.
+- [ ] The cost of reading the canvas pixels back on iOS (`getImageData` on a large canvas) inside a tap is
+  measured on a phone. (This was a spike question for SNG-03, which is retired.)
 
 ## 2026-10-01 research (online, before any code)
 
@@ -173,25 +253,6 @@ Shlomi doubted a no-model snap can give good engineering results. The honest rea
   (not OCR) judged on the same corpus. Until then no model.
 - **Why it is parked.** The remaining work (more documents, boxes, the function, the ratchet, the hook) is a
   real build, so SNG-09 returns to `open` / `later` and the corpus stays on main for whoever picks it up.
-
-## 2026-10-01 progress: the corpus is built, the function is not
-
-Committed on branch `worktree-sng09-marks-land-neatly` (75b1df5d), not pushed. The snap corpus lives in
-`src/tools/sign/fields/corpus/snap/` (its README is the contract): five forms at 200 dpi with exact rule
-truth, seeded scan/fax/phone degradation at three zoom views, a tap sampler, the three-outcome scorer and the
-Clopper-Pearson bound. Controls: declining everything scores no snaps; an oracle that reads the truth scores
-100% on clean pages and above 97% under skew. The oracle exposed two harness bugs (the expected target must
-be the clearly nearest rule; fax breaks must cut a rule across its thickness), both fixed.
-
-Next, in order:
-1. More documents: the other pages of these forms (about 12 documents, about 2.5 MB), then more
-   public-domain forms (needs a download decision). The gate needs at least 30 documents.
-2. Truth for boxes; drop hyperlink underlines from the rule truth; a faint-ink level (hmrc-sa100,
-   thai-pnd90 were skipped for pale rules).
-3. `snapToPrintedLine(window, tap, { maxSnapPx })`, pure, reusing `rasterInk` exports, registered in
-   `scripts/check-detection-purity.mjs`; then `scripts/score-snap.mjs` with a two-way ratchet in
-   `snapBaselines.json`; then hook it into placement behind fill mode.
-4. 10-20 hand-labelled public-domain real scans as the calibration set.
 
 ## 2026-10-01 board cleanup
 
