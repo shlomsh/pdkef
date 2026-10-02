@@ -15,8 +15,7 @@
  * - `name`, the error's name, an identifier from program text
  *   (`errorIdentity.ts`);
  * - `stack`, the frames inside `/_astro/`, top first, at most `MAX_FRAMES`,
- *   each `chunk.hash.js:line:col`. The chunk's content hash identifies the
- *   build, so no build id is sent; `stack[0]` is the fingerprint counts use;
+ *   each `chunk.hash.js:line:col`. `stack[0]` is the fingerprint counts use;
  * - `step`, a label the call site wrote (`thumbnail`, `export`), an identifier;
  * - `tool`, the page's path (`/sign/`, `/he/sign/`), never a query or fragment;
  * - `actions`, the last few things the person did in the tool (`add_files`, `clear_all`), names off
@@ -25,6 +24,11 @@
  *   Optional when parsing: a tab on a cached older build (the service worker keeps old builds alive,
  *   and a rolling deploy does the same) sends the eight other fields, and dropping those reports
  *   would lose crashes exactly when they matter; a missing `actions` parses as `[]`;
+ * - `build`, the first 7 lowercase hex characters of the commit the page was deployed from. It names the
+ *   release the page came from, a position in our own history like a chunk name, and nothing about a
+ *   document or a person. The chunk hash identifies a build only by rebuilding history; the commit
+ *   names it directly. Optional, like `actions`: a cached older build, or a build with no commit,
+ *   sends none, and it only ever travels beside `actions`;
  * - `installed` (display-mode standalone), `sw` (a service worker controls the
  *   page), and `age`, how long the page had been open, bucketed. No online
  *   flag: nothing is sent offline, so it would always say true.
@@ -78,6 +82,7 @@ export const ACTIONS = [
 export type ActionName = (typeof ACTIONS)[number];
 
 export type ErrorReport = Readonly<{
+  build?: string;
   actions: readonly ActionName[];
   area: ErrorArea;
   name: string;
@@ -90,14 +95,19 @@ export type ErrorReport = Readonly<{
 }>;
 
 /** The page facts a report carries, read once per report in the browser. */
-export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' | 'actions'>;
+export type PageContext = Pick<ErrorReport, 'tool' | 'installed' | 'sw' | 'age' | 'actions' | 'build'>;
 
 /** The largest body the endpoint accepts. The largest valid report is about 1.5KB. */
 export const MAX_REPORT_BYTES = 2048;
 
-/** The eight keys an older build sends; the current build adds `actions`. Exactly these two shapes. */
+/**
+ * The eight keys an older build sends; the DEBT-31 build adds `actions`, a later one adds `build`.
+ * Exactly these three shapes: eight, plus `actions`, plus `actions` and `build`.
+ */
 const KEYS = ['age', 'area', 'installed', 'name', 'stack', 'step', 'sw', 'tool'];
 const KEYS_WITH_ACTIONS = ['actions', ...KEYS].sort();
+const KEYS_WITH_BUILD = ['actions', 'build', ...KEYS].sort();
+const BUILD = /^[0-9a-f]{7}$/;
 const AREAS: ReadonlySet<string> = new Set(ERROR_AREAS);
 const AGES: ReadonlySet<string> = new Set(PAGE_AGES);
 const ACTION_NAMES: ReadonlySet<string> = new Set(ACTIONS);
@@ -109,16 +119,17 @@ const TOOL = /^\/(?:[a-z0-9-]{1,40}\/){0,3}$/;
 
 /**
  * Accepts exactly these fields, each in its own shape, and nothing else: eight keys (an older build,
- * no `actions`, stored as `[]`) or all nine.
+ * no `actions`, stored as `[]`), nine (with `actions`) or ten (with `actions` and `build`). A report
+ * without `build` parses with no `build` key at all.
  * Run on both sides: the browser never sends what this rejects, and the
  * endpoint never stores it.
  */
 export function parseErrorReport(value: unknown): ErrorReport | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const keys = Object.keys(value).sort();
-  const expected = 'actions' in value ? KEYS_WITH_ACTIONS : KEYS;
+  const expected = 'build' in value ? KEYS_WITH_BUILD : 'actions' in value ? KEYS_WITH_ACTIONS : KEYS;
   if (keys.length !== expected.length || keys.some((key, i) => key !== expected[i])) return null;
-  const { actions, area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
+  const { actions, build, area, name, stack, step, tool, installed, sw, age } = value as Record<string, unknown>;
   if (typeof area !== 'string' || !AREAS.has(area)) return null;
   if (typeof name !== 'string' || !NAME.test(name)) return null;
   if (!Array.isArray(stack) || stack.length < 1 || stack.length > MAX_FRAMES) return null;
@@ -130,7 +141,9 @@ export function parseErrorReport(value: unknown): ErrorReport | null {
   const trail = actions === undefined && !('actions' in value) ? [] : actions;
   if (!Array.isArray(trail) || trail.length > MAX_ACTIONS) return null;
   if (!trail.every((action) => typeof action === 'string' && ACTION_NAMES.has(action))) return null;
+  if ('build' in value && (typeof build !== 'string' || !BUILD.test(build))) return null;
   return Object.freeze({
+    ...('build' in value ? { build: build as string } : {}),
     actions: Object.freeze([...trail] as ActionName[]),
     area: area as ErrorArea,
     name,

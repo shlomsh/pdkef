@@ -231,6 +231,10 @@ jobs:
       run: npm ci
 
     - name: Build
+      # DEBT-34: the same stamping a Vercel build gets, so the build guards and
+      # e2e/error-report-build.spec.js run against a build that carries a commit.
+      env:
+        VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
       run: npm run build
 
     - name: Verify CSP hashes
@@ -298,6 +302,10 @@ jobs:
         node scripts/affected-scope.mjs --base "$BASE" >> "$GITHUB_OUTPUT"
 
     - name: Build
+      # DEBT-34: the same stamping a Vercel build gets, so the build guards and
+      # e2e/error-report-build.spec.js run against a build that carries a commit.
+      env:
+        VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
       run: npm run build
 
     - name: Resolve Playwright version
