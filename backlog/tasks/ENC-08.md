@@ -1,17 +1,17 @@
 ---
 id: "ENC-08"
-title: "Compress, Compress Image and PDF to Image meet a protected PDF at the door"
-status: "open"
+title: "Compress meets a protected PDF at the door and leads back after Unlock"
+status: "in_progress"
 priority: "P2"
 epic: "robustness"
 horizon: "next"
 order: 3
-depends_on: ["ENC-06"]
+depends_on: ["ENC-01"]
 ---
 
-# ENC-08 · Compress, Compress Image and PDF to Image meet a protected PDF at the door
+# ENC-08 · Compress meets a protected PDF at the door and leads back after Unlock
 
-*Plan section 4.* Both parse the file only on the main button (`compress.js:59`, `:200`; `toImage.js:95`), so a needs-password file is accepted and rejected later with generic copy. An owner-only file works in both (pdf.js only, output intact, run), so only `needs-password` is gated.
+*Plan section 4. PDF to Image moved to ENC-13 on 2026-10-02 before work started, so this ticket is Compress (and Compress Image, the same component, whose images skip the check).* Both parse the file only on the main button (`compress.js:59`, `:200`; `toImage.js:95`), so a needs-password file is accepted and rejected later with generic copy. An owner-only file works in both (pdf.js only, output intact, run), so only `needs-password` is gated.
 
 ## Brief
 - Probe at intake in `handleFilesAdded`; show the shared state. Compress Image is the same component (`/compress-image/`). PDF to Image has no hand-off receiver, so add one.
