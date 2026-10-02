@@ -4,8 +4,8 @@ title: "Unlock opens an owner-only file with no password and takes a file from a
 status: "open"
 priority: "P1"
 epic: "robustness"
-horizon: "next"
-order: 1
+horizon: "now"
+order: 3
 depends_on: ["ENC-02"]
 ---
 
@@ -19,4 +19,5 @@ depends_on: ["ENC-02"]
 - Wrong password versus damaged: `unlockPdf` maps every load failure to `WrongPasswordError` (`security.js:45-54`) and the text is hard-coded at `PdfSecurityTool.tsx:193` ("The password may be incorrect."). Tell them apart and say the right thing for each. (`isPdfEncrypted` already turns an unparsable file into "could not be read"; this is the other path.)
 
 ## Acceptance
+- Arriving from a tool, Unlock opens with the file already loaded and one obvious action, not an empty tool; reviewed at 1280 and 375.
 - Unit: an owner-only fixture unlocks with no input; a needs-password fixture still shows the field; a wrong password and a damaged file give different messages; an unknown `from` is ignored.

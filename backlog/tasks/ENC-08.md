@@ -4,14 +4,14 @@ title: "Split stops writing blank pages from a protected PDF, and shows when a f
 status: "open"
 priority: "P1"
 epic: "robustness"
-horizon: "now"
-order: 3
+horizon: "next"
+order: 1
 depends_on: ["ENC-01", "ENC-02"]
 ---
 
 # ENC-08 · Split stops writing blank pages from a protected PDF, and shows when a file did not load
 
-*Found 2026-10-02 while planning the protected-PDF work; run against real fixtures, plan section 4. Lands with ENC-01, ENC-02 and ENC-05.* On an owner-only file, `splitPdf` (`split.js:56`) loads with `ignoreEncryption: true`, copies the page streams without decrypting them and saves a valid, unencrypted PDF whose pages are blank (reloaded in pdf.js: no text, 0 dark pixels). The person gets a successful download. This is the silent one, which is why it leads.
+*Found 2026-10-02 while planning the protected-PDF work; run against real fixtures, plan section 4. Wave 2, first in it: it stops wrong files being written.* On an owner-only file, `splitPdf` (`split.js:56`) loads with `ignoreEncryption: true`, copies the page streams without decrypting them and saves a valid, unencrypted PDF whose pages are blank (reloaded in pdf.js: no text, 0 dark pixels). The person gets a successful download. This is the silent one, which is why it leads.
 
 ## Brief
 - Classify in `loadDocumentAndThumbnails` (`PdfSplitTool.tsx:229-236`), which already runs pdf.js on every file, and show `NeedsUnlock` for both kinds. Split already has a receiver (`useHandoffIntake`).

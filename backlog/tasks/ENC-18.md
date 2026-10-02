@@ -4,15 +4,15 @@ title: "The protected-PDF state has been read in Hebrew and mirrors in RTL"
 status: "open"
 priority: "P3"
 epic: "search-and-languages"
-horizon: "later"
-order: 5
+horizon: "next"
+order: 1
 depends_on: ["ENC-02"]
-needs: "A read of the Hebrew gate strings, and whether Hebrew surfaces may grow now"
+needs: "A short read of the Hebrew gate strings"
 ---
 
 # ENC-18 · The protected-PDF state has been read in Hebrew and mirrors in RTL
 
-*Plan section 7, open decision 5.* ENC-02 adds first-draft Hebrew strings because the shell catalogue type requires both languages. Redact and Unlock are not localized islands (`src/i18n/localizedTools.ts`) and have no `/he/` page, so the strings reach `/he/` only where Merge, Compress and Sign already take shell messages.
+*Plan section 7, decision 5 (Shlomi: yes, keep it simple).* ENC-02 adds first-draft Hebrew strings because the shell catalogue type requires both languages. Redact and Unlock are not localized islands (`src/i18n/localizedTools.ts`) and have no `/he/` page, so the strings reach `/he/` only where Merge, Compress and Sign already take shell messages.
 
 ## Brief
 - Shlomi reads the Hebrew; adjust it.

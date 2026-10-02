@@ -4,8 +4,8 @@ title: "Sign meets a protected PDF the same way Redact does"
 status: "open"
 priority: "P2"
 epic: "robustness"
-horizon: "next"
-order: 3
+horizon: "now"
+order: 5
 depends_on: ["ENC-05"]
 ---
 

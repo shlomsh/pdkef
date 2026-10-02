@@ -7,16 +7,18 @@ from the code, and anything neither is marked **inferred**).
 
 ## Recommendation in one paragraph
 
-Detect a protected PDF once, at the moment a tool first looks at it, with one shared classifier built on
-pdf.js (`needs-password`, `owner-restricted`, `open`, `unreadable`). When a file is protected, the tool
-shows one quiet state in the place of its editor (no modal, no banner, no failure language) with one
-action, **Unlock it**. That action parks the file in the existing one-shot hand-off store, opens
-`/unlock/?from=<tool>`, and Unlock hands the unlocked file back to the tool the same way, under its
-original name. Nothing leaves the device and nothing new is stored. The protected file is never added to
-recents, so there is no "pair" to reconcile: the unlocked file is simply a new file. Unlock learns to
-open an owner-password-only file without asking for a password (today it cannot). The same detector and
-the same component serve every tool that cannot read a protected file; Redact goes first, with Split, because
-Split and Edit Pages are worse than Redact (section 4).
+Decided with Shlomi on 2026-10-02 (section 9). Detect a protected PDF once, at the moment a tool first
+looks at it, with one shared classifier built on pdf.js (`needs-password`, `owner-restricted`, `open`,
+`unreadable`). When a file is protected, the tool shows one quiet state in the place of its editor (no
+modal, no banner, no failure language) with one action, **Unlock it**. The tools are a suite that hands
+work to each other, so that action parks the file in the existing one-shot hand-off store and opens
+`/unlock/?from=<tool>`. Unlock opens it with the file already loaded (no password field for an
+owner-password-only file, which it cannot open today). When it is done, Unlock **writes the unlocked
+file, named `<name>_unlocked.pdf`, into the shared on-device memory space as the asking tool's current
+file**, and "Continue in Redact" simply navigates. So a crash, a reload or the Back button anywhere after
+that point resumes with the unlocked file, and nothing is ever replaced: the protected original is never
+touched or stored, and the unlocked copy is a new file with its own entry. Nothing leaves the device. Redact
+is built first, end to end, as the first slice (section 7).
 
 ## 1. What the evidence actually says
 
@@ -128,15 +130,19 @@ calls `getCreationDate()` outside its try and throws on the garbled string, so s
 
 | | A. Baton plus `?from=` slug (recommended) | B. Return-to URL carrying the tool | C. Provenance field inside the hand-off record | D. No navigation: password field inside each tool |
 | --- | --- | --- | --- | --- |
-| How it travels | `saveHandoff('unlock')`, then `/unlock/?from=redact`; Unlock returns with `saveHandoff('redact')` | `/unlock/?return=/redact/` | `saveHandoff('unlock', {..., from: 'redact'})` | Shared `unlockPdf` in `src/lib`, shared prompt in `src/shell`; the bytes never move |
-| Survives a reload on Unlock | The intent does (`from` is in the URL); the file does not, the person picks it again | Same | Neither: the baton is consumed on arrival | n/a |
+| How it travels | `saveHandoff('unlock')`, then `/unlock/?from=redact`; Unlock returns by writing the file into the memory space for Redact (`cacheRecentFile('redact', ...)`, which also points Redact at it) and navigating | `/unlock/?return=/redact/` | `saveHandoff('unlock', {..., from: 'redact'})` | Shared `unlockPdf` in `src/lib`, shared prompt in `src/shell`; the bytes never move |
+| Survives a reload or crash | Before Unlock finishes: the protected original is still on the person's disk and nothing was edited. After: the unlocked file is in the memory space and Redact restores it | Same | Neither: the baton is consumed on arrival | n/a |
 | Back button | Redact returns from bfcache with the gate still showing (`useNavigatingAway` clears) | Same | Same | n/a |
 | Injection surface | `from` is matched against a closed list of tool slugs; no bytes, no names in the URL | An open redirect unless validated; avoid | None, but a record field `sw.js` mirrors | None |
 | New code | A hand-off helper, an Unlock receiver, one query param | Same plus a URL validator | Schema change in the record and its service-worker twin | A password UI in the shell, `unlockPdf` moved to `lib` |
 | Fit with the brief | It is the idea as stated | Same | Same | Not the idea: no round trip |
 
-**Recommendation: A.** The URL carries only a tool slug the app already knows; the bytes travel in the
-store that already carries bytes between tools; and the memory model needs no change. C looks tidy and
+**Recommendation: A.** The URL carries only a tool slug the app already knows; the bytes go out in the
+store that already carries bytes between tools, and come back through the memory space, which already
+survives a crash and already restores a file that has no work on it (`loadDraft` returns an entry with no
+`work[tool]`, `draftStore.js:~870-878`; `cacheRecentFile` writes the entry and sets that tool's pointer,
+`:427-470`; Redact's `onRestore` loads it, `useEditorDraftPersistence.ts:104-131`). The memory model needs
+no change. C looks tidy and
 costs a schema change that the service worker's copy of the record would have to follow. B is A with an
 open-redirect risk added.
 
@@ -144,39 +150,51 @@ D is the real alternative and deserves its own sentence: it is cheaper to build,
 reload problem, handles a wrong password inline, and needs no Playwright round trip. It is not what was
 asked for, and it duplicates a password prompt that Unlock already owns. It is kept swappable on purpose:
 the detector (ENC-01), the gate component's frame (ENC-02) and the telemetry (ENC-14) are the same under
-either; only the component's action changes. See open decision 1.
+either; only the component's action changes. See decision 1.
 
 ### Behaviour, case by case (recommended design)
 
-- **The file never leaves the device.** Same IndexedDB record, same origin, same 5-minute life, read and
-  deleted on arrival. No new `connect-src`, no URL carries a name or a byte.
+- **The file never leaves the device.** Out: the same IndexedDB hand-off record, same origin, five
+  minutes, read and deleted on arrival. Back: the memory space, the same database. No new `connect-src`, no
+  URL carries a name or a byte.
+- **Nothing irreversible, and a crash loses nothing** (Shlomi's requirement). Going out, nothing has been
+  edited yet (the gate comes before the editor) and the protected original is still on the person's disk,
+  so a crash on the way to Unlock costs one re-pick. Unlock never modifies or replaces anything: it
+  produces a new file. Coming back, the unlocked file is written to the memory space when Unlock finishes,
+  before the person taps Continue, so a crash, a reload or Back between the two resumes with it. Other
+  recents are untouched (a new entry is added; the six-entry recency rule evicts the oldest as for any
+  file).
 - **Identity across the unlock (the pair question).** The protected file is never stored: Redact and Sign
   call `cacheRecentFile` only after pdf.js accepts a file (`PdfRedactTool.tsx:460-464`), and the gate
   runs before that. So the protected hash H1 has no entry, no per-tool work and no pointer; the unlocked
-  bytes H2 arrive as a brand-new file and get a fresh entry, as any hand-off does. There is nothing to
-  link, and nothing to lose. One exception is real: an owner-only file that an earlier build already
-  opened sits in recents as H1 today, with no work (Redact could not export it). Leave it; recency
-  eviction (six entries, 28 days) removes it. Re-opening it from recents goes through `loadPdf` and meets
-  the gate like any pick.
-- **Name.** The return carries the person's original file name, so Redact's output is `redacted_<name>.pdf`
-  and not `redacted_<name>_unlocked.pdf`. Unlock's standalone download keeps `<name>_unlocked.pdf`.
-  (Open decision 3. Unlock's suffix is also the odd one out among prefixed siblings, ticket-worthy on its
-  own and out of scope here.)
+  bytes H2 get a fresh entry. There is nothing to link, and nothing to lose. One exception is real: an
+  owner-only file that an earlier build already opened sits in recents as H1 today, with no work (Redact
+  could not export it). Leave it; recency eviction (six entries, 28 days) removes it. Re-opening it from
+  recents goes through `loadPdf` and meets the gate like any pick.
+- **Name.** The returned file keeps Unlock's own name, `<name>_unlocked.pdf` (decided: the name tells the
+  person it is a different file from the original, which is what makes the flow safe to resume). Redact's
+  output is then `redacted_<name>_unlocked.pdf`. (Unlock's suffix is the odd one out among prefixed
+  siblings, ticket-worthy on its own and out of scope here.)
 - **Back button / bfcache.** The sending page restores from bfcache; its busy flag is a
   `useNavigatingAway`, so "Unlock it" works again. If the page was not cached, the tool opens empty and
-  the person picks the file again. Nothing is half-saved.
-- **Reload mid-way.** On Unlock: the file is gone (Unlock has no draft, by design), the `from` stays, so
-  once they pick the file again the "Continue in Redact" action is still there. In the gap between save
-  and arrival the baton survives five minutes.
-- **Abandoning Unlock.** Nothing to clean up: the baton was consumed on arrival; Unlock holds the file in
-  memory only (it already holds app updates while a file is open, MEM-10).
+  the person picks the file again. Nothing is half-saved. Back from Redact into Unlock is just Unlock.
+- **Reload on Unlock before it finishes.** The file is gone (Unlock has no draft, by design); the `from`
+  stays, so once the person picks the file again "Continue in Redact" is still offered.
+- **Abandoning Unlock.** Nothing to clean up. If Unlock finished, the unlocked file sits in recents as
+  Redact's current file; opening Redact later shows it, like any file left in progress. (The cost of the
+  simple design: Redact's pointer moves at unlock time, not at Continue. The previous file keeps its work
+  on its own entry, MEM-03.)
 - **Wrong password.** Stays in Unlock, inline, field refocused (already built). ENC-03 stops it saying
   "the password may be incorrect" for a damaged file, which it does today because every load failure is
-  mapped to `WrongPasswordError` (`security.js:45-54`, and the wrong-password text is hard-coded at `PdfSecurityTool.tsx:193`).
+  mapped to `WrongPasswordError` (`security.js:45-54`, and the wrong-password text is hard-coded at
+  `PdfSecurityTool.tsx:193`).
 - **Returning with the unlocked file ready.** Unlock's done state gets one quiet verb with the tool's icon,
-  "Continue in Redact", beside Download and Share, never in front of them (guidelines section 13). It
-  calls `saveHandoff('redact', ...)` and navigates; Redact's existing `beforeRestore` receives it and the
-  editor mounts. No change to Redact's receiving side.
+  "Continue in Redact", beside Download and Share, never in front of them (guidelines section 13). It only
+  navigates, with `?unlocked=1`; Redact restores the file through its normal draft path and the editor
+  mounts. No change to Redact's receiving side beyond the gate.
+- **Polish.** The two arrival moments are the whole experience: Redact's state, and Unlock opening with the
+  file already loaded and one obvious action. Both are reviewed at 1280 and 375, measured, per
+  guidelines section 14, before they count as done.
 
 ## 4. Scope: which tools hit the wall (question 4)
 
@@ -296,20 +314,22 @@ Eighteen tickets, each one narrow brief for one Sonnet subagent: named files, on
 `robustness` lane except ENC-05 and ENC-06 (`redact`) and ENC-18 (`search-and-languages`). Nothing is
 `in_progress`.
 
-**Landing constraint.** `test:module-boundaries` rule 9 has no allowlist and `check:fast` runs it, so a
-`lib` or `shell` module with fewer than two consumers fails. ENC-01 and ENC-02 are written first, as the
-contract, but they land **together with ENC-05 and ENC-08**, their first consumers (Redact and Split), as
-one first landing. They are not pushed alone.
+**Wave 1 is the Redact flow, end to end: a person loads a locked file in Redact, unlocks it, and is
+working on it.** ENC-01, ENC-02, ENC-03, ENC-04, ENC-05 and ENC-07 land as one slice. ENC-07 (Sign's state)
+is in it because Sign shares `loadPdf` and is the second consumer `test:module-boundaries` rule 9 requires
+for `NeedsUnlock` (no allowlist, run by `check:fast`). ENC-16, the round-trip spec, closes the slice.
+Nothing in wave 1 is pushed alone, and nothing is pushed without Shlomi's go.
 
 | Ticket | What | Depends on |
 | --- | --- | --- |
 | ENC-01 | The classifier and the fixtures: `src/lib/pdfEncryption.ts`, unit tests, tiny checked-in fixtures (needs-password and owner-only in AES-256, each also with an encrypted Info dictionary, plain, truncated; made once with pypdf, with the script beside them) | none |
-| ENC-02 | `NeedsUnlock`, `unlockHandoff` with the slug map, shell strings in English and Hebrew (the shell catalogue type requires both), jsdom tests | ENC-01 |
+| ENC-02 | `NeedsUnlock`, `unlockHandoff` (`sendToUnlock`, the slug map), shell strings in English and Hebrew (the shell catalogue type requires both), jsdom tests | ENC-01 |
 | ENC-03 | Unlock: receive a hand-off, owner-only opens with no password field, wrong password versus damaged file | ENC-02 |
-| ENC-04 | Unlock sends the file back: "Continue in <Tool>", original name, the `?unlocked=1` marker | ENC-03 |
+| ENC-04 | Unlock keeps its result: writes `<name>_unlocked.pdf` into the memory space as the asking tool's current file, then "Continue in <Tool>" navigates with `?unlocked=1` | ENC-03 |
 | ENC-05 | Redact: the gate as a `loadPdf` outcome, gating `list_objects` and the delete previews on an opened document, the state in place of the editor | ENC-01, ENC-02 |
 | ENC-06 | Redact: the export catch shows the state on `EncryptedPDFError` as a belt, and the rule text is updated | ENC-05 |
 | ENC-07 | Sign: the same outcome, replace the alert | ENC-05 |
+| ENC-16 | The round-trip Playwright spec | ENC-04, ENC-05 |
 | ENC-08 | Split: gate in `loadDocumentAndThumbnails`, stop the blank output, fix the status overwrite | ENC-01, ENC-02 |
 | ENC-09 | Edit Pages: probe at intake, refuse to export a protected file, add a receiver | ENC-01, ENC-02 |
 | ENC-10 | Compress and Compress Image: gate at intake, the under-target early return | ENC-01, ENC-02 |
@@ -318,14 +338,13 @@ one first landing. They are not pushed alone.
 | ENC-13 | Merge: a receiver that puts the unlocked file back in its slot | ENC-04, ENC-12 |
 | ENC-14 | Telemetry: the two events, digest columns, the docs, the island-test expectations | ENC-02, ENC-04 |
 | ENC-15 | The digest's definitions and the scheduled-task prompt | ENC-14 |
-| ENC-16 | The round-trip Playwright spec | ENC-04, ENC-05 |
 | ENC-17 | The cross-tool intake table test | ENC-05, ENC-07 to ENC-11 |
 | ENC-18 | Hebrew read-through, the RTL check and a parity test for the shell catalogue | ENC-02 |
 
-Waves. **1** ENC-01, ENC-02, written as the contract by the lead and reviewed; they land with ENC-05 and
-ENC-08. **2** in parallel on disjoint files: ENC-03, ENC-09, ENC-10, ENC-11, ENC-12. **3** ENC-04, ENC-06,
-ENC-07, ENC-13, ENC-14. **4** ENC-15, ENC-16, ENC-17, ENC-18. If capacity is short, ENC-08 and ENC-09 are the
-first to protect, because they stop wrong files being written; the round trip can follow.
+Waves after the first. **2** ENC-08 and ENC-09 first, because they stop wrong files being written (a Split
+or Edit Pages run on an owner-only file gives a blank download today, which no one has reported but the
+code guarantees), then ENC-10, ENC-11, ENC-12, ENC-13. **3** ENC-14, ENC-15, ENC-17, ENC-18. Within a wave,
+the briefs are on disjoint files and run in parallel.
 
 ## 8. Tests (question 6)
 
@@ -346,30 +365,31 @@ first to protect, because they stop wrong files being written; the round trip ca
 in `e2e/handoff/`, not under a tool folder (rule 7). One spec: B in Redact, gate shown and no
 `tool_operation_failed` beacon sent; Unlock It; Unlock arrives with the file and no password field;
 Continue; Redact has the editor, a box is drawn, Save produces a file pdf.js opens with the text redacted;
-then Back from Unlock (with the bfcache flags `back-navigation.spec.js` uses), and the wrong-password
+then a reload after Unlock finishes and before Continue (Redact still opens with the unlocked file, the
+crash case), Back from Unlock (with the bfcache flags `back-navigation.spec.js` uses), and the wrong-password
 and reload-mid-way cases for A. The e2e that would have caught the original bug is the first step of that
 spec: a Redact run on an owner-only fixture. The reason it was never written is that no encrypted fixture
 existed, and the guidelines' section 14 already warns that a fixture meant to fail must be checked to
 really fail (a pdf-lib "encrypted" fixture once did not). ENC-01 owns that, which is why it comes first, and ENC-16 is the spec.
 
-## 9. Open decisions for Shlomi
+## 9. Decisions
 
-1. **Round trip, or a password field in the tool?** Recommended: the round trip, as you described, because
-   Unlock stays the one place passwords are handled. The cost is two page navigations and a Playwright
-   spec. The alternative (D) is cheaper and has no bfcache edge, and the plan makes it a late swap.
-2. **Is an owner-only file "needs unlock"?** Recommended: yes, with one tap in Unlock and no password
-   field. Unlock would then remove protection that someone set with an owner password, which it does for
-   a password-needed file today. Say if you would rather the tools decline those files and never offer it.
-3. **Returned file keeps its original name** (recommended), or is named `<name>_unlocked.pdf`?
-4. **Merge** needs a receiver that accepts the file back into a set that is already open (ENC-13). Do it in
-   this epic, or leave Merge on its static link until later (ENC-12 still fixes the wrong "unreadable")?
-5. **Hebrew.** Redact and Unlock are not localized islands and there is no `/he/redact/` page, but the shell
-   catalogue type requires both languages, so ENC-02 adds Hebrew strings with the English ones. They are a
-   first draft for you to read (ENC-18). Hold ENC-18 if the Hebrew programme says no new surface.
-6. **The daily read.** The new definitions go in the scheduled-task prompt, which is yours. OK for me to
-   edit it, or you do?
-7. **Cost accepted?** The probe adds one worker pass (about 40 ms on 42 MB) in tools that did not parse
-   the file at intake.
+Shlomi, 2026-10-02:
+
+1. **Round trip: yes.** The tools are a suite that hands work to each other, not one tool that does
+   everything, and the experience has to be polished (section 3, "Polish").
+2. **Owner-only files:** keep it simple. One rule, "protected means Unlock": the same state and the same
+   action for both kinds. The kind changes only one sentence of copy and whether Unlock asks for a password.
+3. **Returned file name: not the original.** It is `<name>_unlocked.pdf`, so the workflow can break
+   mid-way (a crash) and the person resumes without an irreversible state. This is why the return leg goes
+   through the memory space and not a short-lived hand-off (section 3).
+4. **Merge: yes, in this epic** (ENC-13), and **Redact first**: the person loads a locked file to redact
+   (wave 1).
+5. **Hebrew: yes, keep it simple.** ENC-02 carries the strings; ENC-18 is a short read-through.
+6. **Daily read:** I edit the scheduled-task prompt (ENC-15).
+
+Not answered, treated as yes: **7.** The probe adds one worker pass (about 40 ms on 42 MB) in tools that did
+not parse the file at intake.
 
 Unrelated, seen in the same digest, not in this plan: Redact `read_glyphs` and `render_page`
 `TypeError`s (chromium 143, `/redact/`), one report each.
