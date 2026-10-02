@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapFrame, parseArgs, parseFrame, wrapperConfigText } from './errors-resolve.mjs';
+import { clipLine, mapFrame, matchChunks, parseArgs, parseFrame, parseFrames, wrapperConfigText } from './errors-resolve.mjs';
 
 describe('parseFrame', () => {
   it('parses chunk:line:col', () => {
@@ -35,7 +35,67 @@ describe('mapFrame', () => {
 
 describe('parseArgs', () => {
   it('reads --max', () => {
-    expect(parseArgs(['a.js:1:2', '--max', '3'])).toEqual({ frame: 'a.js:1:2', max: 3 });
+    expect(parseArgs(['a.js:1:2', '--max', '3'])).toEqual({ frames: ['a.js:1:2'], max: 3, from: 'origin/main' });
+    expect(parseArgs(['--from', 'drill', 'a.js:1:2']).from).toBe('drill');
     expect(parseArgs(['a.js:1:2']).max).toBe(40);
+  });
+  it('collects several frames with --max anywhere', () => {
+    expect(parseArgs(['a.js:1:2', '--max', '5', 'b.js:3:4', 'c.js:5:6'])).toEqual({ frames: ['a.js:1:2', 'b.js:3:4', 'c.js:5:6'], max: 5, from: 'origin/main' });
+    expect(parseArgs(['--max', '2', 'a.js:1:2', 'b.js:3:4']).frames).toHaveLength(2);
+  });
+});
+
+describe('parseFrames', () => {
+  it('parses all frames in order', () => {
+    expect(parseFrames(['a.js:1:2', 'b.js:3:4']).frames).toEqual([{ chunk: 'a.js', line: 1, col: 2 }, { chunk: 'b.js', line: 3, col: 4 }]);
+  });
+  it('rejects one bad frame among good ones with a one-line message', () => {
+    const r = parseFrames(['a.js:1:2', 'oops', 'c.js:5:6']);
+    expect(r.frames).toBeUndefined();
+    expect(r.error).toContain('#2');
+    expect(r.error).toContain('oops');
+    expect(r.error).not.toContain('\n');
+  });
+  it('rejects no frames', () => {
+    expect(parseFrames([]).error).toBeTruthy();
+  });
+});
+
+describe('matchChunks', () => {
+  const frames = [
+    { chunk: 'sortable.esm.BqtE8hmV.js', line: 1, col: 1 },
+    { chunk: 'PdfMergeTool.C4ILDZF-.js', line: 2, col: 2 },
+    { chunk: 'sortable.esm.BqtE8hmV.js', line: 3, col: 3 },
+  ];
+  it('matches only when every chunk of the report was emitted', () => {
+    expect(matchChunks(frames, ['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.C4ILDZF-.js', 'other.js'])).toEqual({ all: true, missing: [] });
+  });
+  it('a shared vendor chunk alone does not make the build the report\'s own', () => {
+    // The 2026-10-01 case: Sortable keeps its hash across builds, Merge's chunk changed.
+    expect(matchChunks(frames, ['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.NEWHASH.js'])).toEqual({ all: false, missing: ['PdfMergeTool.C4ILDZF-.js'] });
+  });
+  it('names each missing chunk once', () => {
+    expect(matchChunks(frames, []).missing).toEqual(['sortable.esm.BqtE8hmV.js', 'PdfMergeTool.C4ILDZF-.js']);
+  });
+});
+
+describe('clipLine', () => {
+  it('leaves a short line unchanged', () => {
+    expect(clipLine('const a = 1;', 5)).toBe('const a = 1;');
+    expect(clipLine('x'.repeat(160), 80)).toBe('x'.repeat(160));
+  });
+  it('clips a minified line to a window around the column with both ellipses', () => {
+    const line = 'a'.repeat(3251) + 'B' + 'c'.repeat(1748);
+    const out = clipLine(line, 3252);
+    expect(out.length).toBeLessThanOrEqual(162);
+    expect(out.startsWith('…')).toBe(true);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out).toContain('B');
+  });
+  it('clips near the start with only a trailing ellipsis', () => {
+    const out = clipLine('y'.repeat(5000), 3);
+    expect(out.startsWith('…')).toBe(false);
+    expect(out.endsWith('…')).toBe(true);
+    expect(out.length).toBeLessThanOrEqual(161);
   });
 });

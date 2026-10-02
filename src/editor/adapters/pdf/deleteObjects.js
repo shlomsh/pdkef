@@ -632,7 +632,7 @@ export async function listDeletableObjects(file) {
       const { objects } = extractPageObjects(doc.getPage(i), i);
       all.push(...objects);
     } catch (err) {
-      reportError('redact', err);
+      reportError('redact', err, 'list_objects');
       console.error(`Could not read deletable objects on page ${i + 1}`, err);
     }
   }

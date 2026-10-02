@@ -1,0 +1,80 @@
+/* The eyedropper's magnifier. Tokens only: the lens canvas draws page pixels, nothing else is a literal. */
+.loupe {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 120px;
+  height: 120px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.lens {
+  box-sizing: content-box;
+  display: block;
+  margin: -4px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--loupe-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text) 35%, transparent), var(--shadow-md);
+  background: var(--color-surface);
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    repeating-linear-gradient(to right, color-mix(in srgb, var(--color-text) 14%, transparent) 0 1px, transparent 1px var(--cell)),
+    repeating-linear-gradient(to bottom, color-mix(in srgb, var(--color-text) 14%, transparent) 0 1px, transparent 1px var(--cell));
+}
+
+.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cell);
+  height: var(--cell);
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  border: 1px solid var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-surface);
+}
+
+.hex {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--loupe-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-text) 35%, transparent);
+}
+
+/* Over the page surface the loupe is the pointer: its boxed centre cell is the
+   pixel a click takes, so the system cursor would only hide it. The selected
+   box's pill and resize handles are not the page (they keep their cursor and
+   their clicks). !important because the page wrapper and the boxes set their
+   cursor inline (same as PageStrip's grabbing cursor). */
+@media (hover: hover) {
+  :global(html[data-redact-eyedropping]) :global(.redact-draw-area),
+  :global(html[data-redact-eyedropping]) :global(.redact-draw-area) :not(:global([data-editor-actions]), :global([data-editor-resizer]), :global([data-editor-actions]) *, :global([data-editor-resizer]) *) {
+    cursor: none !important;
+  }
+}

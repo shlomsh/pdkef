@@ -37,7 +37,7 @@ export default function useDeletableObjects(file, fileBytes) {
         if (!cancelled) setObjects(found);
       })
       .catch((err) => {
-        reportError('redact', err);
+        reportError('redact', err, 'list_objects');
         console.error('Could not read deletable objects from this PDF', err);
         if (!cancelled) setObjects([]);
       });

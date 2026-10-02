@@ -92,7 +92,7 @@ export interface RedactState {
     /** Only what this document's owner explicitly chose (it rides in the draft). */
     carried: Partial<DocumentStyle> | undefined;
     brush: BrushSettings;
-    eyedropping: boolean;
+    eyedropping: 'brush' | 'box' | null;
     drawingState: RedactDrawing | null;
   };
   selection: {
@@ -151,7 +151,7 @@ export function initialRedactState(init: RedactInitialValues): RedactState {
       activeBlurStrength: init.activeBlurStrength,
       carried: undefined,
       brush: init.brush,
-      eyedropping: false,
+      eyedropping: null,
       drawingState: null,
     },
     selection: { activeBoxId: null, selectedBoxId: null },
@@ -205,7 +205,7 @@ export type RedactAction =
   | { type: 'COLOR_CHOSEN'; color: string }
   | { type: 'BLUR_STRENGTH_CHOSEN'; strength: BlurStrength }
   | { type: 'BRUSH_CHOSEN'; brush: BrushSettings; carriedPatch: Partial<DocumentStyle> }
-  | { type: 'EYEDROPPER_TOGGLED' }
+  | { type: 'EYEDROPPER_TOGGLED'; target: 'brush' | 'box' }
   | { type: 'EYEDROPPER_STOPPED' }
   | { type: 'DRAW_STARTED'; drawing: RedactDrawing }
   | { type: 'DRAW_ENDED' }
@@ -471,9 +471,9 @@ export function redactReducer(state: RedactState, action: RedactAction): RedactS
         carried: { ...state.tool.carried, ...action.carriedPatch },
       });
     case 'EYEDROPPER_TOGGLED':
-      return withTool(state, { eyedropping: !state.tool.eyedropping });
+      return withTool(state, { eyedropping: state.tool.eyedropping === action.target ? null : action.target });
     case 'EYEDROPPER_STOPPED':
-      return state.tool.eyedropping ? withTool(state, { eyedropping: false }) : state;
+      return state.tool.eyedropping ? withTool(state, { eyedropping: null }) : state;
     case 'DRAW_STARTED':
       // Pressing blank page deselects, then the draw begins.
       return selectionCleared(withTool(state, { drawingState: action.drawing }));

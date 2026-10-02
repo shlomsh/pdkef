@@ -99,6 +99,7 @@ function touchHintSeen() {
   try {
     return localStorage.getItem(TOUCH_HINT_KEY) === '1';
   } catch {
+    // expected: blocked localStorage, the touch hint counts as seen
     return true;
   }
 }
@@ -107,7 +108,7 @@ function markTouchHintSeen() {
   try {
     localStorage.setItem(TOUCH_HINT_KEY, '1');
   } catch {
-    // Blocked storage only means the bubble can show again on a later visit.
+    // expected: Blocked storage only means the bubble can show again on a later visit.
   }
 }
 

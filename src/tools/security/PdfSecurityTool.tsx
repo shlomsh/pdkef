@@ -1,5 +1,6 @@
 import { useRef, useState } from 'preact/hooks';
-import { isPdfEncrypted, protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError } from './security.js';
+import { isPdfEncrypted, protectPdf, unlockPdf, UnreadablePdfError, WrongPasswordError, SecurityError } from './security.js';
+import { reportError } from '../../lib/errorReport.ts';
 import { useObjectUrls } from '../../lib/useObjectUrls.js';
 import BasePdfTool from '../../shell/BasePdfTool.tsx';
 import styles from './PdfSecurityTool.module.css';
@@ -8,6 +9,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { describeFile } from '../../lib/format.js';
 
@@ -15,6 +17,8 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
+  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null, 'open');
   const [mode, setMode] = useState<string | null>(null); // 'unlock' | 'protect' | null
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
@@ -54,6 +58,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
     } catch (err: any) {
       console.error(err);
       if (!run.isCurrent()) return;
+      if (!(err instanceof UnreadablePdfError)) reportError('pdf_tool_run', err, 'check_encryption');
       run.settle();
       const message = err instanceof UnreadablePdfError
         ? 'Make sure it is a PDF and is not damaged.'
@@ -115,6 +120,7 @@ export default function PdfSecurityTool({ intent = 'unlock' }: { intent?: string
       // Same rule on the way out: a failure for a file nobody is looking at
       // any more must not put the loaded one into an error state.
       if (!run.isCurrent()) return;
+      if (!(err instanceof WrongPasswordError) && !(err instanceof SecurityError)) reportError('pdf_tool_run', err, sourceMode);
       run.settle();
       setStatus('error');
       if (err instanceof WrongPasswordError) {

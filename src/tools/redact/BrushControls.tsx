@@ -1,4 +1,3 @@
-import { useEffect } from 'preact/hooks';
 import { Pipette } from 'lucide-preact';
 import ColorPickerMenu from '../../editor-ui/ColorPickerMenu.tsx';
 import type { DocumentStyle } from '../../editor/model/documentStyle.ts';
@@ -39,59 +38,6 @@ export function resolveBrush(carried: Partial<DocumentStyle> | undefined, appSty
 /** The document-style keys that hold a brush choice. */
 export function brushStyleOf(settings: BrushSettings): Partial<DocumentStyle> {
   return { brushMode: settings.mode, brushSize: settings.size };
-}
-
-const toHex = (n: number) => n.toString(16).padStart(2, '0');
-
-/** The colour of the rendered page pixel under a client point, as #rrggbb, or
- * null if the canvas cannot be read. Samples the canvas, never the DOM. */
-export function sampleCanvasColor(canvas: HTMLCanvasElement, clientX: number, clientY: number): string | null {
-  const rect = canvas.getBoundingClientRect();
-  if (!rect.width || !rect.height) return null;
-  const x = Math.min(canvas.width - 1, Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * canvas.width)));
-  const y = Math.min(canvas.height - 1, Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * canvas.height)));
-  try {
-    const data = canvas.getContext('2d')?.getImageData(x, y, 1, 1).data;
-    return data ? `#${toHex(data[0])}${toHex(data[1])}${toHex(data[2])}` : null;
-  } catch {
-    return null;
-  }
-}
-
-/** While `active`, the next press on a page picks that pixel's colour instead
- * of painting: it is swallowed in the capture phase so no stroke starts. Esc
- * cancels. */
-export function useEyedropper(active: boolean, onPick: (color: string) => void, onDone: () => void) {
-  useEffect(() => {
-    if (!active) return undefined;
-    const point = (e: MouseEvent | TouchEvent) => ('touches' in e && e.touches?.length ? e.touches[0] : (e as MouseEvent));
-    const onPress = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Element | null;
-      // The eyedropper button and the rest of the chrome keep working.
-      const card = target?.closest?.('[data-editor-page-card]');
-      if (!card) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const canvas = card.querySelector<HTMLCanvasElement>('canvas');
-      const p = point(e);
-      const color = canvas ? sampleCanvasColor(canvas, p.clientX, p.clientY) : null;
-      if (color) onPick(color);
-      onDone();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onDone();
-    };
-    window.addEventListener('mousedown', onPress, true);
-    window.addEventListener('touchstart', onPress, { capture: true, passive: false });
-    window.addEventListener('keydown', onKey, true);
-    return () => {
-      window.removeEventListener('mousedown', onPress, true);
-      window.removeEventListener('touchstart', onPress, true);
-      window.removeEventListener('keydown', onKey, true);
-    };
-  }, [active, onPick, onDone]);
 }
 
 export default function BrushControls({

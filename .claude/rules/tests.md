@@ -139,9 +139,17 @@ which unit test files run; see the section above for that.
 - The Nx project graph is the oracle: `affected-scope.mjs` asks `nx show projects --affected` for the
   changed files, then CI runs one narrowed `playwright test` per shard (and, historically, the now-
   retired `vitest run <unit_paths>` line - see above for what replaced it).
-- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`) widen e2e/font/export scope to everything: every
-  tool depends on all four, so a change to any of them can affect every tool's behavior and nothing
-  narrows anyway.
+- `CORE_PROJECTS` (`site`, `shell`, `editor`, `lib`) widen e2e/font/export scope to everything unless
+  import reachability (ARCH-32) can name the tools: Nx cannot (it connects `editor` to 18 of 19
+  projects), so `narrowByReachability()` walks "who imports me" from every changed `src/` file
+  (graph from `scripts/import-graph.mjs`, the scan `check-module-boundaries.mjs` shares) and every
+  walk must end at a tool file, a tool's own page or an `e2e/` file under the always-run site-wide specs
+  (tool specs also visit the home page and `/he/merge/`, so reaching any other page or spec goes wide). Then only those tools' `e2e/` run, plus the site-wide specs
+  and the export guards; the summary line names the file that reaches each tool. It fails open to
+  everything, with the reason, for CSS, content or any file the scan never saw, a module nothing
+  live imports (`middleware.ts`, `api/`, `content.config.ts`, a file only a build script or a path
+  string loads) and a diff with no `src/` file. Unit tests and `src/test/` support never count as
+  reaching a tool. `scripts/import-graph.mjs` is an oracle file: a change to it runs everything.
 - An affected `tool-<name>` project narrows e2e paths to that tool's own `src/tools/<name>/e2e/`.
 - The 25 font screening guards (`fonts` Playwright project, `e2e/sign/`) run per-push only when a
   font-registry file, a guard spec/fixture, or the toolchain around them changed - a hand-written
@@ -157,6 +165,13 @@ which unit test files run; see the section above for that.
   to everything, fail-open: ambiguous scope always widens, never narrows.
 
 ## `npm run check:push` (`scripts/check-push.mjs`, ARCH-29)
+
+**Two commands, split by who runs them.** `check:push` is the lead's pre-push gate and has no
+Playwright: guards, unit, typecheck, build and the dist guards, with independent steps run
+concurrently (guards + unit + typecheck + build in one stage, dist guards after the build; output
+shown only for a failure, the first failure kills the stage). `npm run check:e2e` is the build plus
+the Playwright projects the diff selects, chromium only (webkit is CI's); `-- --perf` adds the
+wall-clock perf project. Subagents run neither, only `check:fast`. CI still runs everything.
 
 The local pre-push command: computes the same scope as CI, once, then runs only the steps that scope
 needs, stopping at the first failure. It never re-derives the scope itself - it calls
@@ -180,8 +195,7 @@ export guards only when one of their own specs changed (`narrowTestOnlyChange()`
 fixture keeps the Nx verdict. The typecheck is check:fast's `chooseTypecheck()`: tsc unless the diff
 touches an `.astro` file or a type config; CI always runs `astro check`. Port 4173 is machine-wide
 and Playwright reuses whatever holds it locally, so check:push refuses to start when another
-worktree's process (or one whose directory it cannot read) holds it. ARCH-32 is the next step:
-e2e by file-level reachability for core changes.
+worktree's process (or one whose directory it cannot read) holds it.
 
 ## `npm run gate:ios`: Sign fill mode in the iOS Simulator (SNG-07)
 

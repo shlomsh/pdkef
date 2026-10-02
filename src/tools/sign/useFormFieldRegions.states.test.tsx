@@ -146,7 +146,7 @@ describe('useFormFieldRegions detection state', () => {
     }));
 
     await detect();
-    expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError);
+    expect(reportError).toHaveBeenCalledWith('sign_form_detection', theError, 'detect_fields');
     vi.doUnmock('../../lib/errorReport.ts');
   });
 

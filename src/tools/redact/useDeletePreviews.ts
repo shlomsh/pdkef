@@ -65,6 +65,7 @@ function spansKey(spans: DeleteSpan[]): string {
 // gap for the editors' own document handles).
 function destroyPreview(proxy: PDFDocumentProxy | undefined) {
   const destroy = Reflect.get(proxy ?? {}, 'destroy');
+  // expected: best-effort cleanup of a preview pdf.js doc
   if (typeof destroy === 'function') void Promise.resolve(destroy.call(proxy)).catch(() => {});
 }
 
@@ -200,7 +201,7 @@ export default function useDeletePreviews(
         });
         keysRef.current = nextKeys;
       } catch (err) {
-        reportError('redact', err);
+        reportError('redact', err, 'render_delete_preview');
         // Same fallback as the rest of Delete: an unreadable preview just
         // means that page keeps showing the (still correct, if less exact)
         // original render, not a broken editor.

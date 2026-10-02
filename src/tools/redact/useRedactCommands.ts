@@ -15,9 +15,10 @@ import {
   captureElementUpdate,
   createActionEntry,
   type ActionHistoryEntry,
+  type ElementUpdate,
 } from '../../editor/model/actionHistory.ts';
 import type { EditCommit } from './state/redactState.ts';
-import { createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
+import { classifyElementUpdate, createUpdateEntry, type ElementUpdateKind } from '../../editor/model/updateKind.ts';
 
 export interface RedactCommandDeps<T extends { id: string; pageIndex: number }> {
   elements: readonly T[];
@@ -68,12 +69,23 @@ export interface RedactCommands<T> {
    * linkedChanges) as one update entry for the box `id`, with every other
    * box's captured update appended to that same entry, exactly as
    * updateElement does today. `describe` overrides describeUpdate for
-   * entries like "Unlinked the box on this page". */
+   * entries like "Unlinked the box on this page". `primary` is the changes
+   * the person made before anything derived from them was added (an auto
+   * colour riding on a move); when given, the entry is described by primary's
+   * kind, so a move that re-sampled a colour still reads "Moved whiteout box". */
   update(
     id: string,
     perBox: readonly { id: string; changes: Partial<T> }[],
-    options?: { describe?: (kind: ElementUpdateKind) => string },
+    options?: { describe?: (kind: ElementUpdateKind) => string; primary?: Partial<T> },
   ): void;
+}
+
+/** The kind of what the person changed, or undefined when `primary` is empty. */
+function primaryUpdateKind<T extends { id: string }>(element: T, primary: Partial<T>): ElementUpdateKind | undefined {
+  const keys = Object.keys(primary) as (keyof T)[];
+  if (keys.length === 0) return undefined;
+  const before = Object.fromEntries(keys.map((key) => [key, element[key]])) as Partial<T>;
+  return classifyElementUpdate({ id: element.id, before, after: primary } as ElementUpdate);
 }
 
 export default function useRedactCommands<T extends { id: string; pageIndex: number }>(
@@ -112,13 +124,14 @@ export default function useRedactCommands<T extends { id: string; pageIndex: num
   const update = (
     id: string,
     perBox: readonly { id: string; changes: Partial<T> }[],
-    options?: { describe?: (kind: ElementUpdateKind) => string },
+    options?: { describe?: (kind: ElementUpdateKind) => string; primary?: Partial<T> },
   ) => {
     const element = elements.find((el) => el.id === id);
     if (!element) return;
     const edit = { kind: 'update' as const, changesById: new Map(perBox.map(({ id: boxId, changes: boxChanges }) => [boxId, boxChanges])) };
     const changes = perBox.find(({ id: boxId }) => boxId === id)?.changes ?? {};
-    const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(kind, element));
+    const primaryKind = options?.primary && primaryUpdateKind(element, options.primary);
+    const describe = options?.describe ?? ((kind: ElementUpdateKind) => describeUpdate(primaryKind ?? kind, element));
     const entry = createUpdateEntry(element, changes, describe);
     if (!entry) {
       commit({ edit, entry: null });

@@ -41,8 +41,15 @@ const unionKinds = (baselineByKind, actualByKind) => [...new Set([...Object.keys
 
 const scored = new Map();
 
-beforeAll(async () => {
-  for (const form of FORMS) {
+/**
+ * QUAL-19: each form is scored in its own `beforeAll`, inside its own describe, not all ten in
+ * one hook. Warm, the whole corpus scores in about 1.3s alone and about 3-4s with other suites
+ * running (Thai PND90 is the largest at 0.4s alone, 1.0s loaded), but the hook limit is 10s and a
+ * saturated machine has stretched the single combined hook past it. One form per hook makes the
+ * limit apply to the slowest form, which has a wide margin, and the scores themselves are unchanged.
+ */
+describe.each(FORMS)('$name', (form) => {
+  beforeAll(async () => {
     scored.set(form.name, await scoreForm({
       pdf: path.join(repoRoot, form.pdf),
       truth: path.join(repoRoot, form.truth),
@@ -51,17 +58,12 @@ beforeAll(async () => {
       // its own baselines.json row rather than needing a special case here.
       pageIndex: form.pageIndex,
     }));
-  }
-  // Always visible, not only on failure: a passing run that silently improved
-  // is the one you want to notice, because the baseline needs re-recording.
-  for (const form of FORMS) {
-    const result = scored.get(form.name);
+    // Always visible, not only on failure: a passing run that silently improved
+    // is the one you want to notice, because the baseline needs re-recording.
     // eslint-disable-next-line no-console
-    console.log(`${formatRow(result)}   (baseline ${form.recall}% / ${form.precision}%)`);
-  }
-});
+    console.log(`${formatRow(scored.get(form.name))}   (baseline ${form.recall}% / ${form.precision}%)`);
+  });
 
-describe.each(FORMS)('$name', (form) => {
   it('finds at least as many of its fields as it used to', () => {
     const { recall } = scored.get(form.name);
     expect(recall, `recall fell below the recorded baseline for ${form.name}`)

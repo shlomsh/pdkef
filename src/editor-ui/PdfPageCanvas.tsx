@@ -75,7 +75,7 @@ export default function PdfPageCanvas({
         // Cancellation is the normal teardown path when a document/page is
         // replaced or this canvas unmounts; only report real render failures.
         if (active && (!(err instanceof Error) || err.name !== 'RenderingCancelledException')) {
-          reportError('pdf_render', err);
+          reportError('pdf_render', err, 'render_page');
           console.error(`Error rendering page ${pageNum}:`, err);
         }
       }

@@ -1,6 +1,6 @@
 /**
  * DEBT-04: the message shape the editor's registry (`NodeRenderContext.messages`
- * in `./types.ts`) and the Sign/Redact chrome (`editor-ui/FontPickerMenu.tsx`,
+ * in `./types.ts`) and the Sign/Redact chrome (`tools/sign/components/FontPickerMenu.tsx`,
  * Sign's own toolbar and dialogs) render from. `src/i18n/toolMessages.ts`
  * supplies the actual English/Hebrew values and re-exports this type, so the
  * editor core itself never imports from `src/i18n/`.
@@ -190,7 +190,7 @@ export interface SignMessages {
   blurStrengthStronger: string;
   duplicateElementTitle: string;
   deleteElementTitle: string;
-  /** RED-03: ElementToolbar.tsx's Redact-only "repeat on every page" button. */
+  /** RED-03: RedactBoxToolbar.tsx's "repeat on every page" button. */
   repeatOnEveryPageTitle: string;
   repeatOnEveryPageLabel: string;
   /** RED-03: the linked set's menu, once a box is linked (repeatGroupSize

@@ -10,6 +10,7 @@ import PdfShareButton from '../../shell/PdfShareButton.tsx';
 import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { useLatestRun } from '../../lib/useLatestRun.ts';
 import { useNavigatingAway } from '../../lib/useNavigatingAway.ts';
 import { describeFile, formatFileSize } from '../../lib/format.js';
@@ -97,6 +98,10 @@ export default function PdfSplitTool({
   const handoffRun = useLatestRun();
   /** A tap on the element while it was still preparing: deliver on ready. */
   const pendingTap = useRef(false);
+  // A Download tap during 'preparing' waits on this build, so hold through all of
+  // it; an untapped prepare only delays an update by a moment.
+  useHoldUpdate(status === 'preparing');
+  useHoldUpdate(file !== null, 'open');
   const outputsRef = useRef<OutputFile[]>([]);
   outputsRef.current = outputs;
 
@@ -185,7 +190,7 @@ export default function PdfSplitTool({
         setStatus('ready');
       } catch (err) {
         if (prepareSeq.current !== seq) return;
-        reportError('pdf_tool_run', err);
+        reportError('pdf_tool_run', err, 'prepare_split');
         console.error(err);
         setStatus('error');
         setAnnouncement('Could not prepare the split PDF.');
@@ -272,7 +277,7 @@ export default function PdfSplitTool({
           );
         } catch (err) {
           // A run that lost its file had its document destroyed under it.
-          if (run.isCurrent()) reportError('pdf_render', err);
+          if (run.isCurrent()) reportError('pdf_render', err, 'render_thumbnail');
           console.error(`Error rendering thumbnail for page ${i}:`, err);
         }
       }
@@ -281,7 +286,7 @@ export default function PdfSplitTool({
     } catch (err) {
       console.error('Error loading PDF document:', err);
       if (!run.isCurrent()) return;
-      reportError('pdf_render', err);
+      reportError('pdf_render', err, 'load_document');
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
     } finally {
@@ -296,7 +301,7 @@ export default function PdfSplitTool({
         try {
           await loadingTask.destroy();
         } catch {
-          // An abandoned task failing to release is nothing the person can act on.
+          // expected: an abandoned task failing to release is nothing the person can act on
         }
       }
     }
@@ -338,6 +343,7 @@ export default function PdfSplitTool({
       );
       setPageSelectorError('');
     } catch (err: any) {
+      // expected: the person's own page range did not parse; its message is shown under the field.
       // While a selector is being typed ("1-" or "1,") hold the error.
       const isPartial = /[-,]\s*$/.test(value);
       setPageSelectorError(isPartial ? '' : err.message);
@@ -467,7 +473,7 @@ export default function PdfSplitTool({
       run.settle();
       navigate('/compress/');
     } catch {
-      // A stale failure must not touch the new file's UI.
+      // expected: saveHandoff reports its own failure; a stale failure must not touch the new file UI
       if (!run.isCurrent()) return;
       setHandoffFailed(true);
       setHandoffBusy(false);

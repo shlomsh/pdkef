@@ -358,7 +358,7 @@ describe('saveDraft / loadDraft / deleteDraft / cacheRecentFile (IndexedDB, fake
     const report = vi.spyOn(errorReport, 'reportError').mockImplementation(() => {});
     const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await saveDraft('sign', { fileBytes: bytesOf('%PDF-1.4 x') })).toBe(false);
-    expect(report).toHaveBeenCalledWith('drafts', boom);
+    expect(report).toHaveBeenCalledWith('drafts', boom, 'save_draft');
     report.mockRestore();
     quiet.mockRestore();
   });

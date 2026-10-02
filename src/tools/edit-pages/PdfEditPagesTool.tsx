@@ -14,6 +14,7 @@ import ProgressRing from '../../shell/ProgressRing.tsx';
 import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import { reportError } from '../../lib/errorReport.ts';
 
@@ -34,6 +35,8 @@ export default function PdfEditPagesTool() {
   const [file, setFile] = useState<File | null>(null);
   const [addPageNumbers, setAddPageNumbers] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | loading-file | processing | done | error
+  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [announcement, setAnnouncement] = useState('');
@@ -137,11 +140,11 @@ export default function PdfEditPagesTool() {
           ),
         }));
       }).catch((err) => {
-        reportError('pdf_render', err);
+        reportError('pdf_render', err, 'render_thumbnail');
         console.error('Thumbnail generation failed:', err);
       });
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'load_document');
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to load PDF file.');
@@ -249,7 +252,7 @@ export default function PdfEditPagesTool() {
       setStatus('done');
       setAnnouncement('Your modified PDF is ready.');
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'apply_page_edits');
       console.error(err);
       setStatus('error');
       setAnnouncement('Failed to edit PDF.');

@@ -13,6 +13,7 @@ import ErrorMessage from '../../shell/ErrorMessage.tsx';
 import DownloadButton from '../../shell/DownloadButton.tsx';
 import CompareSlider from './CompareSlider.tsx';
 import { usePdfShare } from '../../lib/usePdfShare.js';
+import { useHoldUpdate } from '../../lib/useHoldUpdate.ts';
 import { describeFile } from '../../lib/format.js';
 import type { AnalyticsTool } from '../../lib/productAnalytics.ts';
 import { englishCompressMessages, formatMessage, type CompressMessages, type ShellMessages } from '../../i18n/toolMessages';
@@ -81,6 +82,8 @@ export default function PdfCompressTool({
   const [level, setLevel] = useState('medium');
   const [targetKB, setTargetKB] = useState(100);
   const [status, setStatus] = useState('idle'); // idle | processing | done | error
+  useHoldUpdate(status === 'processing');
+  useHoldUpdate(file !== null, 'open');
   const [progress, setProgress] = useState(0);
   const { url: downloadUrl, setBlob: setDownloadBlob, clear: clearDownload } = useObjectUrls();
   const [compressedSize, setCompressedSize] = useState<number | null>(null);
@@ -224,7 +227,7 @@ export default function PdfCompressTool({
       setCompareStatus('idle');
     } catch (err) {
       if (runToken !== runTokenRef.current) return;
-      reportError('pdf_render', err);
+      reportError('pdf_render', err, 'render_compare_preview');
       console.error(err);
       setCompareStatus('error');
     }
@@ -365,7 +368,7 @@ export default function PdfCompressTool({
         openCompare();
       }
     } catch (err) {
-      reportError('pdf_tool_run', err);
+      reportError('pdf_tool_run', err, 'compress');
       console.error(err);
       if (runToken !== runTokenRef.current) return;
       setStatus('error');

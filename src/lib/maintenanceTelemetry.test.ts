@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { setReportingEnabledForTests } from './errorReport.ts';
 import {
   signFormDetectionNotStarted,
   signFormDetectionUnavailable,
   classifyExportError,
   reportMaintenanceEvent,
+  beaconMaintenanceTransport,
+  resetMaintenanceEventsForTests,
+  MAX_EVENTS_PER_PAGE,
   sanitizeAnalyticsEvent,
   sanitizeAnalyticsPath,
   signExportFailed,
@@ -169,5 +173,50 @@ describe('anonymous maintenance telemetry', () => {
       type: 'pageview',
       url: 'https://pdkef.com/',
     });
+  });
+});
+
+describe('beaconMaintenanceTransport', () => {
+  const beacon = vi.fn((..._args: unknown[]) => true);
+  beforeEach(() => {
+    beacon.mockReset();
+    beacon.mockReturnValue(true);
+    vi.stubGlobal('navigator', { onLine: true, sendBeacon: beacon });
+    setReportingEnabledForTests(true);
+    resetMaintenanceEventsForTests();
+  });
+
+  it('posts exactly the event to /api/report', async () => {
+    beaconMaintenanceTransport(signFormDetectionNotStarted());
+    expect(beacon).toHaveBeenCalledTimes(1);
+    const [path, blob] = beacon.mock.calls[0] as [string, Blob];
+    expect(path).toBe('/api/report');
+    expect(JSON.parse(await blob.text())).toEqual({
+      name: 'sign_form_detection',
+      properties: { outcome: 'failure', error_code: 'not_started' },
+    });
+  });
+  it('sends nothing for a forged extra property', () => {
+    const forged = {
+      name: 'sign_form_detection',
+      properties: { outcome: 'failure', error_code: 'not_started', filename: 'a.pdf' },
+    } as unknown as ReturnType<typeof signFormDetectionNotStarted>;
+    beaconMaintenanceTransport(forged);
+    expect(beacon).not.toHaveBeenCalled();
+  });
+  it('sends nothing past the per-page cap', () => {
+    for (let i = 0; i < MAX_EVENTS_PER_PAGE + 1; i++) beaconMaintenanceTransport(signFormDetectionNotStarted());
+    expect(beacon).toHaveBeenCalledTimes(MAX_EVENTS_PER_PAGE);
+  });
+  it('sends nothing when reporting is disabled', () => {
+    setReportingEnabledForTests(false);
+    beaconMaintenanceTransport(signFormDetectionNotStarted());
+    expect(beacon).not.toHaveBeenCalled();
+  });
+  it('does not throw when sendBeacon throws', () => {
+    beacon.mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => beaconMaintenanceTransport(signFormDetectionNotStarted())).not.toThrow();
   });
 });

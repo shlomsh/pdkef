@@ -1,23 +1,35 @@
 // Vercel Function: receives the anonymous error reports of src/lib/errorReport.ts
-// and counts them in Upstash Redis (DEBT-17). The second request-time component
-// after middleware.ts; Astro itself stays output 'static' with no adapter, so
-// this is a plain function under api/. It never sees a PDF byte: a report is
-// three short identifiers, validated by parseErrorReport.
+// and counts them in Upstash Redis (DEBT-17), keeping the latest example of
+// each (DEBT-27), and also counts Sign's maintenance events (counts only, no
+// sample), and per-tool usage (counts only, no engine, no sample). The second request-time component after middleware.ts; Astro
+// itself stays output 'static' with no adapter, so this is a plain function
+// under api/. It never sees a PDF byte: a report is positions in our own code,
+// identifiers, flags and a bucket, validated by parseErrorReport.
 //
 // Shape: Vercel's documented Web-standard form for non-Next projects, one
 // exported function per HTTP method (`export function POST(request: Request)`).
 //
 // Always 204, whatever happens, so the endpoint can never block or break a
-// tool. Stored: counts per day and engine bucket only - no IP, no full user
-// agent, no time finer than the day. Nothing from the request is logged.
+// tool. Stored: counts per day, plus the latest validated example of each,
+// with an engine bucket - no IP, no full user agent, no time finer than the
+// day. Nothing from the request is logged.
 import { MAX_REPORT_BYTES, parseErrorReport } from '../src/lib/errorReportSchema.js';
+import { parseMaintenanceEvent } from '../src/lib/maintenanceEventSchema.js';
+import { parseUsageEvent } from '../src/lib/usageEventSchema.js';
 import {
   DAILY_CAP,
+  USAGE_DAILY_CAP,
   capCommands,
   countCommands,
   dayKey,
   engineBucket,
+  errorTotalKey,
+  eventCommands,
   readEnv,
+  usageCapCommands,
+  usageCommands,
+  usageTotalKey,
+  withDayExpiry,
   type Command,
 } from '../src/site-lib/errorReportStore.js';
 
@@ -42,6 +54,7 @@ async function pipeline(
 // The day the cap was last reached, per warm instance: past it, a flood of
 // forged reports costs no store calls at all.
 let cappedDay = '';
+let cappedUsageDay = '';
 
 export async function POST(request: Request): Promise<Response> {
   try {
@@ -49,17 +62,30 @@ export async function POST(request: Request): Promise<Response> {
     if (declared > MAX_REPORT_BYTES) return NO_CONTENT();
     const body = await request.text();
     if (body.length > MAX_REPORT_BYTES) return NO_CONTENT();
-    const report = parseErrorReport(JSON.parse(body));
+    const json: unknown = JSON.parse(body);
+    const report = parseErrorReport(json);
+    const event = report ? null : parseMaintenanceEvent(json);
+    const usage = report || event ? null : parseUsageEvent(json);
     const store = readEnv(process.env);
-    if (!report || !store) return NO_CONTENT();
+    if ((!report && !event && !usage) || !store) return NO_CONTENT();
 
     const day = dayKey(new Date());
+    if (usage) {
+      if (day === cappedUsageDay) return NO_CONTENT();
+      const [total] = await pipeline(store, usageCapCommands(day));
+      if (typeof total?.result === 'number' && total.result > USAGE_DAILY_CAP) cappedUsageDay = day;
+      else if (typeof total?.result === 'number') {
+        await pipeline(store, withDayExpiry(usageTotalKey(day), total.result, usageCommands(usage, day)));
+      }
+      return NO_CONTENT();
+    }
     if (day === cappedDay) return NO_CONTENT();
     const [total] = await pipeline(store, capCommands(day));
     if (typeof total?.result === 'number' && total.result > DAILY_CAP) cappedDay = day;
     else if (typeof total?.result === 'number') {
       const engine = engineBucket(request.headers.get('user-agent') ?? '');
-      await pipeline(store, countCommands(report, engine, day));
+      const counting = report ? countCommands(report, engine, day) : eventCommands(event!, engine, day);
+      await pipeline(store, withDayExpiry(errorTotalKey(day), total.result, counting));
     }
   } catch {
     console.error('error-report: dropped');
