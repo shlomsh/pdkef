@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BLUR_MAX, BLUR_MIN, DEFAULT_BLUR_STRENGTH, blurFactor, blurFraction, blurRadiusPx, isBlurStrengthValue,
+  BLUR_MAX, BLUR_MIN, BLUR_SLIDER_MAX, BLUR_SLIDER_MIN, DEFAULT_BLUR_STRENGTH, UNSET_BLUR_STRENGTH, blurFactor, blurFraction, blurRadiusPx, isBlurStrengthValue,
   resolveBlurStrength, snapBlurStrength,
 } from './blurStrength.ts';
 
 describe('blurStrength', () => {
-  it('a missing or unknown strength reads as the default 0.3', () => {
-    expect(DEFAULT_BLUR_STRENGTH).toBe(0.3);
-    expect(resolveBlurStrength(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(resolveBlurStrength('bogus')).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(resolveBlurStrength('toString')).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(resolveBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(blurFactor(undefined)).toBe(DEFAULT_BLUR_STRENGTH);
+  it('a missing or unknown strength reads as 0.3, so a box saved without one exports as it always did', () => {
+    expect(UNSET_BLUR_STRENGTH).toBe(0.3);
+    expect(resolveBlurStrength(undefined)).toBe(UNSET_BLUR_STRENGTH);
+    expect(resolveBlurStrength('bogus')).toBe(UNSET_BLUR_STRENGTH);
+    expect(resolveBlurStrength('toString')).toBe(UNSET_BLUR_STRENGTH);
+    expect(resolveBlurStrength(NaN)).toBe(UNSET_BLUR_STRENGTH);
+    expect(blurFactor(undefined)).toBe(UNSET_BLUR_STRENGTH);
+  });
+
+  it('a new box starts in the exact middle of the slider, and a stored strength above the slider is not weakened', () => {
+    expect(DEFAULT_BLUR_STRENGTH).toBe(0.15);
+    expect((BLUR_SLIDER_MIN + BLUR_SLIDER_MAX) / 2).toBeCloseTo(DEFAULT_BLUR_STRENGTH, 10);
+    expect(BLUR_SLIDER_MAX).toBeLessThan(BLUR_MAX);
+    expect(resolveBlurStrength(0.4)).toBe(0.4);
+    expect(resolveBlurStrength('strong')).toBe(0.5);
   });
 
   it('legacy names migrate: light 0.3, medium 0.4, strong 0.5', () => {
@@ -30,14 +38,16 @@ describe('blurStrength', () => {
     expect(resolveBlurStrength(9)).toBe(BLUR_MAX);
   });
 
-  it('snapBlurStrength: within 0.02 of 0.3 snaps to it, else hundredths, clamped', () => {
-    expect(snapBlurStrength(0.31)).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(snapBlurStrength(0.28)).toBe(DEFAULT_BLUR_STRENGTH);
-    expect(snapBlurStrength(0.43)).toBe(0.43);
-    expect(snapBlurStrength(0.4)).toBe(0.4);
-    expect(snapBlurStrength(0.2549)).toBe(0.25);
-    expect(snapBlurStrength(0.01)).toBe(BLUR_MIN);
-    expect(snapBlurStrength(3)).toBe(BLUR_MAX);
+  it('snapBlurStrength: the notch is sticky within 0.015 of the default, else hundredths, clamped to the slider', () => {
+    expect(snapBlurStrength(0.164)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(snapBlurStrength(0.136)).toBe(DEFAULT_BLUR_STRENGTH);
+    expect(snapBlurStrength(0.13)).toBe(0.13);
+    expect(snapBlurStrength(0.17)).toBe(0.17);
+    expect(snapBlurStrength(0.2)).toBe(0.2);
+    expect(snapBlurStrength(0.1949)).toBe(0.19);
+    expect(snapBlurStrength(0.01)).toBe(BLUR_SLIDER_MIN);
+    expect(snapBlurStrength(0.4)).toBe(BLUR_SLIDER_MAX);
+    expect(snapBlurStrength(3)).toBe(BLUR_SLIDER_MAX);
     expect(snapBlurStrength(NaN)).toBe(DEFAULT_BLUR_STRENGTH);
   });
 

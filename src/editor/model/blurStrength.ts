@@ -31,16 +31,32 @@
 // on a tall box, so the range moved down to 0.05-0.55 and the default to 0.3,
 // the old light, which already read as a smear on a real export.
 
+// RED-54: Shlomi (2026-10-02): the middle of the slider was already a flat grey
+// wash and the top end was fog, but a blur is meant to stay a blur - a solid
+// patch is what Whiteout is for. Swept on real text (one- and three-line
+// boxes), the range that still reads as smeared text is about 0.06-0.24, so
+// that is what the slider offers, with the default exactly in the middle. The
+// stored-data clamp (BLUR_MIN..BLUR_MAX) is untouched: a draft or a box saved
+// at 0.4 keeps rendering and exporting at 0.4, never weaker than it was drawn.
+
 export type BlurStrength = number;
 
+/** What any stored strength is clamped to, so every box ever saved resolves as it was. */
 export const BLUR_MIN = 0.05;
 export const BLUR_MAX = 0.55;
 
-/** What a blur box saved before strength existed restores as, and what a new box starts at. */
-export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.3;
+/** What the slider offers: the range where a blur still looks like a blur. */
+export const BLUR_SLIDER_MIN = 0.06;
+export const BLUR_SLIDER_MAX = 0.24;
 
-/** The slider snaps to the default within this distance. */
-const SNAP_RADIUS = 0.02;
+/** What a new box starts at, and what the slider's reset returns: the middle of the slider. */
+export const DEFAULT_BLUR_STRENGTH: BlurStrength = 0.15;
+
+/** What a blur box saved without a strength (before RED-30) resolves as; it never moves, so old files export unchanged. */
+export const UNSET_BLUR_STRENGTH: BlurStrength = 0.3;
+
+/** The slider's notch is sticky: it snaps to the default within this distance (about 8% of the track each side). */
+const SNAP_RADIUS = 0.015;
 
 const LEGACY_FACTORS: Readonly<Record<string, number>> = {
   light: 0.3,
@@ -68,14 +84,14 @@ export function resolveBlurStrength(strength: unknown): number {
     return LEGACY_FACTORS[strength];
   }
   if (typeof strength === 'number' && Number.isFinite(strength)) return clamp(strength);
-  return DEFAULT_BLUR_STRENGTH;
+  return UNSET_BLUR_STRENGTH;
 }
 
-/** What the slider commits: the default when within reach of it, else hundredths, clamped. */
+/** What the slider commits: the default when within reach of it, else hundredths, clamped to the slider's range. */
 export function snapBlurStrength(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_BLUR_STRENGTH;
   if (Math.abs(value - DEFAULT_BLUR_STRENGTH) <= SNAP_RADIUS + 1e-9) return DEFAULT_BLUR_STRENGTH;
-  return clamp(Math.round(value * 100) / 100);
+  return Math.min(BLUR_SLIDER_MAX, Math.max(BLUR_SLIDER_MIN, Math.round(value * 100) / 100));
 }
 
 /** The blur radius as a plain fraction of the box's height, with no floor applied. */

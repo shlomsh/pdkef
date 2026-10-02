@@ -41,7 +41,7 @@ describe('renderRedactionSurface blur', () => {
     expect(surface.props.style.WebkitBackdropFilter).toBe('none');
   });
 
-  it('defaults to DEFAULT_BLUR_STRENGTH (0.3) as a fraction of the box height, on the child blur layer', () => {
+  it('defaults to UNSET_BLUR_STRENGTH (0.3) as a fraction of the box height, on the child blur layer', () => {
     const child = blurChild(renderRedactionSurface('blur'));
     expect(child.props.class).toBe('redact-surface__blur');
     expect(child.props.style.backdropFilter).toBe('blur(calc(0.3 * 100cqh))');

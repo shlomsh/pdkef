@@ -1683,23 +1683,23 @@ describe('PdfRedactTool UI flow', () => {
         window.dispatchEvent(new MouseEvent('mouseup'));
       });
 
-      await dragBlurSlider(0.4, [0.2, 0.25]);
+      await dragBlurSlider(0.22, [0.1, 0.2]);
 
       const blurLayer = required(box.querySelector<HTMLElement>('.redact-surface__blur'), 'blur layer');
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
 
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
       });
-      // DEFAULT_BLUR_STRENGTH (0.3), so undo restores the box's original,
-      // unpicked strength to that, not 0.4.
+      // DEFAULT_BLUR_STRENGTH, so undo restores the box's original,
+      // unpicked strength to that, not 0.22.
       expect(blurLayer.style.backdropFilter).toContain(`blur(calc(${DEFAULT_BLUR_STRENGTH} * 100cqh))`);
 
       // Redo brings the picked strength back.
       await act(async () => {
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, shiftKey: true, bubbles: true }));
       });
-      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
+      expect(blurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
     });
 
     it('SITE-41: a newly drawn blur box picks up the last-chosen strength', async () => {
@@ -1717,7 +1717,7 @@ describe('PdfRedactTool UI flow', () => {
       });
       await act(async () => { window.dispatchEvent(new MouseEvent('mouseup')); });
 
-      await dragBlurSlider(0.4);
+      await dragBlurSlider(0.22);
 
       await act(async () => { blurBtn.click(); });
       await drawBox(drawArea, 50, 550, 200, 700);
@@ -1725,7 +1725,7 @@ describe('PdfRedactTool UI flow', () => {
       const secondBox = boxes[boxes.length - 1] as HTMLElement;
       const secondBlurLayer = required(secondBox.querySelector<HTMLElement>('.redact-surface__blur'), 'second blur layer');
 
-      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.4 * 100cqh))');
+      expect(secondBlurLayer.style.backdropFilter).toContain('blur(calc(0.22 * 100cqh))');
     });
 
     // --- E1.5: generalize the whiteout-resize post-mortem's three gesture
@@ -2840,9 +2840,9 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(boxes()[1])).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 0.3 is DEFAULT_BLUR_STRENGTH (blurStrength.ts, RED-24), so
-      // 0.4 is the choice that actually differs from what a fresh blur box starts with.
-      await dragBlurSlider(0.4);
+      // 0.22 is inside the slider's range and differs from what a fresh blur box
+      // starts with (DEFAULT_BLUR_STRENGTH, blurStrength.ts).
+      await dragBlurSlider(0.22);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(boxes()[1])).toBe(after);
@@ -2901,8 +2901,8 @@ describe('PdfRedactTool UI flow', () => {
       expect(filterOf(copyOnPage2)).toBe(before);
 
       await selectBox(boxes()[0]);
-      // 0.3 is DEFAULT_BLUR_STRENGTH (RED-24), so 0.4 actually differs.
-      await dragBlurSlider(0.4);
+      // 0.22 is inside the slider's range and differs from DEFAULT_BLUR_STRENGTH.
+      await dragBlurSlider(0.22);
       const after = filterOf(boxes()[0]);
       expect(after).not.toBe(before);
       expect(filterOf(otherFoundBox)).toBe(after);
