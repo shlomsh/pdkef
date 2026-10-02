@@ -135,8 +135,8 @@ reported as such. A number the copy quotes is one this test asserts.
 - [x] A compressed PDF keeps its text and its links: `compressImages.test.js` re-analyses the output of `mixed.pdf` (text present, one URI annotation).
 - [x] Levels and Target Size act on images only; flatten is a separate, labelled switch ("Turn pages into pictures", off by default).
 - [x] The compare slider renders both sides at the same scale and labels what changed. *As built:* both sides go through one `renderComparePreview` at the same page size (the image path never changes page geometry), labelled Original / Compressed, with the notice below naming what changed ("Only the images were made smaller..."); `compare-preview.spec.js` runs on `mixed.pdf`.
-- [ ] The KPI test holds the floors above and the copy quotes nothing beyond them.
-- [ ] `check:push` green; the compress e2e specs updated for the new flow.
+- [x] The KPI test holds the floors above and the copy quotes nothing beyond them. *As built:* the tool's cards and FAQ quote no ranges, only the code's own settings; the two guide pages quote the generated scan set, reproducible with `scripts/generate-compress-guide-scans.mjs`.
+- [x] `check:push` green; the compress e2e specs updated for the new flow (2026-10-03, with `check:e2e` green).
 
 ## Progress notes
 
