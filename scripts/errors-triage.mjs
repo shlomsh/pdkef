@@ -3,7 +3,7 @@
 import { classify, describeFingerprint, findEntry } from './errors-known.mjs';
 
 const ORDER = { regression: 0, unverifiable: 1, new: 2 };
-const LABEL = { regression: 'REGRESSION', unverifiable: 'UNVERIFIED', new: 'NEW' };
+const LABEL = { regression: 'REGRESSION', unverifiable: 'UNVERIFIED', new: 'UNKNOWN' };
 
 function parseSample(raw) {
   try {
@@ -38,11 +38,16 @@ export function triage({ table, samples, history, entries, run }) {
 function newness(history) {
   if (!history) return '';
   if (history.noHistory) return 'no earlier days to compare';
-  if (history.isNew) return `new, first seen ${history.firstSeen}`;
-  return `recurring, first seen ${history.firstSeen}, seen ${history.daysSeen} of ${history.historyDays} days`;
+  // Within the fetched history only: "first seen" is a floor, and a rebuilt chunk changes the fingerprint's hash.
+  if (history.isNew) return `not seen on earlier days (first seen ${history.firstSeen})`;
+  return `seen on ${history.daysSeen} of ${history.historyDays} days (earliest in history: ${history.firstSeen})`;
 }
 
 const describe = ({ count, fp }) => `${count}x ${fp.area} ${fp.name} ${fp.step} on ${fp.slug || '?'} (${fp.engine})`;
+
+// The store keeps one sample per fingerprint per day, so a verdict that depends on the build (a known fix) is
+// read from the latest report while the count covers them all. Say so rather than imply all N were judged.
+const basis = (i) => (i.entry && !i.entry.open && i.count > 1 ? `judged on the latest of ${i.count} reports` : '');
 
 /** The lines errors:read prints first. `rates` is toolRates()'s output; flagged tools join "Needs attention". */
 export function renderTriage({ needs, known }, rates) {
@@ -53,7 +58,7 @@ export function renderTriage({ needs, known }, rates) {
   else {
     out.push(`Needs attention (${total})`);
     for (const i of needs) {
-      const tail = [i.verdict.reason, newness(i.history)].filter(Boolean).join('; ');
+      const tail = [i.verdict.reason, basis(i), newness(i.history)].filter(Boolean).join('; ');
       out.push(`  ${LABEL[i.verdict.category]}  ${describe(i)}: ${tail}${i.verdict.ticket ? ` (${i.verdict.ticket})` : ''}`);
     }
     for (const r of rising) out.push(`  RISING  ${r.tool}: ${r.why}`);
@@ -61,7 +66,7 @@ export function renderTriage({ needs, known }, rates) {
   if (known.length) {
     out.push(`Known, not actionable (${known.length})`);
     for (const i of known) {
-      out.push(`  ${describe(i)}: ${[i.verdict.ticket, i.verdict.reason, newness(i.history)].filter(Boolean).join('; ')}`);
+      out.push(`  ${describe(i)}: ${[i.verdict.ticket, i.verdict.reason, basis(i), newness(i.history)].filter(Boolean).join('; ')}`);
     }
   }
   return out;

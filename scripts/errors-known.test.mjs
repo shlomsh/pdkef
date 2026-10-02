@@ -29,6 +29,7 @@ describe('toSlug', () => {
     ['/he/merge/', 'merge'],
     ['/unlock/', 'unlock'],
     ['/', 'home'],
+    ['/he/', 'home'],
     ['', ''],
     [undefined, ''],
     [42, ''],
@@ -68,10 +69,20 @@ describe('matchEntry / findEntry', () => {
 });
 
 describe('validateRegistry', () => {
-  const ok = { id: 'A', ticket: 'T-1', title: 't', match: { area: 'x' }, fixedIn: 'abcdef1' };
+  const ok = { id: 'A', ticket: 'T-1', title: 't', match: { area: 'x', step: 'y' }, fixedIn: 'abcdef1' };
   it('accepts the real registry', () => expect(validateRegistry(REGISTRY)).toEqual([]));
-  it('has exactly the three known entries', () => {
-    expect(REGISTRY.map((r) => r.id)).toEqual(['DEBT-30', 'ENC-02', 'DEBT-34']);
+  it('still holds the entries the digest was built around', () => {
+    expect(REGISTRY.map((r) => r.id)).toEqual(expect.arrayContaining(['DEBT-30', 'ENC-02', 'DEBT-34']));
+  });
+  it('rejects a match with a single key, which would swallow a whole area', () => {
+    expect(validateRegistry([{ ...ok, match: { area: 'uncaught' } }]).join()).toMatch(/at least two/i);
+  });
+  it('rejects an empty string in a match, which matches a missing field', () => {
+    expect(validateRegistry([{ ...ok, match: { area: 'x', slug: '' } }]).length).toBeGreaterThan(0);
+    expect(validateRegistry([{ ...ok, match: { area: 'x', step: [''] } }]).length).toBeGreaterThan(0);
+  });
+  it('rejects a fixedIn that is not a string, even when it looks like hex', () => {
+    expect(validateRegistry([{ ...ok, fixedIn: 1234567 }]).length).toBeGreaterThan(0);
   });
   it('rejects a non-array', () => expect(validateRegistry({}).length).toBeGreaterThan(0));
   it('rejects duplicate ids', () => expect(validateRegistry([ok, ok]).join()).toMatch(/duplicate/i));
@@ -123,10 +134,12 @@ describe('classify', () => {
     expect(r).toMatchObject({ category: 'unverifiable', actionable: true });
     expect(r.reason).toMatch(/git could not tell/);
   });
-  it('no build and the fix newer than stamping is an old tab', () => {
+  it('no build and the fix newer than stamping is most likely an old tab, never certain', () => {
+    // A build deployed without a commit (a CLI deploy) sends no stamp either, so this cannot be a certainty.
     const r = classify({ entry, build: undefined, run: fakeGit({ [`aaaaaaa>${STAMP_COMMIT}`]: false }) });
-    expect(r).toMatchObject({ category: 'old_tab', actionable: false });
-    expect(r.reason).toBe('no build stamp, and the fix is newer than stamping, so this tab predates it');
+    expect(r).toMatchObject({ category: 'likely_old_tab', actionable: false });
+    expect(r.reason).toMatch(/most likely/);
+    expect(r.reason).toMatch(/without a commit/);
   });
   it('no build and the fix older than stamping is unverifiable', () => {
     const r = classify({ entry, build: undefined, run: fakeGit({ [`aaaaaaa>${STAMP_COMMIT}`]: true }) });
