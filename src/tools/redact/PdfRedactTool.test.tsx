@@ -520,13 +520,13 @@ describe('PdfRedactTool UI flow', () => {
       expect(query<HTMLElement>(container, '[data-editor-actions] [data-redact-color-recent="#abcdef"]')).not.toBeNull();
     });
 
-    it('RED-53: a pick lands on top of the stored list and the toolbar shows both', async () => {
-      rememberRecentWhiteoutColor('#abcdef', []);
+    it('RED-53: a pick merges another tab\'s stored colour and the toolbar shows both', async () => {
       await drawWhiteoutAndSelect();
+      rememberRecentWhiteoutColor('#abcdef', []); // another tab writes after this one mounted
       await setSelectedBoxColor('#112233');
-      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
       const tiles = Array.from(container.querySelectorAll<HTMLElement>('[data-editor-actions] [data-redact-color-recent]'));
       expect(tiles.map((t) => t.getAttribute('data-redact-color-recent'))).toEqual(['#112233', '#abcdef']);
+      expect(getRecentWhiteoutColors()).toEqual(['#112233', '#abcdef']);
     });
 
     it('RED-53: a pick on one box is offered as a recent colour on another auto box', async () => {
