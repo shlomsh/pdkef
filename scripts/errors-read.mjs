@@ -1,10 +1,15 @@
-// Prints the anonymous error counts (DEBT-17): npm run errors:read -- [--days 7]
+// Prints the anonymous error counts (DEBT-17): npm run errors:read -- [--days 7] [--history 14]
+// --days is the window the tables count; --history (default 14, never less than --days) is how far back
+// first-seen and the per-tool baseline look (DEBT-36). The output leads with "Needs attention".
 // Env comes from process.env, else .env.local (written by `vercel env pull`).
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sampleLines } from './errors-frames.mjs';
+import { fingerprintHistory, parseDayReplies, sliceWindow, toolRates } from './errors-insights.mjs';
+import { validateRegistry } from './errors-known.mjs';
+import { renderTriage, triage } from './errors-triage.mjs';
 
 // The one git door for the stale-tab note: repo root, short timeout; failures are caught by the caller.
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -59,7 +64,9 @@ if (!url || !token) {
 
 const i = process.argv.indexOf('--days');
 const days = Math.max(1, Number(i > -1 ? process.argv[i + 1] : 7) || 7);
-const keys = Array.from({ length: days }, (_, n) =>
+const h = process.argv.indexOf('--history');
+const history = Math.max(days, Number(h > -1 ? process.argv[h + 1] : 14) || 14);
+const allKeys = Array.from({ length: history }, (_, n) =>
   new Date(Date.now() - n * 864e5).toISOString().slice(0, 10),
 );
 
@@ -67,11 +74,11 @@ const res = await fetch(`${url.replace(/\/+$/, '')}/pipeline`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify([
-    ...keys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
-    ...keys.map((d) => ['HGETALL', `events:${d}`]),
-    ...keys.map((d) => ['HGETALL', `usage:${d}`]),
-    ...keys.map((d) => ['GET', `errors:total:${d}`]),
-    ...keys.map((d) => ['GET', `usage:total:${d}`]),
+    ...allKeys.flatMap((d) => [['HGETALL', `errors:${d}`], ['HGETALL', `errors:sample:${d}`]]),
+    ...allKeys.map((d) => ['HGETALL', `events:${d}`]),
+    ...allKeys.map((d) => ['HGETALL', `usage:${d}`]),
+    ...allKeys.map((d) => ['GET', `errors:total:${d}`]),
+    ...allKeys.map((d) => ['GET', `usage:total:${d}`]),
   ]),
 });
 if (!res.ok) {
@@ -83,7 +90,11 @@ if (!res.ok) {
 // in pairs per day: counts, then samples (newest day first, so the first sample seen wins).
 const rows = new Map();
 const samples = new Map();
-const replies = await res.json();
+const fetched = await res.json();
+// Everything below the tables reads the window only; first-seen and the baseline read all `history` days.
+const perDay = parseDayReplies(fetched, allKeys);
+const keys = allKeys.slice(0, days);
+const replies = sliceWindow(fetched, history, days);
 const eventReplies = replies.slice(keys.length * 2, keys.length * 3);
 const usageReplies = replies.slice(keys.length * 3, keys.length * 4);
 const errorTotals = replies.slice(keys.length * 4, keys.length * 5).map((r) => Number(r?.result) || 0);
@@ -98,9 +109,61 @@ replies.slice(0, keys.length * 2).forEach(({ result }, idx) => {
   }
 });
 const table = [...rows].sort((a, b) => b[1] - a[1]);
+
+// Anything that makes this read incomplete is said before the verdict, so "nothing needs attention" is never an
+// all-clear by accident: a store that answered with errors or too little, or a day that hit its cap.
+const problems = [];
+const badReplies = Array.isArray(fetched) ? fetched.filter((r) => !r || r.error !== undefined).length : 0;
+if (!Array.isArray(fetched) || badReplies || fetched.length < allKeys.length * 6) {
+  problems.push(`WARNING: the store returned errors or too little (${badReplies} bad of ${Array.isArray(fetched) ? fetched.length : 0} replies, ${allKeys.length * 6} expected), so this read is incomplete`);
+}
+// The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
+keys.forEach((day, n) => {
+  if (errorTotals[n] > DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${DAILY_CAP} error reports and Sign events; later ones that day were not counted`);
+  if (usageTotals[n] > USAGE_DAILY_CAP) problems.push(`WARNING: ${day} reached the daily cap of ${USAGE_DAILY_CAP} tool usage events; later ones that day were not counted`);
+});
+for (const line of problems) console.log(line);
+
+// The verdict first (DEBT-36). Builds are looked up in git, so bring origin up to date, but only when there is
+// something to look up; offline or failing, the verdicts degrade to "unverifiable", never an error.
+if (table.length && !process.env.ERRORS_READ_OFFLINE) {
+  try {
+    execFileSync('git', ['fetch', '-q', 'origin'], { cwd: repoRoot, timeout: 20000, stdio: 'ignore' });
+  } catch {
+    // expected: offline or no remote; verdicts that need git then say they could not tell
+  }
+}
+// The registry as origin/main has it, so a shared checkout that lags does not make known crashes read as new;
+// the working-tree file is the fallback.
+const REGISTRY = 'docs/error-known-items.json';
+let knownItems = [];
+try {
+  let text;
+  try {
+    text = runGit(['show', `origin/main:${REGISTRY}`]);
+  } catch {
+    // expected: no origin/main here, read the working tree instead
+    text = readFileSync(path.join(repoRoot, REGISTRY), 'utf8');
+  }
+  knownItems = JSON.parse(text);
+  const invalid = validateRegistry(knownItems);
+  if (invalid.length) {
+    console.log(`${REGISTRY} is invalid, treating every report as unknown: ${invalid.join('; ')}`);
+    knownItems = [];
+  }
+} catch (error) {
+  console.log(`${REGISTRY} could not be read (${error.message}); treating every report as unknown`);
+}
+const verdicts = triage({ table, samples, history: fingerprintHistory(perDay, days), entries: knownItems, run: runGit });
+for (const line of renderTriage(verdicts, toolRates(perDay, days))) console.log(line);
+console.log(`(window ${days} day${days === 1 ? '' : 's'}, history ${history}; today is a partial UTC day; a fingerprint includes its chunk hash, so a rebuilt chunk reads as a new one)\n`);
+const verdictByField = new Map([...verdicts.needs, ...verdicts.known].map((item) => [item.field, item.verdict]));
+
 console.log('count | area | name | frame | step | engine');
 for (const [field, count] of table) {
   console.log(`${count} | ${field.split('|').join(' | ')}`);
+  const verdict = verdictByField.get(field);
+  if (verdict) console.log(`    verdict: ${verdict.category} (${verdict.reason})${verdict.ticket ? ` ${verdict.ticket}` : ''}`);
   let sample = null;
   try {
     sample = JSON.parse(samples.get(field) ?? 'null');
@@ -140,13 +203,3 @@ if (usageRows.length) {
   console.log('tool | accepted | started | ready | failed | ready/accepted');
   for (const row of usageRows) console.log(row.join(' | '));
 } else console.log('(none)');
-
-// The total is the INCR count, so a day past the cap reads above it; later events that day went uncounted.
-keys.forEach((day, n) => {
-  if (errorTotals[n] > DAILY_CAP) {
-    console.log(`${day}: error reports and Sign events reached the daily cap of ${DAILY_CAP}; later ones that day were not counted`);
-  }
-  if (usageTotals[n] > USAGE_DAILY_CAP) {
-    console.log(`${day}: tool usage reached the daily cap of ${USAGE_DAILY_CAP}; later ones that day were not counted`);
-  }
-});

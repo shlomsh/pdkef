@@ -1,0 +1,40 @@
+[
+  {
+    "id": "DEBT-30",
+    "ticket": "DEBT-30",
+    "title": "Merge destroys its Sortable twice",
+    "match": {
+      "area": "uncaught",
+      "name": "TypeError",
+      "step": "window_error",
+      "slug": "merge",
+      "module": "sortable.esm"
+    },
+    "fixedIn": "10b3cf24"
+  },
+  {
+    "id": "ENC-02",
+    "ticket": "ENC-02",
+    "title": "Redact on a protected PDF",
+    "match": {
+      "area": "redact",
+      "step": ["export", "list_objects"],
+      "slug": "redact",
+      "module": "pdf-lib"
+    },
+    "fixedIn": "bb156a5b",
+    "note": "the error name is a minified class, so the entry matches on area, step and chunk, not name"
+  },
+  {
+    "id": "DEBT-34",
+    "ticket": "DEBT-34",
+    "title": "Unlock throws 'Buffer is not defined'",
+    "match": {
+      "area": "pdf_tool_run",
+      "name": "ReferenceError",
+      "step": "unlock",
+      "slug": "unlock"
+    },
+    "fixedIn": "01bf5820"
+  }
+]
